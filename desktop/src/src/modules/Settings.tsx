@@ -290,32 +290,32 @@ export interface MemoryService {
   listProjectMemories(): Promise<ProjectMemoryWorkspace[]>;
   readProjectMemoryFile(req: { workspaceId: string; fileName: string }): Promise<{ content: string }>;
 }
-interface McpSyncService {
-  [key: string]: unknown;
-}
-interface PluginManagementService {
-  [key: string]: unknown;
-}
-interface SkillsService {
-  [key: string]: unknown;
-}
-interface ZcodeSessionService {
-  [key: string]: unknown;
-}
-interface WorkspaceServices {
-  settingService: SettingService;
-  mcpSyncService: McpSyncService;
-  pluginManagementService: PluginManagementService;
-  skillsService: SkillsService;
-  zcodeSessionService: ZcodeSessionService;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R180〕死界面普查批首批：本地服务袋簇五面纯删（原 @293-312）——原 20 行 → 本碑 20 行
+ *    = 净零行免重锚（本文件编辑点 @293 之后 `<basename>@NNN` 引证两形合计实测 40 处，故净零行为强制）。
+ *    五面＝McpSyncService（3 行索引签名形，原 @293-295）／PluginManagementService（同形，原 @296-298）／
+ *    SkillsService（同形，原 @299-301）／ZcodeSessionService（同形，原 @302-304）／
+ *    WorkspaceServices（8 行具名袋形，原 @305-312）。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：WorkspaceServices
+ *    代码位读者 0（全文件唯一另命中 @318 係下方 R160 碑之散文）；余四者之唯一代码位读者各为
+ *    @307／@308／@309／@310，皆落在 WorkspaceServices 体内 ⇒ 级联后读者亦 0。
+ *    五面皆未 export ⇒ 跨文件读者结构性不可能（全树同名命中係各该文件自有之本地面：WorkspaceServices 另有
+ *    4 家、SkillsService 另有 9 家、McpSyncService 另有 3 家、ZcodeSessionService 另有 2 家、
+ *    PluginManagementService 另有 7 家，与本文件无导入关系 ⇒ 按 R165 沉淀①不得以全树名计数判死活）；
+ *    且实测全树自本文件导入这五名者 0 家——唯一自本文件之相关 type import 係 stores/sessionRegistryStore@12
+ *    取 MemoryService／SettingService／SystemService，三者皆不在本簇。
+ *    死性来源＝全树死界面普查 r176-deadface-census（v2，本批修其过期对照件）之级联不动点判定 + 独立闭包脚本 r180-closure 复算（两套独立实现互证，R169 沉淀⑥）。
+ *    ★同批改述下方 R160 碑 @318：其「McpSyncService@293 另有活引用 WorkspaceServices@307 → 三者皆不动」
+ *    之前提係「读者自身亦死面」（R176 沉淀③同型），结论今只余 SystemService@279 与 MemoryService@289
+ *    二者成立（拆分感知，二者皆 export 面须保、本批不触）。
+ *    ★本簇之 SettingService@272（export，本文件内读者原 @306）施后本文件内代码位读者归 0，然其经
+ *    stores/sessionRegistryStore@12 之 type import 仍有跨文件读者 ⇒ 按判据Ⓑ仍活、不动。
+ *    ★同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
 /* ── tombstone〔A1-R160〕：本地 `interface BaseServices`（原 @313-318）退役——**死宣告**：本文件内 `BaseServices`
  *    仅原 @313 一处命中（即宣告自身；@159 导入者系异符 `useBaseServices`、@235 系注释、@1071 系调用），且**无 export**
  *    → 文件内零引用。★与 `components/settings/MemorySettingsSection.tsx@27` 之同名本地面**逐字节全等**（diff 实测
  *    IDENTICAL），同批同退（彼处见同批碑）。canonical 宽面在 `stores/sessionRegistryStore.ts@34`（经 stores-core 再导出）。
  *    ★无 cascade：本文件 `SystemService`@279 / `MemoryService`@289 皆 **export 面须保**，`McpSyncService`@293 另有活引用
- *    `WorkspaceServices`@307 → 三者皆不动。 ── */
+ *    `WorkspaceServices`@307 → 三者皆不动。〔A1-R180〕★上句「三者皆不动」今只余二者成立（拆分感知）：SystemService@279 与 MemoryService@289 确仍保留（皆 export 面须保、本批不触）；而 @317 所称「McpSyncService@293 另有活引用 WorkspaceServices@307」之该「活引用」其读者自身係死面（WorkspaceServices 代码位读者 0、全文件唯一另命中 @318 即本碑散文；R176 沉淀③同型），故 McpSyncService 与 WorkspaceServices 连同 PluginManagementService／SkillsService／ZcodeSessionService 共五面已随本批纯删（原 20 行 → 20 行等行墓碑 @293-312，证据见上方新碑）。 ── */
 
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
  *    改经文件头 ./UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。

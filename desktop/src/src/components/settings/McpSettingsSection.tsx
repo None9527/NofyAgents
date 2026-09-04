@@ -1,5 +1,5 @@
 // A0-S4-4a: 自 modules/Settings.tsx MCP 分区（§13，原 G$t）原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 3465–4278；§0 RemoteTarget/PlatformService/usePlatformService/McpSyncService/WorkspaceTabsStoreState/useWorkspaceTabsStore/remoteTargetDisplayLabel 声明随族迁入。〔A1-R176〕★上句七名之 referent 现状：McpSyncService（@41-43）仍在；PlatformService（@29-39）仍在然其代码位读者实测为 0（★下方 @40 之 R46 碑称「本地 PlatformService 接口保留为他面型参用」经 token 级掩码实测为假、本件係死面，候死界面普查批处置、本批不动亦不归因本批）；WorkspaceTabsStoreState 已随本批面收敛销账（连同本地 WorkspaceTab 共 13 行等行墓碑 @44-56）；RemoteTarget（R50）／usePlatformService（R46）／useWorkspaceTabsStore（R166）／remoteTargetDisplayLabel（R50）四者早经前批退役改指、本批之前即已失 referent（按 R174 沉淀③Ⓑ明记为既存陈旧）；上句系迁入史实、不删旧文。
+// 迁出体 = 原文件 3465–4278；§0 RemoteTarget/PlatformService/usePlatformService/McpSyncService/WorkspaceTabsStoreState/useWorkspaceTabsStore/remoteTargetDisplayLabel 声明随族迁入。〔A1-R176〕★上句七名之 referent 现状：McpSyncService（@41-43）仍在；PlatformService（@29-39）仍在然其代码位读者实测为 0（★下方 @40 之 R46 碑称「本地 PlatformService 接口保留为他面型参用」经 token 级掩码实测为假、本件係死面，候死界面普查批处置、本批不动亦不归因本批）；WorkspaceTabsStoreState 已随本批面收敛销账（连同本地 WorkspaceTab 共 13 行等行墓碑 @44-56）；RemoteTarget（R50）／usePlatformService（R46）／useWorkspaceTabsStore（R166）／remoteTargetDisplayLabel（R50）四者早经前批退役改指、本批之前即已失 referent（按 R174 沉淀③Ⓑ明记为既存陈旧）；上句系迁入史实、不删旧文。〔A1-R180〕★上句「PlatformService（@29-39）仍在然其代码位读者实测为 0……候死界面普查批处置、本批不动亦不归因本批」今已兑现：该死面连同本地 WindowControlsOverlayMetrics（@26-28）已于本批纯删（原 14 行 → 14 行等行墓碑 @26-39，证据见该碑）；「McpSyncService（@41-43）仍在」一句仍真（拆分感知，本批不触该面）。
 // PluginRecord 型别取自浏览器分区族文件（原同文件 §12 定义）。
 import * as React from "react";
 import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload, Cable as IconCable, ExternalLink as IconExternalLink } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0。〔A1-P3-B13〕+IconCable（原 A_ = Sa('cable')@26798）/IconExternalLink（原 q_ = Sa('external-link')@27013）：W$t 转录消费
@@ -23,21 +23,21 @@ import type { PluginRecord, ChromeImportResult } from './BrowserSettingsSection'
  *    → 统一属主改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor
  *    opts.remoteTarget 内联抽出；经 modules/ImeComposition type import，既有边）。
  *    消费位 @47（本地 WorkspaceTab.remoteTarget 面）/ @284 props 面逐字不变。〔A1-R176〕★上句两引皆已漂且其一已失 referent：实测两处 remoteTarget 面今在 @48 与 @417（+1／+133；R171 沉淀⑤已以 git show 365327e 证 R50 著笔时两引皆准、其后四批累积致漂）；而 @48 之 referent（本地 WorkspaceTab 面）已随本批销账 ⇒ 今唯一消费位係 @417 之 props 面，@7 之 RemoteTarget 导入经该处仍活故保留。 ── */
-interface WindowControlsOverlayMetrics {
-  rightPaddingPx?: number;
-}
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  selectDirectory(): Promise<string | null>;
-  syncAppSettings?(patch: { closeToTrayOnWindows?: boolean }): void;
-  getWindowControlsOverlayMetrics?(): WindowControlsOverlayMetrics | null;
-  onWindowControlsOverlayChanged?(cb: (m: WindowControlsOverlayMetrics) => void): () => void;
-  importChromeBrowserData?(): Promise<ChromeImportResult>;
-  clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
-  onSettingsChanged?(cb: () => void): () => void;
-}
-/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition 再导出 ≡ components/ime/ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判）。型交叉检查：消费面仅 @677 platform.openExternal（canonical 具体成员，签名逐字同形）；本文件无本地面 pass-through（本地 PlatformService 接口保留为他面型参用）。证据见 A1-R46.report.md §二。 ── */
+/* ── tombstone〔A1-R180〕死界面普查批首批：本地 interface WindowControlsOverlayMetrics（1 员形，原 @26-28）
+ *    与本地 interface PlatformService（9 员形，原 @29-39）纯删——原 14 行 → 本碑 14 行 = 净零行免重锚
+ *    （本文件编辑点 @26 之后 `<basename>@NNN` 引证两形合计实测 26 处，故净零行为强制）。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：PlatformService
+ *    代码位读者 0（全文件另二命中 @2／@40 皆散文）；WindowControlsOverlayMetrics 之唯一代码位读者 @34／@35
+ *    落在 PlatformService 体内 ⇒ 级联后读者亦 0。二者皆未 export ⇒ 跨文件读者结构性不可能（全树同名本地
+ *    副本：PlatformService 另有 14 家、WindowControlsOverlayMetrics 另有 1 家〔shell/WorkspaceShell@275，
+ *    2 员形、与本份 1 员形非逐字节同〕，皆与本文件无导入关系）。
+ *    canonical 属主＝components/ime/ImeComposition@152 export interface PlatformService（R48 富面增补在案）；
+ *    本文件经 @7 既有 import 之 usePlatformService 取用（hook 位 @434、消费位 @814 platform.openExternal）。
+ *    ★同批改述下方 @40 之 R46 碑（假理据「保留为他面型参用」+ 已漂引证「@677」）。★先例＝modules/Settings
+ *    @217-227 之 R49 碑（同款「本地 PlatformService 九员面 + WindowControlsOverlayMetrics 孤儿型」纯删）。
+ *    ★随批登记：@19 之 type ChromeImportResult 随本簇删除成为未用导入 specifier（两 tsconfig 皆无
+ *    noUnusedLocals 故不报错；先例 R160 MemorySettingsSection@12 type SystemService），本批不动该行。 ── */
+/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition 再导出 ≡ components/ime/ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判）。型交叉检查：消费面仅 @677 platform.openExternal（canonical 具体成员，签名逐字同形）；本文件无本地面 pass-through（本地 PlatformService 接口保留为他面型参用）。证据见 A1-R46.report.md §二。〔A1-R180〕★上句两处今已失据（拆分感知，本碑之 usePlatformService 改指裁定与其证据不受影响）：①「本文件无本地面 pass-through（本地 PlatformService 接口保留为他面型参用）」之后半括注经 token 级掩码实测代码位读者为 0 ⇒ 该理据从未成立（R176 沉淀⑦已查获并登记、本批兑现处置），本地 PlatformService（9 员形，原 @29-39）连同本地 WindowControlsOverlayMetrics（1 员形，原 @26-28）已随本批纯删（原 14 行 → 14 行等行墓碑 @26-39）；②「消费面仅 @677 platform.openExternal」之引证已漂——今 @677 係 workspacePath 赋值行，真消费位在 @814、hook 位在 @434，该二者逐字未变、本批不触。 ── */
 interface McpSyncService {
   [key: string]: unknown;
 }

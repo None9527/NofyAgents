@@ -104,9 +104,9 @@ interface CommandsService {
 interface HooksService {
   [key: string]: unknown;
 }
-interface PluginManagementService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R180〕死界面普查批首批：本地 interface PluginManagementService（3 行索引签名形）纯删。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法）：本文件代码位读者 0、散文位亦 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
 /* ── tombstone〔A1-R47〕：interface ZcodeAgentService 删除——唯一引用者为本批改指的 useWorkspaceAgentService declare（原 Ag → services/workspaceServiceHooks
  *  useSessionService@406 canonical，R37 既判），改指后本文件对该接口零引用（grep 实测：改前 2 处 = 定义 + declare 返回型引用），孤儿型块。
  *  历史角色：A0 期 declare 返回型 `{ createTask: ZcodeAgentService["createTask"] }` 占位——本文件实际消费仅 zcodeSessionService 直通

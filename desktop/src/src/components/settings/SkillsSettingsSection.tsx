@@ -110,9 +110,9 @@ interface CommandsService {
 interface HooksService {
   [key: string]: unknown;
 }
-interface PluginManagementService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R180〕死界面普查批首批：本地 interface PluginManagementService（3 行索引签名形）纯删。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法）：本文件代码位读者 0、散文位亦 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
 interface ZcodeAgentService {
   createTask(request: {
     workspacePath: string;

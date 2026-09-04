@@ -159,7 +159,7 @@ export interface PlatformService {
   reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
   /** A1-R11（JM 53511 真形）：运行时偏好同步（settingService.update 之后随补丁广播） */
   syncAppSettings?(patch: unknown): void;
-  /** A1-R11（JM 53505 真形）：宿主设置变更订阅；返回取消函数（McpSettingsSection 40/BrowserSettingsSection 31 本地面同形） */
+  /** A1-R11（JM 53505 真形）：宿主设置变更订阅；返回取消函数（McpSettingsSection 40/BrowserSettingsSection 31 本地面同形）〔A1-R180〕★上句两引今皆失 referent（拆分感知，本员 onSettingsChanged 之签名与裁定不受影响）：「McpSettingsSection 40」所指之本地 PlatformService 面（9 员形，原 @29-39，其 onSettingsChanged 成员与本员同形）已随本批纯删（原 14 行 → 14 行等行墓碑 @26-39）；「BrowserSettingsSection 31」所指之本地面早于 A1-R48 退役（今 @31 係 R48 碑之散文行）⇒ 该一半係本批之前即已陈旧、不归因本批亦不放过（R174 沉淀③Ⓑ）。 */
   onSettingsChanged?(callback: () => void): () => void;
   /** A1-R15 型缝（vWe 54319 消费面）：窗口截图（宿主桥接；rendererEntry 534 提供面同形，TopBar 187 本地面已列） */
   captureWindowScreenshot?(): Promise<Blob | null>;
