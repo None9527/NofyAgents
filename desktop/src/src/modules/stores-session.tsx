@@ -60,7 +60,7 @@ export interface WorkspaceTab {
   remoteTarget?: unknown;
   [key: string]: unknown;
 }
-declare function isWorkspaceTab(tab: unknown): tab is WorkspaceTab;
+/* ── tombstone〔A1-R165〕死桩销账：isWorkspaceTab（本文件零消费点、未导出、全树零导入者）；canonical = modules/WorkspaceTabsDeep.tsx::isWorkspaceKindTab，他文件以别名导入而本桩从未接线 ── */
 
 /* ─────────────────────────── A0-S4-3 shim ───────────────────────────
  * 4+1 个 store 实体已原样迁入 ../stores/（见上方头块注记）；本文件保留

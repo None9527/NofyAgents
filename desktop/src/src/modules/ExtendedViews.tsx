@@ -358,36 +358,36 @@ declare function useSettingsSnapshot(): {
 
 /* --- 模型供应商注册表 / 权益 / coding plan（F12 接线） --- */
 
-declare function useModelProviderRegistry(): {
-  modelProviders: ModelProviderInfo[];
-  displayOrder: string[];
-  loading: boolean;
-};
+/* ── tombstone〔A1-R165〕死桩销账：useModelProviderRegistry（本文件零消费点、未导出、全树零导入者）
+ *  canonical = components/payments/PaymentDeep.tsx::useModelProvidersStore；他文件以 `useModelProvidersStore as useModelProviderRegistry` 别名导入，本桩从未接线。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ ── */
 
 interface EntitlementSnapshot {
   snapshot: unknown;
   [key: string]: unknown;
 }
-declare function useEntitlements(params: {
-  modelProviders: ModelProviderInfo[];
-  loading: boolean;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-}): { entitlements: Record<string, EntitlementSnapshot | undefined> };
+/* ── tombstone〔A1-R165〕死桩销账：useEntitlements（本文件零消费点、未导出、全树零导入者）
+ *  canonical = components/payments/PaymentDeep.tsx::useCodingPlanEntitlements；他文件以 `useCodingPlanEntitlements as useEntitlements` 别名导入，本桩从未接线。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ ── */
 
-declare function useCodingPlanUpgrade(): {
-  openCodingPlanUpgrade: (params: {
-    providerId: string;
-    initialAudience: "personal" | "team";
-    funnelContext: unknown;
-  }) => void;
-};
+/* ── tombstone〔A1-R165〕死桩销账：useCodingPlanUpgrade（本文件零消费点、未导出、全树零导入者）
+ *  canonical = components/payments/PaymentDeep.tsx::useCodingPlanUpgradeDialog；他文件以 `useCodingPlanUpgradeDialog as useCodingPlanUpgrade` 别名导入，本桩从未接线。
+ *  原 declare 共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ ── */
 
 /** 原 FM（js 53219）：闲时升级漏斗上下文 */
-declare function buildIdleUpgradeFunnelContext(params: {
-  providerId: string;
-  eventText: string;
-  entryPlanState: unknown;
-}): unknown;
+/* ── tombstone〔A1-R165〕死桩销账：buildIdleUpgradeFunnelContext（本文件零消费点、未导出、全树零导入者）
+ *  canonical = components/shell/Home.tsx::buildCodingPlanFunnelContext；他文件以 `buildCodingPlanFunnelContext as buildIdleUpgradeFunnelContext` 别名导入，本桩从未接线。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ ── */
 
 /** 原 LM（js 53251）：入口 plan 状态快照 */
 declare function resolveEntryPlanState(params: {
@@ -710,9 +710,9 @@ interface WorkspaceTabStoreHook {
 }
 declare const useWorkspaceTabStore: WorkspaceTabStoreHook;
 /** 原 oc：标签可用性判定 */
-declare function isWorkspaceTabUsable(tab: WorkspaceTab): boolean;
+/* ── tombstone〔A1-R165〕死桩销账：isWorkspaceTabUsable（本文件零消费点、未导出、全树零导入者）；canonical = modules/WorkspaceTabsDeep.tsx::isWorkspaceKindTab，他文件以别名导入而本桩从未接线 ── */
 /** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
-declare function isRemoteScopedTab(tab: WorkspaceTab | null | undefined): boolean;
+/* ── tombstone〔A1-R165〕死桩销账：isRemoteScopedTab（本文件零消费点、未导出、全树零导入者）；canonical = components/automations/AutomationEditor.tsx::isRemoteWorkspaceTab，他文件以别名导入而本桩从未接线 ── */
 
 /* --- 会话快照运行时（treemapping 用；原 _w/mw/k0/u1） --- */
 
@@ -797,9 +797,9 @@ interface TelemetryEvent {
   [key: string]: unknown; // A0-CLEANUP3 3b：流入 StoresDeep.TelemetryReport（带索引签名），接口级补齐
 }
 /** 原 ri：创建限制错误判定 */
-declare function isCreateLimitError(error: string | null): boolean;
+/* ── tombstone〔A1-R165〕死桩销账：isCreateLimitError（本文件零消费点、未导出、全树零导入者）；canonical = modules/SrcSharedB.tsx::isAutomationCreateLimitError，他文件以别名导入而本桩从未接线 ── */
 /** 原 vee：闲时遥测默认供应商常量 */
-declare const OFFPEAK_TELEMETRY_DEFAULT_PROVIDER: string;
+/* ── tombstone〔A1-R165〕死桩销账：OFFPEAK_TELEMETRY_DEFAULT_PROVIDER（本文件零消费点、未导出、全树零导入者）；canonical = modules/SrcSharedB.tsx::OFFPEAK_IDLE_PLAN_ID，他文件以别名导入而本桩从未接线 ── */
 
 /* --- 模型轨迹数据模型 --- */
 
