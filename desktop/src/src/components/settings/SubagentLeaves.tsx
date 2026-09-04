@@ -8,7 +8,7 @@ import { ModelSelector, type ModelGroup } from '../../modules/Composer';
 import { Input } from '../../modules/ImeComposition';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from '../../modules/Settings';
 import { cn } from '../../modules/UtilsCn';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import {
   joinTestidParts as testidTemplate, // Xa
   subagentRowTestid as TESTID_SUBAGENT_ROW, // Ite
@@ -23,9 +23,9 @@ import { buildThoughtLevelOptionFromCatalog, parseLooseModelValue as parseModelR
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @11 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    读者 1 处：@44 属性面 intl: IntlShape → 名与位置逐字不变。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 
 export interface SelectItemEntry {
   key?: string;

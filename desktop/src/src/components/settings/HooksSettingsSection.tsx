@@ -10,7 +10,7 @@ import { BackLinkButton, SelectContent, SelectItem, SelectTrigger, SelectValue, 
 import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { useHooksStore, usePluginsStore } from '../../modules/stores-workspace';
 import { cn } from '../../modules/UtilsCn';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
@@ -19,9 +19,9 @@ import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettin
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @13 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★别名落为**未用**：本文件**零代码读者** → 纯死面退役；未用别名合法（两 tsconfig 皆无 noUnusedLocals），先例 components/conversation/AutomationCards@6（全文件 IntlShape 命中恰 1＝导入行自身）。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 
 
 interface PlatformService {

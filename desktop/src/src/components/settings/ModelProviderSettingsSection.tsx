@@ -9,7 +9,7 @@ import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../m
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
 import { useServices } from '../../modules/services';
 import { resolveCodingPlanProviderHeaders, type CaptchaConfig } from '../../modules/ConversationLeaves'; // A1-R16：pCt declare 删碑改指（118459 逐字实体）+ 型缝 CaptchaConfig
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals';
 import { useSettingsStore as useAppPreferenceStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppPreferenceStore=useSettingsStore（symbol-index x6）；选择器面 1512–1516 五字段（requestLoginEntry/setUser/oauthError/setOAuthError/markModelProviderFamilyConnectionTransition）= SettingsState 实有字段（bundle 192134–192138 同面）。环安全：stores-core 值闭包不达 components/settings
@@ -30,9 +30,9 @@ import { usePlatformService, type PlatformService } from '../../modules/ImeCompo
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @12 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    读者 3 处：@293／@552／@815 属性面 intl: IntlShape → 名与位置逐字不变。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 

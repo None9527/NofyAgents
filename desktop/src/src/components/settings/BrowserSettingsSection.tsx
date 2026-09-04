@@ -1,5 +1,5 @@
 // A0-S4-4a: 自 modules/Settings.tsx 浏览器分区（§12，原 O2t）原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 3120–3464；§0 IntlShape/PlatformService/usePlatformService/PluginManagementService/ZcodeSessionService 声明随族迁入。
+// 迁出体 = 原文件 3120–3464；§0 IntlShape/PlatformService/usePlatformService/PluginManagementService/ZcodeSessionService 声明随族迁入。〔A1-R174〕★上句「IntlShape」之 referent 已随本批面收敛移至 @10 之 modules/I18n 导入行（本地 3 行界面已销账、改采 type ZCodeIntl as IntlShape 别名）；「PlatformService」与「usePlatformService」早经 A1-R48 退役（墓碑 @22、改指导入 @6，本批之前即已失 referent）；余二者仍在（PluginManagementService @34／ZcodeSessionService @37）；上句系迁入史实、不删旧文。
 // ChromeImportResult/PluginRecord 补 export：前者供 shim §0 PlatformService 签名 type import，后者供 MCP 分区族 type import（型别面，零运行时影响）。
 import * as React from "react";
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
@@ -7,15 +7,15 @@ import { toast, usePlatformService } from '../../modules/ImeComposition'; // 〔
 import { useSkillsStore } from '../../modules/SkillStore';
 import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore } from '../../modules/stores-workspace';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { t as logger } from '../../modules/logger';
 import { SettingsRow, SettingsSectionCard, Switch, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from './SettingsRowPrimitives';
 import { PendingOperationButton } from './SettingsShellParts';
 
 /* §0 声明群随族迁入（原 178–180 / 202–213 / 293–295 / 299–301） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @10 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    读者 1 处：@60 索引取用形（取 IntlShape 之 formatMessage 成员型），所在函数 resolveBrowserImportResultMessage 经 modules/Settings@815 再导出 → 别名与删除同批原子施行；索引面同式先例 WebRemote（A1-R173、型缝 0）。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 /* ── tombstone〔A1-R48〕：本地 WindowControlsOverlayMetrics 型删除——随 PlatformService 面碑化孤儿（本文件无余引用）；
  *    canonical 富面 getWindowControlsOverlayMetrics?/onWindowControlsOverlayChanged? 以结构内联
  *    { rightPaddingPx?: number } 收边（型面逐字同形）。 ── */

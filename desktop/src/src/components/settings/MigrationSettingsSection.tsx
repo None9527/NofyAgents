@@ -1,5 +1,5 @@
 // A0-S4-4a: 自 modules/SettingsPanelsData.tsx §2 迁移分区 原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 §0 局部声明（IntlShape）+ §2 全段（732–1272）。导入路径按 components/settings/ 深度改指 ../../modules/。
+// 迁出体 = 原文件 §0 局部声明（IntlShape）+ §2 全段（732–1272）。导入路径按 components/settings/ 深度改指 ../../modules/。〔A1-R174〕★上句「§0 局部声明（IntlShape）」之 referent 已随本批面收敛**全数**移至 @15 之 modules/I18n 导入行（本地 3 行界面已销账、改采 type ZCodeIntl as IntlShape 别名）→ §0 今无残留声明；上句系迁入史实、不删旧文。
 import * as React from "react";
 import { LoaderCircle as SpinnerIcon, RefreshCcw as RefreshIcon, TriangleAlert as AlertIcon, CheckIcon, DownloadIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { CardAction, CardDescription, CardHeader, CardTitle } from '../ui/card'; // A0-S3c：vendored 原语 → npm/components-ui
@@ -12,13 +12,13 @@ import { Badge } from '../../modules/PaymentDeep';
 import { Alert, AlertDescription, Select as SelectRoot, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { SettingsCard as Card, SettingsCardContent as CardContent } from '../../modules/Settings'; // B3 / V3
 import { cn } from '../../modules/UtilsCn';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useCachedTaskService } from '../../modules/services'; // A1-R47：+useCachedTaskService（原 kg 收敛改指；canonical ≡ workspaceServiceHooks@287）
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @15 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    读者 1 处：@222 migrationSkipReasonLabel 之参面 intl: IntlShape → 名与位置逐字不变。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 
 
 /* ============================================================================

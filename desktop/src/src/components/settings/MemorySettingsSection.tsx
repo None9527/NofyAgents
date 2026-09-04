@@ -1,20 +1,20 @@
 // A0-S4-4a: 自 modules/Settings.tsx 记忆分区 + 记忆查看器（§10，原 E2t/w2t）原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 2516–3073；§0 IntlShape/ProjectMemoryWorkspace/BaseServices/useZCodeStore/ZCodeStoreState 声明随族迁入；
+// 迁出体 = 原文件 2516–3073；§0 IntlShape/ProjectMemoryWorkspace/BaseServices/useZCodeStore/ZCodeStoreState 声明随族迁入；〔A1-R174〕★上句「IntlShape」之 referent 已随本批面收敛移至 @8 之 modules/I18n 导入行（本地 3 行界面已销账、改采 type ZCodeIntl as IntlShape 别名）；「BaseServices」早经 A1-R160 退役（墓碑 @24-26，本批之前即已失 referent）；余三者仍在（ProjectMemoryWorkspace @18／useZCodeStore @41／ZCodeStoreState @42）；上句系迁入史实、不删旧文。
 // MemoryService 为 shim 导出型别（type import）。§1 testid 经 shim import。
 import * as React from "react";
 import { LoaderCircle as SpinnerIcon, RefreshCcw as IconRefresh, FileText as IconFileText, Folder as IconFolder } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；button chunk 图标 pass-1 同源
 import { MemoryFilePreview } from '../../modules/SettingsPanelsData';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SettingsRow, SettingsSectionCard, Switch, Alert, AlertDescription } from './SettingsRowPrimitives';
 import { BackLinkButton } from './SettingsShellParts';
 import { type SystemService, type ThemeMode, SETTINGS_MEMORY_BACK_MEMORIES_TESTID, SETTINGS_MEMORY_BACK_PROJECTS_TESTID, SETTINGS_MEMORY_FILE_TESTID, SETTINGS_MEMORY_PREVIEW_TESTID, SETTINGS_MEMORY_REFRESH_TESTID, SETTINGS_MEMORY_SWITCH_TESTID, SETTINGS_MEMORY_WORKSPACE_TESTID, type MemoryService } from '../../modules/Settings';
 
 /* §0 声明群随族迁入（原 178–180 / 280–285 / 310–315 / 335–349） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @8 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    读者 1 处：@100 索引取用形（取 IntlShape 之 formatMessage 成员型）→ 名与位置逐字不变；索引面同式先例 components/remote/WebRemote（A1-R173 四处、型缝 0）。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 interface ProjectMemoryWorkspace {
   id: string;
   label: string;

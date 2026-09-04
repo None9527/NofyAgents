@@ -9,7 +9,7 @@ import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as resolveRemoteSync
 import { AddMarketplaceDialog, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, buildPluginChatPrompt, buildStoreItems, useUninstallFlow, type PluginHookDetail } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：PluginHookDetail 属主为 SettingsLeaves（导出）
 import { useBaseServices, useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore, usePluginsStore as pluginsStoreStatic } from '../../modules/stores-workspace'; // 〔A1-R167〕+usePluginsStore as pluginsStoreStatic（束符 B6 静态面；下方 @252 墓碑）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { OFFICIAL_PLUGIN_MARKETPLACE_IDS as OFFICIAL_MARKETPLACE_IDS } from '../../modules/SrcSharedB'; // cre（jsx 159308）
 import { skillEnabledFilterMatch, type SkillItem, type SkillCapability, type SkillDiagnostic } from './SkillsSettingsSection'; // m1t + §0 SkillsService 接口签名引用（属主：技能族文件）
@@ -18,9 +18,9 @@ import { skillEnabledFilterMatch, type SkillItem, type SkillCapability, type Ski
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R174〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @12 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★别名落为**未用**：本文件**零代码读者** → 纯死面退役；未用别名合法（两 tsconfig 皆无 noUnusedLocals），先例 components/conversation/AutomationCards@6（全文件 IntlShape 命中恰 1＝导入行自身）。全树已落 21 家（R164 前 11 + R172 六家 + R173 四家）。 ── */
 
 
 interface PlatformService {
