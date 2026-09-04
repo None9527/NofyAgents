@@ -1,5 +1,5 @@
 // A0-S4-4a: 自 modules/Settings.tsx MCP 分区（§13，原 G$t）原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 3465–4278；§0 RemoteTarget/PlatformService/usePlatformService/McpSyncService/WorkspaceTabsStoreState/useWorkspaceTabsStore/remoteTargetDisplayLabel 声明随族迁入。
+// 迁出体 = 原文件 3465–4278；§0 RemoteTarget/PlatformService/usePlatformService/McpSyncService/WorkspaceTabsStoreState/useWorkspaceTabsStore/remoteTargetDisplayLabel 声明随族迁入。〔A1-R176〕★上句七名之 referent 现状：McpSyncService（@41-43）仍在；PlatformService（@29-39）仍在然其代码位读者实测为 0（★下方 @40 之 R46 碑称「本地 PlatformService 接口保留为他面型参用」经 token 级掩码实测为假、本件係死面，候死界面普查批处置、本批不动亦不归因本批）；WorkspaceTabsStoreState 已随本批面收敛销账（连同本地 WorkspaceTab 共 13 行等行墓碑 @44-56）；RemoteTarget（R50）／usePlatformService（R46）／useWorkspaceTabsStore（R166）／remoteTargetDisplayLabel（R50）四者早经前批退役改指、本批之前即已失 referent（按 R174 沉淀③Ⓑ明记为既存陈旧）；上句系迁入史实、不删旧文。
 // PluginRecord 型别取自浏览器分区族文件（原同文件 §12 定义）。
 import * as React from "react";
 import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload, Cable as IconCable, ExternalLink as IconExternalLink } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0。〔A1-P3-B13〕+IconCable（原 A_ = Sa('cable')@26798）/IconExternalLink（原 q_ = Sa('external-link')@27013）：W$t 转录消费
@@ -22,7 +22,7 @@ import type { PluginRecord, ChromeImportResult } from './BrowserSettingsSection'
 /* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形，§0 随族迁入件）删除
  *    → 统一属主改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor
  *    opts.remoteTarget 内联抽出；经 modules/ImeComposition type import，既有边）。
- *    消费位 @47（本地 WorkspaceTab.remoteTarget 面）/ @284 props 面逐字不变。 ── */
+ *    消费位 @47（本地 WorkspaceTab.remoteTarget 面）/ @284 props 面逐字不变。〔A1-R176〕★上句两引皆已漂且其一已失 referent：实测两处 remoteTarget 面今在 @48 与 @417（+1／+133；R171 沉淀⑤已以 git show 365327e 证 R50 著笔时两引皆准、其后四批累积致漂）；而 @48 之 referent（本地 WorkspaceTab 面）已随本批销账 ⇒ 今唯一消费位係 @417 之 props 面，@7 之 RemoteTarget 导入经该处仍活故保留。 ── */
 interface WindowControlsOverlayMetrics {
   rightPaddingPx?: number;
 }
@@ -41,21 +41,21 @@ interface PlatformService {
 interface McpSyncService {
   [key: string]: unknown;
 }
-interface WorkspaceTab {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  localWorkspacePath?: string | null;
-  [key: string]: unknown;
-}
-interface WorkspaceTabsStoreState {
-  activeWorkspacePath: string | null;
-  activeWorkspaceIdentity: string | null;
-  tabs: WorkspaceTab[];
-}
+/* ── tombstone〔A1-R176〕面收敛（G1 族 B）：本地 interface WorkspaceTab（8 行形，原 @44-51）
+ *    与本地 interface WorkspaceTabsStoreState（5 行形，原 @52-56）删除 → 纯删、不采别名。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法）：WorkspaceTabsStoreState
+ *    全文件代码位读者 0；WorkspaceTab 之唯一代码位读者係原 @55 之 tabs 成员型，即落在
+ *    WorkspaceTabsStoreState 体内 ⇒ 级联后读者亦 0。二者皆未 export ⇒ 跨文件读者结构性不可能
+ *    （全树同名命中係 AutomationEditor／OnboardingLoginLeaves／ExtendedViews 等各该文件自有之
+ *    本地面，与本件无导入关系 ⇒ 按 R165 沉淀①不得以全树名计数判死活）。
+ *    canonical 属主：modules/WorkspaceTabsDeep@122 export type WorkspaceTab（★type 别名而非
+ *    interface，其头注 @120-121 自载理据＝消费侧存在索引签名型故需隐式索引签名可赋性）与
+ *    @152 export interface WorkspaceTabStoreState（单数 Tab）。★不采别名之理据：读者 0 ⇒
+ *    别名必落为未用导入、无收益；且本地 workspacePath 必填而 canonical @126 为可选、本地
+ *    remoteTarget 为 RemoteTarget|null 而 canonical @129 为 RemoteTarget ⇒ 别名会静默改面。
+ *    原 13 行 → 本碑 13 行 = 净零行免重锚（级联修订见 @25 之 R50 碑与 @58 之 R166 尾注）。 ── */
 /** 原 pc（js 4801）：工作区标签页 store 选择器 */
-import { useWorkspaceTabStore as useWorkspaceTabsStore } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R166〕原 pc（js 4801）桩退营改指 canonical modules/WorkspaceTabsDeep@686——别名保名，消费点 @442/@443 逐字不变；全树 5 家先例〔SkillsSettingsSection@16、AutomationEditor@23 同式〕；★参面加宽：本地 WorkspaceTabsStoreState@52-56 三员係 canonical WorkspaceTabStoreState@152-171 之子集，二消费点仅读 activeWorkspacePath 与 activeWorkspaceIdentity 且两侧型别逐字同（string | null）→可赋；本地 @52-56 界面随本批成死面、登记候清理
+import { useWorkspaceTabStore as useWorkspaceTabsStore } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R166〕原 pc（js 4801）桩退营改指 canonical modules/WorkspaceTabsDeep@686——别名保名，消费点 @442/@443 逐字不变；全树 5 家先例〔SkillsSettingsSection@16、AutomationEditor@23 同式〕；★参面加宽：本地 WorkspaceTabsStoreState@52-56 三员係 canonical WorkspaceTabStoreState@152-171 之子集，二消费点仅读 activeWorkspacePath 与 activeWorkspaceIdentity 且两侧型别逐字同（string | null）→可赋；本地 @52-56 界面随本批成死面、登记候清理。〔A1-R176〕★上句「登记候清理」已兑现：@44-56 十三行（本地 WorkspaceTab + WorkspaceTabsStoreState）今为等行墓碑、二者皆纯删（读者 0，级联核见该碑）；本导入行之 specifier 与行号 @58 皆逐字未动 ⇒ ExtendedViews@711 之「McpSettingsSection@58」引证仍准（跨文件引证指向被删区间者实测 0）。
 /* ── tombstone〔A1-R50〕：declare remoteTargetDisplayLabel（原 q2，styles 125207–125214）删除
  *    ——逐字真身 = components/modals/RemoteSyncDialogs::remoteSyncTargetLabel（A0 转录），
  *    改经文件头 modules/Modals 别名 import 接线（既有边；$2 同式先例 @8）。消费位 @628

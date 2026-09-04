@@ -1,5 +1,5 @@
 // A0-S4-4a: 自 modules/Settings.tsx 浏览器分区（§12，原 O2t）原样迁入（组件单元；原文件现为薄 re-export shim）。
-// 迁出体 = 原文件 3120–3464；§0 IntlShape/PlatformService/usePlatformService/PluginManagementService/ZcodeSessionService 声明随族迁入。〔A1-R174〕★上句「IntlShape」之 referent 已随本批面收敛移至 @10 之 modules/I18n 导入行（本地 3 行界面已销账、改采 type ZCodeIntl as IntlShape 别名）；「PlatformService」与「usePlatformService」早经 A1-R48 退役（墓碑 @22、改指导入 @6，本批之前即已失 referent）；余二者仍在（PluginManagementService @34／ZcodeSessionService @37）；上句系迁入史实、不删旧文。
+// 迁出体 = 原文件 3120–3464；§0 IntlShape/PlatformService/usePlatformService/PluginManagementService/ZcodeSessionService 声明随族迁入。〔A1-R174〕★上句「IntlShape」之 referent 已随本批面收敛移至 @10 之 modules/I18n 导入行（本地 3 行界面已销账、改采 type ZCodeIntl as IntlShape 别名）；「PlatformService」与「usePlatformService」早经 A1-R48 退役（墓碑 @22、改指导入 @6，本批之前即已失 referent）；余二者仍在（PluginManagementService @34／ZcodeSessionService @37）；上句系迁入史实、不删旧文。〔A1-R176〕★上句「余二者仍在」今只半真：PluginManagementService @34-36 已随本批级联销账（其唯一读者原 @127／@128 落在同批删除之 PluginsStoreState 体内 ⇒ 读者 0；3 行等行墓碑在原位）；ZcodeSessionService @37-39 仍在（读者 @139／@159）。
 // ChromeImportResult/PluginRecord 补 export：前者供 shim §0 PlatformService 签名 type import，后者供 MCP 分区族 type import（型别面，零运行时影响）。
 import * as React from "react";
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
@@ -28,12 +28,12 @@ import { PendingOperationButton } from './SettingsShellParts';
  *    消费 @157（hook 位）/@175-176（typeof 守卫）/@213-216（导入调用）/@232-235（清理调用）逐字不变。
  *    负证据：syncAppSettings?/getWindowControlsOverlayMetrics?/onWindowControlsOverlayChanged? 为面仅成员（全文 grep 零消费位）；
  *    本面 10 员与 canonical 富面签名逐项同形（A0 转录源 = modules/Settings §12 同族，均 O2t 迁出体）。
- *    本件 PluginManagementService/ZcodeSessionService 索引签名面不受影响（保留）。
+ *    本件 PluginManagementService/ZcodeSessionService 索引签名面不受影响（保留）。〔A1-R176〕★上句今只半真（拆分感知）：ZcodeSessionService @37-39 确仍保留（读者 @139／@159）；PluginManagementService @34-36 已随本批级联销账（唯一读者原 @127／@128 落在同批删除之 PluginsStoreState 体内 ⇒ 读者 0），3 行等行墓碑在原位。
  *    ChromeImportResult@49 export 保留（canonical 签名经 type import 消费，本文件@3 注记既判）。
  *    增补证据见 A1-R47.report §四.6。 ── */
-interface PluginManagementService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R176〕：本地 interface PluginManagementService（3 行索引签名形）级联删除
+ *    ——唯一读者原 @127／@128 落在同批销账之 PluginsStoreState 体内 ⇒ 读者 0；未 export。
+ *    ★同批改述 @31 之 R48 碑与 @2 之 R174 rider（皆称本件「保留／仍在」，拆分感知）。 ── */
 interface ZcodeSessionService {
   [key: string]: unknown;
 }
@@ -119,18 +119,18 @@ export interface PluginRecord { // A0-S4-4a：补 export（型别面）——MCP
   enabled: boolean;
   [key: string]: unknown;
 }
-interface PluginsStoreState {
-  plugins: PluginRecord[];
-  loading: boolean;
-  error: string | null;
-  togglingPluginId: string | null;
-  initialize(input: { workspacePath: string; workspaceIdentity?: string | null; pluginService: PluginManagementService }): Promise<void>;
-  setEnabled(pluginId: string, enabled: boolean, pluginService: PluginManagementService): Promise<void>;
-}
-interface PluginsStoreHook {
-  <T>(selector: (state: PluginsStoreState) => T): T;
-  getState(): PluginsStoreState;
-}
+/* ── tombstone〔A1-R176〕面收敛（G1 族 B 之候裁件，本批以实测裁定收入）：本地
+ *    interface PluginsStoreState（8 行形，原 @122-129）+ interface PluginsStoreHook（4 行形，
+ *    原 @130-133）删除 → 纯删。读者面实测（token 级 code-only 掩码 + 六形自检）：
+ *    PluginsStoreHook 全树命中恰 1 ＝其自身定义行 ⇒ 读者 0、未 export ⇒ 100% 死；
+ *    PluginsStoreState 之代码位读者恰 2 ＝原 @131／@132，皆落在 PluginsStoreHook 体内 ⇒
+ *    级联后读者 0。★裁定理据：按「有读者即保留」之表面判据本件非死，然其读者所在之界面
+ *    自身全树 100% 死 ⇒ 该「读者」不具证明力（R172 沉淀③：「保留因为有读者」係不成立之
+ *    理据）。级联并拖出 @34-36 之 PluginManagementService（唯一读者原 @127／@128 落在本件
+ *    体内）⇒ 三件共 15 行同批销账，另立 3 行碑于 @34-36 原位。
+ *    ★存活断言：@116 节注「原 B6：插件 store（js 142985，横切层）」係一群声明之节注、
+ *    referent 含仍活之 PluginRecord@117-121（export，McpSettingsSection@19 经 type import
+ *    消费）⇒ 按 R174 陷阱规约必须存活；原 12 行 → 本碑 12 行 = 净零行免重锚。 ── */
 
 /** 原 Ne：技能 store（skillStore chunk 的 t 导出） */
 

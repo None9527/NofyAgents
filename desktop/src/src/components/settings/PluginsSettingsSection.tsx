@@ -224,32 +224,32 @@ export interface PluginMarketplace {
   [key: string]: unknown;
 }
 
-/* 插件 store（原 B6，142985；接口级） */
-interface PluginsStoreState {
-  plugins: PluginItem[];
-  marketplaces: PluginMarketplace[];
-  marketplaceAvailabilityKnown: boolean;
-  availablePlugins: unknown[];
-  installedPlugins: Array<{ id: string; scope?: string; updateStatus?: string; [key: string]: unknown }>;
-  restorableBuiltins: unknown[];
-  loading: boolean;
-  error: string | null;
-  togglingPluginId: string | null;
-  operationId: string | null;
-  describeCache: Record<string, unknown>;
-  initialize: (opts: { workspacePath: string; workspaceIdentity?: string | null; pluginService: unknown }) => Promise<void>;
-  updateMarketplace: (marketplaceId: string | null, pluginService: unknown) => Promise<boolean>;
-  refresh: (pluginService: unknown) => Promise<void>;
-  addMarketplace: (request: unknown, pluginService: unknown) => Promise<void>;
-  removeMarketplace: (marketplaceId: string, pluginService: unknown) => Promise<void>;
-  installPlugin: (name: string, marketplace: string | undefined, pluginService: unknown) => Promise<void>;
-  configurePlugin: (pluginId: string, options: Record<string, unknown>, pluginService: unknown) => Promise<void>;
-  setEnabled: (pluginId: string, enabled: boolean, pluginService: unknown) => Promise<void>;
-  describePlugin: (pluginId: string, name: string, marketplace: string | undefined, pluginService: unknown, force?: boolean) => Promise<void>;
-  updatePlugin: (pluginId: string, pluginService: unknown) => Promise<void>;
-  restoreBuiltin: (pluginId: string, pluginService: unknown) => Promise<void>;
-}
-/* ── tombstone〔A1-R167〕：declare pluginsStoreStatic（束符 B6，本行原注 `B6.getState()`）删除 → 改采 @11 既有 modules/stores-workspace 边之别名 specifier `usePluginsStore as pluginsStoreStatic`〔别名保名〕，3 处消费点（@491/499/503）逐字不变。束符印证：本行原注 `B6.getState()` ≡ adopter stores/pluginsHelpers@7 `〔A1-R129n〕原 B6 静态面实接线`。canonical stores/pluginsStore@101 `export const usePluginsStore: UseBoundStore<PluginsState>`（经 stores-workspace@69 导入 / @86 再导出，与 @11 既有 usePluginsStore 同一实体）。零新边；@11 之环係既有、本批未新增边故环态不变。★隨批登記：本地 `PluginsStoreState`@228-251（24 行）自此成為死面（全文件僅 @228 定义 + @252 本樁兩处引用），候面收敛批清理；其所描 error/installedPlugins 二員与 canonical PluginsState@66/@62 逐字節同形，故三消费点型別不变。 ── */
+/* ── tombstone〔A1-R176〕面收敛（G1 族 B）：本地 interface PluginsStoreState（24 行形，
+ *    原 @228-251）连同其上方之孤立节注（原 @227，逐字为「插件 store（原 B6，142985；
+ *    接口级）」，係该界面专属之标签、referent 随本批消失故折入本碑——R172 三处先例
+ *    QuickPick@156／GitReview@238／AutomationsMainView@68 同式）删除 → 纯删、不采别名。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检）：全文件代码位读者 0（唯一其它
+ *    命中係 @252 之 R167 碑散文，属注释位）；未 export ⇒ 跨文件读者结构性不可能（全树
+ *    同名命中 BrowserSettingsSection@122〔本批同批销账〕与 modules/SettingsLeaves@163〔G5
+ *    域、本批不动〕係各该文件自有之本地面 ⇒ 按 R165 沉淀①不得以全树名计数判死活）。
+ *    ★必删不可别名（档案既定裁定，本批以型面逐项复核为真）：canonical
+ *    stores/pluginsStore.ts@55-83 export interface PluginsState（经 modules/stores-workspace
+ *    @69 导入、@86 再导出）较本地窄——本地 availablePlugins／restorableBuiltins 为
+ *    unknown 数组而 canonical @61／@63 为具型元素面；本地 describeCache 为 Record 之
+ *    unknown 值面而 canonical @69 为具型对象面；本地十一法之 pluginService 参皆为
+ *    unknown 而 canonical @70-82 为 PluginService；且 canonical 另有本地所无之五员
+ *    （workspacePath／workspaceIdentity／diagnostics／uninstallPlugin／validateSource）
+ *    ⇒ 采别名保名会静默收紧本文件之型面（读者 0 故当下无缝，然会为他日消费者立错面）。
+ *    ★兑现 R167 碑 @252 之前向引用：该碑「★隨批登記：本地 PluginsStoreState@228-251
+ *    （24 行）自此成為死面……候面收敛批清理」由本批兑现，@252 已同批加 rider 记载（按
+ *    R175 沉淀：前向引用亦属伴随修订对象）；该碑行号 @252 因净零行而不变。
+ *    ★同批存活断言（逐字未动）：PluginItem@196-211（export，活读者 7 处：@215／@262／
+ *    @272／@277／@477／@512／@559；原 @229 落在本件体内已随删）／PluginDescribeInfo@212-218
+ *    （export，读者 6 处）／PluginMarketplace@219-225（export，活读者 @267；原 @230 随删）
+ *    ／@187-189 之 R2 sibling 碑（其「本地宽松 WorkspaceTabsStoreState 随删」声称经
+ *    git log -S 实证为真、本批不证伪 ⇒ 不在伴随修订集内，档案原列 7 处係过报）。
+ *    原 25 行（1 标签 + 24 界面）→ 本碑 25 行 = 净零行免重锚。 ── */
+/* ── tombstone〔A1-R167〕：declare pluginsStoreStatic（束符 B6，本行原注 `B6.getState()`）删除 → 改采 @11 既有 modules/stores-workspace 边之别名 specifier `usePluginsStore as pluginsStoreStatic`〔别名保名〕，3 处消费点（@491/499/503）逐字不变。束符印证：本行原注 `B6.getState()` ≡ adopter stores/pluginsHelpers@7 `〔A1-R129n〕原 B6 静态面实接线`。canonical stores/pluginsStore@101 `export const usePluginsStore: UseBoundStore<PluginsState>`（经 stores-workspace@69 导入 / @86 再导出，与 @11 既有 usePluginsStore 同一实体）。零新边；@11 之环係既有、本批未新增边故环态不变。★隨批登記：本地 `PluginsStoreState`@228-251（24 行）自此成為死面（全文件僅 @228 定义 + @252 本樁兩处引用），候面收敛批清理；其所描 error/installedPlugins 二員与 canonical PluginsState@66/@62 逐字節同形，故三消费点型別不变。〔A1-R176〕★上句「候面收敛批清理」之前向引用已由本批兑现：@228-251 二十四行今为等行墓碑（连同其上方 @227 之孤立节注共 25 行、纯删不采别名，理据见该碑）；本碑行号 @252 因净零行而不变。 ── */
 
 /* 插件子视图（接口级；行号见头部映射 §C） */
 declare const PluginConfigForm: React.FC<{
