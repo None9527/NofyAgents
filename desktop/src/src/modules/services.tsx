@@ -4,21 +4,21 @@
  * services.tsx — ZCode 3.7.6 横切层 · services/IPC 客户端 + 工具块（D8 Stage B）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
- * 行号口径：融合 chunk js 行；模块地图见同目录 MODULE-MAP.md §2.2/§2.6。
+ * 来源文件（融合 chunk，213,979 行，未改动）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
+ * 行号口径：本文件行号 = 上述本机 chunk 行（闭区间）。★旧账 213,695 行口径之偏移随区而异（实测 +46 / +48 / +290，见 QuickPickDeep@13-15 与 FileTreePanel@18）→ 不得以单一全局偏移机械换算，每区须独立以 word-boundary 定义扫描实测；模块地图见同目录 MODULE-MAP.md §2.2/§2.6。
  *
  * 本文件内容（混淆名 → 语义名 → js 行）：
- *  A. 事件/可释放原语（3551–3842）
+ *  A. 事件/可释放原语（3551–3882）
  *     Os→Event 工具（None/once/toPromise/filter/map）| Koe/qoe→toDisposable/onceFn |
  *     ks→Emitter | As→VSBuffer | Yoe→BufferReader | js→BufferWriter |
  *     Ms/Ns→readVarint/writeVarint | Ps→ValueType | Rs/zs→serializeValue/deserializeValue |
  *     tse/nse→toBase64/fromBase64 | rse→isFlowControlMessage
- *  B. MessagePort 流客户端 + RPC 通道（3843–4121）
+ *  B. MessagePort 流客户端 + RPC 通道（3883–4139）
  *     ise→MessagePortStreamProtocol | Bs→ClientMessageType | Vs→ServerMessageType |
  *     Hs→ChannelState | ase→ChannelClient | Us→ServiceProxy（fromService/toService）|
  *     Ws/Gs→isEventName/isDynamicEventName | ose→bufferFirstListenerEvent
- *  C. 服务注册与钩子（2671–2681〔★A1-R161 勘误：旧记 2638–2660 误，真值 us@2671 / ds@2672 / fs@2675 / ps@2680〕 + 4122–4308 + 4834–4960〔后二区间本批未核，Ec@4945 落在 4834–4960 内故该区间自洽〕）
+ *  C. 服务注册与钩子（2671–2681〔★A1-R161 勘误：旧记 2638–2660 误，真值 us@2671 / ds@2672 / fs@2675 / ps@2680〕 + 4140–4431 + 4814–4993〔★A1-R162 勘误：旧记 4122–4308 + 4834–4960 误—14 符越界，且旧第二带下段 4122–4139 实属 B 节；逐符表见报告〔A1-R162〕〕）
  *     ds/fs/ps→ServiceProvider/useServices/useServicesOptional |
  *     Zs 会话注册表（见 stores-core.tsx）+ xse/Sse/Qs/$s/Cse/ec/wse/tc/Tse 助手 |
  *     qs/lse/vse/Ys/hse/gse/_se→provider registry 同步 |
@@ -29,7 +29,7 @@
  *     rge→useGlobalKeyboardShortcuts | sge/fge/Dg/Og/gge/_ge/vge/yge/bge/kg→
  *       任务快照缓存（键 zcode-task-snapshot-cache:v1）| Sge/Cge/wge→
  *       useWorkspaceProviderConfigFile | Ag→useSessionService
- *  E. 工作区作用域 context（42597–42806）
+ *  E. 工作区作用域 context（42597–42813）
  *     gT/_T/vT/_Fe/xT/vFe/yFe/bFe→遥测监督注册表 |
  *     ST/CT/xFe/wT/SFe→TelemetryScope provider/钩子（服务作用域）|
  *     TT/CFe/wFe/ET→V4Conversation provider/钩子（工作区作用域）|
@@ -45,7 +45,7 @@
  *     bS→FrameAssembler（流帧装配，15 种 proto.frameAssembly* 故障码）|
  *     XAe→SessionIndexStore（v4-sessions-index 订阅/恢复状态机）|
  *     QAe→WorkspaceSubscriptionSet | VS/HS/BS→store 池
- *
+ * 〔★A1-R162 头注区间勘误汇总（以本机实束 213,979 行为唯一真值，逐符 word-boundary 定义扫描重定）：A/B/C/E 四节旧引区间皆短于其实测符号跨度——A 3551–3842→3551–3882（tse@3863 / nse@3874 / rse@3882 越界）、B 3843–4121→3883–4139（Us@4128 / Ws@4129 / Gs@4134 / ose@4139 越界）、E 42597–42806→42597–42813（DT@42809 / TFe@42813 越界）、C 见上；D 24015–25006（实测 24063–24368）/ F 41808–42596（实测 41809–41941）/ G 32246–36438（实测 32308–35455）三节实测无误不动。★结构性点：A/B/C 旧值係「连续不重叠分带」（3842|3843、4121|4122）而符号定义不尊重该分割（A 之尾三符落 B 带内、B 之尾四符落 C 带内）→ 修正係**移分界**而非延上界；移后三带仍连续不重叠且每符皆落其所属节（已逐符验：B 首符 ise@3891 在 3882 之后、C 第二带首符 qs@4170 在 4139 之后）。★G 節 `v4` 系**协议版本标签非束符**（束内 v4@130164 係 `function v4(e,t="Assertion error")` 断言助手，假阳性）。工具 /tmp/a1r0/r162-header-audit3.py〕
  * 外部依赖：React（Q）、logger（J）、zod（K，src-HCld2afU.js）、
  *   stores-core.tsx（SessionRegistryStore）、TabStore（F04 域，声明级）。
  *
