@@ -142,7 +142,7 @@
  * §0 声明群随消费族迁入：SelectItemEntry/SelectGroupEntry/ConfigOption/
  * ThoughtLevelSelector 由子代理族所有（自动化族经 type import 取回三型）；
  * toSorted/IconComponent/usePlatformService/pluginMentionMarkdown 随插件族；
- * IntlShape/图标 declare/工作区与模型 declare 随自动化族。
+ * IntlShape/图标 declare/工作区与模型 declare 随自动化族。〔A1-R177 补记〕★本行係 §0 迁出侧之史实陈述（IntlShape 随自动化族迁入 AutomationEditor），与 AutomationEditor@2 之迁入侧同款散文；A1-R172 已就迁入侧明裁「係**历史陈述非假**、本批不动」（裁定载于 AutomationEditor@59 碑）→ 本行同判、旧文逐字保留。★然该裁定**从未就本行记录在案**（本行自 A0 检查点 15〔b8f9dcf，2026-08-30〕起零次触及、全树无任何档案裁定）⇒ 本补记係 A1-R172 期**记录缺口之闭合**、非本批面收敛所致亦不归因本批；迁入侧之本地 3 行界面已于 A1-R172 销账改采别名 specifier，故本行所指之「IntlShape」今在 AutomationEditor 内为**别名**而非本地界面。
  * ToastOptions、PluginsStoreState 无族消费，保留本文件。
  * ==========================================================================*/
 

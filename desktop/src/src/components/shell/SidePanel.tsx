@@ -180,10 +180,10 @@ import { subscribeSessionActivity as subscribeTaskEnded } from '../../stores/sea
 
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 3 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采下方 @186 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 1 处读者（@268）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者 1 处：@268 formatRelativeTime 之参面 intl: IntlShape → 名与位置逐字不变。★@268 係 export 函数而其签名引本文件非导出型别——合法 TS 且不受本收敛影响（两 tsconfig 皆 noEmit 故无 .d.ts 产出；isolatedModules 由 specifier 之显式 type 修饰满足）；该函数经 shim modules/SidePanel@157 之多行 export 块再导出、消费点 SidebarLeaves@134，**shim 不涉型名**故再导出链不受影响（同式先例 RemoteGapSegments@592〔A1-R173〕）。★上方 @182 单行文档注係束源注 → 逐字保留（先例 AutomationsMainView@68 同款标签）。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 3 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R177〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 
 /** 日志器（原 J） */
 

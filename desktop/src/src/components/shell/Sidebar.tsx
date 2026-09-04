@@ -204,7 +204,7 @@ import { useTaskFileActions } from '../../modules/GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l；P2 转交件收割）：本地 7 员面碑化改指，@1167 trackEvent 参型同名解析，见下墓碑
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals'; // 〔A1-R51〕$2 余消费位闭合实证：本叶 @2952 canSyncRemote ≡ bundle 158248 `oe = $2({ remoteSessionId, remoteTarget, clientMode: f ? 'web-remote-replayable' : 'desktop-continuous', hasLocalSourceService: !!N.skillSyncService })`（158xxx 远程技能卡域）逐字同形；接线 = A0 检查点 17（8382e04）既成，R50 §五-2「属外未录面」留批闭合（台账惯例 = 报告内更正，census 冻结不动）
 import { Badge, useCodingPlanUpgradeDialog as useCodingPlanUpgrade } from '../../modules/PaymentDeep'; // 〔A1-R121〕+useCodingPlanUpgradeDialog（原 fX 族 declare 改指；R43/R119 判例，别名保留调用名；消费面 @3832/@4129 逐字不变）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R121〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116/R119 判例续；ZCodeIntlContextValue 超集覆盖 localePreference/setLocalePreference 面，消费面 @3831 逐字不变）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R121〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116/R119 判例续；ZCodeIntlContextValue 超集覆盖 localePreference/setLocalePreference 面，消费面 @3831 逐字不变）
 import { sessionTransportHandshake } from '../../services/conversationWireCore'; // 〔A1-R121〕
 import { sendSnoozeInteractionCommand as snoozeInteractionAutoResolution } from '../../modules/ConversationOverlays'; // 〔A1-R129i〕原 nSt（117414）declare 改指 canonical = ConversationInteractionsOverlay@178（A1-P1-B13 逐字；shim@185 转导出在案；别名导入保调用名）。环安全：本→modules/ConversationOverlays→conversation 族叶（ImeComposition/SkillStore/I18n/button/PermissionApprovalOverlay/ElicitationDialog/ConversationCommandLedger）值闭包不达 components/shell原 AS（34647）declare 改指——P3 泳道 canonical 既立（[wire] 669/@579，转导出 @746；旧碑「合并后动作：删碑改指」本批执行）
 import { createPortal } from 'react-dom'; // 〔A1-R121〕原 io.createPortal declare 改指 npm react-dom（MarkdownMermaid/MarkdownTable 判例；消费面 @4539 逐字不变）
@@ -249,11 +249,11 @@ import { hasMaxLevelEntitlement as isPlanExpiring } from '../conversation/Conver
 
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采上方 @207 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 4 处读者（@408／@421／@1521／@1888）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者形制：@408／@421 参面、@1521／@1888 属性面 → 名与位置逐字不变。★上方 @251 单行文档注係束源注 → 逐字保留（先例 AutomationsMainView@68 同款标签）。★下方 @255-256 之 A1-R121 碑其 @256「本地 IntlShape/LocalePreference 型别保留」一句係**拆分感知**勘误对象——IntlShape 一半随本批反转、LocalePreference 一半仍真（@257 逐字保留、本批不触），见该处；@258-260 之 A1-P2-B7 注与 export type ThemeId 皆逐字保留。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
 /* ── tombstone〔A1-R121〕：declare useIntlContext（原 G）删除 → 改指 modules/I18n::useZCodeIntl（import 别名在案）。
- *    本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）。 ── */
+ *    本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）。〔A1-R177 勘误一处·拆分感知〕★本行旧注「本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）」今**只半真**：①「IntlShape」一半已反转——本地 3 行界面（原 @252-254）本批销账、改采 @207 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 4 处读者（@408／@421／@1521／@1888）之名逐字不变，R121「活体签名引用在案」之**结论仍真**、唯其**载体已由本地界面易为别名**；②「LocalePreference」一半**仍真且本批不触**（@257 逐字保留）。旧文逐字保留为前缀。 ── */
 type LocalePreference = "system" | "zh-CN" | "en-US";
 /* 〔A1-P2-B7〕export：WS 消费面 theme 参数改指本型（束真 = settings store ThemeMode，
  * modules/Settings @335 逐字同族）；与 WorkspaceShell 双面收敛（theme 族）。 */

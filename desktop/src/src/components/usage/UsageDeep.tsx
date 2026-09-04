@@ -404,7 +404,7 @@ import { resolveCodingPlanAttribution as resolveFamilyConnectionSettings, isProv
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // intl 上下文（原 G()）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { InfoTooltip as Tooltip, formatNumberCompact as formatCompactNumber, type UsageHeatmapWeekInput } from '../../modules/UsageStatsUiParts'; // Tooltip（原 Ia = usageStatsUiParts u）；formatCompactNumber（原 ja = usageStatsUiParts l；A0-D-Misc 裁决：真实签名 (locale, value)，调用面已按 bundle NYt/PXt 翻正）；A0-CLEANUP3 3b：heatmap 具型
 
@@ -412,10 +412,10 @@ import { InfoTooltip as Tooltip, formatNumberCompact as formatCompactNumber, typ
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供本族签名引用 */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供本族签名引用。〔A1-R177〕★本注内「此接口仅供本族签名引用」一句之 referent 已随本批面收敛消失——下方 3 行界面（原 @416-418）已销账、改采 @407 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故本族 9 处签名引用之名逐字不变；本注之「react-intl 风格 intl 对象」与「A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl」两半**仍真**、逐字保留。 */
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采上方 @407 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 9 处读者（@3009／@3025／@4582／@4627／@4674／@4682／@4818／@5361／@6005）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者形制：@3009／@3025／@4674／@4682／@5361／@6005 参面、@4582／@4627 多行参之列面、@4818 内联对象型之成员面 → 名与位置逐字不变。★@6005 statusTitleDescriptionOf 係 export 函数而其签名引本文件非导出型别——合法（两 tsconfig 皆 noEmit；isolatedModules 由显式 type 修饰满足）；经 shim modules/UsageDeep@413 之多行 export 块再导出、**shim 不涉型名**（同式先例 RemoteGapSegments@592〔A1-R173〕）。★上方 @415 单行文档注内「此接口仅供本族签名引用」一句因本批失 referent → 已同批勘误（见该处），其束源与接线两半逐字保留。★净零行为**强制**：本文件引证密度为六文件之最（`X@NNN` 形 131 条、其中 97 条落在编辑点之后；口径＝本文件内全部形如 名@数字 之引证，含区间形只计首数）。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
 
 /* A0-CLEANUP3 #38：SpinnerIcon（w）/InfoIcon（T=Ht）/usePlatformService（l=M）已由 ImeComposition 属主导出，原 declare 移除 */
 

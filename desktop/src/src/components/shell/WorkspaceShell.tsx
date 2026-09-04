@@ -229,7 +229,7 @@ import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorksp
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
 import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, useGitAutoRefreshWatcher as useGitSummarySync, useResolvedWorkspaceSessionId, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）；〔A1-R97〕+useGitAutoRefreshWatcher as useGitSummarySync（原 Yse 4997 误名 declare 收敛）；〔A1-R98〕+useResolvedWorkspaceSessionId（原 bc 4868，nge 深依赖）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-P2-B10〕原 G（IntlProvider chunk 导入别名）≡ D@9248–9252 useZCodeIntl——下方 useIntlContext declare 删碑改指（R1 判例别名保留调用名）；同形先例 SkillsSettingsSection@18
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-P2-B10〕原 G（IntlProvider chunk 导入别名）≡ D@9248–9252 useZCodeIntl——下方 useIntlContext declare 删碑改指（R1 判例别名保留调用名）；同形先例 SkillsSettingsSection@18
 import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
 import { AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID } from '../automations/AutomationsMainView'; // 〔A1-P2-B10〕原 c6（138647）——下方锚点 declare 删碑改指 canonical（AutomationsMainView@361 同值真身，l6 toast 同锚消费）；R1 判例别名保留调用名，消费面 main id 逐字不变
 import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'; // 〔A1-P2-B9〕R40 §六.4 接线：原 Uge（styles 24574-24599）过渡 declare 删碑改指真实导入（五参签名恰合，本泳道 stand-in 叶；主树 R40 同名叶合并裁定见叶头注）；别名保留束名，e_e 真身调用面 24787 逐字不变
@@ -247,13 +247,13 @@ import { bumpUnreadNotificationVersion as flushUnreadPersistence } from '../../s
 
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采上方 @232 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 5 处读者（@919／@1088／@4217／@4513／@4823）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者形制：@919／@4217／@4513 属性面、@1088／@4823 **索引取用**形（取 formatMessage 成员型；先例 WebRemote〔A1-R173〕／Memory·Browser〔A1-R174〕皆型缝 0）。★上方 @249 单行文档注係束源注 → 逐字保留（先例 Modals@147 同款标签）。★下方 @253-256 之 A1-P2-B10 碑係 useIntlContext declare 之碑，其 @255「型合证据」一句因本批失其比较基准 → 已于 @256 同批勘误（见该处），碑之其余行文逐字保留。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
 /* ── tombstone〔A1-P2-B10〕：useIntlContext declare（原 G，IntlProvider-C321H7m8.js 导入别名）删除 → 文件头真实导入
  *    （useZCodeIntl as useIntlContext，../../modules/I18n；canonical ≡ D@9248–9252，I18n 叶头 §105 G()≡useZCodeIntl 同注册）。
  *    型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）；locale: SupportedLocale ⊂ string；
- *    setLocale(LocalePreference) 消费面 = registerTestActions 索引签名槽（@5813）。同形改指先例：SkillsSettingsSection@18。 ── */
+ *    setLocale(LocalePreference) 消费面 = registerTestActions 索引签名槽（@5813）。同形改指先例：SkillsSettingsSection@18。〔A1-R177 勘误一处〕★本碑 @255「型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）」之**比较基准**已随本批面收敛消失——本地 3 行界面（原 @250-252）已销账、改采 @232 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 5 处读者之名逐字不变；「逐字同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行）→ **零型缝结论不变，且由「同形」升为「同一」**（同式先例 AppRootLeaves@157〔A1-R173〕）。本碑其余行文逐字保留。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 

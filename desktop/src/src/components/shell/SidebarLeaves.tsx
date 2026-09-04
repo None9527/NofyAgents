@@ -132,7 +132,7 @@ import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/S
 import { useSessionRegistryStore } from '../../modules/stores-core'; // 〔A1-R129〕type BaseServices 移除：最后型用面 buildScopedServices declare 本批退役（R126 留注闭合）
 import { sessionStoreKey as workspaceScopeCacheKey } from './SessionStoreCore'; // 〔A1-R129e〕原 $Ae@35532 declare 改指（$Ae 体 = GS(e) ≡ sessionStoreKey@33 逐字；环安全：SessionStoreCore→modules/services→sessionIndex 闭包不达 SidebarLeaves，QuickPickDeep@149 同构边判例在案）
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R127〕原 G（IntlProvider D@9248–9252）declare 改指（Sidebar@206 R121 同判例；调用点 3120/3853 逐字不变）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R127〕原 G（IntlProvider D@9248–9252）declare 改指（Sidebar@206 R121 同判例；调用点 3120/3853 逐字不变）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
 import { useTaskListItems, useHydratingSessions as useSessionItems } from './TaskListQueryCore'; // 〔A1-R129e〕+useHydratingSessions as useSessionItems（原 JS@35552 逐字真身；A1-P3-B1 转录 ROUNDTRIP EXACT 在案；墓碑见 @285 区） // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
@@ -153,9 +153,9 @@ import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamily
 
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采上方 @135 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 1 处读者（@3949）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者 1 处：@3949 属性面 intl: IntlShape → 名与位置逐字不变。★上方 @155 单行文档注係束源注 → 逐字保留（先例 Modals@147 同款标签）。★下方 @159-160 之 A1-R127 碑係 useIntlContext declare 之碑、与本面无关 → 逐字保留（R172 FileTreePanel@186 陷阱族：邻近之注不自动归属本面）。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
 /* ── tombstone〔A1-R127〕useIntlContext（原 G）declare 删除 → 改指 modules/I18n::useZCodeIntl（别名保留调用名；
  *    ZCodeIntlContextValue 超集覆盖 {intl, locale} 契据；调用点 3120/3853 逐字不变）。 ── */
 

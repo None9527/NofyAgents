@@ -160,10 +160,10 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '../ui/hover-card'
 
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 22 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采下方 @166 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 7 处读者（@1130／@1167／@2518／@2587／@3337／@3376／@3389）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
+ *    读者形制：@1130／@1167 参面、@2518／@2587 属性面、@3337／@3376／@3389 **索引取用**形（取 formatMessage 成员型；同式先例 WebRemote〔A1-R173 四处〕／Memory·Browser〔A1-R174 各一处〕皆型缝 0）。★上方 @162 单行文档注係**束源注**（原 G()，IntlProvider-C321H7m8.js）→ 逐字保留；同款标签存活于碑上之先例＝AutomationsMainView@68〔A1-R172〕与 Modals@147〔A0-D〕。★跨文件引证 TopBar@164-190 三处（ImeComposition@134／@149、OnboardingLoginLeaves@483）之**所指**係本文件 PlatformService 本地面（21 员 A0 转录），该面早经 A1-R48 退役、其碑今在 @168-196 ⇒ 三处在本批之前即已陈旧（其区间与 @164 重叠係巧合，非指本面）、不归因本批亦不放过、已在此明记。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 22 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R177〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 
 /* ── tombstone〔A1-R48〕：本地 PlatformService 面（21 员，A0 转录 = 本批 canonical 增补签名源）+ declare usePlatformService（原 l）
  *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面 + 真导出（modules/ImeComposition shim 再导出）。
