@@ -169,7 +169,7 @@ import { createWhiteboardStroke, filterNativeModelOptions, logger, useTaskStore,
 // 〔A1-R25〕w6e 77856 实体化：resolveModelGroupLabel declare 收敛——改接 Home §U.9 逐字真身（经 modules/Home 转导出）
 import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
-import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode, useShallowSelector } from './SrcSharedB'; // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
+import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode, useShallowSelector, parseCustomModelRef as parseModelString } from './SrcSharedB'; // 〔A1-R168〕+parseCustomModelRef（原 iS，jsx 9078／js 8966；真身 lib/providerRefs@22，经 SrcSharedB@470 导入 + @480 转导出，src chunk 导出别名 P；styles@544 P as Zn 于块 431..827）：parseModelString declare 收敛改指，见下墓碑 // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
 import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices, useCachedTaskService } from './services'; // A1-R47：+useCachedTaskService（原 kg 收敛改指）
 import { useAutomationsStore } from './stores-tasks';
@@ -436,8 +436,8 @@ interface ModelSelectGroup {
  *    型缝：真身首参宽化至最小消费面（items.value/items.name），ModelSelectGroup[] 经
  *    [key: string]: unknown 索引签名可赋；返回 string | null | undefined，调用点 ?? 兜底。 ── */
 
-/** 原 Mg（js 24406；A1-R25 行漂校正，旧注 24358 为漂移）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
-declare function parseModelString(value: string): { providerId?: string; modelName?: string } | null;
+/** 原 Mg（js 24406；A1-R25 行漂校正，旧注 24358 为漂移）：`provider/model[$variant]` 解析（〔A1-R168〕本注原系 @440/@441 二 declare 共用之并列注「原 Mg / Zn（src chunk P 导出）」；束证 styles@24406 function Mg(e) 体首 let t = Zn(e) 且检 t?.providerId && t.modelName → Mg ≡ resolveModelRef（返回 {providerId, modelId, variant?}）、Zn ≡ parseCustomModelRef（返回 {providerId[, modelName]} | null），型面逐一对位；Zn 一半随 parseModelString 退营移入其墓碑，本注只余 Mg 归 resolveModelRef@441） */
+/* ── tombstone〔A1-R168〕：declare parseModelString 删除 → 改指 lib/providerRefs::parseCustomModelRef（@22，经 modules/SrcSharedB@470 导入 + @480 转导出；@172 既有值边 → 模块图零变化）。〔别名保名〕parseCustomModelRef as parseModelString，消费点 @1398 逐字不变。束证：declare 自注二候选中唯 Zn 一路可解——styles@544 P as Zn（块 431..827 之尾行自 ./src-HCld2afU.js 导入）+ SrcSharedB@6409 parseCustomModelRef as P + 头注 @269「iS→parseCustomModelRef(9078/8966)」三点一致；另一候选 Mg 于 styles 零 X as Mg 命中（系 styles-local 名），且 @24406 function Mg(e) 体首即调 Zn(e) → Mg 系 resolveModelRef@441 之真身而非本桩（R159「归账单位 = (源 chunk, 导出名)」之正向应用）。型面：桩 (value: string) 返回 { providerId?: string; modelName?: string } | null，canonical (e: any) 之推断返回并集含 { providerId: any }／{ providerId: string; modelName: any }／null；消费点 @1398 parseModelString(trimmed)?.modelName || trimmed 经独立 tsc 探针实测（--strict --skipLibCheck，EXIT=0、探针文件零报错）→ 型缝 0，无需加铸。 ── */
 declare function resolveModelRef(value: string): { providerId: string; modelId: string; variant?: string };
 
 /** 原 fe（skillStore U 导出）：按工作区取模型供应商配置选项 */

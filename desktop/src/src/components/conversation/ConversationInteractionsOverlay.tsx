@@ -5,7 +5,7 @@
 // 导入路径按 components/conversation/ 深度改指 ../../modules/。
 /* eslint-disable */
 import * as React from "react";
-import { Input } from '../../modules/ImeComposition';
+import { Input, useOptionalPlatform as useTelemetryPlatform } from '../../modules/ImeComposition'; // 〔A1-R168〕+useOptionalPlatform（原码 le，导出别名 j；canonical components/ime/ImeComposition@236，头注 @235 逐字「原码 le，导出别名 j」）：useTelemetryPlatform declare 收敛改指，见下墓碑
 import { logger } from '../../modules/SkillStore';
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
@@ -261,7 +261,7 @@ declare function setTaskElicitationFormDraft(
 ): void;
 declare function removeTaskElicitationFormDraft(workspacePath: string | undefined, sessionId: string, requestId: string, workspaceIdentity?: string | null): void;
 declare function useNotificationEnabled(): boolean;
-declare function useTelemetryPlatform(): unknown | null;
+/* ── tombstone〔A1-R168〕：declare useTelemetryPlatform 删除 → 改指 components/ime/ImeComposition::useOptionalPlatform（@236，经 modules/ImeComposition@79 转导出；@8 既有值边 → 模块图零变化）。〔别名保名〕useOptionalPlatform as useTelemetryPlatform，消费点 @299/@306 逐字不变。束证三跳闭合：imeComposition-DEYFkwWm.js@10880 function le() → @12590 le as j（chunk 导出别名）→ styles-CdEGpc2x.js@355 j as S（块 337..368 之尾行自 ./imeComposition-DEYFkwWm.js 导入）；R37/R38 PaymentDeep@286「S ≡ useOptionalPlatform」与 R125 Conversation@184-185「styles 355 j as S ≡ 导出 le as j」两度既判同链。型面：桩面 unknown | null 实塌缩为 unknown（零信息），canonical PlatformService | null 系真形 → 改指为保真增益；唯一传递点 @306 之槽型 @269 platform: unknown 恒可赋 → 型缝 0，无需加铸。 ── */
 /** 原 tSt（js 117394 / jsx 99703）：新交互出现时的桌面通知（接口保留） */
 declare function useSnapshotInteractionToasts(args: {
   snapshot: SessionSnapshotForOverlays | null;

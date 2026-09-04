@@ -20,7 +20,7 @@ import { useServices } from '../../modules/services';
 import { useAutomationsStore, useOffPeakTaskStore } from '../../modules/stores-tasks'; // A1-R9 bX 接线改指：本地死 declare 删除 → 真实 import（canonical = components/shell/Home.tsx 641 区 bX@91416，经 stores/offPeakTaskStore shim 链）；tombstone 见原声明位
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R119〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116 判例，别名保留调用名）
-import { useAppSettings as useSettingsSnapshot } from '../../modules/UsageDeep'; // 〔A1-R119〕原 JM 族 declare 改指（canonical UsageDeep@1730，R11 判例；返回面 {settings, loading, update, ...} 超集兼容）
+import { useAppSettings as useSettingsSnapshot } from '../../modules/UsageDeep'; // 〔A1-R119〕原 JM 族 declare 改指（canonical UsageDeep@1745，R11 判例〔A1-R168 勘误：旧引 1730 行漂 +15〕；返回面 {settings, loading, update, ...} 超集兼容）
 import { useWorkspaceTabStore, isWorkspaceKindTab as isWorkspaceTabUsable } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R119〕原 pc/oc declare 改指（R107/R2 判例；别名保留调用名）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R119〕原 U2（styles 123510）declare 改指（R5/R6 ConfirmDialog canonical 判例）
 import { OffPeakTaskList, buildAutomationModelSelectGroups, automationNextRunLabel as describeAutomationNextRun } from './AutomationsMain'; // 〔A1-R119〕原 cMt declare 改指 R113 逐字实体 // 〔A1-R120〕+buildAutomationModelSelectGroups/automationNextRunLabel（AMt/egt 孪生归一；$ht/$$ 直进 describeAutomationNextRun 体内随归一删）
@@ -111,7 +111,7 @@ interface ZCodeSettings {
 }
 
 /* ── tombstone〔A1-R119〕：declare useSettingsSnapshot/useModelProviderRegistry 删除 → 改指
- *    useAppSettings（JM 族，UsageDeep@1730；R11 判例）/useModelProvidersStore（qq 族，PaymentDeep §11；
+ *    useAppSettings（JM 族，UsageDeep@1745；R11 判例〔A1-R168 勘误：旧引 1730 行漂 +15〕）/useModelProvidersStore（qq 族，PaymentDeep §11；
  *    R109 判例）。消费面 @1111/@1110 解构逐字不变；F15 轨 @1187/@1188 同构消费在案。 ── */
 
 interface EntitlementSnapshot {

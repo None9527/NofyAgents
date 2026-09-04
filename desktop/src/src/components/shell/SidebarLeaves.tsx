@@ -136,7 +136,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R1
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
 import { useTaskListItems, useHydratingSessions as useSessionItems } from './TaskListQueryCore'; // 〔A1-R129e〕+useHydratingSessions as useSessionItems（原 JS@35552 逐字真身；A1-P3-B1 转录 ROUNDTRIP EXACT 在案；墓碑见 @285 区） // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
-import { useAppSettings as useSettingsContext, useSubscriptionSnapshot as useCodingPlanEntitlement, providerCacheKey as entitlementCacheKey } from '../../modules/UsageDeep'; // 〔A1-R128〕JM 53488/$j 52497/rM 52648 三 declare 收敛改指（UsageDeep@1730/1168/1353 逐字真身；shim@430/356/358 导出在案）。环安全：UsageDeep 值闭包无 components/shell 边（实测仅碑文提及）
+import { useAppSettings as useSettingsContext, useSubscriptionSnapshot as useCodingPlanEntitlement, providerCacheKey as entitlementCacheKey } from '../../modules/UsageDeep'; // 〔A1-R128〕JM 53488/$j 52497/rM 52648 三 declare 收敛改指（UsageDeep@1745/1177/1362 逐字真身（头注 @1742/1176/1361）；shim@431/356/358 导出在案〔A1-R168 勘误：旧引 1730/1168/1353 与 shim@430 系行漂 +15/+9/+9/+1，经 word-boundary 重定归真〕）。环安全：UsageDeep 值闭包无 components/shell 边（实测仅碑文提及）
 import { useModelProvidersStore as useModelProviders, useEnterpriseCodingPlanProducts as useTeamProducts } from '../../modules/PaymentDeep'; // 〔A1-R128〕qq 78243/TY 83745 双 declare 收敛改指（PaymentDeep@10456/4568 逐字；shim@319/293 导出；AutomationsMainView@13 R119 同判例）。环安全：PaymentDeep 值闭包无 components/shell 边（实测在案）
 import { providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // 〔A1-R128〕q≡W 4733 declare 收敛改指（R32 canonical；ModelProviderSettingsSection@17 同判例，别名保留调用名）
 import { resolveSupplierProvider as resolveSelectedSupplierKey } from '../../modules/ConversationLeaves'; // 〔A1-R128〕Uq 77975 declare 收敛改指（R17 逐字转录：custom:/ghost: 供应商键解析）。环安全：ConversationLeaves 值闭包无 components/shell 边（实测在案）
@@ -531,9 +531,9 @@ const TESTID_TASK_ARCHIVE = "task-archive"; // 原 et ← Ai ← Q_（src 8321�
 /* ---- 用量域 F12（mRt 依赖；接口级声明） ---- */
 
 /* ── tombstone〔A1-R128〕SettingsSnapshot 型 + useSettingsContext（原 JM）declare 删除 → 改指 modules/UsageDeep::useAppSettings
- *    （真身 ≡ JM 53488，UsageDeep@1730 逐字「原 JM」；shim@430 导出在案）。SettingsSnapshot 型随之死删（唯此 declare 用）。
+ *    （真身 ≡ JM 53488，UsageDeep@1742 逐字「原 JM」（定义 @1745）；shim@431 导出在案〔A1-R168 勘误：旧引 1730/430 行漂〕）。SettingsSnapshot 型随之死删（唯此 declare 用）。
  *    消费面实测：@894 解构 settings；@895 providerFamilyDomain / @929 modelProviderFamilySelectedKeys.bigmodel 读面
- *    ≡ AppRuntimeSettings@1666 字段面。调用点逐字不变。 ── */
+ *    ≡ AppRuntimeSettings@1681 字段面〔A1-R168 勘误：旧引 1666 行漂 +15〕。调用点逐字不变。 ── */
 /* ── tombstone〔A1-R127〕resolveProviderFamilyDomain（原 xn）declare 删除 → 改指 SrcSharedB::normalizeProviderFamilyDomain
  *    （真身 ≡ Xx 8937 / src 9745 / styles 514；Home@162 R27 同判例；调用点 899 逐字不变）。 ── */
 /* ── tombstone〔A1-R128〕useModelProviders（原 qq 78243）declare 删除 → 改指 modules/PaymentDeep::useModelProvidersStore
@@ -567,14 +567,14 @@ interface TeamSource { id: string; providerId: string; label?: string; organizat
  *    终端消费实测：本文件 932 ≡ bundle 150329；负证据：bundle 内 Mrt 无第二定义）。
  *    调用点逐字不变；型缝：真身参型/返回面按消费面推导（下游 960–996 兼容实测）。 ── */
 /* ── tombstone〔A1-R128〕useCodingPlanEntitlement（原 $j 52497）declare 删除 → 改指 modules/UsageDeep::useSubscriptionSnapshot
- *    （UsageDeep@1168 逐字「原 $j」；shim@356 导出在案）。UseSubscriptionSnapshotOptions 涵原契据九字段；
+ *    （UsageDeep@1176 逐字「原 $j」（定义 @1177）；shim@356 导出在案〔A1-R168 勘误：旧引 1168 行漂 +8（注）/+9（定义）〕）。UseSubscriptionSnapshotOptions 涵原契据九字段；
  *    返回面 { snapshot: EntitlementSnapshot|null; loading; error; refresh } 超集——snapshot 经
  *    EntitlementSnapshotLike 索引签名面结构兼容（968-977/982-994 消费实测）。调用点 936/945/954 逐字不变。 ── */
 // 〔A1-R23〕型缝：原 `interface PlanEntitlementSnapshot { [key: string]: unknown }` 收敛为 Home EntitlementSnapshotLike 别名——
 // Oq 76207 入参面 snapshot?: EntitlementSnapshotLike | null（Home §U.3 逐字）；本型原形仅索引签名，别名后结构兼容（含索引签名）
 type PlanEntitlementSnapshot = EntitlementSnapshotLike;
 /* ── tombstone〔A1-R128〕entitlementCacheKey（原 rM 52648）declare 删除 → 改指 modules/UsageDeep::providerCacheKey
- *    （UsageDeep@1353 逐字；shim@358 导出在案；R38 判例）。型缝：真身入参 ModelProvider|undefined，
+ *    （UsageDeep@1361 逐字（定义 @1362）；shim@358 导出在案〔A1-R168 勘误：旧引 1353 行漂 +8（注）/+9（定义）〕；R38 判例）。型缝：真身入参 ModelProvider|undefined，
  *    调用点实参 ModelProviderEntry|undefined → 943/952 缝 `as any`（UsageDeep@1486 边界缝同判例）。
  *    返回面 string ⊆ 原 string|null；cacheKey 槽位兼容。调用点逐字不变。 ── */
 /* ── tombstone〔A1-R126〕resolveProfilePlanAudience（原 uRt 150276）declare 删除 → 逐字实体落 components/shell/Home §U.3

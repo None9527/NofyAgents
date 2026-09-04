@@ -168,7 +168,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（styles 123242）远端条目域改指（tombstone 见原声明位）
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
 import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
-import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig, type EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕+type EntitlementSnapshot：N6e 收敛型缝所依（A as (id) => EntitlementSnapshot | null，行依据见 iit _e 注） // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
+import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, useAppSettings as useSettingsSnapshot, type BillingDiscountConfig, type EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R168〕+useAppSettings（原 JM，styles@53488；canonical components/usage/UsageDeep@1745，头注 @1742 逐字「原 JM（js 53488）」）：useSettingsSnapshot declare 收敛改指，见下墓碑 // 〔A1-R29〕+type EntitlementSnapshot：N6e 收敛型缝所依（A as (id) => EntitlementSnapshot | null，行依据见 iit _e 注） // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
 import { readDraftMode as readLastDraftCollaborationMode } from '../conversation/ConversationDraftConfig'; // 〔A1-P1-B16〕原 $M（53577）§T.1 双实例收敛改指（B8 canonical；R25 判例）
 
 /* ============================================================================
@@ -277,14 +277,14 @@ interface CodingPlanSubscriptionService {
 
 /** 服务 context（原 fs()，横切层 §2.2） */
 
-/** 设置快照（原 JM()，Settings 族提供） */
+/** 设置快照（〔A1-R168〕原注「原 JM()，Settings 族提供」随 useSettingsSnapshot declare 退营改述：本界面系 isCodingPlanConnectionSelected@749-751 之最小结构面 = AppRuntimeSettings@1681 之严格子集（三可选员 + 同形索引签），@751 仍在用故非死面，留） */
 interface SettingsSnapshot {
   providerFamilyDomain?: string | null; // 〔A1-R104〕型宽化：AppRuntimeSettings 真形含 null（AutomationsMain Tit 改指实参面；1092 消费有真值守卫）
   modelProviderFamilyModes?: Record<string, string>;
   modelProviderFamilySelectedKeys?: Record<string, string>;
   [key: string]: unknown;
 }
-declare function useSettingsSnapshot(): { settings: SettingsSnapshot | null };
+/* ── tombstone〔A1-R168〕：declare useSettingsSnapshot 删除 → 改指 components/usage/UsageDeep::useAppSettings（@1745，经 modules/UsageDeep@431 转导出；@171 既有值边 → 模块图零变化）。〔别名保名〕useAppSettings as useSettingsSnapshot，消费点 @1078/@4703 逐字不变。束证：styles 内 function JM／JM =／X as JM 于全束 213979 行恰 1 命中 = @53488 function JM()，体首 let { botsService, broadcastService, settingService, zcodeAgentService } = fs() 与树注「应用设置钩子」吻合；canonical 头注 @1742 逐字「原 JM（js 53488）」行号命中、adopter AutomationsMainView@23「原 JM 族」同指 → 三点一致（declare 侧仅沉默非相左）；R119/R128 两度既判同链。环安全：canonical 头注 @1743-1744 自载裁定「值闭包 = modules/services + ImeComposition(usePlatformService) + SrcSharedB 常量 + react，12 消费域经 modules/UsageDeep shim import 本函数不构成新环」，且本件走既有边故不涉新环。型面：canonical 返回 { settings: AppRuntimeSettings | null; loading; error; update; refresh } 系桩面 { settings: SettingsSnapshot | null } 之超集；二消费点仅经属性访问（@1092/@1093/@1094 与 @4709/@4761/@4762/@4765/@4886 共读 providerFamilyDomain·modelProviderFamilyModes·modelProviderFamilySelectedKeys 三员），AppRuntimeSettings@1681 具全三员且型逐字节同形（Record<string,string> 二员、string|null 一员）并同带 [key:string]:unknown → 型缝 0。 ── */
 
 /** 模型供应商列表（原 qq()，ProviderPlanUsage 族提供） */
 // 〔A1-R24〕补 export：zrt 197021 面联动——SubagentLeaves ModelProvider.models 型缝所依（经 modules/Home 转导出）
