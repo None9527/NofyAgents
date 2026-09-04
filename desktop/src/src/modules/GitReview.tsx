@@ -152,7 +152,7 @@
  *
  *  图标（Sa = createLucideIcon 工厂，js 行）：
  *   Q_ folder-open 27151 | W_ copy 26974 | Nv refresh-cw 27725 | Z_ file-text 27108
- *   N_ chevron-down 26850 | uv list-tree 27348 | wa chevron-right（usageStatsUiParts o 导出）
+ *   N_ chevron-down 26850 | uv list-tree 27348 | wa chevron-right（**button** chunk o 导出）〔A1-R171 勘误〕旧注「usageStatsUiParts o 导出」不确——三重证伪：①styles 之 `wa` 绑于 styles-CdEGpc2x.js@896 `o as wa`、该行属导入块 **890..900**、块尾 `} from "./button-laUijeDG.js"`；②styles 之 usageStatsUiParts 导入块 **902..918** 所收为 a/c/d/f/g/h/i/l/m/n/p/r/s/t/u 十五枚、**根本未收 `o`**；③usageStatsUiParts-CiR7YEhh.js 全档 `chevron` 命中 **0**。束真链：button-laUijeDG.js@102  y = _(`chevron-right`, [[`path`, { d: `m9 18 6-6-6-6`, key: `mthhwq` }]])  → @186 `y as o` → styles@896 `o as wa`；四源互证＝npm lucide-react@1.35.0 chevron-right.mjs（d/key 逐字节同）+ 树 canonical modules/button.tsx@211/@348（束 @186 之逐字镜像、9 位位位对位）+ 全树注记投票 15:0 皆称 button chunk。★失效模式＝「两半皆真、接缝为假」：wa 确係 chevron-right、usageStatsUiParts 确有 `o` 导出（@877 `ke as o`），唯 styles 未收该 `o` 且该 chunk 无任何 chevron → 判据须为**导入块归属**（R159「归账单位 =（源 chunk, 导出名）」）、非「该 chunk 是否存在此导出名」。★本行係 components/code-viewer/GitReview@157 之 shim 副本、同批同勘。
  *   X_ file-diff 27084 | w_ arrow-up-from-line 26701 | Fye git-commit-horizontal 27195
  *   H_ cloud-upload 26961 | F_ circle-alert 26860 | M_ check 26849 | fv loader 27363
  *   ev git-branch 27190 | Kv trash-2 27930 | Cye code-xml 26969 | _v message-square-text 27447
@@ -177,7 +177,7 @@
  *  5. usePlatformService (l=M)、toast (m=_)、Textarea (j=v)、spinner (M=w)、x 图标 (g=b)、
  *     sparkles 图标 (f=S)            imeComposition-DEYFkwWm.js
  *  6. Tooltip 封装 CN/wN/TN（dN/fN/pN 底层）与 Popover 原语 (Na/Oa/Ma/ka)
- *                                    usageStatsUiParts-CiR7YEhh.js（wa=chevron-right 亦出于此）
+ *                                    usageStatsUiParts-CiR7YEhh.js〔A1-R171 勘误〕旧注「wa=chevron-right 亦出于此」不确——本 chunk 全档 `chevron` 命中 **0**、且 styles 之 usageStatsUiParts 导入块 902..918 **未收 `o`**；`wa` 独出 button-laUijeDG.js（详见 @155 勘误）。★本行所属第 6 条之 Popover 原语归本 chunk **无误**（styles@903-917 实证：Na←p@913、Oa←d@905、Ma←m@911、ka←f@906）。★本行係 components/code-viewer/GitReview@182 之 shim 副本、同批同勘。
  *  7. shortcutLabel ($i)             keyboardShortcuts-BGHopxr9.js (n 导出)
  *  8. logger (J)                     logger-PFDwl5Yq.js (t 导出)
  *  9. zustand create (Ae)            skillStore-BmeKHDBI.js (q 导出)

@@ -425,7 +425,7 @@ export function AlertDialogDescription({ className, ...rest }: React.HTMLAttribu
     />
   );
 }
-/** 原 a3（js 132025）：动作按钮（复用 Button 类名 cva `Ca`） */
+/** 原 a3（js **132045**）：动作按钮（复用 Button 类名 buttonVariants `Ca`）（〔A1-R171 勘误〕二处：①旧注「cva `Ca`」不确——`Ca` 係 **buttonVariants**（styles@895 `n as Ca` ← button-laUijeDG.js@186 `E as n` ← `E = w(...)`@149），cva 係 **Ta**（styles@897 `r as Ta` ← `w`@116）；束消费点实证 styles@132048 `className: Z(Ca({ variant: t, size: n }), e)` 係 variants 函数调用形；树 canonical modules/button.tsx@348 `buttonVariants as n, cva as r` 位位对位互证。②旧引「js 132025」漂 **+20**——束 @132025 实係 `n3` 之体（`data-slot: alert-dialog-footer`）、异函数；`a3` 真定义在 @132045（`data-slot: alert-dialog-action`，与本注「动作按钮」义合）。★漂移台账新增 +20，R163「禁算术 vintage 换算」第五度验证） */
 export function AlertDialogAction({ className, variant, size, ...rest }: ButtonProps) {
   return <RadixAlertDialogAction data-slot="alert-dialog-action" className={className} {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)} data-variant={variant} data-size={size} />;
 }

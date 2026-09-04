@@ -91,8 +91,8 @@
  *  2. preload-helper                 preload-helper-BHSF1fZ9.js（`a`；pdfjs worker 动态 import 用）
  *  3. isMacPlatform (o→`a` 导出)     keyboardShortcuts-BGHopxr9.js：navigator.platform/UA
  *                                    判 Mac（滚轮缩放修饰键 metaKey vs ctrlKey）
- *  4. Button (d→t) + 4 图标          button-laUijeDG.js：`s`=chevron-left(v)、`l`=chevron-right(y)、
- *                                    `c`=zoom-out(x)、`s`→zoom-in(b)；图标为 Sa=createLucideIcon 产物
+ *  4. Button (d→t) + 4 图标          button-laUijeDG.js：`u`=chevron-left(v)、`l`=chevron-right(y)、
+ *                                    `c`=zoom-out(x)、`s`→zoom-in(b)；四图标係已成产物（本 chunk 未导入 createLucideIcon）〔A1-R171 勘误二处〕①旧注「`s`=chevron-left(v)」误——`s` 係 zoom-in（束导出 `a`←局部 `b`），且与下句「`s`→zoom-in(b)」自相矛盾（一键双赋即其 tell）；chevron-left 之本 chunk 局部名係 `u`（←束导出 `s`←束局部 `v`），实证 pdf-viewer-m6YcRb_5.js@6 `import { a as s, i as c, o as l, s as u, t as d }`；②旧注「图标为 Sa=createLucideIcon 产物」误——`Sa` 在本 chunk 係 class（pdf-viewer-m6YcRb_5.js@19603 `Sa = class {`、@19872 `new Sa()`），非 createLucideIcon；★根因＝跨 chunk 名复用：`Sa`=createLucideIcon 于 styles chunk 为真（Modals@123 头注在案），移入本 chunk 依赖清单即成误（R159「归账单位 =（源 chunk, 导出名）」同源）。★名皆本 chunk 局部名、括弧内係 button chunk 局部名；束导出行 button-laUijeDG.js@186 与树 canonical modules/button.tsx@348 位位对位互证。
  *  5. clsx (f→`r` 导出)              bundle-mjs-D8tLE0rB.js（tailwind-merge bundle 内含 clsx；
  *                                    仅 vendor react-pdf 段使用）
  *  6. cn (p→`t` 导出)                utils-CEEH0K_K.js（ZCode tailwind-merge 配置）

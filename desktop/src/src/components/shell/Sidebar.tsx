@@ -149,7 +149,7 @@
  *   W_ copy 26974 | K_ ellipsis 26998 | Rv settings 27806 | nv globe 27218 | wv palette 27570
  *   Jye maximize 27400 | pv log-in 27373 | Kye log-out 27378 | Pbe user 27994 | Lv settings-2 27800
  *   iv grip-vertical 27236 | nye arrow-up-to-line 26706
- *   button chunk：xa zoom-in | Kre zoom-out | wa chevron-right | Ca cva | X Button | Sa createLucideIcon
+ *   button chunk：xa zoom-in | Kre zoom-out | wa chevron-right | Ca buttonVariants | Ta cva | X Button | Sa createLucideIcon（〔A1-R171 勘误〕旧注「Ca cva」不确——Ca 係 **buttonVariants**：styles@895 `n as Ca` ← button-laUijeDG.js@186 `E as n` ← `E = w(...)`@149；cva 係 **Ta**：styles@897 `r as Ta` ← `w as r` ← `w`@116；束消费点 styles@132048 `Ca({ variant: t, size: n })` 係 variants 函数调用形；树 canonical modules/button.tsx@348 `buttonVariants as n, cva as r` 位位对位互证；★本文件 @986 碑已正称 buttonVariants、本行係同文件自相矛盾之少数派）
  *   imeComposition chunk：M spinner | g x 图标 | A isImeEnter | l usePlatformService | m toast
  *
  *  data-testid 常量（src-HCld2afU.js，out/ 行号）：
@@ -169,7 +169,7 @@
  * ----------------------------------------------------------------------------
  *  1. react / jsx-runtime           react-BQLj9xdT.js、jsx-runtime-B5yMD3-t.js
  *  2. cn() 类名合并 (Z)              utils-CEEH0K_K.js
- *  3. Button/createLucideIcon/cva/zoom-in/zoom-out/chevron-right (X/Sa/Ca/xa/Kre/wa)
+ *  3. Button/createLucideIcon/cva/zoom-in/zoom-out/chevron-right (X/Sa/Ta/xa/Kre/wa)（〔A1-R171 勘误〕旧列第三位 `Ca` 係 buttonVariants 非 cva；cva 之 styles 局部名係 `Ta`@897 —— 名序对位既改，余五位 X=Button/Sa=createLucideIcon/xa=zoom-in/Kre=zoom-out/wa=chevron-right 皆核正不动）
  *                                   button-laUijeDG.js
  *  4. useIntlContext (G)            IntlProvider-C321H7m8.js
  *  5. usePlatformService/toast/Input/IME 守卫/spinner/x 图标/Popover 原语 (l/m/P/A/M/g/…)
