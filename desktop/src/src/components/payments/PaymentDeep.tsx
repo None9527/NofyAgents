@@ -9147,8 +9147,8 @@ const API_KEY_PROVIDER_ENTRIES = [
   { id: providerIds.zapi, displayName: `ZAPI` },
 ];
 
-// aX → API_KEY_PROVIDER_ENTRY_MAP（本地 88255）
-const API_KEY_PROVIDER_ENTRY_MAP = new Map(API_KEY_PROVIDER_ENTRIES.map((entry) => [entry.id, entry]));
+// aX → API_KEY_PROVIDER_ENTRY_MAP（束真 **88237**）〔随批勘误 A1-R156：旧注「本地 88255」实测偏 **+18**——styles 内 `aX` 全 **4** 命中归账完毕 = **88237 定义** `aX = new Map(iX.map((e) => [e.id, e]))` + 88504 `art` / 88507 `ort`（本文件自体，≡ 下 @9449 / @9454）+ **206097** `m4t`（≡ OnboardingLoginLeaves@1426 apiKeyUrlForDomain，M9 ≡ familyDomainToProviderId）；iX ≡ 上 @9134 API_KEY_PROVIDER_ENTRIES（旧注「本地 88239」同属该偏移带）。下行 @9151 同批**补 export**（行内改 → 本文件行数不变 **10704**）= D-8 件 OnboardingLoginLeaves declare providerFamilyRegistry 收敛改指所依，经 modules/PaymentDeep@327 补转导出（PDS 328→329，该文件 ≥326 行零引证 → 位移免费）〕
+export const API_KEY_PROVIDER_ENTRY_MAP = new Map(API_KEY_PROVIDER_ENTRIES.map((entry) => [entry.id, entry]));
 
 // oX → CODING_PLAN_PROVIDER_ENTRIES（本地 88256）
 const CODING_PLAN_PROVIDER_ENTRIES = [

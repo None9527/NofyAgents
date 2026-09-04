@@ -324,5 +324,6 @@ export {
   mergeRefreshResults, // 〔A1-R145〕原 trt（束真 88470）转导出：UsageDeep ⑤ summarizeModelTestResults declare 收敛所依
   isEmptyText, // 〔A1-R145〕原 srt（束真 88509）转导出：UsageDeep ⑤ isApiKeyMissing declare 收敛所依
   providerEntryIconOf, // 〔A1-R145〕原 crt（束真 88512）转导出：UsageDeep ⑤ navItemIcon declare 收敛所依
+  API_KEY_PROVIDER_ENTRY_MAP, // 〔A1-R156〕原 aX（束真 styles@88237 = `new Map(iX.map((e) => [e.id, e]))`）转导出：OnboardingLoginLeaves@602 declare providerFamilyRegistry 收敛改指所依（属主补 export 见 PaymentDeep@9151；消费面 ONB@1426 ≡ 束 206097 m4t，别名保名逐字不变）
 } from '../components/payments/PaymentDeep';
 export type { ModelProvider } from '../components/payments/PaymentDeep'; // 〔A1-R29〕Hq/N6e/ot 簇收敛型缝所依：各脸本地供应商型面窄化依此（类型面，零运行时影响）
