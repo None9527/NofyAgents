@@ -74,17 +74,17 @@ import {
  *    R1/R116 判例续）。〔A1-R172 勘误二处〕①旧注「本地 IntlShape 接口**保留**」已不复成立——该界面本批销账、改采上方 @22 之 `type ZCodeIntl as IntlShape` 别名（别名保名故读者之名不变）；
  *    ②旧注「余 3 处活体签名引用（984/1070/1083）」**三行号皆误**——实测 @984 係注释行且无该 token、@1070/@1083 係代码行而无该 token；**唯一真读者係 @924**（旧碑从未提及）。与 I18n::ZCodeIntl@201–203 逐字同形（R116 既证、本批复核 md5 d2ffea415e84）。 ── */
 
-/** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 */
-interface PlatformService {
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  openExternal?(url: string): void | Promise<void>;
-  onSettingsChanged?(cb: () => void): () => void;
-  /* A0-CLEANUP3 3b：同一平台服务兼遥测面（StoresDeep.TelemetryPlatform 消费面；bundle 真值） */
-  reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
-  reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
-}
+/** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 〔A1-R182〕★上句「仅列本族用到的面」今已失 referent：其所描述之本地 interface PlatformService（8 行、代码位读者 0）已随死界面普查批第二批销账、8 行等行墓碑在下方原位；「原 l()，imeComposition chunk」之束源注部分逐字保留（存活于碑上之先例＝本文件 @68，TopBar@165 明引）。 */
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface PlatformService（8 行，openInFileManager/openExternal?/onSettingsChanged?/reportTelemetryEvent/reportArmsCustomEvent）纯删，8 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    ★上方 @77 之单行文档注「桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面」**存活**（加行内 rider、旧文逐字保留为前缀）：理据＝该注係**束源注**形，同文件 @68 之束源注存活于〔A1-R172〕碑上、且 TopBar@165 明引该处为「同款标签存活于碑上之先例」⇒ 同档一致性优先，不折入本碑。
+ *    ★下方 @87 之〔A1-R46〕碑末句「本地 PlatformService 接口孤儿保留」**被本批证伪** ⇒ 同批加行内 rider（拆分感知：该碑其余声称〔usePlatformService 改指 canonical、型交叉检查、消费面 @1413／@1467／@1516 pass-through〕皆仍真、逐字保留）。
+ *    ★并核：该句在**著笔时曾为真**（读者 0 之孤儿确曾保留），属 R172 沉淀③「处置后失效」型，而非 R176 沉淀⑦「理据从未成立」型（对照 McpSettingsSection@40 之同款 R46 碑，其理据从未成立）。
+ *    同名定义站全树 **14** 家：本件 + CodeViewer@185／FileTreePanel@205／GitReview@256／ime/ImeComposition@152（带 export，canonical）／FileRewindDialogDeep@120／OnboardingLoginLeaves@452（带 export）／PreviewCards@165／Hooks@27／Plugins@26／SidePanel@199（带 export）／WorkspaceShell@289／ConversationLeaves@244（带 export）／pptxPreviewViewer@84。
+ *    ★〔A1-R48〕已就多家本地 2 员面碑化改指 canonical 立判例（CommandsSettingsSection／ModelProviderSettingsSection／AutomationsMain 等）；本件读者 0 故径纯删、不采别名（别名无收益且可能静默改面）。
+ *    级联：本面成员皆基础型或内联面，未引本文件其它本地面 ⇒ 预判级联新增死面 **0**。 ── */
 
-/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition ≡ ImeComposition@186 = usePlatform@168，bundle l ≡ M；R45 既判）。型交叉检查：消费面仅 @1413/@1467/@1516 pass-through 至 reportAutomationCreateResult/reportAutomationAction（service: TelemetryPlatform，StoresDeep@273）；canonical → TelemetryPlatform 可赋（reportTelemetryEvent 逐字同形；reportArmsCustomEvent 参 ArmsCustomEvent ⊆ canonical 内联面，方法双变成立）。本地 PlatformService 接口孤儿保留。证据见 A1-R46.report.md §二。 ── */
+/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition ≡ ImeComposition@186 = usePlatform@168，bundle l ≡ M；R45 既判）。型交叉检查：消费面仅 @1413/@1467/@1516 pass-through 至 reportAutomationCreateResult/reportAutomationAction（service: TelemetryPlatform，StoresDeep@273）；canonical → TelemetryPlatform 可赋（reportTelemetryEvent 逐字同形；reportArmsCustomEvent 参 ArmsCustomEvent ⊆ canonical 内联面，方法双变成立）。本地 PlatformService 接口孤儿保留。证据见 A1-R46.report.md §二。〔A1-R182〕★上句「本地 PlatformService 接口孤儿保留」今已失效：该本地面（8 行、代码位读者 0）已随死界面普查批第二批销账、8 行等行墓碑在原位；本碑其余声称（usePlatformService 改指 canonical、型交叉检查、消费面 @1413／@1467／@1516 pass-through）皆仍真、逐字保留。★并记该句在著笔时曾为真（孤儿确曾保留），属「处置后失效」型而非「理据从未成立」型（对照 McpSettingsSection@40 之同款 R46 碑，其理据从未成立，R176 沉淀⑦）。 ── */
 
 interface ModelProviderInfo {
   id: string;
@@ -114,10 +114,10 @@ interface ZCodeSettings {
  *    useAppSettings（JM 族，UsageDeep@1745；R11 判例〔A1-R168 勘误：旧引 1730 行漂 +15〕）/useModelProvidersStore（qq 族，PaymentDeep §11；
  *    R109 判例）。消费面 @1111/@1110 解构逐字不变；F15 轨 @1187/@1188 同构消费在案。 ── */
 
-interface EntitlementSnapshot {
-  snapshot: unknown;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface EntitlementSnapshot（4 行，snapshot 加索引签名）纯删，4 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **3** 家：本件 + components/usage/UsageDeep@703（带 export，canonical）+ modules/ExtendedViews@367。
+ *    ★OnboardingLoginLeaves@261 之 import type 係自 **modules/UsageDeep** 取该 canonical、与本件无关 ⇒ 其注记不证伪、不加 rider（R165 沉淀：dst 必经 resolve 解析、不得以同名想当然）。 ── */
 
 /* ── tombstone〔A1-R119〕：declare useEntitlements/useCodingPlanUpgrade/buildIdleUpgradeFunnelContext/
  *    resolveEntryPlanState 删除 → 改指 useCodingPlanEntitlements（sX，PaymentDeep@9236；R111 判例）/
@@ -167,18 +167,18 @@ interface AutomationRecord {
   [key: string]: unknown;
 }
 
-interface AutomationScheduleRule {
-  hour: number;
-  minute: number;
-  weekdays?: number[];
-  monthDays?: number[];
-  months?: number[];
-  monthlyMode?: "date" | string;
-  interval?: number;
-  unit?: "minute" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | string;
-  anchorAt: number;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface AutomationScheduleRule（12 行）纯删，12 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **2** 家：本件 + modules/ExtendedViews@550（该文件死面 29 个／223 行、係全树死行最多之文件，候后续批）。
+ *    ★本件与 ExtendedViews@550 那份**不得并批**：两者读者面须各自实测（R169 沉淀②），且 ExtendedViews 负 R163 vintage 债、其引证须逐条归真而非机械换算。
+ *    上方 @169 空行与 @166-168 之邻面收尾、下方 @182 空行与 @183 起之 interface AutomationInput（活体、读者 @1305）皆存活（outside-diff 已断言逐字节未变）。
+ *    原体之语义（供后续重建参考）：调度规则面——hour 与 minute 必填、anchorAt 必填，weekdays?/monthDays?/months? 为数字数组，monthlyMode? 与 unit? 皆为字面量并集再并 string（宽化形），interval? 为数字，另有索引签名兜底。
+ *    引证密度实测：`AutomationsMainView@NNN` 全树 **15** 处、其中 **4** 处引 @181 之后 ⇒ 净零行强制（12 行碑换 12 行原体，文件 1920 行不变、零重锚）。
+ *    ★其中 TopBar@165 引 `AutomationsMainView@68` 为「束源注存活于碑上」之先例——@68 在本批首个编辑点（@77）之前且净零行 ⇒ 行号与所指皆不变、零引证证伪。
+ *    级联：本面成员皆基础型或内联字面量并集，未引本文件其它本地面 ⇒ 预判级联新增死面 **0**。
+ *    本块与同批另两块皆型-only ⇒ 三 bundle 必逐字节全等；台账 588 不得变动（反向哨兵）。
+ *    证据同 SkillsService 碑所列三份 /tmp 工件（普查／双实现互证／形制无关三谓词扫）。
+ *    本碑散文不嵌注释定界符、只描述不引用（R173 沉淀①）；标记严格交替已由施加脚本跨整块自检并带正负对照件。 ── */
 
 interface AutomationInput {
   title: string;

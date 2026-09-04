@@ -101,39 +101,39 @@ interface ModelProvider {
 
 /* --- 服务 context（原 fs()/Ec()） --- */
 
-interface SkillsService {
-  list(request: { workspacePath: string; workspaceIdentity?: string | null; provider: string }): Promise<{
-    skills: SkillItem[];
-    capability: SkillCapability | null;
-    diagnostics: SkillDiagnostic[];
-  }>;
-  setEnabled(request: {
-    workspacePath: string;
-    workspaceIdentity?: string | null;
-    provider: string;
-    scope?: string;
-    skillId: string;
-    enabled: boolean;
-  }): Promise<void>;
-  deleteSkill(request: { workspacePath: string; workspaceIdentity?: string | null; skillId: string }): Promise<void>;
-}
-interface CommandsService {
-  getPrimaryUserCommandsDirectory(request: { agentSource: string }): Promise<{ path: string }>;
-}
-interface HooksService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface SkillsService（16 行，list/setEnabled/deleteSkill 三法）纯删，16 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    ★活体对照件同批实测有读者（AutomationsMainView ModelProviderInfo 读者 @756／@824、AutomationInput 读者 @1305、SettingsLeaves ToastOptions 跨文件读者 5 处）⇒ 本判据非「一律报死」。
+ *    同名定义站全树实测 **9** 家：本件 + settings 五家（Commands@90／Hooks@85／Plugins@84／Skills@91／Subagents@88）+ modules/Composer@615 + stores/skillContextStore@49（带 export）+ stores/skillsStore@26。
+ *    ★本批只销本文件那一份；余各家各自有其读者面、不在本批范围（R169 沉淀②：死活必按 (文件, 名) 二元组判、不得按名全树判）。
+ *    上方 @102 节注「服务 context（原 fs()/Ec()）」**存活、不加 rider**：其下尚有〔A1-R180〕PluginManagementService 之碑（同属服务 context 群），删本面后该区仍全为服务界面之碑 ⇒ 未失 referent、无证伪理据（R176 沉淀①：凡列为强制修订者必附证伪理据）。
+ *    下方 @138 节注「跨 chunk 助手（接口级）」与本块无关，存活。
+ *    引证密度实测：`AutomationsMain@NNN` 全树 **5** 处、其中 **4** 处引 @205 之后 ⇒ **净零行强制**（16 行碑换 16 行原体，文件 2134 行不变、零重锚）。
+ *    形制无关之伴随扫描三谓词（P1 名 + 同行数字落在被删区间／P2 名 + 同行属主 basename／P3 名 + 同行留存动词）实测：P1 **0** 处、P3 本文件 **0** 处、P2 三处皆经目验裁定不证伪。
+ *    ★P2 之一处即 CommandsSettingsSection@35「本件无余 PlatformService 型参（与 AutomationsMain/MPSS 异）」——实测本文件 @8 导入 canonical 型、@51-55 之〔A1-R48〕碑明载 track* declares 参型同名解析 canonical，本批不触任何 track* declare ⇒ 该句仍真、不加 rider。
+ *    ★并记：`AutomationsMain` 作子串亦匹配 `AutomationsMainView`，属 R160 前缀假阳性 ⇒ 此类命中须目验方可归主，不得径以子串计数定属主。
+ *    原体之语义（供后续重建参考）：技能服务面，三法之参面皆带 workspacePath 与可选 workspaceIdentity，list 另带 provider 且返 skills/capability/diagnostics 三员，setEnabled 另带 scope?/skillId/enabled，deleteSkill 仅带 skillId。
+ *    级联：本面成员之型皆为本文件它处仍有读者之面（SkillItem/SkillCapability/SkillDiagnostic）或基础型 ⇒ 预判级联新增死面 **0**，施后以普查总量增量守恒复核（R180 沉淀⑥：dead_faces 之减幅须恰等于所删面数）。
+ *    本块係型-only 改动（interface 非台账对象、esbuild 擦除全部型构造）⇒ 三 bundle 必逐字节全等（R173 沉淀③／R174 沉淀⑥，可用于预测）；台账 588 不得变动（反向哨兵）。
+ *    证据：/tmp/a1r0/r182-deadface-census-pre.txt（普查 155 面／1,056 行、对照件 38/38 PASS、总量增量 +0/+0/+0）、r182-recon-out.txt（双实现互证）、r182-companion-out.txt（形制无关三谓词扫 + 同名定义站归主）。
+ *    本碑散文不嵌注释定界符、只描述不引用（R173 沉淀①）；标记严格交替已由施加脚本跨整块自检并带正负对照件。 ── */
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface CommandsService（3 行，getPrimaryUserCommandsDirectory 单法）纯删，3 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **7** 家：本件 + settings 五家（Commands@106／Hooks@101／Plugins@100／Skills@107／Subagents@116）+ stores/commandsStore@49（带 export，canonical 属主）；本批只销本文件那份。 ── */
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface HooksService（3 行，纯索引签名面）纯删，3 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **7** 家：本件 + settings 五家（Commands@109／Hooks@104／Plugins@103／Skills@110／Subagents@119）+ stores/hooksHelpers@23（带 export，canonical 属主）；本批只销本文件那份。 ── */
 /* ── tombstone〔A1-R180〕死界面普查批首批：本地 interface PluginManagementService（3 行索引签名形）纯删。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法）：本文件代码位读者 0、散文位亦 0；未 export ⇒ 跨文件读者结构性不可能。
  *    同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
-interface ZcodeAgentService {
-  createTask(request: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    provider: string;
-    mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface ZcodeAgentService（8 行，createTask 单法）纯删，8 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **5** 家：本件 + CommandsSettingsSection@115 + SkillsSettingsSection@116 + SubagentsSettingsSection@125 + modules/Composer@690。
+ *    ★其中 SkillsSettingsSection@116 那家**活**（代码位读者 @338，索引取用形取 createTask 成员型）⇒ 其 @141 碑「ZcodeAgentService 接口留存（投射型所依）」**不因本批失效**、不加 rider（该句所指係其自有面、非本文件这份）；余三家候各自域批裁。
+ *    原体行尾曾挂一行注（A0-CLEANUP3 3b：创建结果为完整任务记录，流入 FileTreePanel.TaskRecord）——该注落在被删体内、随体同销；其所述 FileTreePanel.TaskRecord 係它文件之面、本批不触 ⇒ 不产生它处假陈述。
+ *    上方 @126-128 之〔A1-R180〕PluginManagementService 碑、下方 @137 空行与 @138 节注皆存活（outside-diff 已断言逐字节未变）。
+ *    原体之语义：createTask 参面带 workspacePath/workspaceIdentity?/provider/mcpServers?，返完整任务记录（taskId/provider?/initialSlashCommands?/workspacePath/createdAt/updatedAt 加索引签名）。
+ *    级联：本面未引本文件其它本地面 ⇒ 预判级联新增死面 **0**，施后以普查总量增量守恒复核。 ── */
 
 /* --- 跨 chunk 助手（接口级） --- */
 
@@ -195,14 +195,14 @@ interface ZcodeAgentService {
  *    消费点 @782 逐字不变。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除，改经文件头 modules/UsageDeep import 消费
  *    （canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字；update 形参 AppRuntimeSettingsPatch 索引面对 1179/1341 补丁可赋）。 ── */
-interface TaskStoreState {
-  getWorkspaceState: (workspacePath: string, identity?: string | null) => { activeTaskId: string | null };
-  startDraft: (workspacePath: string, draft?: unknown, identity?: string | null) => void;
-  bindRuntimeProvider: (workspacePath: string, provider: string, identity?: string | null) => void;
-  setSlashCommands: (workspacePath: string, commands: unknown[], identity?: string | null) => void;
-  setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
-  getState?: unknown;
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface TaskStoreState（8 行，五法 + 一可选 getState）纯删，8 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    同名定义站全树 **9** 家：本件 + settings 五家（Commands@184／Hooks@179／Plugins@179／Skills@186／Subagents@194）+ SidebarLeaves@216 + modules/Composer@578 + stores/taskStore@347（canonical 属主）。
+ *    ★stores/taskStore 该文件另有 WorkspaceTaskState 等族，〔A1-R148〕已就 OnboardingLoginLeaves 本地四面族整族退役立判例；本件係 A0 期本地近似副本、读者 0 故径纯删而非改指（树内惯例：0 读者⇒纯删、≥1 读者⇒别名改指）。
+ *    上方 @196-197 之〔A1-R11〕useAppSettings 碑与 @190-195 之 displayOrder 碑皆存活（referent 各别、不因本批失效）；下方 @206 起之〔A1-R2〕碑亦存活。
+ *    引证密度：`AutomationsMain@NNN` 全树 5 处、4 处引 @205 之后 ⇒ 本块净零行（8 行碑换 8 行原体）係强制而非可选。
+ *    原体之语义：五法皆以 workspacePath 为首参、identity 为可选末参（getWorkspaceState 返 activeTaskId、startDraft 带 draft?、bindRuntimeProvider 带 provider、setSlashCommands 带 commands、setActiveTaskId 带 taskId），另有可选 getState。
+ *    级联：本面五法之参型皆为基础型或内联面，未引本文件其它本地面 ⇒ 预判级联新增死面 **0**，施后以普查总量增量守恒复核。 ── */
 /* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除。
  *    isWorkspaceTab（原 oc js 4487）declare 已删除，改经文件头真实 import
  *    （../../modules/WorkspaceTabsDeep 之 isWorkspaceKindTab，别名保留本地调用名）消费。

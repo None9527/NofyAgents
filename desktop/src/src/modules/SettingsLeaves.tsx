@@ -143,7 +143,7 @@
  * ThoughtLevelSelector 由子代理族所有（自动化族经 type import 取回三型）；
  * toSorted/IconComponent/usePlatformService/pluginMentionMarkdown 随插件族；
  * IntlShape/图标 declare/工作区与模型 declare 随自动化族。〔A1-R177 补记〕★本行係 §0 迁出侧之史实陈述（IntlShape 随自动化族迁入 AutomationEditor），与 AutomationEditor@2 之迁入侧同款散文；A1-R172 已就迁入侧明裁「係**历史陈述非假**、本批不动」（裁定载于 AutomationEditor@59 碑）→ 本行同判、旧文逐字保留。★然该裁定**从未就本行记录在案**（本行自 A0 检查点 15〔b8f9dcf，2026-08-30〕起零次触及、全树无任何档案裁定）⇒ 本补记係 A1-R172 期**记录缺口之闭合**、非本批面收敛所致亦不归因本批；迁入侧之本地 3 行界面已于 A1-R172 销账改采别名 specifier，故本行所指之「IntlShape」今在 AutomationEditor 内为**别名**而非本地界面。
- * ToastOptions、PluginsStoreState 无族消费，保留本文件。
+ * ToastOptions、PluginsStoreState 无族消费，保留本文件。〔A1-R182〕★上句今只半真（拆分感知）：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留本文件；而 PluginsStoreState@163-166 已随死界面普查批第二批销账（代码位读者 0、未 export ⇒ 跨文件读者结构性不可能；该名定义站全树恰 1 家即本件，销账后自全树消失），4 行等行墓碑在原位。
  * ==========================================================================*/
 
 /* ============================================================================
@@ -160,10 +160,10 @@ export interface ToastOptions {
   [key: string]: unknown;
 }
 
-interface PluginsStoreState {
-  uninstallPlugin(pluginId: string, pluginService: unknown): Promise<void>;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface PluginsStoreState（4 行，uninstallPlugin 单法 + 索引签名）纯删，4 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
+ *    ★该名定义站全树**恰 1 家＝本件** ⇒ 销账后该名自全树消失（BrowserSettingsSection@122-129 与 PluginsSettingsSection@228-251 那两份已随〔A1-R176〕销账）。
+ *    ★上方 @146 之「ToastOptions、PluginsStoreState 无族消费，保留本文件」被本批**半证伪** ⇒ 同批加行内 rider（**拆分感知**：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留，唯 PluginsStoreState 一半反转；〔A1-R176〕BrowserSettingsSection@31 与〔A1-R177〕Sidebar@256 同式先例）。 ── */
 
 export {
   SUBAGENT_COLORS,
