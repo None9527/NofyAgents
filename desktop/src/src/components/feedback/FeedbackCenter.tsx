@@ -246,10 +246,10 @@ interface FeedbackStoreState {
   close(): void;
 }
 
-/** 工作区标签页 store 选择器（原 pc，本 chunk 4753；Settings.tsx/stores-session.tsx 已登记） */
-declare function useWorkspaceTabStore<T>(
-  selector: (state: { activeWorkspacePath?: string | null; activeWorkspaceIdentity?: string | null }) => T,
-): T;
+/** 工作区标签页 store 选择器（原 pc，**styles@4801**；〔A1-R170 勘误〕旧引「本 chunk 4753」二处不确——①`pc` 係 **styles** chunk 符而非本 chunk；②真行 **4801**（styles 内 `function pc(` 恰 1 命中，体首 `useContext(fc)` + 抛「useTabStore 必须在 TabStoreProvider 内使用」，与 WorkspaceTabsDeep@66「pc → useWorkspaceTabStore (4801)｜useTabStore（消费侧 declare 名）」逐字吻合；同簇 mc@4806／hc@4809 亦对位 @67/@68）；旧值 4753 漂 **−48**，与 R169 之 LM／Tit／KX 同模（vintage 差之另一实例）；★异 (chunk, 名) 二元组之同名符已依 R159 排除：chunk-BO2N2NFS@9128 `pc(e,t,n,r)` arity 4、chunk-K5T4RW27@7511 `pc(e)` 皆非本实体。Settings.tsx/stores-session.tsx 已登记） */
+import { useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R170〕原 pc（styles@4801）桩退营改指 canonical modules/WorkspaceTabsDeep@686——★**同名直收**（本文件局部名与 canonical 名逐字同，无需别名）；环安全：新边 BFS 实测 value-path-back=none、type-path-back=none、VALUE CYCLES **0**；R166 已就 McpSettingsSection@58 同符施行改指（判例在案，该处係别名保名、本处係同名直收）
+/* ── tombstone〔A1-R170〕：declare useWorkspaceTabStore（原 pc，styles@4801）删除 → 改指 modules/WorkspaceTabsDeep::useWorkspaceTabStore（@686，上方 @250 新边导入）。
+ *    ★同名直收故消费点 @1766/@1767 逐字不变。型面：桩 state 面二员皆**可选** `string | null`，canonical WorkspaceTabStoreState@155/@156 二员皆**必填** `string | null` → 改指係**收窄**（去 undefined）；消费点 @1767 `?? void 0` 两侧同归 `string | undefined`、@1766 经 @1769 真值守卫 → 型缝 0（d 门实测）。原 declare 共 3 行：@250 改为导入行 + 本碑 2 行 = 净零行免重锚。 ── */
 /** 工作区服务条目 store 选择器（原 xe，skillStore chunk 的 h 导出） */
 declare function useWorkspaceServicesStore<T>(
   selector: (state: Record<string, unknown>) => T,

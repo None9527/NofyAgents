@@ -154,8 +154,8 @@ declare global {
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** spinner：loader-circle（原 M，imeComposition chunk 的 w 导出） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-/** 关闭图标（原 g，button chunk） */
-declare const IconX: React.FC<{ className?: string; strokeWidth?: number }>;
+/** 关闭图标（原 g；〔A1-R170 勘误〕旧注「button chunk」不确——束证三跳链：imeComposition-DEYFkwWm.js@12583 `qt as b`（chunk 导出）→ styles-CdEGpc2x.js@349 `b as g`（导入块 337..368、块尾自 ./imeComposition-DEYFkwWm.js 导入）→ g ≡ **imeComposition** chunk 之 qt；全树另 7 处注记皆称 imeComposition b（SidePanel@505／Sidebar@1056／GitReview@321〔R45 碑〕／AutomationEditor@65／CmdkPaletteDeep@90／ExtendedViews@884／SessionBanners@5「qt=x(…)」），本行係唯一少数派，疑为邻行 @159「wa，button chunk」之抄染） */
+/* ── tombstone〔A1-R170〕死桩销账：IconX（原 g ≡ imeComposition chunk 之 qt 导出为 b → styles@349 `b as g`，导入块 337..368 尾自 ./imeComposition-DEYFkwWm.js 导入；本文件**零代码读者**、仅 @120 头注 `g=IconX` 提及、未导出、全树零自本文件导入者）→ 纯删。★R45 已就 components/code-viewer/GitReview@321 同形结案「IconX 全树 16 文件分布皆各文件自有 declare/lucide 面，与本文件死面无涉。纯删碑」→ 判例在案；本件係 R169 修正注释掩码缺陷（块注**中间行**误判为代码行 → 低报 DEAD）后重扫所查获之唯一漏件。 ── */
 /** chevron-right（原 wa，button chunk） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconChevronRight → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
