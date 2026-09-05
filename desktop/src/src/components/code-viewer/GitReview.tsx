@@ -322,17 +322,17 @@ declare const ContextMenuItem: React.FC<React.HTMLAttributes<HTMLDivElement> & {
 
 /* --- 横切助手（本 chunk 他处定义，本族引用） --- */
 
-/** 文件路径内联组件（原 Bc，js 5157；图标 + 文件名 + 目录尾） */
-interface FilePathInlineOptions {
-  basePath?: string;
-  kind?: "file" | "directory";
-  showIcon?: boolean;
-  iconSize?: number;
-  showFilePath?: boolean;
-  className?: string;
-  fileNameClassName?: string;
-  filePathClassName?: string;
-}
+/** 文件路径内联组件（原 Bc，js 5157；图标 + 文件名 + 目录尾） 〔A1-R185〕★本注**存活**（不折入下方墓碑）：其主语係跨族实体 FilePathInline（原 Bc）而非下方之本地型面——实测该实体在本文件代码位命中 2 处（@219 导入 + @1241 消费）⇒ 按〔A1-R176〕判别式（注之 referent 是否尚有活体成员；先例：PluginsSettingsSection@227 无活体故折入、BrowserSettingsSection@116 因 PluginRecord@117 活而存活）本注 referent 有活体成员 ⇒ 必须存活；且本注係文件头 §13「本 chunk 跨族引用（接口级）」@193「Bc FilePathInline（js 5157，横切文件图标块 4946–6061）」之逐条回声、同符同行号。★其下 interface FilePathInlineOptions@326-335（10 行、本地型面、代码位读者 0、未 export）已随死界面普查批第四批销账、10 行等行墓碑在 @326 原位；本注束源标注逐字未动。 */
+/* ── tombstone〔A1-R185〕死界面普查批第四批（components/code-viewer/GitReview.tsx：4 面／26 行；★其上方 4 条单行束源注经裁定**皆存活＋骑手、非折入**（各注之主语係跨族实体而非本地型面，referent 皆有活体成员））：本地 interface FilePathInlineOptions（10 行）纯删，10 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface FilePathInlineOptions：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站FilePathInlineOptions 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical components/modals/FilePathInline.tsx@104（export））。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@323 群节注／@325 存活＋同批骑手／@337 活体之标签 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 10 行置换原 10 行，文件行数 4114 不变、零重锚（本文件 GitReview 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝79 条，首个编辑点 @326 及其后 23 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 79／23 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /** 代码预览设置（原 ko((e) => e.codePreviewSettings)，SettingsStore 字段） */
 interface CodePreviewSettings {
@@ -373,13 +373,13 @@ export interface GitService {
 
 /** 工作区远程信息钩子（原 $A，js 51166；读远程标签页推导 isRemoteWorkspace/remoteTarget） */
 
-/** 文件上下文动作（原 QA，js 51093；复制路径/在文件管理器中显示） */
-interface FileContextActions {
-  canRevealInFileManager(req: { path: string; deleted?: boolean }): boolean;
-  copyAbsolutePath(req: { path: string }): Promise<void>;
-  copyRelativePath(req: { path: string; relativePath?: string }): Promise<void>;
-  revealInFileManager(req: { path: string; deleted?: boolean; kind: "file" | "directory" }): Promise<void>;
-}
+/** 文件上下文动作（原 QA，js 51093；复制路径/在文件管理器中显示） 〔A1-R185〕★本注**存活**（不折入下方墓碑）：其主语係跨族实体 useFileContextActions（原 QA）——实测代码位命中 2 处（@217 导入 + @1370 调用）⇒ referent 有活体成员、按〔A1-R176〕判别式必须存活；且係文件头 §13 @196「QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）」之逐条回声、同符同行号。★其下 interface FileContextActions@377-382（6 行、本地型面、代码位读者 0、未 export）已随死界面普查批第四批销账、6 行等行墓碑在 @377 原位；束源标注逐字未动。 */
+/* ── tombstone〔A1-R185〕死界面普查批第四批（components/code-viewer/GitReview.tsx：4 面／26 行；★其上方 4 条单行束源注经裁定**皆存活＋骑手、非折入**（各注之主语係跨族实体而非本地型面，referent 皆有活体成员））：本地 interface FileContextActions（6 行）纯删，6 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface FileContextActions：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。同名定义站FileContextActions 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@374 空行隔开之孤注／@376 存活＋同批骑手／@384 活体之标签 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 6 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 6 行置换原 6 行，文件行数 4114 不变、零重锚（本文件 GitReview 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝79 条，首个编辑点 @326 及其后 23 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 79／23 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /** 路径助手（原 Ko/Jo/Go/zA，js 1941/1952/1928/50919） */
 declare function joinPath(base: string, sub: string): string; // 原 Jo（待实体化）
@@ -1091,8 +1091,8 @@ export function PlainTextDiffPreview({ lines, codePreviewSettings }: { lines: st
 
 /** 轻量 diff 预览（原 gut，js 100459；实体在 ModalsLeaves 导出 PlainTextDiffPreview） */
 
-/** Diff 视图（原 W8 = memo(mVt)，js 160479/160542；F14 基建，接口声明） */
-interface DiffViewerFile { name: string; contents: string; cacheKey: string }
+/** Diff 视图（原 W8 = memo(mVt)，js 160479/160542；F14 基建，接口声明） 〔A1-R185〕★本注**存活**（不折入下方墓碑）：其主语係跨族实体 DiffViewer（原 W8 = memo(mVt)）——实测代码位命中 3 处（@215 导入 + @1295/@1306 消费）⇒ referent 有活体成员、按〔A1-R176〕判别式必须存活；且係文件头 §13 @194 之逐条回声。★其下 interface DiffViewerFile@1095（1 行、单行界面形、代码位读者 0、未 export）已随死界面普查批第四批销账、**1 行单行形等行墓碑**在 @1095 原位。★本注内两处声称经核**皆不成立**、同批改述：①「F14 基建」——F14 之登记范围＝束 GRe WorkerPoolManager 类（styles@46400-46999）＋回收 ONB@1069 useDiffsWorkerPool 与 @1070-1074 DiffsWorkerPoolProviderElement 二件，树侧 components/code-viewer/DiffsWorker.tsx 已重建而全文不提 DiffViewerFile、亦不提 W8 = memo(mVt) ⇒ 係「预测从未登记」型假理据，该件已登记入 F14 队列候实测复核〔A1-R173：跨批移交之预测亦须实测复核〕；★且其树侧实体**早已落地**、根本不在 F14 之列：components/code-viewer/CodeViewer.tsx@937 `export function DiffViewerImpl(props: DiffViewerProps)`（@936 束注「原 mVt：diff 引擎封装」）+ @1001 `export const DiffViewer = React.memo(DiffViewerImpl);`（@1000 束注「原 W8」）⇒ 束之 W8 = memo(mVt) 已逐字重建完毕；②束行号「js 160479/160542」**皆错、偏 −242 常数**——本机束（styles-CdEGpc2x.js，213,980 行）实测 function mVt(e) 之定义在 **160721**（该符全束命中 2）、var W8 = (0, Q.memo)(mVt) 之定义在 **160784**（命中 6），而注所引 160479／160542 两行分别係 children: (0, $.jsx)(hv, { 与 temporaryExternalDirectory: Me.temporaryExternalDirectory,（皆全无关）⇒ 束侧行漂台账之**新量级纪录**：既有台账〔A1-R171 沉淀⑤〕＝+15／+12／+9／+8／+1／−48（四度）／−17／+20，最大绝对值 48，本件 −242 逾其五倍；★同款错值亦见本文件头注 @194、第三变体 (160478,160479,160541) 见 components/code-viewer/CodeViewer.tsx@32 ⇒ 二者係**本批之前既存**之错引、不归因本批亦不放过，登记候勘误（本批未触该二行故不加骑手）。 */
+/* ── tombstone〔A1-R185〕死界面普查批第四批：本地 interface DiffViewerFile（1 行、单行界面形、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文见本批其余 32 碑）；同名定义站DiffViewerFile 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。★上方 @1094 之单行束源注**存活、不折入**、只加行内骑手：其主语係跨族实体 DiffViewer（原 W8），实测代码位命中 3 处（@215／@1295／@1306）⇒ 按〔A1-R176〕判别式（注之 referent 是否尚有活体成员）必须存活，且係文件头 §13 @194 之逐条回声。★该注内「F14 基建」与束行号「js 160479/160542」两处声称经核**皆不成立**、已同批在 @1094 骑手内改述（本机束实测真值 mVt@160721／W8@160784，偏 −242 常数；F14 登记范围不含本面）。净零行：本碑 1 行置换原 1 行，文件行数 4114 不变、零重锚。 ── */
 
 /** 原 FWt（js 178802）：查找词归一化 */
 export function normalizeFindQuery(query: string): string {
@@ -2174,16 +2174,16 @@ export function dispatchCodeCommentRemoveFromChat(detail: { id: string; workspac
   window.dispatchEvent(new CustomEvent(CODE_COMMENT_REMOVE_FROM_CHAT_EVENT, { detail }));
 }
 
-/** FH store 状态形（原 js 68514–68579） */
-interface CodeCommentsStoreState {
-  commentsByBucketKey: Record<string, CodeComment[]>;
-  getComments(scope: CodeCommentScope): CodeComment[];
-  addComment(req: CodeCommentScope & { comment: CodeComment }): void;
-  removeComment(req: CodeCommentScope & { id: string }): void;
-  removeCommentBySource(req: { workspacePath: string; workspaceIdentity?: string | null; id: string }): void;
-  restoreCommentFromAttachment(attachment: CodeCommentAttachment): void;
-  clearSource(scope: CodeCommentScope): void;
-}
+/** FH store 状态形（原 js 68514–68579） 〔A1-R185〕★本注**存活**（不折入下方墓碑）：其主语係跨族实体 useCodeCommentsStore（原 FH）——实测代码位命中 7 处（@216 导入 + @2207 再导出 + @2228/@2345/@2346/@2415/@2420 消费）⇒ referent 有活体成员、按〔A1-R176〕判别式必须存活。★其下 interface CodeCommentsStoreState@2178-2186（9 行、本地型面、代码位读者 0、未 export）已随死界面普查批第四批销账、9 行等行墓碑在 @2178 原位；束源标注「原 js 68514–68579」逐字未动。★该面原带〔A1-R8〕明示留存裁定（@2206「…保留备查」），本批**反转**之并已同批给 @2206 加骑手载其裁定与 git 证（该碑由提交 34f0240〔A1 Track R R8，2026-08-30〕引入、著笔时 Y＝「失引」成立〔父提交下该面有代码位读者恰 1 处＝当时的本地 create 行〕、R8 删本地 create 后归 0、HEAD 依然为 0、碑行与面行零漂移）；其配对孪生 components/code-viewer/CodeViewer.tsx@307-320 与其 @329 碑亦同批同式处置（dossier-B 判其为前置条件而非可选项）。 */
+/* ── tombstone〔A1-R185〕死界面普查批第四批（components/code-viewer/GitReview.tsx：4 面／26 行；★其上方 4 条单行束源注经裁定**皆存活＋骑手、非折入**（各注之主语係跨族实体而非本地型面，referent 皆有活体成员））：本地 interface CodeCommentsStoreState（9 行）纯删，9 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface CodeCommentsStoreState：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。同名定义站CodeCommentsStoreState 施前全树 3 家、本批销 2 家 ⇒ 施后余 1 家（皆未导出，活体 modules/Composer.tsx@6780）。
+ *    ★上方 @2177 之单行束源注**存活、不折入**，只加行内骑手：其主语係跨族实体 useCodeCommentsStore（原 FH），实测代码位命中 7 处（@216 导入 + @2207 再导出 + @2228/@2345/@2346/@2415/@2420 消费）⇒ 按〔A1-R176〕判别式必须存活；束源标注「原 js 68514–68579」逐字未动。
+ *    ★本面带〔A1-R8〕明示留存碑（@2206「本地 CodeCommentsStoreState 型面（2178）随 create 删除失引，保留备查」）⇒ 裁定同 CodeViewer@307 那件：便利性留存而非假理据（Y＝「失引」经 v8 证实为真），死界面普查批判据优先 ⇒ 反转该留存、同批给 @2206 加骑手记载反转时点与仍真之部分。★git 证（dossier-B 考古、编排方复核）：该碑由提交 34f0240（A1 Track R R8，2026-08-30）引入，著笔时 Y 成立（父提交下该面有代码位读者恰 1 处＝当时的本地 create 行）、R8 删本地 create 后归 0、HEAD 依然为 0；碑行与面行零漂移（@2206／@2178 今昔同号）⇒ 係**刻意留存而非假理据**，与〔A1-R176 沉淀⑦〕「Y 从未成立」型相反。
+ *    ★dossier-B 判「必须同批处置配对孪生 components/code-viewer/CodeViewer.tsx@307-320 与其 @329 碑」为**前置条件而非可选项**⇒ 本批已收入该二件（同批同式反转），条件满足。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@2177 存活＋同批骑手／@2188 活体之标签 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 9 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 9 行置换原 9 行，文件行数 4114 不变、零重锚（本文件 GitReview 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝79 条，首个编辑点 @326 及其后 23 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 79／23 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /** 桶键（原 PH，js 68511）：工作区键 \0 文件路径 */
 function codeCommentBucketKey(scope: CodeCommentScope): string {
@@ -2203,7 +2203,7 @@ const EMPTY_COMMENTS: CodeComment[] = [];
  *    68514 为 TXe 助手位，FH 实体在 68562，更正登记）。本文件消费面 2290/2606/
  *    2676/2681（jXe/Ue-We/g8t 助手转录）经 import 改指逐字不变。导出面维系：
  *    modules/GitReview.tsx 277 行 re-export 不破（零终端拉取，留面备查）。
- *    本地 CodeCommentsStoreState 型面（2178）随 create 删除失引，保留备查。 ── */
+ *    本地 CodeCommentsStoreState 型面（2178）随 create 删除失引，保留备查。 〔A1-R185〕★本行「本地 CodeCommentsStoreState 型面（2178）随 create 删除失引，保留备查」之留存裁定经本批**反转**，裁定同 components/code-viewer/CodeViewer.tsx@329 那件：便利性留存而非假理据（Y＝「失引」经 v8 证实为真），死界面普查批判据优先 ⇒ interface CodeCommentsStoreState@2178-2186（9 行）连同其上方单行文档注（1 行）已销账、10 行等行墓碑在 @2177 原位，折入之束源标注「原 js 68514–68579」逐字保留；@2188「桶键（原 PH，js 68511）」係下方活体 function codeCommentBucketKey@2189 之标签、仍留。 ── */
 export { useCodeCommentsStore };
 
 /** 广播服务（原 ie?.broadcastService，横切层；仅列本族用到的面） */

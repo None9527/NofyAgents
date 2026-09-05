@@ -116,7 +116,7 @@ interface ZCodeSettings {
 
 /* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface EntitlementSnapshot（4 行，snapshot 加索引签名）纯删，4 行等行墓碑在原位。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
- *    同名定义站全树 **3** 家：本件 + components/usage/UsageDeep@703（带 export，canonical）+ modules/ExtendedViews@367。
+ *    同名定义站全树 **3** 家：本件 + components/usage/UsageDeep@703（带 export，canonical）+ modules/ExtendedViews@367。〔A1-R185〕★上句「同名定义站全树 **3** 家」之列名今失 1 处 referent：modules/ExtendedViews@367 那份 interface EntitlementSnapshot（4 行）已随死界面普查批第四批销账 ⇒ 施后同名定义站全树余 **2** 家（本件 + components/usage/UsageDeep@703 canonical）。
  *    ★OnboardingLoginLeaves@261 之 import type 係自 **modules/UsageDeep** 取该 canonical、与本件无关 ⇒ 其注记不证伪、不加 rider（R165 沉淀：dst 必经 resolve 解析、不得以同名想当然）。 ── */
 
 /* ── tombstone〔A1-R119〕：declare useEntitlements/useCodingPlanUpgrade/buildIdleUpgradeFunnelContext/
@@ -169,8 +169,8 @@ interface AutomationRecord {
 
 /* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface AutomationScheduleRule（12 行）纯删，12 行等行墓碑在原位。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
- *    同名定义站全树 **2** 家：本件 + modules/ExtendedViews@550（该文件死面 29 个／223 行、係全树死行最多之文件，候后续批）。
- *    ★本件与 ExtendedViews@550 那份**不得并批**：两者读者面须各自实测（R169 沉淀②），且 ExtendedViews 负 R163 vintage 债、其引证须逐条归真而非机械换算。
+ *    同名定义站全树 **2** 家：本件 + modules/ExtendedViews@550（该文件死面 29 个／223 行、係全树死行最多之文件，候后续批）。〔A1-R185〕★上句「同名定义站全树 **2** 家：本件 + modules/ExtendedViews@550（该文件死面 29 个／223 行、係全树死行最多之文件，候后续批）」之后半已**兑现**：ExtendedViews@550 那份 interface AutomationScheduleRule（12 行）已随死界面普查批第四批销账，该文件 29 面／223 行死面亦于同批全数销账 ⇒ 施后同名定义站全树余 **1** 家＝本件。
+ *    ★本件与 ExtendedViews@550 那份**不得并批**：两者读者面须各自实测（R169 沉淀②），且 ExtendedViews 负 R163 vintage 债、其引证须逐条归真而非机械换算。〔A1-R185〕★上句「本件与 ExtendedViews@550 那份**不得并批**」之约束经本批核**已遵守**：本件係〔A1-R182〕处置、ExtendedViews@550 係本批（死界面普查批第四批）处置，两者不同批；其「读者面须各自实测」之要求亦已履行（本批以 token 级 code-only 掩码 v8 独立复算得 ExtendedViews@550 代码位读者 0）；「ExtendedViews 负 R163 vintage 债、其引证须逐条归真而非机械换算」之告诫仍立、候 R164 登记之逐条归真批。
  *    上方 @169 空行与 @166-168 之邻面收尾、下方 @182 空行与 @183 起之 interface AutomationInput（活体、读者 @1305）皆存活（outside-diff 已断言逐字节未变）。
  *    原体之语义（供后续重建参考）：调度规则面——hour 与 minute 必填、anchorAt 必填，weekdays?/monthDays?/months? 为数字数组，monthlyMode? 与 unit? 皆为字面量并集再并 string（宽化形），interval? 为数字，另有索引签名兜底。
  *    引证密度实测：`AutomationsMainView@NNN` 全树 **15** 处、其中 **4** 处引 @181 之后 ⇒ 净零行强制（12 行碑换 12 行原体，文件 1920 行不变、零重锚）。

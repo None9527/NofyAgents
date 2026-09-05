@@ -4427,7 +4427,7 @@ export function resolveEntryPlanStateFromSnapshot(e: { // 〔A1-P1-B5〕补 expo
 // 终端消费实测：本文件 1137 ≡ bundle 91688、139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。
 // 依赖接线：IM≡resolveEntryPlanStateFromSnapshot / q≡providerIds / li≡parseCodingPlanScope（SrcSharedB；
 // styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533）/ HM≡isStartPlanProviderId（SrcSharedA）。
-export function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM 〔A1-R42〕补 export：AutomationsMain 139076 消费面接引（参型 ModelProviderEntry[] 与 AutomationsMain ModelProvider[] 逐字段相容，索引签名 unknown 对齐）
+export function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM 〔A1-R42〕补 export：AutomationsMain 139076 消费面接引（参型 ModelProviderEntry[] 与 AutomationsMain ModelProvider[] 逐字段相容，索引签名 unknown 对齐） // 〔A1-R185〕★本行尾注「〔A1-R42〕补 export：AutomationsMain 139076 消费面接引（参型 ModelProviderEntry[] 与 AutomationsMain ModelProvider[] 逐字段相容，索引签名 unknown 对齐）」之后半今失 referent：components/automations/AutomationsMain.tsx 之 interface ModelProvider@94-100（7 行）已随死界面普查批第四批销账、7 行等行墓碑在 @94 原位 ⇒「逐字段相容」之对造面今只余碑内记载；本行 export function 之签名与函数体逐字未动（本骑手只增尾注）。
   if (e.loading) return resolveEntryPlanStateFromSnapshot({});
   let t = e.providers.filter((e) => !(e.enabled === !1 && e.systemDisabledReason)),
     n = t.find(

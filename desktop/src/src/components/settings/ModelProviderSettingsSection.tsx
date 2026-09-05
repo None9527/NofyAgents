@@ -207,7 +207,7 @@ interface CodingPlanEntitlement {
 
 /* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ModelProviderService（3 行，连同其上方单行文档注 1 行）、interface OAuthService（3 行）、interface CredentialService（3 行）、interface CodingPlanSubscriptionService（5 行）纯删，15 行等行墓碑在原位。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ModelProviderService 代码位读者 0；OAuthService 代码位读者 0；CredentialService 代码位读者 0；CodingPlanSubscriptionService 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
- *    同名定义站ModelProviderService 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（皆未导出，活体 components/usage/UsageDeep.tsx@591／modules/ExtendedViews.tsx@219）。
+ *    同名定义站ModelProviderService 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（皆未导出，活体 components/usage/UsageDeep.tsx@591／modules/ExtendedViews.tsx@219）。〔A1-R185 勘误〕★上行係〔A1-R183〕已提交之**假陈述**，本批更正：其称「施后余 2 家（皆未导出，活体 components/usage/UsageDeep.tsx@591／modules/ExtendedViews.tsx@219）」，然 modules/ExtendedViews.tsx@219 那份 interface ModelProviderService 在 R183 当时即係死面——R183 自身之五份普查工件（r183-census-v6-first／-v6-second／-v7-pre／-v7-post／-v7-post2）皆列该面为 DEAD（@219 -222 4 行、readers=[]、no-label，属该文件 29 面／223 行死面块）⇒「活体」二字对该家**从未成立**；真值＝施后余 2 家中活体只 1 家（UsageDeep@591，代码位读者 2）、另 1 家（ExtendedViews@219）係级联死面（其唯一读者 @334 落在死面 ServiceBag@333-342 内）；该死面已随死界面普查批第四批销账 ⇒ 今同名定义站全树余 **1** 家＝UsageDeep@591。★沉淀：一批之散文可与其自身之量测工件相矛盾 ⇒ 收尾核验器须逐条以工件核新散文之「活体／死」形容词。
  *    同名定义站OAuthService 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/usage/UsageDeep.tsx@595）。
  *    同名定义站CredentialService 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
  *    同名定义站CodingPlanSubscriptionService 施前全树 5 家、本批销 1 家 ⇒ 施后余 4 家（canonical stores/offPeakTaskStore.ts@83（export））。

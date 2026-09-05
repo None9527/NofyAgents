@@ -15,7 +15,7 @@
  *   §3 WhiteboardCanvas    （原 FGt，F04 侧面板叶子）
  *   §4 ModelTrajectoryView （原 tKt，F04 侧面板叶子）
  *   §5 DeveloperToolsView  （原 mKt，F04 侧面板叶子）
- *   §6 AutomationsMain 视图态（原 d6，F15 族根；编辑器/闲时编辑器叶子保留接口）
+ *   §6 AutomationsMain 视图态（原 d6，F15 族根；编辑器/闲时编辑器叶子保留接口）〔A1-R185〕★上句末「编辑器/闲时编辑器叶子保留接口」今失全部 referent：自动化编辑器叶子 interface AutomationCreateDraft@969-975（7 行）与闲时编辑器叶子 interface OffPeakTask@614-626／OffPeakCreateInput@628-635／OffPeakCreateDraft@637-643／OffPeakCreateResult@645-654／OffPeakStoreState@656-677（5 面合计 60 行）已随死界面普查批第四批销账（皆代码位读者 0 或读者全落在同批被删体内、未 export）；@967「原 kNt…自动化编辑器」与 @977「原 YMt…闲时编辑器」二孤注按〔A1-R169〕裁定（@988 明示）仍留、其 referent 係前批已销之 declare；★上句「六个大体积叶子视图」之声称经本批复算**仍真**：RepoWikiView／TreemappingView／WhiteboardCanvas／ModelTrajectoryView／DeveloperToolsView／AutomationsMainView 各有代码位命中 1 处（@2172／@3725／@3851／@4576／@4807／@4964）。
  *
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
@@ -202,9 +202,9 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I
 
 /* --- 服务袋（原 fs()，本 chunk 2675 useServices） --- */
 
-interface Disposable {
-  dispose(): void;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface Disposable（3 行）纯删，3 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface Disposable：单轮代码位读者 2 处（@221 落在同批被删之 ModelProviderService 体内；@302 落在同批被删之 RepoWikiService 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站Disposable 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（canonical services/eventPrimitives.ts@7（export））。邻接注记裁定（±4 行窗口逐条归主、零未裁）：@201 前批墓碑／@203 群节注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 3 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 3 行置换原 3 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 interface ModelProviderInfo {
   id: string;
@@ -216,10 +216,10 @@ interface ModelProviderInfo {
   [key: string]: unknown;
 }
 
-interface ModelProviderService {
-  getAllCached(): Promise<ModelProviderInfo[]>;
-  onDidChangeProviderRegistry(cb: () => void): Disposable;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface ModelProviderService（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface ModelProviderService：单轮代码位读者 1 处（@334 落在同批被删之 ServiceBag 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ModelProviderService 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/usage/UsageDeep.tsx@591）。★本面之销账同时**勘误〔A1-R183〕已提交之一处假陈述**：components/settings/ModelProviderSettingsSection.tsx@210 之骑手称「施后余 2 家（皆未导出，活体 components/usage/UsageDeep.tsx@591／modules/ExtendedViews.tsx@219）」，然本面在 R183 当时即係死面——R183 自身之五份普查工件（r183-census-v6-first／-v6-second／-v7-pre／-v7-post／-v7-post2）皆列本面为 DEAD（@219 -222 4 行、readers=[]、no-label，属该文件 29 面／223 行死面块）⇒「活体」二字对本家从未成立；真值＝施后余 2 家中活体只 1 家（UsageDeep@591，代码位读者 2）、另 1 家即本面（级联死：唯一读者 @334 落在死面 ServiceBag@333-342 内）；已同批给 MPSS@210 加勘误骑手。★沉淀：一批之散文可与其自身之量测工件相矛盾 ⇒ 收尾核验器须逐条以工件核新散文之「活体／死」形容词。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@224 群节注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /* --- Wiki 数据模型 --- */
 
@@ -284,23 +284,23 @@ interface RepoWikiSummary {
   task: RepoWikiTask | null;
 }
 
-interface RepoWikiService {
-  readSummary(target: { workspacePath: string; workspaceIdentity?: string | null }): Promise<RepoWikiSummary>;
-  readPage(target: { workspacePath: string; workspaceIdentity?: string | null; pageId: string }): Promise<{ page: WikiPage | null }>;
-  generate(params: {
-    workspacePath: string;
-    workspaceIdentity?: string | null;
-    language: string;
-    force: boolean;
-    modelProviderId?: string;
-    modelName?: string;
-    maxRetries: number;
-    generateDiagrams: boolean;
-  }): Promise<unknown>;
-  cancel(target: { workspacePath: string; workspaceIdentity?: string | null }): Promise<unknown>;
-  delete(target: { workspacePath: string; workspaceIdentity?: string | null }): Promise<unknown>;
-  onDidChangeRepoWiki(cb: (event: { workspaceKey: string } & RepoWikiSummary) => void): Disposable;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface RepoWikiService（17 行）纯删，17 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface RepoWikiService：单轮代码位读者 1 处（@335 落在同批被删之 ServiceBag 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站RepoWikiService 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@305 群节注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 17 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 17 行置换原 17 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /* --- 自动化 / 闲时服务（经 zcodeAgentService / offPeakTaskService 注入 store 动作） --- */
 
@@ -317,29 +317,29 @@ interface ZCodeAgentService {
   [key: string]: unknown;
 }
 
-interface OffPeakTaskService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakTaskService（3 行）纯删，3 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface OffPeakTaskService：单轮代码位读者 12 处（@337 落在同批被删之 ServiceBag 体内；@665 落在同批被删之 OffPeakStoreState 体内；@666 落在同批被删之 OffPeakStoreState 体内；@667 落在同批被删之 OffPeakStoreState 体内；@668 落在同批被删之 OffPeakStoreState 体内；@669 落在同批被删之 OffPeakStoreState 体内；@670 落在同批被删之 OffPeakStoreState 体内；@671 落在同批被删之 OffPeakStoreState 体内；@672 落在同批被删之 OffPeakStoreState 体内；@673 落在同批被删之 OffPeakStoreState 体内；@674 落在同批被删之 OffPeakStoreState 体内；@675 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakTaskService 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（canonical stores/offPeakTaskStore.ts@69（export））。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 3 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 3 行置换原 3 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface CodingPlanSubscriptionService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface CodingPlanSubscriptionService（3 行）纯删，3 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface CodingPlanSubscriptionService：单轮代码位读者 2 处（@338 落在同批被删之 ServiceBag 体内；@665 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站CodingPlanSubscriptionService 施前全树 4 家、本批销 1 家 ⇒ 施后余 3 家（canonical stores/offPeakTaskStore.ts@83（export））。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 3 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 3 行置换原 3 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface SettingService {
-  get(): Promise<ZCodeSettings>;
-  update(patch: Partial<ZCodeSettings>): Promise<unknown>;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface SettingService（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface SettingService：单轮代码位读者 1 处（@339 落在同批被删之 ServiceBag 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。同名定义站SettingService 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical modules/Settings.tsx@272（export））。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 4 行置换原 4 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface ServiceBag {
-  modelProviderService: ModelProviderService;
-  repoWikiService: RepoWikiService;
-  zcodeAgentService: ZCodeAgentService;
-  offPeakTaskService: OffPeakTaskService;
-  codingPlanSubscriptionService: CodingPlanSubscriptionService;
-  settingService: SettingService;
-  botsService: unknown;
-  broadcastService: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface ServiceBag（10 行）纯删，10 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ServiceBag：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ServiceBag 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@344 群节注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 10 行置换原 10 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /* --- 设置快照（原 JM，js 53440） --- */
 
@@ -364,10 +364,10 @@ declare function useSettingsSnapshot(): {
  *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
  ── */
 
-interface EntitlementSnapshot {
-  snapshot: unknown;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface EntitlementSnapshot（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface EntitlementSnapshot：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站EntitlementSnapshot 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical components/usage/UsageDeep.tsx@703（export））。★本面之销账使 components/automations/AutomationsMainView.tsx@119 之列名失 1 处 referent（「同名定义站全树 3 家：本件 + components/usage/UsageDeep@703（canonical）+ modules/ExtendedViews@367」）⇒ 已同批加骑手，施后余 2 家。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@363 前批墓碑／@364 前批墓碑／@365 前批墓碑／@371 前批墓碑／@372 前批墓碑／@373 前批墓碑／@374 前批墓碑 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 /* ── tombstone〔A1-R165〕死桩销账：useEntitlements（本文件零消费点、未导出、全树零导入者）
  *  canonical = components/payments/PaymentDeep.tsx::useCodingPlanEntitlements；他文件以 `useCodingPlanEntitlements as useEntitlements` 别名导入，本桩从未接线。
  *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
@@ -494,18 +494,18 @@ interface TokenCacheStats {
 /* WhiteboardStroke/WhiteboardBoard：A0-CLEANUP B-4 改指 SkillStore 类型导出
  * （原本地副本删除，消 TS2719 同名异型）。 */
 
-interface WhiteboardStoreState {
-  workspaces: Record<string, { boardsById: Record<string, WhiteboardBoard | undefined> } | undefined>;
-  renameBoard(params: { boardId: string; name: string; workspaceIdentity?: string | null; workspacePath: string }): void;
-  addStroke(params: { boardId: string; stroke: WhiteboardStroke; workspaceIdentity?: string | null; workspacePath: string }): void;
-  undoStroke(params: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): void;
-  redoStroke(params: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): void;
-  clearBoard(params: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): void;
-}
-interface WhiteboardStoreHook {
-  <T>(selector: (state: WhiteboardStoreState) => T): T;
-  getState(): WhiteboardStoreState;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface WhiteboardStoreState（8 行）、interface WhiteboardStoreHook（4 行）纯删，12 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface WhiteboardStoreState：单轮代码位读者 2 处（@506 落在同批被删之 WhiteboardStoreHook 体内；@507 落在同批被删之 WhiteboardStoreHook 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface WhiteboardStoreHook：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站WhiteboardStoreState 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（皆未导出，活体 modules/Composer.tsx@585／stores/whiteboardStore.ts@54）。
+ *    同名定义站WhiteboardStoreHook 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@494 他名之注／@495 他名之注／@510 活体之标签／@512 孤注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 12 行置换原 12 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /** 原 Te（skillStore l 导出）：工作区键 */
 declare function whiteboardWorkspaceKey(target: { workspacePath: string; workspaceIdentity?: string | null }): string;
@@ -521,7 +521,7 @@ declare function drawWhiteboard(
 declare const WHITEBOARD_DEFAULT_COLOR: string;
 declare function addWhiteboardToChat(params: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): void;
 
-/* --- 自动化 stores（原 T3 js 134111 / bX js 91368；体量 ~4,800 行，接口保留） --- */
+/* --- 自动化 stores（原 T3 js 134111 / bX js 91368；体量 ~4,800 行，接口保留）〔A1-R185〕★本注末「接口保留」今只半真：本节 AutomationRecord@528-548 确仍活（施后代码位读者 @308 落在活体 ZCodeAgentService@307-318 内、另 @528 係其自身定义行），然其下 11 个界面合计 119 行（AutomationScheduleRule@550-561／AutomationRun@563-570／AutomationsRunsEntry@572-575／AutomationInput@577-588／AutomationsStoreState@590-608／AutomationsStoreHook@609-612／OffPeakTask@614-626／OffPeakCreateInput@628-635／OffPeakCreateDraft@637-643／OffPeakCreateResult@645-654／OffPeakStoreState@656-677）已随死界面普查批第四批销账；「体量 ~4,800 行，属下一批抽取」之前向引用仍立。★同族**既存陈旧**（不归因本批、亦不放过，按〔A1-R174 沉淀③Ⓑ〕／〔A1-R176 沉淀⑦〕明记）：本文件 @408「原 hjt 依赖的 F12 分组构造器（Mr/Bq/L/Hq/N6e/Hq 族，js 76xxx–77xxx）——接口保留」之「接口保留」係**本批之前既已失 referent**——实测该节自 @409 至下一节注 @454 之间 interface 声明 **0** 条（该族 declare 已全数墓碑于 @409-430，@432-437／@440 亦碑，余 @441 resolveModelRef 与 @444 selectProviderConfigState 係 declare function 而非界面）⇒ 无接口可「保留」；本批未触该行故不加骑手，登记候清理。  --- */
 
 /** A0-CLEANUP3 3b：cronExpr 收紧为必有（列表/编辑器运行期恒有值）；scheduleRule 统一为 SL.ScheduleRule，
  * 与 StoresDeep.Automation / SL.AutomationTaskLite 三型互指 */
@@ -547,168 +547,168 @@ interface AutomationRecord {
   [key: string]: unknown;
 }
 
-interface AutomationScheduleRule {
-  hour: number;
-  minute: number;
-  weekdays?: number[];
-  monthDays?: number[];
-  months?: number[];
-  monthlyMode?: "date" | string;
-  interval?: number;
-  unit?: "minute" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | string;
-  anchorAt: number;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationScheduleRule（12 行）纯删，12 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationScheduleRule：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站AutomationScheduleRule 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    ★本面之销账兑现 components/automations/AutomationsMainView.tsx@172 与 @173 两处之前向引用：@172 称「同名定义站全树 2 家：本件 + modules/ExtendedViews@550（该文件死面 29 个／223 行、係全树死行最多之文件，候后续批）」⇒ 本批即该「后续批」；@173 称「本件与 ExtendedViews@550 那份**不得并批**」⇒ 约束经核**已遵守**（本件係〔A1-R182〕处置、本面係本批处置，两者不同批）。两处皆已同批加骑手。
+ *    ★@524 之节注「自动化 stores（原 T3 js 134111 / bX js 91368；体量 ~4,800 行，接口保留）」今只半真：本节 AutomationRecord@528-548 确仍活（施后代码位读者 @308/@528），然其下 11 个界面合计 119 行已随本批销账 ⇒ 已同批加骑手；「体量 ~4,800 行，属下一批抽取」之前向引用仍立。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 12 行置换原 12 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface AutomationRun {
-  runId: string;
-  trigger: "manual" | "schedule" | string;
-  sessionId?: string | null;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationRun（8 行）纯删，8 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationRun：单轮代码位读者 1 处（@573 落在同批被删之 AutomationsRunsEntry 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站AutomationRun 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（导出家 2 处（components/automations/AutomationsMain.tsx@247／stores/automationsStore.ts@28））。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 8 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 8 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 8 行置换原 8 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface AutomationsRunsEntry {
-  runs?: AutomationRun[];
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationsRunsEntry（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationsRunsEntry：单轮代码位读者 1 处（@597 落在同批被删之 AutomationsStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。同名定义站AutomationsRunsEntry 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 4 行置换原 4 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface AutomationInput {
-  title: string;
-  prompt: string;
-  cronExpr?: string | null;
-  model?: string | null;
-  provider?: string | null;
-  recurring?: boolean;
-  maxRuns?: number | null;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationInput（12 行）纯删，12 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationInput：单轮代码位读者 2 处（@599 落在同批被删之 AutomationsStoreState 体内；@600 落在同批被删之 AutomationsStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站AutomationInput 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@183）。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 12 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 12 行置换原 12 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface AutomationsStoreState {
-  workspacePath: string | null;
-  workspaceIdentity?: string | null;
-  automations: AutomationRecord[];
-  loading: boolean;
-  error: string | null;
-  operationId: string | null;
-  runsCache: Record<string, AutomationsRunsEntry | undefined>;
-  initialize(params: { workspacePath: string; workspaceIdentity?: string | null; agentService: ZCodeAgentService }): Promise<void>;
-  createAutomation(input: AutomationInput, agentService: ZCodeAgentService): Promise<AutomationRecord | null>;
-  updateAutomation(id: string, input: AutomationInput, agentService: ZCodeAgentService): Promise<boolean>;
-  deleteAutomation(id: string, agentService: ZCodeAgentService): Promise<void>;
-  setEnabled(id: string, enabled: boolean, agentService: ZCodeAgentService): Promise<void>;
-  restartAutomation(id: string, agentService: ZCodeAgentService): Promise<void>;
-  runAutomationNow(id: string, agentService: ZCodeAgentService): Promise<"queued" | "duplicate" | "failed">;
-  loadRuns(id: string, agentService: ZCodeAgentService, force: boolean): Promise<void>;
-  deleteRun(automationId: string, runId: string, agentService: ZCodeAgentService): Promise<void>;
-  refresh(agentService: ZCodeAgentService): Promise<void>;
-}
-interface AutomationsStoreHook {
-  <T>(selector: (state: AutomationsStoreState) => T): T;
-  getState(): AutomationsStoreState;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationsStoreState（19 行）、interface AutomationsStoreHook（4 行）纯删，23 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationsStoreState：单轮代码位读者 2 处（@610 落在同批被删之 AutomationsStoreHook 体内；@611 落在同批被删之 AutomationsStoreHook 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface AutomationsStoreHook：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站AutomationsStoreState 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站AutomationsStoreHook 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 23 行置换原 23 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface OffPeakTask {
-  offPeakTaskId: string;
-  title?: string; // A0-CLEANUP3 3b：与 SL.OffPeakTaskRecord/stores-tasks.OffPeakTask 对齐（双向收敛）
-  prompt: string;
-  status: "queued" | "paused" | "running" | "completed" | "failed" | "cancelled" | string;
-  queuePosition?: number;
-  permissionMode?: string | null;
-  model?: string | null;
-  thoughtLevel?: string | null;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakTask（13 行）纯删，13 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface OffPeakTask：单轮代码位读者 2 处（@647 落在同批被删之 OffPeakCreateResult 体内；@657 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakTask 施前全树 4 家、本批销 1 家 ⇒ 施后余 3 家（导出家 2 处（components/automations/AutomationsMain.tsx@234／stores/offPeakTaskStore.ts@35））。
+ *    ★@987 之碑内散文「OffPeakTask 另有读者 @614/@616/@647 故留」经本批逐条归主**证伪**：@614 与 @616 落在本面自身定义跨度 @614-626 之内（自引不具证明力）、@647 落在死面 OffPeakCreateResult@645-654 之内（级联后读者 0）⇒ 该「故留」之理据 Y **从未成立**〔A1-R176 沉淀⑦型〕；已同批给 @987 加骑手更正。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 13 行置换原 13 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface OffPeakCreateInput {
-  title: string;
-  prompt: string;
-  permissionMode?: string | null;
-  model?: string | null;
-  thoughtLevel?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakCreateInput（8 行）纯删，8 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface OffPeakCreateInput：单轮代码位读者 2 处（@669 落在同批被删之 OffPeakStoreState 体内；@670 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakCreateInput 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（canonical components/shell/Home.tsx@777（export））。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 8 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 8 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 8 行置换原 8 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface OffPeakCreateDraft {
-  title?: string;
-  prompt?: string;
-  templateId?: string;
-  telemetrySource?: { eventRegion: string; templateId?: string } | null;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakCreateDraft（7 行）纯删，7 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface OffPeakCreateDraft：单轮代码位读者 1 处（@676 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakCreateDraft 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@219）。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 7 行置换原 7 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface OffPeakCreateResult {
-  ok: boolean;
-  task: OffPeakTask;
-  errorCategory?: string;
-  errorCode?: string;
-  ticketInitialState?: string;
-  queuePosition?: number;
-  failureStage?: string;
-  providerName?: string;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakCreateResult（10 行）纯删，10 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface OffPeakCreateResult：单轮代码位读者 1 处（@669 落在同批被删之 OffPeakStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakCreateResult 施前全树 4 家、本批销 1 家 ⇒ 施后余 3 家（导出家 2 处（components/shell/Home.tsx@251／stores/offPeakHelpers.ts@9））。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 10 行置换原 10 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
-interface OffPeakStoreState {
-  tasks: OffPeakTask[];
-  loading: boolean;
-  error: string | null;
-  grayConfig: { enabled?: boolean; codingPlanActive?: boolean; allowedModels?: string[]; allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>; providerFamily?: string; selectedConnectionKey?: string } | null; // A0-CLEANUP3 3b：allowedModelConfigs 按消费面（OffPeakTaskEditor props）具型
-  codingPlanSupport: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null;
-  takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
-  takeNumberAvailabilityStatus: "loading" | "ready" | "error" | string;
-  operationId: string | null;
-  initialize(params: { offPeakTaskService: OffPeakTaskService; codingPlanSubscriptionService: CodingPlanSubscriptionService }): void;
-  refresh(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  refreshCodingPlanSupport(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  refreshTakeNumberAvailability(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  createTask(input: OffPeakCreateInput, offPeakTaskService: OffPeakTaskService): Promise<OffPeakCreateResult>;
-  updateTask(id: string, patch: Partial<OffPeakCreateInput>, offPeakTaskService: OffPeakTaskService): Promise<boolean>;
-  pauseTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  continueTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  cancelTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  deleteTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  deleteHistory(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  consumePendingCreateDraft(): OffPeakCreateDraft | null;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface OffPeakStoreState（22 行）纯删，22 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface OffPeakStoreState：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站OffPeakStoreState 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    ★本面之销账兑现两处前向引用：@681（〔A1-R169 更正〕「实测删后 OffPeakStoreState@656-677 成零读者死面，登记入面收敛批」）与 @686（「★级联：OffPeakStoreState@656-677 随本件销账成零读者死面（22 行；删前唯一读者即本桩 @685）→ 登记入面收敛批、本批不删」）⇒ 两处皆已同批加骑手；「删前唯一读者即本桩 @685」之记载经复算仍真（该读者位今在〔A1-R169〕碑内散文、非代码位）。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@678 前批墓碑／@679 前批墓碑／@680 前批墓碑／@681 存活＋同批骑手 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 22 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 22 行置换原 22 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 /* ── tombstone（A1-R8）：useOffPeakTaskStore（原 bX js 91416）死 declare 删除——本文件零调用点
  *    （实测 grep 仅余声明位）；OffPeakStoreHook 脚手架随删。bX 真实消费面：
  *    Home kit 簇（bundle 91645–91650，canonical 属主）+ AutomationsMainView
- *    （138876 簇，普查留批注在案）。〔A1-R169 更正〕旧注「OffPeakStoreState 型面留用（687 行 isCodingPlanConnectionActive 助手仍引）」之理据已随该助手死桩销账而全失——实测删后 OffPeakStoreState@656-677 成零读者死面，登记入面收敛批。 ── */
+ *    （138876 簇，普查留批注在案）。〔A1-R169 更正〕旧注「OffPeakStoreState 型面留用（687 行 isCodingPlanConnectionActive 助手仍引）」之理据已随该助手死桩销账而全失——实测删后 OffPeakStoreState@656-677 成零读者死面，登记入面收敛批。 〔A1-R185〕★本行末「实测删后 OffPeakStoreState@656-677 成零读者死面，登记入面收敛批」之前向引用由本批**兑现**：该 22 行界面已随死界面普查批第四批销账、22 行等行墓碑在 @656 原位。 ── */
 
 /** 原 Tit（js 91395；〔A1-R169 勘误〕旧引 91347 行漂 −48）：coding plan 支持判定 */
 /* ── tombstone〔A1-R169〕死桩销账：isCodingPlanConnectionActive（原 Tit，styles@91395；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删。
  *    canonical = components/shell/Home.tsx@749 isCodingPlanConnectionSelected（R104 既判 Tit ≡ 该函数；经 modules/Home@143 转导出，AutomationsMain@21 以别名 hasCodingPlanEntitlement 已采）。
- *    ★级联：OffPeakStoreState@656-677 随本件销账成**零读者死面**（22 行；删前唯一读者即本桩 @685）→ 登记入面收敛批、本批不删（interface 非台账对象）。
+ *    ★级联：OffPeakStoreState@656-677 随本件销账成**零读者死面**（22 行；删前唯一读者即本桩 @685）→ 登记入面收敛批、本批不删（interface 非台账对象）。〔A1-R185〕★本行末「登记入面收敛批、本批不删（interface 非台账对象）」之「本批不删」指〔A1-R169〕当时之批，其前向引用今由死界面普查批第四批**兑现**：OffPeakStoreState@656-677（22 行）已销账、等行墓碑在 @656 原位；「删前唯一读者即本桩 @685」之记载经本批复算**仍真**——该读者位係当时尚未销账之 declare 体内之位，今已随〔A1-R169〕碑化为注释文本、非代码位。
  *    原 declare 共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。 ── */
 
-/* --- 工作区标签页 store（原 pc/oc/zMt；〔A1-R169〕三 declare 已全数销账：oc/zMt 系 R165、pc 系本批 → 本节余 @691-710 四界面成零读者死面闭簇，登记入面收敛批） --- */
+/* --- 工作区标签页 store（原 pc/oc/zMt；〔A1-R169〕三 declare 已全数销账：oc/zMt 系 R165、pc 系本批 → 本节余 @691-710 四界面成零读者死面闭簇，登记入面收敛批）〔A1-R185〕★本注末「本节余 @691-710 四界面成零读者死面闭簇，登记入面收敛批」之前向引用由本批**兑现**：WorkspaceTab@691-697／RemoteTarget@698-702／WorkspaceTabStoreState@703-706／WorkspaceTabStoreHook@707-710（4 面合计 20 行）已随死界面普查批第四批销账、20 行等行墓碑在 @691 原位。  --- */
 
-interface WorkspaceTab {
-  id: string;
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  [key: string]: unknown;
-}
-interface WorkspaceTabStoreState {
-  tabs: WorkspaceTab[];
-  activeTabId: string | null;
-}
-interface WorkspaceTabStoreHook {
-  <T>(selector: (state: WorkspaceTabStoreState) => T): T;
-  getState(): WorkspaceTabStoreState;
-}
-/* ── tombstone〔A1-R169〕死桩销账：useWorkspaceTabStore（原 pc；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；canonical = modules/WorkspaceTabsDeep.tsx@686（R166 已就 McpSettingsSection@58 同符施行改指）；★级联：@691-710 四界面（WorkspaceTab/RemoteTarget/WorkspaceTabStoreState/WorkspaceTabStoreHook）成零读者死面闭簇（20 行，逐级唯一读者链）→ 登记入面收敛批。 ── */
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface WorkspaceTab（7 行）、interface RemoteTarget（5 行）、interface WorkspaceTabStoreState（4 行）、interface WorkspaceTabStoreHook（4 行）纯删，20 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface WorkspaceTab：单轮代码位读者 1 处（@704 落在同批被删之 WorkspaceTabStoreState 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface RemoteTarget：单轮代码位读者 1 处（@694 落在同批被删之 WorkspaceTab 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface WorkspaceTabStoreState：单轮代码位读者 2 处（@708 落在同批被删之 WorkspaceTabStoreHook 体内；@709 落在同批被删之 WorkspaceTabStoreHook 体内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface WorkspaceTabStoreHook：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站WorkspaceTab 施前全树 7 家、本批销 1 家 ⇒ 施后余 6 家（导出家 3 处（components/onboarding/OnboardingLoginLeaves.tsx@708／components/shell/Home.tsx@1232／modules/WorkspaceTabsDeep.tsx@122））。
+ *    同名定义站RemoteTarget 施前全树 7 家、本批销 1 家 ⇒ 施后余 6 家（导出家 4 处（components/ime/ImeComposition.tsx@139／components/modals/RemoteSyncDialogs.tsx@85／components/remote/RemoteWizard.tsx@202））。
+ *    同名定义站WorkspaceTabStoreState 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical modules/WorkspaceTabsDeep.tsx@152（export））。
+ *    同名定义站WorkspaceTabStoreHook 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    ★本簇四界面之销账兑现 @689 节注之前向引用（「本节余 @691-710 四界面成零读者死面闭簇，登记入面收敛批」）⇒ 已同批加骑手；该节注本身係**群节注**、其下 @712/@714 孤注与 @713 〔A1-R165〕碑皆存活 ⇒ 按〔A1-R174〕／〔A1-R176〕规约不得折入。
+ *    ★〔A1-R169〕@711 碑内「逐级唯一读者链」之描述经本批独立复算**不确、且本簇死性强于原登记**：WorkspaceTabStoreHook@707-710 代码位读者 **0**（原登记称其唯一读者係 @711，而 @711 係墓碑注、掩码后为空 ⇒ 不具读者资格）、WorkspaceTabStoreState@703-706 代码位读者 **2**（@708／@709，皆落在 WorkspaceTabStoreHook 体内）、WorkspaceTab@691-697 读者 1（@704）、RemoteTarget@698-702 读者 1（@694）⇒ 该簇**根本无活入口**、非「逐级唯一」之链；已同批给 @711 加骑手改述（其销账记载与 canonical 指认仍真、墓碑本体存活）。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@687 前批墓碑／@689 存活＋同批骑手／@711 存活＋同批骑手／@712 孤注／@713 前批墓碑／@714 孤注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 20 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 20 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 20 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 20 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 20 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 20 行置换原 20 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
+/* ── tombstone〔A1-R169〕死桩销账：useWorkspaceTabStore（原 pc；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；canonical = modules/WorkspaceTabsDeep.tsx@686（R166 已就 McpSettingsSection@58 同符施行改指）；★级联：@691-710 四界面（WorkspaceTab/RemoteTarget/WorkspaceTabStoreState/WorkspaceTabStoreHook）成零读者死面闭簇（20 行，逐级唯一读者链）→ 登记入面收敛批。 〔A1-R185〕★本行末「★级联：@691-710 四界面（WorkspaceTab/RemoteTarget/WorkspaceTabStoreState/WorkspaceTabStoreHook）成零读者死面闭簇（20 行，逐级唯一读者链）→ 登记入面收敛批」之前向引用由本批**兑现**：四界面合计 20 行已随死界面普查批第四批销账、20 行等行墓碑在 @691 原位；★其中「逐级唯一读者链」之描述经本批以 token 级 code-only 掩码 v8 独立复算**不确**，且死性**强于**原登记：WorkspaceTabStoreHook@707-710 之代码位读者为 **0**（原登记称其唯一读者係本行 @711，而 @711 係墓碑注、掩码后为空 ⇒ 不具读者资格）、WorkspaceTabStoreState@703-706 之代码位读者为 **2**（@708／@709，皆落在 WorkspaceTabStoreHook 体内）⇒ 该簇**根本无活入口**、亦非「逐级唯一」之链；本行墓碑本体存活（其销账记载与 canonical 指认 modules/WorkspaceTabsDeep.tsx@686 仍真）。 ── */
 /** 原 oc：标签可用性判定 */
 /* ── tombstone〔A1-R165〕死桩销账：isWorkspaceTabUsable（本文件零消费点、未导出、全树零导入者）；canonical = modules/WorkspaceTabsDeep.tsx::isWorkspaceKindTab，他文件以别名导入而本桩从未接线 ── */
 /** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
@@ -770,11 +770,11 @@ declare function extractFileChangeCandidates(
 
 /* --- 文件显示（原 zc/Vc/Bc/Go/Ko/sae） --- */
 
-interface FileDisplayInfo {
-  fileName: string;
-  filePath?: string | null;
-  fileIconSrc?: string | null;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface FileDisplayInfo（5 行）纯删，5 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface FileDisplayInfo：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。同名定义站FileDisplayInfo 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（canonical components/modals/FilePathInline.tsx@87（export））。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@771 群节注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 declare const FileIconImg: React.FC<{ src?: string | null; size?: number; className?: string }>;
 declare function isAbsolutePath(path: string): boolean;
 declare function pathDirname(path: string): string | null;
@@ -788,14 +788,14 @@ declare function pathDirname(path: string): string | null;
 
 /* --- 遥测 / 杂项（原 xw/ri/vee 等，src chunk） --- */
 
-interface TelemetryEvent {
-  elementName: string;
-  eventRegion: string;
-  eventType: string;
-  eventText?: string;
-  eventExtraDetail?: Record<string, unknown>;
-  [key: string]: unknown; // A0-CLEANUP3 3b：流入 StoresDeep.TelemetryReport（带索引签名），接口级补齐
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface TelemetryEvent（8 行）纯删，8 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface TelemetryEvent：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站TelemetryEvent 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@261）。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@789 群节注／@799 孤注／@800 前批墓碑／@801 孤注／@802 前批墓碑 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 8 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 8 行置换原 8 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 /** 原 ri：创建限制错误判定 */
 /* ── tombstone〔A1-R165〕死桩销账：isCreateLimitError（本文件零消费点、未导出、全树零导入者）；canonical = modules/SrcSharedB.tsx::isAutomationCreateLimitError，他文件以别名导入而本桩从未接线 ── */
 /** 原 vee：闲时遥测默认供应商常量 */
@@ -846,10 +846,10 @@ interface ModelTrajectoryData {
 
 /* --- UI 原语（button / imeComposition / usageStatsUiParts chunk） --- */
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface ButtonProps（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ButtonProps：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。同名定义站ButtonProps 施前全树 10 家、本批销 2 家 ⇒ 施后余 8 家（canonical modules/button.tsx@321（export））。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@847 群节注／@853 前批墓碑／@854 前批墓碑／@856 活体之标签 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Button / Tooltip declare 删除 → import
  *    { Button } from './button'、{ InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
@@ -962,17 +962,17 @@ export type { CodeViewerSource };
  *    型面登记：本桩 request 面六员（presentation?/title/description/confirmLabel/confirmVariant?/showKeyboardHints?）
  *    与 canonical 面之异同因零消费点故不涉可赋性；★同符另一 declare 在 modules/AppRootLeaves@243 有消费点 @366 故载荷、不在本批。 ── */
 
-/* --- 自动化叶子（接口保留；编辑器体量大，属下一批抽取） --- */
+/* --- 自动化叶子（接口保留；编辑器体量大，属下一批抽取）〔A1-R185〕★本注「接口保留」今失 referent：本节唯一界面 AutomationCreateDraft@969-975（7 行）已随死界面普查批第四批销账（代码位读者 0、未 export）、7 行等行墓碑在原位；@967「原 kNt…自动化编辑器」孤注按〔A1-R169〕裁定仍留；「编辑器体量大，属下一批抽取」之前向引用仍立。  --- */
 
 /** 原 kNt（js 137005–138822 / jsx 114854）：自动化编辑器 */
 
-interface AutomationCreateDraft {
-  templateId?: string;
-  title?: string;
-  cronExpr?: string;
-  prompt?: string;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R185〕死界面普查批第四批（modules/ExtendedViews.tsx：全树死行最多之文件，29 面／223 行一次收清，〔A1-R176〕〔A1-R180〕〔A1-R182〕三度顺延至此）：本地 interface AutomationCreateDraft（7 行）纯删，7 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而导入方无一家把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 5 轮收敛）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface AutomationCreateDraft：代码位读者 0（本文件内、其定义跨度外）；未 export ⇒ 跨文件读者结构性不可能。同名定义站AutomationCreateDraft 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@281）。
+ *    ★本面之销账使两处散文失 referent，已同批加骑手：@965 节注「自动化叶子（接口保留；编辑器体量大，属下一批抽取）」之「接口保留」（本节唯一界面即本面）、与文件头 @18「§6 AutomationsMain 视图态（原 d6，F15 族根；编辑器/闲时编辑器叶子保留接口）」（自动化编辑器叶子＝本面 7 行、闲时编辑器叶子＝OffPeak 族 5 面 60 行，皆随本批销账）；@967「原 kNt…自动化编辑器」与 @977「原 YMt…闲时编辑器」二孤注按〔A1-R169〕裁定（@988 明示）仍留。★@12「六个大体积叶子视图」之声称经复算**仍真**：RepoWikiView／TreemappingView／WhiteboardCanvas／ModelTrajectoryView／DeveloperToolsView／AutomationsMainView 各有代码位命中 1 处（@2172／3725／3851／4576／4807／4964）。
+ *    邻接注记裁定（±4 行窗口逐条归主、零未裁）：@965 存活＋同批骑手／@967 孤注／@977 孤注／@979 孤注 ⇒ 皆存活、其原文逐字保留（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 7 行置换原 7 行，文件行数 4965 不变、零重锚（本文件 ExtendedViews 引证密度：六形并集、去重键 (档,文件,行,号)、扫描面 356 源 + 4 活文档＝120 条，首个编辑点 @205 及其后 83 条 ⇒ 强制净零行；★口径须自载：dossier-A 以 211 份 .md 为文档面、只用两种 @NNN 形得 136／95，与本处六形四文档之 120／83 **口径不同、不得宣称对账成立**〔A1-R173 沉淀⑧〕；★且六形**非全集**——dossier-B 查出第七形 `Name 型面（NNN）`（本批范围内唯一实例恰是 GitReview@2206，已列为骑手）⇒ 本处数字係**下界**，然两口径同判「净零行强制」故结论不受影响）。 ── */
 
 /** 原 YMt（js 91811+ 闲时编辑器，F15 闲时段）：闲时任务编辑器 */
 
@@ -984,7 +984,7 @@ interface AutomationCreateDraft {
  *    型面差异登记：本桩系 React.FC 之 props 面（tasks/busyOperationId/onOpen/onPause/
  *    onContinue/onCancel/onDelete/onOpenSession 八员），canonical 系解构参函数形
  *    （R113 型缝注在案）→ 因零消费点故不涉可赋性裁定。
- *    OffPeakTask 另有读者 @614/@616/@647 故留；
+ *    OffPeakTask 另有读者 @614/@616/@647 故留；〔A1-R185〕★上行「OffPeakTask 另有读者 @614/@616/@647 故留」经本批逐条归主**证伪**：@614 与 @616 落在 OffPeakTask 自身定义跨度 @614-626 之内（自引不具证明力）、@647 落在死面 OffPeakCreateResult@645-654 之内（级联后读者 0）⇒ 该「故留」之理据 Y **从未成立**〔A1-R176 沉淀⑦型：假理据比假事实更耐久〕；★且该碑文**漏引本面之真读者 @657**（落在死面 OffPeakStoreState@656-677 内、级联后同归 0）⇒ 其列举既含不具证明力之自引、又缺真读者，两处皆不成立；OffPeakTask@614-626（13 行）已随死界面普查批第四批销账、13 行等行墓碑在 @614 原位。
  *    ★@977「原 YMt（js 91811+ 闲时编辑器）」系前批已销 declare 之孤注、与本件无涉，仍留。
  *    原 declare 共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。 ── */
 
