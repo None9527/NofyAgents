@@ -143,27 +143,27 @@
  * ThoughtLevelSelector 由子代理族所有（自动化族经 type import 取回三型）；
  * toSorted/IconComponent/usePlatformService/pluginMentionMarkdown 随插件族；
  * IntlShape/图标 declare/工作区与模型 declare 随自动化族。〔A1-R177 补记〕★本行係 §0 迁出侧之史实陈述（IntlShape 随自动化族迁入 AutomationEditor），与 AutomationEditor@2 之迁入侧同款散文；A1-R172 已就迁入侧明裁「係**历史陈述非假**、本批不动」（裁定载于 AutomationEditor@59 碑）→ 本行同判、旧文逐字保留。★然该裁定**从未就本行记录在案**（本行自 A0 检查点 15〔b8f9dcf，2026-08-30〕起零次触及、全树无任何档案裁定）⇒ 本补记係 A1-R172 期**记录缺口之闭合**、非本批面收敛所致亦不归因本批；迁入侧之本地 3 行界面已于 A1-R172 销账改采别名 specifier，故本行所指之「IntlShape」今在 AutomationEditor 内为**别名**而非本地界面。
- * ToastOptions、PluginsStoreState 无族消费，保留本文件。〔A1-R182〕★上句今只半真（拆分感知）：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留本文件；而 PluginsStoreState@163-166 已随死界面普查批第二批销账（代码位读者 0、未 export ⇒ 跨文件读者结构性不可能；该名定义站全树恰 1 家即本件，销账后自全树消失），4 行等行墓碑在原位。
+ * ToastOptions、PluginsStoreState 无族消费，保留本文件。〔A1-R182〕★上句今只半真（拆分感知）：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留本文件；而 PluginsStoreState@163-166 已随死界面普查批第二批销账（代码位读者 0、未 export ⇒ 跨文件读者结构性不可能；该名定义站全树恰 1 家即本件，销账后自全树消失），4 行等行墓碑在原位。〔A1-R183〕★上句之「ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留本文件」**经本批证伪并已销账**：5 处命中逐条归主＝2 处係 settings 域文件自己之同名局部界面（本批同批销账）、3 处係自另一属主 components/ime/ImeComposition@487（canonical，经 modules/ImeComposition shim 再导出）导入或读取，皆与本件无涉；真值＝直接导入方 10 家中拉取该 specifier 者 **0**、裸 export 块载该名者 0、传递再导出跳可达者 0 ⇒ 9 行等行墓碑在 @153 原位。根因＝普查判据 (b) 之两缺陷（边级而非 specifier 级 + 扫 RAW 文本造幻影边），已同批修为 v7。
  * ==========================================================================*/
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-export interface ToastOptions {
-  durationMs?: number;
-  position?: string;
-  variant?: string;
-  dismissible?: boolean;
-  dismissLabel?: string;
-  anchorId?: string;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批：export interface ToastOptions（9 行）纯删，9 行等行墓碑在原位。
+ *    ★本件带 export 故跨文件读者结构上可能 ⇒ 四路独立核验皆 0：本文件代码位读者 0／直接导入方 10 家中拉取该 specifier 者 0／本文件裸 export 块载该名者 0／传递再导出跳（迭代至不动点）可达者 0。
+ *    ★〔A1-R182〕@146 与 @166 两处骑手称「ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留本文件」，经本批逐条归主**证伪**：5 处中 2 处係 settings 域文件自己之同名局部界面（本批同批销账）、3 处係自**另一属主** components/ime/ImeComposition@487（canonical，经 modules/ImeComposition shim 再导出）导入或读取 ⇒ 皆与本件无涉；同批已就 @146／@166 加骑手更正。
+ *    根因＝死面普查工具判据 (b) 之两缺陷（导入方按**边级**而非 specifier 级计入 + 扫描 **RAW** 文本致墓碑散文里之 import 关键字造幻影边），已同批修为 v7；两缺陷只会**多算**读者，故 v6 及以前之基线係低报，实测全树隐藏 2 面／18 行（本件 + modules/stores-session WorkspaceTab@54-62）。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    上方 @149-151 之节标题「0. 外部依赖的类型声明」係**群节注**、其下今仅余本碑与〔A1-R182〕PluginsStoreState 碑 ⇒ 按〔A1-R174〕／〔A1-R176〕规约必须存活、不得折入，已断言逐字节未变。
+ *    上方 @149-151 之节标题「0. 外部依赖的类型声明」係**群节注**、其下今仅余本碑与〔A1-R182〕PluginsStoreState 碑 ⇒ 按〔A1-R174〕／〔A1-R176〕规约必须存活、不得折入，已断言逐字节未变。
+ *    上方 @149-151 之节标题「0. 外部依赖的类型声明」係**群节注**、其下今仅余本碑与〔A1-R182〕PluginsStoreState 碑 ⇒ 按〔A1-R174〕／〔A1-R176〕规约必须存活、不得折入，已断言逐字节未变。
+ *    净零行：本碑 9 行置换原 9 行，文件行数 399 不变、零重锚。 ── */
 
 /* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface PluginsStoreState（4 行，uninstallPlugin 单法 + 索引签名）纯删，4 行等行墓碑在原位。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
  *    ★该名定义站全树**恰 1 家＝本件** ⇒ 销账后该名自全树消失（BrowserSettingsSection@122-129 与 PluginsSettingsSection@228-251 那两份已随〔A1-R176〕销账）。
- *    ★上方 @146 之「ToastOptions、PluginsStoreState 无族消费，保留本文件」被本批**半证伪** ⇒ 同批加行内 rider（**拆分感知**：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留，唯 PluginsStoreState 一半反转；〔A1-R176〕BrowserSettingsSection@31 与〔A1-R177〕Sidebar@256 同式先例）。 ── */
+ *    ★上方 @146 之「ToastOptions、PluginsStoreState 无族消费，保留本文件」被本批**半证伪** ⇒ 同批加行内 rider（**拆分感知**：ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留，唯 PluginsStoreState 一半反转；〔A1-R176〕BrowserSettingsSection@31 与〔A1-R177〕Sidebar@256 同式先例）。 〔A1-R183〕★本碑末句「ToastOptions@153-161 带 export、跨文件读者实测 5 处 ⇒ 确仍保留」经本批**证伪**：该 5 处逐条归主皆非本件之读者（2 处係 settings 域同名局部界面、3 处係自 canonical components/ime/ImeComposition@487 导入或读取）⇒ 本件已于本批销账、9 行等行墓碑在 @153 原位，「PluginsStoreState 一半反转」之另一半今亦反转、上句遂**全伪**；根因＝普查判据 (b) 两缺陷，已修为 v7。 ── */
 
 export {
   SUBAGENT_COLORS,

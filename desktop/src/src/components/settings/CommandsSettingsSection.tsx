@@ -18,7 +18,7 @@ import {
   isUserPreferenceSource as isFileBasedCommand, // ki（跨 chunk）
   isPluginPreferenceSource as isPluginCommand, // ft（跨 chunk）
 } from '../../modules/SrcSharedB';
-import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
+import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）〔A1-R183〕★上注「§0 SkillsService 接口签名引用」之 referent（本文件本地 interface SkillsService@90-105）已随本批销账 ⇒ 该注今失所指；实测 SkillItem／SkillCapability／SkillDiagnostic 三名在本文件之代码位命中各仅 2 处＝本导入行 + 被删界面体内各一处 ⇒ 施后三者成未用导入 specifier（无 noUnusedLocals 故不报错），登记候清理；导入语句本体逐字未动。
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -35,15 +35,15 @@ import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettin
  *    本件无余 PlatformService 型参（与 AutomationsMain/MPSS 异）。
  *    增补证据见 A1-R47.report §四.6。 ── */
 
-interface ToastOptions {
-  durationMs?: number;
-  position?: "top-center" | "bottom-center";
-  variant?: "info" | "success" | "error";
-  actionLabel?: string;
-  onAction?: () => void;
-  dismissible?: boolean;
-  dismissLabel?: string;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ToastOptions（9 行）纯删，9 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ToastOptions 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    净零行：本碑 9 行置换原 9 行，文件行数 866 不变、零重锚。 ── */
 
 /* --- UI 原语 --- */
 
@@ -78,48 +78,48 @@ interface ToastOptions {
  *    （grep 实测仅本声明行；$2/q2 declare 簇 R44 已碑化）。统一属主裁定 =
  *    components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
  *    内联抽出）；未来出现消费面 → 经 modules/ImeComposition type import 引入。 ── */
-interface ModelProvider {
-  id: string;
-  name: string;
-  apiKey: string;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ModelProvider（6 行）纯删，6 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ModelProvider 唯一读者 @177 落在同批被删之 ModelProvidersStoreState 体内⇒级联后 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ModelProvider 施前全树 11 家、本批销 4 家 ⇒ 施后余 7 家（导出家 3 处（components/payments/PaymentDeep.tsx@385／components/settings/SubagentLeaves.tsx@446／components/usage/UsageDeep.tsx@630））。
+ *    同名定义站ModelProvider 施前全树 11 家、本批销 4 家 ⇒ 施后余 7 家（导出家 3 处（components/payments/PaymentDeep.tsx@385／components/settings/SubagentLeaves.tsx@446／components/usage/UsageDeep.tsx@630））。
+ *    同名定义站ModelProvider 施前全树 11 家、本批销 4 家 ⇒ 施后余 7 家（导出家 3 处（components/payments/PaymentDeep.tsx@385／components/settings/SubagentLeaves.tsx@446／components/usage/UsageDeep.tsx@630））。
+ *    净零行：本碑 6 行置换原 6 行，文件行数 866 不变、零重锚。 ── */
 
 /* --- 服务 context（原 fs()/Ec()） --- */
 
-interface SkillsService {
-  list(request: { workspacePath: string; workspaceIdentity?: string | null; provider: string }): Promise<{
-    skills: SkillItem[];
-    capability: SkillCapability | null;
-    diagnostics: SkillDiagnostic[];
-  }>;
-  setEnabled(request: {
-    workspacePath: string;
-    workspaceIdentity?: string | null;
-    provider: string;
-    scope?: string;
-    skillId: string;
-    enabled: boolean;
-  }): Promise<void>;
-  deleteSkill(request: { workspacePath: string; workspaceIdentity?: string | null; skillId: string }): Promise<void>;
-}
-interface CommandsService {
-  getPrimaryUserCommandsDirectory(request: { agentSource: string }): Promise<{ path: string }>;
-}
-interface HooksService {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface SkillsService（16 行）、interface CommandsService（3 行）、interface HooksService（3 行）纯删，22 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：SkillsService 代码位读者 0；CommandsService 代码位读者 0；HooksService 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站SkillsService 施前全树 8 家、本批销 3 家 ⇒ 施后余 5 家（canonical stores/skillContextStore.ts@49（export））。
+ *    同名定义站CommandsService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/commandsStore.ts@49（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    同名定义站HooksService 施前全树 6 家、本批销 5 家 ⇒ 施后余 1 家（canonical stores/hooksHelpers.ts@23（export））。
+ *    净零行：本碑 22 行置换原 22 行，文件行数 866 不变、零重锚。 ── */
 /* ── tombstone〔A1-R180〕死界面普查批首批：本地 interface PluginManagementService（3 行索引签名形）纯删。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法）：本文件代码位读者 0、散文位亦 0；未 export ⇒ 跨文件读者结构性不可能。
  *    同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
-interface ZcodeAgentService {
-  createTask(request: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    provider: string;
-    mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ZcodeAgentService（8 行）纯删，8 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ZcodeAgentService 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ZcodeAgentService 施前全树 4 家、本批销 2 家 ⇒ 施后余 2 家（皆未导出，活体 components/settings/SkillsSettingsSection.tsx@116／modules/Composer.tsx@690）。
+ *    同名定义站ZcodeAgentService 施前全树 4 家、本批销 2 家 ⇒ 施后余 2 家（皆未导出，活体 components/settings/SkillsSettingsSection.tsx@116／modules/Composer.tsx@690）。
+ *    同名定义站ZcodeAgentService 施前全树 4 家、本批销 2 家 ⇒ 施后余 2 家（皆未导出，活体 components/settings/SkillsSettingsSection.tsx@116／modules/Composer.tsx@690）。
+ *    同名定义站ZcodeAgentService 施前全树 4 家、本批销 2 家 ⇒ 施后余 2 家（皆未导出，活体 components/settings/SkillsSettingsSection.tsx@116／modules/Composer.tsx@690）。
+ *    同名定义站ZcodeAgentService 施前全树 4 家、本批销 2 家 ⇒ 施后余 2 家（皆未导出，活体 components/settings/SkillsSettingsSection.tsx@116／modules/Composer.tsx@690）。
+ *    净零行：本碑 8 行置换原 8 行，文件行数 866 不变、零重锚。 ── */
 
 /* --- 跨 chunk 助手（接口级） --- */
 
@@ -173,22 +173,22 @@ interface ZcodeAgentService {
 
 /* --- stores --- */
 
-interface ModelProvidersStoreState {
-  modelProviders: ModelProvider[];
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null;
-  loading: boolean;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ModelProvidersStoreState（5 行）纯删，5 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ModelProvidersStoreState 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 866 不变、零重锚。 ── */
 /* ── tombstone〔A1-R35〕：declare useModelProvidersStore（原 qq，78243）删除——本树零消费死 declare（负证据在案：本文件无消费点）；真身 = components/payments/PaymentDeep §11 useModelProvidersStore（bundle 78243-78403 逐字），同批实体化。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除。负证据：本文件无活调用点（§0 声明群随族整段迁入之死声明）；
  *    canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），活消费面见 Subagents/AutomationsMain/MPSS 等（本批另行改指）。 ── */
-interface TaskStoreState {
-  getWorkspaceState: (workspacePath: string, identity?: string | null) => { activeTaskId: string | null };
-  startDraft: (workspacePath: string, draft?: unknown, identity?: string | null) => void;
-  bindRuntimeProvider: (workspacePath: string, provider: string, identity?: string | null) => void;
-  setSlashCommands: (workspacePath: string, commands: unknown[], identity?: string | null) => void;
-  setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
-  getState?: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface TaskStoreState（8 行）纯删，8 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：TaskStoreState 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
+ *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
+ *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
+ *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
+ *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
+ *    净零行：本碑 8 行置换原 8 行，文件行数 866 不变、零重锚。 ── */
 /* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）/isWorkspaceTab（原 oc js 4487）declare
  *    一并删除：本文件无调用点（死声明）；本地宽松 WorkspaceTabsStoreState 随删。
  *    真实实现见 ../../modules/WorkspaceTabsDeep（useWorkspaceTabStore/isWorkspaceKindTab）。 ── */

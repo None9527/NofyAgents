@@ -38,7 +38,7 @@ import {
   offpeakActionContinueTestid, // ib（Mt）
   offpeakActionDeleteTestid, // ab（wt）
 } from '../../modules/SrcSharedB'; // 〔A1-R113〕+offpeak 五 testid（cMt 卡面/菜单/动作锚标；SrcSharedB 4966–4974 逐字 canonical 在案）
-import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
+import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）〔A1-R183〕★上注「§0 SkillsService 接口签名引用」自〔A1-R182〕起即失 referent（该批销账本文件本地 interface SkillsService@104-119 而未加骑手）⇒ 係**既存陈旧、不归因本批亦不放过**；今实测 SkillItem／SkillCapability／SkillDiagnostic 三名在本文件之代码位命中各仅 1 处＝本导入行自身 ⇒ 三者已成未用导入 specifier（两 tsconfig 皆无 noUnusedLocals 故不报错），登记候清理。
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -128,8 +128,8 @@ interface ModelProvider {
  *    同名 PluginManagementService 本地副本施前全树实测 8 份，其中死面 7 份（本份在内）、活面唯 modules/Composer@693（读者 @2989／@2992）；本批七份同批销账 ⇒ 施后唯余 Composer 一家。 ── */
 /* ── tombstone〔A1-R182〕死界面普查批第二批：本地 interface ZcodeAgentService（8 行，createTask 单法）纯删，8 行等行墓碑在原位。
  *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：本文件代码位读者 **0**、散文位亦 **0**；未 export ⇒ 跨文件读者结构性不可能；两套独立实现互证全等（普查工具 own_readers 与本批独立复算皆空集）。
- *    同名定义站全树 **5** 家：本件 + CommandsSettingsSection@115 + SkillsSettingsSection@116 + SubagentsSettingsSection@125 + modules/Composer@690。
- *    ★其中 SkillsSettingsSection@116 那家**活**（代码位读者 @338，索引取用形取 createTask 成员型）⇒ 其 @141 碑「ZcodeAgentService 接口留存（投射型所依）」**不因本批失效**、不加 rider（该句所指係其自有面、非本文件这份）；余三家候各自域批裁。
+ *    同名定义站全树 **5** 家：本件 + CommandsSettingsSection@115 + SkillsSettingsSection@116 + SubagentsSettingsSection@125 + modules/Composer@690。〔A1-R183〕★上句「全树 5 家」之列名今失 2 处 referent：CommandsSettingsSection@115 与 SubagentsSettingsSection@125 已随死界面普查批第三批销账 ⇒ 施后同名定义站全树余 **3** 家（SkillsSettingsSection@116 活体 + modules/Composer@690 + 本碑所记之已删本件）。
+ *    ★其中 SkillsSettingsSection@116 那家**活**（代码位读者 @338，索引取用形取 createTask 成员型）⇒ 其 @141 碑「ZcodeAgentService 接口留存（投射型所依）」**不因本批失效**、不加 rider（该句所指係其自有面、非本文件这份）；余三家候各自域批裁。〔A1-R183〕★上句末「余三家候各自域批裁」之前向引用由本批**兑现其二**（CommandsSettingsSection@115、SubagentsSettingsSection@125 已销账）⇒ 今余一家＝modules/Composer@690，候其域批；「SkillsSettingsSection@116 那家活、其 @141 碑不因本批失效」之判定经本批复算**仍真**（代码位读者 1，索引取用形）。
  *    原体行尾曾挂一行注（A0-CLEANUP3 3b：创建结果为完整任务记录，流入 FileTreePanel.TaskRecord）——该注落在被删体内、随体同销；其所述 FileTreePanel.TaskRecord 係它文件之面、本批不触 ⇒ 不产生它处假陈述。
  *    上方 @126-128 之〔A1-R180〕PluginManagementService 碑、下方 @137 空行与 @138 节注皆存活（outside-diff 已断言逐字节未变）。
  *    原体之语义：createTask 参面带 workspacePath/workspaceIdentity?/provider/mcpServers?，返完整任务记录（taskId/provider?/initialSlashCommands?/workspacePath/createdAt/updatedAt 加索引签名）。
@@ -2127,7 +2127,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
 const PROVIDER_IDS_ZAI_CODING_PLAN = providerIds.zaiCodingPlan; // 原 q.zaiCodingPlan（A0-CLEANUP B-7 接线）
 const PROVIDER_IDS_BIGMODEL_CODING_PLAN = providerIds.bigmodelCodingPlan; // 原 q.bigmodelCodingPlan（A0-CLEANUP B-7 接线）
 /* ── tombstone〔A1-R42〕：declare buildUpgradeFunnelForAutomations（原 FM）/planStateOfProviders（原 LM）删除 → 改指 components/shell/Home §U.8 canonical：buildCodingPlanFunnelContext（FM 53267-53276，A1-R25 逐字实体化）/resolveEntryPlanState（LM 53299-53312，A1-R26），经尾部导入取回。
- *    消费面实测 @771/@774 改名改指（≡ bundle 139073/139076；R25/R26 注「139073/139076 R0 域留批」闭合）。型缝：funnelContext A0 string 近似 → unknown 对象面（@1481，MPSS@209 A1-R11 先例：fX 89100 读 e?.funnelContext?.purchaseAudience——对象面非字符串）；ModelProvider[]→ModelProviderEntry[] 逐字段相容（索引签名 unknown 对齐）。 ── */
+ *    消费面实测 @771/@774 改名改指（≡ bundle 139073/139076；R25/R26 注「139073/139076 R0 域留批」闭合）。型缝：funnelContext A0 string 近似 → unknown 对象面（@1481，MPSS@209 A1-R11 先例：fX 89100 读 e?.funnelContext?.purchaseAudience——对象面非字符串）；ModelProvider[]→ModelProviderEntry[] 逐字段相容（索引签名 unknown 对齐）。 〔A1-R183〕★本行所引「MPSS@209 A1-R11 先例」之**行号已漂移且 referent 今为墓碑**：git 证＝著笔提交 bcfa0a1 时 ModelProviderSettingsSection@209 逐字为 `funnelContext?: FunnelContext | null;` 并带 A1-R11 型缝精化尾注（故著笔时引证确准），其后历批累积致漂；今 @209 原为 interface ModelProviderService（已随本批销账、等行墓碑在原位），所引之 funnelContext 内容今在 MPSS@1121（useState 型缝精化行）与 @199-200（碑内型缝沿革）。 ── */
 import { buildCodingPlanFunnelContext, resolveEntryPlanState } from '../shell/Home'; // 〔A1-R42〕原 buildUpgradeFunnelForAutomations/planStateOfProviders（FM/LM declare）收敛改指——Home §U.8 canonical（FM 53267 A1-R25 / LM 53299 A1-R26 逐字实体化；本批补 export）。尾部导入：ES 模块提升，行引用零漂（R35 先例）。环安全：Home 不 import automations 域（grep 实证），值闭包单向。
 
 import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'; // 〔A1-R43〕原 useUpgradeEntryForAutomations（fX declare）收敛改指——canonical useCodingPlanUpgradeDialog（fX 89100 逐字真身，A1-R23 补 export；Home@152 R23 先例同链）。尾部导入：ES 提升，行引用零漂。

@@ -43,16 +43,16 @@ import { usePlatformService, type PlatformService } from '../../modules/ImeCompo
  *    消费 @553（openExternal）/@1447（hook 位）/@1806/@2067（openExternal）逐字不变。
  *    增补证据见 A1-R47.report §四.6。 ── */
 
-/** toast（原 m） */
-interface ToastOptions {
-  durationMs?: number;
-  position?: "top-center" | "bottom-center";
-  variant?: "info" | "success" | "error";
-  actionLabel?: string;
-  onAction?: () => void;
-  dismissible?: boolean;
-  dismissLabel?: string;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ToastOptions（9 行，连同其上方单行文档注 1 行）纯删，10 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ToastOptions 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ToastOptions 施前全树 8 家、本批销 7 家 ⇒ 施后余 1 家（canonical components/ime/ImeComposition.tsx@487（export））。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 m」逐字保留。
+ *    净零行：本碑 10 行置换原 10 行，文件行数 2104 不变、零重锚。 ── */
 
 /* --- UI 原语（跨 chunk） --- */
 
@@ -107,11 +107,11 @@ interface PresetProviderDefinition {
   [key: string]: unknown;
 }
 
-/** 供应商族连接方式（原 dr/zi/ot 等，F12 族，跨 chunk） */
-interface ProviderFamilyDescriptor {
-  id: string;
-  apiKeyProviderId: string;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ProviderFamilyDescriptor（4 行，连同其上方单行文档注 1 行）纯删，5 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ProviderFamilyDescriptor 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ProviderFamilyDescriptor 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 dr/zi/ot 等，F12 族，跨 chunk」逐字保留。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 2104 不变、零重锚。 ── */
 declare function isPresetProvider(provider: ModelProvider): boolean; // lX
 declare function isProviderUsable(provider: ModelProvider): boolean; // vM
 /* ── tombstone〔A1-R28〕：declare sortProvidersByDisplayOrder（原 Iq，77456–77475）删除 → 改指 PaymentDeep §D 既有
@@ -127,22 +127,22 @@ declare function presetApiKeyUrl(presetId: string): string | null; // ort
 
 /* --- stores / hooks（本 chunk 或跨 chunk） --- */
 
-interface ModelProvidersStoreState {
-  modelProviders: ModelProvider[];
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null;
-  loading: boolean;
-  refreshing: boolean;
-  refresh: () => Promise<void>;
-  saveProvider: (provider: ModelProvider) => Promise<void>;
-  deleteProvider: (providerId: string) => Promise<void>;
-  saveDisplayOrder: (order: { providerIds: string[]; updatedAt: number }) => Promise<void>;
-  testModelConnectivity: (request: {
-    endpoints?: ProviderEndpoints; // A0-CLEANUP3 3b：对齐 ModelProvider.endpoints 实形
-    apiKey: string;
-    model: string;
-    provider: Partial<ModelProvider>;
-  }) => Promise<{ results: unknown[] }>; // A0-CLEANUP3 3b：对齐 ProviderConfigCardForm.onTestModel 返回面
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ModelProvidersStoreState（16 行）纯删，16 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ModelProvidersStoreState 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站ModelProvidersStoreState 施前全树 6 家、本批销 6 家 ⇒ 销账后该名自全树消失。
+ *    净零行：本碑 16 行置换原 16 行，文件行数 2104 不变、零重锚。 ── */
 /* ── tombstone〔A1-R35〕：declare useModelProvidersStore（原 qq，78243；本行旧注 78195 为行漂移）删除 → 改经文件头 modules/PaymentDeep import 消费（canonical = components/payments/PaymentDeep §11 useModelProvidersStore，bundle 78243-78403 逐字）。消费面 @1460 ≡ bundle 192101（FQt 面）。 ── */
 
 /* ── tombstone（A1-R11）：interface AppSettingsSnapshot + declare function useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
@@ -205,21 +205,21 @@ interface CodingPlanEntitlement {
 /* ── tombstone〔A1-R45〕：declare navigateToSettingsSection（原 iw）删除——本文件零消费（grep 实测仅本 declare 行；旧注「保留 declare」被本批集群裁定覆盖）。
  * 真身 = modules/Settings requestSettingsSectionNavigation（ow js 39381；A1-R24 归属 + 行漂校正既判；UsageSettingsSection@7 别名导入改指先例）。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
-/** 服务 context（原 fs()，2675） */
-interface ModelProviderService {
-  refreshCodingPlanApiKey(providerId: string): Promise<void>;
-}
-interface OAuthService {
-  logout(providerId: string): Promise<void>;
-}
-interface CredentialService {
-  load(key: string): Promise<string | null>;
-}
-interface CodingPlanSubscriptionService {
-  /** A1-R16 型缝（pCt 118459 → fCt 118446 → E0 118473 消费面）：captcha 配置取回面 */
-  getCaptchaConfig?(): Promise<CaptchaConfig | null>;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批（settings 域六文件合批）：本地 interface ModelProviderService（3 行，连同其上方单行文档注 1 行）、interface OAuthService（3 行）、interface CredentialService（3 行）、interface CodingPlanSubscriptionService（5 行）纯删，15 行等行墓碑在原位。
+ *    读者面实测（token 级 code-only 掩码 + 六形自检，非行首前缀法；级联迭代至不动点）：ModelProviderService 代码位读者 0；OAuthService 代码位读者 0；CredentialService 代码位读者 0；CodingPlanSubscriptionService 代码位读者 0；皆未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站ModelProviderService 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（皆未导出，活体 components/usage/UsageDeep.tsx@591／modules/ExtendedViews.tsx@219）。
+ *    同名定义站OAuthService 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 components/usage/UsageDeep.tsx@595）。
+ *    同名定义站CredentialService 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站CodingPlanSubscriptionService 施前全树 5 家、本批销 1 家 ⇒ 施后余 4 家（canonical stores/offPeakTaskStore.ts@83（export））。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    折入上方单行文档注「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」——係本面专属注、其 referent 无活体成员 ⇒ 按〔A1-R176〕判据折入，束源标注「原 fs()，2675」逐字保留。
+ *    净零行：本碑 15 行置换原 15 行，文件行数 2104 不变、零重锚。 ── */
 
 /* --- F12 族助手（接口级；行号见头部映射） --- */
 

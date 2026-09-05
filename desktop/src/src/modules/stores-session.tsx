@@ -50,16 +50,16 @@ export type { SearchDescriptor, QueryResult, TaskMeta };
 export type { UseBoundStore } from '../stores/storeTypes';
 
 /** 任务实体键（原 Lo：`${workspaceKey}::${taskId}`） */
-/** 侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明） */
-export interface WorkspaceTab {
-  id: string;
-  type: string;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  remoteTarget?: unknown;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R183〕死界面普查批第三批：export interface WorkspaceTab（9 行）连同其上方单行群注（1 行）纯删，10 行等行墓碑在原位。
+ *    ★带 export 故四路独立核验：本文件代码位读者 0／直接导入方 5 家中拉取该 specifier 者 0／裸 export 块载该名者 0／传递再导出跳（迭代至不动点）可达者 0 ⇒ 死。
+ *    折入之上方的注原文「侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明）」係覆盖「本界面 + 已随〔A1-R165〕退役之 isWorkspaceTab declare」之**群注**、其 referent 今无活体成员 ⇒ 按〔A1-R176〕判据折入本碑，束源标注「原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明」逐字保留。
+ *    ★再上一行 @52「任务实体键（原 Lo：…）」係**另一孤儿注**——其 referent 之 declare 自 A0 检查点 7040546 起即不在树内、与本界面无关 ⇒ 必须存活、不得折入，已断言逐字节未变；登记为既存陈旧、不归因本批亦不放过。
+ *    同名定义站WorkspaceTab 施前全树 8 家、本批销 1 家 ⇒ 施后余 7 家（导出家 3 处（components/onboarding/OnboardingLoginLeaves.tsx@708／components/shell/Home.tsx@1232／modules/WorkspaceTabsDeep.tsx@122））；代码位真读者 48 处**皆属他家**（活体读者最密者＝canonical）。
+ *    ★本件係判据 (b) 修至 v7 后新揭之二面之一（另一面 modules/SettingsLeaves ToastOptions@153-161）；v6 基线 146 面／990 行／46 文件係低报，v7 真值 148 面／1008 行／48 文件。
+ *    ★本件係判据 (b) 修至 v7 后新揭之二面之一（另一面 modules/SettingsLeaves ToastOptions@153-161）；v6 基线 146 面／990 行／46 文件係低报，v7 真值 148 面／1008 行／48 文件。
+ *    ★本件係判据 (b) 修至 v7 后新揭之二面之一（另一面 modules/SettingsLeaves ToastOptions@153-161）；v6 基线 146 面／990 行／46 文件係低报，v7 真值 148 面／1008 行／48 文件。
+ *    ★本件係判据 (b) 修至 v7 后新揭之二面之一（另一面 modules/SettingsLeaves ToastOptions@153-161）；v6 基线 146 面／990 行／46 文件係低报，v7 真值 148 面／1008 行／48 文件。
+ *    净零行：本碑 10 行置换原 10 行，文件行数 119 不变、零重锚。 ── */
 /* ── tombstone〔A1-R165〕死桩销账：isWorkspaceTab（本文件零消费点、未导出、全树零导入者）；canonical = modules/WorkspaceTabsDeep.tsx::isWorkspaceKindTab，他文件以别名导入而本桩从未接线 ── */
 
 /* ─────────────────────────── A0-S4-3 shim ───────────────────────────
