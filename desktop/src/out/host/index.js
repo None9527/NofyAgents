@@ -360,6 +360,11 @@ import {
   m as C$,
   n as b$,
 } from "./chunk-LVLFJXEE.js";
+import {
+  synthesizeKernelProviders,
+  routeKernelProviderMessage,
+  attachKernelProviderBridge,
+} from "./seam/kernel-provider-source.js"; // A1-B：§2.7 移植钥匙（内核 modelState → provider 注册表）
 import { randomUUID as DY } from "crypto";
 
 import { randomUUID as PS } from "crypto";
@@ -38480,6 +38485,8 @@ function createModelProviderService(e = {}) {
       });
   }
   i(K, "emitProviderRegistryChanged");
+  // A1-B：接入阶段 A 的 main↔host 内核桥；modelState 到达或变化即重发注册表变更。
+  if (tt) attachKernelProviderBridge(tt, () => K("nofy-kernel-modelstate"));
   async function re(ee) {
     await applyProviderFamilyDomainToStoredProviders();
     K(ee);
@@ -38491,6 +38498,9 @@ function createModelProviderService(e = {}) {
   i(markLocalProvidersUsable, "markLocalProvidersUsable");
   async function readCachedProviders() {
     let ee = await readProviders({});
+    // A1-B（PORTING-PLAN §2.7 移植钥匙）：存储注册表为空时，用内核 modelState
+    // 合成的条目兜底——模型表唯一来源是内核（§2.4），桌面不维护自己的注册表。
+    if (ee.length === 0) ee = await synthesizeKernelProviders();
     return markLocalProvidersUsable(
       applyProviderFamilyDomain(ee, await loadProviderFamilyDomain(), t()),
     );
@@ -52486,6 +52496,7 @@ process.on(
   }),
 );
 tt.on("message", async (e) => {
+  if (routeKernelProviderMessage(e, e.ports)) return; // A1-B：内核桥帧先路由，不落入既有分派
   let t = parseHostIncomingMessageEvent(e);
   if (!t.success) {
     xe.error("invalid parentPort message:", Nc(t.error));
