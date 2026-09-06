@@ -9,7 +9,7 @@
 // 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js（md5 48d71d4874b0868d61fd35a328bf6ad5）。
 // 落点裁定：新叶（components/conversation/ 域）。消费面 = PermissionApprovalOverlay :21/:22 + PreviewCards :218 +
 //   ToolCallBlock :47/:67 共五 declare → 真实 import 收敛。canonical 返回面 = og 全形 { toolName, family, source, isLegacy }；
-//   三消费面型缝（{ family: string } / ToolIdentity / { family: ToolFamily }）均经 ToolClassification 结构兼容接通，
+//   三消费面型缝（{ family: string } / ToolIdentity / { family: ToolFamily }）均经 ToolClassification 结构兼容接通，〔A1-R186〕★本行（注块 @12-12）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @12，components/conversation/ToolCallBlock.tsx type ToolFamily@29-47（19 行、代码位读者 0）已销账、19 行等行墓碑在 @29 原位；components/preview/PreviewCards.tsx interface ToolIdentity@210-213（4 行、代码位读者 0）已销账、4 行等行墓碑在 @210 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 //   参型 ToolClassificationInput 为三面交叠（ToolCall / ToolCallLike / { toolName?; kind? }）〔A1-P1-B18〕。
 // 逐字证明：/tmp/a1r0-p1-b18/b18-roundtrip.js（缝逆变换 + 逆改名 ≡ bundle 逐字 EXACT）+ b18-leafcheck.js（独立路线）。
 // 函数体内局部变量保留混淆名（B5 约定）；型缝登记 /tmp/a1r0-p1-b18/ToolCallClassification.seam-log.txt（行号→leaf/bundle 行对），
@@ -63,7 +63,7 @@ import { canonicalizeToolName, resolveToolViewKind, isTodoToolTitle, countLineDi
 import { isPlainRecord, parseToolCallRaw } from './ToolStatusModel'; // 原 pg（styles 23390）/hg（styles 23421）：A1-R61 实体化
 
 /** 工具分类 canonical 返回面 = bundle og 全形〔A1-P1-B18〕。
- * 索引签名接通 PreviewCards ToolIdentity { family: string; [key: string]: unknown } 消费面〔A1-P1-B18〕。 */
+ * 索引签名接通 PreviewCards ToolIdentity { family: string; [key: string]: unknown } 消费面〔A1-P1-B18〕。 〔A1-R186〕★本行（注块 @65-66）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @66，components/preview/PreviewCards.tsx interface ToolIdentity@210-213（4 行、代码位读者 0）已销账、4 行等行墓碑在 @210 原位。命中谓词 P2 名 + 同行出现属主 basename；失效屏 S3 属主 basename（同行出现失去此面之属主 basename）＋S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
 export interface ToolClassification {
   toolName: string | null;
   family: string;

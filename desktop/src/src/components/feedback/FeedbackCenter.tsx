@@ -230,21 +230,21 @@ interface FeedbackSubmitPayload {
   description?: string;
   screenshots?: Blob[];
 }
-interface FeedbackStoreState {
-  open: boolean;
-  featureRequestOpen: boolean;
-  tab: "submit" | "tickets";
-  submitDraft: FeedbackSubmitPayload | null;
-  submissionJobId: string | null;
-  selectedTicketId: string | null;
-  openSubmit(draft?: FeedbackSubmitPayload | null): void;
-  openSubmissionJob(jobId: string): void;
-  openFeatureRequest(): void;
-  openTickets(ticketId?: string | null): void;
-  setTab(tab: "submit" | "tickets"): void;
-  setSelectedTicketId(ticketId: string | null): void;
-  close(): void;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/feedback/FeedbackCenter.tsx：1 面／15 行，本批该文件共 1 碑）：本地 interface FeedbackStoreState@233-247（15 行）纯删，15 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface FeedbackStoreState：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：FeedbackStoreState 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 15 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 15 行置换原 15 行，文件行数 4309 不变、零重锚（本文件 FeedbackCenter 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 23 条（原始发射 30）；带行号之记录 26 条，其中落在首个编辑点 @233 及其后者 12 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /** 工作区标签页 store 选择器（原 pc，**styles@4801**；〔A1-R170 勘误〕旧引「本 chunk 4753」二处不确——①`pc` 係 **styles** chunk 符而非本 chunk；②真行 **4801**（styles 内 `function pc(` 恰 1 命中，体首 `useContext(fc)` + 抛「useTabStore 必须在 TabStoreProvider 内使用」，与 WorkspaceTabsDeep@66「pc → useWorkspaceTabStore (4801)｜useTabStore（消费侧 declare 名）」逐字吻合；同簇 mc@4806／hc@4809 亦对位 @67/@68）；旧值 4753 漂 **−48**，与 R169 之 LM／Tit／KX 同模（vintage 差之另一实例）；★异 (chunk, 名) 二元组之同名符已依 R159 排除：chunk-BO2N2NFS@9128 `pc(e,t,n,r)` arity 4、chunk-K5T4RW27@7511 `pc(e)` 皆非本实体。Settings.tsx/stores-session.tsx 已登记） */
 import { useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R170〕原 pc（styles@4801）桩退营改指 canonical modules/WorkspaceTabsDeep@686——★**同名直收**（本文件局部名与 canonical 名逐字同，无需别名）；环安全：新边 BFS 实测 value-path-back=none、type-path-back=none、VALUE CYCLES **0**；R166 已就 McpSettingsSection@58 同符施行改指（判例在案，该处係别名保名、本处係同名直收）

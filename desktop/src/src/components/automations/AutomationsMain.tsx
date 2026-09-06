@@ -202,7 +202,7 @@ import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/Sk
  *    上方 @196-197 之〔A1-R11〕useAppSettings 碑与 @190-195 之 displayOrder 碑皆存活（referent 各别、不因本批失效）；下方 @206 起之〔A1-R2〕碑亦存活。
  *    引证密度：`AutomationsMain@NNN` 全树 5 处、4 处引 @205 之后 ⇒ 本块净零行（8 行碑换 8 行原体）係强制而非可选。
  *    原体之语义：五法皆以 workspacePath 为首参、identity 为可选末参（getWorkspaceState 返 activeTaskId、startDraft 带 draft?、bindRuntimeProvider 带 provider、setSlashCommands 带 commands、setActiveTaskId 带 taskId），另有可选 getState。
- *    级联：本面五法之参型皆为基础型或内联面，未引本文件其它本地面 ⇒ 预判级联新增死面 **0**，施后以普查总量增量守恒复核。 ── */
+ *    级联：本面五法之参型皆为基础型或内联面，未引本文件其它本地面 ⇒ 预判级联新增死面 **0**，施后以普查总量增量守恒复核。 〔A1-R186〕★本行（注块 @198-205）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @198／@200，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）＋P4 属主 basename + 同行数字落在该属主某被删区间内；失效屏 S2 同名家数（同行含家数陈述形）＋S3 属主 basename（同行出现失去此面之属主 basename）＋S4 行号引证（同行带一个落在被删区间内之数字）。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除。
  *    isWorkspaceTab（原 oc js 4487）declare 已删除，改经文件头真实 import
  *    （../../modules/WorkspaceTabsDeep 之 isWorkspaceKindTab，别名保留本地调用名）消费。

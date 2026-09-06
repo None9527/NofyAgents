@@ -222,7 +222,7 @@ interface TaskStoreState {
  *    selectedSupplierKey: string@176 必具面 ⊇ 原可空契据，消费点 ?? 兜底不变；调用点 575/902/1474 逐字不变）。 ── */
 /** 〔A1-R129g〕实体化：束无独立函数——真身 = uzt 组钩子内直接动作选择子 `xe((e) => e.clearPromotedGroupedDraftTask)`
  *    （153282）；原 declare 为 A0 扩张缝。选择子自 state 取动作体；型缝：TaskStoreState 宽面（索引签名）→
- *    动作面经 cast 还原 = 原契据（taskStore@2413 同面：三参可空返 void）。调用点 1654 逐字不变。 */
+ *    动作面经 cast 还原 = 原契据（taskStore@2413 同面：三参可空返 void）。调用点 1654 逐字不变。 〔A1-R186〕★本行（注块 @223-225）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @224，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）＋S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
 function clearPromotedGroupedDraftTaskSelector(state: TaskStoreState): (
   workspacePath: string,
   taskId: string,
@@ -237,7 +237,7 @@ function clearPromotedGroupedDraftTaskSelector(state: TaskStoreState): (
 
 /* ── tombstone〔A1-R129〕SessionRegistryState（原 Zs）+ SessionRecord 型死删：唯一消费面
  *    SessionRegistrySnapshot 随 gc/_c/vc 三 declare 退役（下方墓碑）；canonical 侧
- *    SessionRegistrySnapshotState（WTD@707）为在案真形。 ── */
+ *    SessionRegistrySnapshotState（WTD@707）为在案真形。 〔A1-R186〕★本行（注块 @238-240）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @238，components/quickpick/QuickPick.tsx interface SessionRegistryState@289-295（7 行、代码位读者 0）已销账、7 行等行墓碑在 @289 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）＋S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（SessionRegistryState 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 
 /** 搜索结果 store（原 Vo）：任务元数据缓存与失效 */
 /* ── tombstone（A1-R10）：本地 SearchResultsState 近似面 + useSearchResultsStore
@@ -605,7 +605,7 @@ interface ProviderEntitlement {
 /* ---- 分组视图共享类型：改指 Sidebar.tsx canonical 型族（〔A1-R102〕型别归一，闭合 A1-P3-B4 §六-3①/§七-6 d8 留批）。
  *    原本地型族（开联合 GroupColor + 带索引签名 TaskGroup + 具名节点对）删除；具名节点变体以 Extract 别名保留。 ---- */
 type GroupedViewNodeGroup = Extract<GroupedViewNode, { type: "group" }>;
-type GroupedViewNodeTask = Extract<GroupedViewNode, { type: "task" }>;
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type GroupedViewNodeTask（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：GroupedViewNodeTask 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 4546 不变、零重锚（SidebarLeaves 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 68 条（原始发射 75）；带行号之记录 75 条，其中落在首个编辑点 @608 及其后者 9 条 ⇒ **强制净零行**）。 ── */
 interface WorkspaceScope {
   workspacePath: string;
   workspaceIdentity?: string | null;

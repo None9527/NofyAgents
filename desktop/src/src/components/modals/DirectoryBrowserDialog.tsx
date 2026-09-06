@@ -7,7 +7,7 @@ import { Button } from '../../modules/button'; // 原 X，button-laUijeDG.js（A
 import { logger } from '../../modules/SkillStore';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
 import { IconFolder, IconFolderSymlink } from '../../modules/Modals'; // §0 图标常量（createLucideIcon 产物）留存 shim
-import type { SettingsSyncService } from './OnboardingDialog'; // §0 BaseServices 接口签名引用（型别属主：Onboarding 族文件）
+import type { SettingsSyncService } from './OnboardingDialog'; // §0 BaseServices 接口签名引用（型别属主：Onboarding 族文件） // 〔A1-R186〕★本行（注块 @10-10）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @10，components/settings/ExternalAgentImportDialog.tsx interface SettingsSyncService@26-38（13 行、代码位读者 0）已销账、13 行等行墓碑在 @26 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（SettingsSyncService 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 
 /* §0 声明群随族迁入（原 226–241） */
 /** 基础服务 context（原 fs()，本 chunk 2675） */

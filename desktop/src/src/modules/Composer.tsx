@@ -575,19 +575,19 @@ export interface TempTextAttachmentMeta {
  *  ── tombstone（A0-S2d）：createStore declare 与本地 ZustandStore/ZustandSetState
  *     脚手架已删除，canonical = SkillStore.tsx vendored zustand create（原 q 导出），
  *     经文件头真实 import 消费；本文件消费面均为选择器/getState/setState 调用，形状兼容。 ── */
-interface TaskStoreState {
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/Composer.tsx：3 面／16 行，本批该文件共 3 碑）：本地 interface TaskStoreState@578-580（3 行）纯删，3 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。interface TaskStoreState：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：TaskStoreState 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／stores/taskStore.ts@347）。邻接注记裁定（±4 行窗口）：@677 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 3 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 3 行置换原 3 行，文件行数 7764 不变、零重锚（本文件 Composer 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 171 条（原始发射 202）；带行号之记录 181 条，其中落在首个编辑点 @578 及其后者 102 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone〔A1-R140〕：declare function taskScopeSelector（原 S，jsx 195 导出 V）删除 →
  *    文件头 SkillStore 导入别名接入（getWorkspaceTaskState as taskScopeSelector；
  *    canonical = stores/taskStore@348 逐字真身）。面校准：canonical 首参宽化
  *    string | undefined + 体内双 cast（运行期恒在）。消费面实证（2 处）：1911/3767 逐字不变。 ── */
-interface WhiteboardStoreState {
-  workspaces: Record<
-    string,
-    { boardIds: string[]; boardsById: Record<string, WhiteboardBoard | undefined> } | undefined
-  >;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/Composer.tsx：3 面／16 行，本批该文件共 3 碑）：本地 interface WhiteboardStoreState@585-590（6 行）纯删，6 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface WhiteboardStoreState：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：WhiteboardStoreState 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（皆未导出，活体 stores/whiteboardStore.ts@54）。
+ *    邻接注记裁定（±4 行窗口）：@677 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 6 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 6 行置换原 6 行，文件行数 7764 不变、零重锚（本文件 Composer 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 171 条（原始发射 202）；带行号之记录 181 条，其中落在首个编辑点 @578 及其后者 102 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone〔A1-R140〕：declare 五件（原 W/In/jn/Mn/Cn，jsx 1807/1923/1868/1879/1805）删除 →
  *    文件头 SkillStore 导入别名接入（resolveWhiteboardWorkspaceKey/useWhiteboardStore/
  *    whiteboardToPngFile/isWhiteboardAddToChatEvent/WHITEBOARD_ADD_TO_CHAT_EVENT，
@@ -638,13 +638,13 @@ interface SkillEntry {
   model?: string | null;
   pluginName?: string;
 }
-interface SubagentsService {
-  list(args: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    provider: string;
-  }): Promise<{ agents: SubagentEntry[]; capability: unknown }>;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/Composer.tsx：3 面／16 行，本批该文件共 3 碑）：本地 interface SubagentsService@641-647（7 行）纯删，7 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface SubagentsService：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：SubagentsService 施前全树 4 家、本批销 1 家 ⇒ 施后余 3 家（canonical stores/commandsStore.ts@38（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@677 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 7 行置换原 7 行，文件行数 7764 不变、零重锚（本文件 Composer 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 171 条（原始发射 202）；带行号之记录 181 条，其中落在首个编辑点 @578 及其后者 102 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 interface SubagentEntry {
   id: string;
   name: string;
@@ -674,7 +674,7 @@ interface PromptAttachmentTransferService {
 /* ── tombstone〔A1-R142〕：declare resolveTabServices（原 vc）删除 → 改指 modules/WorkspaceTabsDeep resolveTabServicesBinding（canonical 真身；束 VJe 消费 vc(a, baseServices, serviceResolverState) 同形，R126/R129 buildScopedServices 改指同判在案）。消费面实证（1 处）：3196 逐字不变；面校准：collectSessionListEndpoints 三参面 unknown → 真面（BaseServices/SessionRegistrySnapshotState/WorkspaceTab[]），services 面 BaseServices 消费铸 ×2（VJe 体内型缝）。 ── */
 /* ── tombstone〔A1-R142〕：declare useResolvedServices（原 Dc）删除 → 改指 services/remoteServices useResolvedWorkspaceServices（canonical 真身 4907–4944；R136 既判 Dc≡useResolvedWorkspaceServices，首参面宽化 string|null|undefined 同批承续）。消费面实证（2 处）：2956/3231 逐字不变；返回面超集相容（connectionKind 增项不消费）；services 面 ResolvedBaseServices 消费铸 ×4（2966/2991/2994/3243 型缝，二段收敛判例）。 ── */
 /* ── tombstone（A0-D）：workspaceKey declare 删除 → SkillStore b 导出 resolveWorkspaceKey（alias workspaceKey）。 ── */
-/* ── tombstone〔A1-R142〕：declare useSessionRegistry（原 Zs）删除 → 改指 stores/sessionRegistryStore useSessionRegistryStore（canonical 真身）。消费面实证（3 处）：3224–3226 逐字不变；选择器 (state: any)→T 上下文型化（SessionRegistryState 三索引字段全合）。 ── */
+/* ── tombstone〔A1-R142〕：declare useSessionRegistry（原 Zs）删除 → 改指 stores/sessionRegistryStore useSessionRegistryStore（canonical 真身）。消费面实证（3 处）：3224–3226 逐字不变；选择器 (state: any)→T 上下文型化（SessionRegistryState 三索引字段全合）。 〔A1-R186〕★本行（注块 @677-677）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @677，components/quickpick/QuickPick.tsx interface SessionRegistryState@289-295（7 行、代码位读者 0）已销账、7 行等行墓碑在 @289 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）＋S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（SessionRegistryState 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /* ── tombstone〔A1-R143〕：declare useSessionListsHydrator（原 JS，styles 1121235 / js 35552）删除 →
  *    改指 components/shell/TaskListQueryCore useHydratingSessions（A1-P3-B1 逐字真身叶，export@649；
  *    一符一家第三消费方，QuickPick/SidebarLeaves R129e 同判；依赖十二符全在树零转录，dossier-E §E7 清单）。

@@ -138,29 +138,29 @@ interface BotsServiceLike {
  *    改 npm qrcode@1.5.4 真实 import（文件头 `import * as qrcode from 'qrcode'`）；
  *    toDataURL(text, { margin, width }) 调用面逐字不变。 ── */
 
-interface BotsService {
-  getConfig(): Promise<BotsConfig>;
-  getStatus(): Promise<BotsStatus>;
-  listWorkspaceRefs(opts: { currentWorkspace: WorkspaceRef }): Promise<WorkspaceRef[]>;
-  getBotStates(): Promise<BotState[]>;
-  saveBot(opts: { bot: Bot; credentialValue?: string }): Promise<Bot>;
-  createBindCode(opts: {
-    botId: string;
-    ttlMs: number;
-    allowedWorkspaces: string[];
-  }): Promise<{ code: string; expiresAt: number }>;
-  pollFeishuRegistration(opts: {
-    deviceCode: string;
-    domain: string;
-    pollDomain: string;
-  }): Promise<FeishuRegistrationPollResult>;
-  pollWeixinRegistration(opts: { qrCode: string }): Promise<WeixinRegistrationPollResult>;
-  beginFeishuRegistration(opts: { domain: string }): Promise<FeishuRegistrationStart>;
-  beginWeixinRegistration(): Promise<WeixinRegistrationStart>;
-  removeBotSecret(botId: string): Promise<Bot>;
-  resetBotState(botId: string): Promise<unknown>;
-  deleteBot(botId: string): Promise<unknown>;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/bots/Bots.tsx：5 面／55 行，本批该文件共 2 碑）：本地 interface BotsService@141-163（23 行）纯删，23 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface BotsService：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：BotsService 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 23 行置换原 23 行，文件行数 1983 不变、零重锚（本文件 Bots 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 5 条（原始发射 5）；带行号之记录 5 条，其中落在首个编辑点 @141 及其后者 4 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 interface Bot {
   id: string;
@@ -223,38 +223,38 @@ interface WeixinRegistrationState {
   status: string;
   message?: string;
 }
-interface FeishuRegistrationStart {
-  deviceCode: string;
-  qrUrl: string;
-  userCode: string;
-  interval: number;
-  expiresAt: number;
-  domain: string;
-  pollDomain: string;
-}
-interface FeishuRegistrationPollResult {
-  status: string;
-  interval?: number;
-  domain?: string;
-  pollDomain?: string;
-  appName?: string;
-  appId?: string;
-  appSecret?: string;
-  message?: string;
-}
-interface WeixinRegistrationStart {
-  qrCode: string;
-  qrUrl: string;
-  interval: number;
-  expiresAt: number;
-}
-interface WeixinRegistrationPollResult {
-  status: string;
-  interval?: number;
-  botId?: string;
-  botToken?: string;
-  message?: string;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/bots/Bots.tsx：5 面／55 行，本批该文件共 2 碑）：本地 interface FeishuRegistrationStart@226-234（9 行）、interface FeishuRegistrationPollResult@235-244（10 行）、interface WeixinRegistrationStart@245-250（6 行）、interface WeixinRegistrationPollResult@251-257（7 行）纯删，32 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface FeishuRegistrationStart：单轮代码位读者 1 处（@158，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface FeishuRegistrationPollResult：单轮代码位读者 1 处（@156，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface WeixinRegistrationStart：单轮代码位读者 1 处（@159，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface WeixinRegistrationPollResult：单轮代码位读者 1 处（@157，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：FeishuRegistrationPollResult 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：FeishuRegistrationStart 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：WeixinRegistrationPollResult 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：WeixinRegistrationStart 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 32 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 32 行置换原 32 行，文件行数 1983 不变、零重锚（本文件 Bots 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 5 条（原始发射 5）；带行号之记录 5 条，其中落在首个编辑点 @141 及其后者 4 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 type FormatMessage = (desc: { id: string }, values?: Record<string, string | number>) => string;
 
 /* ----------------------------------------------------------------------------

@@ -4146,7 +4146,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
   };
 }
 
-export type DocxEditorViewRenderSurface = ReturnType<typeof useDocxEditorViewRenderCallbacks>;
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type DocxEditorViewRenderSurface（1 行、代码位读者 0、带 export 而无一家导入方把该名作 specifier 拉取〔判据 Ⓑ 之 specifier 级，A1-R184 v8〕）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：DocxEditorViewRenderSurface 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 4154 不变、零重锚（LegacyDocEngineC4 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。 ── */
 
 /* ============================================================================
  * §4 符号表（语义名 ↔ 混淆名 ↔ jsx 行）见文件尾注释。

@@ -273,25 +273,25 @@
 import * as zod from 'zod';
 
 /* ============================================================================
- * §0 类型脚手架（zod 内部面以 any 承载；运行时行为零改动）
+ * §0 类型脚手架（zod 内部面以 any 承载；运行时行为零改动）〔A1-R186〕★本节注（块 @275-277）所辖之节（自块尾至 @294）今**失全部代码**：节内 16 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。
  * ==========================================================================*/
 
-type ZodInst = any;
-type ZodDef = any;
-interface ParsePayload {
-  value: any;
-  issues: any[];
-  aborted?: boolean;
-  [key: string]: any;
-}
-interface ParseContext {
-  async?: boolean;
-  direction?: "forward" | "backward";
-  skipChecks?: boolean;
-  jitless?: boolean;
-  reportInput?: boolean;
-  [key: string]: any;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/SrcSharedA.tsx：4 面／16 行，本批该文件共 1 碑）：本地 type ZodInst@279-279（1 行）、type ZodDef@280-280（1 行）、interface ParsePayload@281-286（6 行）、interface ParseContext@287-294（8 行）纯删，16 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    type ZodInst：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    type ZodDef：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface ParsePayload：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface ParseContext：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：ParseContext 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：ParsePayload 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：ZodDef 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：ZodInst 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@276／@319 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 16 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 16 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 16 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 16 行置换原 16 行，文件行数 2739 不变、零重锚（本文件 SrcSharedA 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 46 条（原始发射 61）；带行号之记录 61 条，其中落在首个编辑点 @279 及其后者 59 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ============================================================================
  * §1 first-party 基础助手（jsx 1–141）—— A0-S4-1：实体代码已整体迁入 lib/
  *   DEFAULT_LOCALE                                        → ../lib/locale.ts
@@ -316,7 +316,7 @@ export { extractErrorInfo, isFileLockTimeoutError } from '../lib/errorUtils';
  *    §5 checks、§6 schemas、§7 registry/工厂/JSON Schema、§8 classic，共约
  *    3,580 行）已整体移除，运行时改由 npm zod@4.3.6（同版本）承载。
  *    此处仅保留 first-party（§9 起）与 SrcSharedB 实际消费的语义工厂名薄层：
- *    包装签名与返回（any）沿用原 $constructor→ZodInst=any 脚手架，保证下游
+ *    包装签名与返回（any）沿用原 $constructor→ZodInst=any 脚手架，保证下游〔A1-R186〕★本行（注块 @313-322）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @319，type ZodInst@279-279（1 行、代码位读者 0）已销账、1 行等行墓碑在 @279 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S6 名 + 同行注册形。原文逐字保留、只增不改（骑手只增文、不删旧字）。
  *    schema 链的类型面与运行时语义逐字不变。导出面与原 §8 一致
  *    （zUndefined/zDate/looseRecord 仍经 §15 export 块转出，transformPipe 局部）。
  * ==========================================================================*/

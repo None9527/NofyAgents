@@ -122,7 +122,7 @@ import type {
   WorkspaceTaskState,
   TaskStoreState,
   UserInfo,
-  LoginEntryRequest,
+  LoginEntryRequest, // 〔A1-R186〕★本行 specifier LoginEntryRequest（所属导入语句 @108-126）之代码位命中除本语句自身外为 @174，逐处实测皆落在本批被删区间内 ⇒ 该 specifier 成**未用导入**。两 tsconfig 皆无 noUnusedLocals／noUnusedParameters ⇒ 不碍构建；导入语句本体逐字保留（删行会破净零行、并使环论证失效），本骑手係记录、候未用导入清理集。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 } from "./OnboardingLoginLeaves";
 import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform, buildCaptchaAssertionKeys, captchaAssertionStatus, createCaptchaGatekeeper, isCaptchaDecisionHandled, recordCaptchaFailure, captchaProviderOfTaskMeta, type CaptchaGatekeeper } from './ConversationLeaves'; // A1-R16：+captchaProviderOfTaskMeta（原 KSt declare 删碑改指） // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）+A1-R14：ACt/A0/kCt/j0/M0/CaptchaGatekeeper 六 declare 改指（§5b 实体，c8t 消费）
 import { setMcpSyncServiceHandle as setTelemetryReportPlatform } from '../stores/mcpStore'; // A1-R10 项 1c：原 b_e@25049 = Hg 置入；canonical = mcpStore setMcpSyncServiceHandle（Hg/mcpSyncServiceHandle 143–149 逐字；Lg=persistMcpChange 225 消费在案）。根装配 212931 以 platform 兼 MCP 同步句柄。环安全：mcpStore 值闭包 = logger/modules-services/zustand，不达本文件（全树无本文件 import 源）
@@ -167,17 +167,17 @@ declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key
  *    EMPTY_PANE_LAYOUT（原 K0 js 121527）/isReloadNavigationEntry（原 z0 js 121382）/
  *    hasSplitLayoutBindings（原 jwt js 121716）declare 已删除，改经文件头真实 import（./SplitLayoutDeep）消费。
  *    paneById（原 T2 js 121528）/focusedPaneId（原 Z0 js 121533）declare 一并删除：本文件无调用点（死声明）。 ── */
-interface SettingsStoreSlice {
-  theme: string;
-  user: UserInfo | null;
-  isRestoringOAuthSession: boolean;
-  loginEntryRequest: LoginEntryRequest | null;
-  setUser(user: UserInfo | null): void;
-  setIsRestoringOAuthSession(value: boolean): void;
-  setOAuthError(error: string | null): void;
-  markOAuthSuccess(provider: string): void;
-  [key: string]: any;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/AppRootLeaves.tsx：1 面／11 行，本批该文件共 1 碑）：本地 interface SettingsStoreSlice@170-180（11 行）纯删，11 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface SettingsStoreSlice：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：SettingsStoreSlice 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@125 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 11 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 11 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 11 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 11 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 11 行置换原 11 行，文件行数 2746 不变、零重锚（本文件 AppRootLeaves 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 98 条（原始发射 133）；带行号之记录 123 条，其中落在首个编辑点 @170 及其后者 49 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488——普查行漂移，旧注 53440）删除，
  *    改经文件头 ./UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
  *    型缝：1992 解构 {settings, refresh, update} 三字段逐字不变；settings 读取面 2051/2058

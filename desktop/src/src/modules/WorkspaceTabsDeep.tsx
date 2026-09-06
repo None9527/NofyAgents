@@ -703,7 +703,7 @@ export function useWorkspaceTabStoreApi(): ReturnType<typeof createWorkspaceTabS
 
 /** 〔A1-R126〕会话注册表三字段快照面——gc/vc/yc（styles 4814/4822/4834）真入参契据：
  * 束真形仅读三 map；全量 SessionRegistryState 结构兼容（字段全具），store 态实参与
- * 三字段快照实参皆纳。SidebarLeaves 本地 SessionRegistrySnapshot 型面不接批（其 @262 注）随此消解。 */
+ * 三字段快照实参皆纳。SidebarLeaves 本地 SessionRegistrySnapshot 型面不接批（其 @262 注）随此消解。 〔A1-R186〕★本行（注块 @704-706）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @705，components/quickpick/QuickPick.tsx interface SessionRegistryState@289-295（7 行、代码位读者 0）已销账、7 行等行墓碑在 @289 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（SessionRegistryState 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
 export interface SessionRegistrySnapshotState {
   sessionsById: SessionRegistryState["sessionsById"];
   sessionIdByWorkspaceIdentity: SessionRegistryState["sessionIdByWorkspaceIdentity"];

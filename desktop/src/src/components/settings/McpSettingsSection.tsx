@@ -87,38 +87,38 @@ export interface McpServer {
 }
 export type McpStatusSnapshot = Record<string, unknown>;
 
-/** 原 Ug（js 25055，横切层 McpStore）：按工作区身份的 MCP 状态机 */
-interface McpStoreState {
-  servers: McpServer[];
-  statusSnapshots: Record<string, McpStatusSnapshot>;
-  currentProjectPath: string;
-  currentWorkspaceIdentity: string | null;
-  isConfigLoaded: boolean;
-  ensureLoadedForWorkspace(
-    workspacePath: string,
-    mcpSyncService: McpSyncService,
-    workspaceIdentity?: string | null,
-  ): Promise<boolean>;
-  loadMcpFromUserDirectory(mcpSyncService: McpSyncService, workspaceIdentity?: string | null): Promise<boolean>;
-  toggleServer(serverId: string, enabled: boolean): Promise<void>;
-  addScopedMcpServer(source: string, name: string, payload: unknown, workspaceIdentity?: string | null): Promise<void>;
-  updateScopedMcpServer(source: string, name: string, payload: unknown, workspaceIdentity?: string | null): Promise<void>;
-  deleteScopedMcpServer(source: string, name: string, projectPath?: string | null): Promise<void>;
-  updateServerStatus(
-    serverId: string,
-    status: string,
-    detail: unknown,
-    opts?: { invalidateStatusListRequests?: boolean },
-  ): void;
-  beginServerStatusListRefresh(): void;
-  markServerStatusListRefreshFailed(): void;
-  mergeServerStatusSnapshots(snapshots: Record<string, McpStatusSnapshot>): void;
-  getEnabledMcpServersForZCode(provider: string): McpServer[];
-}
-interface McpStoreHook {
-  <T>(selector: (state: McpStoreState) => T): T;
-  getState(): McpStoreState;
-}
+/** 原 Ug（js 25055，横切层 McpStore）：按工作区身份的 MCP 状态机 〔A1-R186〕★本注（块 @90-90、类别「死面之标签」）係下方被删面之**标签**：其主语 McpStoreState 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：Ug（束符，「原 X」之后者；命中 1 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X／js NNN；束符 Ug）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/settings/McpSettingsSection.tsx：2 面／31 行，本批该文件共 1 碑）：本地 interface McpStoreState@91-117（27 行）、interface McpStoreHook@118-121（4 行）纯删，31 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface McpStoreState：单轮代码位读者 2 处（@119／@120，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface McpStoreHook：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：McpStoreHook 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：McpStoreState 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@90 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 31 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 31 行置换原 31 行，文件行数 1015 不变、零重锚（本文件 McpSettingsSection 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 66 条（原始发射 98）；带行号之记录 86 条，其中落在首个编辑点 @91 及其后者 2 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /* MCP 助手群（原 192533–194644 段内的纯函数/常量，接口级声明）： */
 /** 原 V7（js 194325）：ZCode 自建 MCP 源标识 */

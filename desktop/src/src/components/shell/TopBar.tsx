@@ -212,7 +212,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
  *    负证据：全树 declare enum DesktopCommand 唯本处与 Sidebar 已碑处（A1-P3-B1），无第三副本。 ── */
 type DesktopCommand = (typeof DesktopCommand)[keyof typeof DesktopCommand];
 
-type Platform = "mac" | "windows" | "linux" | "web";
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type Platform（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：Platform 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 4313 不变、零重锚（TopBar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 82 条（原始发射 113）；带行号之记录 108 条，其中落在首个编辑点 @215 及其后者 25 条 ⇒ **强制净零行**）。 ── */
 export type UpdateState =
   | { kind: "checking" }
   | { kind: "update-available"; version: string; channel?: string; releaseNotes?: ReleaseNotesPayload }
@@ -236,12 +236,12 @@ interface ReleaseNotesPayload {
  *    束 nge→a4/ConversationSummaryAside/mlt 链路实证）。 ── */
 export type { GitSummary };
 
-/* --- UI 原语（button-laUijeDG / usageStatsUiParts / imeComposition chunk） --- */
+/* --- UI 原语（button-laUijeDG / usageStatsUiParts / imeComposition chunk） 〔A1-R186〕★本节注（块 @239-239）所辖之节（自块尾至 @248）今**失全部代码**：节内 4 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。 --- */
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/shell/TopBar.tsx：3 面／6 行，本批该文件共 3 碑）：本地 interface ButtonProps@241-244（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ButtonProps：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：ButtonProps 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（canonical modules/button.tsx@321（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@239 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 4313 不变、零重锚（本文件 TopBar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 82 条（原始发射 113）；带行号之记录 108 条，其中落在首个编辑点 @215 及其后者 25 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Button / Tooltip declare 删除 → import
  *    { Button, createLucideIcon } from './button'、{ InfoTooltip as Tooltip }
  *    from './UsageStatsUiParts'（原 Ia=usageStatsUiParts u 导出）。 ── */
@@ -330,7 +330,7 @@ const DropdownMenuShortcut: React.FC<React.ComponentPropsWithoutRef<"span">> = (
 
 /* --- 图标（原 Sa 工厂批量生成的 lucide 图标；此处按语义命名） --- */
 
-type IconProps = React.SVGProps<SVGSVGElement>;
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type IconProps（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：IconProps 施前全树 9 家、本批销 5 家 ⇒ 施后余 4 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@275／components/shell/SidePanel.tsx@488／components/shell/Sidebar.tsx@1054）。净零行：本碑 1 行置换原 1 行，文件行数 4313 不变、零重锚（TopBar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 82 条（原始发射 113）；带行号之记录 108 条，其中落在首个编辑点 @215 及其后者 25 条 ⇒ **强制净零行**）。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
 const IconArrowLeft = createLucideIcon("arrow-left", []);            // 原 S_（js 26682）

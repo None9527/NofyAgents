@@ -207,15 +207,15 @@ interface ToolCallLike {
   raw?: unknown;
   [key: string]: unknown;
 }
-interface ToolIdentity {
-  family: string;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/preview/PreviewCards.tsx：1 面／4 行，本批该文件共 1 碑）：本地 interface ToolIdentity@210-213（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ToolIdentity：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：ToolIdentity 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@218／@226 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 2322 不变、零重锚（本文件 PreviewCards 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 9 条（原始发射 9）；带行号之记录 9 条，其中落在首个编辑点 @210 及其后者 4 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone〔A1-P1-B18〕：classifyToolCall declare（原 og）删除——逐字实体化 →
  * ../conversation/ToolCallClassification（styles og@23132–23186；roundtrip EXACT，/tmp/a1r0-p1-b18/）。
  * canonical 返回面 = og 全形 { toolName, family, source, isLegacy }，对本面 ToolIdentity
  * { family: string; [key: string]: unknown } 结构兼容〔A1-P1-B18〕。消费面改文件头真实 import，
- * 调用面（2185/2221）逐字不变。 ── */
+ * 调用面（2185/2221）逐字不变。 〔A1-R186〕★本行（注块 @214-218）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @216，interface ToolIdentity@210-213（4 行、代码位读者 0）已销账、4 行等行墓碑在 @210 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /* ── tombstone〔A1-P1-B19〕：工具身份族余件 5 declare 删除——全闭改指 ../conversation/ToolCallClassification：
  * cg toolContentFamilyOf@styles 23193 / sg toolEditFamilyOf@styles 23187 / Bh parseToolRawPayload@styles 22682 /
  * Rh extractBeforeAfterEdit@styles 22666 逐字转录并入该 canonical（B18 区段切分段闭合，域吻合裁定）；
@@ -223,7 +223,7 @@ interface ToolIdentity {
  * （`a ? Dme(S,o) : S` 双支均 string，Dme@22573 恒返回 string），原 declare 面 string|null 为宽化，本面消费
  * 仅真值判（2195/2203），string 子型直接接通，无投射缝。ToolIdentity 型脚手架保留（B18 墓碑引用在案，
  * canonical 参缝 : any 结构兼容）。消费面改文件头真实 import，调用点（2187/2191/2193/2195/2201/2203/2223/
- * 2227/2229/2232）逐字不变。 ── */
+ * 2227/2229/2232）逐字不变。 〔A1-R186〕★本行（注块 @219-226）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @224，interface ToolIdentity@210-213（4 行、代码位读者 0）已销账、4 行等行墓碑在 @210 原位。命中谓词 P3 名 + 同行强留存动词；失效屏 S1 留存动词（同行含留存动词；其所指是否即本面须逐条目验）。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 
 /* ── tombstone〔A1-P1-B15〕：declare resolvePathAgainst（原 Jo）删除——束真身 Jo@1952 已逐字转录为
  * modules/MarkdownIntegration resolveWorkspaceRelativePath（Go/sae/qo/Ko 同连续段 1928–1957，落点随段判例

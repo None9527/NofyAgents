@@ -25,31 +25,31 @@ import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 〔A1-P1-B
 import { EMPTY_SCROLL_MASK, computeScrollMask, scrollMaskStyle } from './ToolScrollMask'; // 〔A1-P1-B12〕滚动遮罩域实体化收敛（styles 64639–64657 逐字）
 import { isPendingToolCallStatus, resolveToolCallStatusI18nId } from '../../modules/SrcSharedB'; // 〔A1-P1-B12〕原 $ne/Tee（MS/NS@src-HCld2afU.js 9141/9144）跨 chunk 定位取证 → src 域 canonical 真实 import
 
-/** 工具分类（原 og，js 23084 / jsx 19826；family 枚举按 Wht 分派归纳）——§0 declare 分配：唯一消费（§4）随迁 */
-type ToolFamily =
-  | "plan-guidance"
-  | "agent"
-  | "todo"
-  | "ask-user-question"
-  | "message"
-  | "task-control"
-  | "skill"
-  | "session-context"
-  | "file-read"
-  | "file-write"
-  | "explore"
-  | "switch-mode"
-  | "search"
-  | "shell"
-  | "goal"
-  | "node-repl"
-  | "automation"
-  | "fallback";
+/** 工具分类（原 og，js 23084 / jsx 19826；family 枚举按 Wht 分派归纳）——§0 declare 分配：唯一消费（§4）随迁 〔A1-R186〕★本注（块 @28-28、类别「死面之标签」）係下方被删面之**标签**：其主语 ToolFamily 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R186 裁定 part (i)／A1-R165 s8〕本注载束源登记形（原 X／js NNN／jsx NNN；束符 og／js）⇒ 其束源标注係出处记录、须逐字保留于原处：折入墓碑会把它变成转录，存活则它仍是原处之注。★本注之 referent 抽取只命中引用形之词（js）而非实体，故不采「仍有活体 referent」为理据——该词全树代码位命中 557 处係同形噪声〔A1-R185 判据之局限，误差方向偏存活〕。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。本节注（块 @28-28）所辖之节（自块尾至 @53）今**失全部代码**：节内 19 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/conversation/ToolCallBlock.tsx：1 面／19 行，本批该文件共 1 碑）：本地 type ToolFamily@29-47（19 行）纯删，19 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    type ToolFamily：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：ToolFamily 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@28／@52 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 19 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 19 行置换原 19 行，文件行数 790 不变、零重锚（本文件 ToolCallBlock 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 11 条（原始发射 11）；带行号之记录 11 条，其中落在首个编辑点 @29 及其后者 9 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone〔A1-P1-B18〕：classifyToolCall declare（原 og，此面 { toolName?; kind? } → { family: ToolFamily }）删除——
  * 逐字实体化 → ./ToolCallClassification（styles og@23132–23186；roundtrip EXACT，/tmp/a1r0-p1-b18/）。
  * canonical 返回面 = og 全形 { toolName, family, source, isLegacy }：family: string 对本面
  * { family: ToolFamily } 的消费点（388/405/407 switch/645 等值比较）结构兼容〔A1-P1-B18〕。
- * 消费面改文件头真实 import，调用面逐字不变。 ── */
+ * 消费面改文件头真实 import，调用面逐字不变。 〔A1-R186〕★本行（注块 @48-52）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @48／@51，type ToolFamily@29-47（19 行、代码位读者 0）已销账、19 行等行墓碑在 @29 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）＋S6 名 + 同行注册形。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 
 /* ============================================================================
  * 4. ToolBlock 子族（工具折叠块；spec §6「工具行：▶ ✓ 名称: 摘要」）

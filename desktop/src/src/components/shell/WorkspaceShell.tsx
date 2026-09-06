@@ -253,7 +253,7 @@ import { bumpUnreadNotificationVersion as flushUnreadPersistence } from '../../s
 /* ── tombstone〔A1-P2-B10〕：useIntlContext declare（原 G，IntlProvider-C321H7m8.js 导入别名）删除 → 文件头真实导入
  *    （useZCodeIntl as useIntlContext，../../modules/I18n；canonical ≡ D@9248–9252，I18n 叶头 §105 G()≡useZCodeIntl 同注册）。
  *    型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）；locale: SupportedLocale ⊂ string；
- *    setLocale(LocalePreference) 消费面 = registerTestActions 索引签名槽（@5813）。同形改指先例：SkillsSettingsSection@18。〔A1-R177 勘误一处〕★本碑 @255「型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）」之**比较基准**已随本批面收敛消失——本地 3 行界面（原 @250-252）已销账、改采 @232 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 5 处读者之名逐字不变；「逐字同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行）→ **零型缝结论不变，且由「同形」升为「同一」**（同式先例 AppRootLeaves@157〔A1-R173〕）。本碑其余行文逐字保留。 ── */
+ *    setLocale(LocalePreference) 消费面 = registerTestActions 索引签名槽（@5813）。同形改指先例：SkillsSettingsSection@18。〔A1-R177 勘误一处〕★本碑 @255「型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）」之**比较基准**已随本批面收敛消失——本地 3 行界面（原 @250-252）已销账、改采 @232 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 5 处读者之名逐字不变；「逐字同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行）→ **零型缝结论不变，且由「同形」升为「同一」**（同式先例 AppRootLeaves@157〔A1-R173〕）。本碑其余行文逐字保留。 〔A1-R186〕★本行（注块 @253-256）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @256，components/shell/Sidebar.tsx type LocalePreference@257-257（1 行、代码位读者 0）已销账、1 行等行墓碑在 @257 原位。命中谓词 P2 名 + 同行出现属主 basename＋P3 名 + 同行强留存动词；失效屏 S1 留存动词（同行含留存动词；其所指是否即本面须逐条目验）＋S3 属主 basename（同行出现失去此面之属主 basename）＋S4 行号引证（同行带一个落在被删区间内之数字）＋S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（LocalePreference 余 4 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -527,7 +527,7 @@ interface VisibleTask {
  *    declare readLocalPreferenceForDraft（原 B）→ readLastAgentModelOnly（styles 375 `D as B`；taskStore@1688）。删碑：B 185624（jJt 裁决首读）。
  *    declare isModelRuntimeRestarting 删除（死件零消费；与 t7 ≡ isRestartingRuntime 本文件实函数同铸两脸，bundle 185881）。
  *    型缝〔A1-P2-B1〕W4：canonical getWorkspaceTaskStateAlias 参数 TaskStoreState 收 TaskStore（ze 交叉型含
- *    TaskStoreState + 索引签名，taskStore@335/2942），useTaskStore 回调 state 直传兼容。 ── */
+ *    TaskStoreState + 索引签名，taskStore@335/2942），useTaskStore 回调 state 直传兼容。 〔A1-R186〕★本行（注块 @514-530）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @529／@530，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /** 原 W6e（src chunk 78014，owner PD 批）：草稿态投影（provider + supplierKey）。
  *  〔A1-P2-B1〕参数型由本地归纳形改铸 canonical WorkspaceTaskState（调用面 3943/4162 所传即真 store 工作区态）。 */
 declare function deriveDraftStateSlice(state: WorkspaceTaskState): { provider: string; supplierKey: string | null };
@@ -1055,13 +1055,13 @@ function writePerTaskUiState(e: string | null, t: Partial<PerTaskUiState>): void
  *    同一性实证：bundle 187047 rge({...}) 调用形与本文件 5601 调用点九键逐字同
  *    （navBack/navForward `cond ? () => ... : null` 逐字传 null；canonical 侧宽化收 null 注记在案）。 ── */
 
-/* --- QuickPick 命令表（原 O_e，js 25395） --- */
+/* --- QuickPick 命令表（原 O_e，js 25395） 〔A1-R186〕★本节注（块 @1058-1058）所辖之节（自块尾至 @1065）今**失全部代码**：节内 5 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。 --- */
 
-interface QuickPickCommand {
-  id: string;
-  section: string;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/shell/WorkspaceShell.tsx：2 面／6 行，本批该文件共 2 碑）：本地 interface QuickPickCommand@1060-1064（5 行）纯删，5 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface QuickPickCommand：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：QuickPickCommand 施前全树 3 家、本批销 1 家 ⇒ 施后余 2 家（带 export 者 2 处（components/quickpick/QuickPick.tsx@501／components/shell/SidePanel.tsx@4490））。
+ *    邻接注记裁定（±4 行窗口）：@256／@530／@1058 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 6041 不变、零重锚（本文件 WorkspaceShell 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 48 条（原始发射 59）；带行号之记录 59 条，其中落在首个编辑点 @1060 及其后者 4 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /* --- 上一任务 / 下一任务（原 zMe/BMe，js 39254/39268；A1-R24 行漂校正，旧注 39206/39220 为漂移） --- */
 
@@ -1120,7 +1120,7 @@ declare function setProviderRegistryRevision(revision: number): void;
 
 /* --- 图标（原 Sa 工厂；此处按语义命名） --- */
 
-type IconProps = React.SVGProps<SVGSVGElement>;
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type IconProps（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：IconProps 施前全树 9 家、本批销 5 家 ⇒ 施后余 4 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@275／components/shell/SidePanel.tsx@488／components/shell/Sidebar.tsx@1054）。净零行：本碑 1 行置换原 1 行，文件行数 6041 不变、零重锚（WorkspaceShell 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 48 条（原始发射 59）；带行号之记录 59 条，其中落在首个编辑点 @1060 及其后者 4 条 ⇒ **强制净零行**）。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconGripHorizontal = createLucideIcon("grip-horizontal", []); // 原 Rye（js 27228）
 const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27363）

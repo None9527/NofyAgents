@@ -214,7 +214,7 @@ import { CSS } from '@dnd-kit/utilities'; // 〔A1-R129o〕原 BX——dndTransf
 import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, expandedWorkspaceKeySet, incrementVisibleLimit, pruneVisibleLimits, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves'; // 〔A1-R129i〕+expandedWorkspaceKeySet/incrementVisibleLimit/pruneVisibleLimits（原 PFt/IFt/LFt，SidebarLeaves 实体化；墓碑见 §23 区）
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
-import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面）
+import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面） // 〔A1-R186〕★本行（注块 @217-217）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @217，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）＋S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, buildTaskFeedbackDescription, type TaskActionMenuItemsProps } from '../../modules/TopBar'; // 〔A1-R125〕+buildTaskFeedbackDescription（原 w6 改指，TopBar 逐字实体）
 import { WebRemoteControlDialog, useWebRemoteControlEnabled, useWebRemoteControlStatus, useWebRemoteControlStatus as useWebRemoteControlStatusPolling } from '../../modules/WebRemote'; // 〔A1-R129l〕原 G6 双 declare 改指同一实体（同钩子异面；碑文见原声明位）
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useServicesOptional as ps, useWorkspaceServices } from '../../modules/services'; // 〔A1-P2-B10〕ps≡useServicesOptional（原 ps 2680，useContext(us) 裸读）——ERt 真身闭包依赖
@@ -251,10 +251,10 @@ import { hasMaxLevelEntitlement as isPlanExpiring } from '../conversation/Conver
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
 /* ── tombstone〔A1-R177〕面收敛（G2）：本地 interface IntlShape（3 行形）删除 → 改采上方 @207 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
  *    〔别名保名〕故本文件 4 处读者（@408／@421／@1521／@1888）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行不含尾换行；@202-203 两行连接 md5 2cb4861491cdcefdae220014abf73547）→ **型缝 0**。
- *    读者形制：@408／@421 参面、@1521／@1888 属性面 → 名与位置逐字不变。★上方 @251 单行文档注係束源注 → 逐字保留（先例 AutomationsMainView@68 同款标签）。★下方 @255-256 之 A1-R121 碑其 @256「本地 IntlShape/LocalePreference 型别保留」一句係**拆分感知**勘误对象——IntlShape 一半随本批反转、LocalePreference 一半仍真（@257 逐字保留、本批不触），见该处；@258-260 之 A1-P2-B7 注与 export type ThemeId 皆逐字保留。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 ── */
+ *    读者形制：@408／@421 参面、@1521／@1888 属性面 → 名与位置逐字不变。★上方 @251 单行文档注係束源注 → 逐字保留（先例 AutomationsMainView@68 同款标签）。★下方 @255-256 之 A1-R121 碑其 @256「本地 IntlShape/LocalePreference 型别保留」一句係**拆分感知**勘误对象——IntlShape 一半随本批反转、LocalePreference 一半仍真（@257 逐字保留、本批不触），见该处；@258-260 之 A1-P2-B7 注与 export type ThemeId 皆逐字保留。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` 9→3、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 32→38。 〔A1-R186〕★本行（注块 @252-254）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @254，type LocalePreference@257-257（1 行、代码位读者 0）已销账、1 行等行墓碑在 @257 原位。命中谓词 P3 名 + 同行强留存动词；失效屏 S1 留存动词（同行含留存动词；其所指是否即本面须逐条目验）＋S4 行号引证（同行带一个落在被删区间内之数字）。★须自载本骑手之界限：该名施后全树仍余同名家（LocalePreference 余 4 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /* ── tombstone〔A1-R121〕：declare useIntlContext（原 G）删除 → 改指 modules/I18n::useZCodeIntl（import 别名在案）。
- *    本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）。〔A1-R177 勘误一处·拆分感知〕★本行旧注「本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）」今**只半真**：①「IntlShape」一半已反转——本地 3 行界面（原 @252-254）本批销账、改采 @207 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 4 处读者（@408／@421／@1521／@1888）之名逐字不变，R121「活体签名引用在案」之**结论仍真**、唯其**载体已由本地界面易为别名**；②「LocalePreference」一半**仍真且本批不触**（@257 逐字保留）。旧文逐字保留为前缀。 ── */
-type LocalePreference = "system" | "zh-CN" | "en-US";
+ *    本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）。〔A1-R177 勘误一处·拆分感知〕★本行旧注「本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）」今**只半真**：①「IntlShape」一半已反转——本地 3 行界面（原 @252-254）本批销账、改采 @207 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，故 4 处读者（@408／@421／@1521／@1888）之名逐字不变，R121「活体签名引用在案」之**结论仍真**、唯其**载体已由本地界面易为别名**；②「LocalePreference」一半**仍真且本批不触**（@257 逐字保留）。旧文逐字保留为前缀。 〔A1-R186〕★本行（注块 @255-256）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @256，type LocalePreference@257-257（1 行、代码位读者 0）已销账、1 行等行墓碑在 @257 原位。命中谓词 P3 名 + 同行强留存动词；失效屏 S1 留存动词（同行含留存动词；其所指是否即本面须逐条目验）＋S2 同名家数（同行含家数陈述形）＋S4 行号引证（同行带一个落在被删区间内之数字）＋S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（LocalePreference 余 4 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type LocalePreference（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：LocalePreference 施前全树 5 家、本批销 1 家 ⇒ 施后余 4 家（带 export 者 2 处（modules/I18n.tsx@179／modules/intlProvider.tsx@60））。净零行：本碑 1 行置换原 1 行，文件行数 5537 不变、零重锚（Sidebar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 96 条（原始发射 121）；带行号之记录 119 条，其中落在首个编辑点 @257 及其后者 44 条 ⇒ **强制净零行**）。 ── */
 /* 〔A1-P2-B7〕export：WS 消费面 theme 参数改指本型（束真 = settings store ThemeMode，
  * modules/Settings @335 逐字同族）；与 WorkspaceShell 双面收敛（theme 族）。 */
 export type ThemeId = "light" | "dark" | "zai-light" | "zai-dark" | "system";
@@ -378,8 +378,8 @@ type TaskViewMode = "archived" | "timeline" | "home" | "workspace";
 type TaskRowVariant = "default" | "timeline";
 /** 任务行状态指示（原 QS 产物） */
 type TaskIndicator = "error" | "unread" | "loading" | "none";
-/** 待关注摘要（原 No 产物） */
-type TaskAttention = { kind: "userInput" | "permission"; count: number } | null;
+/** 待关注摘要（原 No 产物） 〔A1-R186〕★本注（块 @381-381、类别「死面之标签」）係下方被删面之**标签**：其主语 TaskAttention 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：No（束符，「原 X」之后者；命中 344 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X；束符 No）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type TaskAttention（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：TaskAttention 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 5537 不变、零重锚（Sidebar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 96 条（原始发射 121）；带行号之记录 119 条，其中落在首个编辑点 @257 及其后者 44 条 ⇒ **强制净零行**）。 ── */
 
 /* ============================================================================
  * 2. 横切任务助手（原 Io/Lo/Fo/Mo/No/Po/QS/$S/vg/Vhe/Go/pi/Yr，jsx 369–411/986/20317/33105）
@@ -1100,8 +1100,8 @@ const TESTID_SIDEBAR_UPGRADE_BUTTON = "sidebar-coding-plan-upgrade-button"; // p
  *    （144478 簇，同批普查留批注在案）与 QuickPick（35831 簇，canonical 属主）。
  *    本地 SearchResultsState 脚手架型随删（零余引用）。 ── */
 /** 原 A2（jsx 104365）：会话路由 store（sessionIndex 用于「可在分屏打开」判定） */
-/** 原 yC：反馈 store（TopBar.tsx 已登记） */
-interface FeedbackDraft { title: string; type: string; module: string; severity: string; includeLogs: boolean; description: string; screenshots: Blob[] }
+/** 原 yC：反馈 store（TopBar.tsx 已登记） 〔A1-R186〕★本注（块 @1103-1103、类别「死面之标签」）係下方被删面之**标签**：其主语 FeedbackDraft 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R186 裁定 part (i)／A1-R165 s8〕本注载束源登记形（原 X；束符 yC）⇒ 其束源标注係出处记录、须逐字保留于原处：折入墓碑会把它变成转录，存活则它仍是原处之注。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 interface FeedbackDraft（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：FeedbackDraft 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 5537 不变、零重锚（Sidebar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 96 条（原始发射 121）；带行号之记录 119 条，其中落在首个编辑点 @257 及其后者 44 条 ⇒ **强制净零行**）。 ── */
 /** 原 ls：轨迹查看 store（TopBar.tsx 已登记） */
 /* ── tombstone（A1-R3）：useSessionOpenability declare（原 LTt 消费面）已删除——
  *    FTt/ITt/LTt 逐字重建于 modules/SplitLayoutUiDeep.tsx，改经文件头
@@ -3519,10 +3519,10 @@ interface HomeConversationEntry {
   lastActivityAt: number;
   [key: string]: unknown;
 }
-interface HomeSessionIndexStore {
-  subscribe(listener: () => void): () => void;
-  getSessions(): HomeConversationEntry[];
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/shell/Sidebar.tsx：5 面／20 行，本批该文件共 5 碑）：本地 interface HomeSessionIndexStore@3522-3525（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface HomeSessionIndexStore：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：HomeSessionIndexStore 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@217／@254／@256／@381／@1103／@5450 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 5537 不变、零重锚（本文件 Sidebar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 96 条（原始发射 121）；带行号之记录 119 条，其中落在首个编辑点 @257 及其后者 44 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 interface HomeSessionIndexScope {
   workspaceKey: string;
   workspacePath: string;
@@ -5447,20 +5447,20 @@ export function TaskListLoadingRow() {
 /** 原 uzt（153205 / 126650）★：分组任务视图数据层 hook——
  *  拉取 listGroupedTaskViewStructure + 任务索引，合成乐观视图（草稿提升覆盖层），
  *  并提供 创建组/重命名组/改色/解散组/应用顺序 等持久化操作（失败回滚本地视图）。
- *  依赖跨块助手（izt/QRt/qRt/szt/rzt/lzt/j8/Cx/ZRt/J3/JS/dx/OFt 等），此处按接口级声明。 */
-interface GroupedTaskViewController {
-  view: GroupedView;
-  setView: (view: GroupedView | ((current: GroupedView) => GroupedView)) => void;
-  loading: boolean;
-  initialized: boolean;
-  saving: boolean;
-  refresh: () => Promise<void>;
-  createGroup: () => Promise<TaskGroup>;
-  renameGroup: (groupId: string, title: string) => Promise<void>;
-  updateGroupColor: (groupId: string, color: GroupColor) => Promise<void>;
-  ungroupGroup: (groupId: string) => Promise<void>;
-  applyOrder: (view: GroupedView) => Promise<void>;
-}
+ *  依赖跨块助手（izt/QRt/qRt/szt/rzt/lzt/j8/Cx/ZRt/J3/JS/dx/OFt 等），此处按接口级声明。 〔A1-R186〕★本注（块 @5447-5450、类别「死面之标签」）係下方被删面之**标签**：其主语 GroupedTaskViewController 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R186 裁定 part (i)／A1-R165 s8〕本注载束源登记形（原 X；束符 uzt）⇒ 其束源标注係出处记录、须逐字保留于原处：折入墓碑会把它变成转录，存活则它仍是原处之注。★本注之 referent 抽取只命中引用形之词（hook）而非实体，故不采「仍有活体 referent」为理据——该词全树代码位命中 199 处係同形噪声〔A1-R185 判据之局限，误差方向偏存活〕。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/shell/Sidebar.tsx：5 面／20 行，本批该文件共 5 碑）：本地 interface GroupedTaskViewController@5451-5463（13 行）纯删，13 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface GroupedTaskViewController：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：GroupedTaskViewController 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical components/shell/SidebarLeaves.tsx@1745（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@217／@254／@256／@381／@1103／@5450 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 13 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 13 行置换原 13 行，文件行数 5537 不变、零重锚（本文件 Sidebar 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 96 条（原始发射 121）；带行号之记录 119 条，其中落在首个编辑点 @257 及其后者 44 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /* ============================================================================
  * 尾符号表（混淆名 → 语义名 → js 行 / jsx 行；★=接口级未逐行展开）

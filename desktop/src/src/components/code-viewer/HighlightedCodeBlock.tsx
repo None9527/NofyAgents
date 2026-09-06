@@ -135,11 +135,11 @@ export interface StreamdownOptions {
 
 /** 原 Xb：全局选项上下文（默认 shikiTheme=Jb、controls、lineNumbers=true、mode=streaming） */
 
-/** 原 ty：代码高亮器上下文（默认 null；顶层 Streamdown 组件注入 {code, mermaid}） */
-interface CodeHighlighterContextValue {
-  code?: CodeHighlighter | null;
-  mermaid?: unknown;
-}
+/** 原 ty：代码高亮器上下文（默认 null；顶层 Streamdown 组件注入 {code, mermaid}） 〔A1-R186〕★本注（块 @138-138、类别「死面之标签」）係下方被删面之**标签**：其主语 CodeHighlighterContextValue 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：ty（束符，「原 X」之后者；命中 3 处，★短 token）／Streamdown（注内符号；命中 7 处）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X；束符 ty）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/code-viewer/HighlightedCodeBlock.tsx：1 面／4 行，本批该文件共 1 碑）：本地 interface CodeHighlighterContextValue@139-142（4 行）纯删，4 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface CodeHighlighterContextValue：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：CodeHighlighterContextValue 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@138 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 4 行置换原 4 行，文件行数 489 不变、零重锚（本文件 HighlightedCodeBlock 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /** 原 ry（js 28252）：取高亮器实例 */
 function useCodeHighlighter(): CodeHighlighter | null {

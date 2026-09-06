@@ -207,8 +207,8 @@ declare function usePlatformService(): PlatformServiceLike;
 
 
 
-/* ---- 图标（lucide vendored 块；名字逐字取自 Sa(`name`) 工厂） ---- */
-interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }
+/* ---- 图标（lucide vendored 块；名字逐字取自 Sa(`name`) 工厂） -〔A1-R186〕★本注（块 @210-210、类别「死面之标签」）係下方被删面之**标签**：其主语 IconProps 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：Sa（注内符号；命中 9 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 --- */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 interface IconProps（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：IconProps 施前全树 9 家、本批销 5 家 ⇒ 施后余 4 家（皆未导出，活体 components/automations/AutomationsMainView.tsx@275／components/shell/SidePanel.tsx@488／components/shell/Sidebar.tsx@1054）。净零行：本碑 1 行置换原 1 行，文件行数 2120 不变、零重锚（WebRemote 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 16 条（原始发射 22）；带行号之记录 16 条，其中落在首个编辑点 @211 及其后者 8 条 ⇒ **强制净零行**）。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconLoader = createLucideIcon("loader", []);                 // 原 fv（27363）
 const IconCircleCheck = createLucideIcon("circle-check", []);      // 原 I_（26869）

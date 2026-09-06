@@ -148,7 +148,7 @@ import { armMembershipRefreshHold, releaseMembershipRefreshHold, readMembershipR
 import { pickScopePathIdentity, readListSafe, readListAvailability, collectUnreadAtOverlays, collectTerminalStatusOverlays, collectTitleOverrides, collectCronAutomationIds, dedupeTaskIndexItemsByEntityKey, readTaskIndexShard, serviceIndexOf, readTaskIndexCache, clearTaskIndexCache, mergeTaskIndexEndpoints } from '../shell/TaskIndexCore'; // 〔A1-P3-B4〕§4/§5 孪生余量改指逐字 canonical 之再导出源（本叶无本地调用面，仅供别名再导出；环安全同 B3 §3）
 import { scopeSubscriptionLabel, sameScopeSubscriptionEntry, sessionScopeWorkspaceKey, sessionStoreKey, storeKeyOfRegistrySession, resolveSessionScope, sessionSubscriptionKey, isSessionStoreHydrating } from '../shell/SessionStoreCore'; // 〔A1-P3-B4〕§8 键助手簇 + WS 改指逐字 canonical（styles 35443–35454/35526–35551）。环安全：SessionStoreCore→modules/services→sessionIndex→modules/QuickPickDeep→本叶既有环同构，顶层全函数/再导出，ESM 提升安全
 import { resolveTabRemoteSessionId, tabHasRemoteBacking, resolveTabServicesBinding } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P3-B4〕原 gc/_c/vc declare 改指 canonical（styles 4814/4822/4825，WTBD 头注 §[C]/[D] 双归属裁决在案）。环安全：WTBD 值闭包（zustand/e2eStoreBridge/uuid/SkillStore/sessionRegistryStore/remoteServices→stores-core 族）不达 components/quickpick（实测），无新环
-import type { BaseServices, SessionRegistryState } from '../../stores/sessionRegistryStore'; // 〔A1-P3-B4〕型别导入（零 emit）：gc/vc/_c 改指后 buildShardPlan 参数形 // 〔A1-P3-B3〕§3 持有臂归一：原 mx/hx/_Oe/vOe/yOe/bOe 语义实体改指逐字 canonical（styles 32411–32438，A1-P3-B2 转录）；环安全见 §3 墓碑注
+import type { BaseServices, SessionRegistryState } from '../../stores/sessionRegistryStore'; // 〔A1-P3-B4〕型别导入（零 emit）：gc/vc/_c 改指后 buildShardPlan 参数形 // 〔A1-P3-B3〕§3 持有臂归一：原 mx/hx/_Oe/vOe/yOe/bOe 语义实体改指逐字 canonical（styles 32411–32438，A1-P3-B2 转录）；环安全见 §3 墓碑注 // 〔A1-R186〕★本行（注块 @151-151）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @151，components/quickpick/QuickPick.tsx interface SessionRegistryState@289-295（7 行、代码位读者 0）已销账、7 行等行墓碑在 @289 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（SessionRegistryState 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 
 /* ============================================================================
  * 0. 外部依赖类型声明
@@ -196,20 +196,20 @@ interface WorkspaceScope {
   workspaceIdentity?: string | null;
 }
 interface TaskIndexRow extends TaskMeta {}
-interface TaskIndexShard {
-  taskIndexItems: TaskIndexRow[];
-  pinnedIds: Set<string>;
-  archivedIds: Set<string>;
-  deletedIds: Set<string>;
-  unreadAtByTaskId: Map<string, number>;
-  terminalStatusByTaskId: Map<string, string>;
-  titleOverrideByTaskId: Map<string, string>;
-  cronAutomationIdByTaskId: Map<string, string>;
-}
-interface TaskIndexEndpoint {
-  service: WorkspaceAgentService;
-  scopes: WorkspaceScope[];
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/quickpick/QuickPickDeep.tsx：4 面／37 行，本批该文件共 2 碑）：本地 interface TaskIndexShard@199-208（10 行）、interface TaskIndexEndpoint@209-212（4 行）纯删，14 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface TaskIndexShard：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface TaskIndexEndpoint：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：TaskIndexEndpoint 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：TaskIndexShard 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@151／@249 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 14 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 14 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 14 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 14 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 14 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 14 行置换原 14 行，文件行数 1676 不变、零重锚（本文件 QuickPickDeep 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 42 条（原始发射 54）；带行号之记录 49 条，其中落在首个编辑点 @199 及其后者 13 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 interface WorkspaceAgentService {
   listTasks(scope: WorkspaceScope): Promise<TaskIndexRow[]>;
   listArchivedTasks(scope: WorkspaceScope): Promise<TaskIndexRow[]>;
@@ -221,32 +221,32 @@ interface WorkspaceAgentService {
   ) => { dispose(): void };
   [key: string]: unknown;
 }
-interface WorkspaceStateLike {
-  activeTaskId: string | null;
-  taskListVersion?: number;
-}
-interface TaskStoreApi {
-  getState(): {
-    getWorkspaceState(workspacePath: string, workspaceIdentity?: string | null): WorkspaceStateLike;
-    setTaskUnreadIndicator(
-      workspacePath: string,
-      taskId: string,
-      unread: boolean,
-      workspaceIdentity?: string | null,
-    ): void;
-    setTaskRuntimeState(
-      workspacePath: string,
-      taskId: string,
-      status: string,
-      error?: string,
-      workspaceIdentity?: string | null,
-      provider?: string,
-    ): void;
-  };
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/quickpick/QuickPickDeep.tsx：4 面／37 行，本批该文件共 2 碑）：本地 interface WorkspaceStateLike@224-227（4 行）、interface TaskStoreApi@228-246（19 行）纯删，23 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface WorkspaceStateLike：单轮代码位读者 1 处（@230，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；未 export ⇒ 跨文件读者结构性不可能。
+ *    interface TaskStoreApi：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：TaskStoreApi 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    同名定义站：WorkspaceStateLike 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@151／@249 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 23 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 23 行置换原 23 行，文件行数 1676 不变、零重锚（本文件 QuickPickDeep 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 42 条（原始发射 54）；带行号之记录 49 条，其中落在首个编辑点 @199 及其后者 13 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone（A1-P3-B10）：declare readTaskUnreadIndicator（原 ie，styles 383 `L as ie` ← skillStore 2494 `ge as L`）删除，
  *    改经文件头 SkillStore import `isTaskUnread as readTaskUnreadIndicator` 消费（canonical = stores/taskStore::isTaskUnread，jsx 246 逐字、A0-S4-3 实体迁；
- *    调用点 682 不变；实参 workspaceState 实型 = WorkspaceTaskState（taskStore getWorkspaceState 2946 返回型），与 canonical 首参同型，WorkspaceStateLike 窄型仅余 TaskStoreApi 死型面）。 ── */
+ *    调用点 682 不变；实参 workspaceState 实型 = WorkspaceTaskState（taskStore getWorkspaceState 2946 返回型），与 canonical 首参同型，WorkspaceStateLike 窄型仅余 TaskStoreApi 死型面）。 〔A1-R186〕★本行（注块 @247-249）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @249，interface TaskStoreApi@228-246（19 行、代码位读者 0）已销账、19 行等行墓碑在 @228 原位；interface WorkspaceStateLike@224-227（4 行、单轮读者 1 处级联后归 0）已销账、4 行等行墓碑在 @224 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 
 /* A0-D-Misc：原 SearchResultsStoreApi declare 删除——Vo 已改真实 import
  * （QuickPick.useSearchResultsStore，getState() 面逐方法核验兼容）。 */

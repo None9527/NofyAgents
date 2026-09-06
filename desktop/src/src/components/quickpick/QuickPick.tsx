@@ -135,7 +135,7 @@ import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as I
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
 import { toast } from '../../modules/ImeComposition';
-import { pathBasename, resolveFileDisplayInfo as resolveFileInfo, fileIconFallbackSrc as resolveIconFallback } from '../../modules/ModalsLeaves'; // 〔A1-R129h〕+resolveFileDisplayInfo as resolveFileInfo（原 zc@5150，FilePathInline@96 逐字；FileDisplayInfo 面 ≡ 旧本地 FileInfo 五字段全同）+ fileIconFallbackSrc as resolveIconFallback（原 Lc@5175，FilePathInline@59 逐字；FileIconBlocks::resolveIconErrorFallback 为同体并行副本——孪生观察留批不并）。墓碑见 @305/@471 区
+import { pathBasename, resolveFileDisplayInfo as resolveFileInfo, fileIconFallbackSrc as resolveIconFallback } from '../../modules/ModalsLeaves'; // 〔A1-R129h〕+resolveFileDisplayInfo as resolveFileInfo（原 zc@5150，FilePathInline@96 逐字；FileDisplayInfo 面 ≡ 旧本地 FileInfo 五字段全同）+ fileIconFallbackSrc as resolveIconFallback（原 Lc@5175，FilePathInline@59 逐字；FileIconBlocks::resolveIconErrorFallback 为同体并行副本——孪生观察留批不并）。墓碑见 @305/@471 区 // 〔A1-R186〕★本行（注块 @138-138）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @138，components/shell/SidePanel.tsx interface FileDisplayInfo@475-481（7 行、代码位读者 0）已销账、7 行等行墓碑在 @475 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（FileDisplayInfo 余 1 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 import { create as createZustandStore, getWorkspaceTaskStateAlias as getWorkspaceState, logger, mergeTaskMeta as mergeTaskMetaBase, resolveWorkspaceKey as workspaceKey, useTaskStore } from '../../modules/SkillStore'; // 〔A1-R129h〕+create as createZustandStore（原 Ae：vendored zustand v5 create，stores/zustand@88 逐字；CodeViewer@99 同判例；墓碑见 @278 区） // getWorkspaceState（原 fe，skillStore 的 U 导出 = 内部 _e；B5-11 规范名 getWorkspaceTaskStateAlias）；workspaceKey（原 Io/Lo，js 1368/1371）
 import { sessionActivityOf, taskEntityKey, compareTasks as compareTasksForList } from '../../modules/StoresDeep';
 import { resolveRepoRelativePath as relativePathFrom } from '../../modules/GitReview'; // 〔A1-R129h〕原 yg@23765 declare 改指 canonical = components/code-viewer/GitReview@718 resolveRepoRelativePath（「原 yg」逐字转录在案；shim@226 再导出；FileRewindDialogDeep@157 同判例）。环安全：本→modules/GitReview→GitReview@220 反入 modules/QuickPick 成环——双侧跨边消费全为运行期（GitReview Command 族在 render 体、本符在组件体 @2248/2291），ESM 提升安全（QuickPickDeep@147-149 先例） // +compareTasksForList（A1-R10 2e：原 Fo（1365）declare 改指 canonical = helpers compareTasks（= Lie(…, Fie) 逐字）；1588 调用点逐字不变）
@@ -280,19 +280,19 @@ interface WorkspaceTab {
  *    ZustandStore 型死删（唯此 declare 用，零余引用实证）；消费点 1269 useSearchResultsStore
  *    创建式逐字不变，型别升为真身 BoundStoreHook（CodeViewer@99 同判例）。 ── */
 
-/** useTaskStore（skillStore chunk 的 h 导出）——A0-D-Misc：TaskStoreState/getWorkspaceState 已接线 SkillStore（getWorkspaceTaskStateAlias），本地形状声明移除 */
+/** useTaskStore（skillStore chunk 的 h 导出）——A0-D-Misc：TaskStoreState/getWorkspaceState 已接线 SkillStore（getWorkspaceTaskStateAlias），本地形状声明移除 〔A1-R186〕★本行（注块 @283-283）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @283，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
 
 /** mergeTaskMeta（原 pe，skillStore 的 W 导出 = 内部 de）；A0-D-Misc 类型收敛：本地 TaskMeta 的 unreadAt/changeSummary 更宽，按本地签名投射 */
 const mergeTaskMeta = mergeTaskMetaBase as unknown as (base: TaskMeta, incoming: TaskMeta) => TaskMeta;
 
-/** SessionRegistryStore（原 Zs，js 4309） */
-interface SessionRegistryState {
-  baseServices: TaskListShardServices | null;
-  sessionsById: Record<string, unknown>;
-  sessionIdByWorkspaceIdentity: Record<string, string>;
-  sessionIdByWorkspacePath: Record<string, string>;
-  [key: string]: unknown;
-}
+/** SessionRegistryStore（原 Zs，js 4309） 〔A1-R186〕★本注（块 @288-288、类别「死面之标签」）係下方被删面之**标签**：其主语 SessionRegistryState 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：Zs（束符，「原 X」之后者；命中 4 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X／js NNN；束符 Zs／js）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/quickpick/QuickPick.tsx：2 面／12 行，本批该文件共 2 碑）：本地 interface SessionRegistryState@289-295（7 行）纯删，7 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface SessionRegistryState：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。
+ *    同名定义站：SessionRegistryState 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical stores/sessionRegistryStore.ts@161（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@138／@283／@288／@2026 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 7 行置换原 7 行，文件行数 2978 不变、零重锚（本文件 QuickPick 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 42 条（原始发射 53）；带行号之记录 50 条，其中落在首个编辑点 @289 及其后者 13 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /* ------------------------------ UI 原语声明 ------------------------------ */
 
@@ -1593,11 +1593,11 @@ export function mergeTaskListShards(args: {
 /* ── tombstone（A1-R10 2e）：declare function compareTasksForList（原 Fo，js 1365）删除，
  *    改经文件头 StoresDeep import 消费（canonical = helpers compareTasks 逐字）。 ── */
 
-interface TaskListShard {
-  shardKey: string;
-  services: TaskListShardServices;
-  workspaceScopes: WorkspaceScope[];
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/quickpick/QuickPick.tsx：2 面／12 行，本批该文件共 2 碑）：本地 interface TaskListShard@1596-1600（5 行）纯删，5 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface TaskListShard：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：TaskListShard 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@138／@283／@288／@2026 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 2978 不变、零重锚（本文件 QuickPick 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 42 条（原始发射 53）；带行号之记录 50 条，其中落在首个编辑点 @289 及其后者 13 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 export interface UseGlobalTaskListArgs {
   kind: TaskListKind;
@@ -2023,7 +2023,7 @@ const QUICK_PICK_DIALOG_CLASS = cn(
 ); // 原 Eje
 const QUICK_PICK_LIST_CLASS = cn(COMMAND_LIST_BASE_CLASS, "max-h-[min(440px,calc(100dvh-15rem))]"); // 原 Dje
 
-const EMPTY_COMMANDS: QuickPickCommand[] = []; // 原 Cje
+const EMPTY_COMMANDS: QuickPickCommand[] = []; // 原 Cje // 〔A1-R186〕★本行（注块 @2026-2026）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @2026，components/shell/WorkspaceShell.tsx interface QuickPickCommand@1060-1064（5 行、代码位读者 0）已销账、5 行等行墓碑在 @1060 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（QuickPickCommand 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 const EMPTY_TABS: WorkspaceTab[] = []; // 原 wje
 
 export interface QuickPickProps {

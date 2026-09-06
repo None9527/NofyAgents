@@ -183,7 +183,7 @@ declare function refreshAfterHookChange(opts: {
  *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
  *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
  *    同名定义站TaskStoreState 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（皆未导出，活体 components/shell/SidebarLeaves.tsx@216／modules/Composer.tsx@578／stores/taskStore.ts@347）。
- *    净零行：本碑 8 行置换原 8 行，文件行数 1047 不变、零重锚。 ── */
+ *    净零行：本碑 8 行置换原 8 行，文件行数 1047 不变、零重锚。 〔A1-R186〕★本行（注块 @179-186）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @179／@180／@181／@182／@183／@184／@185，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）＋P2 名 + 同行出现属主 basename＋P3 名 + 同行强留存动词＋P4 属主 basename + 同行数字落在该属主某被删区间内；失效屏 S1 留存动词（同行含留存动词；其所指是否即本面须逐条目验）＋S2 同名家数（同行含家数陈述形）＋S3 属主 basename（同行出现失去此面之属主 basename）＋S4 行号引证（同行带一个落在被删区间内之数字）。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。 ── */
 /* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）/isWorkspaceTab（原 oc js 4487）declare
  *    一并删除：本文件无调用点（死声明）；本地宽松 WorkspaceTabsStoreState 随删。
  *    真实实现见 ../../modules/WorkspaceTabsDeep（useWorkspaceTabStore/isWorkspaceKindTab）。 ── */

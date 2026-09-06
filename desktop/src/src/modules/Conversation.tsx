@@ -378,7 +378,7 @@ interface AttachmentRef {
  *    type import 消费；parentToolUseId 等扩展字段经索引签名访问。 ── */
 
 /** 〔A0-S4-4b〕§0 declare 分配：ToolFamily 型别 + classifyToolCall declare 唯一消费面 = §4 ToolBlock，
- * 随迁 components/conversation/ToolCallBlock.tsx（本处删除；编译期擦除，emit 中立）。 */
+ * 随迁 components/conversation/ToolCallBlock.tsx（本处删除；编译期擦除，emit 中立）。 〔A1-R186〕★本行（注块 @380-381）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @380，components/conversation/ToolCallBlock.tsx type ToolFamily@29-47（19 行、代码位读者 0）已销账、19 行等行墓碑在 @29 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
 
 /* ── tombstone（A0-D 类型收敛）：本地 OpenCodeViewerFn/CodePreviewSettings 已删除，
  *    canonical = ConversationLeaves（OpenCodeViewerFn）/ MarkdownIntegration
@@ -4322,13 +4322,13 @@ function ConversationSelectionTooltip({
  * 8. List 子族（虚拟滚动消息列表；js 113940–115525 / jsx 97087–98313）
  * ==========================================================================*/
 
-/* --- 8.1 滚动跟随助手（原 Ryt…Xyt，jsx 97137–97185；纯函数，接口归纳） --- */
+/* --- 8.1 滚动跟随助手（原 Ryt…Xyt，jsx 97137–97185；纯函数，接口归纳） 〔A1-R186〕★本节注（块 @4325-4325）所辖之节（自块尾至 @4364）今**失全部代码**：节内 5 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。 --- */
 
-interface ScrollMetrics {
-  scrollTop: number;
-  viewportHeight: number;
-  contentHeight: number;
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/Conversation.tsx：1 面／5 行，本批该文件共 1 碑）：本地 interface ScrollMetrics@4327-4331（5 行）纯删，5 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ScrollMetrics：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：ScrollMetrics 施前全树 2 家、本批销 1 家 ⇒ 施后余 1 家（canonical modules/ConversationLeaves.tsx@299（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@381／@4325 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 5619 不变、零重锚（本文件 Conversation 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 62 条（原始发射 79）；带行号之记录 67 条，其中落在首个编辑点 @4327 及其后者 3 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone〔A1-R129r〕：declare distanceFromBottomOf（原 Ryt，jsx 97137）死声明删除——全树零调用点
  *    （滚动跟随族重构后由 isNearBottom/keyScrollIntent 正典面承接，ConversationLeaves 转导出在案）。 ── */
 /** 原 T1（jsx 97140）：是否贴底（缺省 48px 阈值） */

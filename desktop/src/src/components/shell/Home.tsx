@@ -151,7 +151,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatf
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions, filterUsableProviders, modelMenuGroupsOf, useModelProvidersStore as useModelProviders, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕+filterUsableProviders（N6e 77910 canonical）/modelMenuGroupsOf（Hq 77850 canonical）/type ModelProvider（型缝所依）：两 declare 收敛改指，见下墓碑 // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
-import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, getWorkspaceTaskStateAlias, getMergedTaskListItem, buildTaskConfigOptionsFromMeta, type ConfigOption, type TaskStoreState } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）。〔A1-R53〕+getWorkspaceTaskStateAlias（fe ≡ skillStore 导出面 `U as fe` ← _e@251→S@209）/getMergedTaskListItem（ce ≡ `E as P` ← E@236）/buildTaskConfigOptionsFromMeta（be ≡ `sn as g` ← sn@1300）：§U.11 Jq 体内三依赖改指（canonical 全在 stores/taskStore，SkillStore 转导出面 217-266 在案）
+import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, getWorkspaceTaskStateAlias, getMergedTaskListItem, buildTaskConfigOptionsFromMeta, type ConfigOption, type TaskStoreState } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）。〔A1-R53〕+getWorkspaceTaskStateAlias（fe ≡ skillStore 导出面 `U as fe` ← _e@251→S@209）/getMergedTaskListItem（ce ≡ `E as P` ← E@236）/buildTaskConfigOptionsFromMeta（be ≡ `sn as g` ← sn@1300）：§U.11 Jq 体内三依赖改指（canonical 全在 stores/taskStore，SkillStore 转导出面 217-266 在案） // 〔A1-R186〕★本行（注块 @154-154）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @154，modules/Composer.tsx interface TaskStoreState@578-580（3 行、代码位读者 0）已销账、3 行等行墓碑在 @578 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S6 名 + 同行注册形。★须自载本骑手之界限：该名施后全树仍余同名家（TaskStoreState 余 2 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
 // 〔A1-R26〕§U.8 漏斗遥测族实体化：+reportTelemetry/TelemetryPlatform（原 xw 40457 ≡ StoresDeep@323 逐字，A1-R9 判例；环安全：StoresDeep 值闭包不达 components/shell）
 import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse, reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
 import { providerIds, isGlmModelId, GLM_REASONING_LEVELS, isBuiltinProviderId, isZaiPlanProviderId, isStartPlanProviderId } from '../../modules/SrcSharedA'; // A1-R18：+5 件（原 qn=Tl=Oo 4858 / ui=Sl=ho 4855 / jt=_l=Eo 4842 / tr=Po 1324 / HM=No 1318；§U zrt/Ee/GUe/IM 消费）
@@ -446,13 +446,13 @@ declare function formatToolbarShortcutLabel(key: string): string;
 /** 平台 context（原 ps()，横切层；hit 用其 broadcastService） */
 declare function usePlatformContext(): { broadcastService?: { send(message: { channel: string; payload: unknown }): unknown } } | null; // 〔A1-R21〕型缝校正：broadcastService 消费面为 .send({channel, payload})（bundle jXe 68634 实测），旧注 postMessage 为 A0 占位
 
-/* --- UI 原语 --- */
+/* --- UI 原语 〔A1-R186〕★本节注（块 @449-449）所辖之节（自块尾至 @459）今**失全部代码**：节内 5 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。 --- */
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md";
-  type?: "button" | "submit";
-}
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/shell/Home.tsx：1 面／5 行，本批该文件共 1 碑）：本地 interface ButtonProps@451-455（5 行）纯删，5 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface ButtonProps：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：ButtonProps 施前全树 8 家、本批销 5 家 ⇒ 施后余 3 家（canonical modules/button.tsx@321（带 export））。
+ *    邻接注记裁定（±4 行窗口）：@154／@449 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 5 行置换原 5 行，文件行数 7215 不变、零重锚（本文件 Home 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 95 条（原始发射 126）；带行号之记录 123 条，其中落在首个编辑点 @451 及其后者 64 条 ⇒ **强制净零行**）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Tooltip declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 

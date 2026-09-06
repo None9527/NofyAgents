@@ -143,7 +143,7 @@ import {
   type DocxSelection,
   type PageSegment,
   type DocxSection,
-  type SectionPageMetrics,
+  type SectionPageMetrics, // 〔A1-R186〕★本行 specifier SectionPageMetrics（所属导入语句 @135-171）之代码位命中除本语句自身外为 @475，逐处实测皆落在本批被删区间内 ⇒ 该 specifier 成**未用导入**。两 tsconfig 皆无 noUnusedLocals／noUnusedParameters ⇒ 不碍构建；导入语句本体逐字保留（删行会破净零行、并使环论证失效），本骑手係记录、候未用导入清理集。原文逐字保留、只增不改（骑手只增文、不删旧字）。
   clampNumber,
   findScrollContainer,
   resolveCumulativeZoom,
@@ -432,14 +432,14 @@ export interface PageLayoutContract {
   headerDistancePx: number;
   footerDistancePx: number;
 }
-/** 表格选区契约（原 un 状态面） */
-export interface TableSelectionContract {
-  tableIndex: number;
-  anchorRowIndex: number;
-  anchorCellIndex: number;
-  focusRowIndex: number;
-  focusCellIndex: number;
-}
+/** 表格选区契约（原 un 状态面） 〔A1-R186〕★本注（块 @435-435、类别「死面之标签」）係下方被删面之**标签**：其主语 TableSelectionContract 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：un（束符，「原 X」之后者；命中 47 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X；束符 un）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/LegacyDocEngineC3.tsx：4 面／43 行，本批该文件共 4 碑）：本地 interface TableSelectionContract@436-442（7 行）纯删，7 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface TableSelectionContract：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；带 export 而无一家导入方把该名作 specifier 拉取〔判据 Ⓑ 之 specifier 级，A1-R184 v8〕。
+ *    同名定义站：TableSelectionContract 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@146／@435／@453／@456／@464／@5246 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 7 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 7 行置换原 7 行，文件行数 5252 不变、零重锚（本文件 LegacyDocEngineC3 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /** 页节信息（原 or 元素面） */
 export interface PageSectionInfoContract {
   section: DocxSection;
@@ -450,47 +450,47 @@ export interface PageSectionInfoContract {
 }
 
 /* ============================================================================
- * §1 交互簇上下文（批 B DocxEditorView 骨架的状态面 → 本簇回调的输入）
+ * §1 交互簇上下文（批 B DocxEditorView 骨架的状态面 → 本簇回调的输入）〔A1-R186〕★本节注（块 @452-454）所辖之节（自块尾至 @494）今**失全部代码**：节内 33 行代码皆落在本批被删区间内、存活 0 ⇒ 本节只剩墓碑与注记。原文逐字保留、只增不改（骑手只增文、不删旧字）。
  * ==========================================================================*/
 
-/** 分页结果面（批 B Qn memo 返回） */
-export interface PaginationClusterInput {
-  pages: PageSegment[][];
-  useMeasuredPageContentHeightsForRender: boolean;
-  renderMeasuredPageContentHeightsPxByPageIndex: number[] | undefined;
-  renderPageContentHeightScale: number | undefined;
-}
+/** 分页结果面（批 B Qn memo 返回） 〔A1-R186〕★本注（块 @456-456、类别「死面之标签」）係下方被删面之**标签**：其主语 PaginationClusterInput 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：B（注内符号；命中 161 处，★短 token）／Qn（注内符号；命中 12 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/LegacyDocEngineC3.tsx：4 面／43 行，本批该文件共 4 碑）：本地 interface PaginationClusterInput@457-462（6 行）纯删，6 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface PaginationClusterInput：单轮代码位读者 1 处（@481，逐处实测皆落在本批被删区间内）⇒ 级联迭代至不动点后读者 0；带 export 而无一家导入方把该名作 specifier 拉取〔判据 Ⓑ 之 specifier 级，A1-R184 v8〕。同名定义站：PaginationClusterInput 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    邻接注记裁定（±4 行窗口）：@146／@435／@453／@456／@464／@5246 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 6 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 6 行置换原 6 行，文件行数 5252 不变、零重锚（本文件 LegacyDocEngineC3 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
-/** 交互簇上下文：渲染器视图向回调簇提供的派生面 */
-export interface DocxEditorViewClusterContext {
-  editor: DocxEditorState;
-  isReadOnly: boolean;
-  isEditable: boolean;
-  annotationsVisible: boolean;
-  showTrackedChanges: boolean;
-  showComments: boolean;
-  invertFilter: string | undefined;
-  pageGeometry: PageLayoutContract;
-  sections: DocxSection[];
-  sectionMetrics: SectionPageMetrics[];
-  geometryIdentityKey: string;
-  docGridLinePitchPxByNodeIndex: Map<number, number>;
-  pageContentWidthPxByNodeIndex: Map<number, number>;
-  pageContentHeightPxByNodeIndex: Map<number, number>;
-  sectionColumns: { count: number; gapPx: number; widthsPx?: number[] }[];
-  pagination: PaginationClusterInput;
-  pageIdentityKeys: string[];
-  deferInitialPaginationPaint: boolean;
-  pageVirtualization?: { enabled?: boolean; overscan?: number; settleDelayMs?: number; scrollElement?: HTMLElement | null; zoomScale?: number };
-  visiblePageRange?: { startPageIndex?: number; endPageIndex?: number };
-  onPageCountChange?: (pageCount: number) => void;
-  onRequestPageReveal?: (pageIndex: number) => void;
-  onFormFieldDoubleClick?: (location: unknown) => void;
-  /** 表单域双击判定（批 B 已实体化，原 nt，jsx 27447） */
-  handleFormFieldTap: (location: never) => boolean;
-  /** 页元素登记（批 B 已实体化，原 ht，jsx 27465） */
-  pageElementCallbackFor: (pageIndex: number) => (element: HTMLElement | null) => void;
-}
+/** 交互簇上下文：渲染器视图向回调簇提供的派生面 〔A1-R186〕★本注（块 @464-464、类别「死面之标签」）係下方被删面之**标签**：其主语 DocxEditorViewClusterContext 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★★本注係旧簇跨度所吞之窗口注（本批按 57 簇重新分类后方得归主），其 referent 经重测仍活（DocxEditorView 命中 4 处／useDocxEditorViewInteractionCallbacks 命中 2 处／useDocxEditorViewRenderCallbacks 命中 1 处；口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））⇒ 必须存活。裁定出处逐字引自 dossier-F：「dossier-F f.2: DocxEditorView is live in 4 places and both callback clusters (C3@518, C4@380) are live」。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批（modules/LegacyDocEngineC3.tsx：4 面／43 行，本批该文件共 4 碑）：本地 interface DocxEditorViewClusterContext@465-493（29 行）纯删，29 行等行墓碑在原位。
+ *    判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。
+ *    interface DocxEditorViewClusterContext：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；带 export 而无一家导入方把该名作 specifier 拉取〔判据 Ⓑ 之 specifier 级，A1-R184 v8〕。
+ *    同名定义站：DocxEditorViewClusterContext 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    原体内 @489 之单行成员文档注按〔A1-R165 s8〕**逐字保留于本碑**（其注内散文「表单域双击判定（批 B 已实体化，原 nt，jsx 27447）」原样转录；定界符按〔A1-R173 沉淀①〕只描述不引用）——它载束源出处，删之即失证。
+ *    原体内 @491 之单行成员文档注按〔A1-R165 s8〕**逐字保留于本碑**（其注内散文「页元素登记（批 B 已实体化，原 ht，jsx 27465）」原样转录；定界符按〔A1-R173 沉淀①〕只描述不引用）——它载束源出处，删之即失证。
+ *    邻接注记裁定（±4 行窗口）：@146／@435／@453／@456／@464／@5246 之注记皆**存活**、其原文逐字保留并各带同批骑手（骑手只增文、不删旧字），已断言与 HEAD 之差异仅限骑手所增。
+ *    型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    原界面共 29 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
+ *    净零行：本碑 29 行置换原 29 行，文件行数 5252 不变、零重锚（本文件 LegacyDocEngineC3 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 
 /* ============================================================================
  * §2 交互簇核心面（批 B 骨架状态面 → 回调簇输入；原 27383-27556 登记面）
@@ -5243,8 +5243,8 @@ export function useDocxEditorViewInteractionCallbacks(core: DocxEditorViewIntera
  *   beginDropCapMove=Mo(31820) beginDropCapResize=No(31847)
  * ==========================================================================*/
 
-/** 交互面类型导出（供 C4 渲染器簇与后续接线消费） */
-export type DocxEditorViewInteractionSurface = ReturnType<typeof useDocxEditorViewInteractionCallbacks>;
+/** 交互面类型导出（供 C4 渲染器簇与后续接线消费） 〔A1-R186〕★本注（块 @5246-5246、类别「死面之标签」）係下方被删面之**标签**：其主语 DocxEditorViewInteractionSurface 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R186 裁定 part (ii)，dossier-F E4.1〕本注所标签之实体 useDocxEditorViewRenderCallbacks 经重测仍活（命中 1 处：modules/LegacyDocEngineC4.tsx@380；口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））⇒ 按〔A1-R176〕判别式（注之 referent 是否尚有活体成员）本注必须存活。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type DocxEditorViewInteractionSurface（1 行、代码位读者 0、带 export 而无一家导入方把该名作 specifier 拉取〔判据 Ⓑ 之 specifier 级，A1-R184 v8〕）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：DocxEditorViewInteractionSurface 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 5252 不变、零重锚（LegacyDocEngineC3 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。 ── */
 
 /* 静态契约断言：交互面回调可赋值给批 B 视图消费契约（宽松函数面） */
 const _interactionSurfaceContractCheck: (core: DocxEditorViewInteractionCore) => Record<string, unknown> = useDocxEditorViewInteractionCallbacks;

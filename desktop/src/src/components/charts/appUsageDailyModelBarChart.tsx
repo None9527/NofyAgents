@@ -94,8 +94,8 @@ import { useIsPanorama } from 'recharts/es6/context/PanoramaContext.js'; // 原 
 
 /** 图表布局。把握度高（recharts 上游同名联合）。 */
 type ChartLayout = 'horizontal' | 'vertical' | 'centric' | 'radial';
-/** 轴类型。 */
-type AxisType = 'xAxis' | 'yAxis';
+/* ── tombstone〔A1-R186〕死界面普查批第五批（components/charts/appUsageDailyModelBarChart.tsx：1 面／2 行，本批该文件共 1 碑）：本地 type AxisType@98-98（1 行）纯删，2 行等行墓碑在原位。判据〔A1-R176 立／A1-R183 v7／A1-R184 v8〕：一面为死当且仅当 Ⓐ本文件内无代码位读者落在其自身定义跨度之外，且 Ⓑ不带 export（或带 export 而无一家导入方把该名作 specifier 拉取）；级联＝读者全落在已判死之面内者亦判死，迭代至不动点（本批 3 轮收敛，全树 1924 面中得死面 66）。量测一律用 token 级 code-only 掩码 v8（单点模块导入、13 形自检 + 9 负对照），禁行首前缀法〔A1-R174 沉淀①〕。type AxisType：代码位读者 0（本文件内、其定义跨度外，逐行以掩码 v8 实测）；未 export ⇒ 跨文件读者结构性不可能。同名定义站：AxisType 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。
+ *    折入上方单行文档注 @97-97「轴类型。」——係本面专属注（其 referent 即本面、无活体成员）⇒ 按〔A1-R176〕判据折入本碑，其散文逐字保留〔A1-R165 s8〕、定界符只描述不引用〔A1-R173 沉淀①〕。型-only 批：interface 与 type 别名皆非台账对象〔A1-R164 登记〕⇒ 台账 588/571/510 不得变动（反向哨兵：若变动即证动了 declare、须立即停批核查）；esbuild 擦除全部型构造 ⇒ 三 bundle 必逐字节全等〔A1-R173 沉淀③／A1-R174 沉淀⑥，可用于预测〕。原界面共 1 行（另有折入之单行文档注 1 行，合计 2 行），等行置换以保行数不变、免重锚；逐字原文见 git 历史。净零行：本碑 2 行置换原 2 行，文件行数 1335 不变、零重锚（本文件 appUsageDailyModelBarChart 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 0 条（原始发射 0）；六形全树零命中 ⇒ 净零行非引证所强制，仍照本批工艺一律强制（等行墓碑），免与它文件引证口径分叉）。★口径须自载：六形係**下界**——R185 查出第七形「Name 型面（NNN）」，本批之骑手网另以 P0 裸名谓词兜底；两口径同判「净零行强制」故结论不受影响〔A1-R173 沉淀⑧〕。 ── */
 /** recharts Redux state（宽松建模）。// TODO(infer): 完整切片未建模。 */
 type RechartsState = any;
 /** 柱状图设置项（graphicalItems.cartesianItems 中 type==='bar' 的条目）。 */

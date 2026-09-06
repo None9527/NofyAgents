@@ -194,7 +194,7 @@ export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, Whiteboar
 
 /* ============================================================================
  * 0. 外部依赖接口（跨 chunk）—— 原 logger + 8 条 src-HCld2afU declare 已由
- *    A0-S2d 接线为上方真实 import（B5-11）；SubagentsService/SkillsService/
+ *    A0-S2d 接线为上方真实 import（B5-11）；SubagentsService/SkillsService/〔A1-R186〕★本行（注块 @195-199）之散文因死界面普查批第五批而失 referent 或被证伪：命中行 @197，modules/Composer.tsx interface SubagentsService@641-647（7 行、代码位读者 0）已销账、7 行等行墓碑在 @641 原位。命中谓词 P0 裸名（被删名之词边界命中、不带旁证）；失效屏 S5 关系声称（同行含关系词：对本面／返回面／消费面／索引签名／型参／形状／兼容／接线／同形／型面／签名引用）。★须自载本骑手之界限：该名施后全树仍余同名家（SubagentsService 余 3 家），故本行所指究係何家须按其导入路逐条目验；本骑手只记「有一同名家已销账」之实测事实、不代裁本行是否真被证伪〔A1-R165 沉淀①：全树名出现次数不得径作判据〕。原文逐字保留、只增不改（骑手只增文、不删旧字）。
  *    Descriptor 接口为调用面契约，按已落地形状保留于本文件下半。
  * ==========================================================================*/
 

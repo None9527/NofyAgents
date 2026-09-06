@@ -156,8 +156,8 @@ interface PageRenderResult {
   rotate: number;
 }
 
-/** getDocument 参数形状（原 Wo 归一化结果 / 范围源包装） */
-type PdfFileSource = string | Blob | ArrayBuffer | Uint8Array | { range: PDFDataRangeTransport };
+/** getDocument 参数形状（原 Wo 归一化结果 / 范围源包装） 〔A1-R186〕★本注（块 @159-159、类别「死面之标签」）係下方被删面之**标签**：其主语 PdfFileSource 已随死界面普查批第五批销账 ⇒ 本注失去该 referent。★〔A1-R185 referent-liveness 判据〕其 referent 经重测仍有代码位命中：Wo（束符，「原 X」之后者；命中 12 处，★短 token）（口径＝掩码 v8 之代码位命中、已排除本批全部被删区间（故係**施后**值，恒 ≤ 施前值））。★须自载〔A1-R185 referent-liveness 判据〕之局限：其 referent 抽取兼收束符与短 token，树内代码位命中可能係同形巧合而非真 referent（本批实测 `js` 一词全树代码位命中 557 处、`hook` 199 处，皆属此类，已自存活理据中剔除）⇒ 该判据之误差方向係**偏存活**（不会误删活注）；本批只据此判存活、不据命中数作任何更强声称。〔独立理据〕本注另载束源登记形（原 X；束符 Wo）⇒ 按〔A1-R165 s8〕其束源标注须逐字保留于原处。§5.3 不对称：多一骑手只费一行、漏一骑手则留一句假散文 ⇒ 疑则存之、存活并加骑手。原文逐字保留、只增不改（骑手只增文、不删旧字）。 */
+/* ── tombstone〔A1-R186〕死界面普查批第五批：本地 type PdfFileSource（1 行、代码位读者 0、未 export ⇒ 跨文件读者结构性不可能）纯删，1 行**单行形**等行墓碑在原位（长形判据文与型-only 论证见本批其余 56 碑）；同名定义站：PdfFileSource 施前全树 1 家、本批销 1 家 ⇒ 销账后该名自全树消失。净零行：本碑 1 行置换原 1 行，文件行数 793 不变、零重锚（PdfViewer 引证密度：六形并集、去重键 (token,档,行)、扫描面 356 源 + 4 活文档＝去重 2 条（原始发射 4）；带行号之记录 4 条**皆在**首个编辑点 @160 之前 ⇒ 位移不证伪任何引证，仍照本批工艺一律强制净零行）。 ── */
 type NormalizedPdfSource = string | Blob | { data: Uint8Array } | { range: PDFDataRangeTransport };
 
 /** react-pdf Document（原 qa，js 19841；forwardRef；props 取本组件实际用到的子集） */
