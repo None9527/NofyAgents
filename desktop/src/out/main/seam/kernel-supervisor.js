@@ -1,14 +1,18 @@
 // nofy kernel supervisor — D5c (desktop wiring seam)
 //
-// 发现-否则-启动 对称逻辑（产品模型，用户确认）：
-//   1. env NOFY_SOCKET（unix socket 路径）→ 探针附着
-//   2. 应用数据目录 socket 文件 → 探针附着
-//   3. ws://127.0.0.1:9800 探针 → 附着（standalone daemon 优先附着，不另起）
-//   4. 否则 spawn `nofy agent serve --bind 127.0.0.1:9800 --secret ...`
-// TODO(D5c+): 当前 nofy 二进制 `agent serve` 仅支持 TCP bind，不支持 unix
-//   socket listen；故 1/2 仅探针记档，实际走 standalone 9800。待内核支持
-//   `--listen unix:<path>` 后启用 1/2 附着/内嵌子进程 unix socket 形态。
-// 父退子收：main 退出（exit/SIGINT/SIGTERM）时 kill 由桌面 spawn 的内核；
+// P0.5 拓扑（默认）：桌面**私有 stdio 协议子进程**——spawn `nofy agent stdio`，
+// 行式 JSON-RPC over 继承管道。无端口、无 secret、天然单父客户端、父死子亡
+// （stdin EOF 即子进程关停；macOS 无 PDEATHSIG，另在进程退出钩子兜底 kill）。
+// 内核自身注释即点名该形态的父方含 nofy-desktop（nofy-shell agent/app.rs
+// run_stdio_agent 文档）。TUI 为进程内内嵌 agent，二者仅共享 ~/.nofy 磁盘存储。
+//
+// attach-serve（显式 opt-in，NOFY_KERNEL_ATTACH=1）：旧的发现-否则-启动 对称逻辑，
+// 供确需共享一个活内核的场景（headless 自动化/SDK/开发期热内核）：
+//   1. env NOFY_SOCKET（unix socket 路径）→ 探针附着（内核暂不支持，记档）
+//   2. 应用数据目录 socket 文件 → 探针附着（同上）
+//   3. ws://127.0.0.1:<port> 探针 → 附着（standalone 优先附着，不另起）
+//   4. 否则 spawn `nofy agent serve --bind ... --secret ...`（常驻，不随桌面退出）
+// 注意 attach 形态受 §2.3 单客户端约束与 secret 契约（D1）限制，故不作默认。
 // 防双 kernel：pidfile + 端口探针；陈旧 pidfile（我侧 spawn 的）启动时回收。
 
 import { spawn } from "node:child_process";
@@ -23,7 +27,22 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const KERNEL_PORT = Number(process.env.NOFY_KERNEL_PORT || 9800);
 export const KERNEL_SECRET = process.env.NOFY_KERNEL_SECRET || "nofy-desktop";
 export const KERNEL_WS_URL = `ws://127.0.0.1:${KERNEL_PORT}/ws?server-key=${KERNEL_SECRET}`;
-export const NOFY_BIN = process.env.NOFY_BIN || `${homedir()}/.local/bin/nofy`;
+/** attach-serve 为显式 opt-in（P0.5）；默认拓扑是私有 stdio 子进程。 */
+export const ATTACH_SERVE = process.env.NOFY_KERNEL_ATTACH === "1" || process.env.NOFY_KERNEL_ATTACH === "true";
+
+function resolveNofyBin() {
+  const candidates = [
+    process.env.NOFY_BIN,
+    `${homedir()}/.local/bin/nofy`,
+    // 开发期兜底：本仓库构建产物（seam → 仓库根 = 五级上）
+    join(here, "..", "..", "..", "..", "..", "target", "release", "nofy"),
+  ];
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) return c;
+  }
+  return candidates[0] || `${homedir()}/.local/bin/nofy`;
+}
+export const NOFY_BIN = resolveNofyBin();
 
 const DATA_DIR = process.env.NOFY_DESKTOP_DIR || join(homedir(), ".local", "share", "nofy-desktop");
 const STATE_PATH = join(DATA_DIR, "kernel.json");
@@ -100,6 +119,7 @@ function writeState(state) {
 
 let child = null;
 let disposed = false;
+const stdioChildren = new Set();
 
 function reapChild() {
   if (child && !child.killed) {
@@ -107,6 +127,41 @@ function reapChild() {
       child.kill("SIGTERM");
     } catch {}
   }
+  // macOS 无 PR_SET_PDEATHSIG：stdio 子进程除 stdin EOF 外再兜底一次显式回收
+  for (const c of stdioChildren) {
+    if (!c.killed) {
+      try {
+        c.kill("SIGTERM");
+      } catch {}
+    }
+  }
+}
+
+/**
+ * P0.5 默认拓扑：派生桌面私有的内核协议子进程（`nofy agent stdio`）。
+ * 不监听端口、不需要 secret；stdout=协议行、stderr=日志（消费方防背压）。
+ */
+export function spawnStdioChild() {
+  const bin = NOFY_BIN;
+  if (!fs.existsSync(bin)) {
+    return Promise.reject(new Error(`nofy binary not found: ${bin} (set NOFY_BIN)`));
+  }
+  log(`spawning nofy kernel (stdio child): ${bin} agent stdio`);
+  const c = spawn(bin, ["agent", "stdio"], {
+    stdio: ["pipe", "pipe", "pipe"],
+    detached: false,
+    env: { ...process.env },
+  });
+  stdioChildren.add(c);
+  c.on("exit", (code, signal) => {
+    log(`kernel stdio child exited (pid=${c.pid} code=${code} signal=${signal})`);
+    stdioChildren.delete(c);
+  });
+  c.on("error", (e) => {
+    log(`kernel stdio child error: ${e?.message}`);
+    stdioChildren.delete(c);
+  });
+  return Promise.resolve(c);
 }
 
 // 父退子收
@@ -161,6 +216,12 @@ export function ensureKernel() {
 
 async function doEnsureKernel() {
   if (disposed) return { url: KERNEL_WS_URL, secret: KERNEL_SECRET, mode: "disposed", child: null };
+
+  // 0. 默认拓扑（P0.5）：私有 stdio 子进程；不探针、不附着、不常驻
+  if (!ATTACH_SERVE) {
+    const c = await spawnStdioChild();
+    return { url: null, secret: null, mode: "stdio-child", child: c, respawn: spawnStdioChild };
+  }
 
   // 1. env NOFY_SOCKET
   const envSock = process.env.NOFY_SOCKET?.trim();

@@ -35,6 +35,7 @@
 //   'elicitation'     {id, method, params}        session/elicitation | _nofy/mcp/elicit
 
 import { EventEmitter } from "node:events";
+import { createInterface } from "node:readline";
 import WebSocket from "ws";
 import { ensureKernel } from "./kernel-supervisor.js";
 
@@ -49,6 +50,11 @@ export class NofyKernelClient extends EventEmitter {
     this.clientVersion = clientVersion;
     this.reconnectMs = reconnectMs;
     this.ws = null;
+    // 传输抽象（P0.5）：{kind:"ws"|"stdio", isOpen(), send(text), close()}。
+    // ACP 帧在两种传输上同形（WS 文本帧 / stdio 行式 JSON），故协议层共用。
+    this.io = null;
+    this.child = null; // stdio 形态的内核子进程（桌面私有，父死子亡）
+    this.stdioFactory = null; // 重连时重新派生子进程的工厂（kernel-supervisor 注入）
     this.nextId = 1;
     this.pending = new Map(); // 我方 request id → {resolve, reject, timer?}
     this.serverRequests = new Set(); // 未应答的 server→client request id
@@ -71,23 +77,88 @@ export class NofyKernelClient extends EventEmitter {
     }
     this.url = url;
     this.endpointMode = mode ?? this.endpointMode;
-    if (this.ws) {
+    if (this.ws || this.io) {
       // 端点变更：拆旧连接，由调用方重新 connect()
       try {
-        this.ws.removeAllListeners();
-        this.ws.close();
+        this.io?.close();
       } catch {}
+      this.io = null;
       this.ws = null;
+      this.stdioMode = false;
       this.initialized = false;
       this.failPending(new Error("kernel endpoint changed"));
     }
   }
 
   isOpen() {
-    return !!this.ws && this.ws.readyState === WebSocket.OPEN;
+    return !!this.io && this.io.isOpen();
+  }
+
+  /** 传输无关的出站原语；返回是否已写出。 */
+  _sendText(text) {
+    if (!this.io || !this.io.isOpen()) return false;
+    try {
+      this.io.send(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * stdio 传输（P0.5 默认拓扑）：内核作为桌面私有协议子进程
+   * （`nofy agent stdio`，行式 JSON-RPC over 继承管道；无端口、无 secret、
+   * 天然单父客户端）。stdin EOF 即子进程关停 ⇒ 生命周期随桌面。
+   */
+  attachStdioChild(child) {
+    if (!child) return;
+    if (this.io?.kind === "stdio") {
+      try {
+        this.io.close();
+      } catch {}
+    }
+    this.child = child;
+    this.stdioMode = true;
+    this.endpointMode = this.endpointMode ?? "stdio-child";
+    // 内核把协议写 stdout、日志写 stderr；stderr 必须消费防背压堵死子进程。
+    child.stderr?.resume();
+    const rl = createInterface({ input: child.stdout });
+    rl.on("line", (line) => this.onFrame(line));
+    child.on("exit", (code) => {
+      rl.close();
+      this.emit("status", { connected: false });
+      this.failPending(new Error(`kernel child exited (code=${code})`));
+      this.serverRequests.clear();
+      this.pendingPermissions.clear();
+      this.initialized = false;
+      this.io = null;
+      this.child = null;
+      if (!this.closedByUser) this.scheduleReconnect();
+    });
+    this.io = {
+      kind: "stdio",
+      isOpen: () => child.exitCode == null && child.signalCode == null && child.stdin?.writable !== false,
+      send: (text) => child.stdin.write(text + "\n"),
+      close: () => {
+        try {
+          child.stdin.end();
+        } catch {}
+      },
+    };
+    this.emit("status", { connected: true });
+    void this.handshake();
   }
 
   connect() {
+    // stdio 形态：重连＝重新派生子进程（工厂由 kernel-supervisor 注入）
+    if (this.stdioMode) {
+      if (this.io?.kind === "stdio" && this.io.isOpen()) return;
+      if (!this.stdioFactory) throw new Error("NofyKernelClient: stdio mode without stdioFactory");
+      void this.stdioFactory()
+        .then((child) => this.attachStdioChild(child))
+        .catch(() => this.scheduleReconnect());
+      return;
+    }
     if (!this.url) throw new Error("NofyKernelClient: no endpoint (setEndpoint/ensureNofyKernelClient first)");
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
     let ws;
@@ -98,6 +169,17 @@ export class NofyKernelClient extends EventEmitter {
       return;
     }
     this.ws = ws;
+    this.io = {
+      kind: "ws",
+      isOpen: () => ws.readyState === WebSocket.OPEN,
+      send: (text) => ws.send(text),
+      close: () => {
+        try {
+          ws.removeAllListeners();
+          ws.close();
+        } catch {}
+      },
+    };
     ws.on("open", () => {
       this.emit("status", { connected: true });
       void this.handshake();
@@ -109,6 +191,7 @@ export class NofyKernelClient extends EventEmitter {
       this.serverRequests.clear();
       this.pendingPermissions.clear();
       this.initialized = false;
+      this.io = null;
       if (!this.closedByUser) this.scheduleReconnect();
     });
     ws.on("error", () => {
@@ -131,8 +214,10 @@ export class NofyKernelClient extends EventEmitter {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.failPending(new Error("closed"));
     try {
-      this.ws?.close();
+      this.io?.close();
     } catch {}
+    this.io = null;
+    this.ws = null;
   }
 
   /* ─────────────────────────── 握手 ─────────────────────────── */
@@ -193,9 +278,8 @@ export class NofyKernelClient extends EventEmitter {
   /* ─────────────────────────── 出站 ─────────────────────────── */
 
   rpc(method, params, timeoutMs = 0) {
-    const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error(`kernel not connected (${this.url ?? "no endpoint"})`));
+    if (!this.isOpen()) {
+      return Promise.reject(new Error(`kernel not connected (${this.url ?? this.endpointMode ?? "no endpoint"})`));
     }
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
@@ -206,7 +290,11 @@ export class NofyKernelClient extends EventEmitter {
         }, timeoutMs);
       }
       this.pending.set(id, entry);
-      ws.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
+      if (!this._sendText(JSON.stringify({ jsonrpc: "2.0", id, method, params }))) {
+        this.pending.delete(id);
+        if (entry.timer) clearTimeout(entry.timer);
+        reject(new Error(`kernel send failed (${method})`));
+      }
     });
   }
 
@@ -227,10 +315,7 @@ export class NofyKernelClient extends EventEmitter {
 
   /** notification（无 id、无应答）。返回是否已发出。 */
   notify(method, params) {
-    const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-    ws.send(JSON.stringify({ jsonrpc: "2.0", method, params }));
-    return true;
+    return this._sendText(JSON.stringify({ jsonrpc: "2.0", method, params }));
   }
 
   /**
@@ -252,11 +337,7 @@ export class NofyKernelClient extends EventEmitter {
     if (!this.serverRequests.has(id)) return false;
     this.serverRequests.delete(id);
     this.pendingPermissions.delete(id);
-    const ws = this.ws;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ jsonrpc: "2.0", id, result }));
-    }
-    return true;
+    return this._sendText(JSON.stringify({ jsonrpc: "2.0", id, result }));
   }
 
   respondPermission(id, outcome) {
@@ -385,8 +466,14 @@ export async function ensureNofyKernelClient() {
     const client = getNofyKernelClient();
     if (client.initialized && client.isOpen()) return client;
     const endpoint = await ensureKernel();
-    client.setEndpoint(endpoint.url, endpoint.mode);
-    client.connect();
+    if (endpoint.child) {
+      // P0.5 默认拓扑：私有 stdio 子进程（重连＝重新派生）
+      client.stdioFactory = endpoint.respawn ?? null;
+      client.attachStdioChild(endpoint.child);
+    } else {
+      client.setEndpoint(endpoint.url, endpoint.mode);
+      client.connect();
+    }
     await client.ready();
     return client;
   })().finally(() => {

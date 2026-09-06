@@ -52,6 +52,13 @@ B–E 回到关键路径，A1 renderer 重建降级为非关键路径的只读�
 
 ## 4. 待办队列（按序）
 
+- **P0.5 桌面拓扑＝私有 stdio 子进程：完成**（2026-09-06）。supervisor 默认派生
+  `nofy agent stdio` 私有子进程（无端口/无 secret/天然单父客户端/父死子亡）；
+  attach-serve 降为显式 opt-in（`NOFY_KERNEL_ATTACH=1`）。验收：`acp-probe6` **13/13**
+  （stdio-child 形态、子进程 ps 实证、initialize/modelState/扩展负对照、零 TCP、
+  cancel 通知 7ms、`close()` 后子进程 stdin EOF 退出）；`acp-probe5`（WS/attach 基线）
+  **17/17 无回归**；真应用实证：9803 有活 serve 亦**零 attach**、门槛横幅消失、
+  应用退出后子进程回收（code=143、零孤儿）。D1 在默认拓扑下**结构性消失**。
 - P1 阶段 B 垂直切片：host 会话实现改走 main 单例（列表/新建/load 回放/prompt 流/停止/权限应答），
   验收＝UI 真发一条 prompt 见流式、停止 `stopReason:cancelled`、权限弹窗可批可拒。
 - P2 修 D2：为桥的 main→host 方向建立**入库的端到端回归探针**（host 侧收帧断言），

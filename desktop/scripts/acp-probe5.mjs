@@ -22,6 +22,9 @@ import { execFileSync } from "node:child_process";
 
 const port = Number(process.argv[2] ?? process.env.NOFY_KERNEL_PORT ?? 9803);
 process.env.NOFY_KERNEL_PORT = String(port); // supervisor reads at import time
+// P0.5 后默认拓扑是私有 stdio 子进程；本探针是 **WS/attach 形态**的回归基线，
+// 故显式钉住 attach-serve（需一个带匹配 secret 的活 serve）。stdio 形态见 acp-probe6。
+process.env.NOFY_KERNEL_ATTACH = process.env.NOFY_KERNEL_ATTACH || "1";
 
 // dynamic import AFTER env is set (kernel-supervisor snapshots NOFY_KERNEL_PORT)
 const { ensureNofyKernelClient } = await import("../src/out/main/seam/nofy-kernel-client.js");

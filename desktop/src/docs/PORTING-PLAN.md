@@ -236,6 +236,15 @@ baseURL 非空、`apiKeyRequired:false`），所有模型门槛自然全绿，re
 
 ## 3. 目标架构（终态）
 
+> **★ P0.5 拓扑修订（2026-09-06，A1-B 批）**：默认拓扑由「attach/派生常驻 serve」改为
+> **桌面私有 stdio 协议子进程**——main 派生 `nofy agent stdio`，行式 JSON-RPC over 继承
+> 管道（内核 `run_stdio_agent` 文档点名的父方即含 nofy-desktop）。无端口、无 secret、
+> 天然单父客户端、父死子亡；下方 §2.3 单客户端约束**仅约束 serve 形态**，stdio 形态
+> 结构性免除。attach-serve（发现-否则-启动）保留为显式 opt-in（`NOFY_KERNEL_ATTACH=1`），
+> 供确需共享一个活内核的场景；桌面**永不自动派生常驻 serve**。TUI 为进程内内嵌 agent，
+> 与本形态仅共享 `~/.nofy` 磁盘存储。验收：`desktop/scripts/acp-probe6.mjs` 13/13、
+> `acp-probe5.mjs`（WS 基线）17/17、真应用零 attach 实证。
+
 ```
 main (Electron)
  ├─ NofyKernelClient（单例）：WS JSON-RPC（ACP 原生，_nofy/* 带下划线前缀）
