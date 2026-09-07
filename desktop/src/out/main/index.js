@@ -1,11 +1,18 @@
-import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET } from "./seam/kernel-supervisor.js";
+import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET, NODE_BIN } from "./seam/kernel-supervisor.js";
 import { registerWorkspaceRegistry } from "./seam/workspace-registry.js"; // WS-ENUM：全量 workspace 枚举 IPC
 import { attachKernelHost } from "./seam/kernel-bridge.js"; // A1-A：host 经 main↔host IPC 使用内核 ACP 单例
 import { fileURLToPath as nofySeamFilePath } from "node:url";
 // ── nofy D5c seam：kernel supervisor（发现-否则-启动）+ ACP agent adapter ──
 // host 的 ZCodeAgentProcessManager 经 ZCODE_AGENT_SERVER_COMMAND spawn 适配器；
 // 适配器在 stdio 说 ZCode Protocol、对内核说 ACP（ws 9800）。main 启动即 require。
-process.env.ZCODE_AGENT_SERVER_COMMAND = process.env.ZCODE_AGENT_SERVER_COMMAND || "/usr/bin/node";
+// D6：不得写死解释器路径。旧值 "/usr/bin/node" 在本机不存在 ⇒ spawn ENOENT ⇒
+// host 侧表现为 write EPIPE、会话面整体闸死（输入器从 DOM 消失）。改为解析真实 node；
+// 解析不到就**不置位**，让 host 自己的 resolveDefaultZCodeAgentCommand 走内建回退链
+// （bundled zcode.cjs → Electron-as-node → deployed binary），失败也是「未配置」的诚实错误。
+if (!process.env.ZCODE_AGENT_SERVER_COMMAND && NODE_BIN)
+  process.env.ZCODE_AGENT_SERVER_COMMAND = NODE_BIN;
+if (!process.env.ZCODE_AGENT_SERVER_COMMAND)
+  console.warn("[nofy-seam] no node interpreter found for acp-agent-adapter; agent runtime left unconfigured");
 process.env.ZCODE_AGENT_SERVER_ARGS_JSON =
   process.env.ZCODE_AGENT_SERVER_ARGS_JSON ||
   JSON.stringify([nofySeamFilePath(new URL("./seam/acp-agent-adapter.js", import.meta.url))]);

@@ -259,7 +259,20 @@ baseURL 非空、`apiKeyRequired:false`），所有模型门槛自然全绿，re
 > **切口定在 R1**：重写 host 服务方法体直连 ACP，不复刻 v4 线路协议（R1 的语义负担是 R2 的真子集），
 > 也**不另造 renderer**（那会丢弃整套冻结 UI 并重建 93 方法的界面，工作量严格更大）。
 > 登记限制 L1：runtime 生命周期（`onAgentRuntimeLifecycle`/「runtime is not running」）必须
-> 一并内核背书，否则数据方法全对也出不来可用界面。实测合同与实施序见
+> 一并内核背书，否则数据方法全对也出不来可用界面。
+>
+> **★ 裁定 L 更正（2026-09-07，见 FRONTEND-FIRST-PRINCIPLES.md §9）**：R2 侧的 v4 服务端
+> **早已在树内且已接线**——`out/main/seam/acp-agent-adapter.js`（1339 行，D5c 批），
+> main 置 `ZCODE_AGENT_SERVER_COMMAND`/`_ARGS_JSON` 指向它，host `ZCodeAgentProcessManager`
+> 按 workspace 派生（cwd=workspacePath）。故「重写 host 93 方法」方案**作废**；
+> 真正的阻塞缺陷是 **D6**：COMMAND 写死 `/usr/bin/node`（本机无此文件）⇒ spawn ENOENT ⇒
+> 全会话面 `write EPIPE`，且该赋值短路了 host 内建回退链（bundled zcode.cjs →
+> Electron-as-node → deployed binary）。已修：`resolveNodeBin()` 真解析，解析不到则不置位。
+> 修复后实测：runtime 零错误、`initializeWorkspace.available:true`、真 sessionId、
+> v4 ack（`logEpoch:"nofy-d5c-1"`）、索引/会话帧真推送、UI 输入器恢复、prompt 被 accepted。
+> 遗留 **D7**（turn 4 秒 `completedSuccess` 但零助手文本行、`sessionEnded:true`）与
+> **D8**（`__home__` 伪 workspace 索引订阅硬抛）；**L3**（打包态无系统 node 时须注入
+> `zcodeAgentCommandResolver` + `ELECTRON_RUN_AS_NODE`，因 COMMAND 分支不返回 `env` 字段）。实测合同与实施序见
 > `FRONTEND-FIRST-PRINCIPLES.md` §7/§8（观测件 `out/host/seam/agent-service-observer.js`，
 > `NOFY_OBS_AGENT=1`，默认零行为差；汇总器 `desktop/scripts/analyze-agent-calls.py`）。
 

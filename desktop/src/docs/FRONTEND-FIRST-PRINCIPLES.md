@@ -70,10 +70,16 @@ B–E 回到关键路径，A1 renderer 重建降级为非关键路径的只读�
   `out/host/seam/agent-service-observer.js`（`NOFY_OBS_AGENT=1`，默认原样返回、零行为差）
   实录真应用的 renderer→host 调用：`nofy-agent` **93** 方法 / `zcode-session` **23** 方法，
   启动序列与失败态见 §8。会话面**整体被「agent runtime 未运行」闸住**（EPIPE ⇒ 输入器被撤）。
-- P1b 阶段 B 合同重写：host `nofy-agent` 服务的会话方法（runtime 生命周期/初始化/列表/新建/
-  load 回放/prompt 流/停止/权限应答/set_model）改走 `kernel-client-host.js`，
-  **renderer 契约形状不变**（形状以 §8 实测参数 + `chunk-L6SVKCE4.js` 的 zod 规格为准）。
-  实施序见 §7 末。
+- **P1b-1 D6 解释器路径修复：完成**（2026-09-07，见 §9）。`/usr/bin/node` 写死 ⇒ ENOENT ⇒
+  全会话面 EPIPE 闸死；改 `resolveNodeBin()` 真解析 + 解析不到不置位（保留 host 内建回退链）。
+  实测：runtime 子进程零错误、`initializeWorkspace.available:true`、真 sessionId、
+  v4 订阅 ack、索引/会话帧真推送、UI 输入器恢复、真发 prompt 被 accepted。
+- **P1b-2 修 D7（当前工作项）**：probe10 脱离应用直驱适配器，定位「turn 4 秒 completedSuccess
+  但零助手文本行、`sessionEnded:true`」；适配器 stderr 落盘。绿之前不得声称会话主流程可用。
+- P1b-3 修 D8：`__home__` 伪 workspace 的索引订阅（首页「还没有对话」空态）。
+- ~~P1b 阶段 B 合同重写：host `nofy-agent` 服务的会话方法改走 `kernel-client-host.js`~~
+  **作废**（§9 更正）：R2 侧 v4 服务端＝树内既有 `out/main/seam/acp-agent-adapter.js`（1339 行）
+  已接线并复用 host 全部 93 方法与 v4 机制；工作面改为**补齐/修正适配器**，不重写 host 服务。
 - P1c preload 改线：`window.zcode.listNofyWorkspaces` 等枚举 API 由 main IPC 改走 host
   服务（renderer 零改动）；多窗口 K1 复核。
 - P2 修 D2：为桥的 main→host 方向建立**入库的端到端回归探针**（host 侧收帧断言），
@@ -253,3 +259,63 @@ getWorkspaceRuntimeIdentity/promote|closeDeferredDraftSession）。
 `workspacePath` 有 `__home__`（索引面）与真实路径（会话面）两种取值；
 `initializeWorkspace` 的返回是**软失败**形（`available:false` + `reason`），不抛；
 `subscribeSessionsIndexV4` 的失败是**硬抛**。两者都要在内核背书后改为成功形。
+（**§9 更正**：runtime 起来后两者都已是成功形，实测见 §9。）
+
+---
+
+## 9. 裁定 L 的事实性更正 + D6 修复实测（2026-09-07，probe9 第二轮）
+
+**更正（重要）**：§7 把「切 R2＝要新造一个 v4 子进程」当作未做之事，**错了**。R2 侧的
+v4 服务端**早已在树内且已接线**：`out/main/seam/acp-agent-adapter.js`（**1339 行**，D5c 批），
+`out/main/index.js` 启动即置 `ZCODE_AGENT_SERVER_COMMAND` + `ZCODE_AGENT_SERVER_ARGS_JSON`
+指向它，host `td.startClient`（`ZCodeAgentProcessManager`）按 workspace 派生
+（`cwd = workspacePath`，每 workspace 一个 runtime 子进程）。因此「切 R1 还是 R2」不是待选项：
+**R2 是既成事实**，且 host 的 93 个服务方法与全部 v4 机制（topic/ack/logEpoch/seq/frames/
+subscription routes）都由它复用。§7 的「重写 93 方法」方案**作废**——那会丢弃 1339 行既有实现。
+教训：切点判断必须先查树内既有实现（`grep ZCODE_AGENT_SERVER_COMMAND`），再谈方案。
+
+**D6（已修）**：`out/main/index.js:8` 写死 `ZCODE_AGENT_SERVER_COMMAND = "/usr/bin/node"`，
+本机不存在该文件 ⇒ `spawn /usr/bin/node ENOENT`（preflight 已明示 `commandExists:false`）⇒
+host 侧一律表现为 `write EPIPE`、会话面整体闸死（§8）。更糟的是该赋值**短路了 host 自己的
+回退链**：`resolveDefaultZCodeAgentCommand` 在 COMMAND 置位时直接返回、不再尝试
+`resolveBundledWorkspaceZCodeAgentCommand`（bundled `zcode.cjs`）→
+`resolveElectronRuntimeZCodeAgentCommand`（**Electron-as-node + `ELECTRON_RUN_AS_NODE:"1"`**，
+打包态正解）→ `resolveDeployedZCodeAgentBinaryCommand`。
+修法：`kernel-supervisor.js` 新增 `resolveNodeBin()`/`NODE_BIN`（`NOFY_NODE_BIN` → 非 Electron
+时 `process.execPath` → `PATH` 扫描 → `/opt/homebrew/bin`、`/usr/local/bin`、`/usr/bin`，
+逐个 `existsSync`+`X_OK` 校验）；main 只在解析到真解释器时置位，解析不到则**不置位**并 warn
+（让 host 报「未配置」的诚实错误，而不是 ENOENT）。
+**登记 L3（未修）**：打包态若机器无系统 node，须改走「注入 `zcodeAgentCommandResolver` +
+`ELECTRON_RUN_AS_NODE`」——因为 COMMAND 分支返回的对象**不含 `env` 字段**，无法注入该变量；
+在 host 进程环境里全局置 `ELECTRON_RUN_AS_NODE` 会污染 pty/其它子进程，已否决。
+
+**修复后实测**（`NOFY_KERNEL_ATTACH=1 NOFY_OBS_AGENT=1`，`/tmp/nofy-obs/electron20.log`）：
+- 命令解析 → `/opt/homebrew/bin/node`，preflight `commandExists:true`，**零** `ZCode agent process error`；
+  内核 `kernel ready spawned ws://127.0.0.1:9800/...`（attach 形显式 opt-in，退出后 9800 归零）。
+- `initializeWorkspace` → `{available:true, workspaceKey, protocolName:"ZCode Protocol", protocolVersion:1, transportKind:"stdio"}`（**软失败形转为成功形**）。
+- `readWorkspaceState` → `{workspace{…}, settings{model{current,available}, thoughtLevel{enabled:false,available}, mode{current:"build"}}}`（真实数据）。
+- `sendConversationCommandV4(createSession)` → `{commandId, status:"accepted", revisionAtDecision:0, result:{type:"createSession", sessionId:"01a079ec-abbb-…"}}`（**真会话**）。
+- `subscribeConversationV4` → `{ack:{subscriptionId:"sub-4-16429", mode:"snapshot", logEpoch:"nofy-d5c-1"}}`。
+- 推送面活了：`onDynamicSessionsIndexFrame` 多帧（`wireVersion:3, kind:"complete", deliveryKind:"initial"|"online", logicalFrameId, topic:"sessions-index//Users/mac/…"`）、
+  `onDynamicConversationFrame` 3 帧（snapshot → deltas）。§8 的「推送 0 帧」已被推翻。
+- UI（CDP）：健康首页恢复——问候语 + 输入器 + 「发送」回来，无 `write EPIPE`、无「重新连接」；模型门槛横幅仍无（D3 无回归）。
+
+**真发 prompt（CDP 注入文本 + 点击发送）**：
+- `sendConversationCommandV4(sendText)` → `{status:"accepted", revisionAtDecision:1, result:{type:"inputDisposition", delivery:"startNow"}}`。
+- 帧 2：`row.appended` turnHeader（`state:"running"`, `turnId:"…-turn-1"`）+ 用户消息行。
+- 帧 3：`row.upserted` turnHeader → **`state:"completedSuccess"`**（startedAt→endedAt 恰 4 秒）
+  + `state.updated{control:{phase:"completedSuccess", sessionEnded:true, canStop:false, stopState:"idle", activeWorks:[], lastError:null}}`。
+- UI：用户消息「请用一句话介绍你自己」上屏 + 「已工作 4 秒」，输入器转为后续追问占位。
+
+**D7（新登记，未修）**：该轮**零助手文本行**——turnHeader 直接 `completedSuccess`、
+`sessionEnded:true`、`lastError:null`，没有任何 agent 输出行。适配器 stderr 只进
+`createAgentStderrTail()` 环形缓冲（不落主日志），故当前**无可观测证据**判定是
+（a）内核未产出（prompt 未送达/模型侧失败被吞）还是（b）适配器未把 `agent_message_chunk`
+映射成 `row.appended`。`sessionEnded:true` 亦可疑（单轮不应结束会话）。
+下一步＝**probe10**：脱离应用直接派生适配器（`node acp-agent-adapter.js`，cwd=临时工作区），
+以 v4 客户端身份发 `workspace/readState`→`session/create`→`session/send`，断言助手行到达；
+同时把适配器 stderr 落盘。**在 probe10 绿之前不得声称会话主流程可用。**
+
+**D8（新登记，未修）**：`subscribeSessionsIndexV4({workspacePath:"__home__", runtimePolicy:"existing-only"})`
+×6 仍硬抛「ZCode Agent runtime is not running.」——`__home__` 是伪 workspace、没有 runtime 子进程；
+首页「还没有对话」空态与此相关（真实 workspace 的索引帧是正常推送的）。

@@ -51,6 +51,30 @@ function resolveNofyBin() {
 }
 export const NOFY_BIN = resolveNofyBin();
 
+// host 的 agent runtime 命令解析（resolveDefaultZCodeAgentCommand）在 ZCODE_AGENT_SERVER_COMMAND
+// 置位时只取 {command,args,cwd}、丢掉 env，故无法借它注入 ELECTRON_RUN_AS_NODE；
+// 这里解析一个真实存在的 node 解释器给适配器进程用。找不到时返回 null（调用方须显式降级，
+// 不得写死一个不存在的路径——那会把「未配置」变成 spawn ENOENT，见 D6）。
+function resolveNodeBin() {
+  const explicit = process.env.NOFY_NODE_BIN;
+  if (explicit && fs.existsSync(explicit)) return explicit;
+  if (!process.versions.electron && fs.existsSync(process.execPath)) return process.execPath;
+  const fromPath = String(process.env.PATH || "")
+    .split(":")
+    .filter(Boolean)
+    .map((dir) => join(dir, "node"));
+  const fallbacks = ["/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node"];
+  for (const c of [...fromPath, ...fallbacks]) {
+    try {
+      if (fs.existsSync(c)) fs.accessSync(c, fs.constants.X_OK);
+      else continue;
+      return c;
+    } catch {}
+  }
+  return null;
+}
+export const NODE_BIN = resolveNodeBin();
+
 const DATA_DIR = process.env.NOFY_DESKTOP_DIR || join(homedir(), ".local", "share", "nofy-desktop");
 const STATE_PATH = join(DATA_DIR, "kernel.json");
 const SOCKET_PATH = join(DATA_DIR, "kernel.sock"); // TODO(D5c+): 二进制支持 unix socket 后启用
