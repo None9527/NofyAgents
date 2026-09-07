@@ -430,3 +430,19 @@ class/位置或 CDP 输入事件），要么本build 真的缺失。停止/cance
 **旁证（好消息）**：侧边栏会话标题正常生成（「你好，请回一句话」「终端 AI 编程助手
 工作原理短文写作与总结」「请用一句话介绍你自己」「写一篇 3000 字的关于人工智能历史的
 文章…」），仅刚建的新会话短暂显示裸 ID（`01a07a26`）。
+
+**D12 撤销（误报，2026-09-07 实测）**：历史回放**是通的**。CDP 点击侧边栏会话行
+（`data-testid="task-item-01a07a28-5e4c-7541-92eb-9b99df787182"`，leaf=SPAN）后主面板完整渲染：
+用户行「你好，请回一句话」+ 复制 + **已处理**、助手行「你好！我是 Nofy，随时可以帮你处理代码、
+调试、文档或其他软件工程任务——需要我做什么？」+ 复制 + 时间戳 12:45、输入器转为
+「提出后续修改要求」（追问态）。
+点开旧会话的真实调用序（新增 15 条录像，**零错误**）：
+`zcode-session.readWorkspaceState({workspacePath})` →
+`nofy-agent.queryConversationCommandsV4({workspacePath, commands:[{sessionId, commandId}]})` →
+`nofy-agent.subscribeConversationV4({workspacePath, sessionId, __zcodeTrustedV4Connection})` →
+`nofy-agent.conversationPlansV4({workspacePath, sessionId})`。
+⇒ **历史不走 `readSession*`/`conversationRowsRangeV4`/`resumeSession`**，而是由
+`subscribeConversationV4` 的 **snapshot 帧**携带行数据（`mode:"snapshot"` 的 ack 即此意）。
+D12 的登记依据是「这些方法没被调用」——那是**用证据缺失当缺失证据**，方法论错误入库：
+判定某路径未接线，必须先找到该路径的真实入口（点击 + 录像增量），不能靠猜方法名。
+`readSession*`/`rowsRange` 的真实用途待查（可能是分页/滚动到更早历史时才触发）。
