@@ -25,6 +25,17 @@ import { watch as fsWatch } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
+import { readModelsTable } from "../../main/seam/nofy-config-toml.js";
+
+// D18：段名→context_window 映射（设置页模型徽标用）
+let cwCache = null;
+function cwById() {
+  if (!cwCache) {
+    cwCache = new Map(readModelsTable().models.map((m) => [m.id, m.contextWindow]));
+    setTimeout(() => (cwCache = null), 5000).unref?.();
+  }
+  return cwCache;
+}
 
 const KERNEL_PROVIDER_ID = "nofy-kernel";
 
@@ -167,6 +178,8 @@ export async function synthesizeKernelProviders() {
         supportsTools: true,
         supportsStructuredOutput: false,
         modalities: { input: ["text"], output: ["text"] },
+        // D18：带上 config 的真 context_window，否则设置页徽标落内核默认 200K
+        ...(cwById().get(m.id) ? { contextWindow: cwById().get(m.id) } : {}),
       })),
     },
   ];
