@@ -163,6 +163,14 @@ export function readModelsTable() {
     }
   }
   if (!table.defaultId && table.models.length > 0) table.defaultId = table.models[0].id;
+  // D18：[models] default 既可能是段名也可能是上游 model id（本仓 config 即后者：
+  // default="qwen3.8-max" 对应 [model.dashscope] 的 model 字段）。UI 编码用
+  // `${providerId}/${段名}`，这里统一归一到段名，否则 current 与选项 ref 永不匹配。
+  if (table.defaultId && !table.models.some((m) => m.id === table.defaultId)) {
+    const byModel = table.models.find((m) => m.model === table.defaultId);
+    if (byModel) table.defaultId = byModel.id;
+    else table.defaultId = table.models[0]?.id ?? table.defaultId;
+  }
   return table;
 }
 

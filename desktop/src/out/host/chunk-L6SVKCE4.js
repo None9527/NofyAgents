@@ -653,6 +653,11 @@ var fr = e.object({
     lastActivityAt: C,
     lastAssistantPreview: e.string().optional(),
     lastTerminalQuery: hr.optional(),
+    // D18：模型管理接线——索引行携带 provider/mode/model（zod 默认剥离未知键，
+    // 不加进 schema 适配器推了也到不了 task meta）。
+    provider: e.string().optional(),
+    mode: e.string().optional(),
+    model: e.string().optional(),
     createdAt: C,
   }),
   Xt = e.object({

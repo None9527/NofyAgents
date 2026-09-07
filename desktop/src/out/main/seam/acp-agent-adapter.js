@@ -213,9 +213,24 @@ function indexUpsert(s, reason) {
     hasBackgroundWork: false,
     lastActivityAt: s.lastActivityAt,
     createdAt: s.createdAt,
+    // D18：模型管理接线——task meta 的 provider/model/mode 种子源（host
+    // buildBaselineMetaFromSummary 优先行值）。model 用 renderer 的
+    // `${providerId}/${modelId}` 编码，指向内核 config.toml 的真模型。
+    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    mode: "build",
+    model: `${KERNEL_SYNTHETIC_PROVIDER_ID}/${s.modelId || readModelsTable().defaultId}`,
   });
   emitSessionsIndexDelta(w, [{ op: "session.upserted", session: w.entries.get(s.sessionId) }]);
   log("index upsert", reason, s.sessionId, s.phase, "kind", s.kind, "scope", scopeId);
+}
+
+// D18：恢复态会话无会话级模型覆盖，索引行元数据取 config default。
+function restoredIndexMeta() {
+  return {
+    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    mode: "build",
+    model: `${KERNEL_SYNTHETIC_PROVIDER_ID}/${readModelsTable().defaultId}`,
+  };
 }
 
 /* ───────────────────────── wire frame 发射 ───────────────────────── */
@@ -415,7 +430,12 @@ function zcodeSessionSnapshot(s, cwdOverride) {
       titleSource,
       mode: zcodeMode(),
       status,
-      model: { providerId: "nofy", modelId: configOf().model },
+      // D18：占位 {nofy/nofy-kernel} 会让 renderer 的 current 解析不到注册表模型；
+      // 回内核真引用（会话级覆盖优先，config default 兜底）。
+      model: {
+        providerId: KERNEL_SYNTHETIC_PROVIDER_ID,
+        modelId: s?.modelId || readModelsTable().defaultId || configOf().model,
+      },
       createdAt,
       updatedAt,
     },
@@ -1014,6 +1034,7 @@ function populateFromSummaries(all) {
           hasBackgroundWork: false,
           lastActivityAt: Date.parse(String(sum?.updated_at ?? "")) || now(),
           createdAt: Date.parse(String(sum?.created_at ?? "")) || now(),
+          ...restoredIndexMeta(),
         });
         added += 1;
       }
@@ -1043,6 +1064,7 @@ function populateFromSessionList(list) {
         hasBackgroundWork: false,
         lastActivityAt: Date.parse(String(entry.updatedAt ?? "")) || now(),
         createdAt: Date.parse(String(entry.updatedAt ?? "")) || now(),
+        ...restoredIndexMeta(),
       });
       added += 1;
     }
@@ -1323,6 +1345,11 @@ async function handleHostFrame(frame) {
           );
           let modelId = String(raw ?? "");
           if (modelId.includes("/")) modelId = modelId.slice(modelId.lastIndexOf("/") + 1);
+          if (modelId) {
+            // D18：记会话级模型覆盖，索引行/快照随之回真引用
+            const ss0 = sessions.get(sid0);
+            if (ss0) ss0.modelId = modelId;
+          }
           if (modelId)
             await acp.rpc("session/set_model", { sessionId: sid0, modelId }).catch((e) =>
               console.error("[acp-adapter] session/set_model failed:", e?.message),

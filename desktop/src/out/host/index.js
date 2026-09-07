@@ -18891,7 +18891,9 @@ function settingsToConfigOptions(e) {
   return Bf(e);
 }
 i(settingsToConfigOptions, "settingsToConfigOptions");
-var zn = "glm",
+// D18：task 库的 provider 维度在本构建全局硬编码（查询/存储都用 zn）。ZCode 假设
+// 单 provider glm；nofy 环境注册表只有内核 provider，按 glm 过滤模型必空、菜单必空。
+var zn = "nofy-kernel",
   Pb = [],
   Ge = createServiceLogger("zcode-task-service"),
   Voe = "AskUserQuestion",
@@ -48943,8 +48945,11 @@ function buildBaselineMetaFromSummary(e, t) {
     workspaceIdentity: e.workspaceIdentity,
     createdAt: t.createdAt,
     updatedAt: t.lastActivityAt,
-    mode: "default",
-    provider: "glm",
+    // D18：glm/default 是 ZCode 预设假设；nofy 环境注册表只有内核 provider，
+    // 按 glm 过滤模型必空。行带值时优先行值（适配器推内核真引用）。
+    mode: t.mode ?? "build",
+    provider: t.provider ?? zn,
+    ...(t.model ? { model: t.model } : {}),
     ...(t.parentSessionId ? { forkedFromTaskId: t.parentSessionId } : {}),
     ...(n ? { status: n } : {}),
   };
@@ -50463,12 +50468,12 @@ function createLocalServices(e) {
       .register(vi, n)
       .register(wi, r)
       .register(ka, s)
-      .register(on, ee)
+      .register(on, observeChannelService(ee, "zcode-task")) // D18 探针：task 通道取数实测
       .register(Fn, observeChannelService(ve, "nofy-agent"))
       .register(Rr, observeChannelService(Oe, "zcode-session"))
       .register(Si, createFileWatcherService())
       .register(va, _e)
-      .register(ao, h)
+      .register(ao, observeChannelService(h, "model-provider")) // D18 探针：registry 取数实测
       .register(
         Jl,
         createUsageStatsService({ zcodeAgentService: ve }),
