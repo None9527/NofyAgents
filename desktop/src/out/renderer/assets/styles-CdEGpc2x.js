@@ -77529,7 +77529,12 @@ function Rq(e, t) {
     : o;
 }
 function o6e(e) {
-  return e.apiKey.trim().length > 0 ? !0 : tr(e.id) ? Sr(e.endpoints).length > 0 : !1;
+  // nofy: providers with apiKeyRequired===false (kernel-held secret) count as ready
+  return (e.apiKey ?? ``).trim().length > 0 || e.apiKeyRequired === !1
+    ? !0
+    : tr(e.id)
+      ? Sr(e.endpoints).length > 0
+      : !1;
 }
 function s6e(e, t) {
   let n = an(t);
@@ -77549,7 +77554,7 @@ function Bq(e, t) {
           ? zq(t, [`openai`])
           : e === `glm`
             ? zq(t, [`anthropic`, `responses`, `openai`])
-            : !1;
+            : !0; // nofy: unknown/custom selected provider (e.g. kernel) lists ready providers
 }
 function c6e(e) {
   return jt(e) && e !== q.zapi;

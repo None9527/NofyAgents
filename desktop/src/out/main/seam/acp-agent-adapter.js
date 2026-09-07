@@ -333,10 +333,17 @@ const AVAILABILITY = {
   resumeGoal: { allowed: true },
 };
 
-function configOf() {
+// D20：composer 的 config 直接消费该对象。config.model 必须是**裸 modelId**：
+// renderer 用 we(provider, model) 重编码后与菜单项值比对（iit 的 xe/Ce 链），
+// 编码形 `${providerId}/${modelId}` 只属于 configOptions/Vrt 路径；旧占位
+// {nofy/nofy-kernel} 使模型按钮落占位标签且当前项匹配不到菜单。
+// 会话级覆盖优先，config default 兜底。
+function configOf(s) {
+  const table = readModelsTable();
+  const currentId = s?.modelId || table.defaultId || table.models[0]?.id || "default";
   return {
-    provider: "nofy",
-    model: process.env.NOFY_MODEL_LABEL || "nofy-kernel",
+    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    model: currentId,
     thought: "",
     thoughtLevels: [],
     followupMode: "queue",
@@ -350,7 +357,7 @@ function configOf() {
 // label, providerLabel?, description?}；renderer 用 `${providerId}/${modelId}` 编码 value。
 function nofyModelSettings() {
   const table = readModelsTable();
-  const currentId = table.defaultId || table.models[0]?.id || configOf().model;
+  const currentId = table.defaultId || table.models[0]?.id || "default";
   return {
     current: { providerId: KERNEL_SYNTHETIC_PROVIDER_ID, modelId: currentId },
     available: table.models.map((m) => ({
@@ -434,7 +441,7 @@ function zcodeSessionSnapshot(s, cwdOverride) {
       // 回内核真引用（会话级覆盖优先，config default 兜底）。
       model: {
         providerId: KERNEL_SYNTHETIC_PROVIDER_ID,
-        modelId: s?.modelId || readModelsTable().defaultId || configOf().model,
+        modelId: s?.modelId || readModelsTable().defaultId || readModelsTable().models[0]?.id || "default",
       },
       createdAt,
       updatedAt,
@@ -480,7 +487,7 @@ function conversationSnapshot(s, subscriptionId) {
         availability: AVAILABILITY,
         inputRouting: { mode: "startNow" },
         meta: { title: s.title || "", titleSource: "default" },
-        config: configOf(),
+        config: configOf(s),
         modelTransition: null,
         usage: usageZero(),
         queue: { items: [], autoDrain: true },
