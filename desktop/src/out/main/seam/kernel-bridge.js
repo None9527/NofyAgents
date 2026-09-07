@@ -118,6 +118,7 @@ export function attachKernelHost(child) {
       entry?.port?.close();
     } catch {}
   });
+
   const existing = getNofyKernelClient();
   if (existing) attachFanout(existing);
   void ensureNofyKernelClient()

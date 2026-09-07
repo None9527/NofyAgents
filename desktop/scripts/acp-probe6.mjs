@@ -22,6 +22,8 @@ import { execFileSync } from "node:child_process";
 // 无人监听的端口：attach 形态在此必败，stdio 形态不受影响
 process.env.NOFY_KERNEL_PORT = process.env.NOFY_KERNEL_PORT || "9899";
 delete process.env.NOFY_KERNEL_ATTACH;
+// P1a 后 main 侧内核客户端默认 disabled（连接归 host 自有）；本探针是 main 侧基线，显式开启
+process.env.NOFY_MAIN_KERNEL = "1";
 
 const { ensureNofyKernelClient } = await import("../src/out/main/seam/nofy-kernel-client.js");
 

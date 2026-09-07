@@ -466,6 +466,10 @@ export async function ensureNofyKernelClient() {
     const client = getNofyKernelClient();
     if (client.initialized && client.isOpen()) return client;
     const endpoint = await ensureKernel();
+    if (endpoint.mode === "disabled") {
+      // P1a：应用内内核连接归 host 自有；main 侧单例仅探针/诊断（NOFY_MAIN_KERNEL=1）
+      throw new Error("main kernel client disabled: kernel connection is host-owned (set NOFY_MAIN_KERNEL=1 for main-side probes)");
+    }
     if (endpoint.child) {
       // P0.5 默认拓扑：私有 stdio 子进程（重连＝重新派生）
       client.stdioFactory = endpoint.respawn ?? null;

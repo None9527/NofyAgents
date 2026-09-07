@@ -29,6 +29,13 @@ export const KERNEL_SECRET = process.env.NOFY_KERNEL_SECRET || "nofy-desktop";
 export const KERNEL_WS_URL = `ws://127.0.0.1:${KERNEL_PORT}/ws?server-key=${KERNEL_SECRET}`;
 /** attach-serve 为显式 opt-in（P0.5）；默认拓扑是私有 stdio 子进程。 */
 export const ATTACH_SERVE = process.env.NOFY_KERNEL_ATTACH === "1" || process.env.NOFY_KERNEL_ATTACH === "true";
+/**
+ * P1a：应用内内核连接归 **host 进程自有**（host↔内核 stdio 直连）。main 侧单例
+ * 仅服务于探针/诊断（probe5/6），须显式 NOFY_MAIN_KERNEL=1 开启；应用默认不派生
+ * main 侧子进程，避免与 host 的子进程并存成第二个内核实例。
+ */
+export const MAIN_KERNEL_ENABLED =
+  ATTACH_SERVE || process.env.NOFY_MAIN_KERNEL === "1" || process.env.NOFY_MAIN_KERNEL === "true";
 
 function resolveNofyBin() {
   const candidates = [
@@ -217,7 +224,12 @@ export function ensureKernel() {
 async function doEnsureKernel() {
   if (disposed) return { url: KERNEL_WS_URL, secret: KERNEL_SECRET, mode: "disposed", child: null };
 
-  // 0. 默认拓扑（P0.5）：私有 stdio 子进程；不探针、不附着、不常驻
+  // 0a. P1a：应用内默认不在 main 派生内核（连接归 host 自有）；探针显式开启
+  if (!MAIN_KERNEL_ENABLED) {
+    return { url: null, secret: null, mode: "disabled", child: null };
+  }
+
+  // 0b. 默认拓扑（P0.5）：私有 stdio 子进程；不探针、不附着、不常驻
   if (!ATTACH_SERVE) {
     const c = await spawnStdioChild();
     return { url: null, secret: null, mode: "stdio-child", child: c, respawn: spawnStdioChild };

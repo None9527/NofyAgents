@@ -59,9 +59,43 @@ B–E 回到关键路径，A1 renderer 重建降级为非关键路径的只读�
   cancel 通知 7ms、`close()` 后子进程 stdin EOF 退出）；`acp-probe5`（WS/attach 基线）
   **17/17 无回归**；真应用实证：9803 有活 serve 亦**零 attach**、门槛横幅消失、
   应用退出后子进程回收（code=143、零孤儿）。D1 在默认拓扑下**结构性消失**。
-- P1 阶段 B 垂直切片：host 会话实现改走 main 单例（列表/新建/load 回放/prompt 流/停止/权限应答），
-  验收＝UI 真发一条 prompt 见流式、停止 `stopReason:cancelled`、权限弹窗可批可拒。
+- **P1a 内核连接改由 host 自有：完成**（2026-09-06）。裁定 K（见 §5）：main→host 帧投递
+  实测不可达 ⇒ §3「main 持连接、host 经桥消费」不成立；连接改归 host 进程（每 host 一个
+  `nofy agent stdio` 私有子进程，直连直读）。验收：`acp-probe7` **8/8**（initialize、
+  modelState、session/list、session/new、**84 流式块**、cancel 10ms `cancelled`、
+  新会话入列表、子进程 EOF 回收）；真应用实证 main 零派生（disabled 模式）、门槛仍绿、
+  无游离子进程。
+- P1b 阶段 B 合同重写：host `nofy-agent` 服务的会话方法（列表/新建/load 回放/prompt 流/
+  停止/权限应答/set_model）改走 `kernel-client-host.js`，**renderer 契约形状不变**。
+- P1c preload 改线：`window.zcode.listNofyWorkspaces` 等枚举 API 由 main IPC 改走 host
+  服务（renderer 零改动）；多窗口 K1 复核。
 - P2 修 D2：为桥的 main→host 方向建立**入库的端到端回归探针**（host 侧收帧断言），
   在探针绿之前一切 host 取数不得依赖该方向。
 - P3 修 D1 代码层：`ensureNofyKernelClient` 超时错误携带 WS 关闭码/HTTP 状态（401 ⇒ 明示 secret 不匹配）。
 - P4 阶段 C：设置界面直读写 config.toml（含 JS 侧保注释编辑方案定案，PORTING-PLAN §6.1）。
+
+---
+
+## 5. 裁定 K：内核连接归 host 自有（P1a，2026-09-06）
+
+**测量事实（判定性实验，真应用接线）**：main→host 方向对 seam 帧**不可达**——
+① parentPort 裸帧、② 专用 MessageChannelMain 转移端口、③ 在 child-'message' 处理函数内
+回包，三种形制 main 侧发送均成功（零抛错）而 host 侧（含模块导入期最早注册的监听）
+**零收帧**；对照：另有约 2–3/s 的未知来源帧确实到达 host 并被既有 zod 分派拒绝
+（「invalid parentPort message」），发送者未识别。⇒ 桥的消费面在当前 Electron 接线下
+不成立，P2 保留但**一切 host 取数不得依赖该方向**。
+
+**裁定**：内核连接改由 **host 进程自有**（`out/host/seam/kernel-client-host.js`，
+复用传输抽象后的 `NofyKernelClient` + supervisor 的 `spawnStdioChild`）。理由：
+阶段 B 的会话流与 renderer 的 ChannelServer 契约都终止于 host；TUI 的先例是「UI 与
+agent 同进程」；stdio 子进程无端口/无 secret/天然单父客户端/父死子亡。
+main 侧单例降为**探针/诊断专用**（`NOFY_MAIN_KERNEL=1`；attach 形态 `NOFY_KERNEL_ATTACH=1`），
+应用内默认 `mode:"disabled"` 快速失败，不再派生第二个内核实例。
+
+**K1（登记，未修）**：多窗口＝每窗口一个 host＝一个内核子进程，语义等同多个 TUI 实例；
+会话存储按 (cwd, sid) 目录隔离，不同会话并发安全、同会话两端同时活跃未定义
+（PORTING-PLAN §6.7）。跨窗口共享单内核的候选方案＝spawn 期 fd 传递的 socketpair，
+或修好 main→host 投递；二者皆未做。
+
+**探针矩阵**：probe5＝WS/attach 基线（17/17）；probe6＝main 侧 stdio 拓扑基线（13/13，
+需 `NOFY_MAIN_KERNEL=1` 或 attach）；probe7＝**host 自有垂直路径基线（8/8）**。
