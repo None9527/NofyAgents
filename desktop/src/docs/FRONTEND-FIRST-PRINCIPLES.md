@@ -516,3 +516,13 @@ case "session/updateRuntimeModelConfig": {
 `refreshPresetProviders()`（host index.js:50440、52734 两处调用）**本批未动**：
 它仍会把 ZCode 预设写进存储，但在内核优先的读路径下不再浮到 UI；彻底停用需先确认
 它是否兼做迁移/清理（未知副作用），单独一批做并复验横幅。
+
+**D15 的内核侧方法名已钉死（可直接开工）**：内核 ACP **支持** set_model/set_mode ——
+`crates/codegen/nofy-acp-lib/src/message.rs:380` `acp::AGENT_METHOD_NAMES.session_set_mode`、
+`:395` `session_set_model`、`:505/:511` 两处 dispatch 分支。即线路名就是 ACP 标准的
+`session/set_mode` 与 `session/set_model`（stdlib 家族，**不是** `_nofy/*` 扩展；
+故 KERNEL-ACP-SURFACE.md §B 的 266 个扩展名里查不到它们，要查 §A 的 stdlib 10 点）。
+⇒ 适配器 `session/setModel` → ACP `session/set_model`、`session/setMode` → `session/set_mode`
+（ACP 参数形 `{sessionId, modelId}` / `{sessionId, modeId}`，落地前需按内核 dispatch 分支复核字段名）。
+`session/setThoughtLevel`、`session/updateRuntimeModelConfig` 在 stdlib 里**无对应**，
+候选落点＝`_nofy/settings/update` 或 `_nofy/sessionConfig`（未证，开工前先读内核分支确认，不得造名）。
