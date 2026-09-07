@@ -140,7 +140,7 @@ function sessionState(sessionId, workspaceId) {
       sessionEnded: false,
       pendingInteractions: [],
       pendingAcpPermissions: new Map(), // interactionId -> {acpId, optionIds}
-      liveTurn: null, // {turnId, headerRowId, assistantRowId, assistantText, toolRows:Map}
+      liveTurn: null, // {turnId, headerRowId, assistantRowId, assistantRow, assistantText, toolRows:Map}
       createdAt: now(),
       lastActivityAt: now(),
       replayedOnce: false,
@@ -521,10 +521,15 @@ function applyUpdate(s, update, opts = {}) {
         const row = { ...newRowBase(s, live.turnId), kind: "assistantText", text, state: "streaming" };
         s.rows.push(row);
         live.assistantRowId = row.rowId;
+        live.assistantRow = row;
         live.assistantText = text;
         deltas.push({ op: "row.appended", row });
       } else {
         live.assistantText += text;
+        // D10：存量行的 text 必须同步累积。收尾的 row.upserted、以及任何快照/回放/重订阅
+        // 都读 row.text；只累积 live.assistantText 会让终帧把九条 row.delta 的成果覆盖回首块
+        // （实测 UI 停在「我是 N」两字，而完整回复是 63 字）。
+        if (live.assistantRow) live.assistantRow.text = live.assistantText;
         deltas.push({ op: "row.delta", rowId: live.assistantRowId, path: "text", append: text });
       }
       break;

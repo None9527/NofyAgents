@@ -364,3 +364,25 @@ turnHeader 冻结在「已工作 3 秒」，其后无 `row.delta` 上屏。故 D
 ② 首块之后内核通知未再送达适配器；③ 首块后 liveTurn 被提前收尾。
 下一步：给适配器加 `NOFY_ADAPTER_LOG` 落盘（stderr 环形缓冲当前不可观测），
 在 probe10 里直驱适配器数清「收到的 chunk 数 vs 发出的 delta 数」，二分定位。
+
+**D10（已修，D7 的真因）**：适配器 `agent_message_chunk` 分支只累积 `live.assistantText`，
+**从不回写存量行的 `row.text`**；而收尾 `row.upserted`（以及任何快照/回放/重订阅）读的是
+`s.rows` 里的行对象 ⇒ 终帧把九条 `row.delta` 的成果**覆盖回第一块**。
+取证：probe9 录像 14 帧——frame4 `row.appended assistantText text:"我是 N"`、
+frame5-13 九条 `row.delta{rowId:3, path:"text", append:"ofy，一个"/"运行在命令行里的"/…}`、
+frame14 `row.upserted assistantText text:"我是 N"`（**仍是两字**）。
+线路形状本身无罪：`chunk-L6SVKCE4.js:627` 的 delta op 规格＝
+`{op:"row.delta", rowId:number, path:Nt, append:string}`，`Nt`＝
+`enum["text","inputText","output.text","summaryText"]`（chunk-O5YHTQBW.js:16321），
+适配器发的 `path:"text"` 合法 ⇒ 排除「renderer 静默丢弃 delta」这一候选。
+修：`live.assistantRow` 持有行引用，每块累积后同步 `assistantRow.text = live.assistantText`。
+
+**验收（默认拓扑，electron23.log + probe9 录像 + CDP，真发 prompt）**：
+- UI 助手气泡完整上屏：「我是 Nofy，一个跑在终端里的 AI 编程助手，可以帮你读代码、改代码、
+  跑命令、查文档、做架构设计和调试，把工程任务从想法一路推进到可验证的结果。」
+- 终帧 `row.upserted.assistantText.text` 长度 **74**（此前 3）；会话帧共 18。
+- 退出后 9400/9800 双零、适配器 0、内核 stdio 子进程 0（`app-quit] host process cleanup
+  completed`；适配器退出略慢于 5s 窗口，非泄漏，二次复核为 0）。
+⇒ **D7 关闭**：桌面 UI 端到端会话主流程（新建会话 → 发 prompt → 流式 → 完整回复上屏）
+在**默认拓扑**下真实可用。仍未验：停止/cancel、权限批拒、set_model、历史回放、
+`__home__` 索引面（D8）、多轮连续对话。
