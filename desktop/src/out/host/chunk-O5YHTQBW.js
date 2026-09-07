@@ -18911,23 +18911,11 @@ function isZCodeAgentStartupReady(e) {
   return resolveZCodeAgentStartupReadiness(e).ready;
 }
 s(isZCodeAgentStartupReady, "isZCodeAgentStartupReady");
+// D14/§0：ZCode 预设供应商目录清空。内核（~/.nofy/config.toml）是模型唯一真源；
+// 预设（智谱 Z.ai / BigModel）是 ZCode 云端时代残留。磁盘存储里并无其条目
+// （grep ~/.nofy/v2 无 bigmodel/zai）⇒ 清空目录即从界面彻底移除，无需清存储。
+// 消费点仅下方两处迭代（new Map(Zh.map…)、Zh.flatMap…），空数组安全。
 var Zh = [
-    {
-      id: "zai",
-      label: "Z.ai",
-      oauthProviderId: "zai",
-      apiKeyProviderId: D.zai,
-      startPlanProviderId: D.zaiStartPlan,
-      codingPlanProviderId: D.zaiCodingPlan,
-    },
-    {
-      id: "bigmodel",
-      label: "BigModel",
-      oauthProviderId: Ah,
-      apiKeyProviderId: D.bigmodel,
-      startPlanProviderId: D.bigmodelStartPlan,
-      codingPlanProviderId: D.bigmodelCodingPlan,
-    },
   ],
   yP = "oauth",
   bP = new Map(Zh.map((e) => [e.id, e])),
