@@ -316,6 +316,20 @@ host 侧一律表现为 `write EPIPE`、会话面整体闸死（§8）。更糟�
 以 v4 客户端身份发 `workspace/readState`→`session/create`→`session/send`，断言助手行到达；
 同时把适配器 stderr 落盘。**在 probe10 绿之前不得声称会话主流程可用。**
 
+**D7 已定位（2026-09-07，内核侧磁盘证据，二选一已判定）**：查
+`~/.nofy/sessions/%2FUsers%2Fmac/01a079ec-abbb-…/chat_history.jsonl`（7 行）——
+第 4 行是 `<user_query>请用一句话介绍你自己</user_query>`，**第 6 行是助手回复全文**
+「我是 Nofy，一个运行在终端里的 AI 编程助手，可以读写你的代码、执行命令、调试和重构项目，
+帮你把软件工程任务从头做到尾。」；`summary.json` 记 `num_messages:7`、
+`current_model_id:"qwen3.8-max"`、`generated_title` 已生成。
+⇒ **内核真的跑完了这一轮并产出了文本**（4 秒与 UI「已工作 4 秒」吻合），
+故 D7 的成因**不是**「内核未产出」，而是**适配器未把 ACP `agent_message_chunk`
+映射成 v4 会话行**（它只发了 turnHeader 行 + 用户行，随后 `completedSuccess`）。
+另注：`updates.jsonl` 只持久化 `hook_execution` 类更新（7 行），流式 chunk 不落该文件，
+故适配器侧取证要靠 probe10 的 stderr 落盘，不能靠这个文件。
+修复面收敛为单文件：`out/main/seam/acp-agent-adapter.js`（1339 行）里
+ACP `session/update` → v4 `row.appended/row.upserted` 的映射表。
+
 **D8（新登记，未修）**：`subscribeSessionsIndexV4({workspacePath:"__home__", runtimePolicy:"existing-only"})`
 ×6 仍硬抛「ZCode Agent runtime is not running.」——`__home__` 是伪 workspace、没有 runtime 子进程；
 首页「还没有对话」空态与此相关（真实 workspace 的索引帧是正常推送的）。
