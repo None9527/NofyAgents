@@ -17389,8 +17389,35 @@ function createZCodeAgentService(e) {
         return getConversationTelemetryFactEmitter(m).event;
       },
       async subscribeSessionsIndexV4(m) {
-        let A = await getReadOnlyClient(m, m.runtimePolicy),
-          $ = resolveV4Connection(m, v4ConnectionIdFor(m.subscriberScope)),
+        // D8：`__home__` 是首页的伪 workspace，没有也不该有 runtime 子进程。原实现对它
+        // 走 getReadOnlyClient ⇒ 硬抛「ZCode Agent runtime is not running.」（实测启动即 10 次），
+        // 首页会话面因此整体死掉（输入器发不出消息）。首页列表本就由各真实 workspace 的
+        // sessions-index 帧拼出（侧边栏有数据即证），故这里给**软成功 ack**，形状对齐适配器
+        // 实测返回 {subscriptionId, mode:"snapshot", logEpoch}（响应规格 iU = {ack}.strict()）。
+        const softAck = () => {
+          let c = resolveV4Connection(m, v4ConnectionIdFor(m.subscriberScope)),
+            topic = Gf(J(m)),
+            z = {
+              ack: {
+                subscriptionId: `sub-empty-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+                mode: "snapshot",
+                logEpoch: "nofy-empty-1",
+              },
+            };
+          return (rememberV4SubscriptionRoute(m, topic, z.ack.subscriptionId, c.connectionId), z);
+        };
+        if (J(m) === "__home__" || m.workspacePath === "__home__") return softAck();
+        let A;
+        try {
+          A = await getReadOnlyClient(m, m.runtimePolicy);
+        } catch (err) {
+          // existing-only ＝「只用已存在的 runtime，别启动」。启动竞态下它必然先抛后成
+          // （实测同一路径 /Users/mac 与 ~/.nofy/workspace/default 都是先抛再成功），
+          // 硬抛会让 renderer 的索引面进错误态；这里改软成功，后续订阅/重同步自愈。
+          if (m.runtimePolicy !== "existing-only") throw err;
+          return softAck();
+        }
+        let $ = resolveV4Connection(m, v4ConnectionIdFor(m.subscriberScope)),
           E = Gf(J(m)),
           L = [];
         if (supportsLegacyRemoteTaskAllowlist(m.workspaceIdentity))
@@ -17431,7 +17458,14 @@ function createZCodeAgentService(e) {
         return (rememberV4SubscriptionRoute(m, E, z.ack.subscriptionId, $.connectionId), z);
       },
       async unsubscribeSessionsIndexV4(m) {
-        await unsubscribeV4Route(m, "sessions-index/");
+        // D8 余口：runtime 不在（伪 workspace / existing-only 启动竞态 / 子进程已退）时，
+        // 退订本就无事可做，硬抛只会把错误甩回 renderer。subscribe 侧改软成功后，
+        // 这条成为录像里唯一残留的「runtime is not running」（实测 ×2）。
+        try {
+          await unsubscribeV4Route(m, "sessions-index/");
+        } catch (err) {
+          if (!String(err?.message ?? "").includes("runtime is not running")) throw err;
+        }
       },
       async resyncSessionsIndexV4(m) {
         return resyncV4Route(m, "sessions-index/");
