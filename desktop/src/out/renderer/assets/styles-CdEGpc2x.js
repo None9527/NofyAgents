@@ -88235,36 +88235,8 @@ var qnt = 120 * 1e3,
     { id: q.zapi, displayName: `ZAPI` },
   ],
   aX = new Map(iX.map((e) => [e.id, e])),
-  oX = [
-    {
-      id: q.zaiStartPlan,
-      oauthProviderId: `zai`,
-      label: `Z.ai - Coding Plan`,
-      providerName: `Z.ai`,
-      purchaseUrl: `https://z.ai/manage-apikey/subscription`,
-    },
-    {
-      id: q.zaiCodingPlan,
-      oauthProviderId: `zai`,
-      label: `Z.ai - Coding Plan`,
-      providerName: `Z.ai`,
-      purchaseUrl: `https://z.ai/manage-apikey/subscription`,
-    },
-    {
-      id: q.bigmodelCodingPlan,
-      oauthProviderId: Ri,
-      label: `BigModel - Coding Plan`,
-      providerName: `BigModel`,
-      purchaseUrl: Ynt,
-    },
-    {
-      id: q.bigmodelStartPlan,
-      oauthProviderId: Ri,
-      label: `BigModel- Coding Plan`,
-      providerName: `BigModel`,
-      purchaseUrl: Ynt,
-    },
-  ];
+  // nofy: ZCode preset coding-plan catalog emptied per product decision
+  oX = [];
 (q.zaiStartPlan, Gnt.zcodePlanAnthropicBaseUrl, [...Di]);
 var Xnt = new Set([...iX.map((e) => e.id), ...oX.map((e) => e.id)]);
 function Znt(e) {
@@ -191712,25 +191684,7 @@ function rQt({
     ),
     y = (0, Q.useMemo)(
       () => [
-        {
-          id: `preset`,
-          title: h.formatMessage({ id: `settings.modelProvider.presetTitle` }),
-          items: e.map(({ id: e, displayName: t, provider: n }) => ({
-            key: cX(e),
-            type: `preset`,
-            presetId: e,
-            label: t,
-            provider: n,
-            displayName: t,
-            statusActive: aQt({
-              presetId: e,
-              provider: n,
-              connectionModeItems: v,
-              modelProviderFamilyModes: o,
-              modelProviderFamilySelectedKeys: { ...s, ...c },
-            }),
-          })),
-        },
+        // nofy: ZCode preset family group (智谱/Z.ai/BigModel) removed per product decision
         {
           id: `custom`,
           title: h.formatMessage({ id: `settings.modelProvider.customTitle` }),
