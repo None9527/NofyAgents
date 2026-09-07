@@ -1190,6 +1190,26 @@ async function handleHostFrame(frame) {
       case "session/setThoughtLevel":
       case "session/setMode":
       case "session/updateRuntimeModelConfig": {
+        // D15：选模型/切模式必须真落到内核（此前只回快照、不转发 ⇒ 用户选什么都不生效）。
+        // ACP stdlib 线路名：session/set_model {sessionId, modelId}、
+        // session/set_mode {sessionId, modeId}（内核 nofy-acp-lib/src/message.rs:395/511 已支持）。
+        // setThoughtLevel/updateRuntimeModelConfig 在 stdlib 无对应，暂不转发（登记待查
+        // _nofy/settings/update / _nofy/sessionConfig）。内核拒绝时不炸 UI：catch 后仍回快照。
+        const sid0 = String(params.sessionId ?? "");
+        const pick = (...cs) => cs.find((c) => c !== undefined && c !== null && String(c).length > 0);
+        if (sid0 && method === "session/setModel") {
+          const modelId = String(pick(params.modelId, params.model, params.modelId?.modelId, params.config?.model) ?? "");
+          if (modelId)
+            await acp.rpc("session/set_model", { sessionId: sid0, modelId }).catch((e) =>
+              console.error("[acp-adapter] session/set_model failed:", e?.message),
+            );
+        } else if (sid0 && method === "session/setMode") {
+          const modeId = String(pick(params.modeId, params.mode, params.config?.mode) ?? "");
+          if (modeId)
+            await acp.rpc("session/set_mode", { sessionId: sid0, modeId }).catch((e) =>
+              console.error("[acp-adapter] session/set_mode failed:", e?.message),
+            );
+        }
         // FIX-RESUME：host 对这些方法的响应同样按完整会话快照 schema 校验
         const sid = String(params.sessionId ?? "");
         const s = sid ? sessionState(sid, sessionWorkspaceHint(sid)) : null;
