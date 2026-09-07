@@ -38532,10 +38532,15 @@ function createModelProviderService(e = {}) {
   }
   i(markLocalProvidersUsable, "markLocalProvidersUsable");
   async function readCachedProviders() {
-    let ee = await readProviders({});
-    // A1-B（PORTING-PLAN §2.7 移植钥匙）：存储注册表为空时，用内核 modelState
-    // 合成的条目兜底——模型表唯一来源是内核（§2.4），桌面不维护自己的注册表。
-    if (ee.length === 0) ee = await synthesizeKernelProviders();
+    // D14：内核为**唯一真源**（§0 单一配置 ~/.nofy/config.toml；§2.4 模型表唯一来源是内核）。
+    // 旧写法＝「存储注册表为空才合成内核条目」，但 refreshPresetProviders() 启动即把 ZCode
+    // 预设灌进注册表（settingService 里还有 enabledBuiltinAgentCliProviders:["glm"]）
+    // ⇒ 注册表永不为空 ⇒ 内核合成路径**从未触发**，UI 里残留 ZCode 官方模型、
+    // 且选不到内核 config.toml 的模型。改为无条件先用内核合成结果（modelState 优先、
+    // config.toml [model.*] 兜底 + fs.watch）；存储注册表仅在内核合成拿不到条目时降级兜底，
+    // 以免内核短暂不可用时打回「无可用模型」横幅（D3 的原症状）。
+    let ee = await synthesizeKernelProviders();
+    if (ee.length === 0) ee = await readProviders({});
     return markLocalProvidersUsable(
       applyProviderFamilyDomain(ee, await loadProviderFamilyDomain(), t()),
     );

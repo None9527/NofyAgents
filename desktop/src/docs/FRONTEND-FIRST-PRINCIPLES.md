@@ -490,3 +490,29 @@ CDP 点击「管理模型」后按 `grok|qwen|glm|dashscope|nofy kernel` 匹配�
 ③ 选择模型要真落到内核（`setModel`/`session/setModel` → ACP `session/set_model`），
 并复核 `resolveRuntimeModelForV4`/`updateRuntimeModelConfig` 两条路。
 **风险提示**：动 ① 有可能重新触发「无可用模型」横幅（D3 的原症状），故必须与 ② 同批落地并复验横幅。
+
+**D15（新登记，未修）：选模型/切模式在适配器里是空转。**
+`acp-agent-adapter.js:1189-1196` 实测代码：
+```js
+case "session/setModel":
+case "session/setThoughtLevel":
+case "session/setMode":
+case "session/updateRuntimeModelConfig": {
+  // FIX-RESUME：host 对这些方法的响应同样按完整会话快照 schema 校验
+  const sid = String(params.sessionId ?? "");
+  const s = sid ? sessionState(sid, sessionWorkspaceHint(sid)) : null;
+  respond(id, s ? zcodeSessionSnapshot(s, ...) : zcodeSessionSnapshot({...}, ""));
+```
+⇒ 四个方法**只回一个会话快照，完全不转发内核**（没有 ACP `session/set_model`）。
+所以即便 D14 让 UI 列出内核模型，**选中也不会落到内核**——用户「没有选择模型的能力」
+这半句的真因在这里。修法：这四个 case 需真发 ACP（`session/set_model` 等），
+并把内核回执反映到快照的 model/mode/thoughtLevel 字段；内核侧方法名以
+`KERNEL-ACP-SURFACE.md` 的 66 个可派发请求为准，不得凭空造名。
+
+**D14 修法落地（本批）**：`readCachedProviders` 由「存储注册表为空才合成内核条目」改为
+**无条件先用 `synthesizeKernelProviders()`**（内核 modelState 优先、config.toml `[model.*]`
+兜底 + fs.watch），存储注册表降为「内核合成拿不到条目时」的降级兜底——这样既让内核成为
+唯一真源，又不会在内核短暂不可用时打回 D3 的「无可用模型」横幅。
+`refreshPresetProviders()`（host index.js:50440、52734 两处调用）**本批未动**：
+它仍会把 ZCode 预设写进存储，但在内核优先的读路径下不再浮到 UI；彻底停用需先确认
+它是否兼做迁移/清理（未知副作用），单独一批做并复验横幅。
