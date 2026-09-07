@@ -50,6 +50,34 @@ export async function readConfigTomlModelIds() {
   }
 }
 
+// D14：config.toml 的 [model.*] 段带 base_url/name —— 合成 provider 的 endpoints.baseURL
+// 必须取这里的真实值（内核没有 OpenAI 兼容 HTTP 服务，crates 里 9803 零命中；
+// 旧的 127.0.0.1:9803 兜底是撒谎）。
+export async function readConfigTomlModels() {
+  try {
+    const text = await readFile(configTomlPath(), "utf8");
+    const out = [];
+    let cur = null;
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      const sec = /^\[model\.("?)((?:[^"\\]|\\.)*)\1\]\s*$/.exec(line);
+      if (sec) {
+        cur = { id: sec[2], name: "", baseURL: "" };
+        out.push(cur);
+        continue;
+      }
+      if (!cur) continue;
+      const kv = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"((?:[^"\\]|\\.)*)"\s*$/.exec(line);
+      if (!kv) continue;
+      if (kv[1] === "base_url") cur.baseURL = kv[2];
+      else if (kv[1] === "name") cur.name = kv[2];
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 let configWatchStarted = false;
 function watchConfigToml() {
   if (configWatchStarted) return;
@@ -98,12 +126,19 @@ function modelsOf(modelState) {
  */
 export async function synthesizeKernelProviders() {
   let list = modelsOf(kernelModelState);
+  let cfgModels = [];
   if (list.length === 0) {
-    list = (await readConfigTomlModelIds()).map((id) => ({ id, name: id }));
+    cfgModels = await readConfigTomlModels();
+    list = cfgModels.map((m) => ({ id: m.id, name: m.name || m.id }));
     watchConfigToml();
   }
   if (list.length === 0) return [];
-  const baseURL = kernelBaseUrl || "http://127.0.0.1:9803";
+  if (cfgModels.length === 0) cfgModels = await readConfigTomlModels();
+  // 内核没有 OpenAI 兼容 HTTP 服务（crates 里 9803 零命中），会话流量走 stdio 子进程；
+  // 故 baseURL 取 config.toml 里 [model.*] 的真实 base_url，界面上不再显示假端口。
+  // 末位 loopback 兜底仅为让条目过 schema（endpoints.baseURL 必填），不代表可达端点。
+  const baseURL =
+    kernelBaseUrl || cfgModels.map((m) => m.baseURL).find((u) => u && u.trim()) || "http://127.0.0.1:9800";
   // 形制须过 host 的快照投影（shouldIncludeModelProviderInZCodeAgentRegistry +
   // convertModelProviderConfigToZCodeProviderInput）：endpoints.paths 必须含所用
   // kind（否则 runtime baseURL 解析为空 ⇒ 整条被丢），模型条目必须带 kinds。
