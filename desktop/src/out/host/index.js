@@ -13797,75 +13797,6 @@ var td = class {
   }
 };
 import { randomUUID as tb } from "crypto";
-function sanitizeAmbientUrl(e) {
-  if (e)
-    try {
-      let t = new URL(e);
-      if (!["about:", "http:", "https:"].includes(t.protocol)) return;
-      ((t.username = ""), (t.password = ""));
-      let n = t.toString();
-      return n.length <= 4096 ? n : void 0;
-    } catch {
-      return;
-    }
-}
-i(sanitizeAmbientUrl, "sanitizeAmbientUrl");
-async function collectBrowserAmbientContextUncapped(e, t) {
-  if (!e) return;
-  let n = t.workspaceIdentity?.trim() || t.workspacePath,
-    o = t.clientMode ?? "desktop-continuous",
-    r = {
-      sessionId: t.sessionId,
-      workspaceKey: n,
-      workspacePath: t.workspacePath,
-      ...(t.workspaceIdentity ? { workspaceIdentity: t.workspaceIdentity } : {}),
-      ...(t.remoteSessionId ? { remoteSessionId: t.remoteSessionId } : {}),
-      clientMode: o,
-      sessionContext: "live",
-    };
-  try {
-    let a = (await e.list({ requestId: tb(), ...r })).find((P) => P.type === "iab");
-    if (!a) return;
-    let [c, d] = await Promise.allSettled([
-        e.execute({
-          requestId: tb(),
-          browserId: a.id,
-          browserGeneration: a.generation,
-          ...r,
-          command: { method: "list" },
-        }),
-        e.execute({
-          requestId: tb(),
-          browserId: a.id,
-          browserGeneration: a.generation,
-          ...r,
-          command: { method: "listUserTabs" },
-        }),
-      ]),
-      l = c.status === "fulfilled" ? AP.safeParse(c.value) : void 0,
-      p = d.status === "fulfilled" ? AP.safeParse(d.value) : void 0,
-      u = l?.success && l.data.ok ? (l.data.tabs ?? []) : [],
-      h = p?.success && p.data.ok ? (p.data.userTabs ?? []) : [],
-      y = new Set([...u.map((P) => P.tabId), ...h.map((P) => P.id)]);
-    if (y.size === 0) return;
-    let k = u.find((P) => P.active),
-      v = sanitizeAmbientUrl(k?.url ?? h[0]?.url ?? u.at(-1)?.url);
-    return { tabCount: y.size, ...(v ? { currentUrl: v } : {}) };
-  } catch {
-    return;
-  }
-}
-i(collectBrowserAmbientContextUncapped, "collectBrowserAmbientContextUncapped");
-// D13 加固：浏览器环境上下文只是发送 payload 的装饰性附加；main→host 的
-// BrowserExecuteResult 回包一旦丢失，桥会挂满 30s 超时，把每次 sendText 拖到 30s。
-// 给收集加 2s 预算：健康路径 0ms 应答不受影响，死路径最多拖 2s。
-function collectBrowserAmbientContext(e, t) {
-  return Promise.race([
-    collectBrowserAmbientContextUncapped(e, t),
-    new Promise((n) => setTimeout(() => n(void 0), 2e3)),
-  ]);
-}
-i(collectBrowserAmbientContext, "collectBrowserAmbientContext");
 var Se = createServiceLogger("nofy-agent-service"),
   ere = "plugin-workspace",
   qr = 5 * 6e4,
@@ -16538,15 +16469,9 @@ function createZCodeAgentService(e) {
               workspace: m,
             })),
           f = ve.get(runtimeModelSessionKey(m))?.revision,
-          C =
-            m.browserAmbientContext ??
-            (await collectBrowserAmbientContext(e?.browserControlExecutor, {
-              sessionId: m.sessionId,
-              workspacePath: m.workspacePath,
-              ...(m.workspaceIdentity ? { workspaceIdentity: m.workspaceIdentity } : {}),
-              ...(m.remoteSessionId ? { remoteSessionId: m.remoteSessionId } : {}),
-              ...(m.clientMode ? { clientMode: m.clientMode } : {}),
-            })),
+          // D19：同 sendText 路径——装饰性 browserAmbientContext 不再门控发送；
+          // renderer 若自带则原样透传，host 不再现取。
+          C = m.browserAmbientContext ?? void 0,
           M = { ...m, ...(C ? { browserAmbientContext: C } : {}) };
         (Se.info(L, "ZCode Agent session/send \u5F00\u59CB", {
           attachmentCount: m.attachments?.length ?? 0,
@@ -17288,16 +17213,11 @@ function createZCodeAgentService(e) {
           z;
         if (E.type === "sendText" && E.sessionId) {
           let M = E.sessionId,
-            W = Vf.sendText.parse(E.payload),
-            Y = await collectBrowserAmbientContext(e?.browserControlExecutor, {
-              sessionId: E.sessionId,
-              workspacePath: m.workspacePath,
-              ...(m.workspaceIdentity ? { workspaceIdentity: m.workspaceIdentity } : {}),
-              ...(m.remoteSessionId ? { remoteSessionId: m.remoteSessionId } : {}),
-              clientMode: $,
-            });
-          (Y && (E = { ...E, payload: { ...W, browserAmbientContext: Y } }),
-            (L = { content: W.text, runtimeModel: W.turnRuntimeModel, sessionId: M }));
+            W = Vf.sendText.parse(E.payload);
+          // D19：browserAmbientContext 只是装饰（tabCount/currentUrl）。实测活应用里
+          // main→host 回包链断，收集永远吃满预算 ⇒ 每次发送在 R1 调用与适配器收命令
+          // 之间无条件空等 2002ms。装饰数据不得门控发送：不再等待、不再附 payload。
+          L = { content: W.text, runtimeModel: W.turnRuntimeModel, sessionId: M };
         } else if (E.type === "createSession") {
           let M = Vf.createSession.parse(E.payload);
           M.firstInput && (z = { content: M.firstInput.text, runtimeModel: M.runtimeModel });
