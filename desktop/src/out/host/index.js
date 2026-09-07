@@ -13756,7 +13756,7 @@ function sanitizeAmbientUrl(e) {
     }
 }
 i(sanitizeAmbientUrl, "sanitizeAmbientUrl");
-async function collectBrowserAmbientContext(e, t) {
+async function collectBrowserAmbientContextUncapped(e, t) {
   if (!e) return;
   let n = t.workspaceIdentity?.trim() || t.workspacePath,
     o = t.clientMode ?? "desktop-continuous",
@@ -13800,6 +13800,16 @@ async function collectBrowserAmbientContext(e, t) {
   } catch {
     return;
   }
+}
+i(collectBrowserAmbientContextUncapped, "collectBrowserAmbientContextUncapped");
+// D13 加固：浏览器环境上下文只是发送 payload 的装饰性附加；main→host 的
+// BrowserExecuteResult 回包一旦丢失，桥会挂满 30s 超时，把每次 sendText 拖到 30s。
+// 给收集加 2s 预算：健康路径 0ms 应答不受影响，死路径最多拖 2s。
+function collectBrowserAmbientContext(e, t) {
+  return Promise.race([
+    collectBrowserAmbientContextUncapped(e, t),
+    new Promise((n) => setTimeout(() => n(void 0), 2e3)),
+  ]);
 }
 i(collectBrowserAmbientContext, "collectBrowserAmbientContext");
 var Se = createServiceLogger("nofy-agent-service"),
