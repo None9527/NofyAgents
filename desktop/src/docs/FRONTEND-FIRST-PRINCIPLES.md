@@ -98,4 +98,37 @@ main 侧单例降为**探针/诊断专用**（`NOFY_MAIN_KERNEL=1`；attach 形�
 或修好 main→host 投递；二者皆未做。
 
 **探针矩阵**：probe5＝WS/attach 基线（17/17）；probe6＝main 侧 stdio 拓扑基线（13/13，
-需 `NOFY_MAIN_KERNEL=1` 或 attach）；probe7＝**host 自有垂直路径基线（8/8）**。
+需 `NOFY_MAIN_KERNEL=1` 或 attach）；probe7＝**host 自有垂直路径基线（8/8）**；
+probe8＝**v4 会话事件形状门禁（10/10）**——直接 import 束内 zod 联合
+（chunk-O5YHTQBW 导出 `Ya`＝本地 `Bf`，discriminatedUnion 25 型）做 safeParse，
+束可在纯 Node 导入实证成立。P1b 的 ACP→v4 桥产出的每个事件必须先过 probe8。
+
+---
+
+## 6. P1b 合同规格（v4 会话事件，probe8 样本即规格；strict schema ⇒ 键集精确）
+
+信封（`ek`，strict）：`eventId`/`sessionId` uuid、`turnId?` uuid、`seq` int≥0、
+`traceId?` uuid、`timestamp` int(ms)、`deliveryKind?` ∈ desktop-continuous|web-remote-replayable；
+外加 `type` 判别量与 `payload?`。
+
+| 事件 | 最小 payload 键 | 枚举域 |
+|---|---|---|
+| session.created | mode, contextWindow | mode ∈ plan\|build\|edit\|yolo\|auto |
+| turn.started | turnNumber, input | — |
+| part.started / part.upserted | part{partId, sessionId, messageId, type:"text", text} | part.type ∈ text\|reasoning\|file\|… |
+| part.delta | messageId, partId, delta | field ∈ text\|reasoning\|input\|output |
+| message.upserted | content | — |
+| turn.completed | response, tokenCount, toolCallCount, duration, resultType | resultType ∈ success\|cancelled\|error_max_turns\|error_max_budget\|error_during_execution\|error_max_tool_calls |
+| session.titleUpdated | previousTitle, title, source | source ∈ default\|first_input\|generated\|custom |
+| permission.requested | toolCallId, toolName, riskLevel, reason, input, options[] | riskLevel ∈ low\|medium\|high\|critical；options[]{optionId, kind, name, response{decision}}；decision ∈ allow\|deny\|escalate\|modify |
+| permission.resolved | toolCallId | decision 同上 |
+| session.closed | （无 payload） | — |
+
+投递链：协议客户端 `onNotification("session/event")` → `handleSessionEvent` →
+`emitSessionEvent(ws, sessionId, {type:"session.event", event})` → `subscribeConversationV4`
+（renderer 订阅面）；roster/索引走 `subscribeSessionsIndexV4`。替换面＝服务层的
+`getClient/getReadOnlyClient` 返回的协议客户端（`.request(Me.*, params, schema)` +
+`.onNotification`），以 ACP-backed shim 同形替换；未映射方法显式抛 not-migrated。
+
+P1b 开工前的剩余微读取：`Me` 方法名字符串表、conversationV4 的推送通道名、
+`initialize/resyncConversationV4` 的历史消息形（`ou` schema）。
