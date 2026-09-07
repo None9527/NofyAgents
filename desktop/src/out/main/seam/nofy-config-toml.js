@@ -136,6 +136,36 @@ export function upsertModelSection(id, fields) {
   atomicWrite(lines);
 }
 
+/**
+ * 读内核模型表：{ defaultId, models:[{id,name,model,contextWindow}] }。
+ * 内核自身亦由该文件解析模型表（§2.4），故这是桌面侧的权威读源；
+ * [models] default 缺失时回退首段。
+ */
+export function readModelsTable() {
+  const lines = readLines();
+  const table = { defaultId: "", models: [] };
+  for (const s of sections(lines)) {
+    const kv = {};
+    for (let i = s.start + 1; i < s.end; i++) {
+      const m = /^([A-Za-z0-9_"'-]+)\s*=\s*(.*)$/.exec(lines[i].trim());
+      if (m) kv[unquote(m[1])] = unquote(m[2]);
+    }
+    if (s.name === "models") table.defaultId = String(kv.default ?? "");
+    else if (s.name.startsWith("model.")) {
+      const id = unquote(s.name.slice("model.".length));
+      const cw = Number(kv.context_window);
+      table.models.push({
+        id,
+        name: String(kv.name || id),
+        model: String(kv.model || id),
+        ...(Number.isFinite(cw) && cw > 0 ? { contextWindow: cw } : {}),
+      });
+    }
+  }
+  if (!table.defaultId && table.models.length > 0) table.defaultId = table.models[0].id;
+  return table;
+}
+
 /** 删除整个 [model.<id>] 段（含表头与键行）。 */
 export function removeModelSection(id) {
   const lines = readLines();

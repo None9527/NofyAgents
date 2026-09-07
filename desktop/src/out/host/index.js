@@ -366,6 +366,60 @@ import {
   attachKernelProviderBridge,
 } from "./seam/kernel-provider-source.js"; // A1-B：§2.7 移植钥匙（内核 modelState → provider 注册表）
 import { observeChannelService } from "./seam/agent-service-observer.js"; // P1b probe9：NOFY_OBS_AGENT=1 时录制 renderer→host 通道调用
+import { readModelsTable as readNofyModelsTable } from "../main/seam/nofy-config-toml.js"; // D17：runtime 不在时合成 workspace-config 快照的模型源
+
+// D17：与适配器 nofyConfigOptions 同形（renderer jx() 消费形）；runtime 不在时由 host 补发。
+function syntheticNoRuntimeWorkspaceConfigFrame(workspaceKey, topic, subscriptionId) {
+  const table = readNofyModelsTable();
+  const PID = "nofy-kernel";
+  const currentId = table.defaultId || table.models[0]?.id || "";
+  return {
+    topic,
+    subscriptionId,
+    fromSeq: 0,
+    toSeq: 1,
+    sentAt: Date.now(),
+    payload: {
+      kind: "snapshot",
+      snapshot: {
+        protocolVersion: 1,
+        workspaceId: workspaceKey,
+        logEpoch: "nofy-wscfg-noruntime-1",
+        config: {
+          configOptions: [
+            {
+              id: "model",
+              name: "Model",
+              category: "model",
+              type: "select",
+              currentValue: `${PID}/${currentId}`,
+              options: table.models.map((mm) => ({
+                value: `${PID}/${mm.id}`,
+                name: mm.name,
+                modelProviderId: PID,
+                modelProviderName: "nofy kernel",
+              })),
+            },
+            {
+              id: "mode",
+              name: "Mode",
+              category: "mode",
+              type: "select",
+              currentValue: "build",
+              options: [
+                { value: "build", name: "Ask before changes", description: "Ask before each file changes." },
+                { value: "edit", name: "Edit automatically", description: "Edit selected files or relevant workspace files automatically." },
+                { value: "plan", name: "Plan mode", description: "Inspect the code and present a plan before editing." },
+                { value: "yolo", name: "Full access", description: "Edit and run commands with fewer confirmations." },
+              ],
+            },
+          ],
+          slashCommands: [],
+        },
+      },
+    },
+  };
+}
 import { randomUUID as DY } from "crypto";
 
 import { randomUUID as PS } from "crypto";
@@ -17484,8 +17538,24 @@ function createZCodeAgentService(e) {
         return getSessionsIndexFrameEmitter(m).event;
       },
       async subscribeWorkspaceConfigV4(m) {
-        let A = await getReadOnlyClient(m, m.runtimePolicy),
-          $ = resolveV4Connection(m, v4ConnectionIdFor(m.subscriberScope)),
+        let A;
+        try {
+          A = await getReadOnlyClient(m, m.runtimePolicy);
+        } catch (err) {
+          // D17：home 伪 workspace / runtime 不在 ⇒ 与 D8 同款软成功；并由 host 用内核
+          // 模型表合成一帧 workspace-config 快照补发。否则 configOptions 无来源，
+          // home 的模型/模式选择菜单永远空（readWorkspaceState 只喂设置面，不喂推帧面）。
+          if (!String(err?.message ?? "").includes("runtime is not running")) throw err;
+          const Eh = qf(J(m)),
+            subId = `sub-wscfg-noruntime-${PS()}`;
+          queueMicrotask(() => {
+            try {
+              getWorkspaceConfigFrameEmitter(m).fire(syntheticNoRuntimeWorkspaceConfigFrame(J(m), Eh, subId));
+            } catch {}
+          });
+          return { ack: { subscriptionId: subId, mode: "snapshot", logEpoch: "nofy-wscfg-noruntime-1" } };
+        }
+        let $ = resolveV4Connection(m, v4ConnectionIdFor(m.subscriberScope)),
           E = qf(J(m)),
           L = await A.request(
             Gt.conversationSubscribe,
@@ -17501,7 +17571,12 @@ function createZCodeAgentService(e) {
         return (rememberV4SubscriptionRoute(m, E, L.ack.subscriptionId, $.connectionId), L);
       },
       async unsubscribeWorkspaceConfigV4(m) {
-        await unsubscribeV4Route(m, "workspace-config/");
+        // D17 余口：与 D8 的 sessions-index 退退同款——runtime 不在时退订本就无事可做。
+        try {
+          await unsubscribeV4Route(m, "workspace-config/");
+        } catch (err) {
+          if (!String(err?.message ?? "").includes("runtime is not running")) throw err;
+        }
       },
       async resyncWorkspaceConfigV4(m) {
         return resyncV4Route(m, "workspace-config/");

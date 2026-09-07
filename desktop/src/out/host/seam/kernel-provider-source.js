@@ -153,7 +153,10 @@ export async function synthesizeKernelProviders() {
       defaultKind: KIND,
       apiKey: "",
       apiKeyRequired: false,
-      endpoints: { baseURL, paths: { [KIND]: "/v1" } },
+      // D16 附带修正：config.toml 的 base_url 已含 /v1 尾段；paths 再给 "/v1" 会让
+      // 投影层拼出 …/v1/v1 的谎 URL。paths 用 "/" 使拼接结果等于 config 原值，
+      // 且 endpoints.baseURL 保持 config 原文（P4 写回依赖它不变形）。
+      endpoints: { baseURL, paths: { [KIND]: "/" } },
       modelSupportedFormats: Object.fromEntries(list.map((m) => [m.id, ["openai"]])),
       // 投影层（getModelProviderModelIds）要求 models 为数组形
       models: list.map((m) => ({

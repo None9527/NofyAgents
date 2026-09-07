@@ -21,6 +21,7 @@ import {
   removeModelSection,
   setDefaultModel,
   readModelSection,
+  readModelsTable,
 } from "./nofy-config-toml.js"; // P4：设置写路径落盘端（保注释编辑 ~/.nofy/config.toml）
 
 // 与 host/seam/kernel-provider-source.js 的 KERNEL_PROVIDER_ID 同源：内核合成 provider 的
@@ -328,15 +329,30 @@ function configOf() {
   };
 }
 
+// D16：读路径必须回内核真模型表（此前 available 硬编码 []、current 为占位
+// {providerId:"nofy",modelId:"nofy-kernel"} ⇒ 前端选择菜单空、设置面与 config 不符）。
+// 条目形制按 renderer 消费点（assets/src-HCld2afU.js:8787）：{ref:{providerId,modelId},
+// label, providerLabel?, description?}；renderer 用 `${providerId}/${modelId}` 编码 value。
+function nofyModelSettings() {
+  const table = readModelsTable();
+  const currentId = table.defaultId || table.models[0]?.id || configOf().model;
+  return {
+    current: { providerId: KERNEL_SYNTHETIC_PROVIDER_ID, modelId: currentId },
+    available: table.models.map((m) => ({
+      ref: { providerId: KERNEL_SYNTHETIC_PROVIDER_ID, modelId: m.id },
+      label: m.name,
+      providerLabel: "nofy kernel",
+      ...(m.model && m.model !== m.id ? { description: m.model } : {}),
+    })),
+  };
+}
+
 // kk schema: {workspace, settings:Uf, modelCatalog?, slashCommands?} strict
 function workspaceStateResult(workspace) {
   return {
     workspace,
     settings: {
-      model: {
-        current: { providerId: "nofy", modelId: configOf().model },
-        available: [],
-      },
+      model: nofyModelSettings(),
       thoughtLevel: { enabled: false, available: [] },
       mode: { current: "build" },
     },
@@ -365,10 +381,7 @@ function zcodeMode() {
 function zcodeSettings() {
   return {
     appliedProviderRevision: "nofy-rev-0",
-    model: {
-      current: { providerId: "nofy", modelId: configOf().model },
-      available: [],
-    },
+    model: nofyModelSettings(),
     thoughtLevel: { enabled: false, available: [] },
     mode: { current: zcodeMode() },
   };
@@ -485,6 +498,43 @@ function sessionsIndexSnapshot(w, subscriptionId) {
   };
 }
 
+// D16：renderer 的模型/模式选择菜单渲染 workspace-config/<ws> 推帧里的
+// configOptions（assets/src-HCld2afU.js jx() 的同形产物：id/category=mode l 常量、
+// value 用 `${providerId}/${modelId}` 编码）；此前硬编码空数组 ⇒ 选择菜单永远空。
+function nofyConfigOptions() {
+  const model = nofyModelSettings();
+  const enc = (r) => (r.variant ? `${r.providerId}/${r.modelId}$${r.variant}` : `${r.providerId}/${r.modelId}`);
+  return [
+    {
+      id: "model",
+      name: "Model",
+      category: "model",
+      type: "select",
+      currentValue: enc(model.current),
+      options: model.available.map((m) => ({
+        value: enc(m.ref),
+        name: m.label,
+        ...(m.description ? { description: m.description } : {}),
+        modelProviderId: m.ref.providerId,
+        modelProviderName: m.providerLabel ?? m.ref.providerId,
+      })),
+    },
+    {
+      id: "mode",
+      name: "Mode",
+      category: "mode",
+      type: "select",
+      currentValue: "build",
+      options: [
+        { value: "build", name: "Ask before changes", description: "Ask before each file changes." },
+        { value: "edit", name: "Edit automatically", description: "Edit selected files or relevant workspace files automatically." },
+        { value: "plan", name: "Plan mode", description: "Inspect the code and present a plan before editing." },
+        { value: "yolo", name: "Full access", description: "Edit and run commands with fewer confirmations." },
+      ],
+    },
+  ];
+}
+
 function workspaceConfigSnapshot(workspaceId, subscriptionId) {
   return {
     topic: `workspace-config/${workspaceId}`,
@@ -498,7 +548,7 @@ function workspaceConfigSnapshot(workspaceId, subscriptionId) {
         protocolVersion: 1,
         workspaceId,
         logEpoch: LOG_EPOCH,
-        config: { configOptions: [], slashCommands: [] },
+        config: { configOptions: nofyConfigOptions(), slashCommands: [] },
       },
     },
   };
@@ -1266,7 +1316,13 @@ async function handleHostFrame(frame) {
         const sid0 = String(params.sessionId ?? "");
         const pick = (...cs) => cs.find((c) => c !== undefined && c !== null && String(c).length > 0);
         if (sid0 && method === "session/setModel") {
-          const modelId = String(pick(params.modelId, params.model, params.modelId?.modelId, params.config?.model) ?? "");
+          // D16：renderer 的选择值按 `${providerId}/${modelId}` 编码（或 ref 对象）；
+          // 内核 session/set_model 要裸 model id，这里剥 provider 前缀。
+          const raw = [params.modelId, params.modelId?.modelId, params.model?.modelId, params.config?.model, params.model].find(
+            (c) => typeof c === "string" && c.length > 0,
+          );
+          let modelId = String(raw ?? "");
+          if (modelId.includes("/")) modelId = modelId.slice(modelId.lastIndexOf("/") + 1);
           if (modelId)
             await acp.rpc("session/set_model", { sessionId: sid0, modelId }).catch((e) =>
               console.error("[acp-adapter] session/set_model failed:", e?.message),
