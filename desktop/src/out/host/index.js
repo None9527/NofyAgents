@@ -365,6 +365,7 @@ import {
   routeKernelProviderMessage,
   attachKernelProviderBridge,
 } from "./seam/kernel-provider-source.js"; // A1-B：§2.7 移植钥匙（内核 modelState → provider 注册表）
+import { observeChannelService } from "./seam/agent-service-observer.js"; // P1b probe9：NOFY_OBS_AGENT=1 时录制 renderer→host 通道调用
 import { randomUUID as DY } from "crypto";
 
 import { randomUUID as PS } from "crypto";
@@ -50419,8 +50420,8 @@ function createLocalServices(e) {
       .register(wi, r)
       .register(ka, s)
       .register(on, ee)
-      .register(Fn, ve)
-      .register(Rr, Oe)
+      .register(Fn, observeChannelService(ve, "nofy-agent"))
+      .register(Rr, observeChannelService(Oe, "zcode-session"))
       .register(Si, createFileWatcherService())
       .register(va, _e)
       .register(ao, h)

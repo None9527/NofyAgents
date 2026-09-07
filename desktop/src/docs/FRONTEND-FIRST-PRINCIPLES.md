@@ -65,8 +65,15 @@ B–E 回到关键路径，A1 renderer 重建降级为非关键路径的只读�
   modelState、session/list、session/new、**84 流式块**、cancel 10ms `cancelled`、
   新会话入列表、子进程 EOF 回收）；真应用实证 main 零派生（disabled 模式）、门槛仍绿、
   无游离子进程。
-- P1b 阶段 B 合同重写：host `nofy-agent` 服务的会话方法（列表/新建/load 回放/prompt 流/
-  停止/权限应答/set_model）改走 `kernel-client-host.js`，**renderer 契约形状不变**。
+- **P1b-0 切点定案 + 合同实测：完成**（2026-09-07）。裁定 L（见 §7）：切在 **R1**
+  （renderer↔host 通道服务），不切 R2（v4 协议子进程），不另造 renderer。观测件
+  `out/host/seam/agent-service-observer.js`（`NOFY_OBS_AGENT=1`，默认原样返回、零行为差）
+  实录真应用的 renderer→host 调用：`nofy-agent` **93** 方法 / `zcode-session` **23** 方法，
+  启动序列与失败态见 §8。会话面**整体被「agent runtime 未运行」闸住**（EPIPE ⇒ 输入器被撤）。
+- P1b 阶段 B 合同重写：host `nofy-agent` 服务的会话方法（runtime 生命周期/初始化/列表/新建/
+  load 回放/prompt 流/停止/权限应答/set_model）改走 `kernel-client-host.js`，
+  **renderer 契约形状不变**（形状以 §8 实测参数 + `chunk-L6SVKCE4.js` 的 zod 规格为准）。
+  实施序见 §7 末。
 - P1c preload 改线：`window.zcode.listNofyWorkspaces` 等枚举 API 由 main IPC 改走 host
   服务（renderer 零改动）；多窗口 K1 复核。
 - P2 修 D2：为桥的 main→host 方向建立**入库的端到端回归探针**（host 侧收帧断言），
@@ -132,3 +139,117 @@ probe8＝**v4 会话事件形状门禁（10/10）**——直接 import 束内 zo
 
 P1b 开工前的剩余微读取：`Me` 方法名字符串表、conversationV4 的推送通道名、
 `initialize/resyncConversationV4` 的历史消息形（`ou` schema）。
+（**已被 §7/§8 取代**：切点下移到服务方法层，v4 线路协议不再需要复刻；
+方法清单与启动序列改为实测取得，不再靠微读取推断。）
+
+---
+
+## 7. 裁定 L：切点在 R1（host 通道服务），不在 R2、不另造 renderer（2026-09-07）
+
+实测确认全链路只有**两个协议边界**：
+
+| 边界 | 两端 | 协议 | 规格出处 |
+|------|------|------|----------|
+| **R1** | renderer ↔ host（utilityProcess，MessagePort `zcode:service-port`） | 33 通道 rpc；`nofy-agent` 93 方法 / `zcode-session` 23 方法；推送＝v4 会话事件（§6）+ conversation frame | renderer `src-HCld2afU.js:8468-8501`、host `chunk-O5YHTQBW.js:17538-17571`、§8 实测 |
+| **R2** | host ↔ **agent runtime 子进程** | 「ZCode Protocol」v1/v4：topic 订阅 + `logEpoch`/`seq` 复制、resync、rowsRange 分页、connection flow、attachment、commands | `out/host/chunk-L6SVKCE4.js`（2857 行 zod：`ei`=方法表 `v4/*`，`ri`=通知 `v4/conversation/frame`、`v4/telemetry/event`） |
+
+R2 的对端在原产品里是**本地 CLI 子进程**（provider `glm`，`resolveBundledGlmBinaryPath()`），
+不是云端；本机该二进制 `<not found>` ⇒ 写 stdin 得 `write EPIPE`（§8）。
+内核说的是 ACP over stdio（R2′），故必须有一侧被重写。三条候选：
+
+- **切 R2**（造一个说 v4 的 runtime 子进程，内部驱动 `nofy agent stdio`）：host 零改动，
+  但要实现完整 v4 复制协议（epoch/seq/gap/resync/rowsRange/flow/attachment），
+  且 host 客户端的缺口检测与重同步逻辑必须被满足，跨进程调试。**语义负担最大。**
+- **切 R1**（重写 host 服务方法体，直连 ACP）：需要产出 R1 形状的值（§6 事件、frame、rows、ack），
+  但**不需要**实现 v4 传输机制（connectionId/subscriptionId/logEpoch 可退化为自洽常量，
+  因为对端只有 renderer，且形状由 zod 门禁可验）。**语义负担是 R2 的真子集。**
+- **另造 renderer**（本会话一度宣布的 pivot）：**撤回**。它要丢弃整套冻结 UI（会话/差异/文件/
+  设置/终端/检查点），用新代码重建 93 方法对应的界面，工作量严格更大，且与「包裹 ZCode 壳」
+  的既定策略相悖。
+
+**裁定：切 R1。** 附带理由：host `index.js` 已成功动过刀（D3 模型门槛），符号名已恢复，
+且可用 CDP 在真应用里端到端验收；R2 方案则要先造进程再造测试台，观测只能间接。
+
+**登记限制 L1**：会话面不只看数据方法——`onAgentRuntimeLifecycle` / `onAgentRuntimeRestarted` /
+「ZCode Agent runtime is not running.」这条**运行时生命周期**同样闸住 UI（§8：输入器被撤、
+只剩「重新连接」）。生命周期不改成内核背书，数据方法全对也出不来可用界面。
+
+**登记限制 L2**：R1 切口只覆盖 `nofy-agent`/`zcode-session` 两通道；其余 31 通道（file/terminal/
+git/setting/…）按 `UI-KERNEL-GAP-MATRIX.md` 的域分类分阶段处理，本裁定不改变它们的归属。
+
+**P1b 实施序**（每步都可独立在真应用里验收）：
+1. runtime 生命周期 + `initializeWorkspace`/`readWorkspaceState`/`getWorkspaceRuntimeIdentity`
+   → 验收：UI 不再显示 `write EPIPE`，输入器回来。
+2. `sendConversationCommandV4(createSession)` + `subscribeConversationV4` + `onDynamicConversationFrame`
+   + `onDynamicSessionEvent` → 验收：新建会话成功、会话视图可 hydration。
+3. `sendText` 流式（ACP `session/prompt` → §6 事件序列）→ 验收：真发 prompt 见流式文本。
+4. 停止（ACP `session/cancel` → `turn.completed{resultType:"cancelled"}`）。
+5. 权限应答（`permission.requested`/`resolved` 双向）。
+6. `setModel`/`setMode`/`setThoughtLevel`/`resolveRuntimeModelForV4`。
+7. 历史回放：`conversationRowsRangeV4`/`readSessionMessages`/`readSessionEvents`/`resumeSession`。
+8. 索引面：`subscribeSessionsIndexV4`/`listSessions`/`onDynamicSessionsIndexFrame`。
+9. `queryConversationCommandsV4`（斜杠命令）+ workspace-config 订阅面。
+
+---
+
+## 8. R1 合同实测（probe9，2026-09-07，可复跑）
+
+复跑方式：
+```bash
+cd desktop/src && rm -f /tmp/nofy-obs/agent-calls.jsonl
+NOFY_OBS_AGENT=1 ./node_modules/.bin/electron . --remote-debugging-port=9400 \
+  > /tmp/nofy-obs/electron19.log 2>&1 &
+sleep 14 && node /tmp/nofy-obs/probe.mjs        # 看 UI 状态
+python3 ../scripts/analyze-agent-calls.py        # 汇总调用序列/形状/错误
+```
+观测件：`out/host/seam/agent-service-observer.js`，接线点 `.register(Fn, observeChannelService(ve,"nofy-agent"))`
+与 `.register(Rr, observeChannelService(Oe,"zcode-session"))`（host `index.js:50422-50423`）。
+`NOFY_OBS_AGENT` 未置位时**原样返回服务对象**（同一引用、零代理、零行为差）。
+
+**方法清单（实测，非推断）**：`nofy-agent` 93 个、`zcode-session` 23 个（后者是前者的镜像子集：
+initializeWorkspace/readWorkspaceState/createSession/resumeSession/listSessions/readSession*/
+closeSession/setMode/setModel/setThoughtLevel/setWorkspaceDefault*/upsert|removeModelProvider/
+updateProviderRegistry/resolveRuntimeModelForV4/respondProviderRuntimeHeaders/
+getWorkspaceRuntimeIdentity/promote|closeDeferredDraftSession）。
+`nofy-agent` 会话相关子集（P1b 工作面）：`initialize`、`helloConversationV4`、
+`initializeConversationV4`、`setConnectionFlowStateV4`、`subscribe|unsubscribe|resyncConversationV4`、
+`onDynamicConversationFrame`、`onDynamicSessionEvent`、`onDynamicConversationTelemetryFact`、
+`sendConversationCommandV4`、`conversationRowsRangeV4`、`conversationPlansV4`、
+`conversationFileChangesV4`、`conversationFileRewindPreviewV4`、`queryConversationCommandsV4`、
+`readSession|readSessionMessages|readSessionEvents`、`listSessions`、`createSession`、
+`resumeSession`、`closeSession`、`compactSession`、`goalSession`、`listSessionSubagents`、
+`sendPrompt`、`setMode|setModel|setThoughtLevel`、`resolveRuntimeModelForV4`、
+`updateRuntimeModelConfig`、`subscribe|unsubscribe|resyncSessionsIndexV4`、
+`onDynamicSessionsIndexFrame`、`subscribe|unsubscribe|resyncWorkspaceConfigV4`、
+`onDynamicWorkspaceConfigFrame`、`onAgentRuntimeLifecycle|Restarted`、
+`respondSessionRuntimePreferences`、`onDynamicSessionRuntimePreferencesRequest`、
+`getTaskTokenUsage`、`getAppUsageStats`、`attachment*V4`。
+（其余为 plugin/automation/model-provider 域，按域处置图分期。）
+
+**启动即发生的调用序列（实测）**：
+
+| # | 通道.方法 | 参数要点 | 结果 |
+|---|-----------|----------|------|
+| 1 | `zcode-session.initializeWorkspace` | `{workspacePath:"/Users/mac"}` | `{available:false, workspaceKey, protocolName:"ZCode Protocol", protocolVersion:1, reason:"write EPIPE"}` |
+| 2 | `nofy-agent.syncAppRuntimePreferences` | `{askUserQuestionAutoResolutionEnabled:true}` | `undefined`（成功） |
+| 3 | `nofy-agent.subscribeSessionsIndexV4` ×9 | `{workspacePath:"__home__", runtimePolicy:"existing-only", __zcodeTrustedV4Connection:{connectionId:"host-rpc-…", clientMode:"desktop-continuous"}}` | **throw** `ZCode Agent runtime is not running.` |
+| 4 | emitter 订阅 | `onDynamicSessionsIndexFrame({workspacePath:"__home__"})`、`onDynamicConversationFrame({workspacePath:"/Users/mac/.nofy/workspace/default"})`、`onDynamicConversationTelemetryFact(同)`、`onAgentRuntimeLifecycle/Restarted` | 返回 subscribe 函数（前三个）/ 对象（后两个） |
+| 5 | `nofy-agent.sendConversationCommandV4` | `{workspacePath, envelope:{commandId, clientId:"client-…", sessionId:null, type:"createSession", payload:{workspaceId, config:{mode:"build", followupMode:"queue"}}, issuedAt}, __zcodeTrustedV4Connection:{…}}` | **throw** `write EPIPE` |
+| 6 | `zcode-session.readWorkspaceState` | `{workspacePath:"/Users/mac"}` | **throw** `write EPIPE` |
+| 7 | `nofy-agent.subscribeConversationV4` | `{workspacePath:"/Users/mac", sessionId:"01a0484b-…", __zcodeTrustedV4Connection:{…}}` | **throw** `write EPIPE` |
+| 8 | `nofy-agent.onDynamicProviderRuntimeHeadersRequest` | 订阅 `{workspacePath, sessionId}` | 返回 subscribe 函数 |
+| 9 | `nofy-agent.disposeAllAndWait` | `[]`（退出时） | 未见返回（进程收尾） |
+
+`onDynamicSessionsIndexFrame` 被**按 workspace 逐个订阅**（实测 5 个：`__home__`、
+`~/.nofy/workspace/default`、`/Users/mac`、`/Users/mac/nofy-build`、`/Users/mac/nofy-build/web`），
+即索引面是 per-workspace 多订阅，不是一个全局流。整段录像里 host **一帧都没推给 renderer**
+（推送计数 0）——因为 runtime 从未起来。
+
+**UI 后果（CDP 实测）**：会话卡出现（标题 `Greeting and Nofy assistant identity introduction`）
+但正文＝`write EPIPE` + 「重新连接」按钮；**输入器（contenteditable/textarea）与「发送」按钮
+从 DOM 中消失**（`composer candidates:` 空）。⇒ 会话面被 runtime 生命周期整体闸住（L1）。
+
+**形状结论**：`__zcodeTrustedV4Connection` 由 host rpc 层注入（非 renderer 伪造），
+`workspacePath` 有 `__home__`（索引面）与真实路径（会话面）两种取值；
+`initializeWorkspace` 的返回是**软失败**形（`available:false` + `reason`），不抛；
+`subscribeSessionsIndexV4` 的失败是**硬抛**。两者都要在内核背书后改为成功形。

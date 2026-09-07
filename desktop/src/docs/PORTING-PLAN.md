@@ -245,6 +245,24 @@ baseURL 非空、`apiKeyRequired:false`），所有模型门槛自然全绿，re
 > 与本形态仅共享 `~/.nofy` 磁盘存储。验收：`desktop/scripts/acp-probe6.mjs` 13/13、
 > `acp-probe5.mjs`（WS 基线）17/17、真应用零 attach 实证。
 
+> **★ 裁定 K（2026-09-06，P1a）**：main→host 的帧投递实测不可达 ⇒ 下图「main 持内核连接、
+> host 经桥消费」不成立。**内核连接改由 host 进程自有**（`out/host/seam/kernel-client-host.js`，
+> 每 host 一个私有 `nofy agent stdio` 子进程）；main 侧单例降为探针专用
+> （`NOFY_MAIN_KERNEL=1`），默认 `mode:"disabled"` 快速失败。验收：`acp-probe7.mjs` 8/8。
+> 登记限制 K1：多窗口＝多 host＝多内核子进程（语义等同两个 TUI 实例）。
+
+> **★ 裁定 L（2026-09-07，P1b-0）**：全链路只有两个协议边界——**R1** renderer↔host
+> （33 通道；`nofy-agent` 93 方法 / `zcode-session` 23 方法）与 **R2** host↔agent runtime
+> 子进程（「ZCode Protocol」v4：topic/logEpoch/seq/resync/rowsRange/attachment，规格＝
+> `out/host/chunk-L6SVKCE4.js` 2857 行 zod）。原产品的 R2 对端是**本地 CLI 子进程**
+> （provider `glm`），本机 `<not found>` ⇒ `write EPIPE`，会话面被整体闸住（输入器从 DOM 消失）。
+> **切口定在 R1**：重写 host 服务方法体直连 ACP，不复刻 v4 线路协议（R1 的语义负担是 R2 的真子集），
+> 也**不另造 renderer**（那会丢弃整套冻结 UI 并重建 93 方法的界面，工作量严格更大）。
+> 登记限制 L1：runtime 生命周期（`onAgentRuntimeLifecycle`/「runtime is not running」）必须
+> 一并内核背书，否则数据方法全对也出不来可用界面。实测合同与实施序见
+> `FRONTEND-FIRST-PRINCIPLES.md` §7/§8（观测件 `out/host/seam/agent-service-observer.js`，
+> `NOFY_OBS_AGENT=1`，默认零行为差；汇总器 `desktop/scripts/analyze-agent-calls.py`）。
+
 ```
 main (Electron)
  ├─ NofyKernelClient（单例）：WS JSON-RPC（ACP 原生，_nofy/* 带下划线前缀）
