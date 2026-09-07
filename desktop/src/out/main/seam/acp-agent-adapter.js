@@ -16,6 +16,42 @@ import os from "node:os";
 import path from "node:path";
 import { NofyAcpClient, chunkText } from "./acp-client.js";
 import { firstUserQueryTitle } from "./session-title.js"; // WS-ENUM：标题回退链末环
+import {
+  upsertModelSection,
+  removeModelSection,
+  setDefaultModel,
+  readModelSection,
+} from "./nofy-config-toml.js"; // P4：设置写路径落盘端（保注释编辑 ~/.nofy/config.toml）
+
+// 与 host/seam/kernel-provider-source.js 的 KERNEL_PROVIDER_ID 同源：内核合成 provider 的
+// 模型即 config.toml 的 [model.*] 段，整 provider 删除等于清空内核模型表，必须拒绝。
+const KERNEL_SYNTHETIC_PROVIDER_ID = "nofy-kernel";
+
+function providerModelSections(p) {
+  if (!p || typeof p !== "object") return [];
+  const base = String(p.endpoints?.baseURL ?? p.baseURL ?? p.base_url ?? "").trim();
+  const key = String(p.apiKey ?? p.api_key ?? "").trim();
+  const models = Array.isArray(p.models) && p.models.length > 0 ? p.models : [{ id: p.id, name: p.name }];
+  const out = [];
+  for (const m of models) {
+    const id = String(m?.id ?? "").trim();
+    if (!id) continue;
+    const fields = { model: id };
+    if (base) fields.base_url = base;
+    const name = String(m?.name ?? "").trim();
+    if (name) fields.name = name;
+    const cw = Number(m?.contextWindow ?? m?.context_window);
+    if (Number.isFinite(cw) && cw > 0) fields.context_window = cw;
+    if (key) fields.api_key = key;
+    out.push({ id, fields });
+  }
+  return out;
+}
+
+function defaultModelIdOf(m) {
+  if (typeof m === "string") return m.trim();
+  return String(m?.modelId ?? m?.id ?? m?.model ?? "").trim();
+}
 
 const WIRE_VERSION = 3;
 const LOG_EPOCH = "nofy-d5c-1";
@@ -1177,9 +1213,41 @@ async function handleHostFrame(frame) {
         });
         return;
       }
-      case "workspace/upsertModelProvider":
-      case "workspace/removeModelProvider":
-      case "workspace/setDefaultModel":
+      case "workspace/upsertModelProvider": {
+        // P4：设置面的模型写必须落到内核唯一真源 ~/.nofy/config.toml（此前空操作 ⇒
+        // 用户改什么都不生效）。models 每条一个 [model.*] 段；合成 provider 不带密钥，
+        // 故入参 api_key/context_window 为空时保留原值，防误抹。
+        for (const sec of providerModelSections(params.provider)) {
+          const existing = readModelSection(sec.id) ?? {};
+          const fields = { ...sec.fields };
+          if (!fields.api_key && existing.api_key) fields.api_key = existing.api_key;
+          if (fields.context_window === undefined && existing.context_window)
+            fields.context_window = Number(existing.context_window);
+          upsertModelSection(sec.id, fields);
+        }
+        respond(id, workspaceStateResult(params.workspace));
+        return;
+      }
+      case "workspace/removeModelProvider": {
+        const pid = String(params.providerId ?? "");
+        if (pid === KERNEL_SYNTHETIC_PROVIDER_ID) {
+          respondError(
+            id,
+            -32603,
+            "nofy: kernel provider models are managed by ~/.nofy/config.toml; whole-provider remove is unsupported",
+          );
+          return;
+        }
+        if (pid) removeModelSection(pid);
+        respond(id, workspaceStateResult(params.workspace));
+        return;
+      }
+      case "workspace/setDefaultModel": {
+        const mid = defaultModelIdOf(params.model);
+        if (mid) setDefaultModel(mid);
+        respond(id, workspaceStateResult(params.workspace));
+        return;
+      }
       case "workspace/setDefaultThoughtLevel":
       case "workspace/setDefaultMode":
       case "workspace/readState": {
