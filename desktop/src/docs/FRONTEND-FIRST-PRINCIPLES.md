@@ -401,3 +401,32 @@ Local User/设置/帮助/切换终端/取消选择当前项目/mac/添加上下�
 下一轮驱动需修：发送前**轮询等待发送按钮 enabled 再点**（重试而非单次）；发送后
 **轮询捕获停止控件**（发送键在运行期可能变为图标停止键，需按 aria-label 匹配）；
 停止后断言轮次状态文案；再发第二轮并断言出现第二组 用户行+助手行。
+
+**D8 关闭（2026-09-07，electron29 复跑）**：整轮启动 + 真发 prompt 的录像里
+**错误种类＝0**（此前 subscribeSessionsIndexV4 硬抛 9~10 次、修 subscribe 后
+unsubscribeSessionsIndexV4 残留 ×2；两处都改软成功后归零）。
+真因更正：不是 `__home__` 专属，而是 `runtimePolicy:"existing-only"` 在**启动竞态**下
+对真实路径（`/Users/mac`、`~/.nofy/workspace/default`）也硬抛，且同一路径先抛后成功。
+修法＝`__home__` 软 ack + existing-only 取客户端失败软 ack（形状对齐适配器实测
+`{ack:{subscriptionId,mode:"snapshot",logEpoch}}`，规格 `iU=object({ack}).strict()`）
++ 退订遇「runtime is not running」视为 no-op；非 existing-only 仍硬抛。
+落地页发消息实测通：createSession accepted → sendText → 11 帧 → 终帧助手文本长 45。
+
+**D11（新登记，未修）：运行期找不到停止控件。** 轮次运行中（UI 有「已工作 2 秒」）
+按 innerText/aria-label/title/data-testid 匹配 `停止|中断|stop|cancel` 的按钮**一个都没有**，
+「发送」键仍在。运行期按钮清单实测：搜索/⌘K、自动化、技能、Home、项目、收起全部、
+筛选和排序、归档、移动项目分区、添加项目、更多、查看文件、新建任务、置顶任务×5、
+任务、移动任务分区、Local User、设置、在 Finder 中打开、选择打开方式、帮助、切换终端、
+展开侧边面板、复制、已工作 2 秒、添加上下文、切换模式、选择模型、发送、切换侧边栏、
+后退、前进。⇒ 停止键要么是**无文本无 aria-label 的纯图标按钮**（需换定位法：按 SVG/
+class/位置或 CDP 输入事件），要么本build 真的缺失。停止/cancel 仍未验。
+
+**D12（新登记，未修）：历史回放疑未接线。** 多轮录像里**从未出现**
+`readSession`/`readSessionMessages`/`readSessionEvents`/`conversationRowsRangeV4`/
+`resumeSession` 调用，即从侧边栏点开旧会话时 renderer 没有向 host 要历史。
+待判：是点击没落到会话行、还是该路径在 renderer 侧走别的通道、还是适配器 replay
+（`session/load` + `_nofy/replayed`）从未被触发。
+
+**旁证（好消息）**：侧边栏会话标题正常生成（「你好，请回一句话」「终端 AI 编程助手
+工作原理短文写作与总结」「请用一句话介绍你自己」「写一篇 3000 字的关于人工智能历史的
+文章…」），仅刚建的新会话短暂显示裸 ID（`01a07a26`）。
