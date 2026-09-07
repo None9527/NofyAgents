@@ -446,3 +446,47 @@ class/位置或 CDP 输入事件），要么本build 真的缺失。停止/cance
 D12 的登记依据是「这些方法没被调用」——那是**用证据缺失当缺失证据**，方法论错误入库：
 判定某路径未接线，必须先找到该路径的真实入口（点击 + 录像增量），不能靠猜方法名。
 `readSession*`/`rowsRange` 的真实用途待查（可能是分页/滚动到更早历史时才触发）。
+
+---
+
+## 11. 用户实测反馈两条（2026-09-07）：D13 发送卡 30 秒、D14 模型管理仍是 ZCode 预设
+
+**D13（新登记，未修，已量化）：每次 `sendText` 恰好卡 ~30.0 秒才返回。**
+录像逐调用计时（`sendConversationCommandV4`，同一会话内）：
+
+| envelope.type | 耗时 | 返回 |
+|---|---|---|
+| `createSession` | **760ms** | `status:"accepted"` + 真 sessionId |
+| `sendText`（你好，请回一句话） | **30010ms** | `status:"accepted"`, `revisionAtDecision:1`, `result:{type:"inputDisposition",delivery:"startNow"}` |
+| `sendText`（500 字短文） | **30006ms** | 同上，`revisionAtDecision:11` |
+| `sendText`（hi） | **30006ms** | 同上，`revisionAtDecision:2` |
+| `sendText`（sey hi） | **30021ms** | 同上，`revisionAtDecision:8` |
+
+其余通道调用都正常（`initializeWorkspace` 2.2~2.4s＝真起 runtime 子进程；
+`readWorkspaceState` 414~689ms；`conversationPlansV4` 480ms；`subscribeSessionsIndexV4` 193ms）。
+⇒ 用户说的「点发送要卡好久」＝**sendText 路径上有一个 30 秒的等待/超时**，
+且它**不是失败**（返回值正确、轮次真的在跑：UI 显示「已工作 2 秒」并给出完整回复）。
+即：轮次 2 秒就跑完了，而 `session/send` 的**响应**被拖到 30 秒才回。
+30.00~30.02s 的高度一致性 ⇒ 某个 30s 超时常量（候选：适配器 `session/send` 处理里
+等待某个永不发生的应答/队列处置决定；或 host 协议客户端 `requestTimeoutMs`；
+host 侧另有 `CMe = 6e4`、`SMe = 1024` 常量在 index.js:48857-48861）。
+下一步：在适配器 `session/send` 处理入口/出口打时间戳落盘（`NOFY_ADAPTER_LOG`），
+二分判定 30s 花在适配器内还是 host 内。
+
+**D14（新登记，未修）：模型管理仍是 ZCode 预设，没有走内核 `~/.nofy/config.toml`。**
+用户反馈：模型管理里**残留 ZCode 官方模型**，且没有「通过内核 config.toml 管理模型 / 选择模型」的能力。
+CDP 点击「管理模型」后按 `grok|qwen|glm|dashscope|nofy kernel` 匹配叶子节点＝**空**
+（`model-ish leaves: []`），说明该弹层的模型项既不含内核模型、也不含这些关键字（需换抓取法复核）。
+**成因判断（据已读代码，非猜测）**：D3 的门槛解除是**只在注册表为空时**才合成内核 provider
+（host `index.js` 的 `readCachedProviders` 回退：`if (ee.length === 0) ee = await synthesizeKernelProviders();`），
+而 `createModelProviderService` 启动即 `h.refreshPresetProviders()` 把 **ZCode 预设 provider 灌进注册表**
+（且 settingService 里有 `enabledBuiltinAgentCliProviders:["glm"]`）⇒ 注册表**永不为空**
+⇒ 内核 provider 合成路径**根本不触发**。D3 只解除了「无可用模型」横幅（因为预设本身就能过门槛），
+并没有把模型来源换成内核。
+⇒ 正确修法（与 §0「单一配置 `~/.nofy/config.toml`」「杀掉 ZCode 协议残留」一致）：
+不是「空才补」，而是**内核 provider 为唯一真源**：① 停用/移除预设 provider 灌入
+（`refreshPresetProviders` 与 `enabledBuiltinAgentCliProviders`）；② `readCachedProviders`
+无条件走 `synthesizeKernelProviders()`（内核 modelState 优先、config.toml `[model.*]` 兜底 + fs.watch）；
+③ 选择模型要真落到内核（`setModel`/`session/setModel` → ACP `session/set_model`），
+并复核 `resolveRuntimeModelForV4`/`updateRuntimeModelConfig` 两条路。
+**风险提示**：动 ① 有可能重新触发「无可用模型」横幅（D3 的原症状），故必须与 ② 同批落地并复验横幅。
