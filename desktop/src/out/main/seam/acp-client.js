@@ -11,12 +11,19 @@
 //   'permission'  {id, params}                   session/request_permission（需 respondPermission）
 
 import { EventEmitter } from "node:events";
+import { createInterface } from "node:readline";
 import WebSocket from "ws";
+import { spawnStdioChild } from "./kernel-supervisor.js";
 
 export class NofyAcpClient extends EventEmitter {
-  constructor({ url, cwd = process.cwd(), clientName = "nofy-desktop", reconnectMs = 2000 }) {
+  constructor({ url, cwd = process.cwd(), clientName = "nofy-desktop", reconnectMs = 2000, stdio = false }) {
     super();
     this.url = url;
+    // P0.5 拓扑：stdio=true 时不用 ws，改为派生私有 `nofy agent stdio` 子进程
+    // （无端口/无 secret/天然单父客户端 ⇒ 结构性免除 §2.3 单客户端通知转发约束）。
+    this.stdio = stdio;
+    this.child = null;
+    this.io = null;
     this.cwd = cwd;
     this.clientName = clientName;
     this.reconnectMs = reconnectMs;
@@ -30,6 +37,10 @@ export class NofyAcpClient extends EventEmitter {
   }
 
   connect() {
+    if (this.stdio) {
+      void this.connectStdio();
+      return;
+    }
     let ws;
     try {
       ws = new WebSocket(this.url);
@@ -38,12 +49,18 @@ export class NofyAcpClient extends EventEmitter {
       return;
     }
     this.ws = ws;
+    this.io = {
+      kind: "ws",
+      isOpen: () => ws.readyState === WebSocket.OPEN,
+      send: (text) => ws.send(text),
+    };
     ws.on("open", () => {
       this.emit("status", { connected: true });
       void this.handshake();
     });
     ws.on("message", (data) => this.onFrame(String(data)));
     ws.on("close", () => {
+      this.io = null;
       this.emit("status", { connected: false });
       this.failPending(new Error("connection closed"));
       this.initialized = false;
@@ -54,6 +71,40 @@ export class NofyAcpClient extends EventEmitter {
         ws.close();
       } catch {}
     });
+  }
+
+  // P0.5：私有 stdio 子进程传输。行式 JSON-RPC over 继承管道，帧分派复用同一 onFrame。
+  async connectStdio() {
+    let child;
+    try {
+      child = await spawnStdioChild();
+    } catch (e) {
+      console.warn("[acp-client] stdio child spawn failed", e?.message);
+      this.emit("status", { connected: false });
+      this.scheduleReconnect();
+      return;
+    }
+    this.child = child;
+    const stdin = child.stdin;
+    this.io = {
+      kind: "stdio",
+      isOpen: () => !child.killed && stdin.writable,
+      send: (text) => stdin.write(text + "\n"),
+    };
+    const rl = createInterface({ input: child.stdout });
+    rl.on("line", (line) => this.onFrame(line));
+    child.stderr.resume();
+    child.once("exit", () => {
+      rl.close();
+      this.io = null;
+      this.child = null;
+      this.emit("status", { connected: false });
+      this.failPending(new Error("kernel stdio child exited"));
+      this.initialized = false;
+      if (!this.closedByUser) this.scheduleReconnect();
+    });
+    this.emit("status", { connected: true });
+    void this.handshake();
   }
 
   scheduleReconnect() {
@@ -92,21 +143,21 @@ export class NofyAcpClient extends EventEmitter {
   }
 
   rpc(method, params) {
-    const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error(`backend not connected (${this.url})`));
+    const io = this.io;
+    if (!io || !io.isOpen()) {
+      return Promise.reject(new Error(`backend not connected (${io?.kind ?? "none"} ${this.url ?? ""})`));
     }
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      ws.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
+      io.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
     });
   }
 
   reply(id, result) {
-    const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({ jsonrpc: "2.0", id, result }));
+    const io = this.io;
+    if (!io || !io.isOpen()) return;
+    io.send(JSON.stringify({ jsonrpc: "2.0", id, result }));
   }
 
   failPending(err) {
@@ -208,6 +259,11 @@ export class NofyAcpClient extends EventEmitter {
     try {
       this.ws?.close();
     } catch {}
+    try {
+      // stdin EOF 即子进程关停（probe6/probe7 已证的回收路径）
+      this.child?.stdin?.end();
+    } catch {}
+    this.io = null;
   }
 }
 

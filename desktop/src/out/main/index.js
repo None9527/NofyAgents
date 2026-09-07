@@ -1,4 +1,4 @@
-import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET, NODE_BIN } from "./seam/kernel-supervisor.js";
+import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET, NODE_BIN, ATTACH_SERVE } from "./seam/kernel-supervisor.js";
 import { registerWorkspaceRegistry } from "./seam/workspace-registry.js"; // WS-ENUM：全量 workspace 枚举 IPC
 import { attachKernelHost } from "./seam/kernel-bridge.js"; // A1-A：host 经 main↔host IPC 使用内核 ACP 单例
 import { fileURLToPath as nofySeamFilePath } from "node:url";
@@ -16,8 +16,12 @@ if (!process.env.ZCODE_AGENT_SERVER_COMMAND)
 process.env.ZCODE_AGENT_SERVER_ARGS_JSON =
   process.env.ZCODE_AGENT_SERVER_ARGS_JSON ||
   JSON.stringify([nofySeamFilePath(new URL("./seam/acp-agent-adapter.js", import.meta.url))]);
-process.env.NOFY_ACP_URL = KERNEL_WS_URL;
-process.env.NOFY_ACP_SECRET = KERNEL_SECRET;
+// P0.5：默认拓扑下**不**给适配器下发 ws 端点——适配器自派生私有 `nofy agent stdio` 子进程
+// （无端口/无 secret/单父客户端）。仅 attach 形（NOFY_KERNEL_ATTACH=1，显式 opt-in）才下发。
+if (ATTACH_SERVE) {
+  process.env.NOFY_ACP_URL = KERNEL_WS_URL;
+  process.env.NOFY_ACP_SECRET = KERNEL_SECRET;
+}
 void ensureKernel().then(
   (k) => console.log("[nofy-seam] kernel ready", k.mode, k.url),
   (e) => console.warn("[nofy-seam] kernel ensure failed", e),

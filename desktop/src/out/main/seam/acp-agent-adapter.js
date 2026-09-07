@@ -95,7 +95,15 @@ function discoveryUrl() {
   return "ws://127.0.0.1:9800/ws?server-key=nofy-desktop";
 }
 
-const acp = new NofyAcpClient({ url: discoveryUrl(), clientName: "nofy-desktop-adapter" });
+// P0.5 拓扑：默认派生**私有 `nofy agent stdio` 子进程**（无端口、无 secret、天然单父客户端
+// ⇒ 结构性免除 §2.3「serve 形单客户端通知转发」约束——该约束正是 ws 形下助手流式块
+// 可能被别的客户端抢走的成因）。仅当显式给出 NOFY_ACP_URL（或 NOFY_ACP_STDIO=0）时走 ws attach 形。
+const useStdio = !process.env.NOFY_ACP_URL?.trim() && process.env.NOFY_ACP_STDIO !== "0";
+const acp = new NofyAcpClient({
+  url: useStdio ? null : discoveryUrl(),
+  stdio: useStdio,
+  clientName: "nofy-desktop-adapter",
+});
 acp.on("status", (s) => log("acp status", s));
 acp.on("ready", () => {
   log("acp ready");

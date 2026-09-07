@@ -80,7 +80,10 @@ const STATE_PATH = join(DATA_DIR, "kernel.json");
 const SOCKET_PATH = join(DATA_DIR, "kernel.sock"); // TODO(D5c+): 二进制支持 unix socket 后启用
 
 function log(...args) {
-  console.log("[nofy-supervisor]", ...args);
+  // 必须走 stderr：本模块被 acp-agent-adapter 导入，而适配器的 **stdout 就是 ZCode Protocol
+  // 线路**——任何 stdout 写入都会被 host 的帧解析器当成协议帧（实测 D9：
+  // "protocol_parse_error: Unexpected token 'o', \"[nofy-superv\"… is not valid JSON" ⇒ 传输被关闭）。
+  console.error("[nofy-supervisor]", ...args);
 }
 
 function ensureDataDir() {

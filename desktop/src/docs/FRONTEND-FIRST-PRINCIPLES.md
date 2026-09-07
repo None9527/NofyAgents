@@ -333,3 +333,34 @@ ACP `session/update` → v4 `row.appended/row.upserted` 的映射表。
 **D8（新登记，未修）**：`subscribeSessionsIndexV4({workspacePath:"__home__", runtimePolicy:"existing-only"})`
 ×6 仍硬抛「ZCode Agent runtime is not running.」——`__home__` 是伪 workspace、没有 runtime 子进程；
 首页「还没有对话」空态与此相关（真实 workspace 的索引帧是正常推送的）。
+
+---
+
+## 10. 适配器改私有 stdio 子进程 + D9（2026-09-07，probe9 第三轮）
+
+**改动**：`acp-client.js` 增 stdio 传输（`{stdio:true}` ⇒ 派生私有 `nofy agent stdio` 子进程，
+行式 JSON-RPC，帧分派复用同一 `onFrame`；`rpc/reply/close` 改走 `this.io` 抽象）；
+`acp-agent-adapter.js` 默认 stdio（仅 `NOFY_ACP_URL` 或 `NOFY_ACP_STDIO=0` 时走 ws attach 形）；
+`main/index.js` 仅在 `ATTACH_SERVE` 时下发 `NOFY_ACP_URL/SECRET`。
+动机＝结构性免除 §2.3「serve 形单客户端通知转发」约束：ws 形下 main 的 workspace-enum
+等客户端与适配器共享一个 serve，流式通知可能被别的客户端抢走（D7 的候选成因之一）。
+
+**D9（已修，我自己引入的）**：`kernel-supervisor.js` 的 `log()` 用 `console.log` ⇒ 被适配器
+导入后**写进适配器的 stdout，而适配器的 stdout 就是 ZCode Protocol 线路** ⇒ host 帧解析器
+`protocol_parse_error: Unexpected token 'o', "[nofy-superv"... is not valid JSON` ⇒ 传输关闭、
+runtime 起不来（实测 `subscribeSessionsIndexV4`/`sendConversationCommandV4`/`readWorkspaceState`
+全部该错）。修：改 `console.error`。**规则入库：凡可能被「stdout 即协议线路」的进程导入的模块，
+一律不得写 stdout。**
+
+**实测（默认拓扑，无 NOFY_KERNEL_ATTACH，electron22.log）**：3 个适配器 + 3 个 `agent stdio`
+内核子进程、零 `ZCode agent process error`；CDP 真发 prompt ⇒ **助手文本首次上屏**
+（「我是 N」+ 复制按钮 + 时间戳 12:05），证明 renderer←host←adapter←kernel 全链路贯通；
+退出后 9400/9800 双零、适配器与内核子进程双零（无游离）。
+
+**D7 仍未修完（收窄）**：流式**只落了第一块**——助手行停在「我是 N」（2 字），
+turnHeader 冻结在「已工作 3 秒」，其后无 `row.delta` 上屏。故 D7 从「零助手文本」收窄为
+「首块到达、后续增量丢失」。候选成因（未判定）：① 适配器 `row.delta` 增量形
+（`{op:"row.delta", rowId, path:"text", append}`）不被 renderer 的帧 schema 接受而被静默丢弃；
+② 首块之后内核通知未再送达适配器；③ 首块后 liveTurn 被提前收尾。
+下一步：给适配器加 `NOFY_ADAPTER_LOG` 落盘（stderr 环形缓冲当前不可观测），
+在 probe10 里直驱适配器数清「收到的 chunk 数 vs 发出的 delta 数」，二分定位。
