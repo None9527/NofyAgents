@@ -899,6 +899,7 @@ impl McpState {
                 HttpConfig {
                     url: fresh_endpoint.to_string(),
                     headers,
+                    local_agent_endpoint: false,
                 },
                 None,
                 self.meta_config_map.get(client_name.as_str()),
@@ -1874,11 +1875,21 @@ async fn discover_and_prepare_auth(
     }
 }
 
+/// First-party local app endpoints (e.g. the desktop app) are addressed by
+/// this header. It is never accepted from caller-supplied config: stripped
+/// unconditionally and re-added only from the spawn context.
+pub const NOFY_AGENT_ID_HEADER: &str = "X-Nofy-Agent-ID";
+
 /// Configuration for HTTP MCP server connection.
 #[derive(Clone)]
 pub struct HttpConfig {
     pub url: String,
     pub headers: Vec<(String, String)>,
+    /// This server is a first-party local app endpoint addressed by
+    /// [`NOFY_AGENT_ID_HEADER`]. Set only from the spawn context — never
+    /// inferred from caller headers — and it keys the transport hardening
+    /// (no proxy, no redirects) and the OAuth skip.
+    pub local_agent_endpoint: bool,
 }
 
 /// Newline-delimited JSON-RPC stdio transport whose read side survives a
@@ -3510,6 +3521,14 @@ impl McpClient {
                     }
                 }
                 ensure_figma_user_agent(&mut headers, name, &config.url);
+                // Local app endpoints skip OAuth outright (`start_mcp_server`
+                // routes them to `NoOauthSupport`), so this transport must
+                // never see one — its client is built without the local
+                // no-proxy/no-redirect hardening.
+                debug_assert!(
+                    !config.local_agent_endpoint,
+                    "a local agent endpoint must not reach the OAuth transport"
+                );
                 let http_client = with_extra_root_certificates(
                     reqwest::Client::builder().default_headers(headers),
                 )
@@ -3738,10 +3757,18 @@ impl McpClient {
             }
         }
         ensure_figma_user_agent(&mut headers, server_name, &config.url);
-        let client =
-            with_extra_root_certificates(reqwest::Client::builder().default_headers(headers))
-                .build()
-                .map_err(|e| McpError::ClientError(format!("Failed to build HTTP client: {e}")))?;
+        let mut builder =
+            with_extra_root_certificates(reqwest::Client::builder().default_headers(headers));
+        if config.local_agent_endpoint {
+            // A local app endpoint must never see its agent-id header travel
+            // through a proxy or follow a redirect off the machine.
+            builder = builder
+                .no_proxy()
+                .redirect(reqwest::redirect::Policy::none());
+        }
+        let client = builder
+            .build()
+            .map_err(|e| McpError::ClientError(format!("Failed to build HTTP client: {e}")))?;
         let mcp_http_client =
             crate::mcp_http_client::McpHttpClient::new(client, server_name, warn_budget);
         let transport_config = StreamableHttpClientTransportConfig::with_uri(config.url.as_str());
@@ -4116,6 +4143,25 @@ fn expand_session_id_headers(
         .collect()
 }
 
+/// Strip any caller-supplied agent-id header, then re-add it only when the
+/// spawn context opted into the first-party local app posture. Fails closed
+/// when the bound session id is not a valid HTTP header value.
+fn apply_nofy_agent_id_headers(
+    mut headers: Vec<(String, String)>,
+    ctx: &McpSpawnCtx<'_>,
+) -> Result<Vec<(String, String)>, McpError> {
+    headers.retain(|(name, _)| !name.eq_ignore_ascii_case(NOFY_AGENT_ID_HEADER));
+    if ctx.send_nofy_agent_id_header
+        && let Some(session_id) = ctx.session_id
+    {
+        reqwest::header::HeaderValue::try_from(session_id).map_err(|error| {
+            McpError::ClientError(format!("invalid {NOFY_AGENT_ID_HEADER} value: {error}"))
+        })?;
+        headers.push((NOFY_AGENT_ID_HEADER.to_owned(), session_id.to_owned()));
+    }
+    Ok(headers)
+}
+
 /// Decide the actual (program, args) to spawn for a stdio MCP server.
 ///
 /// On Windows, npm ships launchers like `npx`/`npm`/`pnpm`/`yarn` as `.cmd`
@@ -4188,6 +4234,7 @@ pub struct McpSpawnCtx<'a> {
     pub(crate) event_writer: &'a nofy_file_utils::events::EventWriter,
     pub(crate) mode: OauthInteractivity,
     pub(crate) scope: Option<&'a ProcessScope>,
+    send_nofy_agent_id_header: bool,
 }
 
 impl<'a> McpSpawnCtx<'a> {
@@ -4202,6 +4249,7 @@ impl<'a> McpSpawnCtx<'a> {
             event_writer,
             mode,
             scope,
+            send_nofy_agent_id_header: false,
         }
     }
 
@@ -4211,7 +4259,19 @@ impl<'a> McpSpawnCtx<'a> {
             event_writer,
             mode: OauthInteractivity::Interactive,
             scope: None,
+            send_nofy_agent_id_header: false,
         }
+    }
+
+    /// Opt this spawn context into the first-party local app posture: HTTP
+    /// servers started through it carry [`NOFY_AGENT_ID_HEADER`] with the
+    /// bound session id, skip OAuth discovery, and get a no-proxy /
+    /// no-redirect client. Must stay a per-server decision — a per-drive flag
+    /// would leak the session id to user-configured third-party servers and
+    /// break their auth.
+    pub fn with_nofy_agent_id_header(mut self) -> Self {
+        self.send_nofy_agent_id_header = true;
+        self
     }
 }
 
@@ -4301,10 +4361,15 @@ pub async fn start_mcp_server(
                 tracing::info!(server = %name, %url, ?mc, "MCP http: meta config override");
             }
 
-            let headers = expand_session_id_headers(headers, ctx.session_id);
+            let headers = apply_nofy_agent_id_headers(
+                expand_session_id_headers(headers, ctx.session_id),
+                ctx,
+            )?;
+            let local_agent_endpoint = ctx.send_nofy_agent_id_header;
             let http_config = HttpConfig {
                 url: url.clone(),
                 headers,
+                local_agent_endpoint,
             };
 
             let has_existing_auth = http_config
@@ -4317,6 +4382,11 @@ pub async fn start_mcp_server(
                     server = %name,
                     "Skipping OAuth discovery: server already has Authorization header"
                 );
+                HttpOauthPrep::NoOauthSupport
+            } else if local_agent_endpoint {
+                // First-party app endpoints addressed by agent id are local
+                // desktop processes that never speak OAuth; probing them
+                // would only add latency.
                 HttpOauthPrep::NoOauthSupport
             } else {
                 let _auth_discovery_timer =
@@ -4464,6 +4534,7 @@ impl McpClient {
             PendingTransport::Http(HttpConfig {
                 url: String::new(),
                 headers: Vec::new(),
+                local_agent_endpoint: false,
             }),
             Some(&overrides),
             None,
@@ -5076,6 +5147,7 @@ mod tests {
             HttpConfig {
                 url: "http://localhost/api/mcp".to_string(),
                 headers: vec![],
+                local_agent_endpoint: false,
             },
             None,
             None,
@@ -5369,6 +5441,7 @@ mod tests {
             HttpConfig {
                 url: String::new(),
                 headers: vec![],
+                local_agent_endpoint: false,
             },
             Some(&overrides),
             None,
@@ -5394,6 +5467,7 @@ mod tests {
             HttpConfig {
                 url: String::new(),
                 headers: vec![],
+                local_agent_endpoint: false,
             },
             Some(&overrides),
             None,
@@ -6236,6 +6310,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -6424,6 +6499,7 @@ mod tests {
             HttpConfig {
                 url: url.to_string(),
                 headers: vec![],
+                local_agent_endpoint: false,
             },
             Some(&overrides),
             None,
@@ -6642,6 +6718,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://localhost:5000/api/mcp".to_string(),
             headers: vec![("x-token".to_string(), "abc".to_string())],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
         let stored = client
@@ -6670,6 +6747,7 @@ mod tests {
                 ("authorization".to_string(), "Bearer t".to_string()),
                 ("x-scope".to_string(), "read".to_string()),
             ],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("managed".to_string(), config, None, None);
 
@@ -6706,6 +6784,7 @@ mod tests {
                 ("authorization".to_string(), "Bearer t".to_string()),
                 ("authorization".to_string(), "Bearer t".to_string()),
             ],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("managed".to_string(), config, None, None);
 
@@ -6741,6 +6820,7 @@ mod tests {
         let config = HttpConfig {
             url: url.to_string(),
             headers: vec![("authorization".to_string(), "Bearer t".to_string())],
+            local_agent_endpoint: false,
         };
         state.owned_clients.insert(
             "managed".to_string(),
@@ -6773,6 +6853,7 @@ mod tests {
         let config = HttpConfig {
             url: url.to_string(),
             headers: vec![("authorization".to_string(), "Bearer old".to_string())],
+            local_agent_endpoint: false,
         };
         state.owned_clients.insert(
             "managed".to_string(),
@@ -6806,6 +6887,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://127.0.0.1:9/api/mcp".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
         assert!(client.reset_transport().await);
@@ -6823,6 +6905,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://127.0.0.1:9/api/mcp".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
 
@@ -6839,6 +6922,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://127.0.0.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("test".to_string(), config, None, None);
 
@@ -7279,6 +7363,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://localhost/api/mcp".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             expose_image_base64: Some(true),
@@ -7341,6 +7426,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -7392,6 +7478,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -7462,6 +7549,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(0),
@@ -7493,6 +7581,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let overrides = McpClientTimeoutOverrides {
             // Long enough that the holder is guaranteed to still be
@@ -7686,6 +7775,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         let client = McpClient::new_http("pending".to_string(), config, None, None);
         // `new_http` constructs with `ClientState::Pending(_)`.
@@ -7715,6 +7805,7 @@ mod tests {
         let config = HttpConfig {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
+            local_agent_endpoint: false,
         };
         // Force a generous startup timeout — if the predicate
         // regressed to going through ensure_initialized, this test
@@ -7871,5 +7962,60 @@ mod tests {
             server: "srv".to_string(),
         };
         assert_eq!(ev.server_name(), Some("srv"));
+    }
+
+    // First-party local app endpoints (upstream 1.0.22): the agent-id header
+    // is a spawn-context privilege — caller-supplied config can never inject
+    // or impersonate it.
+    #[test]
+    fn agent_id_headers_strip_caller_supplied_value() {
+        let writer = nofy_file_utils::events::EventWriter::noop();
+        let ctx = McpSpawnCtx::for_session(
+            "sess-1",
+            &writer,
+            OauthInteractivity::Interactive,
+            None,
+        );
+        let headers = vec![(NOFY_AGENT_ID_HEADER.to_owned(), "spoofed".to_string())];
+        let out = apply_nofy_agent_id_headers(headers, &ctx).unwrap();
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn agent_id_headers_injected_only_from_spawn_context() {
+        let writer = nofy_file_utils::events::EventWriter::noop();
+        let ctx = McpSpawnCtx::for_session(
+            "sess-1",
+            &writer,
+            OauthInteractivity::Interactive,
+            None,
+        )
+        .with_nofy_agent_id_header();
+        let out = apply_nofy_agent_id_headers(Vec::new(), &ctx).unwrap();
+        assert_eq!(
+            out,
+            vec![(NOFY_AGENT_ID_HEADER.to_owned(), "sess-1".to_string())]
+        );
+    }
+
+    #[tokio::test]
+    async fn nofy_agent_id_header_rejects_invalid_session_id() {
+        let writer = nofy_file_utils::events::EventWriter::noop();
+        let ctx = McpSpawnCtx::for_session(
+            "bad\nsession",
+            &writer,
+            OauthInteractivity::Interactive,
+            None,
+        )
+        .with_nofy_agent_id_header();
+        let server = acp::McpServer::Http(
+            acp::McpServerHttp::new("local", "http://127.0.0.1:9/mcp").headers(Vec::new()),
+        );
+
+        let error = match start_mcp_server(server, None, None, None, &ctx).await {
+            Ok(_) => panic!("invalid header value must fail closed"),
+            Err(error) => error,
+        };
+        assert!(error.to_string().contains("invalid X-Nofy-Agent-ID value"));
     }
 }
