@@ -10,8 +10,9 @@
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
 | 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb) |
-| 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`) |
+| 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780) |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
+| 剩余缺口 | 上游 1.0.11 尾差 → 1.0.24 未吸收;**批24 预检对账已完成(2026-09-13)**,缺口清单见下方专节;批次路线图见 [upstream-absorb-plan.md](upstream-absorb-plan.md)(自批25 起,批25 有前置阻塞) |
 
 ## 标准流程(每批)
 
@@ -87,8 +88,133 @@
 | attempt_store 子代理恢复台账 | 已移植 | 批10(09c96a05,0.2.145) |
 | MCP elicitation | 已移植 | 批11(b3778c3f,0.2.146) |
 | 双向文本(阿拉伯/波斯) | 无 | 低优先 |
+| xai-grok-update(自更新 CLI,16 文件) | 无 | 身份清理(0.2.159)已删 `nofy update` 子命令与文档;上游 update crate 改动随批一律跳过,批24 补登此条免重复评估 |
 | 系统提示词模板身份归属("released by xAI"/"Grok Build"/"xAI Grok Build harness") | 已清理 | 批23 后身份清理(0.2.159):7 个模板 8 处改 Nofy Build 表述,主提示词删 "released by xAI" 归属,用户指南引导路径 `~/.grok/`→`~/.nofy/`;改模板后须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py` 重新生成加密产物 |
 | 用户指南/参考文档/教程/模型表品牌遗留 | 已清理 | 身份清理第二步(0.2.159):26 个用户指南+2 个参考文档+9 个教程全量 Nofy 品牌化(按代码实况校正:`NOFY_*` 环境变量、`.nofy-plugin`/`.nofy/` 目录、`nofy plugin`/`nofy inspect` 子命令、`nofy/git/worktree/*` wire 前缀、`worktrees/nofy/` 路径、`nofy_code.*` 遥测 schema/`nofy-cli` service.name/`ai.nofy.nofy_code` meter scope、NofyNight/NofyDay 主题、`--nofy-ws-origin` 旗标);删除代码中不存在的条目(`GROK_OIDC_*` 环境变量、`[grok_com_config.oidc]` 表、mixpanel_enabled、Grok Desktop 终端、`nofy update`/`/feedback`、fleet 策略抑制段——远端设置已剔除);default_models.json 显示名/描述改 Nofy,`system_prompt_label` "Grok 4.5"→"Nofy"(该字段经模型表注入系统提示词);模型 ID `grok-4.5` 为功能性 API 标识保留 |
+
+## 缺口清单(批24 对账,2026-09-13)
+
+批24 预检对账产出。摸底用修好的 `scripts/upstream_diff.sh --changed 77cd7eb6..upstream/main`
+(UPSTREAM_REPO=本仓库),完整清单落盘 `/tmp/upstream_changed_20260913_060901.txt`。
+
+### 摸底数据
+
+| 项 | 值 |
+|---|---|
+| 范围 | 77cd7eb6..upstream/main(37949780,1.0.24) |
+| 改动文件 | 2969(其中 .rs 2738) |
+| 映射后存在 | 1877 |
+| 映射后缺失 | 1092(21 个整 crate + 既有 crate 内上游新增文件) |
+| 缺失大户(既有 crate 内新增) | pty-harness +280、shell +280、pager +122、tool-protocol +58、workspace +35、tools +28、fast-worktree +18、telemetry +17、sampler +12、memory +10、sandbox +8、mcp +7、config +6 |
+
+pty-harness/shell 的两个 +280 即计划红线「三巨提交禁整树吸收」的实体:
+bc7f02ed(pager input 重写)与 bb7f39d5(shell 重构)的新增文件面,只能按 changelog 外科提取。
+
+### 提交→版本映射校正
+
+计划原表偏移约一个版本,以 changelog 新增实测为准。**对账单位是 changelog 条目,不是提交**——
+批次边界跨提交边界(如 72a61251 含 1.0.14–1.0.16 三版,分属批27/批28)。
+
+| 提交 | 日期 | 计划原标 | 实测引入 changelog | 文件数 |
+|---|---|---|---|---|
+| 9684fa3c | 08-27 | 1.0.10 第二落点 | 无(仍标 1.0.10) | 442 |
+| bc7f02ed | 08-28 | 1.0.12 | **1.0.11 + 1.0.12** | 1240 |
+| bb7f39d5 | 08-31 | 1.0.13/14 | 1.0.12改 + **1.0.13** | 1429 |
+| 72a61251 | 09-01 | 1.0.16/17 | **1.0.14 + 1.0.15 + 1.0.16** | 310 |
+| 75810042 | 09-08 | 1.0.18→1.0.24 | **1.0.17–1.0.24(八版)** | 1896 |
+| 37949780 | 09-09 | 1.0.24 | 无(1.0.24 后修补) | 684 |
+
+### 1.0.11 尾差对账
+
+1.0.11 changelog 共 17 条。已移植 4、跳过 1、渲染存在但接线待核实 2、待核实/待移植 10。
+待核实项归入批25(1.0.12 集群)一并处理,因 1.0.11 与 1.0.12 同落 bc7f02ed,代码面交织。
+
+| # | 条目 | 分类 | 证据/归属 |
+|---|---|---|---|
+| 1 | Headless 会话可在 resume picker 浏览 | 已移植 | 批21 HeadlessPolicy + 批22 SourceFilter::Headless 页 |
+| 2 | 新交互会话默认权限模式可配置 | 已移植 | 批16 `default_interactive_permission_mode()` + `NOFY_DEFAULT_PERMISSION_MODE` |
+| 3 | resume 后历史显示回合时长 | 渲染存在,接线待核实 | `session_event.rs` "Worked for" marker 在;resume 重放路径未证 |
+| 4 | /resume 后显示回合脚注(Worked for/cancelled/failed) | 同上待核实 | `turn_completion/tests.rs` 有断言 |
+| 5 | mkdir/touch 不再在 auto 模式提示 | 已移植 | `permission/shell_access.rs:1182` 安全清单含 mkdir/touch |
+| 6 | Auto 模式自动放行子代理消息 | 待核实(批25) | 无直接匹配 |
+| 7 | headless 启动提示可自动放行权限 | 待核实(批25) | 批21 有 `startup_hints.non_interactive`,放行接线未证 |
+| 8 | 命令链/子命令权限提示更可靠 | 待核实(批25) | 批16 有祖先授权修复,本条未证 |
+| 9 | 重启后阻塞提示不再入历史/scrollback | 待核实(批25) | 无匹配 |
+| 10 | 后台 monitor 去掉 10h 默认超时 | **待移植** | `tools/config.rs` 仍有 `PRODUCTION_MAX_TIMEOUT_SECS=36_000.0` |
+| 11 | 鼠标右边距不再输入字符 | 待核实(批25 pager 面) | bc7f02ed pager 重写面,需外科提取 |
+| 12 | 粘贴尾换行不再误提交 | 待核实(批25 pager 面) | 同上 |
+| 13 | Auto 模式分类器拦截显示权限卡 | 待核实(批25) | 无匹配 |
+| 14 | Kitty/Warp 图像预览残影 | 待核实(媒体面,倾向跳过) | 图像预览是否保留待核 |
+| 15 | 展开的 Execute 输出不再回弹折叠 | 待核实(批25 pager 面) | bc7f02ed 面 |
+| 16 | /voice parec/arecord 回退 | 跳过 | 语音已剔除(分歧表) |
+| 17 | 后台命令等待随进程退出即结束 | 待核实(批25) | 无匹配 |
+
+### 缺失 crate 定性(21 个整 crate)
+
+08-13 波 10 个(锚点 77cd7eb 已存在、从未移植)+ 缺口内新增/其他 11 个。
+「待评估」= 批24 不拍板,留到对应批次按 changelog 条目触发时再定。
+
+| crate | rs | 用途(上游 description) | 定性 | 归属 |
+|---|---|---|---|---|
+| session-search | 10 | SQLite FTS5 本地会话搜索,BM25 排序 | **移植(立项)** | 批33,产品价值高且全本地 |
+| session-events | 4 | 每会话事件日志 JSONL | 待评估 | 我们 `nofy-session-journal` 是空壳(0 rs),无重叠;按批25+ 需求触发 |
+| active-sessions | 2 | 崩溃恢复 TUI 会话存活登记(lock-guarded JSON) | 待评估 | 与 `nofy-session-registry`(只读跨进程索引)用途不同;崩溃恢复需求触发 |
+| foreign-sessions | 15 | 外部 coding-agent 会话元数据发现 | 待评估 | `nofy-session-registry` 已含 foreign-session 视图;发现层是否独立 crate 待核 |
+| compaction-transcript | 1 | 压缩段 Markdown 渲染 + segment-store 命名 | 降维评估 | 压缩已移植(批20/23);渲染层按批25/26 需求 |
+| fuzzy-file-search | 1 | 模糊文件搜索(ignore-aware walker + nucleo + daemon) | 移植评估 | 批33 候选;文件选择器价值,nucleo 依赖面需核 |
+| bundle | 1 | 发布态子代理 bundle 校验缓存(personas/roles/agents/skills) | 跳过倾向 | 云/市场表面;marketplace 本地化需要时再评估 |
+| diag-server | 1 | hub guest 诊断 HTTP server(/ready /statusz /logs) | **跳过** | hub guest 云表面,同批23 path_virtualization 分歧 |
+| workspace-daemon | 3 | workspace-server 守护进程生命周期(自守护/pidfile/preview-proxy) | **跳过/登记分歧** | Computer Hub 表面,计划批31 决策点已倾向分歧 |
+| pager-diff | 1 | TUI diff hunk 构造 | 降维评估 | 已有 diff 渲染;视批31 edit_file 真实行号条目是否需独立 crate |
+| update | 16 | 自更新 CLI | **跳过** | 身份清理已删 `nofy update`;分歧表已补登 |
+| image | 2 | 图像校验/转码(tools 与 clients 共享) | 评估 | 计划第 4 节已有条目,维持 |
+| dirs | 1 | home 目录解析(USERPROFILE-first + grok-home) | 跳过 | 已有 `nofy_config::nofy_home` 等价;上游若新依赖再取(批33) |
+| mixpanel | 1 | Mixpanel HTTP 追踪客户端 | **跳过** | 遥测云,分歧表已覆盖(mixpanel_enabled 已删) |
+| message-delivery-core | 8 | interjection 原子交付 | 批27 评估 | 计划第 4 节已有条目,维持 |
+| login | 46 | xAI 登录流 | **跳过** | 分歧表:BYOK,物理剔除 |
+| dashboard-store | 14 | hub dashboard 持久化 | **跳过** | 云表面,计划第 4 节已有 |
+| feedback | 12 | 退出反馈云上传 | **跳过** | 分歧表已有 |
+| voice | 17 | 语音工具 | **跳过** | 分歧表:媒体/语音已剔除 |
+| otel | 9 | OTLP 遥测上报 | 降维 | 计划第 4 节:只取 W3C trace-context 传播 |
+| gboom | 5 | 彩蛋射线追踪游戏 | **跳过** | 计划第 4 节已有 |
+
+### 工具修复记录(批24 前置,已完成)
+
+`scripts/upstream_diff.sh` 此前对缺口基本失明:normalize sed 表仅 21 条 crate 枚举,
+缺口重度触及的 tool-runtime/tool-protocol/grok-compaction/computer-hub-*/interjection-core/
+grok-agent/mcp/models/auth/config/paths/sampler/sandbox/secrets/version 等约 50 个 crate 不在表内,
+`--changed` 跑出 80/80 全「缺失」(且被 `head -80` 截断)的假阴性清单。批24 修复:
+
+- normalize 改为 4 条统一规则(`xai-grok-`→`nofy-`、`xai_grok_`→`nofy_`、`xai-`→`nofy-`、`xai_`→`nofy_`),
+  经全量 crate 清单核对与旧表结果一致且覆盖旧表全部遗漏;非 crate 字面量规则(grok_build/_x.ai/GROK_/.grok/)保留。
+- `--changed` 修范围解析:尾随 `..` 在 UPSTREAM_REPO=本仓库时自动补全为 `upstream/main`,
+  避免误解析到我们自己的 HEAD(含 336 桌面提交);用法改为显式 `<base>..<head>`。
+- `--changed` 扩到 `crates/` 全文件类型(原仅 `.rs`,Cargo.toml/changelog 不可见);
+  输出改为按 crate 汇总存在/缺失 + 全量清单落盘,去掉 `head -80` 截断。
+- 遗留未动:`XAI_` env 前缀未加归一规则(我们树仅 3 处残留:npm 元数据 + bg_task.rs,
+  非 crate 名,加规则恐掩盖真实差异,留待具体批次触及再定)。
+
+### 批25 前置条件(阻塞,需用户处置)
+
+当前工作树有 47 文件未提交改动(+1909/−575),是**在飞的 Desktop 第一方 MCP server 实现**
+(`nofy-mcp` 的 `local_agent_endpoint`/`NOFY_AGENT_ID_HEADER`,即计划批31 决策点 #6「取」)
+加 D 系列模型管理收尾,且正好覆盖批25 操作面(`nofy-mcp/servers.rs`、`nofy-workspace/worktree/mod.rs`、
+`permission/*`、`nofy-shell/config/*`)。批25 起要改内核代码并做批次提交,**不能在这份未提交特性工作上叠提交**。
+开工批25 前须:① 提交或暂存在飞工作;② 固化桌面 seam 基线(`desktop/src/out/*` 当前已改);
+③ 在干净树上复测三路测试基线(脏树计数会误导「只增不减」判定)。
+
+**批24 附加发现(已修复)**:脏树的 `nofy-shell (lib test)` 目标曾**编译失败**,lib 本身过(13 warnings)。
+精确错误(编译器只报 1 个):
+`crates/codegen/nofy-shell/src/session/acp_session_tests/reactive_managed_reauth_e2e_tests.rs:200:17`
+`error[E0063]: missing field 'local_agent_endpoint' in initializer of 'HttpConfig'`。
+根因是在飞的 Desktop 第一方 MCP server 工作给 `nofy-mcp` 的 `HttpConfig` 加了 `local_agent_endpoint: bool`,
+生产构造点(`servers.rs`)已补 `false`,但漏了这一个测试构造点。
+(注:`ModelEntry` 的 `input_modalities`/`output_modalities` 两字段已补全,无报错;
+早先按 grep 推测的「17 文件缺 modality 字段」是红鲱鱼,以编译器输出为准。)
+**批24 已修**:该测试构造点补 `local_agent_endpoint: false,` 一行(与生产默认一致,该测试与本地代理端点无关),
+`cargo check -p nofy-shell --tests` 复核通过(Finished 34s,无 error;余下 unused import 警告属 nofy-governance/surfaces/daemon 预存,无关)。
+**批25 阻塞现仅剩「脏树纠缠」一项**:在飞 Desktop MCP 特性工作(47 文件)未提交,批25 的内核改动与批次提交不能叠在其上;
+须先提交或暂存在飞工作、固化桌面 seam 基线、干净树复测三路测试基线,再开工批25。
 
 ## 移植时的常见适配点
 
