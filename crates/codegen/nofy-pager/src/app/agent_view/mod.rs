@@ -1960,7 +1960,7 @@ fn is_hash_key(key: &KeyEvent) -> bool {
 }
 /// Check `[features] remember_mode` in config.toml. Defaults to `false`.
 fn remember_mode_enabled() -> bool {
-    let path = nofy_tools::util::nofy_home::nofy_home().join("config.toml");
+    let path = crate::config_toml_edit::user_config_path();
     let Some(doc) = crate::config_toml_edit::read_config_document_for_edit(&path) else {
         return false;
     };

@@ -146,17 +146,25 @@ fn discover_servers(cwd: &Path) -> (Vec<ConfigSourceStatus>, Vec<DiscoveredServe
     let mut sources = Vec::new();
 
     let nofy_home = nofy_tools::util::nofy_home::nofy_home();
-    let user_config = nofy_home.join("config.toml");
+    // 用户配置可能是 config.json（优先）或 config.toml。
+    let user_config = nofy_config::user_config_path_at(&nofy_home);
+    let user_config_label = format!(
+        "~/.nofy/{}",
+        user_config
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or(nofy_config::USER_CONFIG_FILENAME)
+    );
     if user_config.is_file() {
         sources.push(ConfigSourceStatus {
-            path: "~/.nofy/config.toml".to_string(),
+            path: user_config_label,
             status: ConfigSourceState::Found {
                 server_count: config_count,
             },
         });
     } else {
         sources.push(ConfigSourceStatus {
-            path: "~/.nofy/config.toml".to_string(),
+            path: user_config_label,
             status: ConfigSourceState::NotFound,
         });
     }

@@ -13,17 +13,7 @@ use crate::version_overrides::{self, apply_version_overrides};
 /// Shared core of [`load_toml_file`] and the hook-layer read.
 fn read_toml_file(path: &Path) -> std::io::Result<toml::Value> {
     match std::fs::read_to_string(path) {
-        Ok(s) => match toml::from_str::<toml::Value>(&s) {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                // Built from the span, never from Display — Display echoes the
-                // offending source line, which may carry a secret. Safe to log and
-                // to return to a client.
-                let detail = toml_error_detail(&s, &e);
-                tracing::error!(file = %path.display(), "config toml has syntax errors: {detail}");
-                Err(std::io::Error::other(detail))
-            }
-        },
+        Ok(s) => parse_toml_str(&s, path),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             Ok(toml::Value::Table(toml::map::Map::new()))
         }
@@ -32,6 +22,218 @@ fn read_toml_file(path: &Path) -> std::io::Result<toml::Value> {
             Err(e)
         }
     }
+}
+
+fn parse_toml_str(s: &str, path: &Path) -> std::io::Result<toml::Value> {
+    match toml::from_str::<toml::Value>(s) {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            // Built from the span, never from Display — Display echoes the
+            // offending source line, which may carry a secret. Safe to log and
+            // to return to a client.
+            let detail = toml_error_detail(s, &e);
+            tracing::error!(file = %path.display(), "config toml has syntax errors: {detail}");
+            Err(std::io::Error::other(detail))
+        }
+    }
+}
+
+/// JSON 用户配置文件名：存在时优先于 [`USER_CONFIG_FILENAME`]（JSON 体系）。
+pub const USER_CONFIG_FILENAME_JSON: &str = "config.json";
+
+/// `home` 下用户配置的文件名：`config.json` 存在则用它（JSON 体系），否则
+/// `config.toml`（含两者皆无时的新建默认，保持上游行为）。
+pub fn user_config_filename_at(home: &Path) -> &'static str {
+    if home.join(USER_CONFIG_FILENAME_JSON).is_file() {
+        USER_CONFIG_FILENAME_JSON
+    } else {
+        USER_CONFIG_FILENAME
+    }
+}
+
+/// `home` 下用户配置文件的完整路径（两者皆无时返回 json 名，作为新建默认）。
+pub fn user_config_path_at(home: &Path) -> std::path::PathBuf {
+    home.join(user_config_filename_at(home))
+}
+
+/// `$NOFY_HOME` 下用户配置文件路径；无可用 home 返回 None。
+pub fn user_config_path() -> Option<std::path::PathBuf> {
+    user_nofy_home().map(|h| user_config_path_at(&h))
+}
+
+/// 文件是否为 JSON 配置：扩展名 .json，或内容首非空字符为 `{`
+/// （合法 TOML 文档不可能以 `{` 开头）。
+fn is_json_config(path: &Path, content: &str) -> bool {
+    path.extension().and_then(|e| e.to_str()) == Some("json") || content.trim_start().starts_with('{')
+}
+
+/// serde_json → toml::Value。JSON null 在 TOML 无对应：表内键丢弃、数组元素丢弃（告警）。
+fn json_to_toml(v: &serde_json::Value) -> Option<toml::Value> {
+    match v {
+        serde_json::Value::Null => None,
+        serde_json::Value::Bool(b) => Some(toml::Value::Boolean(*b)),
+        serde_json::Value::Number(n) => Some(if let Some(i) = n.as_i64() {
+            toml::Value::Integer(i)
+        } else if let Some(u) = n.as_u64() {
+            toml::Value::Integer(u as i64)
+        } else {
+            toml::Value::Float(n.as_f64().unwrap_or(0.0))
+        }),
+        serde_json::Value::String(s) => Some(toml::Value::String(s.clone())),
+        serde_json::Value::Array(items) => Some(toml::Value::Array(
+            items.iter().filter_map(json_to_toml).collect(),
+        )),
+        serde_json::Value::Object(map) => {
+            let mut table = toml::map::Map::new();
+            for (k, item) in map {
+                if let Some(converted) = json_to_toml(item) {
+                    table.insert(k.clone(), converted);
+                }
+            }
+            Some(toml::Value::Table(table))
+        }
+    }
+}
+
+/// toml::Value → serde_json::Value（写回 JSON 用）。
+pub fn toml_to_json(v: &toml::Value) -> serde_json::Value {
+    match v {
+        toml::Value::String(s) => serde_json::Value::String(s.clone()),
+        toml::Value::Integer(i) => serde_json::Value::Number((*i).into()),
+        toml::Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
+        toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
+        toml::Value::Datetime(d) => serde_json::Value::String(d.to_string()),
+        toml::Value::Array(items) => {
+            serde_json::Value::Array(items.iter().map(toml_to_json).collect())
+        }
+        toml::Value::Table(table) => serde_json::Value::Object(
+            table
+                .iter()
+                .map(|(k, item)| (k.clone(), toml_to_json(item)))
+                .collect(),
+        ),
+    }
+}
+
+/// 按格式嗅探读取配置文件（TOML 或 JSON），不做 `$VAR` 展开；缺文件返回空表。
+fn read_config_file_sniffed(path: &Path) -> std::io::Result<toml::Value> {
+    match std::fs::read_to_string(path) {
+        Ok(s) => {
+            if is_json_config(path, &s) {
+                match serde_json::from_str::<serde_json::Value>(&s) {
+                    Ok(j) => Ok(json_to_toml(&j).unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()))),
+                    Err(e) => {
+                        // serde_json 的 Display 只含消息与行列号，不回显源码行（可能带密钥）。
+                        let detail = format!("JSON parse error: {e}");
+                        tracing::error!(file = %path.display(), "config json has syntax errors: {detail}");
+                        Err(std::io::Error::other(detail))
+                    }
+                }
+            } else {
+                parse_toml_str(&s, path)
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Ok(toml::Value::Table(toml::map::Map::new()))
+        }
+        Err(e) => {
+            tracing::error!(file = %path.display(), "config file unreadable: {e}");
+            Err(e)
+        }
+    }
+}
+
+fn is_json_path(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()) == Some("json")
+}
+
+/// 原子写回任意配置文件：按扩展名选格式（`.json` → JSON，否则 TOML）。
+pub fn save_config_value_at(path: &Path, value: &toml::Value) -> std::io::Result<()> {
+    let text = if is_json_path(path) {
+        serde_json::to_string_pretty(&toml_to_json(value))
+            .map_err(|e| std::io::Error::other(e.to_string()))?
+            + "\n"
+    } else {
+        toml::to_string_pretty(value).map_err(|e| std::io::Error::other(e.to_string()))?
+    };
+    atomic_write_text(path, &text)
+}
+
+/// 把一段 TOML 文本写到 `path`：目标为 JSON 时转换格式，否则原样原子写
+/// （保留 toml_edit 侧的注释与键序）。
+pub fn save_config_toml_text_at(path: &Path, text: &str) -> std::io::Result<()> {
+    if is_json_path(path) {
+        let value: toml::Value =
+            toml::from_str(text).map_err(|e| std::io::Error::other(e.to_string()))?;
+        save_config_value_at(path, &value)
+    } else {
+        atomic_write_text(path, text)
+    }
+}
+
+/// 读出配置的 TOML 文本视图：JSON 目标转成等价 TOML 文本，TOML 目标原样返回
+/// （保留注释）。缺文件按 io 错误上抛，由调用方决定语义。供仍按 TOML 文本做
+/// 局部改写的调用方复用，改写结果须用 [`save_config_toml_text_at`] 写回以保持
+/// 目标格式。
+pub fn load_config_text_as_toml(path: &Path) -> std::io::Result<String> {
+    let raw = std::fs::read_to_string(path)?;
+    if !is_json_config(path, &raw) {
+        return Ok(raw);
+    }
+    // serde_json 的 Display 不回显源码行（可能带密钥）。
+    let json: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|e| std::io::Error::other(format!("JSON parse error: {e}")))?;
+    let value = json_to_toml(&json).unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
+    toml::to_string_pretty(&value).map_err(|e| std::io::Error::other(e.to_string()))
+}
+
+/// 原子写回用户配置：按目标文件现有格式（无文件时 JSON）序列化。
+pub fn save_user_config_value(value: &toml::Value) -> std::io::Result<()> {
+    let home = user_nofy_home().ok_or_else(|| std::io::Error::other("no nofy home resolvable"))?;
+    save_config_value_at(&user_config_path_at(&home), value)
+}
+
+/// 写回一段 TOML 文本到用户配置：目标为 JSON 时转换格式，否则原样原子写
+/// （保留 toml_edit 侧的注释与键序）。
+pub fn save_user_config_toml_text(text: &str) -> std::io::Result<()> {
+    let home = user_nofy_home().ok_or_else(|| std::io::Error::other("no nofy home resolvable"))?;
+    save_config_toml_text_at(&user_config_path_at(&home), text)
+}
+
+fn atomic_write_text(path: &Path, text: &str) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    // 保留原文件权限位（config 常含 api_key，用户可能 chmod 600）。
+    #[cfg(unix)]
+    let prior_mode: Option<u32> = std::fs::metadata(path).ok().map(|m| {
+        use std::os::unix::fs::PermissionsExt;
+        m.permissions().mode()
+    });
+    let tmp = path.with_file_name(format!(
+        ".{}.tmp-{}-{}",
+        path.file_name().and_then(|s| s.to_str()).unwrap_or("config"),
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    std::fs::write(&tmp, text)?;
+    #[cfg(unix)]
+    if let Some(mode) = prior_mode {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode));
+    }
+    std::fs::rename(&tmp, path)
+}
+
+/// 嗅探读取（TOML/JSON），不应用 `[[version_overrides]]`——写回侧往返用，
+/// 避免往返丢掉 version_overrides 段。
+pub fn load_raw_config_file(path: &Path) -> std::io::Result<toml::Value> {
+    read_config_file_sniffed(path)
 }
 
 /// Load and parse a TOML file, expanding `$VAR` references. Empty table if absent.
@@ -77,16 +279,20 @@ fn line_col(src: &str, byte: usize) -> (usize, usize) {
     (line, col)
 }
 
-/// [`load_toml_file`] plus that layer's `[[version_overrides]]`. Use for
-/// nofy config files; use [`load_toml_file`] directly for unrelated TOML.
+/// [`load_config_file_sniffed`] plus that layer's `[[version_overrides]]`. Use for
+/// nofy config files (TOML or JSON); use [`load_toml_file`] for unrelated TOML.
 pub fn load_config_file(path: &Path) -> std::io::Result<toml::Value> {
-    let mut v = load_toml_file(path)?;
+    let mut v = read_config_file_sniffed(path)?;
     apply_version_overrides_with_registered(&mut v)?;
     Ok(v)
 }
 
 pub fn load_from_disk() -> std::io::Result<toml::Value> {
-    load_user_config_layer(user_nofy_home().as_deref(), USER_CONFIG_FILENAME)
+    let filename = user_nofy_home()
+        .as_deref()
+        .map(user_config_filename_at)
+        .unwrap_or(USER_CONFIG_FILENAME);
+    load_user_config_layer(user_nofy_home().as_deref(), filename)
 }
 
 /// User config filename (`$NOFY_HOME/config.toml`), shared by the loaders here.
@@ -309,6 +515,9 @@ pub fn hook_config_layers_at(
     // (requirements > user > managed > system_managed; user overrides managed in
     // this model). Order only affects which label a byte-identical duplicate keeps
     // under first-wins dedup; every distinct hook runs regardless.
+    let user_filename = user_home
+        .map(user_config_filename_at)
+        .unwrap_or(USER_CONFIG_FILENAME);
     let specs = [
         LayerSpec {
             dir: system_dir,
@@ -324,7 +533,7 @@ pub fn hook_config_layers_at(
         },
         LayerSpec {
             dir: user_home,
-            filename: USER_CONFIG_FILENAME,
+            filename: user_filename,
             provenance: HookProvenance::User,
             source_name: "user",
         },
@@ -358,7 +567,7 @@ pub fn hook_config_layers_at(
         }
         // No `$VAR` expansion: a literal `${VAR}` must reach the hook runner, which
         // does the single expansion (expanding here would double-expand).
-        let mut value = match read_toml_file(&path) {
+        let mut value = match read_config_file_sniffed(&path) {
             Ok(v) => v,
             Err(e) => {
                 tracing::warn!(path = %path.display(), error = %e, "skipping config layer whose hooks could not be read");
@@ -979,5 +1188,123 @@ mod tests {
             Some(v) => unsafe { std::env::set_var("NOFY_CAMPAIGNS", v) },
             None => unsafe { std::env::remove_var("NOFY_CAMPAIGNS") },
         }
+    }
+
+    #[test]
+    fn user_config_filename_prefers_json_when_present() {
+        let home = tempfile::tempdir().unwrap();
+        // 两者皆无：沿用上游默认 config.toml。
+        assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME);
+        write(home.path(), USER_CONFIG_FILENAME, "[ui]\ntheme = \"dark\"\n");
+        assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME);
+        write(home.path(), USER_CONFIG_FILENAME_JSON, "{\"ui\":{\"theme\":\"dark\"}}");
+        assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME_JSON);
+        assert_eq!(
+            user_config_path_at(home.path()),
+            home.path().join(USER_CONFIG_FILENAME_JSON)
+        );
+    }
+
+    #[test]
+    fn json_config_reads_as_toml_value_including_nested_provider_models() {
+        let home = tempfile::tempdir().unwrap();
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME_JSON,
+            r#"{
+              "models": { "default": "qwen3.8-max" },
+              "model_providers": {
+                "dashscope": {
+                  "api_key": "sk-secret",
+                  "models": {
+                    "qwen3.8-max": { "name": "Qwen3.8 Max", "context_window": 262144 }
+                  }
+                }
+              }
+            }"#,
+        );
+        let path = user_config_path_at(home.path());
+        let root = load_raw_config_file(&path).unwrap();
+        assert_eq!(root["models"]["default"].as_str(), Some("qwen3.8-max"));
+        let provider = &root["model_providers"]["dashscope"];
+        assert_eq!(provider["api_key"].as_str(), Some("sk-secret"));
+        assert_eq!(
+            provider["models"]["qwen3.8-max"]["context_window"].as_integer(),
+            Some(262144)
+        );
+    }
+
+    #[test]
+    fn save_config_value_at_writes_json_for_json_target_and_preserves_mode() {
+        let home = tempfile::tempdir().unwrap();
+        let path = home.path().join(USER_CONFIG_FILENAME_JSON);
+        write(home.path(), USER_CONFIG_FILENAME_JSON, "{\"ui\":{\"theme\":\"dark\"}}");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+
+        let mut root = load_raw_config_file(&path).unwrap();
+        let mut srv = toml::map::Map::new();
+        srv.insert(
+            "command".to_string(),
+            toml::Value::String("/bin/echo".to_string()),
+        );
+        let mut servers = toml::map::Map::new();
+        servers.insert("srv".to_string(), toml::Value::Table(srv));
+        root.as_table_mut()
+            .unwrap()
+            .insert("mcp_servers".to_string(), toml::Value::Table(servers));
+        save_config_value_at(&path, &root).unwrap();
+
+        // 仍是合法 JSON，且原有内容没被 TOML 覆盖丢掉。
+        let text = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(json["ui"]["theme"], "dark");
+        assert_eq!(json["mcp_servers"]["srv"]["command"], "/bin/echo");
+        assert_eq!(load_raw_config_file(&path).unwrap(), root);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+    }
+
+    #[test]
+    fn save_config_toml_text_at_converts_for_json_and_stays_verbatim_for_toml() {
+        let home = tempfile::tempdir().unwrap();
+        let toml_text = "# 用户注释\n[ui]\ntheme = \"dark\"\n";
+
+        let toml_path = home.path().join(USER_CONFIG_FILENAME);
+        save_config_toml_text_at(&toml_path, toml_text).unwrap();
+        // TOML 目标原样写回：注释与键序保留。
+        assert_eq!(std::fs::read_to_string(&toml_path).unwrap(), toml_text);
+
+        let json_path = home.path().join(USER_CONFIG_FILENAME_JSON);
+        save_config_toml_text_at(&json_path, toml_text).unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&json_path).unwrap()).unwrap();
+        assert_eq!(json["ui"]["theme"], "dark");
+    }
+
+    #[test]
+    fn load_config_text_as_toml_renders_json_as_parseable_toml() {
+        let home = tempfile::tempdir().unwrap();
+        let path = home.path().join(USER_CONFIG_FILENAME_JSON);
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME_JSON,
+            r#"{"ui":{"theme":"dark"},"marketplace":{"sources":[{"name":"official","git":"https://example.com/x.git"}]}}"#,
+        );
+        let text = load_config_text_as_toml(&path).unwrap();
+        let parsed: toml::Value = toml::from_str(&text).unwrap();
+        assert_eq!(parsed["ui"]["theme"].as_str(), Some("dark"));
+        assert_eq!(
+            parsed["marketplace"]["sources"][0]["name"].as_str(),
+            Some("official")
+        );
+        // 缺文件按 io 错误上抛，由调用方决定语义。
+        assert!(load_config_text_as_toml(&home.path().join("missing.json")).is_err());
     }
 }

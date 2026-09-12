@@ -537,6 +537,7 @@ fn protected_nofy_config_file_with_home(
     let reason = match components.last().copied() {
         Some(
             nofy_config::USER_CONFIG_FILENAME
+            | nofy_config::USER_CONFIG_FILENAME_JSON
             | nofy_config::MANAGED_CONFIG_FILENAME
             | nofy_config::REQUIREMENTS_FILENAME,
         ) => ProtectedEditReason::NofyConfig,

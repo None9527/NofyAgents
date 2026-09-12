@@ -913,12 +913,13 @@ fn marketplace_add(
         MarketplaceAddInput::GitUrl(u) => plugin::name_from_url(u),
         MarketplaceAddInput::LocalPath(p) => plugin::name_from_path(p),
     };
-    let config_path = nofy_config::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_config::nofy_home());
 
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
+    // 格式感知读：JSON 用户配置转成等价 TOML 文本再交给 toml_edit。
+    let content = nofy_config::load_config_text_as_toml(&config_path).unwrap_or_default();
     let mut doc: toml_edit::DocumentMut = content
         .parse()
-        .map_err(|e| anyhow::anyhow!("Failed to parse config.toml: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to parse user config: {e}"))?;
 
     if doc.get("marketplace").is_none() {
         doc["marketplace"] = toml_edit::Item::Table(toml_edit::Table::new());
@@ -944,7 +945,7 @@ fn marketplace_add(
     }
     sources.push(entry);
 
-    std::fs::write(&config_path, doc.to_string())?;
+    nofy_config::save_config_toml_text_at(&config_path, &doc.to_string())?;
 
     println!("Added marketplace source: {name} ({identity})");
     Ok(())
@@ -1023,13 +1024,13 @@ fn marketplace_remove(
 
     let uninstalled = plugin::uninstall_marketplace_source_plugins(&identity);
 
-    let config_path = nofy_config::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_config::nofy_home());
     let mut removed_from_config = false;
-    if let Ok(content) = std::fs::read_to_string(&config_path)
+    if let Ok(content) = nofy_config::load_config_text_as_toml(&config_path)
         && let Some(new) = plugin::remove_toml_marketplace_block(&content, &identity)
     {
-        if let Err(e) = std::fs::write(&config_path, new) {
-            tracing::warn!("failed to write config.toml: {e}");
+        if let Err(e) = nofy_config::save_config_toml_text_at(&config_path, &new) {
+            tracing::warn!("failed to write user config: {e}");
         } else {
             removed_from_config = true;
         }

@@ -537,13 +537,12 @@ pub fn is_claude_import_marked() -> bool {
     if std::env::var("_NOFY_CLAUDE_MARKER_OVERRIDE").as_deref() == Ok("1") {
         return true;
     }
-    let Some(config_path) = nofy_config::user_nofy_home().map(|g| g.join("config.toml")) else {
+    let Some(config_path) = nofy_config::user_nofy_home().map(|g| nofy_config::user_config_path_at(&g))
+    else {
         return false;
     };
-    let Ok(contents) = std::fs::read_to_string(&config_path) else {
-        return false;
-    };
-    let Ok(value) = toml::from_str::<toml::Value>(&contents) else {
+    // 格式感知读：config.json 与 config.toml 都得到 toml::Value。
+    let Ok(value) = nofy_config::load_raw_config_file(&config_path) else {
         return false;
     };
     value

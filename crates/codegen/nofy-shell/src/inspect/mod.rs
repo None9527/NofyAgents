@@ -1056,9 +1056,9 @@ fn list_config_sources(cwd: &Path) -> ConfigSources {
         }
     }
 
-    // User config.toml (primary user layer; shown as (none) when absent)
+    // User config (primary user layer; shown as (none) when absent)
     if let Some(home) = crate::config::user_nofy_home() {
-        let p = home.join("config.toml");
+        let p = nofy_config::user_config_path_at(&home);
         if let Some((path_s, note)) = describe_config_file(&p) {
             layers.push(ConfigLayer {
                 role: "user".to_string(),

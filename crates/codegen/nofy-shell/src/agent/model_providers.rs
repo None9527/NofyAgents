@@ -67,11 +67,16 @@ pub(crate) fn auth_config_issues(
 
 pub(crate) fn parse_model_providers(
     raw_config: &toml::Value,
-) -> (IndexMap<String, ModelProviderConfig>, Vec<ConfigWarning>) {
+) -> (
+    IndexMap<String, ModelProviderConfig>,
+    IndexMap<String, ConfigModelOverride>,
+    Vec<ConfigWarning>,
+) {
     let mut providers = IndexMap::new();
+    let mut nested_models: IndexMap<String, ConfigModelOverride> = IndexMap::new();
     let mut warnings = Vec::new();
     let Some(section) = raw_config.get("model_providers") else {
-        return (providers, warnings);
+        return (providers, nested_models, warnings);
     };
     let Some(table) = section.as_table() else {
         warnings.push(ConfigWarning::model_provider_section(
@@ -82,11 +87,19 @@ pub(crate) fn parse_model_providers(
                 section.type_str()
             ),
         ));
-        return (providers, warnings);
+        return (providers, nested_models, warnings);
     };
     for (id, value) in table {
         let mut unknown = Vec::new();
-        match serde_ignored::deserialize::<_, _, ModelProviderConfig>(value.clone(), |path| {
+        // 嵌套模型子表：[model_providers.<id>.models.<model-id>]（JSON 里即
+        // providers.<id>.models.<model-id>）。先摘出再反序列化供应商本体，
+        // 否则 models 会被 serde_ignored 报成未知字段。
+        let nested = value.get("models").cloned();
+        let mut provider_value = value.clone();
+        if let toml::Value::Table(t) = &mut provider_value {
+            t.remove("models");
+        }
+        match serde_ignored::deserialize::<_, _, ModelProviderConfig>(provider_value, |path| {
             unknown.push(path.to_string());
         }) {
             Ok(provider) => {
@@ -97,6 +110,45 @@ pub(crate) fn parse_model_providers(
                         ConfigWarningKind::UnknownField,
                         "unrecognized key; field ignored".to_owned(),
                     ));
+                }
+                if let Some(nested) = nested {
+                    match nested.as_table() {
+                        Some(models_table) => {
+                            for (mid, mv) in models_table {
+                                let parse = serde_ignored::deserialize::<_, _, ConfigModelOverride>(
+                                    mv.clone(),
+                                    |path| {
+                                        warnings.push(ConfigWarning::model_provider(
+                                            id,
+                                            Some(&format!("models.{mid}.{path}")),
+                                            ConfigWarningKind::UnknownField,
+                                            "unrecognized key; field ignored".to_owned(),
+                                        ));
+                                    },
+                                );
+                                match parse {
+                                    Ok(mut ov) => {
+                                        if ov.model_provider.is_none() {
+                                            ov.model_provider = Some(id.clone());
+                                        }
+                                        nested_models.insert(mid.clone(), ov);
+                                    }
+                                    Err(error) => warnings.push(ConfigWarning::model_provider(
+                                        id,
+                                        Some(&format!("models.{mid}")),
+                                        ConfigWarningKind::InvalidValue,
+                                        format!("failed to parse nested model ({error}); model ignored"),
+                                    )),
+                                }
+                            }
+                        }
+                        None => warnings.push(ConfigWarning::model_provider(
+                            id,
+                            Some("models"),
+                            ConfigWarningKind::NotATable,
+                            "`models` must be a table of model entries; ignored".to_owned(),
+                        )),
+                    }
                 }
                 if let Some(auth) = &provider.auth {
                     for (field, kind, reason) in auth_config_issues(auth) {
@@ -164,7 +216,7 @@ pub(crate) fn parse_model_providers(
             }
         }
     }
-    (providers, warnings)
+    (providers, nested_models, warnings)
 }
 
 impl ConfigModelOverride {

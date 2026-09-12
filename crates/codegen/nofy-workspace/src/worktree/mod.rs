@@ -2427,10 +2427,9 @@ fn resolve_worktree_auto_gc_local() -> nofy_fast_worktree::ResolvedWorktreeAutoG
     use nofy_config_types::WorktreeAutoGcSettings;
 
     let local = if let Ok(home) = resolve_nofy_home() {
-        let path = home.join("config.toml");
-        if let Ok(text) = std::fs::read_to_string(&path)
-            && let Ok(root) = text.parse::<toml::Value>()
-        {
+        // 用户配置可能是 config.json（优先）或 config.toml。
+        let path = nofy_config::user_config_path_at(&home);
+        if let Ok(root) = nofy_config::load_raw_config_file(&path) {
             root.get("worktree")
                 .and_then(|w| w.get("auto_gc"))
                 // toml::Value only deserializes by value (no &Value Deserializer).

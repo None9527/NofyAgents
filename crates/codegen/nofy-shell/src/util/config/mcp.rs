@@ -613,10 +613,13 @@ pub(crate) async fn save_mcp_disabled_tools(
     disabled_tools: &[String],
 ) -> Result<()> {
     let path = config_path();
-    let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
-        Ok(s) => toml::from_str(&s).unwrap_or(TomlValue::Table(TomlMap::new())),
-        Err(_) => TomlValue::Table(TomlMap::new()),
-    };
+    // 格式感知读；解析失败即拒绝覆写，避免静默丢掉整份用户配置。
+    let mut root: TomlValue = nofy_config::load_raw_config_file(&path).map_err(|e| {
+        anyhow::anyhow!(
+            "refusing to overwrite unreadable config {}: {e}",
+            path.display()
+        )
+    })?;
     let table = root
         .as_table_mut()
         .ok_or_else(|| anyhow::anyhow!("config root is not a table"))?;
@@ -640,13 +643,7 @@ pub(crate) async fn save_mcp_disabled_tools(
         section.insert(server_name.to_string(), TomlValue::Array(arr));
     }
 
-    let toml_str = toml::to_string_pretty(&root)?;
-    let tmp = path.with_extension("toml.tmp");
-    if let Some(parent) = path.parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-    tokio::fs::write(&tmp, &toml_str).await?;
-    tokio::fs::rename(&tmp, &path).await?;
+    nofy_config::save_config_value_at(&path, &root)?;
     Ok(())
 }
 
@@ -756,7 +753,9 @@ async fn write_toml_table_if_changed(
         None
     };
 
-    let original = match tokio::fs::read_to_string(path).await {
+    // 格式感知读：JSON 用户配置先转成等价 TOML 文本，下面的解析/比较/写回不变
+    // （写回经 atomic_write_string 再转回目标格式）。
+    let original = match nofy_config::load_config_text_as_toml(path) {
         Ok(s) => s,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound && is_user => String::new(),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
@@ -952,10 +951,14 @@ pub async fn save_mcp_server_config_at(
     server_name: &str,
     config: &McpServerConfig,
 ) -> Result<()> {
-    let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
-        Ok(s) => toml::from_str(&s).unwrap_or(TomlValue::Table(TomlMap::new())),
-        Err(_) => TomlValue::Table(TomlMap::new()),
-    };
+    // 格式感知读（config.json / config.toml 都得到 toml::Value）；解析失败即拒绝
+    // 覆写，否则会静默丢掉整份用户配置。
+    let mut root: TomlValue = nofy_config::load_raw_config_file(path).map_err(|e| {
+        anyhow::anyhow!(
+            "refusing to overwrite unreadable config {}: {e}",
+            path.display()
+        )
+    })?;
     let table = root
         .as_table_mut()
         .ok_or_else(|| anyhow::anyhow!("config root is not a table"))?;
@@ -981,13 +984,7 @@ pub async fn save_mcp_server_config_at(
         }
     }
 
-    let toml_str = toml::to_string_pretty(&root)?;
-    let tmp = path.with_extension("toml.tmp");
-    if let Some(parent) = path.parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-    tokio::fs::write(&tmp, &toml_str).await?;
-    tokio::fs::rename(&tmp, &path).await?;
+    nofy_config::save_config_value_at(path, &root)?;
     Ok(())
 }
 
@@ -1009,10 +1006,13 @@ pub async fn delete_mcp_server_config_at(
     path: &std::path::Path,
     server_name: &str,
 ) -> Result<bool> {
-    let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
-        Ok(s) => toml::from_str(&s).unwrap_or(TomlValue::Table(TomlMap::new())),
-        Err(_) => return Ok(false),
-    };
+    // 格式感知读；缺文件时得到空表，下面的 existed 判定自然返回 false。
+    let mut root: TomlValue = nofy_config::load_raw_config_file(path).map_err(|e| {
+        anyhow::anyhow!(
+            "refusing to rewrite unreadable config {}: {e}",
+            path.display()
+        )
+    })?;
     let table = root
         .as_table_mut()
         .ok_or_else(|| anyhow::anyhow!("config root is not a table"))?;
@@ -1058,13 +1058,7 @@ pub async fn delete_mcp_server_config_at(
         }
     }
 
-    let toml_str = toml::to_string_pretty(&root)?;
-    let tmp = path.with_extension("toml.tmp");
-    if let Some(parent) = path.parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-    tokio::fs::write(&tmp, &toml_str).await?;
-    tokio::fs::rename(&tmp, &path).await?;
+    nofy_config::save_config_value_at(path, &root)?;
 
     // Clean up OAuth credentials for the deleted server.
     if let Ok(mut cred_store) = nofy_mcp::credentials::McpCredentialStore::load_default() {
@@ -1770,7 +1764,9 @@ fn load_cli_plugin_registry(cwd: &std::path::Path) -> nofy_agent::plugins::Plugi
 }
 
 fn config_path() -> PathBuf {
-    crate::util::nofy_home::nofy_home().join("config.toml")
+    // JSON 体系：用户配置可能是 config.json（优先）或 config.toml。
+    nofy_config::user_config_path()
+        .unwrap_or_else(|| crate::util::nofy_home::nofy_home().join("config.toml"))
 }
 
 /// Path to the user-level config file (`~/.nofy/config.toml`).

@@ -41,20 +41,26 @@ pub(crate) fn find_mcp_json_files_in(chain_dirs: &[PathBuf]) -> Vec<PathBuf> {
         .collect()
 }
 
-/// True when `config_path` is `$NOFY_HOME/config.toml` (user tier, not project).
+/// True when `config_path` is the user-tier config (`$NOFY_HOME/config.json`
+/// 或 `$NOFY_HOME/config.toml`), not a project overlay.
 fn is_user_nofy_config_file(config_path: &Path) -> bool {
     let Some(user_home) = nofy_config::user_nofy_home() else {
         return false;
     };
-    let user_config = user_home.join("config.toml");
-    if config_path == user_config.as_path() {
+    let candidates = [
+        user_home.join(nofy_config::USER_CONFIG_FILENAME),
+        user_home.join(nofy_config::USER_CONFIG_FILENAME_JSON),
+    ];
+    if candidates.iter().any(|c| config_path == c.as_path()) {
         return true;
     }
     let Ok(canonical_config) = dunce::canonicalize(config_path) else {
         return false;
     };
-    let canonical_user = dunce::canonicalize(&user_config).unwrap_or(user_config);
-    canonical_config == canonical_user
+    candidates.iter().any(|c| {
+        let canonical_user = dunce::canonicalize(c).unwrap_or_else(|_| c.clone());
+        canonical_config == canonical_user
+    })
 }
 
 /// Find all `.nofy/config.toml` files from `cwd` upward to the git repo root.

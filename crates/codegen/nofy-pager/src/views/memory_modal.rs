@@ -1149,7 +1149,7 @@ fn format_modified(epoch_secs: Option<u64>, now_secs: u64) -> String {
 }
 
 fn load_fullscreen_pref() -> bool {
-    let path = nofy_tools::util::nofy_home::nofy_home().join("config.toml");
+    let path = crate::config_toml_edit::user_config_path();
     let Some(doc) = crate::config_toml_edit::read_config_document_for_edit(&path) else {
         return false;
     };

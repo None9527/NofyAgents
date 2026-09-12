@@ -1308,13 +1308,10 @@ pub use nofy_config::{deep_merge_toml, expand_env_vars_in_string, expand_env_var
 /// Creates the `[plugins]` section and `paths` array if they don't exist.
 /// Deduplicates: if the path is already present, this is a no-op.
 pub(crate) fn add_plugin_path(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let mut config: toml::Value = if content.is_empty() {
-        toml::Value::Table(toml::map::Map::new())
-    } else {
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?
-    };
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    // 格式感知读（config.json / config.toml）；缺文件得到空表。
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     let table = config
         .as_table_mut()
         .ok_or("config.toml root is not a table")?;
@@ -1342,21 +1339,19 @@ pub(crate) fn add_plugin_path(path: &str) -> Result<(), Box<dyn std::error::Erro
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Remove a plugin path from `[plugins].paths` in `~/.nofy/config.toml`.
 ///
 /// If the path is not found, this is a no-op (returns Ok).
 pub(crate) fn remove_plugin_path(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = match std::fs::read_to_string(&config_path) {
-        Ok(c) => c,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => return Err(e.into()),
-    };
-    let mut config: toml::Value =
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?;
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    if !config_path.exists() {
+        return Ok(());
+    }
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     if let Some(plugins) = config
         .as_table_mut()
         .and_then(|t| t.get_mut("plugins"))
@@ -1365,7 +1360,7 @@ pub(crate) fn remove_plugin_path(path: &str) -> Result<(), Box<dyn std::error::E
     {
         paths.retain(|v| v.as_str().is_none_or(|s| s != path));
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Add a plugin to `[plugins].disabled` in `~/.nofy/config.toml`.
@@ -1373,13 +1368,10 @@ pub(crate) fn remove_plugin_path(path: &str) -> Result<(), Box<dyn std::error::E
 /// Creates the `[plugins]` section and `disabled` array if they don't exist.
 /// Deduplicates: if already present, this is a no-op.
 pub fn add_disabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let mut config: toml::Value = if content.is_empty() {
-        toml::Value::Table(toml::map::Map::new())
-    } else {
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?
-    };
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    // 格式感知读（config.json / config.toml）；缺文件得到空表。
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     let table = config
         .as_table_mut()
         .ok_or("config.toml root is not a table")?;
@@ -1409,21 +1401,19 @@ pub fn add_disabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Er
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Remove a plugin from `[plugins].disabled` in `~/.nofy/config.toml`.
 ///
 /// If the plugin is not in the disabled list, this is a no-op.
 pub fn remove_disabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = match std::fs::read_to_string(&config_path) {
-        Ok(c) => c,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => return Err(e.into()),
-    };
-    let mut config: toml::Value =
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?;
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    if !config_path.exists() {
+        return Ok(());
+    }
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     if let Some(plugins) = config
         .as_table_mut()
         .and_then(|t| t.get_mut("plugins"))
@@ -1432,7 +1422,7 @@ pub fn remove_disabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error:
     {
         disabled.retain(|v| v.as_str().is_none_or(|s| s != plugin_id));
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Add a plugin to `[plugin_cta].dismissed` in `~/.nofy/config.toml`.
@@ -1440,7 +1430,7 @@ pub fn remove_disabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error:
 /// Creates the `[plugin_cta]` section and `dismissed` array if they don't exist.
 /// Deduplicates: if already present, this is a no-op.
 pub fn add_dismissed_plugin_cta(plugin_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
     add_dismissed_plugin_cta_to_file(plugin_id, &config_path)
 }
 /// Add a dismissed plugin CTA to a specific config file (path-parameterized for tests).
@@ -1449,12 +1439,9 @@ pub fn add_dismissed_plugin_cta_to_file(
     plugin_id: &str,
     config_path: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let content = std::fs::read_to_string(config_path).unwrap_or_default();
-    let mut config: toml::Value = if content.is_empty() {
-        toml::Value::Table(toml::map::Map::new())
-    } else {
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?
-    };
+    // 格式感知读（config.json / config.toml）；缺文件得到空表。
+    let mut config: toml::Value = nofy_config::load_raw_config_file(config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     let table = config
         .as_table_mut()
         .ok_or("config.toml root is not a table")?;
@@ -1484,7 +1471,7 @@ pub fn add_dismissed_plugin_cta_to_file(
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(config_path, &config)?;
     Ok(())
 }
 /// All plugin ids listed in `[plugin_cta].dismissed` in `~/.nofy/config.toml`.
@@ -1492,7 +1479,7 @@ pub fn add_dismissed_plugin_cta_to_file(
 /// Read once (e.g. on catalog load) and cached so the matched-debounce recompute
 /// doesn't parse the config from disk on the UI thread.
 pub fn dismissed_plugin_ctas() -> std::collections::HashSet<String> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
     dismissed_plugin_ctas_in_file(&config_path)
 }
 /// Read the dismissed plugin CTA set from a specific config file (for tests).
@@ -1500,10 +1487,7 @@ pub fn dismissed_plugin_ctas() -> std::collections::HashSet<String> {
 pub fn dismissed_plugin_ctas_in_file(
     config_path: &std::path::Path,
 ) -> std::collections::HashSet<String> {
-    let Ok(content) = std::fs::read_to_string(config_path) else {
-        return std::collections::HashSet::new();
-    };
-    let Ok(config) = toml::from_str::<toml::Value>(&content) else {
+    let Ok(config) = nofy_config::load_raw_config_file(config_path) else {
         return std::collections::HashSet::new();
     };
     config
@@ -1586,13 +1570,10 @@ pub(crate) fn post_install_plugin(repo_key: &str) -> (Vec<String>, Vec<String>) 
 /// Used for project-scope plugins that are disabled by default.
 /// Deduplicates: if already present, this is a no-op.
 pub fn add_enabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let mut config: toml::Value = if content.is_empty() {
-        toml::Value::Table(toml::map::Map::new())
-    } else {
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?
-    };
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    // 格式感知读（config.json / config.toml）；缺文件得到空表。
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     let table = config
         .as_table_mut()
         .ok_or("config.toml root is not a table")?;
@@ -1622,19 +1603,17 @@ pub fn add_enabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Err
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Remove a plugin from `[plugins].enabled` in `~/.nofy/config.toml`.
 pub fn remove_enabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
-    let content = match std::fs::read_to_string(&config_path) {
-        Ok(c) => c,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => return Err(e.into()),
-    };
-    let mut config: toml::Value =
-        toml::from_str(&content).map_err(|e| format!("failed to parse config.toml: {e}"))?;
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
+    if !config_path.exists() {
+        return Ok(());
+    }
+    let mut config: toml::Value = nofy_config::load_raw_config_file(&config_path)
+        .map_err(|e| format!("failed to parse {}: {e}", config_path.display()))?;
     if let Some(plugins) = config
         .as_table_mut()
         .and_then(|t| t.get_mut("plugins"))
@@ -1643,7 +1622,7 @@ pub fn remove_enabled_plugin(plugin_id: &str) -> Result<(), Box<dyn std::error::
     {
         enabled.retain(|v| v.as_str().is_none_or(|s| s != plugin_id));
     }
-    std::fs::write(&config_path, toml::to_string_pretty(&config)?)?;
+    nofy_config::save_config_value_at(&config_path, &config)?;
     Ok(())
 }
 /// Add a hook path to `~/.nofy/hooks-paths` (one path per line).

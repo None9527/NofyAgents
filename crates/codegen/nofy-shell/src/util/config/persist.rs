@@ -12,19 +12,16 @@ static SAVE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 /// [`save_config`] body; caller must hold [`SAVE_LOCK`].
 async fn save_config_locked(config: &Config) -> Result<()> {
     let path = user_config_path();
-    let mut root: TomlValue = match tokio::fs::read_to_string(&path).await {
-        Ok(s) => match toml::from_str::<TomlValue>(&s) {
-            Ok(v) => v,
-            Err(parse_err) => {
-                return Err(anyhow::anyhow!(
-                    "refusing to overwrite unparseable {}: {}; save a backup \
-                         and fix the syntax error before retrying",
-                    path.display(),
-                    parse_err,
-                ));
-            }
-        },
-        Err(_) => TomlValue::Table(TomlMap::new()),
+    let mut root: TomlValue = match nofy_config::load_raw_config_file(&path) {
+        Ok(v) => v,
+        Err(parse_err) => {
+            return Err(anyhow::anyhow!(
+                "refusing to overwrite unparseable {}: {}; save a backup \
+                     and fix the syntax error before retrying",
+                path.display(),
+                parse_err,
+            ));
+        }
     };
     if !matches!(root, TomlValue::Table(_)) {
         root = TomlValue::Table(TomlMap::new());
@@ -41,36 +38,8 @@ async fn save_config_locked(config: &Config) -> Result<()> {
     } else {
         merge_section(table, "skills", &config.skills);
     }
-    let toml_str = toml::to_string_pretty(&root)?;
-    if let Some(parent) = path.parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-    #[cfg(unix)]
-    let prior_mode: Option<u32> = match tokio::fs::metadata(&path).await {
-        Ok(m) => {
-            use std::os::unix::fs::PermissionsExt;
-            Some(m.permissions().mode())
-        }
-        Err(_) => None,
-    };
-    #[cfg(not(unix))]
-    let prior_mode: Option<u32> = None;
-    let suffix = {
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0);
-        format!("toml.tmp.{}.{}", std::process::id(), nanos)
-    };
-    let tmp = path.with_extension(suffix);
-    tokio::fs::write(&tmp, toml_str).await?;
-    #[cfg(unix)]
-    if let Some(mode) = prior_mode {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = tokio::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode)).await;
-    }
-    let _ = prior_mode;
-    tokio::fs::rename(&tmp, &path).await?;
+    // 格式感知写回：config.json 目标序列化为 JSON，config.toml 目标序列化为 TOML。
+    nofy_config::save_user_config_value(&root)?;
     Ok(())
 }
 /// Acquire the `config.toml` write lock used by [`save_config`], so callers that
@@ -79,18 +48,29 @@ async fn save_config_locked(config: &Config) -> Result<()> {
 pub(crate) async fn lock_config_writes() -> tokio::sync::MutexGuard<'static, ()> {
     SAVE_LOCK.lock().await
 }
-/// Read a file, treating only `NotFound` as empty. Hard read errors (EACCES,
-/// EIO) propagate so callers don't clobber an unreadable file on the next write.
-pub(crate) fn read_to_string_or_empty(path: &std::path::Path) -> std::io::Result<String> {
-    match std::fs::read_to_string(path) {
+/// Read a config file as TOML text, treating only `NotFound` as empty. JSON
+/// targets (`config.json`) are converted to an equivalent TOML document so the
+/// existing text-level editors keep working; hard read errors (EACCES, EIO)
+/// propagate so callers don't clobber an unreadable file on the next write.
+pub(crate) fn read_config_text_or_empty(path: &std::path::Path) -> std::io::Result<String> {
+    match nofy_config::load_config_text_as_toml(path) {
         Ok(s) => Ok(s),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
         Err(e) => Err(e),
     }
 }
 /// Atomic write via temp file + `rename` (mirrors [`save_config`]) so a crash
-/// mid-write can't truncate `config.toml`. Preserves the dest mode on unix.
+/// mid-write can't truncate the config. Preserves the dest mode on unix.
+/// 用户配置文件（config.toml/config.json）走格式感知写回：TOML 文本在 JSON
+/// 目标下自动转换，避免把 TOML 写进 .json 或反之。
 pub(crate) fn atomic_write_string(path: &std::path::Path, content: &str) -> std::io::Result<()> {
+    if path.extension().and_then(|e| e.to_str()) == Some("json") {
+        return nofy_config::save_config_toml_text_at(path, content);
+    }
+    atomic_write_string_raw(path, content)
+}
+
+fn atomic_write_string_raw(path: &std::path::Path, content: &str) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }

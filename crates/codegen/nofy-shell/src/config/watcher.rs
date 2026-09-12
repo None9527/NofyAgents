@@ -185,6 +185,10 @@ impl ConfigFileWatcher {
                     Some("config.toml") if parent == Some(nofy_home_buf.as_path()) => {
                         Some(ConfigChangeEvent::GlobalConfigChanged)
                     }
+                    // JSON 体系：用户配置可能是 config.json。
+                    Some("config.json") if parent == Some(nofy_home_buf.as_path()) => {
+                        Some(ConfigChangeEvent::GlobalConfigChanged)
+                    }
                     Some("models_cache.json") if parent == Some(nofy_home_buf.as_path()) => {
                         Some(ConfigChangeEvent::ModelsCacheChanged)
                     }

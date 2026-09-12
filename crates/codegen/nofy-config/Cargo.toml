@@ -14,7 +14,8 @@ prod-mc-cli-chat-proxy-types = { path = "../../../prod/mc/cli-chat-proxy-types" 
 ring = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+# preserve_order：JSON 用户配置往返后保持用户的键序。
+serde_json = { workspace = true, features = ["preserve_order"] }
 shellexpand = "3.1"
 thiserror = { workspace = true }
 toml = { workspace = true }

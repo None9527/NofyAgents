@@ -540,7 +540,7 @@ pub(crate) fn is_claude_import_marked() -> bool {
     if let Some(v) = *MARKER_CACHE.read().expect("MARKER_CACHE poisoned") {
         return v;
     }
-    let config_path = crate::util::nofy_home::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
     let v = is_claude_import_marked_at(&config_path);
     *MARKER_CACHE.write().expect("MARKER_CACHE poisoned") = Some(v);
     v
@@ -586,11 +586,8 @@ pub(crate) fn is_claude_import_marked_with_log(gate_name: &'static str) -> bool 
 
 /// Testable variant of [`is_claude_import_marked`] that reads from the given path.
 pub(crate) fn is_claude_import_marked_at(config_path: &Path) -> bool {
-    let content = match std::fs::read_to_string(config_path) {
-        Ok(s) => s,
-        Err(_) => return false,
-    };
-    let value: TomlValue = match toml::from_str(&content) {
+    // 格式感知读：config.json 与 config.toml 都得到 toml::Value。
+    let value: TomlValue = match nofy_config::load_raw_config_file(config_path) {
         Ok(v) => v,
         Err(_) => return false,
     };
@@ -611,19 +608,14 @@ fn write_import_marker(config_path: &Path) -> anyhow::Result<()> {
     // rewrite would otherwise drop unrelated sections ([model], [ui], etc.)
     // and overwrite a hand-edited config that just happens to have a trailing
     // comma. The user can fix the TOML and retry.
-    let mut root: TomlValue = match std::fs::read_to_string(config_path) {
-        Ok(s) => toml::from_str(&s).map_err(|e| {
-            anyhow::anyhow!(
-                "refusing to write import marker: existing config at {} is \
-                 not valid TOML ({}). Fix the file (or move it aside) and \
-                 retry.",
-                config_path.display(),
-                e
-            )
-        })?,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => TomlValue::Table(TomlMap::new()),
-        Err(e) => return Err(e.into()),
-    };
+    let mut root: TomlValue = nofy_config::load_raw_config_file(config_path).map_err(|e| {
+        anyhow::anyhow!(
+            "refusing to write import marker: existing config at {} is not \
+             readable ({}). Fix the file (or move it aside) and retry.",
+            config_path.display(),
+            e
+        )
+    })?;
     let table = root
         .as_table_mut()
         .ok_or_else(|| anyhow::anyhow!("config root is not a table"))?;
@@ -635,23 +627,8 @@ fn write_import_marker(config_path: &Path) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("[claude_compat] is not a table"))?;
     compat_table.insert("imported".to_string(), TomlValue::Boolean(true));
 
-    let toml_str = toml::to_string_pretty(&root)?;
-    if let Some(parent) = config_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let tmp = config_path.with_extension("toml.tmp");
-    // Best-effort cleanup of the .tmp file if either write or rename fails so
-    // a failed marker write doesn't leave a stale artefact next to the real
-    // config (otherwise the next attempt would inherit a half-written file
-    // before the rename clobbers it).
-    if let Err(e) = std::fs::write(&tmp, &toml_str) {
-        let _ = std::fs::remove_file(&tmp);
-        return Err(e.into());
-    }
-    if let Err(e) = std::fs::rename(&tmp, config_path) {
-        let _ = std::fs::remove_file(&tmp);
-        return Err(e.into());
-    }
+    // 格式感知原子写（.json 目标序列化为 JSON），失败不留半成品。
+    nofy_config::save_config_value_at(config_path, &root)?;
     Ok(())
 }
 
@@ -665,7 +642,7 @@ fn write_import_marker(config_path: &Path) -> anyhow::Result<()> {
 /// still wants the cutoff applied so re-entering a workspace with `.claude/`
 /// content doesn't re-engage the runtime fallbacks.
 pub fn mark_claude_imported() -> anyhow::Result<()> {
-    let path = crate::util::nofy_home::nofy_home().join("config.toml");
+    let path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
     write_import_marker(&path)?;
     refresh_marker_cache(true);
     Ok(())
@@ -686,7 +663,7 @@ pub fn apply_import(plan: &ImportPlan, cwd: &Path) -> anyhow::Result<ImportResul
     let mut result = ImportResult::default();
 
     if !plan.global_items.is_empty() {
-        let global_path = crate::util::nofy_home::nofy_home().join("config.toml");
+        let global_path = nofy_config::user_config_path_at(&crate::util::nofy_home::nofy_home());
         let count = apply_items_to_config(&global_path, &plan.global_items)?;
         result.global_count = count;
         if count > 0 {
@@ -764,18 +741,14 @@ fn apply_items_to_config(config_path: &Path, items: &[ImportableItem]) -> anyhow
     // discarding the file: an atomic rewrite would otherwise drop
     // unrelated sections ([model], [ui], etc.) and overwrite a hand-edited
     // config that just happens to have a trailing comma.
-    let mut root: TomlValue = match std::fs::read_to_string(config_path) {
-        Ok(s) => toml::from_str(&s).map_err(|e| {
-            anyhow::anyhow!(
-                "refusing to import: existing config at {} is not valid TOML \
-                 ({}). Fix the file (or move it aside) and retry.",
-                config_path.display(),
-                e
-            )
-        })?,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => TomlValue::Table(TomlMap::new()),
-        Err(e) => return Err(e.into()),
-    };
+    let mut root: TomlValue = nofy_config::load_raw_config_file(config_path).map_err(|e| {
+        anyhow::anyhow!(
+            "refusing to import: existing config at {} is not readable ({}). \
+             Fix the file (or move it aside) and retry.",
+            config_path.display(),
+            e
+        )
+    })?;
 
     let table = root
         .as_table_mut()
@@ -825,18 +798,12 @@ fn apply_items_to_config(config_path: &Path, items: &[ImportableItem]) -> anyhow
     }
 
     if count > 0 {
-        // Atomic write: write to .tmp, then rename.
-        let toml_str = toml::to_string_pretty(&root)?;
-        let tmp = config_path.with_extension("toml.tmp");
-        if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(&tmp, &toml_str)?;
-        std::fs::rename(&tmp, config_path)?;
+        // 格式感知原子写（.json 目标序列化为 JSON）。
+        nofy_config::save_config_value_at(config_path, &root)?;
         info!(
             path = %config_path.display(),
             count,
-            "Wrote imported settings to config.toml"
+            "Wrote imported settings to config"
         );
     }
 

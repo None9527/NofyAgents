@@ -4749,7 +4749,7 @@ pub fn parse_row_state_token(s: &str) -> Option<RowState> {
 /// caller interprets as "use the default".
 pub fn load_persisted_enabled() -> Option<bool> {
     let path = config_path()?;
-    let content = std::fs::read_to_string(&path).ok()?;
+    let content = nofy_config::load_config_text_as_toml(&path).ok()?;
     let doc: toml_edit::DocumentMut = content.parse().ok()?;
     doc.get("dashboard")
         .and_then(|d| d.get("enabled"))
@@ -4771,7 +4771,8 @@ pub fn load_persisted() -> Option<PersistedDashboard> {
 /// Falls back to defaults when the table or individual fields are
 /// malformed.
 pub fn load_persisted_from_path(path: &std::path::Path) -> Option<PersistedDashboard> {
-    let content = std::fs::read_to_string(path).ok()?;
+    // 格式感知读：JSON 用户配置转成等价 TOML 文本再交给 toml_edit。
+    let content = nofy_config::load_config_text_as_toml(path).ok()?;
     let doc: toml_edit::DocumentMut = content.parse().ok()?;
     let table = doc.get("dashboard")?;
     let enabled = table
@@ -4865,6 +4866,10 @@ pub fn write_persisted_to_path(
     // The onboarding hint was removed — drop the stale table so old
     // configs don't carry a dead `[dashboard.onboarding]` key forever.
     t.remove("onboarding");
+    if path.extension().and_then(|e| e.to_str()) == Some("json") {
+        // JSON 目标：TOML 文档转换后原子写回。
+        return nofy_config::save_config_toml_text_at(path, &doc.to_string());
+    }
     atomic_write(path, doc.to_string().as_bytes())
 }
 
@@ -4913,7 +4918,8 @@ fn atomic_write(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
 
 fn config_path() -> Option<PathBuf> {
     let home = nofy_shell::util::nofy_home::nofy_home();
-    Some(home.join("config.toml"))
+    // 用户配置可能是 config.json（优先）或 config.toml。
+    Some(nofy_config::user_config_path_at(&home))
 }
 
 /// Cap parsed entry count to keep a corrupted

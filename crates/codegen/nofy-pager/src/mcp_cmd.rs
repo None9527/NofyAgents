@@ -46,7 +46,7 @@ pub enum McpTransport {
 /// Which config file an MCP server definition is written to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum McpScope {
-    /// `~/.nofy/config.toml`, available in all your projects
+    /// `~/.nofy/config.json`(或 `config.toml`), available in all your projects
     User,
     /// `./.nofy/config.toml`, shared with everyone working in this directory
     Project,
@@ -121,7 +121,7 @@ pub struct AddArgs {
     #[arg(short = 't', long, value_enum)]
     transport: Option<McpTransport>,
 
-    /// Config to write to: user (~/.nofy/config.toml) or project (./.nofy/config.toml)
+    /// Config to write to: user (~/.nofy/config.json 或 config.toml) or project (./.nofy/config.toml)
     #[arg(short = 's', long, value_enum, default_value = "user")]
     scope: McpScope,
 
@@ -487,9 +487,16 @@ fn scope_target(scope: McpScope) -> PathBuf {
 /// Display form of a scope's config file path.
 fn scope_display(scope: McpScope, path: &Path) -> String {
     match scope {
-        McpScope::User => display_user_nofy_path("config.toml"),
+        // 用户配置可能是 config.json 或 config.toml，按实际文件名展示。
+        McpScope::User => display_user_nofy_path(user_config_file_name(path)),
         McpScope::Project => path.display().to_string(),
     }
+}
+
+fn user_config_file_name(path: &Path) -> &str {
+    path.file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("config.toml")
 }
 
 /// Why `mcp remove` could not resolve a single config file to delete from.
@@ -617,7 +624,10 @@ async fn run_set_enabled(name: &str, enabled: bool) -> Result<()> {
     let user_config = nofy_shell::util::config::user_config_path();
     for path in &modified {
         if path == &user_config {
-            println!("File modified: {}", display_user_nofy_path("config.toml"));
+            println!(
+                "File modified: {}",
+                display_user_nofy_path(user_config_file_name(path))
+            );
         } else {
             println!("File modified: {}", path.display());
         }

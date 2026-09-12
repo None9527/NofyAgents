@@ -725,12 +725,12 @@ fn refresh_default_agent(state: &mut AgentsModalState) {
 ///
 /// Pass `Some(name)` to set, `None` to clear (remove the key).
 pub fn set_default_agent(name: Option<&str>) -> Result<(), String> {
-    let config_path = nofy_config::nofy_home().join("config.toml");
+    let config_path = crate::config_toml_edit::user_config_path();
     if let Some(parent) = config_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     let Some(mut doc) = crate::config_toml_edit::read_config_document_for_edit(&config_path) else {
-        return Err("Could not read or parse config.toml".to_string());
+        return Err("Could not read or parse the user config".to_string());
     };
     if let Some(agent_name) = name {
         if !doc.contains_key("agent") {
@@ -743,18 +743,18 @@ pub fn set_default_agent(name: Option<&str>) -> Result<(), String> {
     } else if let Some(agent_table) = doc.get_mut("agent").and_then(|v| v.as_table_mut()) {
         agent_table.remove("name");
     }
-    std::fs::write(&config_path, doc.to_string())
-        .map_err(|e| format!("Failed to write config.toml: {e}"))?;
+    crate::config_toml_edit::write_config_document(&config_path, &doc)
+        .map_err(|e| format!("Failed to write user config: {e}"))?;
     Ok(())
 }
 /// Toggle an agent's enabled state via `[subagents.toggle]` in config.toml.
 pub fn toggle_agent(name: &str, enabled: bool) -> Result<(), String> {
-    let config_path = nofy_config::nofy_home().join("config.toml");
+    let config_path = crate::config_toml_edit::user_config_path();
     if let Some(parent) = config_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     let Some(mut doc) = crate::config_toml_edit::read_config_document_for_edit(&config_path) else {
-        return Err("Could not read or parse config.toml".to_string());
+        return Err("Could not read or parse the user config".to_string());
     };
     if !doc.contains_key("subagents") {
         doc["subagents"] = toml_edit::Item::Table(toml_edit::Table::new());
@@ -769,8 +769,8 @@ pub fn toggle_agent(name: &str, enabled: bool) -> Result<(), String> {
         .as_table_mut()
         .ok_or("subagents.toggle is not a table")?;
     toggle_table[name] = toml_edit::value(enabled);
-    std::fs::write(&config_path, doc.to_string())
-        .map_err(|e| format!("Failed to write config.toml: {e}"))?;
+    crate::config_toml_edit::write_config_document(&config_path, &doc)
+        .map_err(|e| format!("Failed to write user config: {e}"))?;
     Ok(())
 }
 /// Format detail lines for an expanded agent entry.

@@ -225,7 +225,8 @@ fn load_config_toml_permissions(cwd: &Path, project_trusted: bool) -> Vec<Source
     // Global `~/.nofy/config.toml` first (lowest priority within this layer).
     // Gated on user_nofy_home() so a project's .nofy/config.toml is never read as
     // global permissions when neither NOFY_HOME nor a home dir resolves.
-    if let Some(global_path) = nofy_config::user_nofy_home().map(|g| g.join("config.toml"))
+    if let Some(global_path) =
+        nofy_config::user_nofy_home().map(|g| nofy_config::user_config_path_at(&g))
         && global_path.is_file()
     {
         match nofy_config::load_config_file(&global_path) {
@@ -235,7 +236,7 @@ fn load_config_toml_permissions(cwd: &Path, project_trusted: bool) -> Vec<Source
                 }
             })),
             Err(e) => {
-                warn!(path = %global_path.display(), error = %e, "Failed to load global config.toml")
+                warn!(path = %global_path.display(), error = %e, "Failed to load global user config")
             }
         }
     }

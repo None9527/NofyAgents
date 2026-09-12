@@ -315,7 +315,8 @@ pub(crate) fn merge_managed_mcp_servers_sourced(
     let toml_claimed_names = crate::util::config::all_toml_mcp_server_names(cwd);
 
     let config_source = ConfigSource::ConfigToml {
-        path: nofy_tools::util::nofy_home::nofy_home().join("config.toml"),
+        // 用户配置可能是 config.json（优先）或 config.toml。
+        path: nofy_config::user_config_path_at(&nofy_tools::util::nofy_home::nofy_home()),
     };
 
     // Use the TOML-only loader so that entries from imported editor configs

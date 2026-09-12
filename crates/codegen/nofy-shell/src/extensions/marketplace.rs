@@ -911,7 +911,7 @@ async fn handle_add_source(url: &str) -> nofy_hooks_plugins_types::ActionOutcome
     };
 
     // Run the write under SAVE_LOCK + flock, off the reactor.
-    let config_path = nofy_config::nofy_home().join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_config::nofy_home());
     let nofy_home = nofy_config::nofy_home();
     let _save_guard = crate::util::config::lock_config_writes().await;
     let write = {
@@ -963,7 +963,7 @@ fn add_marketplace_source(
     if let Some(parent) = config_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let existing = crate::util::config::read_to_string_or_empty(config_path)?;
+    let existing = crate::util::config::read_config_text_or_empty(config_path)?;
     let mut doc = existing.parse::<toml_edit::DocumentMut>().map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -1064,10 +1064,10 @@ fn remove_source_locked(source_url_or_path: &str) -> nofy_hooks_plugins_types::A
 
     // Remove the source and (if official) set the flag in ONE atomic write so a
     // crash can't drop the flag and re-add the source next startup.
-    let config_path = nofy_home.join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_home);
     let is_official = nofy_plugin_marketplace::is_official_source_url(source_url_or_path);
     let mut removed_from_config = false;
-    let content = match crate::util::config::read_to_string_or_empty(&config_path) {
+    let content = match crate::util::config::read_config_text_or_empty(&config_path) {
         Ok(c) => c,
         Err(e) => {
             return ActionOutcome {
@@ -1171,17 +1171,14 @@ fn set_marketplace_bool_flag(config_path: &std::path::Path, key: &str) -> std::i
     if let Some(parent) = config_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let existing = crate::util::config::read_to_string_or_empty(config_path)?;
+    let existing = crate::util::config::read_config_text_or_empty(config_path)?;
     let updated = set_marketplace_bool_flag_in_toml(&existing, key)?;
     crate::util::config::atomic_write_string(config_path, &updated)
 }
 
 fn read_marketplace_bool_flag(config_path: &std::path::Path, key: &str) -> bool {
-    let raw = match std::fs::read_to_string(config_path) {
-        Ok(s) => s,
-        Err(_) => return false,
-    };
-    let parsed: toml::Value = match toml::from_str(&raw) {
+    // 格式感知读：config.json 与 config.toml 都得到 toml::Value。
+    let parsed: toml::Value = match nofy_config::load_raw_config_file(config_path) {
         Ok(v) => v,
         Err(_) => return false,
     };
@@ -1283,7 +1280,7 @@ fn purge_default_skills_installs_impl(
         nofy_agent::plugins::install_registry::InstallError,
     >,
 ) {
-    let config_path = nofy_home.join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_home);
 
     if read_default_skills_installs_purged(&config_path) {
         return;
@@ -1369,7 +1366,7 @@ fn purge_default_skills_installs_impl(
 /// adds the source (or just sets the flag if it's already present in config.toml
 /// or a JSON store). Best-effort: errors are logged and never block startup.
 pub(crate) fn ensure_official_marketplace_source(nofy_home: &std::path::Path) {
-    let config_path = nofy_home.join("config.toml");
+    let config_path = nofy_config::user_config_path_at(&nofy_home);
 
     if read_official_marketplace_auto_installed(&config_path) {
         return;
@@ -1392,7 +1389,7 @@ pub(crate) fn ensure_official_marketplace_source(nofy_home: &std::path::Path) {
         return;
     }
 
-    let raw = match crate::util::config::read_to_string_or_empty(&config_path) {
+    let raw = match crate::util::config::read_config_text_or_empty(&config_path) {
         Ok(s) => s,
         Err(e) => {
             tracing::warn!(error = %e, "skipping official marketplace auto-register: cannot read config.toml");

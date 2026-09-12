@@ -1669,7 +1669,8 @@ impl Config {
             warnings: config_warnings,
         } = super::config_model_override_parse::parse_model_overrides(raw_config);
         let (mut auth_providers, auth_provider_warnings) = parse_auth_providers(raw_config);
-        let (model_providers, mut model_provider_warnings) = parse_model_providers(raw_config);
+        let (model_providers, nested_models, mut model_provider_warnings) =
+            parse_model_providers(raw_config);
         for (id, provider) in &model_providers {
             if let Some(auth) = &provider.auth {
                 let synthetic = model_provider_auth_name(id);
@@ -1713,7 +1714,26 @@ impl Config {
         let (mut config, mut unrecognized_keys) =
             Self::deserialize_collecting_unrecognized(base, &raw_without_model_sections)?;
         config.mcp_servers = parsed_mcp_servers.into_iter().collect();
-        config.config_models = config_models;
+        // 嵌套供应商模型（[model_providers.<id>.models.<mid>]）并入模型表；
+        // 与平铺 [model.<mid>] 重名时平铺段优先并告警。
+        let mut merged_models = config_models;
+        for (mid, ov) in nested_models {
+            if merged_models.contains_key(&mid) {
+                model_provider_warnings.push(
+                    super::config_model_override_parse::ConfigWarning::model_provider(
+                        ov.model_provider.as_deref().unwrap_or_default(),
+                        Some(&format!("models.{mid}")),
+                        super::config_model_override_parse::ConfigWarningKind::ConflictingFields,
+                        "nested model is also declared as a flat [model.*] section; the flat \
+                         section wins"
+                            .to_owned(),
+                    ),
+                );
+            } else {
+                merged_models.insert(mid, ov);
+            }
+        }
+        config.config_models = merged_models;
         config.config_warnings = config_warnings;
         config.auth_providers = auth_providers;
         config.model_providers = model_providers;
@@ -3173,6 +3193,15 @@ fn is_default_laziness_detector(cfg: &LazinessDetectorPerModelConfig) -> bool {
 /// from defaults/prefetched"; the collection fields (`extra_headers`,
 /// `reasoning_efforts`) merge only when non-empty and so cannot express
 /// "override to empty."
+/// `[model.<id>] modalities = { input = [...], output = [...] }` —— 对齐 ZCode
+/// 3.11.2 设置面「输入类型/输出类型」。空向量＝该方向未声明。
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ModalitiesConfig {
+    #[serde(default)]
+    pub input: Vec<String>,
+    #[serde(default)]
+    pub output: Vec<String>,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct ConfigModelOverride {
@@ -3223,6 +3252,9 @@ pub struct ConfigModelOverride {
     pub compaction_at_tokens: Option<CompactionAtTokens>,
     pub show_model_fingerprint: Option<bool>,
     pub stream_tool_calls: Option<bool>,
+    /// 输入/输出模态声明；未写则消费方按各自缺省处理。
+    #[serde(default)]
+    pub modalities: Option<ModalitiesConfig>,
 }
 impl ConfigModelOverride {
     pub(crate) fn apply(
@@ -3331,6 +3363,10 @@ impl ConfigModelOverride {
         {
             entry.info.supported_in_api = true;
         }
+        if let Some(ref m) = self.modalities {
+            entry.info.input_modalities = m.input.clone();
+            entry.info.output_modalities = m.output.clone();
+        }
         entry
     }
 }
@@ -3400,6 +3436,12 @@ pub struct ModelInfo {
     pub show_model_fingerprint: bool,
     /// When `Some(true)`, the sampler injects `stream_tool_calls: true`
     pub stream_tool_calls: Option<bool>,
+    /// 输入模态（「输入类型」）；空＝未声明。
+    #[serde(default)]
+    pub input_modalities: Vec<String>,
+    /// 输出模态（「输出类型」）；空＝未声明。
+    #[serde(default)]
+    pub output_modalities: Vec<String>,
     /// Per-model Layer-3 LazinessDetector configuration. Defaults to
     /// the all-disabled state — the feature is per-model opt-in with a
     /// second-step `max_nudges_per_session > 0` opt-in for actually
@@ -3442,6 +3484,8 @@ impl ModelInfo {
             compaction_at_tokens: None,
             show_model_fingerprint: false,
             stream_tool_calls: None,
+            input_modalities: Vec::new(),
+            output_modalities: Vec::new(),
             laziness_detector: LazinessDetectorPerModelConfig::default(),
         }
     }
@@ -3478,6 +3522,8 @@ impl ModelInfo {
             compaction_at_tokens: entry.compaction_at_tokens,
             show_model_fingerprint: entry.show_model_fingerprint,
             stream_tool_calls: entry.stream_tool_calls,
+            input_modalities: Vec::new(),
+            output_modalities: Vec::new(),
             laziness_detector: entry.laziness_detector.clone(),
         }
     }
@@ -4164,6 +4210,8 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
                 stream_tool_calls: None,
+                input_modalities: Vec::new(),
+                output_modalities: Vec::new(),
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
             },
             api_key: Some(bearer),
@@ -4382,6 +4430,36 @@ pub(crate) fn to_acp_model_info(
                     "agentType".to_string(),
                     serde_json::Value::String(info.agent_type.clone()),
                 );
+                if !info.input_modalities.is_empty() {
+                    map.insert(
+                        "inputModalities".to_string(),
+                        serde_json::Value::Array(
+                            info.input_modalities
+                                .iter()
+                                .map(|m| serde_json::Value::String(m.clone()))
+                                .collect(),
+                        ),
+                    );
+                    map.insert(
+                        "acceptsImages".to_string(),
+                        serde_json::Value::Bool(
+                            info.input_modalities
+                                .iter()
+                                .any(|m| m.eq_ignore_ascii_case("image")),
+                        ),
+                    );
+                }
+                if !info.output_modalities.is_empty() {
+                    map.insert(
+                        "outputModalities".to_string(),
+                        serde_json::Value::Array(
+                            info.output_modalities
+                                .iter()
+                                .map(|m| serde_json::Value::String(m.clone()))
+                                .collect(),
+                        ),
+                    );
+                }
                 if info.supports_reasoning_effort {
                     map.insert(
                         "supportsReasoningEffort".to_string(),
@@ -5376,6 +5454,8 @@ reasoning_effort = "low"
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
                 stream_tool_calls: None,
+                input_modalities: Vec::new(),
+                output_modalities: Vec::new(),
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
             },
             api_key: api_key.map(|s| s.to_string()),
@@ -5902,6 +5982,80 @@ reasoning_effort = "low"
         assert!(
             !entry.info.show_model_fingerprint,
             "Some(false) override should disable show_model_fingerprint over a true base"
+        );
+    }
+    #[test]
+    fn config_override_applies_modalities() {
+        let endpoints = EndpointsConfig::default();
+        let parsed: ConfigModelOverride =
+            toml::from_str(r#"modalities = { input = ["text", "image"], output = ["text"] }"#)
+                .expect("modalities inline table should parse");
+        let mods = parsed.modalities.as_ref().expect("modalities should be present");
+        assert_eq!(mods.input, vec!["text".to_string(), "image".to_string()]);
+        assert_eq!(mods.output, vec!["text".to_string()]);
+        let entry = parsed.apply("vision-model", None, &endpoints);
+        assert_eq!(
+            entry.info.input_modalities,
+            vec!["text".to_string(), "image".to_string()]
+        );
+        assert_eq!(entry.info.output_modalities, vec!["text".to_string()]);
+        let absent = ConfigModelOverride::default().apply("plain-model", None, &endpoints);
+        assert!(
+            absent.info.input_modalities.is_empty(),
+            "no modalities key must leave the vectors empty so consumers keep their own default"
+        );
+    }
+    #[test]
+    fn acp_model_meta_emits_modalities_and_accepts_images() {
+        let mut models = IndexMap::new();
+        let mut entry = test_model_entry("vision", "https://test.api/v1", None, None, None);
+        entry.info.input_modalities = vec!["text".to_string(), "image".to_string()];
+        entry.info.output_modalities = vec!["text".to_string()];
+        models.insert("vision".to_string(), entry);
+        let meta = to_acp_model_info(&models)
+            .values()
+            .next()
+            .unwrap()
+            .meta
+            .clone()
+            .unwrap();
+        assert_eq!(meta["inputModalities"], serde_json::json!(["text", "image"]));
+        assert_eq!(meta["acceptsImages"], true);
+        assert_eq!(meta["outputModalities"], serde_json::json!(["text"]));
+    }
+    #[test]
+    fn acp_model_meta_omits_modalities_when_undeclared() {
+        let mut declared = IndexMap::new();
+        let mut entry = test_model_entry("text-only", "https://test.api/v1", None, None, None);
+        entry.info.input_modalities = vec!["text".to_string()];
+        declared.insert("text-only".to_string(), entry);
+        let meta = to_acp_model_info(&declared)
+            .values()
+            .next()
+            .unwrap()
+            .meta
+            .clone()
+            .unwrap();
+        assert_eq!(
+            meta["acceptsImages"], false,
+            "declared text-only must not accept images"
+        );
+        let mut undeclared = IndexMap::new();
+        undeclared.insert(
+            "plain".to_string(),
+            test_model_entry("plain", "https://test.api/v1", None, None, None),
+        );
+        let meta = to_acp_model_info(&undeclared)
+            .values()
+            .next()
+            .unwrap()
+            .meta
+            .clone()
+            .unwrap();
+        assert!(meta.get("inputModalities").is_none());
+        assert!(
+            meta.get("acceptsImages").is_none(),
+            "undeclared modalities must stay absent so the pager keeps its default-true image gate"
         );
     }
     #[test]
@@ -9711,6 +9865,8 @@ default = "grok-4.5"
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
                 stream_tool_calls: None,
+                input_modalities: Vec::new(),
+                output_modalities: Vec::new(),
                 laziness_detector: LazinessDetectorPerModelConfig::default(),
                 auto_compact_threshold_percent: None,
                 system_prompt_label: None,

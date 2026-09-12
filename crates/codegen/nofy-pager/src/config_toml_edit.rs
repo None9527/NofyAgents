@@ -1,12 +1,19 @@
-//! Load `config.toml` as a [`toml_edit::DocumentMut`] for in-place edits.
-//! A non-empty file that does not parse is left untouched (`None`).
+//! Load the user config (`config.json` 或 `config.toml`) as a
+//! [`toml_edit::DocumentMut`] for in-place edits. JSON 目标先转成等价 TOML 文本，
+//! 写回时再转回 JSON。A non-empty file that does not parse is left untouched
+//! (`None`).
 
 use std::path::Path;
+
+/// 用户配置文件路径：`config.json` 存在则优先，否则 `config.toml`。
+pub(crate) fn user_config_path() -> std::path::PathBuf {
+    nofy_config::user_config_path_at(&nofy_tools::util::nofy_home::nofy_home())
+}
 
 #[must_use]
 pub(crate) fn read_config_document_for_edit(path: &Path) -> Option<toml_edit::DocumentMut> {
     #[allow(clippy::manual_unwrap_or_default)]
-    let content = match std::fs::read_to_string(path) {
+    let content = match nofy_config::load_config_text_as_toml(path) {
         Ok(c) => c,
         Err(_) => String::new(),
     };
@@ -19,19 +26,27 @@ pub(crate) fn read_config_document_for_edit(path: &Path) -> Option<toml_edit::Do
             tracing::warn!(
                 path = %path.display(),
                 error = %e,
-                "config.toml is not valid TOML; refusing to overwrite"
+                "user config is not parseable; refusing to overwrite"
             );
             None
         }
     }
 }
 
-/// Set `[hints].<key>` to `value` in `~/.nofy/config.toml`, preserving every
+/// 写回编辑后的文档：`.json` 目标转换为 JSON，否则原样保留注释与键序。
+pub(crate) fn write_config_document(
+    path: &Path,
+    doc: &toml_edit::DocumentMut,
+) -> std::io::Result<()> {
+    nofy_config::save_config_toml_text_at(path, &doc.to_string())
+}
+
+/// Set `[hints].<key>` to `value` in the user config, preserving every
 /// other key and table. Creates the file and parent dir when missing, and
 /// no-ops when the existing file is non-empty but unparseable (so a malformed
 /// config is never clobbered). Performs blocking I/O.
 pub(crate) fn set_hint(key: &str, value: impl Into<toml_edit::Value>) -> std::io::Result<()> {
-    let path = nofy_tools::util::nofy_home::nofy_home().join("config.toml");
+    let path = user_config_path();
     set_hint_at(&path, key, value)
 }
 
@@ -44,7 +59,7 @@ fn set_hint_at(path: &Path, key: &str, value: impl Into<toml_edit::Value>) -> st
         return Ok(());
     };
     doc["hints"][key] = toml_edit::value(value);
-    std::fs::write(path, doc.to_string())
+    write_config_document(path, &doc)
 }
 
 #[cfg(test)]
