@@ -140,7 +140,7 @@ bc7f02ed(pager input 重写)与 bb7f39d5(shell 重构)的新增文件面,只能�
 | 7 | headless 启动提示可自动放行权限 | 待核实(批25) | 批21 有 `startup_hints.non_interactive`,放行接线未证 |
 | 8 | 命令链/子命令权限提示更可靠 | 待核实(批25) | 批16 有祖先授权修复,本条未证 |
 | 9 | 重启后阻塞提示不再入历史/scrollback | 待核实(批25) | 无匹配 |
-| 10 | 后台 monitor 去掉 10h 默认超时 | **待移植** | `tools/config.rs` 仍有 `PRODUCTION_MAX_TIMEOUT_SECS=36_000.0` |
+| 10 | 后台 monitor 去掉 10h 默认超时 | **已对齐(批24 假阳性纠正)** | 批25 实查:monitor 默认超时在 `nofy-tools/.../monitor/types.rs` 的 `DEFAULT_TIMEOUT_MS=36_000_000`(10h),与 upstream/main **逐字相同**(缺口内 diff 为空)。批24 误把 `tools/config.rs` 的 `PRODUCTION_MAX_TIMEOUT_SECS`(bash **前台**命令上限,注释明载"background tasks always unbounded")当成 monitor 超时。无需移植 |
 | 11 | 鼠标右边距不再输入字符 | 待核实(批25 pager 面) | bc7f02ed pager 重写面,需外科提取 |
 | 12 | 粘贴尾换行不再误提交 | 待核实(批25 pager 面) | 同上 |
 | 13 | Auto 模式分类器拦截显示权限卡 | 待核实(批25) | 无匹配 |
@@ -213,8 +213,40 @@ grok-agent/mcp/models/auth/config/paths/sampler/sandbox/secrets/version 等约 5
 早先按 grep 推测的「17 文件缺 modality 字段」是红鲱鱼,以编译器输出为准。)
 **批24 已修**:该测试构造点补 `local_agent_endpoint: false,` 一行(与生产默认一致,该测试与本地代理端点无关),
 `cargo check -p nofy-shell --tests` 复核通过(Finished 34s,无 error;余下 unused import 警告属 nofy-governance/surfaces/daemon 预存,无关)。
-**批25 阻塞现仅剩「脏树纠缠」一项**:在飞 Desktop MCP 特性工作(47 文件)未提交,批25 的内核改动与批次提交不能叠在其上;
-须先提交或暂存在飞工作、固化桌面 seam 基线、干净树复测三路测试基线,再开工批25。
+**批25 前置已解除(2026-09-13)**:在飞工作已分三个提交固化,内核树(`crates/`)干净——
+`1feaa602` Desktop 第一方 MCP server 内核地基(特性 1,即"desktop mcp 收尾")、
+`894ab59c` 批24 预检对账、`9383df3a` 在飞检查点(特性 2 配置 TOML→JSON 迁移 + 特性 3 模型 modality 字段,
+两特性在 loader.rs 纠缠故合提交,detect_changes risk=HIGH 但 9 执行流全汇聚 discover_servers 单点)。
+桌面构建产物/i18n(desktop/src/out/*、desktop/src/src/lib/i18n/*)与未跟踪项(nofy-desktop/ 独立 monorepo、
+migrate-config-to-json.mjs、desktop seam/tests、stray dmg/png)不碰内核 .rs,留桌面侧自行提交。
+
+**测试基线(干净内核树,2026-09-13)**:nofy-config 188、nofy-mcp 180、nofy-shell 5175、
+nofy-workspace 1759、nofy-pager 8058,共 **15,180 通过**。4 个失败全为 macOS 环境产物
+(tempdir `/var`→`/private/var` 规范化 + `/tmp` 临时性前置:shell 的 memory_writer/registry、
+pager 的 lease_cmd/memory_cmd),均在特性 2/3 未触及的文件里,干净树同样失败,非回归。
+台账旧基线"shell ~5242 / pager ~8100"系约数,以本次实测为准。
+
+### 批25 调查定性(2026-09-13,摸底/读上游步)
+
+批25 原计划标"(小)",**实查后证伪**:1.0.12 集群经 23 批分歧累积,条目要么与既有分歧纠缠、
+要么需移植大型新子系统。逐条定性(证据见各条):
+
+| 条目 | 定性 | 证据 |
+|---|---|---|
+| context 估算含 reasoning + rewind/模式切换 token 校正 | **大改,需独立子批** | 上游新增 `context_snapshot.rs`(+462,我们树无)、`rewind.rs` 改 219、`compaction_context.rs` 改 163、多测试文件改;是上下文核算子系统重构 |
+| 压缩进度即时更新 context bar | **大改,跨层** | 我们 `AutoCompactStarted` 只带 `{percentage}` 无 `tokens_used`(ext_protocol.rs:260/reducer/acp.rs:200);且我们树无 `refresh_context_used`/`confirm_context_used`/`compaction_context_refresh`(仅有 `note_context_used`)。需 shell 发射 tokens_used→wire 加字段→pager 解析+移植 context-refresh 子系统+接线 |
+| MCP 服务器瞬断重试 | 纠缠分歧 | 仅 `mcp_connecting_reminder_tests.rs`(缺失);实际重试纠缠批15 登记的 Nofy 分歧(托管连接器 `nofy_com_` 前缀不带"下次工具调用自动重试"提示) |
+| worktree 创建跳过 stale reflog | 纠缠云面 | 上游改动在 `xai-fast-worktree` 的 `SKIP_SOURCE_IS_GROVE_MOUNT`/auto-GC;台账批23 已跳过 fast-worktree NFS 客户端/clone 表面 |
+| interjection 后子代理等待修复 | 纠缠结构分歧 | 上游 `agent/subagent/spawn.rs` vs 我们 `mvp_agent/subagent_coordinator.rs`(台账批17);pty-harness interjection 测试缺失 |
+| 截断错误措辞不再建议"短回答" | 我们树无对应 | 全树无 "shorter answer/response" 字符串 |
+| monitor 10h 默认超时 | 已对齐 | 见上方 1.0.11 表第 10 行(批24 假阳性已纠正) |
+| credit upsell Try Again | 跳过 | 云/计费(分歧表) |
+
+**重新定级建议**:批25 拆为两个聚焦子批——批25a(context_snapshot 子系统 + rewind/compaction_context 重构,
+shell 面,大)、批25b(context bar 即时刷新:tokens_used wire + pager context-refresh 子系统移植,跨层,大);
+MCP 重试/worktree reflog/interjection 三条登记为分歧纠缠(跳过或待结构对齐时单独决策);
+截断措辞/monitor/credit 三条关闭(无对应/已对齐/跳过)。原"2–3 周吃 9–10 批"的节奏需据此上修:
+1.0.12+ 集群的真实移植面远大于 changelog 条目数所暗示。
 
 ## 移植时的常见适配点
 

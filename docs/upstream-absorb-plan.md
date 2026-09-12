@@ -40,8 +40,16 @@
 
 > **批25 前置(阻塞)**:当前工作树 47 文件未提交(+1909/−575),是在飞的 Desktop 第一方 MCP server 实现(批31 决策点 #6)+ D 系列收尾,正好覆盖批25 操作面(nofy-mcp/servers.rs、worktree、permission、config)。批25 起须先:① 提交或暂存在飞工作;② 固化桌面 seam 基线;③ 干净树上复测三路测试基线。详见台账「批25 前置条件」。
 
-### 批25|1.0.12 集群(小)
-context 估算(含 reasoning)与 rewind/模式切换后的 token 计数校正、压缩进度即时更新、worktree 创建跳过 stale reflog、MCP 瞬断重试、interjection 后子代理等待修复、权限提示友好化。跳过:credit upsell。
+### 批25|1.0.12 集群 —— ⚠️ 调查后证伪"(小)",已重新定级(2026-09-13)
+原列:context 估算(含 reasoning)与 rewind/模式切换 token 校正、压缩进度即时更新、worktree 跳过 stale reflog、MCP 瞬断重试、interjection 后子代理等待、权限提示友好化;跳过 credit upsell。
+
+**批25 摸底/读上游已完成,逐条定性见台账「批25 调查定性」表。结论:本批非"(小)",拆为两个聚焦子批 + 三条分歧登记 + 三条关闭:**
+- **批25a(大,shell 面)**:context 估算含 reasoning + rewind/模式切换 token 校正——上游新增 `context_snapshot.rs`(+462,我们无)、`rewind.rs` 改 219、`compaction_context.rs` 改 163,是上下文核算子系统重构。
+- **批25b(大,跨层)**:压缩进度即时更新 context bar——需给我们 `AutoCompactStarted` 加 `tokens_used`(shell→wire→pager)并移植上游 context-refresh 子系统(`refresh_context_used`/`confirm_context_used`/`compaction_context_refresh`,我们树全无,仅有 `note_context_used`)。
+- **分歧纠缠(跳过/待结构对齐)**:MCP 瞬断重试(批15 托管连接器分歧)、worktree stale reflog(批23 fast-worktree/clone 云面)、interjection 子代理等待(批17 subagent 结构分歧)。
+- **关闭**:截断措辞(我们树无该字符串)、monitor 10h 超时(已对齐,批24 假阳性已纠)、credit upsell(云/计费跳过)。
+
+> 节奏影响:原"2–3 周吃 9–10 批"需上修——1.0.12+ 集群真实移植面远大于 changelog 条目数所暗示(条目要么纠缠分歧、要么是大型子系统移植)。
 
 ### 批26|1.0.13 韧性集群(P0)
 截断响应自动续传、瞬态推理失败(卡死/断连/5xx)自动重试 + 重试原因短提示、参数完整的截断工具调用照常执行、hook 可请求确认/延迟/后置上下文注入、会话保存断电加固、>2000px 大图防炸会话、MCP 启动不再卡固定 batch。决策点:重试策略落在我们 BYOK provider 层的哪一层(建议 sampler/模型客户端,与 1.0.14 的 per-model retry 一次设计)。
