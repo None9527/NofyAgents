@@ -756,6 +756,7 @@ fn synthesize_from_info(info: &SamplingErrorInfo) -> SamplingError {
                 model_metadata: info.model_metadata.clone(),
                 retry_after_secs: info.retry_after_secs,
                 should_retry: info.should_retry,
+                error_code: info.error_code.clone(),
             }
         }
         SamplingErrorKind::EmptyResponse => {
@@ -885,6 +886,7 @@ fn handle_cancellation(
         doom_loop_triggers: None,
         doom_loop_aborted_at_chunk: None,
         credential: SentCredential::Unknown,
+        error_code: None,
     };
     let _ = event_tx.send(SamplingEvent::Failed {
         request_id: request_id.clone(),
@@ -924,6 +926,7 @@ mod tests {
             doom_loop_triggers: None,
             doom_loop_aborted_at_chunk: None,
             credential: SentCredential::Unknown,
+            error_code: None,
         };
         let err = synthesize_from_info(&info);
         match err {
@@ -946,6 +949,7 @@ mod tests {
             doom_loop_triggers: None,
             doom_loop_aborted_at_chunk: None,
             credential: SentCredential::Unknown,
+            error_code: None,
         };
         let err = synthesize_from_info(&info);
         match err {
@@ -977,6 +981,7 @@ mod tests {
             doom_loop_triggers: None,
             doom_loop_aborted_at_chunk: None,
             credential: SentCredential::Unknown,
+            error_code: None,
         };
         let err = synthesize_from_info(&info);
         match err {

@@ -18,6 +18,7 @@ fn failure(kind: SamplingErrorKind, retry_after_secs: Option<u64>) -> SamplingEr
         is_retryable: false,
         retry_after_secs,
         should_retry: None,
+        error_code: None,
         model_metadata: None,
         empty_response_context: None,
         doom_loop_triggers: None,

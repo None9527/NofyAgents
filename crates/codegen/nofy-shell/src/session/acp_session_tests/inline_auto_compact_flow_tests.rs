@@ -1177,6 +1177,7 @@ fn api_error_with_context_window(context_window: u64) -> nofy_sampler::SamplingE
         is_retryable: false,
         retry_after_secs: None,
         should_retry: None,
+        error_code: None,
         model_metadata: Some(crate::sampling::ResponseModelMetadata {
             context_window: Some(context_window),
             max_completion_tokens: None,
@@ -1584,6 +1585,7 @@ async fn test_compact_on_error_noop_without_model_metadata() {
                 is_retryable: false,
                 retry_after_secs: None,
                 should_retry: None,
+                error_code: None,
                 model_metadata: None,
                 empty_response_context: None,
                 doom_loop_triggers: None,

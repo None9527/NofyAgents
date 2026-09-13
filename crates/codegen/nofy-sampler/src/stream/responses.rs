@@ -338,6 +338,7 @@ pub(crate) fn stream_responses_tracked<'a>(
                         model_metadata: None,
                         retry_after_secs: None,
                         should_retry: None,
+                        error_code: None,
                     };
                     yield SamplingEvent::Failed {
                         request_id: request_id.clone(),
@@ -355,6 +356,7 @@ pub(crate) fn stream_responses_tracked<'a>(
                         model_metadata: None,
                         retry_after_secs: None,
                         should_retry: None,
+                        error_code: None,
                     };
                     yield SamplingEvent::Failed {
                         request_id: request_id.clone(),
@@ -437,6 +439,7 @@ pub(crate) fn stream_responses_tracked<'a>(
                     model_metadata: None,
                     retry_after_secs: None,
                     should_retry: None,
+                    error_code: None,
                 };
                 yield SamplingEvent::Failed {
                     request_id: request_id.clone(),

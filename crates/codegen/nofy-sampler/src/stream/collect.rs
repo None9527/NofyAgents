@@ -55,6 +55,7 @@ pub async fn collect_response(
         doom_loop_triggers: None,
         doom_loop_aborted_at_chunk: None,
         credential: nofy_sampling_types::SentCredential::Unknown,
+        error_code: None,
     })
 }
 

@@ -203,10 +203,13 @@ pub fn classify_error(
         return RetryDecision::Fatal(clone_error(err));
     }
 
-    // 413 Payload Too Large: strip inline images and try once. The
-    // caller checks if there are images left after the strip; if not,
-    // upgrade to Fatal.
-    if err.is_payload_too_large() {
+    // 413 Payload Too Large — or a byte-size overflow code under any status,
+    // since proxies wrap 413s in 400/500: strip inline images and try once.
+    // The caller checks if there are images left after the strip; if not,
+    // upgrade to Fatal. Token-tier size codes are excluded here: images barely
+    // move token counts, so stripping would destroy context for nothing and
+    // the veto below fast-fails instead.
+    if err.is_payload_too_large() || err.is_byte_size_overflow_coded() {
         return RetryDecision::RetryWithImageStrip;
     }
 
@@ -385,6 +388,7 @@ pub fn format_sampling_error(err: &SamplingError, retry_count: Option<u32>) -> S
         SamplingError::StreamError {
             error_type,
             message,
+            ..
         } => {
             format!(
                 "{}Server stream error ({}): {}. The server encountered an error while streaming the response.",
@@ -459,20 +463,26 @@ pub(crate) fn clone_error(err: &SamplingError) -> SamplingError {
             model_metadata,
             retry_after_secs,
             should_retry,
+            error_code,
         } => SamplingError::Api {
             status: *status,
             message: message.clone(),
             model_metadata: model_metadata.clone(),
             retry_after_secs: *retry_after_secs,
             should_retry: *should_retry,
+            // Must survive the clone: image-stripping and size-overflow
+            // recovery classify on this code, not on the message text.
+            error_code: error_code.clone(),
         },
         SamplingError::EventStreamError(msg) => SamplingError::EventStreamError(msg.clone()),
         SamplingError::StreamError {
             error_type,
             message,
+            code,
         } => SamplingError::StreamError {
             error_type: error_type.clone(),
             message: message.clone(),
+            code: code.clone(),
         },
         SamplingError::IdleTimeout { elapsed_secs } => SamplingError::IdleTimeout {
             elapsed_secs: *elapsed_secs,
@@ -494,6 +504,7 @@ pub(crate) fn clone_error(err: &SamplingError) -> SamplingError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nofy_sampling_types::ApiErrorCode;
     use reqwest::StatusCode;
 
     fn api_err(status: StatusCode, message: &str) -> SamplingError {
@@ -503,6 +514,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: None,
+            error_code: None,
         }
     }
 
@@ -513,6 +525,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: Some(retry_after),
             should_retry: None,
+            error_code: None,
         }
     }
 
@@ -608,6 +621,110 @@ mod tests {
             classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
             RetryDecision::RetryWithImageStrip
         ));
+    }
+
+    fn api_err_coded(
+        status: StatusCode,
+        message: &str,
+        error_code: Option<ApiErrorCode>,
+    ) -> SamplingError {
+        SamplingError::Api {
+            status,
+            message: message.to_string(),
+            model_metadata: None,
+            retry_after_secs: None,
+            should_retry: None,
+            error_code,
+        }
+    }
+
+    /// Proxies wrap 413s in 400/500, so the status alone misses them; the
+    /// structured byte-size code is what routes to image stripping.
+    #[test]
+    fn classify_byte_size_overflow_code_strips_images_under_any_status() {
+        for code in ["request_too_large", "payload_too_large", "413"] {
+            let err = api_err_coded(
+                StatusCode::BAD_REQUEST,
+                "request rejected",
+                Some(ApiErrorCode::parse(code)),
+            );
+            assert!(
+                matches!(
+                    classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
+                    RetryDecision::RetryWithImageStrip
+                ),
+                "{code} under a 400 must strip images"
+            );
+        }
+    }
+
+    /// Token-tier size codes must NOT strip: images barely move token counts,
+    /// so stripping would destroy context and still fail. The retry veto
+    /// fast-fails instead.
+    #[test]
+    fn classify_token_tier_size_code_does_not_strip_images() {
+        for code in ["context_length_exceeded", "exceed_context_size_error"] {
+            let err = api_err_coded(
+                StatusCode::BAD_REQUEST,
+                "too many tokens",
+                Some(ApiErrorCode::parse(code)),
+            );
+            assert!(
+                !matches!(
+                    classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
+                    RetryDecision::RetryWithImageStrip
+                ),
+                "{code} is token-tier; stripping images cannot remedy it"
+            );
+            assert!(
+                matches!(
+                    classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
+                    RetryDecision::Fatal(_)
+                ),
+                "{code} must fast-fail, not retry"
+            );
+        }
+    }
+
+    /// The code is the primary image signal: a provider that stamps
+    /// `invalid_image` with unrelated message text still recovers by stripping.
+    #[test]
+    fn classify_invalid_image_code_strips_images_without_message_match() {
+        let err = api_err_coded(
+            StatusCode::BAD_REQUEST,
+            "Request rejected",
+            Some(ApiErrorCode::InvalidImage),
+        );
+        assert!(matches!(
+            classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
+            RetryDecision::RetryWithImageStrip
+        ));
+    }
+
+    /// `SamplingError` is hand-cloned (reqwest/serde errors are not `Clone`).
+    /// The clone must keep the semantic code, or every recovery path that
+    /// clones loses its classification.
+    #[test]
+    fn clone_error_preserves_error_code() {
+        let err = api_err_coded(
+            StatusCode::BAD_REQUEST,
+            "x",
+            Some(ApiErrorCode::InvalidImage),
+        );
+        assert!(matches!(
+            clone_error(&err),
+            SamplingError::Api {
+                error_code: Some(ApiErrorCode::InvalidImage),
+                ..
+            }
+        ));
+
+        let stream = SamplingError::StreamError {
+            error_type: "invalid_request_error".into(),
+            message: "x".into(),
+            code: Some(ApiErrorCode::ContextOverflow("request_too_large".into())),
+        };
+        assert!(clone_error(&stream).is_byte_size_overflow_coded());
     }
 
     #[test]
@@ -785,6 +902,7 @@ mod tests {
                 model_metadata: None,
                 retry_after_secs: None,
                 should_retry,
+                error_code: None,
             };
             match classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD) {
                 RetryDecision::Fatal(SamplingError::Api { status, .. }) => {
@@ -855,6 +973,7 @@ mod tests {
         let err = SamplingError::StreamError {
             error_type: "transient".into(),
             message: "x".into(),
+            code: None,
         };
         match classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD) {
             RetryDecision::RetryWithClientRebuild { .. } => {}
@@ -956,6 +1075,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: Some(false),
+            error_code: None,
         };
         assert!(matches!(
             classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),
@@ -973,6 +1093,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: None,
+            error_code: None,
         };
         assert!(matches!(
             classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),
@@ -988,6 +1109,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: Some(true),
+            error_code: None,
         };
         assert!(matches!(
             classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),
@@ -1003,6 +1125,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: None,
+            error_code: None,
         };
         assert!(matches!(
             classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),
@@ -1038,6 +1161,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: Some(10),
             should_retry: Some(false),
+            error_code: None,
         };
         assert!(matches!(
             classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),

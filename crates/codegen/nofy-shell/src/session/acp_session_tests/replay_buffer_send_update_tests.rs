@@ -818,6 +818,7 @@ async fn failed_event_preserves_streaming_capture_for_takeout() {
                         is_retryable: false,
                         retry_after_secs: None,
                         should_retry: None,
+                        error_code: None,
                         model_metadata: None,
                         empty_response_context: None,
                         doom_loop_triggers: None,
@@ -1230,6 +1231,7 @@ async fn reasoning_only_doomloop_turn_captures_every_generation_as_segments() {
                 is_retryable: false,
                 retry_after_secs: None,
                 should_retry: None,
+                error_code: None,
                 model_metadata: None,
                 empty_response_context: Some(EmptyResponseContext {
                     reason: EmptyReason::ReasoningOnly,

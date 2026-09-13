@@ -21,7 +21,9 @@ use reqwest::header::{
 };
 use serde::Serialize;
 
-use nofy_sampling_types::error::{try_parse_stream_error, user_facing_api_error_message};
+use nofy_sampling_types::error::{
+    parse_error_code, try_parse_stream_error, user_facing_api_error_message,
+};
 use nofy_sampling_types::{
     ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse, ConversationRequest,
     ConversationResponse, CreateResponseWrapper, DOOM_LOOP_CHECK_HEADER, MessagesRequestWrapper,
@@ -866,6 +868,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -1036,6 +1039,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -1234,6 +1238,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -1396,6 +1401,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -1577,6 +1583,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -1710,6 +1717,7 @@ impl SamplingClient {
                 model_metadata,
                 retry_after_secs,
                 should_retry,
+                error_code: parse_error_code(bytes.as_ref()),
             });
         }
 
@@ -2032,6 +2040,7 @@ fn stream_collect_error(info: SamplingErrorInfo) -> SamplingError {
         model_metadata: info.model_metadata,
         retry_after_secs: info.retry_after_secs,
         should_retry: info.should_retry,
+        error_code: info.error_code,
     }
 }
 
@@ -2042,7 +2051,7 @@ mod tests {
     use nofy_sampling_types::types::ChatRequestMessage;
 
     #[test]
-    fn stream_collect_error_preserves_should_retry() {
+    fn stream_collect_error_preserves_should_retry_and_error_code() {
         let info = SamplingErrorInfo {
             kind: crate::events::SamplingErrorKind::Api,
             status_code: Some(529),
@@ -2055,6 +2064,9 @@ mod tests {
             doom_loop_triggers: None,
             doom_loop_aborted_at_chunk: None,
             credential: nofy_sampling_types::SentCredential::Unknown,
+            error_code: Some(nofy_sampling_types::ApiErrorCode::ContextOverflow(
+                "context_length_exceeded".into(),
+            )),
         };
         // SamplingError is not PartialEq (it carries reqwest/serde errors),
         // so destructure once and compare all fields in a single assert.
@@ -2064,6 +2076,7 @@ mod tests {
             model_metadata,
             retry_after_secs,
             should_retry,
+            error_code,
         } = stream_collect_error(info)
         else {
             panic!("expected Api");
@@ -2075,8 +2088,18 @@ mod tests {
                 model_metadata.is_none(),
                 retry_after_secs,
                 should_retry,
+                error_code,
             ),
-            (529, "Overloaded", true, Some(3), Some(false)),
+            (
+                529,
+                "Overloaded",
+                true,
+                Some(3),
+                Some(false),
+                Some(nofy_sampling_types::ApiErrorCode::ContextOverflow(
+                    "context_length_exceeded".into()
+                )),
+            ),
         );
     }
 

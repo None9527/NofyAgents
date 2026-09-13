@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use nofy_sampling_types::{
-    ConversationResponse, EmptyResponseContext, ResponseModelMetadata, SamplingError,
+    ApiErrorCode, ConversationResponse, EmptyResponseContext, ResponseModelMetadata, SamplingError,
     SentCredential,
 };
 
@@ -190,6 +190,11 @@ pub struct SamplingErrorInfo {
     /// header absent, or payload from an older peer.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub should_retry: Option<bool>,
+    /// The error envelope's semantic `code`, when the body carried one. Lets a
+    /// peer that only sees this struct classify image/size rejections without
+    /// re-sniffing the message text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<ApiErrorCode>,
     pub model_metadata: Option<ResponseModelMetadata>,
     /// Present only when `kind == EmptyResponse`. Carries the structured
     /// context from the L2 stream so downstream consumers can distinguish
@@ -310,12 +315,18 @@ impl From<&SamplingError> for SamplingErrorInfo {
             SamplingError::Auth { credential, .. } => *credential,
             _ => SentCredential::Unknown,
         };
+        let error_code = match err {
+            SamplingError::Api { error_code, .. } => error_code.clone(),
+            SamplingError::StreamError { code, .. } => code.clone(),
+            _ => None,
+        };
 
         Self {
             kind,
             status_code,
             message,
             should_retry: err.should_retry_header(),
+            error_code,
             is_retryable,
             retry_after_secs,
             model_metadata,
@@ -340,6 +351,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: Some(false),
+            error_code: None,
         };
         let info = SamplingErrorInfo::from(&err);
         assert_eq!(info.should_retry, Some(false));
@@ -348,6 +360,7 @@ mod tests {
         let stream_err = SamplingError::StreamError {
             error_type: "overloaded_error".into(),
             message: "Overloaded".into(),
+            code: None,
         };
         assert_eq!(SamplingErrorInfo::from(&stream_err).should_retry, None);
     }
@@ -402,6 +415,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: None,
             should_retry: None,
+            error_code: None,
         };
         let info = SamplingErrorInfo::from(&err);
         assert_eq!(info.kind, SamplingErrorKind::Api);
@@ -417,6 +431,7 @@ mod tests {
             model_metadata: None,
             retry_after_secs: Some(15),
             should_retry: None,
+            error_code: None,
         };
         let info = SamplingErrorInfo::from(&err);
         assert_eq!(info.kind, SamplingErrorKind::RateLimited);
@@ -436,6 +451,7 @@ mod tests {
             }),
             retry_after_secs: None,
             should_retry: None,
+            error_code: None,
         };
         let info = SamplingErrorInfo::from(&err);
         assert_eq!(info.kind, SamplingErrorKind::Api);
@@ -458,6 +474,7 @@ mod tests {
         let err = SamplingError::StreamError {
             error_type: "server_error".into(),
             message: "transient".into(),
+            code: None,
         };
         let info = SamplingErrorInfo::from(&err);
         assert_eq!(info.kind, SamplingErrorKind::Api);
