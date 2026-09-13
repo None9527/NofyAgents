@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::io::{self, BufRead, BufReader, Seek};
+use std::io::{self, BufRead, BufReader, Seek, Write};
 use std::path::{Path, PathBuf};
 
 use crate::extensions::notification::SessionNotification;
@@ -39,11 +39,39 @@ pub(crate) const UPDATES_FILE: &str = "updates.jsonl";
 
 /// Write `bytes` to `path` by writing a uniquely named sibling temp file and
 /// renaming it over the target, so a crash or a concurrent writer never leaves a
-/// torn file. The temp is removed on failure.
+/// torn file. The temp is removed on failure. Both the temp file and the parent
+/// directory are synced, so the committed rename also survives power loss.
 pub(crate) fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    write_bytes_atomic_with(path, bytes, sync_file_durable, || {
+        sync_parent_dir_durable(path)
+    })
+}
+
+/// [`write_bytes_atomic`] with the sync barriers injected, so tests can pin
+/// their ordering without touching the filesystem's durability semantics.
+fn write_bytes_atomic_with(
+    path: &Path,
+    bytes: &[u8],
+    sync_file: impl Fn(&std::fs::File) -> io::Result<()>,
+    sync_parent: impl Fn() -> io::Result<()>,
+) -> io::Result<()> {
     let tmp = temp_sibling(path);
-    match std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path)) {
-        Ok(()) => Ok(()),
+    let write_synced = || -> io::Result<()> {
+        let mut file = std::fs::File::create(&tmp)?;
+        file.write_all(bytes)?;
+        // NTFS/ext4/APFS journal a rename as old-file-or-new-file only when the
+        // new file's data is already flushed. Without this sync a power loss can
+        // leave the committed rename in place with zero-length content.
+        sync_file(&file)
+    };
+    // Old-or-new only covers *replacing* a file, whose direntry is already
+    // durable. A first-time create (a session's first `summary.json`) has no old
+    // file, so its new entry can vanish on power loss until the parent directory
+    // is synced. A retry after a rename whose parent sync failed sees the file
+    // present and cannot tell create from replace — so every successful rename
+    // pays the parent sync.
+    match write_synced().and_then(|()| std::fs::rename(&tmp, path)) {
+        Ok(()) => sync_parent(),
         Err(e) => {
             let _ = std::fs::remove_file(&tmp);
             Err(e)
@@ -81,17 +109,60 @@ pub(crate) fn sync_file_durable(_file: &std::fs::File) -> io::Result<()> {
     ))
 }
 
-/// Async sibling of [`write_bytes_atomic`].
+/// Sync `dir` so entries just created or renamed into it survive power loss.
+/// Syncing a file only makes its own direntry durable in the *file*; the
+/// directory holding that entry needs its own barrier.
+#[cfg(target_os = "macos")]
+pub(crate) fn sync_dir_durable(dir: &Path) -> io::Result<()> {
+    use std::os::fd::AsRawFd;
+
+    let file = std::fs::File::open(dir)?;
+    file.sync_all()?;
+    // Match file durability: macOS fsync may stop at volatile drive caches.
+    fullfsync_raw(file.as_raw_fd())
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+pub(crate) fn sync_dir_durable(dir: &Path) -> io::Result<()> {
+    std::fs::File::open(dir)?.sync_all()
+}
+
+#[cfg(windows)]
+pub(crate) fn sync_dir_durable(_dir: &Path) -> io::Result<()> {
+    // Windows has no supported directory-handle fsync. NTFS journals directory
+    // metadata, which can roll a very recent create back to absent but never to
+    // garbage — and an absent file reads back as "not yet written", which every
+    // caller here already handles.
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+pub(crate) fn sync_dir_durable(_dir: &Path) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "durable directory sync is unsupported on this platform",
+    ))
+}
+
+/// Sync the directory holding `path`. Single source of truth for the
+/// post-rename barrier; the JSONL append path delegates here too so its
+/// directory durability cannot drift from the atomic-rewrite path's.
+pub(crate) fn sync_parent_dir_durable(path: &Path) -> io::Result<()> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "path has no parent"))?;
+    sync_dir_durable(parent)
+}
+
+/// Async sibling of [`write_bytes_atomic`]. Runs the whole sync path on a
+/// blocking thread: `F_FULLFSYNC` can take tens of milliseconds and must never
+/// stall the reactor. Sharing the sync implementation also keeps the two paths
+/// from drifting.
 pub(crate) async fn write_bytes_atomic_async(path: &Path, bytes: Vec<u8>) -> io::Result<()> {
-    let tmp = temp_sibling(path);
-    let result = match tokio::fs::write(&tmp, bytes).await {
-        Ok(()) => tokio::fs::rename(&tmp, path).await,
-        Err(e) => Err(e),
-    };
-    if result.is_err() {
-        let _ = tokio::fs::remove_file(&tmp).await;
-    }
-    result
+    let path = path.to_owned();
+    tokio::task::spawn_blocking(move || write_bytes_atomic(&path, &bytes))
+        .await
+        .map_err(io::Error::other)?
 }
 
 /// Serialize `items` to newline-delimited JSON bytes.
@@ -2438,6 +2509,175 @@ mod tests {
         format!(
             r#"{{"timestamp":1,"method":"_nofy/session/update","params":{{"sessionId":"s","update":{session_update_json}}}}}"#
         )
+    }
+
+    // ── durable atomic write barriers ───────────────────────────────────────
+
+    /// The file sync must land on the temp file *before* the rename commits,
+    /// otherwise a power loss can leave the new name pointing at zero-length
+    /// content.
+    #[test]
+    fn atomic_write_runs_file_sync_barrier_before_rename_replaces_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("summary.json");
+        std::fs::write(&target, b"old").unwrap();
+
+        let target_bytes_at_sync = std::cell::RefCell::new(Vec::new());
+        write_bytes_atomic_with(
+            &target,
+            b"new",
+            |_| {
+                *target_bytes_at_sync.borrow_mut() = std::fs::read(&target).unwrap();
+                Ok(())
+            },
+            || Ok(()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            target_bytes_at_sync.borrow().as_slice(),
+            b"old",
+            "the sync barrier must run on the temp file before the rename commits"
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+    }
+
+    /// A first-time create has no old direntry to fall back on, so the parent
+    /// directory sync has to run after the rename commits the new entry.
+    #[test]
+    fn atomic_write_syncs_parent_directory_after_the_rename_commits_a_create() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("summary.json");
+
+        let events = std::cell::RefCell::new(Vec::new());
+        write_bytes_atomic_with(
+            &target,
+            b"new",
+            |_| {
+                events.borrow_mut().push("sync_file");
+                Ok(())
+            },
+            || {
+                events.borrow_mut().push(
+                    if std::fs::read(&target).is_ok_and(|bytes| bytes == b"new") {
+                        "sync_parent_after_rename"
+                    } else {
+                        "sync_parent_before_rename"
+                    },
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            events.borrow().as_slice(),
+            ["sync_file", "sync_parent_after_rename"],
+            "the parent-directory sync must run after the rename commits the new entry"
+        );
+    }
+
+    /// Replacing an existing file still pays the parent sync: a retry after a
+    /// failed create barrier sees the file present and cannot tell create from
+    /// replace, so skipping it here would silently lose durability on retry.
+    #[test]
+    fn atomic_write_syncs_parent_directory_after_rename_even_when_replacing() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("summary.json");
+        std::fs::write(&target, b"old").unwrap();
+
+        let parent_syncs = std::cell::Cell::new(0);
+        write_bytes_atomic_with(
+            &target,
+            b"new",
+            |_| Ok(()),
+            || {
+                parent_syncs.set(parent_syncs.get() + 1);
+                Ok(())
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            parent_syncs.get(),
+            1,
+            "a retry after a failed create-barrier would otherwise skip the parent sync"
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+    }
+
+    /// A failed parent sync surfaces as an error even though the rename already
+    /// committed, and the next write still syncs its parent.
+    #[test]
+    fn atomic_write_retries_parent_sync_after_a_failed_create_barrier() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("summary.json");
+
+        let first = write_bytes_atomic_with(
+            &target,
+            b"new",
+            |_| Ok(()),
+            || Err(io::Error::other("directory barrier failed")),
+        );
+        assert_eq!(first.unwrap_err().to_string(), "directory barrier failed");
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+
+        let parent_syncs = std::cell::Cell::new(0);
+        write_bytes_atomic_with(
+            &target,
+            b"newer",
+            |_| Ok(()),
+            || {
+                parent_syncs.set(parent_syncs.get() + 1);
+                Ok(())
+            },
+        )
+        .unwrap();
+
+        assert_eq!(parent_syncs.get(), 1);
+        assert_eq!(std::fs::read(&target).unwrap(), b"newer");
+    }
+
+    /// A failed write must not leave the sibling temp file behind.
+    #[test]
+    fn atomic_write_removes_temp_when_the_sync_barrier_fails() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("summary.json");
+        std::fs::write(&target, b"old").unwrap();
+
+        let err = write_bytes_atomic_with(
+            &target,
+            b"new",
+            |_| Err(io::Error::other("device cache refused")),
+            || Ok(()),
+        )
+        .unwrap_err();
+        assert_eq!(err.to_string(), "device cache refused");
+        assert_eq!(
+            std::fs::read(&target).unwrap(),
+            b"old",
+            "the target must be untouched when the barrier fails before the rename"
+        );
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(Result::ok)
+            .map(|e| e.file_name())
+            .filter(|n| n.to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "temp file leaked: {leftovers:?}");
+    }
+
+    /// The real (non-injected) barriers must succeed on a live filesystem —
+    /// guards against `F_FULLFSYNC` being rejected on a directory handle.
+    #[test]
+    fn atomic_write_real_barriers_succeed_on_tempdir() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("signals.json");
+        write_bytes_atomic(&target, b"{\"a\":1}").unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"{\"a\":1}");
+        // Replace, so both the create and the replace paths pay the parent sync.
+        write_bytes_atomic(&target, b"{\"a\":2}").unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"{\"a\":2}");
     }
 
     // ── parse_prompt_extract_event unit tests ─────────────────────────────────

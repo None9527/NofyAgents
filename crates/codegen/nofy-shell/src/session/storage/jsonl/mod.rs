@@ -476,23 +476,12 @@ impl JsonlStorageAdapter {
     fn sync_file_durable(file: &std::fs::File) -> io::Result<()> {
         super::sync_file_durable(file)
     }
-    #[cfg(unix)]
+    /// Delegates to the shared barrier so the append path's directory
+    /// durability cannot drift from the atomic-rewrite path's. On macOS this
+    /// upgrades the directory sync to `F_FULLFSYNC`, matching what
+    /// [`Self::sync_file_durable`] already does for the file itself.
     fn sync_parent_directory(path: &Path) -> io::Result<()> {
-        let parent = path
-            .parent()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "update has no parent"))?;
-        std::fs::File::open(parent)?.sync_all()
-    }
-    #[cfg(windows)]
-    fn sync_parent_directory(_path: &Path) -> io::Result<()> {
-        Ok(())
-    }
-    #[cfg(not(any(unix, windows)))]
-    fn sync_parent_directory(_path: &Path) -> io::Result<()> {
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "durable directory sync is unsupported on this platform",
-        ))
+        super::sync_parent_dir_durable(path)
     }
     /// Write a full JSONL file (rewriting all items), crash-atomically: serialize
     /// to a temp file then rename over the target, so a crash / `ENOSPC` mid-write
