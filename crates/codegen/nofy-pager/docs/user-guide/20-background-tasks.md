@@ -30,6 +30,10 @@ Use `wait_commands_or_subagents` to block on several tasks at once:
 - `mode` — `wait_any` returns when the first task completes; `wait_all` waits for every task
 - `timeout_ms` — the maximum time to wait, in milliseconds (default: 30 seconds)
 
+A positive `timeout_ms` is clamped to **1 hour** (`3600000` ms). Hosts with a shorter transport deadline set `NOFY_MAX_WAIT_BLOCK_MS` (plain milliseconds; unparseable values keep the default), which both enforces the cap server-side and updates what the tool descriptions advertise.
+
+If the wait returns while the child is still running, leave it alone: do not kill it or tell it to stop. Completion wakes the parent automatically. Poll again only if you need another snapshot.
+
 The tool returns the status and output for every task you list.
 
 ### Killing Background Tasks

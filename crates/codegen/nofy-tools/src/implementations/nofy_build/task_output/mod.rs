@@ -31,7 +31,7 @@ use nofy_tool_types::{
 /// constant is not applied unless a wait is active.
 pub(crate) const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// The blocking-wait ceiling: `NOFY_MAX_WAIT_BLOCK_MS`, else 10 min.
+/// The blocking-wait ceiling: `NOFY_MAX_WAIT_BLOCK_MS`, else 1 hour.
 ///
 /// The same value fills `{max_wait_ms}` in the descriptions, so a wait can
 /// never exceed what the model was told it may ask for.
@@ -1089,7 +1089,13 @@ mod tests {
             Duration::from_millis(5_000)
         );
         assert_eq!(capped_wait_timeout(Some(36_000_000), cap), cap);
-        assert_eq!(capped_wait_timeout(Some(600_000), cap), cap);
+        assert_eq!(capped_wait_timeout(Some(7_200_000), cap), cap);
+        // Exactly the cap clamps to itself; under it passes through untouched.
+        assert_eq!(capped_wait_timeout(Some(3_600_000), cap), cap);
+        assert_eq!(
+            capped_wait_timeout(Some(600_000), cap),
+            Duration::from_millis(600_000)
+        );
     }
 
     /// A client that shortens the cap at finalize must also shorten the wait —
