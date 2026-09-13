@@ -474,7 +474,13 @@ pub(crate) async fn run_shell_child(
             .model_supports_reasoning_effort(effective_model_id.0.as_ref())
     {
         match raw.parse::<ReasoningEffort>() {
-            Ok(eff) => effective_sampling_config.reasoning_effort = Some(eff),
+            Ok(eff) => {
+                effective_sampling_config.reasoning_effort = Some(eff);
+                // Some models are a different wire id at each effort; the
+                // support gate above resolved on the catalog id, so swap now.
+                ctx.models_manager
+                    .route_model_for_effort(&mut effective_sampling_config, eff);
+            }
             Err(err) => {
                 tracing::warn!(
                     value = raw,

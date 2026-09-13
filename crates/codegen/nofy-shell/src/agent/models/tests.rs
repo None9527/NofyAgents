@@ -1642,6 +1642,7 @@ fn make_entry_config_with_id(
         reasoning_effort: None,
         supports_reasoning_effort: false,
         reasoning_efforts: Vec::new(),
+        variants: Vec::new(),
         compactions_remaining: None,
         compaction_at_tokens: None,
         show_model_fingerprint: false,
@@ -1742,6 +1743,30 @@ fn resolve_catalog_key_maps_routing_slug_to_config_key() {
     let persisted = acp::ModelId::new("grok-4.5");
     let key = resolve_catalog_key(&models, &persisted).expect("slug must resolve");
     assert_eq!(key.0.as_ref(), "enterprise-nofy-build");
+}
+
+/// A model that routes to a different wire id per reasoning effort can get
+/// persisted under that variant id; it must still resolve to its catalog entry.
+#[test]
+fn resolve_catalog_key_maps_per_effort_variant_id_to_config_key() {
+    let mut models = IndexMap::new();
+    let mut entry = make_model_entry("gateway-model");
+    entry.info.variants = vec![config::ModelVariant {
+        effort: ReasoningEffort::High,
+        model_id: "gateway-model-thinking".to_string(),
+    }];
+    models.insert("routed".to_string(), entry);
+
+    let routed = acp::ModelId::new("gateway-model-thinking");
+    let key = resolve_catalog_key(&models, &routed).expect("variant id must resolve");
+    assert_eq!(key.0.as_ref(), "routed");
+
+    // The base slug keeps resolving exactly as before.
+    let base = acp::ModelId::new("gateway-model");
+    assert_eq!(
+        resolve_catalog_key(&models, &base).expect("slug must resolve").0.as_ref(),
+        "routed"
+    );
 }
 
 #[test]

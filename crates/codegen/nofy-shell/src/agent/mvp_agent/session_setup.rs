@@ -385,6 +385,10 @@ impl MvpAgent {
                 .model_supports_reasoning_effort(&session_sampling.model)
         {
             session_sampling.reasoning_effort = Some(effort);
+            // Some models are a different wire id at each effort. Swap after the
+            // support gate, which resolves on the catalog id, not the variant.
+            self.models_manager
+                .route_model_for_effort(&mut session_sampling, effort);
         }
         let (summary_client, summary_model) = self.build_summary_client(&session_sampling)?;
         let model_id = match &session_initial_model {

@@ -12,7 +12,11 @@ pub(crate) fn resolve_catalog_key(
     models
         .iter()
         .rev()
-        .find(|(_, entry)| entry.info.model == id_str)
+        // `has_model_id` rather than `info.model ==`: a model that routes to a
+        // different wire id per reasoning effort can get persisted under that
+        // variant id, and it still has to resolve back to its catalog entry.
+        // Identical to the plain slug match while `variants` is empty.
+        .find(|(_, entry)| entry.info.has_model_id(id_str))
         .map(|(key, _)| acp::ModelId::new(key.clone()))
 }
 
@@ -27,7 +31,8 @@ pub(crate) fn selectable_catalog_key_for_persisted(
     }
     let id_str = id.0.as_ref();
     if let Some((key, _)) = models.iter().rev().find(|(key, entry)| {
-        available.contains_key(&acp::ModelId::new((*key).clone())) && entry.info.model == id_str
+        available.contains_key(&acp::ModelId::new((*key).clone()))
+            && entry.info.has_model_id(id_str)
     }) {
         return Some(acp::ModelId::new(key.clone()));
     }

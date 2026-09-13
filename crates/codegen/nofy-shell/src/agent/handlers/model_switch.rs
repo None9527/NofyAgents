@@ -135,6 +135,11 @@ pub(crate) async fn apply(
                 "set_session_model: applying reasoning_effort override from meta"
             );
             model_sampling.reasoning_effort = Some(eff);
+            // Some models are a different wire id at each effort; the support
+            // gate above resolved on the catalog id, so swap only now.
+            agent
+                .models_manager
+                .route_model_for_effort(&mut model_sampling, eff);
         } else {
             tracing::warn!(
                 session_id = %session_id.0,

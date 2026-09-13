@@ -515,6 +515,48 @@ impl ModelsManager {
             .unwrap_or_default()
     }
 
+    /// The id `model_id` actually sends at `effort`, or `None` when `model_id`
+    /// is not in the catalog. Resolves through `resolve_catalog_key` because
+    /// callers pass the wire model id, which is not always the catalog key.
+    ///
+    /// Returns the model's own id when it declares no variant for that effort,
+    /// so the caller can assign unconditionally.
+    pub(crate) fn model_for_effort(
+        &self,
+        model_id: &str,
+        effort: ReasoningEffort,
+    ) -> Option<String> {
+        let cat = self.inner.catalog.read();
+        let models = &cat.models;
+        resolve_catalog_key(models, &acp::ModelId::new(model_id))
+            .and_then(|key| models.get(key.0.as_ref()))
+            .map(|e| e.info().model_at(effort).to_string())
+    }
+
+    /// Route `sampling.model` to the id it should send at `effort`.
+    ///
+    /// Single site for the per-effort id swap, so session creation, model
+    /// switch, and subagent spawn cannot drift on whether they honor variants.
+    /// Must run *after* the effort-support gate and *before* any log that
+    /// records the model id, or the log names an id we are not sending.
+    pub(crate) fn route_model_for_effort(
+        &self,
+        sampling: &mut SamplingConfig,
+        effort: ReasoningEffort,
+    ) {
+        if let Some(routed) = self.model_for_effort(&sampling.model, effort)
+            && routed != sampling.model
+        {
+            tracing::debug!(
+                from = %sampling.model,
+                to = %routed,
+                effort = %effort.as_str(),
+                "reasoning_effort: routing to the per-effort model id"
+            );
+            sampling.model = routed;
+        }
+    }
+
     pub(crate) fn model_compactions_remaining(
         &self,
         model_id: &str,

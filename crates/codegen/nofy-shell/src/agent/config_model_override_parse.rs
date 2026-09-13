@@ -721,6 +721,7 @@ mod tests {
                 description: Some("Deep reasoning".to_string()),
                 default: true,
             }],
+            variants: Vec::new(),
             compactions_remaining: Some(CompactionsRemaining::Fixed(1)),
             compaction_at_tokens: Some(CompactionAtTokens::Fixed(100_000)),
             show_model_fingerprint: Some(true),

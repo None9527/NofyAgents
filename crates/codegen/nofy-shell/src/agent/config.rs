@@ -2996,6 +2996,8 @@ struct DefaultModelJson {
     supports_reasoning_effort: bool,
     #[serde(default)]
     reasoning_efforts: Vec<ReasoningEffortOption>,
+    #[serde(default)]
+    variants: Vec<ModelVariant>,
     /// When false, only OAuth users see this in the picker.
     #[serde(default = "default_true")]
     supported_in_api: bool,
@@ -3062,6 +3064,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 reasoning_effort: m.reasoning_effort,
                 supports_reasoning_effort: m.supports_reasoning_effort,
                 reasoning_efforts: m.reasoning_efforts,
+                variants: m.variants,
                 compactions_remaining: m.compactions_remaining,
                 compaction_at_tokens: m.compaction_at_tokens,
                 show_model_fingerprint: m.show_model_fingerprint,
@@ -3116,6 +3119,9 @@ pub struct ModelEntryConfig {
     /// above are derived from this list when it is non-empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasoning_efforts: Vec<ReasoningEffortOption>,
+    /// Per-effort wire ids; empty means one id at every effort.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<ModelVariant>,
     /// Extra headers to send with requests to this model's endpoint.
     /// Useful for BYOK (Bring Your Own Key) scenarios.
     /// Example: { "x-anthropic-api-key" = "sk-ant-..." }
@@ -3256,6 +3262,11 @@ pub struct ConfigModelOverride {
     pub reasoning_effort: Option<ReasoningEffort>,
     pub supports_reasoning_effort: Option<bool>,
     pub reasoning_efforts: Vec<ReasoningEffortOption>,
+    /// Per-effort wire ids from `[[model.<id>.variants]]`. Merged only when
+    /// non-empty, like `reasoning_efforts`, so an override cannot silently
+    /// erase the catalog's variants.
+    #[serde(default)]
+    pub variants: Vec<ModelVariant>,
     /// Aliases must be registered in `config_model_override_parse::ALIASES`;
     /// serde rejects a table that contains both spellings otherwise.
     #[serde(alias = "send_compactions_remaining")]
@@ -3345,6 +3356,9 @@ impl ConfigModelOverride {
         if !self.reasoning_efforts.is_empty() {
             entry.info.reasoning_efforts = self.reasoning_efforts.clone();
         }
+        if !self.variants.is_empty() {
+            entry.info.variants = self.variants.clone();
+        }
         if self.compactions_remaining.is_some() {
             entry.info.compactions_remaining = self.compactions_remaining;
         }
@@ -3381,6 +3395,21 @@ impl ConfigModelOverride {
         entry
     }
 }
+/// One reasoning-effort level's wire id for a model that is really several
+/// models behind one catalog entry.
+///
+/// Gateways commonly expose effort as a *separate model* rather than a request
+/// parameter (`gpt-5` vs `gpt-5-high`, a `-fast` vs a `-thinking` sku), so a
+/// BYOK user needs per-effort ids to reach them at all. Declaring variants keeps
+/// one selectable entry in the picker while each effort sends its own id.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ModelVariant {
+    /// The effort level this id answers to.
+    pub effort: ReasoningEffort,
+    /// The id to put on the wire at that effort. Must be non-empty.
+    pub model_id: String,
+}
+
 /// Shared model metadata — the common fields across all model sources.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelInfo {
@@ -3440,6 +3469,10 @@ pub struct ModelInfo {
     /// Per-model reasoning-effort menu (source of truth); legacy fields derived from it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasoning_efforts: Vec<ReasoningEffortOption>,
+    /// Per-effort wire ids. Empty means the model sends `model` at every
+    /// effort; a matching entry replaces it for that effort only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<ModelVariant>,
     /// Per-model config for the `x-compactions-remaining` header; `None` disables it.
     pub compactions_remaining: Option<CompactionsRemaining>,
     /// Per-model config for the `x-compaction-at` header; `None` disables it.
@@ -3491,6 +3524,7 @@ impl ModelInfo {
             reasoning_effort: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
+            variants: Vec::new(),
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,
@@ -3529,6 +3563,7 @@ impl ModelInfo {
             reasoning_effort: entry.reasoning_effort,
             supports_reasoning_effort: entry.supports_reasoning_effort,
             reasoning_efforts: entry.reasoning_efforts.clone(),
+            variants: entry.variants.clone(),
             compactions_remaining: entry.compactions_remaining,
             compaction_at_tokens: entry.compaction_at_tokens,
             show_model_fingerprint: entry.show_model_fingerprint,
@@ -3538,6 +3573,37 @@ impl ModelInfo {
             laziness_detector: entry.laziness_detector.clone(),
         }
     }
+    /// Whether `id` is one of the ids this model sends: its own, or one it
+    /// uses at some effort. Lets a caller resolve a wire id back to the catalog
+    /// entry that produced it.
+    pub(crate) fn has_model_id(&self, id: &str) -> bool {
+        self.model == id || self.variants.iter().any(|v| v.model_id == id)
+    }
+
+    /// The id to put on the wire at `effort`: the matching variant's, else
+    /// `model` itself.
+    ///
+    /// Every variant must name an effort this model actually offers and a
+    /// non-empty id, or it routes to something nobody can select.
+    pub(crate) fn model_at(&self, effort: ReasoningEffort) -> &str {
+        debug_assert!(
+            self.variants.iter().all(|variant| {
+                !variant.model_id.is_empty()
+                    && (self.reasoning_efforts.is_empty()
+                        || self
+                            .reasoning_efforts
+                            .iter()
+                            .any(|option| option.value == variant.effort))
+            }),
+            "model {} has a variant with an empty id or an effort its menu does not offer",
+            self.model
+        );
+        self.variants
+            .iter()
+            .find(|variant| variant.effort == effort)
+            .map_or(self.model.as_str(), |variant| variant.model_id.as_str())
+    }
+
     /// Derive the legacy effort gate/default from `reasoning_efforts` so the
     /// shell's internal reads (support gate, wire default, session modes) treat
     /// a menu-only model as supported. The single derive site; `to_acp_model_info`
@@ -4217,6 +4283,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 reasoning_effort: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
+                variants: Vec::new(),
                 compactions_remaining: None,
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
@@ -5461,6 +5528,7 @@ reasoning_effort = "low"
                 reasoning_effort: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
+                variants: Vec::new(),
                 compactions_remaining: None,
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
@@ -6282,6 +6350,112 @@ reasoning_effort = "low"
             .expect("model should exist");
         assert_eq!(model.info.api_backend, ApiBackend::Responses);
     }
+    /// A BYOK model can declare a different wire id per reasoning effort, so a
+    /// gateway that exposes effort as separate models stays one picker entry.
+    #[test]
+    fn parses_model_variants_and_routes_per_effort() {
+        let raw_config: toml::Value = toml::from_str(
+            r#"
+            [model.routed]
+            model = "gateway-model"
+            base_url = "https://api.example.com/v1"
+            context_window = 200000
+            supports_reasoning_effort = true
+
+            [[model.routed.variants]]
+            effort = "low"
+            model_id = "gateway-model-fast"
+
+            [[model.routed.variants]]
+            effort = "high"
+            model_id = "gateway-model-thinking"
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
+        let resolved = resolve_model_list(&cfg, None);
+        let info = &resolved.get("routed").expect("model should exist").info;
+
+        assert_eq!(
+            info.variants,
+            vec![
+                ModelVariant {
+                    effort: ReasoningEffort::Low,
+                    model_id: "gateway-model-fast".into(),
+                },
+                ModelVariant {
+                    effort: ReasoningEffort::High,
+                    model_id: "gateway-model-thinking".into(),
+                },
+            ]
+        );
+        assert_eq!(info.model_at(ReasoningEffort::Low), "gateway-model-fast");
+        assert_eq!(info.model_at(ReasoningEffort::High), "gateway-model-thinking");
+    }
+
+    /// An effort with no declared variant keeps sending the base id, so a
+    /// partial variant list never routes to something nobody declared.
+    #[test]
+    fn model_at_falls_back_to_base_model_without_a_variant() {
+        let raw_config: toml::Value = toml::from_str(
+            r#"
+            [model.routed]
+            model = "gateway-model"
+            base_url = "https://api.example.com/v1"
+            context_window = 200000
+
+            [[model.routed.variants]]
+            effort = "low"
+            model_id = "gateway-model-fast"
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
+        let resolved = resolve_model_list(&cfg, None);
+        let info = &resolved.get("routed").expect("model should exist").info;
+
+        assert_eq!(info.model_at(ReasoningEffort::Medium), "gateway-model");
+        assert_eq!(info.model_at(ReasoningEffort::Xhigh), "gateway-model");
+        assert_eq!(info.model_at(ReasoningEffort::Low), "gateway-model-fast");
+    }
+
+    /// A model with no variants at all sends its own id at every effort.
+    #[test]
+    fn model_at_without_variants_is_the_base_model() {
+        let mut info = test_model_entry("plain", "https://api.example.com/v1", None, None, None)
+            .info;
+        info.model = "gateway-model".to_string();
+        for effort in [
+            ReasoningEffort::None,
+            ReasoningEffort::Low,
+            ReasoningEffort::Medium,
+            ReasoningEffort::High,
+            ReasoningEffort::Xhigh,
+            ReasoningEffort::Max,
+        ] {
+            assert_eq!(info.model_at(effort), "gateway-model");
+        }
+        assert!(info.has_model_id("gateway-model"));
+        assert!(!info.has_model_id("gateway-model-fast"));
+    }
+
+    /// `has_model_id` lets a caller resolve a wire id back to the catalog entry
+    /// that produced it, including an id only ever sent at one effort.
+    #[test]
+    fn has_model_id_covers_base_and_variant_ids() {
+        let info = ModelInfo {
+            model: "gateway-model".to_string(),
+            variants: vec![ModelVariant {
+                effort: ReasoningEffort::High,
+                model_id: "gateway-model-thinking".to_string(),
+            }],
+            ..test_model_entry("plain", "https://api.example.com/v1", None, None, None).info
+        };
+        assert!(info.has_model_id("gateway-model"));
+        assert!(info.has_model_id("gateway-model-thinking"));
+        assert!(!info.has_model_id("gateway-model-fast"));
+    }
+
     #[test]
     fn parses_model_api_backend_chat_completions() {
         let raw_config: toml::Value = toml::from_str(
@@ -6462,6 +6636,7 @@ reasoning_effort = "low"
             reasoning_effort: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
+            variants: Vec::new(),
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,
@@ -6620,6 +6795,7 @@ reasoning_effort = "low"
             reasoning_effort: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
+            variants: Vec::new(),
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,
@@ -7070,6 +7246,7 @@ reasoning_effort = "low"
             reasoning_effort: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
+            variants: Vec::new(),
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,
@@ -9922,6 +10099,7 @@ default = "grok-4.5"
                 reasoning_effort: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
+                variants: Vec::new(),
                 compactions_remaining: None,
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,

@@ -192,6 +192,10 @@ pub(crate) fn parse_remote_model_value(
             .and_then(|v| v.as_array())
             .map(|arr| nofy_sampling_types::parse_reasoning_effort_options(arr))
             .unwrap_or_default(),
+        // The remote catalog carries no per-effort id contract; variants are a
+        // local declaration (`[[model.<id>.variants]]` in config.toml, or the
+        // JSON config's `variants` array) and merge over this in `apply`.
+        variants: Vec::new(),
         compactions_remaining: obj
             .get("compactionsRemaining")
             .or_else(|| obj.get("compactions_remaining"))
