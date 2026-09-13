@@ -271,8 +271,25 @@ bc7f02ed 是结构重写(红线禁整树)、9684fa3c 是含云的未吸收基线
 | B 登记分歧跳过 | 1.0.12 的 token/context/rewind 项登记为有意分歧(我们 token 计数维持现状),转查批26(1.0.13 韧性)等后续批是否有更自包含的条目 | 小;放弃上游 token 精度改进;需逐批验证后续是否同样被结构重构门控 |
 | C 仅取离散小项 | 排查 1.0.12 是否有不缠结构重构的离散小项(如 pager 渲染类:表格单元格复制/提示块 hook 友好描述),有则单独移植,余登记分歧 | 中;价值有限(非头条项);仍需逐条验证自包含性 |
 
-建议:**先 C 后 B**——花一轮排查离散小项能取则取,头条 token/context 项按 B 登记分歧(除非用户认为上游 token
-精度改进价值足够高而选 A 立项)。A 是项目级决策,不应在吸收批中夹带。
+**方法论校准(2026-09-13,用户裁定,取代上方 A/B/C 框架)**:吸收的目标不是"原样合并每项上游改进",
+而是**以上游为参照、提炼能推进我们架构合理性的想法、用我们自己的(BYOK/无云/已分歧)架构原生实现**。
+上游 diff 缠在结构重构里这件事,只要原生实现想法就无关紧要——A(结构对齐立项)因此通常不必要,
+B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(取离散小项)升级为"取离散**想法**原生实现"。
+判据:该想法是否架构无关地提升正确性/韧性/合理性?能否在我们树原生落地而不引入云依赖或结构重写?
+
+### 批25 原生实现日志(校准后方法)
+
+| # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ① | reasoning token 估算:加密内容是 base64,bytes/4 会高估 4/3(1.0.12「context 估算含 reasoning 更准」) | `nofy-token-estimation` 新增 `estimate_base64_tokens`(len*3/4 再 /4);`estimate_item_tokens` 的 Reasoning 分支加密内容改用它。**不碰**上游缠在 sampler_turn 786 行重构 + 云 context_snapshot 的实现 | `0dfe1dac` | token-estimation 16 / chat-state 375 / shell 5175 通过(2 失败为 macOS 环境产物,与基线一致);detect_changes low/0 流程 |
+
+辨别力记录:`conversation_content_bytes`(mutations.rs)也用 `encrypted_content.len()`,但它是**内存足迹日志测量**
+非 token 估算,base64 校正不适用,故不改——原生实现要按我们架构的语义辨别落点,不是见 base64 就改。
+
+**待评估的后续原生候选**(同为 1.0.12 想法,按架构合理性排序):
+- ② rewind/模式切换后用 server 报告的 token 数而非重估(精度/合理性,缠在我们 token 核算流,需调查落点)
+- ③ 压缩起始即刷新 context bar(UX 润色非架构;我们 `apply_session_event` 无 AgentView、`AutoCompactStarted` 仅带 percentage,需线入 view 或加 wire 字段,中等 pager 手术)
+- ④ MCP 瞬断重试 / 后台流式时抑制 auto recap(韧性,需各自调查与我们分歧的相容性)
 
 ## 移植时的常见适配点
 

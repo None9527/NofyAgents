@@ -50,7 +50,9 @@
 
 > 早期"批25a/25b 大移植"定级**作废**:context_snapshot+462/rewind219/compaction_context163 是 `77cd7eb..upstream/main` **缺口累积**数,非 1.0.12 单版(bc7f02ed 单版 rewind 仅 16 行、compaction_context 未改)。
 > **版本逐批模型在 1.0.12 处失效**:bc7f02ed 结构重写 + 9684fa3c 含云未吸收基线。余条(MCP 重试/worktree reflog/interjection/截断措辞/monitor/credit)前已定性分歧纠缠或关闭。
-> **需用户拍板**(台账「批25 结构决策点」):A 结构对齐立项(吸收 turn 重构+9684fa3c 本地部分、跳过云 snapshot、PTY e2e 回归)/ B 登记分歧跳过(转查批26 是否更自包含)/ C 仅取离散小项(排查 pager 渲染类)。**建议先 C 后 B**;A 是项目级决策,不在吸收批夹带。
+> **方法论校准(2026-09-13 用户裁定,取代 A/B/C 照搬框架)**:吸收目标不是原样合并每项上游改进,而是**以上游为参照、提炼推进我们架构合理性的想法、用我们自己的(BYOK/无云/已分歧)架构原生实现**。上游 diff 缠在结构重构里无关紧要——原生实现想法即可。A(结构对齐立项)通常不必要;B(登记分歧)仅用于想法对我们无价值/与架构冲突;C 升级为"取离散**想法**原生实现"。
+> **批25 原生实现①已落地**(`0dfe1dac`):reasoning token 的 base64 校正(1.0.12「context 估算含 reasoning 更准」的架构无关洞察)——`nofy-token-estimation` 新增 `estimate_base64_tokens`,`estimate_item_tokens` 的 Reasoning 分支加密内容改用它;不碰上游缠在 sampler_turn 786 行重构 + 云 context_snapshot 的实现。验证:token-estimation 16 / chat-state 375 / shell 5175 通过(2 失败为 macOS 环境产物,与基线一致)。详见台账「批25 原生实现日志」。
+> **后续原生候选**(按架构合理性排序):② rewind/模式切换后用 server 报告 token 数(精度,需调查落点);③ 压缩起始即刷新 context bar(UX,中等 pager 手术);④ MCP 瞬断重试 / 后台流式抑制 auto recap(韧性)。
 
 ### 批26|1.0.13 韧性集群(P0)
 截断响应自动续传、瞬态推理失败(卡死/断连/5xx)自动重试 + 重试原因短提示、参数完整的截断工具调用照常执行、hook 可请求确认/延迟/后置上下文注入、会话保存断电加固、>2000px 大图防炸会话、MCP 启动不再卡固定 batch。决策点:重试策略落在我们 BYOK provider 层的哪一层(建议 sampler/模型客户端,与 1.0.14 的 per-model retry 一次设计)。
