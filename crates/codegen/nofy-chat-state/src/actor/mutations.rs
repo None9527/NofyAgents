@@ -468,17 +468,15 @@ impl ChatStateActor {
         // a conversation replace (same intent as the `TruncateToPromptIndex` arm).
         self.persistence.replace_history(&items);
         let base_estimate = super::state::estimate_conversation_tokens(&items);
-        let mut estimated_tokens =
-            if is_compaction && pre_replace_total > 0 && self.state.estimate_at_last_response > 0 {
-                let ratio = pre_replace_total as f64 / self.state.estimate_at_last_response as f64;
-                (base_estimate as f64 * ratio).round() as u64
-            } else {
-                base_estimate
-            };
-        // Compaction must never appear to increase usage.
-        if is_compaction && pre_replace_total > 0 {
-            estimated_tokens = estimated_tokens.min(pre_replace_total);
-        }
+        let estimated_tokens = if is_compaction {
+            super::state::reseed_tokens_after_shrink(
+                base_estimate,
+                pre_replace_total,
+                self.state.estimate_at_last_response,
+            )
+        } else {
+            base_estimate
+        };
         self.state.conversation = items;
         self.state.estimated_tokens_since_model = 0;
         self.state.total_tokens = estimated_tokens;

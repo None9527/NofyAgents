@@ -68,10 +68,20 @@ impl ChatStateActor {
         self.state.conversation.truncate(truncate_at);
         self.state.prompt_texts.truncate(target_prompt_index);
         self.state.prompt_index = target_prompt_index;
-        self.state.total_tokens =
-            super::state::estimate_conversation_tokens(&self.state.conversation);
+        // Preserve the provider-side overhead across the rewind via the same
+        // ratio reseed compaction uses: a raw bytes/4 re-estimate would drop the
+        // server-counted overhead (system prompt/tools are still sent after a
+        // rewind), undercounting usage and risking a missed auto-compact gate
+        // before the next server report re-calibrates.
+        let pre_rewind_total = self.state.total_tokens;
+        let base_estimate = super::state::estimate_conversation_tokens(&self.state.conversation);
+        self.state.total_tokens = super::state::reseed_tokens_after_shrink(
+            base_estimate,
+            pre_rewind_total,
+            self.state.estimate_at_last_response,
+        );
         self.state.estimated_tokens_since_model = 0;
-        self.state.estimate_at_last_response = self.state.total_tokens;
+        self.state.estimate_at_last_response = base_estimate;
 
         self.persistence.replace_history(&self.state.conversation);
 

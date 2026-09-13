@@ -121,6 +121,37 @@ pub fn estimate_conversation_tokens(items: &[ConversationItem]) -> u64 {
     items.iter().map(estimate_item_tokens).sum()
 }
 
+/// Reseed `total_tokens` after the conversation shrinks (compaction or rewind).
+///
+/// `total_tokens − estimate_at_last_response` is the provider-side overhead the
+/// server counts but our bytes/4 conversation estimate omits (system prompt,
+/// tool definitions, wire formatting). That overhead survives a shrink — the
+/// system prompt and tools are still sent — so carry it forward as a *ratio*
+/// (`base_estimate × pre_shrink_total ÷ estimate_at_last_response`) rather than
+/// resetting to a raw re-estimate, which would drop the overhead and misreport
+/// usage (risking a missed auto-compact gate before the next server report
+/// re-calibrates). Capped at `pre_shrink_total` so a shrink never reports higher
+/// usage; falls back to `base_estimate` when there is no prior calibration.
+/// Single source of truth shared by compaction (`replace_conversation`) and
+/// rewind (`truncate_to_prompt_index`). See COMPACTION.md.
+pub(super) fn reseed_tokens_after_shrink(
+    base_estimate: u64,
+    pre_shrink_total: u64,
+    estimate_at_last_response: u64,
+) -> u64 {
+    let scaled = if pre_shrink_total > 0 && estimate_at_last_response > 0 {
+        let ratio = pre_shrink_total as f64 / estimate_at_last_response as f64;
+        (base_estimate as f64 * ratio).round() as u64
+    } else {
+        base_estimate
+    };
+    if pre_shrink_total > 0 {
+        scaled.min(pre_shrink_total)
+    } else {
+        scaled
+    }
+}
+
 /// nofy-build's [`ItemTokenCounter`](nofy_compaction::ItemTokenCounter)
 /// for the shared compaction engine: the bytes/4 estimate nofy-build already
 /// uses to drive its compaction triggers, exposed through the seam so the

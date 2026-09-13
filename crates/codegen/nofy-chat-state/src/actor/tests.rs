@@ -786,6 +786,49 @@ async fn compaction_reseed_scales_overhead_down_with_deleted_content() {
     );
 }
 
+/// Rewind (`truncate_to_prompt_index`) deletes content just like compaction, so
+/// it must carry the provider-side overhead forward via the same ratio reseed
+/// instead of resetting to a raw bytes/4 re-estimate (which would drop the
+/// overhead the server still counts for the system prompt/tools after a rewind).
+#[tokio::test]
+async fn rewind_reseed_carries_provider_overhead_like_compaction() {
+    let mut h = TestHarness::new();
+    // Two user turns of ~1000 estimated tokens each.
+    h.handle
+        .push_user_message(ConversationItem::user("x".repeat(4000)));
+    h.handle.increment_prompt_index(); // 1
+    h.handle
+        .push_user_message(ConversationItem::user("y".repeat(4000)));
+    h.handle.increment_prompt_index(); // 2
+
+    let estimate_at_response =
+        crate::estimate_conversation_tokens(&h.handle.get_conversation().await);
+    // Provider reports 2x our bytes/4 estimate (system prompt + tools overhead).
+    let provider_total = estimate_at_response * 2;
+    h.handle.record_token_usage(provider_total);
+
+    // Rewind: drop turn 2, keep turn 1.
+    h.handle.truncate_to_prompt_index(1).await;
+
+    let total = h.handle.get_total_tokens().await;
+    let base_after = crate::estimate_conversation_tokens(&h.handle.get_conversation().await);
+    // Ratio reseed: base_after * (provider_total / estimate_at_response) = base_after * 2.
+    assert_eq!(
+        total,
+        base_after * 2,
+        "rewind must carry provider overhead as a ratio (got {total}, base {base_after})"
+    );
+    // The old raw re-estimate would be base_after (overhead dropped).
+    assert!(
+        total > base_after,
+        "rewind must not drop provider overhead, got {total}"
+    );
+    assert!(
+        total <= provider_total,
+        "rewind must never exceed the pre-rewind provider total, got {total}"
+    );
+}
+
 #[tokio::test]
 async fn compaction_reseed_excludes_post_response_deltas_from_overhead() {
     let h = TestHarness::new();
