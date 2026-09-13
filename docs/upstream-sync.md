@@ -242,11 +242,37 @@ pager 的 lease_cmd/memory_cmd),均在特性 2/3 未触及的文件里,干净树
 | monitor 10h 默认超时 | 已对齐 | 见上方 1.0.11 表第 10 行(批24 假阳性已纠正) |
 | credit upsell Try Again | 跳过 | 云/计费(分歧表) |
 
-**重新定级建议**:批25 拆为两个聚焦子批——批25a(context_snapshot 子系统 + rewind/compaction_context 重构,
-shell 面,大)、批25b(context bar 即时刷新:tokens_used wire + pager context-refresh 子系统移植,跨层,大);
-MCP 重试/worktree reflog/interjection 三条登记为分歧纠缠(跳过或待结构对齐时单独决策);
-截断措辞/monitor/credit 三条关闭(无对应/已对齐/跳过)。原"2–3 周吃 9–10 批"的节奏需据此上修:
-1.0.12+ 集群的真实移植面远大于 changelog 条目数所暗示。
+**最终定论(深挖后,纠正上方早期定级)**:批25 的 1.0.12 头条项(context 估算含 reasoning、rewind/模式切换 token 校正)
+**无法外科提取**,触发红线「结构级重构成为前置依赖时单独决策」条款。三重障碍:
+
+1. **嵌在红线巨提交的结构重构里**:token 计数实现(`record_response_token_usage`)在 `sampler_turn.rs`,
+   bc7f02ed 对该文件改 **786 行**、`turn.rs` 改 395、新增 `turn_task.rs` +259——属"pager input 重写"巨提交的
+   turn 执行子系统重构,红线明禁整树吸收;4 行测试期望(102_000→101_750,reasoning base64 *3/4 校正)只是其表层。
+2. **依赖未吸收的 9684fa3c 基线(1.0.10 第二落点,+442 文件)**:bc7f02ed 的 rewind 改动引用
+   `prepare_image_strips_for_rewind`/`cancel_pending_image_strips_for_rewind`/`cancel_active_sampling_requests`,
+   我们树全缺失(同步锚点停在 77cd7eb,跳过了 9684fa3c)。
+3. **该基线核心是云表面**:`context_snapshot.rs`(+462,经 `#[path] mod` 结构接入 acp_session.rs)依赖
+   `POST {xai_api_base_url}/tokenize-text` 云 tokenizer + `tokenize_api_key()` + 遥测 session metrics,
+   按云红线**应跳过**,非可移植基线。
+
+早期"批25a(context_snapshot+462/rewind219/compaction_context163)"定级**作废**:那些是 `77cd7eb..upstream/main`
+**缺口累积(1.0.11–1.0.24)**数,非 1.0.12 单版;bc7f02ed 单版对 rewind 仅 16 行、compaction_context/memory_context 未改。
+
+**结论**:1.0.12 无可干净移植的高价值项——头条项缠在结构重构+云基线里,余条(MCP 重试/worktree reflog/
+interjection/截断措辞/monitor/credit)前已定性为分歧纠缠或关闭。**版本逐批模型在 1.0.12 处失效**:
+bc7f02ed 是结构重写(红线禁整树)、9684fa3c 是含云的未吸收基线。需用户级单独决策(见下方「批25 结构决策点」),
+不在批中擅自吸收结构重构或云表面。节奏"2–3 周吃 9–10 批"据此作废:1.0.11–1.0.24 的真实移植受结构分歧门控。
+
+### 批25 结构决策点(需用户拍板,红线「单独决策」条款)
+
+| 选项 | 内容 | 代价/风险 |
+|---|---|---|
+| A 结构对齐立项 | 单独立项吸收 bc7f02ed turn 执行重构(sampler_turn/turn/turn_task)+ 9684fa3c 本地部分(image-strips/cancel_active_sampling),**跳过云 context_snapshot**;配 PTY e2e 全量回归 | 大;动核心 turn 执行,我们已分歧 23 批,回归面广;但解锁 1.0.12–1.0.24 的 token/context 条目 |
+| B 登记分歧跳过 | 1.0.12 的 token/context/rewind 项登记为有意分歧(我们 token 计数维持现状),转查批26(1.0.13 韧性)等后续批是否有更自包含的条目 | 小;放弃上游 token 精度改进;需逐批验证后续是否同样被结构重构门控 |
+| C 仅取离散小项 | 排查 1.0.12 是否有不缠结构重构的离散小项(如 pager 渲染类:表格单元格复制/提示块 hook 友好描述),有则单独移植,余登记分歧 | 中;价值有限(非头条项);仍需逐条验证自包含性 |
+
+建议:**先 C 后 B**——花一轮排查离散小项能取则取,头条 token/context 项按 B 登记分歧(除非用户认为上游 token
+精度改进价值足够高而选 A 立项)。A 是项目级决策,不应在吸收批中夹带。
 
 ## 移植时的常见适配点
 
