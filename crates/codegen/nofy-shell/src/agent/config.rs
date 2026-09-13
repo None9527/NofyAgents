@@ -2762,6 +2762,13 @@ pub(crate) fn resolve_model_list(
         }
         resolved = prefetched;
     }
+    // Model keys whose `api_backend` the user (or their chosen provider) set
+    // explicitly. The slug-match inheritance below must not overwrite these: an
+    // explicit `chat_completions` is value-identical to `ApiBackend::default()`,
+    // so without this set it is indistinguishable from "unset" and a same-slug
+    // donor's `responses` would clobber the user's explicit choice (1.0.22#18).
+    let mut explicit_api_backend_keys: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
     for (key, model_override) in &cfg.config_models {
         let had_base = resolved.contains_key(key);
         let base = resolved.shift_remove(key);
@@ -2783,6 +2790,9 @@ pub(crate) fn resolve_model_list(
             }
         });
         let effective = with_provider.as_ref().unwrap_or(model_override);
+        if effective.api_backend.is_some() {
+            explicit_api_backend_keys.insert(key.clone());
+        }
         let mut entry = effective.apply(key, base, &cfg.endpoints);
         let session_bearer_unsafe = !crate::util::is_xai_api_bearer_url(&entry.info.base_url)
             || entry
@@ -2838,7 +2848,7 @@ pub(crate) fn resolve_model_list(
                     )
                 })
                 .collect();
-        for entry in resolved.values_mut() {
+        for (key, entry) in resolved.iter_mut() {
             if let Some((donor_cw, donor_backend)) = donors.get(&entry.info.model) {
                 if entry.info.context_window.get() == default_cw {
                     tracing::debug!(
@@ -2851,6 +2861,7 @@ pub(crate) fn resolve_model_list(
                 }
                 if entry.info.api_backend == ApiBackend::default()
                     && *donor_backend != ApiBackend::default()
+                    && !explicit_api_backend_keys.contains(key)
                 {
                     entry.info.api_backend.clone_from(donor_backend);
                 }
@@ -9804,6 +9815,56 @@ default = "grok-4.5"
             latest.info.context_window.get(),
             65_536,
             "explicitly-set context_window must not be overwritten by slug propagation"
+        );
+    }
+    /// An explicit `api_backend = "chat_completions"` is value-identical to
+    /// `ApiBackend::default()`, so slug propagation used to read it as "unset"
+    /// and overwrite it with a same-slug sibling's `responses` (1.0.22#18).
+    /// The user's explicit choice must win; a genuinely unset sibling must
+    /// still inherit.
+    #[test]
+    fn slug_propagation_does_not_overwrite_explicit_chat_completions_backend() {
+        let default_cw = DEFAULT_CONTEXT_WINDOW;
+        let raw: toml::Value = toml::from_str(
+            r#"
+            [model.nofy-build]
+            model = "grok-4.5"
+            base_url = "https://test.example.com/v1"
+            api_backend = "chat_completions"
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
+        let mut prefetched = IndexMap::new();
+        let mut donor =
+            test_model_entry("grok-4.5", "https://test.example.com/v1", None, None, None);
+        donor.info.context_window = NonZeroU64::new(500_000).unwrap();
+        donor.info.api_backend = ApiBackend::Responses;
+        prefetched.insert("enterprise-grok".to_owned(), donor);
+        let mut plain =
+            test_model_entry("grok-4.5", "https://test.example.com/v1", None, None, None);
+        plain.info.context_window = NonZeroU64::new(default_cw).unwrap();
+        plain.info.api_backend = ApiBackend::default();
+        prefetched.insert("plain-grok".to_owned(), plain);
+        let mut overridden =
+            test_model_entry("grok-4.5", "https://test.example.com/v1", None, None, None);
+        overridden.info.context_window = NonZeroU64::new(default_cw).unwrap();
+        overridden.info.api_backend = ApiBackend::default();
+        prefetched.insert("nofy-build".to_owned(), overridden);
+
+        let resolved = resolve_model_list(&cfg, Some(prefetched));
+
+        let explicit = resolved.get("nofy-build").expect("nofy-build key must exist");
+        assert_eq!(
+            explicit.info.api_backend,
+            ApiBackend::ChatCompletions,
+            "explicit api_backend must not be overwritten by a same-slug sibling"
+        );
+        let inherited = resolved.get("plain-grok").expect("plain-grok key must exist");
+        assert_eq!(
+            inherited.info.api_backend,
+            ApiBackend::Responses,
+            "a sibling with no explicit api_backend should still inherit from the donor"
         );
     }
     /// When no sibling has a real context_window, slug propagation is a no-op.
