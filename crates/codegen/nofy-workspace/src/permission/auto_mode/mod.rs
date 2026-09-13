@@ -13,7 +13,9 @@ use super::bash_command_splitting::{
     PlainCommand, is_wrapper_command, strip_wrapper_command, try_parse_shell,
     try_parse_word_only_commands_sequence, unwrap_wrappers,
 };
-use super::exec_risk::{git_words_are_read_only_query, git_words_have_unsafe_query_option};
+use super::exec_risk::{
+    git_checkout_restores_pathspec, git_words_are_read_only_query, git_words_have_unsafe_query_option,
+};
 use super::shell_access::{
     command_words_write_paths, command_write_paths_in_tree, is_safe_write_sink,
 };
@@ -690,6 +692,14 @@ fn bash_command_is_routine(words: &[String]) -> bool {
             return true;
         }
         if git_words_have_unsafe_query_option(inner) {
+            return false;
+        }
+        // `git checkout -- <path>` restores files, discarding uncommitted
+        // working-tree changes (data loss). Route the destructive form to the
+        // model instead of auto-running it; branch switches (`git checkout main`
+        // / `-b feat`) carry no `--` and stay routine, and `git switch` covers
+        // benign switching. Mirrors the read-only/unsafe-option guards above.
+        if git_checkout_restores_pathspec(inner) {
             return false;
         }
     }
@@ -1847,6 +1857,30 @@ mod tests {
         // Command substitution can hide arbitrary commands → Block.
         assert_eq!(v("cargo run $(rm -rf /)"), ClassifierVerdict::Block);
         assert_eq!(v("echo `rm -rf /`"), ClassifierVerdict::Block);
+    }
+
+    /// `git checkout -- <path>` discards uncommitted working-tree changes, so
+    /// auto-mode must route it to the model (Block) instead of running it
+    /// instantly; benign branch switches stay routine (Allow).
+    #[test]
+    fn heuristic_blocks_destructive_git_checkout_pathspec() {
+        let empty = ClassifierContext::default();
+        let v = |cmd: &str| {
+            HeuristicPermissionClassifier::classify_sync(
+                "run_terminal_command",
+                &AccessKind::Bash(cmd.into()),
+                Some(cmd),
+                &empty,
+            )
+        };
+        // Destructive: restores files, discarding working-tree changes → model.
+        assert_eq!(v("git checkout -- src/main.rs"), ClassifierVerdict::Block);
+        assert_eq!(v("git checkout HEAD -- ."), ClassifierVerdict::Block);
+        assert_eq!(v("git -C sub checkout -- file.txt"), ClassifierVerdict::Block);
+        // Benign branch switches stay routine.
+        assert_eq!(v("git checkout main"), ClassifierVerdict::Allow);
+        assert_eq!(v("git checkout -b feature"), ClassifierVerdict::Allow);
+        assert_eq!(v("git switch main"), ClassifierVerdict::Allow);
     }
 
     /// The canonical tree-sitter splitter fails closed (None) for constructs

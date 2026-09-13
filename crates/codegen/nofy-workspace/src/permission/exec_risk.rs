@@ -330,6 +330,24 @@ pub(crate) fn git_words_have_unsafe_query_option(words: &[String]) -> bool {
         && words.iter().skip(1).any(|w| w.starts_with("-O"))
 }
 
+/// True when a `git checkout` invocation carries a `--` pathspec separator, i.e.
+/// it restores files from the index/HEAD — discarding uncommitted working-tree
+/// changes (data loss) — rather than switching branches. The `--` separator is
+/// the reliable destructive signal: branch switches (`git checkout main`,
+/// `git checkout -b feat`) never carry it, and benign switching is also covered
+/// by `git switch` (and `git restore` is the explicit destructive verb, already
+/// absent from the routine allowlist). Auto-mode routes the destructive form to
+/// the model instead of running it instantly.
+pub(crate) fn git_checkout_restores_pathspec(words: &[String]) -> bool {
+    let Some(verb_idx) = git_safe_query_verb_index(words) else {
+        return false;
+    };
+    if words.get(verb_idx).map(String::as_str) != Some("checkout") {
+        return false;
+    }
+    words.iter().skip(verb_idx + 1).any(|w| w == "--")
+}
+
 /// Single decision point for auto-approvable read-only `git` queries, shared
 /// by the manager safe lists and the auto-mode routine heuristic so verb
 /// policy and flag policy live in one place:
@@ -694,6 +712,31 @@ mod tests {
             "rm -rf /",
         ] {
             assert!(!git_words_are_read_only_query(&words(cmd)), "{cmd}");
+        }
+    }
+
+    #[test]
+    fn git_checkout_pathspec_restore_is_destructive() {
+        // `--` pathspec separator → restores files, discarding working-tree changes.
+        for cmd in [
+            "git checkout -- file.txt",
+            "git checkout HEAD -- src/main.rs",
+            "git -C sub checkout -- .",
+            "git checkout branch -- path",
+        ] {
+            assert!(git_checkout_restores_pathspec(&words(cmd)), "{cmd}");
+        }
+        // Branch switches (no `--`) and other verbs are not the destructive form.
+        for cmd in [
+            "git checkout main",
+            "git checkout -b feature",
+            "git checkout",
+            "git switch main",
+            "git switch -- main",
+            "git status",
+            "git restore file.txt",
+        ] {
+            assert!(!git_checkout_restores_pathspec(&words(cmd)), "{cmd}");
         }
     }
 
