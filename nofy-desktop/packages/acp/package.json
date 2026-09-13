@@ -1,0 +1,16 @@
+{
+  "name": "@nofy-desktop/acp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "nofy kernel ACP wire contract. stdlib layer generated from the Apache-2.0 ACP schema; _nofy/* layer generated from kernel source extraction. No hand-written wire names.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "gen": "node scripts/gen-wire-names.ts && node scripts/gen-ext-names.ts",
+    "gen:refresh-evidence": "node scripts/extract-kernel-ext.ts && node scripts/gen-ext-names.ts",
+    "audit:ext": "node scripts/report-ext-usage.ts",
+    "test": "node --test \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
+

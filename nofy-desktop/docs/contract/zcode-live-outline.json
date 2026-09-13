@@ -1,0 +1,722 @@
+[
+ {
+  "path": "",
+  "tag": "body",
+  "cls": "zcode-startup-ready",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0",
+  "tag": "div",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:0",
+  "tag": "div",
+  "cls": "fixed left-0 top-0 z-[2147483647] h-0 w-0 overflow-visible",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:0/div[fixed]:0",
+  "tag": "div",
+  "cls": "absolute left-0 top-0 h-0 w-0 overflow-visible",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:0/div[fixed]:1",
+  "tag": "button",
+  "cls": "fixed left-1/2 top-1/2 h-px w-px -translate-x-1/2 -translate-y-1/2 border-0 p-0 opacity-0",
+  "slot": "",
+  "rect": [
+   855,
+   497,
+   1,
+   1
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1",
+  "tag": "div",
+  "cls": "relative h-dvh",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0",
+  "tag": "div",
+  "cls": "h-full",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:0",
+  "tag": "div",
+  "cls": "flex flex-col gap-1 sr-only",
+  "slot": "dialog-header",
+  "rect": [
+   -1,
+   -1,
+   1,
+   1
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:0/div[flex]:0",
+  "tag": "h2",
+  "cls": "text-ui-base font-medium text-foreground",
+  "slot": "dialog-title",
+  "rect": [
+   -1,
+   -1,
+   1,
+   21
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:0/div[flex]:1",
+  "tag": "p",
+  "cls": "text-ui-base/relaxed text-foreground-subtle *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+  "slot": "dialog-description",
+  "rect": [
+   -1,
+   24,
+   1,
+   23
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1",
+  "tag": "div",
+  "cls": "flex h-dvh flex-col overflow-hidden border-border text-foreground bg-background-alt",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0",
+  "tag": "div",
+  "cls": "relative flex-1 min-h-0 w-full",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0",
+  "tag": "div",
+  "cls": "relative flex h-full min-h-0 w-full overflow-hidden",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   1710,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0",
+  "tag": "div",
+  "cls": "w-[var(--workspace-sidebar-panel-width)] max-w-[50%] flex-none overflow-hidden duration-200 ease-out transition-[width,opacity] data-[workspace-sidebar-resizing",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   264,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0",
+  "tag": "aside",
+  "cls": "h-full overflow-hidden select-none",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   264,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0",
+  "tag": "aside",
+  "cls": "flex h-full flex-col overflow-hidden",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   264,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:0",
+  "tag": "div",
+  "cls": "h-12 [app-region:drag]",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   264,
+   48
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1",
+  "tag": "div",
+  "cls": "relative flex-1 min-h-0 overflow-hidden",
+  "slot": "",
+  "rect": [
+   0,
+   48,
+   264,
+   946
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1/div[relative]:0",
+  "tag": "div",
+  "cls": "absolute inset-0 flex min-h-0 flex-col transition-transform duration-200 ease-out",
+  "slot": "",
+  "rect": [
+   0,
+   48,
+   264,
+   946
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1/div[relative]:0/div[absolute]:0",
+  "tag": "div",
+  "cls": "flex flex-col gap-1 px-2 py-3",
+  "slot": "",
+  "rect": [
+   0,
+   48,
+   264,
+   164
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1/div[relative]:0/div[absolute]:1",
+  "tag": "div",
+  "cls": "relative flex min-h-0 flex-1 flex-col",
+  "slot": "",
+  "rect": [
+   0,
+   212,
+   264,
+   726
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1/div[relative]:0/div[absolute]:2",
+  "tag": "footer",
+  "cls": "flex shrink-0 flex-col gap-2.5 px-4 pt-2 pb-4",
+  "slot": "",
+  "rect": [
+   0,
+   938,
+   264,
+   56
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:0/div[w-[var(--workspace-sidebar-panel-width)]]:0/aside[h-full]:0/aside[flex]:1/div[relative]:1",
+  "tag": "div",
+  "cls": "absolute inset-0 transition-transform duration-200 ease-out translate-x-full pointer-events-none",
+  "slot": "",
+  "rect": [
+   264,
+   48,
+   264,
+   946
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:1",
+  "tag": "div",
+  "cls": "group/handle relative z-10 flex shrink-0 translate-x-px touch-none items-center justify-center bg-transparent outline-none transition-colors [app-region:no-drag",
+  "slot": "",
+  "rect": [
+   265,
+   24,
+   1,
+   946
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2",
+  "tag": "div",
+  "cls": "flex min-w-[320px] flex-1 flex-col p-1 pl-0 pt-0",
+  "slot": "",
+  "rect": [
+   265,
+   0,
+   1445,
+   994
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:0",
+  "tag": "div",
+  "cls": "h-1 w-full [app-region:drag]",
+  "slot": "",
+  "rect": [
+   265,
+   0,
+   1441,
+   4
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1",
+  "tag": "section",
+  "cls": "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background rounded-xl border border-border",
+  "slot": "",
+  "rect": [
+   265,
+   4,
+   1441,
+   986
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0",
+  "tag": "header",
+  "cls": "@container/workspace-header relative flex w-full shrink-0 h-12 border-b border-transparent",
+  "slot": "",
+  "rect": [
+   266,
+   5,
+   1439,
+   48
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0",
+  "tag": "div",
+  "cls": "flex h-12 flex-1 min-w-0 items-center justify-between gap-2 overflow-hidden p-2 pl-4 [app-region:drag] transition-[padding] duration-300",
+  "slot": "",
+  "rect": [
+   266,
+   5,
+   1439,
+   48
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0/div[flex]:0",
+  "tag": "div",
+  "cls": "min-w-0 flex-1",
+  "slot": "",
+  "rect": [
+   282,
+   29,
+   1319,
+   0
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0/div[flex]:1",
+  "tag": "div",
+  "cls": "flex shrink-0 items-center [app-region:no-drag] gap-0.5",
+  "slot": "",
+  "rect": [
+   1609,
+   15,
+   88,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0/div[flex]:1/div[flex]:0",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap transition-colors outline-",
+  "slot": "tooltip-trigger",
+  "rect": [
+   1609,
+   15,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0/div[flex]:1/div[flex]:1",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap transition-colors outline-",
+  "slot": "tooltip-trigger",
+  "rect": [
+   1639,
+   15,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:0/header[@container/workspace-header]:0/div[flex]:1/div[flex]:2",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap transition-colors outline-",
+  "slot": "tooltip-trigger",
+  "rect": [
+   1669,
+   15,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1",
+  "tag": "div",
+  "cls": "flex h-full w-full min-h-0 flex-1",
+  "slot": "",
+  "rect": [
+   266,
+   53,
+   1439,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:0",
+  "tag": "div",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   266,
+   53,
+   1439,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:0/div:0",
+  "tag": "div",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   266,
+   53,
+   1439,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:0/div:0/div:0",
+  "tag": "div",
+  "cls": "flex w-full h-full min-h-0",
+  "slot": "",
+  "rect": [
+   266,
+   53,
+   1439,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:1",
+  "tag": "div",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   1705,
+   53,
+   0,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:1/div:0",
+  "tag": "div",
+  "cls": "!overflow-hidden border-l border-border transition-opacity duration-200 ease-out pointer-events-none opacity-0",
+  "slot": "",
+  "rect": [
+   1705,
+   53,
+   1,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:2/div[flex]:1/section[relative]:1/div[flex]:1/div:0/div[!overflow-hidden]:0",
+  "tag": "div",
+  "cls": "h-full",
+  "slot": "",
+  "rect": [
+   1706,
+   53,
+   0,
+   936
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3",
+  "tag": "div",
+  "cls": "@container/topoverlayer pointer-events-none absolute h-14 flex left-0 top-0 z-20 w-fit",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   264,
+   56
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0",
+  "tag": "div",
+  "cls": "flex items-center h-14 pt-1",
+  "slot": "",
+  "rect": [
+   0,
+   0,
+   192,
+   56
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0",
+  "tag": "div",
+  "cls": "pointer-events-auto flex items-center gap-1 shrink-0 [app-region:no-drag]",
+  "slot": "",
+  "rect": [
+   96,
+   16,
+   96,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:0",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap outline-none select-none d",
+  "slot": "tooltip-trigger",
+  "rect": [
+   96,
+   16,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:0/button[group/button]:0",
+  "tag": "svg",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   102,
+   22,
+   16,
+   16
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:0/button[group/button]:0/svg:0",
+  "tag": "rect",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   104,
+   24,
+   12,
+   12
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:0/button[group/button]:0/svg:1",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   108,
+   24,
+   0,
+   12
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:0/button[group/button]:0/svg:2",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   111,
+   28,
+   2,
+   4
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:1",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap outline-none select-none d",
+  "slot": "tooltip-trigger",
+  "rect": [
+   128,
+   16,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:1/button[group/button]:0",
+  "tag": "svg",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   134,
+   22,
+   16,
+   16
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:1/button[group/button]:0/svg:0",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   137,
+   25,
+   5,
+   9
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:1/button[group/button]:0/svg:1",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   137,
+   30,
+   9,
+   0
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:2",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap outline-none select-none d",
+  "slot": "tooltip-trigger",
+  "rect": [
+   160,
+   16,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:2/button[group/button]:0",
+  "tag": "svg",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   166,
+   22,
+   16,
+   16
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:2/button[group/button]:0/svg:0",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   169,
+   30,
+   9,
+   0
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:2/button[group/button]:0/svg:1",
+  "tag": "path",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   174,
+   25,
+   5,
+   9
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:3",
+  "tag": "div",
+  "cls": "inline-flex overflow-hidden transition-[opacity,width] duration-300 ease-out pointer-events-none w-0 opacity-0",
+  "slot": "",
+  "rect": [
+   192,
+   16,
+   0,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:3/div[inline-flex]:0",
+  "tag": "button",
+  "cls": "group/button inline-flex items-center justify-center border border-transparent bg-clip-padding text-ui-base/relaxed whitespace-nowrap outline-none select-none d",
+  "slot": "tooltip-trigger",
+  "rect": [
+   192,
+   16,
+   28,
+   28
+  ]
+ },
+ {
+  "path": "/body[zcode-startup-ready]:0/div:1/div[relative]:0/div[h-full]:1/div[flex]:0/div[relative]:0/div[relative]:3/div[@container/topoverlayer]:0/div[flex]:0/div[pointer-events-auto]:3/div[inline-flex]:0/button[group/button]:0",
+  "tag": "svg",
+  "cls": "",
+  "slot": "",
+  "rect": [
+   198,
+   22,
+   16,
+   16
+  ]
+ }
+]

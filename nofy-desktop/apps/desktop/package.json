@@ -1,0 +1,44 @@
+{
+  "name": "@nofy-desktop/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.mjs",
+  "description": "nofy desktop: Electron main + preload + renderer. Single kernel child, ACP over stdio.",
+  "dependencies": {
+    "@nofy-desktop/acp": "workspace:*",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "scripts": {
+    "tokens": "node scripts/extract-tokens.ts",
+    "build": "vite build --config vite.renderer.config.ts && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts",
+    "build:node": "vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts",
+    "dev": "node scripts/dev.ts",
+    "start": "electron .",
+    "smoke": "node scripts/smoke.ts",
+    "smoke:real": "node scripts/smoke.ts --home=real",
+    "smoke:recovery": "node scripts/recovery-smoke.ts",
+    "smoke:pty": "node scripts/pty-smoke.ts",
+    "smoke:pty:fast": "node scripts/pty-smoke.ts --fast",
+    "record": "node scripts/record-turn.ts",
+    "record:permission": "node scripts/record-permission.ts",
+    "record:replay": "node scripts/record-replay.ts",
+    "audit:fixtures": "node scripts/audit-fixtures.ts",
+    "inspect:fixture": "node scripts/inspect-fixture.ts",
+    "inspect:payloads": "node scripts/inspect-payloads.ts",
+    "inspect:seq": "node scripts/inspect-eventid-seq.ts",
+    "debug:projection": "node scripts/debug-projection.ts",
+    "test": "node --test \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.renderer.json"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "electron": "^44.2.0",
+    "vite": "^8.2.2"
+  }
+}

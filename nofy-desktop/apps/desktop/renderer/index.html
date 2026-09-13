@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      CSP 由 vite.renderer.config.ts 的 nofyCsp() 插件按模式注入：
+      build 用严格策略（script-src 'self'），serve 额外放开 React Refresh 的
+      内联前导脚本与 HMR websocket。写在 HTML 里而不写死，是为了让**生产**
+      永远拿到严格那一份——把 'unsafe-inline' 长期留在 meta 里是最常见的
+      「开发期临时放开忘了收回去」。
+    -->
+    <meta http-equiv="Content-Security-Policy" content="%NOFY_CSP%" />
+    <title>Nofy Desktop</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

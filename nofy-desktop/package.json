@@ -1,0 +1,26 @@
+{
+  "name": "nofy-desktop-root",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "gen": "pnpm --filter @nofy-desktop/acp gen",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "smoke": "pnpm --filter @nofy-desktop/app smoke",
+    "smoke:real": "pnpm --filter @nofy-desktop/app smoke:real",
+    "smoke:recovery": "pnpm --filter @nofy-desktop/app smoke:recovery",
+    "smoke:pty": "pnpm --filter @nofy-desktop/app smoke:pty",
+    "record": "pnpm --filter @nofy-desktop/app record",
+    "audit:fixtures": "pnpm --filter @nofy-desktop/app audit:fixtures",
+    "tokens": "pnpm --filter @nofy-desktop/app tokens",
+    "build": "pnpm --filter @nofy-desktop/app build",
+    "dev": "pnpm --filter @nofy-desktop/app dev",
+    "start": "pnpm --filter @nofy-desktop/app start",
+    "verify": "pnpm gen && pnpm typecheck && pnpm test && pnpm audit:fixtures && pnpm build && pnpm smoke && pnpm smoke:pty && pnpm smoke:recovery"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0"
+  }
+}
