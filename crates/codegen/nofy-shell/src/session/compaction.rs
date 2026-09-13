@@ -436,6 +436,19 @@ pub(crate) struct AutoCompactTriggerInfo {
     pub context_window: u64,
     pub percentage: u8,
 }
+/// Input budget for the lossy compaction stage: 70% of the context window,
+/// minus the tokens the compaction tool definitions themselves occupy.
+///
+/// 70% leaves headroom for the summary the model has to *produce* — the request
+/// budget and the response budget come out of the same window, so filling the
+/// input to the brim guarantees the summary gets truncated. The lossy stage is
+/// the last rung of the input ladder (`Verbatim → VerbatimFitted → Lossy`), the
+/// one that runs when a deterministic context overflow has already rejected the
+/// bigger payloads, so it must be conservative by construction.
+fn lossy_input_budget(context_window: u64, tool_tokens: u64) -> u64 {
+    (context_window.saturating_mul(7) / 10).saturating_sub(tool_tokens)
+}
+
 /// Why auto-compaction was suppressed after a deterministic failure.
 /// [`SuppressReason::as_str`] is a stable telemetry value (BQ/OTLP/dashboards key
 /// off it) — don't rename the strings.
@@ -1195,13 +1208,11 @@ impl SessionActor {
                                     )
                                 }
                                 InputStage::Lossy => {
-                                    let lossy_budget = (context_window.saturating_mul(7) / 10)
-                                        .saturating_sub(compaction_tool_tokens);
                                     nofy_chat_state::compaction_utils::fit_conversation_to_budget(
                                         nofy_chat_state::compaction_utils::prepare_conversation_for_summarization(
                                             conv,
                                         ),
-                                        lossy_budget,
+                                        lossy_input_budget(context_window, compaction_tool_tokens),
                                     )
                                 }
                                 InputStage::Verbatim => {
@@ -2237,7 +2248,7 @@ impl SessionActor {
 mod inline_auto_compact_flow_tests {
     use super::super::support::*;
     use super::super::*;
-    use super::{AutoCompactTriggerInfo, SuppressReason};
+    use super::{AutoCompactTriggerInfo, SuppressReason, lossy_input_budget};
     use crate::session::acp_session::McpReminderMode;
     use crate::terminal::AsyncTerminalRunner;
     use crate::terminal::runner::{TerminalError, TerminalRunRequest, TerminalRunResult};
@@ -2246,6 +2257,22 @@ mod inline_auto_compact_flow_tests {
     use nofy_paths::AbsPathBuf;
     use nofy_workspace::file_system::MockFs;
     use nofy_workspace::permission::PermissionHandle;
+    /// The lossy rung is the last step of the input ladder, reached only after a
+    /// deterministic context overflow already rejected the bigger payloads. It
+    /// must leave room for the summary the model has to produce, and must round
+    /// *down* — over-filling the input is exactly what puts a session into an
+    /// incompactable state.
+    #[test]
+    fn lossy_input_budget_leaves_summary_headroom_and_saturates() {
+        assert_eq!(lossy_input_budget(200_000, 2_000), 138_000);
+        assert_eq!(lossy_input_budget(100_000, 0), 70_000);
+        // Tool tokens larger than the 70% slice saturate at zero, never wrap.
+        assert_eq!(lossy_input_budget(1_000, 5_000), 0);
+        // Integer division rounds down: 9 * 7 / 10 = 6, not 7.
+        assert_eq!(lossy_input_budget(9, 0), 6);
+        assert_eq!(lossy_input_budget(0, 0), 0);
+    }
+
     #[derive(Debug)]
     struct DummyTerminal;
     #[async_trait::async_trait]
