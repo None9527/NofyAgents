@@ -18,6 +18,20 @@ pub fn estimate_tokens(s: &str) -> u64 {
     (s.len() as u64) / BYTES_PER_TOKEN
 }
 
+/// Token estimate for base64-encoded payload (e.g. encrypted reasoning blobs).
+///
+/// base64 expands every 3 raw bytes into 4 ASCII characters, so a base64
+/// string's char length overstates the underlying payload by 4/3. Running it
+/// through the plain [`estimate_tokens`] (`len / 4`) therefore overcounts by the
+/// same factor — inflating context-usage estimates and tripping the auto-compact
+/// gate early. Recover the approximate decoded size first (`len * 3 / 4`), then
+/// apply the bytes-per-token heuristic.
+#[inline]
+pub fn estimate_base64_tokens(s: &str) -> u64 {
+    let decoded_bytes = (s.len() as u64).saturating_mul(3) / 4;
+    decoded_bytes / BYTES_PER_TOKEN
+}
+
 /// Inverse of [`estimate_tokens`]: convert a token budget into a character
 /// budget. Used by skill discovery to size text passages against the model's
 /// context window.
@@ -111,6 +125,18 @@ mod tests {
         assert_eq!(estimate_tokens("abc"), 0);
         assert_eq!(estimate_tokens("abcd"), 1);
         assert_eq!(estimate_tokens(&"x".repeat(4000)), 1000);
+    }
+
+    #[test]
+    fn estimate_base64_tokens_corrects_inflation() {
+        // base64 expands 3 bytes -> 4 chars: a 4000-char blob decodes to ~3000
+        // bytes -> 750 tokens, not the naive 4000/4 = 1000.
+        assert_eq!(estimate_base64_tokens(&"x".repeat(4000)), 750);
+        assert_eq!(estimate_base64_tokens(""), 0);
+        // Below one token after correction: 5*3/4 = 3 bytes, 3/4 = 0 tokens.
+        assert_eq!(estimate_base64_tokens(&"x".repeat(5)), 0);
+        // 16 chars -> 12 bytes -> 3 tokens.
+        assert_eq!(estimate_base64_tokens(&"x".repeat(16)), 3);
     }
 
     #[test]

@@ -99,11 +99,18 @@ pub fn estimate_item_tokens(item: &ConversationItem) -> u64 {
         }
         ConversationItem::Reasoning(r) => {
             // Summary + content text follow the standard bytes-per-token
-            // estimate; encrypted blobs are base64 and don't survive
-            // tokenization 1:1, so estimate at len/4 as well.
+            // estimate. Encrypted blobs are base64 (3 raw bytes -> 4 chars), so
+            // their char length overstates the decoded payload by 4/3; estimate
+            // them decode-aware so context usage isn't inflated (which would
+            // trip the auto-compact gate early).
             let text_bytes = nofy_sampling_types::reasoning_item_text(r).len();
-            let enc_bytes = r.encrypted_content.as_deref().map(str::len).unwrap_or(0);
-            ((text_bytes + enc_bytes) as u64) / nofy_token_estimation::BYTES_PER_TOKEN
+            let text_tokens = (text_bytes as u64) / nofy_token_estimation::BYTES_PER_TOKEN;
+            let enc_tokens = r
+                .encrypted_content
+                .as_deref()
+                .map(nofy_token_estimation::estimate_base64_tokens)
+                .unwrap_or(0);
+            text_tokens + enc_tokens
         }
     }
 }
@@ -361,6 +368,31 @@ mod tests {
             2 * nofy_token_estimation::IMAGE_TOKEN_ESTIMATE,
             "each tool-result image adds the per-image vision estimate"
         );
+    }
+
+    /// Encrypted reasoning is base64: its char length overstates the decoded
+    /// payload by 4/3, so the estimate corrects for the inflation instead of
+    /// counting base64 chars as raw bytes (which would overcount context usage
+    /// and trip the auto-compact gate early).
+    #[test]
+    fn estimate_item_tokens_corrects_base64_encrypted_reasoning() {
+        use nofy_sampling_types::rs;
+        let reasoning = |encrypted: Option<&str>| {
+            ConversationItem::Reasoning(rs::ReasoningItem {
+                id: "r".to_string(),
+                summary: vec![],
+                content: None,
+                encrypted_content: encrypted.map(str::to_owned),
+                status: None,
+            })
+        };
+        // 4000 base64 chars decode to ~3000 bytes -> 750 tokens, not 4000/4 = 1000.
+        assert_eq!(
+            estimate_item_tokens(&reasoning(Some(&"x".repeat(4000)))),
+            750
+        );
+        // No encrypted content and empty summary/content -> 0.
+        assert_eq!(estimate_item_tokens(&reasoning(None)), 0);
     }
 
     #[test]
