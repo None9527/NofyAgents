@@ -292,6 +292,124 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - ④ MCP 瞬断重试 / 后台流式时抑制 auto recap(韧性想法,需各自调查与我们分歧——批15 托管连接器、批17 subagent 结构——的相容性)
 - ⑤ 1.0.12 余条已定性:worktree reflog(缠批23 fast-worktree 云面)、interjection 等待(缠批17 结构分歧)、截断措辞(我们树无对应)、monitor 10h(已对齐)、credit upsell(云跳过)——均非原生候选
 
+## 待合并项逐项决定(1.0.13–1.0.24 + 缺失 crate,2026-09-13)
+
+校准后方法下对剩余缺口逐条定性。决定码:**原生**=架构无关好想法、我们树原生实现( DO );
+**移植**=自包含逻辑可干净移植;**跳云**=云依赖(红线跳过);**跳剔**=已物理剔除特性;
+**跳歧**=与我们有意分歧纠缠(跳过/defer);**对齐**=已有或对我们无对应;**决策**=行为变更需用户拍板。
+价值标注:★★★ 高(P0 韧性/模型管理/安全)、★★ 中、★ 低(UX 润色)。
+
+### A. 原生实现候选(DO,按主题×价值)
+
+**A1 韧性(★★★,计划 P0;多为"新增逻辑"类,比"重写既有核算"更易原生落地)**
+- 1.0.13#1 截断响应自动续传(不再 fail turn)★★★
+- 1.0.13#7 瞬态推理失败(卡死/断连/5xx)自动重试 ★★★(配 1.0.14#5 重试原因短提示 ★★)
+- 1.0.13#9 会话保存断电加固(prompt 后/掉电更可靠)★★★
+- 1.0.13#12 参数完整的截断工具调用照常执行 ★★
+- 1.0.13#13 >2000px 大图不再炸会话(多请求)★★(我们有图像输入面)
+- 1.0.14#12 上下文超限的压缩失败降级输入而非原样重试 ★★
+- 1.0.16#7 /mcps 触发的 MCP OAuth 不再死锁 ★★
+- 1.0.16#8 子代理/任务输出等待默认 1h 上限(原 10min)★★
+- 1.0.19#10 终端停止读取时回合中 UI 冻结修复 ★★
+- 1.0.19#11 退出时关闭终端面板崩溃修复 ★★
+- 1.0.22#16 skill 注入/rewind 后恢复粘贴内容崩溃修复 ★★(与本轮原生②rewind 同区)
+
+**A2 模型管理(★★★,计划批27 P0;我们已有 modality 字段基础)**
+- 1.0.14#6 模型按 reasoning-effort 声明不同 id ★★★
+- 1.0.18#10 限流请求的重试行为按模型可配 ★★★(与 #6 一次设计)
+- 1.0.18#11 按模型 mTLS 客户端证书 ★★(BYOK 安全相关)
+- 1.0.18#18 子代理会话遵守所选模型的 retry/rate-limit ★★
+- 1.0.22#18 模型后端选择修复(config.toml 显式 chat_completions 不被同 slug 兄弟覆盖)★★★(与 D20 configOf 同区)
+
+**A3 Hooks 能力(★★,架构能力扩展;我们已有 hooks 基建)**
+- 1.0.13#2 hook 可请求用户确认工具调用(非仅允许/拒绝)★★
+- 1.0.13#3 hook 可请求延迟/注入工具后上下文 ★★
+- 1.0.14#2 PostToolUse hook 向模型提供反馈/上下文 ★★★
+- 1.0.14#3 SDK 注册的 PostToolUse hook 同样提供模型反馈 ★★
+- 1.0.14#17 每个 SessionEnd hook 独立超时(单个慢 hook 不拖延关闭)★★
+
+**A4 权限/安全(★★★ 安全项优先)**
+- 1.0.22#15 auto 模式不再瞬间执行破坏性 `git checkout --`(走模型)★★★(安全)
+- 1.0.21#1 权限模式在 plan 模式保持可见、退出恢复 ★★
+- 1.0.22#5 文件编辑权限提示自动展开 diff 行 ★★
+- 1.0.14#13 `--sandbox strict` 限制写入仅 ~/.nofy/sessions ★★
+
+**A5 性能(★★,启动/响应延迟)**
+- 1.0.13#18 auth 已配时带 MCP 的会话启动更快 ★★
+- 1.0.13#19 MCP 启动不再卡在固定 batch ★★
+- 1.0.14#24 大仓库首条消息不再等仓库状态扫描 ★★
+- 1.0.14#25 大会话内存不再在回合完成/子代理 spawn 时阻塞 agent ★★
+- 1.0.15#2 会话关闭更快(记忆整合挪到下次启动)★★
+- 1.0.15#5 首响应延迟降低(会话启动时后台开模型连接)★★
+- 1.0.15#7 新建会话更快返回(MCP/启动工作后台化)★★
+- 1.0.18#22 resume picker 单次磁盘遍历标注本地会话 ★★(批22 已动 resume picker)
+- 1.0.18#26 新会话 start hooks 后台化更快响应 ★★
+- 1.0.22#27 打开/恢复会话不再因读 MCP 配置卡顿 ★★(与本轮配置迁移同区)
+
+**A6 策略/治理(★★,我们已有 nofy-governance/marketplace/requirements)**
+- 1.0.18#1 托管策略在写入前阻止不允许的 MCP server/marketplace 安装 ★★
+- 1.0.19#3 被组织策略阻止的 MCP server 显示清晰信息、配置变更前拒绝 ★★
+- 1.0.14#9 grok inspect 把 Claude bypass 锁显示为 advisory 而非 enforced ★
+- 1.0.18#8 grok inspect/mcp doctor 显示托管策略详情 ★
+
+**A7 会话/resume 上下文(★★)**
+- 1.0.19#4 resume 时告知模型仍在运行的 loops/subagents/workflows ★★
+- 1.0.19#6 headless 会话支持 --worktree 旗标 ★★(批21 headless + 我们 worktree)
+- 1.0.22#13 恢复会话显示你为回合中跟进输入的确切原文 ★★
+- 1.0.14#15 失败的 task/todo 工具调用出现在 transcript ★★
+
+**A8 pager UX/渲染(★,多为小项;按需取,价值低于 A1–A7)**
+- 渲染正确性:1.0.18#21 表格内删除线、1.0.23#1 表格单元格裸 URL/邮件每行可点、1.0.19#13 跨行 URL 可点、1.0.17#3 /btw 表格单元格选择复制为 TSV、1.0.19#8 多行 bash 块视图换行高亮
+- 输入/交互:1.0.18#15 富文本粘贴 Unicode 行分隔符不再损坏 composer、1.0.18#16 单行 prompt 上滚轮滚动历史、1.0.19#14 welcome composer 多行粘贴增高、1.0.20#1 发送后滚动不丢底部留白/跳视口、1.0.21#2 welcome 上输入/粘贴/Shift+Tab 开会话而非建重复
+- 状态/布局:1.0.18#14 session dock 对齐/展开更多行/hover 显示停止、1.0.21#3 dock/queue/reveal 行高度规则、1.0.19#18 后台任务完成后回合摘要行不丢间距、1.0.19#19 全屏/最小切换后 thinking 块不保持展开、1.0.14#16 双 Enter 发送时 composer 状态行不闪烁、1.0.22#12 自动后台回合运行时 send-now 按钮/快捷键正常、1.0.22#21 队列跟进按钮顺序 [Send now][edit][cancel]
+- 提示/小修:1.0.15#1 重复拖拽复制后提示 /copy /export、1.0.16#4 slash 长名不显空白标签、1.0.18#17 slash 下拉不截断长名、1.0.18#2 quote 前消息从块视图直接引用、1.0.19#2 透明背景终端主题、1.0.22#11 extensions modal tab 聚焦时快捷键、1.0.22#19 home 目录 slash 广告不刷屏、1.0.22#25 skill 公告不重复、1.0.13#15 周期任务提醒停止 monitor、1.0.13#16 计划任务 ID 用完整 UUID 防碰撞
+- 工具描述准确性:1.0.22#24 run_terminal_cmd 告知模型前台命令 ~15s 转后台(非 120s)、1.0.22#20 前台 shell 命令不再误报后台提醒/错误 kill 结果、1.0.22#23 Esc 后 /goal 正确启动规划器、1.0.22#26 多会话进程 monitor 事件唤醒空闲会话、1.0.22#14 /skills 从另一 NFS 客户端写入也更新模型、1.0.22#17 子代理/workflow 继承父会话 bash 超时/自动后台、1.0.13#10 压缩失败显示真实错误、1.0.18#18(见 A2)
+
+### B. 跳过—云依赖(红线,DELETED-CLOUD-LEDGER)
+- 远端设置:1.0.14#11 冷启动重复远端拉取、1.0.14#23 启动只拉一次、1.0.14#26 本地缓存暖启动、1.0.18#23 慢网不挂起、1.0.18#25 共享设置拉取、1.0.15#4 dock 远端设置、1.0.14#7 prompt 建议远端配置(默认会话模型部分可原生)
+- 登录/token:1.0.14#1 OIDC 主动刷新、1.0.15#6 后台 token 刷新、1.0.16#3 过期 token 中断不丢工作(token 面)、1.0.18#13 回合中认证恢复、1.0.19#15 GROK_AUTH_PATH 策略文件、1.0.19#20 登录后首 prompt(MCP 后台连接部分可原生)
+- dashboard/hub/远控:1.0.19#5 dashboard 即时显示派发会话、1.0.19#7 dashboard 文案、1.0.22#3 远控选择器按设备分组、1.0.22#8 dashboard 统一头部
+- 计费/用量:1.0.13#5 credit upsell Try Again、1.0.19#9 /usage 账户额度
+- 上传:1.0.18#24 响应更快(uploads 后台化部分—upload 面跳过)
+
+### C. 跳过—已物理剔除特性
+- feedback 全家:1.0.18#4/#5/#6/#12、1.0.19#16/#17(反馈模态/草稿/结构化/图片)
+- 媒体生成:1.0.18#9 图像生成参数、1.0.18#7 Chart.js 交互图表(渲染面,若 pager 需要再单独评估)
+- 语音:1.0.11#16 /voice parec 回退(批24 已记)
+- CLI 下载/自更新:1.0.13#20 CLI 下载压缩、1.0.14#8 Windows CLI 下载更小(nofy update 已删,分歧表已登)
+- 彩蛋:grok gboom(缺失 crate,批24 已记)
+
+### D. 跳过/defer—分歧纠缠
+- 子代理结构分歧(批17:我们 subagent_coordinator vs 上游 subagent/spawn):1.0.13#17 连接断时 spawn 更快、1.0.14#10 线程/fd 泄漏、1.0.14#14 busy coordinator 等待、1.0.14#20 父等待时子任务误取消、1.0.14#22 大 transcript 恢复子代理、1.0.16#5 spawn 后立即发消息、1.0.18#20 子代理视图重复任务 prompt、1.0.22#6 给已结束子代理发消息续接、1.0.22#7 后台子代理完成显示实际输出——**defer 到子代理结构对齐时统一处理**
+- MCP elicitation 协议钉版(批11 V_2025_06_18):1.0.17#1 2026-07-28 多轮 elicitation——**决策点(见 E)**
+- fast-worktree/clone 云面(批23):1.0.13 的 worktree reflog(批25 已定性跳歧)
+- pager input 重写(bc7f02ed 红线):1.0.15#3 启动期保留输入(缠 pager 重写,defer)
+- interjection 原子交付(上游 message-delivery-core,我们缺):1.0.14#19 interjection 原子交付——**defer/评估(批27)**
+
+### E. 决策点(行为变更/需用户拍板)
+- 1.0.24#1 Esc 不再取消运行中回合、改提示 Ctrl+C(批30 决策#1,行为变更)
+- 1.0.19#1 计划 /loop 任务始终后台运行、不再注入回合(批30 决策#2,行为变更;我们有 scheduler)
+- 1.0.18#3 welcome 屏停留到真正发送、后台预备会话(批30 决策#5,UX 行为变更)
+- 1.0.17#1 MCP elicitation 升级到 2026-07-28 多轮(批28 决策#4;我们钉 V_2025_06_18,升级影响协议面)
+- 1.0.16#1 企业策略经签名 requirements.toml 限制可选模型(依赖我们 nofy-governance/requirements 基建现状,需核)
+- 1.0.22#9 grok-workspaced daemon 暴露文件夹给 Computer Hub(批31 决策,倾向跳云登记分歧)
+- 1.0.13#6 iTerm2 粘贴图实时像素预览(媒体/pager 面,我们图像输入策略需核)
+
+### F. 已对齐/无对应
+- 1.0.13#11 截断错误措辞(我们树无该字符串,批25 已记)
+- 1.0.11#10 monitor 10h 超时(已对齐,批24 假阳性已纠)
+- 1.0.13#8 Windows ~/.grok+worktree(我们 nofy_home 跨平台,需核 Windows 面但非云)
+- 1.0.14#4 grok usage <session-id> 持久化每回合 token/cost(需核我们 usage 面;本地数据可原生,暂列对齐待核)
+
+### 缺失 crate(21,批24 定性,此处汇总决定)
+**原生/移植立项**:session-search(批33,★★★ 本地 FTS5 会话搜索)。**待评估(按需求触发)**:session-events、active-sessions、foreign-sessions、fuzzy-file-search、compaction-transcript、pager-diff、image、message-delivery-core(批27)。**跳过**:diag-server/workspace-daemon/mixpanel/login/dashboard-store/feedback/voice/otel(降维)/gboom/update/dirs/bundle(云·剔除·分歧·已有等价)。
+
+### 执行优先级建议
+P0(先做,★★★):A1 韧性(截断续传/瞬态重试/断电加固)+ A2 模型管理(per-effort id/per-model retry/mTLS/backend 选择修复)+ A4 安全(auto 拦 git checkout --)。
+P1:A3 hooks 能力、A5 性能、A6 治理、A7 resume 上下文。
+P2:A8 pager UX(按需取离散小项)。
+决策点 E 需用户先拍板再动。B/C/D 跳过/defer 已登记,批中命中即跳。
+
 ## 移植时的常见适配点
 
 - 记忆 flush 提示词:上游在 `xai-grok-memory/src/flush.rs`,我们在 `nofy-shell/src/session/helpers/memory_flush.rs`(FLUSH/FLUSH_DELTA 两提示词同文件)
