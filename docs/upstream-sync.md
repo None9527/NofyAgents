@@ -317,7 +317,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.13#9 会话保存断电加固(prompt 后/掉电更可靠)★★★—**已落地 ⑥ `0574edf8`**
 - 1.0.13#12 参数完整的截断工具调用照常执行 ★★—**已落地 ⑤ `86fa559f`**
 - 1.0.13#13 >2000px 大图不再炸会话(多请求)★★(我们有图像输入面)—**已落地 ⑨ `ab339094`**(码驱动图像分类 + 字节档尺寸码剥图;未对真实 >2000px 拒答做端到端验证)
-- 1.0.14#12 上下文超限的压缩失败降级输入而非原样重试 ★★
+- 1.0.14#12 上下文超限的压缩失败降级输入而非原样重试 ★★—**对账定性:早已完整实现,台账原列为待办是错的** `c5f613f1`。逐段核实:`InputStage{Verbatim,VerbatimFitted,Lossy}` 三档阶梯(compaction.rs:1039,与上游同名同序、初始档同由 `verbatim_input_enabled` 决定)、确定性上下文溢出时的 step-down(1159-1161,注释同为"避免进入 incompactable 状态")、`input_overflow_rejections` 计数 + `compaction_input_overflow_rejections` tracing 字段、`CompactionRetryDegraded` 遥测(nofy-telemetry/events/mod.rs:434,含 from_stage/to_stage/reason)、两个预算助手 `prepare_conversation_for_verbatim_summarization` 与 `fit_conversation_to_budget` 均具备。diff 后只剩 `.into()` vs `.as_str()` 与"上游把 lossy 预算抽成具名函数"两类差异;本次只做后者(纯可读性,零行为变更),算式与上游逐字相同。**另记一处未做的上游差异(不属本条)**:`suppress_auto_compaction` 上游多收 `&message`(把失败原因写进抑制记录),我们签名是 `(reason, estimated_tokens, context_window)`,属独立小项。验证:新增 `lossy_input_budget_leaves_summary_headroom_and_saturates`(钉住 70% 切片、工具 token 超切片时饱和到 0 不回绕、整数除法向下取整 9→6、零窗口→0);`cargo test -p nofy-shell --lib compaction` 108 passed / 0 failed;detect_changes low/0 流程
 - 1.0.16#7 /mcps 触发的 MCP OAuth 不再死锁 ★★
 - 1.0.16#8 子代理/任务输出等待默认 1h 上限(原 10min)★★—**已落地 ⑪ `5ece02e1`**(纯常量差 + `format_wait_cap_ms` 补小时档)
 - 1.0.19#10 终端停止读取时回合中 UI 冻结修复 ★★
