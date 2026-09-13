@@ -512,6 +512,103 @@ async fn refusal_after_tool_use_blocks_keeps_tool_calls_stop_reason() {
     }
 }
 
+/// A `max_tokens` stop that still delivered a complete `tool_use` block is
+/// actionable: the call runs instead of failing the turn (1.0.13#12).
+#[tokio::test]
+async fn max_tokens_with_complete_tool_use_completes_instead_of_failing() {
+    let tool_start = MessageStreamEvent::ContentBlockStart {
+        index: 0,
+        content_block: ContentBlock::ToolUse {
+            id: "call_truncated".into(),
+            name: "read_file".into(),
+            input: serde_json::json!({}),
+            cache_control: None,
+        },
+    };
+    let arg_delta = MessageStreamEvent::ContentBlockDelta {
+        index: 0,
+        delta: StreamDelta::InputJsonDelta {
+            partial_json: r#"{"target_file":"src/main.rs"}"#.into(),
+        },
+    };
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(text_block_start(1)),
+        Ok(text_delta(1, "let me read that fi")),
+        Ok(block_stop(1)),
+        Ok(tool_start),
+        Ok(arg_delta),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::MaxTokens)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+
+    match evs.last().unwrap() {
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.tool_calls().len(), 1);
+            assert_eq!(
+                response.stop_reason,
+                Some(StopReason::ToolCalls),
+                "a complete tool_use block must win over the max_tokens stop"
+            );
+            assert!(
+                response.length_truncation_is_actionable(),
+                "gate predicate must agree with the delivered stop_reason"
+            );
+        }
+        other => panic!("expected Completed, got {other:?}"),
+    }
+}
+
+/// A `max_tokens` stop that cut a tool call mid-arguments stays fatal: there is
+/// nothing actionable to run, and `Length` normally means the context window
+/// ran out so resampling cannot succeed.
+#[tokio::test]
+async fn max_tokens_with_truncated_tool_arguments_still_fails() {
+    let tool_start = MessageStreamEvent::ContentBlockStart {
+        index: 0,
+        content_block: ContentBlock::ToolUse {
+            id: "call_cut".into(),
+            name: "read_file".into(),
+            input: serde_json::json!({}),
+            cache_control: None,
+        },
+    };
+    let arg_delta = MessageStreamEvent::ContentBlockDelta {
+        index: 0,
+        delta: StreamDelta::InputJsonDelta {
+            partial_json: r#"{"target_file":"src/ma"#.into(),
+        },
+    };
+    let events: Vec<Result<MessageStreamEvent, SamplingError>> = vec![
+        Ok(message_start()),
+        Ok(tool_start),
+        Ok(arg_delta),
+        Ok(block_stop(0)),
+        Ok(message_delta_with_stop(messages::StopReason::MaxTokens)),
+        Ok(MessageStreamEvent::MessageStop),
+    ];
+    let raw = stream::iter(events).boxed();
+    let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
+
+    assert!(
+        !evs.iter()
+            .any(|e| matches!(e, SamplingEvent::Completed { .. })),
+        "an argument-truncated tool call must not complete: {evs:?}"
+    );
+    match evs.last().unwrap() {
+        SamplingEvent::Failed { error, .. } => {
+            assert_eq!(
+                error.kind,
+                crate::events::SamplingErrorKind::MaxTokensTruncation
+            );
+        }
+        other => panic!("expected Failed(MaxTokensTruncation), got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn server_error_event_yields_failed_500() {
     let err_event = MessageStreamEvent::Error {

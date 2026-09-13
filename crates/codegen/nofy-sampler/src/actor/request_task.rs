@@ -646,10 +646,24 @@ async fn drive_l2(
                             };
                         }
                     }
+                    // Fail-vs-salvage gate for a `Length` stop, sharing its
+                    // predicate with the Messages L2 transform so the two paths
+                    // cannot drift: complete tool calls run, text-only
+                    // truncation fails.
                     if response.stop_reason == Some(nofy_sampling_types::StopReason::Length) {
-                        return AttemptOutcome::Failed {
-                            error: SamplingError::MaxTokensTruncation,
-                        };
+                        if response.length_truncation_is_actionable() {
+                            tracing::info!(
+                                tool_calls = response.tool_calls().len(),
+                                content_len = response
+                                    .assistant()
+                                    .map_or(0, |a| a.content.len()),
+                                "completing Length-truncated response with completed tool calls"
+                            );
+                        } else {
+                            return AttemptOutcome::Failed {
+                                error: SamplingError::MaxTokensTruncation,
+                            };
+                        }
                     }
                     // A content-filtered turn (Anthropic refusal, OpenAI
                     // content_filter stop reason) is legitimately content-less and

@@ -487,6 +487,31 @@ pub struct ToolCall {
     pub arguments: Arc<str>,
 }
 
+impl ToolCall {
+    /// Whether this call's arguments survived the stream intact.
+    ///
+    /// Empty arguments are the zero-arg call convention, not proof of
+    /// truncation. A call cut before its first argument delta also collects as
+    /// empty, and executing it as `{}` merely bounces off tool-argument
+    /// validation — cheaper than failing the whole turn. Anything else has to
+    /// parse: a stream cut mid-call leaves a partial object that never does.
+    pub fn arguments_complete(&self) -> bool {
+        self.arguments.trim().is_empty()
+            || serde_json::from_str::<serde::de::IgnoredAny>(&self.arguments).is_ok()
+    }
+}
+
+/// Whether a `Length`-truncated turn still carries actionable tool calls:
+/// at least one call, and every call's arguments complete.
+///
+/// Text-only and empty truncations are deliberately not salvageable. `Length`
+/// normally means the context window ran out (the output budget is the window
+/// minus the prompt), so resampling cannot succeed; the caller must surface
+/// `MaxTokensTruncation` rather than hand back half an answer.
+pub fn truncated_tool_calls_are_actionable(calls: &[ToolCall]) -> bool {
+    !calls.is_empty() && calls.iter().all(ToolCall::arguments_complete)
+}
+
 /// Tool/function definition for the model
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolSpec {
@@ -868,6 +893,14 @@ impl ConversationResponse {
         self.assistant()
             .map(|a| a.tool_calls.as_slice())
             .unwrap_or(&[])
+    }
+
+    /// Whether a `stop_reason == Length` response should still be delivered
+    /// instead of failed with `MaxTokensTruncation`: the truncation cut trailing
+    /// output, not the tool call the model was making, so the agent loop can run
+    /// it and continue. See [`truncated_tool_calls_are_actionable`].
+    pub fn length_truncation_is_actionable(&self) -> bool {
+        truncated_tool_calls_are_actionable(self.tool_calls())
     }
 
     /// Returns the assistant text if `AgentMessageChunk` events were lost
@@ -4873,6 +4906,85 @@ mod tests {
             resp.empty_reason(),
             Some(crate::error::EmptyReason::NoVisibleContent)
         );
+    }
+
+    /// A `Length` stop carrying complete tool calls is actionable: the agent
+    /// loop can still run them (1.0.13#12).
+    #[test]
+    fn length_truncation_is_actionable_with_complete_tool_calls() {
+        let mut resp = make_response(ConversationItem::assistant_tool_calls(vec![ToolCall {
+            id: "tc1".into(),
+            name: "read_file".into(),
+            arguments: r#"{"target_file":"src/main.rs"}"#.into(),
+        }]));
+        resp.stop_reason = Some(StopReason::Length);
+        assert!(resp.length_truncation_is_actionable());
+    }
+
+    /// Empty arguments are the zero-arg convention, not proof of truncation.
+    #[test]
+    fn length_truncation_is_actionable_with_empty_arguments() {
+        let mut resp = make_response(ConversationItem::assistant_tool_calls(vec![ToolCall {
+            id: "tc1".into(),
+            name: "scheduler_list".into(),
+            arguments: "".into(),
+        }]));
+        resp.stop_reason = Some(StopReason::Length);
+        assert!(resp.length_truncation_is_actionable());
+    }
+
+    /// A call cut mid-arguments leaves nothing actionable, so the turn must
+    /// still fail with `MaxTokensTruncation`.
+    #[test]
+    fn length_truncation_is_not_actionable_with_cut_arguments() {
+        let mut resp = make_response(ConversationItem::assistant_tool_calls(vec![ToolCall {
+            id: "tc1".into(),
+            name: "read_file".into(),
+            arguments: r#"{"target_file":"src/ma"#.into(),
+        }]));
+        resp.stop_reason = Some(StopReason::Length);
+        assert!(!resp.length_truncation_is_actionable());
+    }
+
+    /// One cut call poisons the batch: running half of a parallel tool call set
+    /// is worse than failing the turn.
+    #[test]
+    fn length_truncation_is_not_actionable_when_any_call_is_cut() {
+        let mut resp = make_response(ConversationItem::assistant_tool_calls(vec![
+            ToolCall {
+                id: "tc1".into(),
+                name: "read_file".into(),
+                arguments: r#"{"target_file":"src/main.rs"}"#.into(),
+            },
+            ToolCall {
+                id: "tc2".into(),
+                name: "read_file".into(),
+                arguments: r#"{"target_file":"src/lib"#.into(),
+            },
+        ]));
+        resp.stop_reason = Some(StopReason::Length);
+        assert!(!resp.length_truncation_is_actionable());
+    }
+
+    /// Text-only truncation is never salvageable: `Length` normally means the
+    /// context window ran out, so resampling cannot succeed.
+    #[test]
+    fn length_truncation_is_not_actionable_without_tool_calls() {
+        let mut resp = make_response(ConversationItem::assistant("half an answ"));
+        resp.stop_reason = Some(StopReason::Length);
+        assert!(!resp.length_truncation_is_actionable());
+    }
+
+    #[test]
+    fn truncated_tool_calls_predicate_is_independent_of_stop_reason() {
+        // The predicate classifies the payload; the stop-reason check belongs to
+        // the caller so both terminal paths share one decision.
+        assert!(!truncated_tool_calls_are_actionable(&[]));
+        assert!(truncated_tool_calls_are_actionable(&[ToolCall {
+            id: "tc1".into(),
+            name: "read_file".into(),
+            arguments: "{}".into(),
+        }]));
     }
 
     #[test]

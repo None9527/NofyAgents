@@ -12,7 +12,7 @@ use futures_util::stream::{BoxStream, Stream};
 use nofy_sampling_types::messages::{self, MessageStreamEvent};
 use nofy_sampling_types::{
     AssistantItem, ConversationItem, ConversationResponse, ResponseModelMetadata, SamplingError,
-    StopReason, TokenUsage, ToolCall, rs,
+    StopReason, TokenUsage, ToolCall, rs, truncated_tool_calls_are_actionable,
 };
 
 use crate::events::{SamplingChannel, SamplingErrorInfo, SamplingEvent};
@@ -516,7 +516,15 @@ pub fn stream_messages<'a>(
             }
         }
 
-        if final_stop_reason == Some(StopReason::Length) {
+        // A `Length` stop that still delivered complete `tool_use` blocks is
+        // actionable: the stop-reason rewrite below already treats completed
+        // calls as model output the agent loop must resolve, so dropping them
+        // here would fail a turn that could have run. Text-only and
+        // argument-truncated stops keep failing — `Length` normally means the
+        // context window ran out, so resampling cannot succeed.
+        if final_stop_reason == Some(StopReason::Length)
+            && !truncated_tool_calls_are_actionable(&assistant_tool_calls)
+        {
             yield SamplingEvent::Failed {
                 request_id: request_id.clone(),
                 error: SamplingErrorInfo::from(&SamplingError::MaxTokensTruncation),
