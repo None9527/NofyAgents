@@ -18,7 +18,9 @@ use crate::hook_write_deny::profile_hook_write_deny;
 use crate::paths::nofy_home;
 #[cfg(all(feature = "enforce", unix))]
 use crate::paths::{DEVICE_DIRS, DEVICE_FILES};
-use crate::paths::{essential_writable_paths, essential_writable_paths_minimal};
+use crate::paths::{
+    essential_writable_paths, essential_writable_paths_minimal, essential_writable_paths_strict,
+};
 use nofy_config::GlobalHookSource;
 
 /// A resolved sandbox profile ready to be converted to a `CapabilitySet`.
@@ -430,13 +432,18 @@ impl ProfileName {
                 .chain(std::iter::once(home.join("Library")))
                 .filter(|p| p.exists())
                 .chain(std::iter::once(workspace.to_path_buf()))
+                // Read-only: AuthManager/config/hooks/skills need the parent.
+                // Landlock cannot carve children out of a write grant, so
+                // `nofy_home()` itself stays off `read_write` and only
+                // `sessions/` is writable — that is where the session and
+                // events JSONL live.
                 .chain(std::iter::once(nofy_home()))
                 .collect();
 
                 Ok(SandboxProfile {
                     name: "strict".to_string(),
                     read_only: system_read,
-                    read_write: essential_writable_paths(workspace),
+                    read_write: essential_writable_paths_strict(workspace),
                     deny: vec![],
                     write_deny: resolve_write_deny(self)?,
                     default_read: false,
@@ -966,6 +973,53 @@ read_write = ["/tmp/ci-artifacts"]
     /// Building the strict CapabilitySet must succeed even when /dev/tty cannot
     /// be opened (no controlling terminal). Regression for the silent Landlock
     /// apply-abort under setsid/CI/headless.
+    /// `--sandbox strict` grants writes only to the workspace, `sessions/`, and
+    /// temp — never to `nofy_home()` itself. A sandbox that could rewrite
+    /// `config.toml`, credentials or hooks could escalate its own permissions on
+    /// the next run. `nofy_home()` stays *readable*, because AuthManager, config,
+    /// hooks and skills all live there.
+    #[test]
+    fn strict_profile_writes_only_sessions_under_nofy_home() {
+        let workspace = std::env::current_dir().unwrap();
+        let config = SandboxConfig::default();
+        let strict = ProfileName::Strict
+            .resolve(&workspace, &config)
+            .expect("strict profile must resolve");
+        let home = nofy_home();
+        let sessions = home.join("sessions");
+
+        assert!(
+            strict.read_write.contains(&sessions),
+            "sessions/ must stay writable so the session JSONL can persist: {:?}",
+            strict.read_write
+        );
+        assert!(
+            strict.read_write.contains(&workspace),
+            "the workspace must stay writable: {:?}",
+            strict.read_write
+        );
+        assert!(
+            !strict.read_write.contains(&home),
+            "nofy_home() itself must not be writable under strict: {:?}",
+            strict.read_write
+        );
+        assert!(
+            strict.read_only.contains(&home),
+            "nofy_home() must stay readable (config/credentials/hooks/skills): {:?}",
+            strict.read_only
+        );
+
+        // Contrast: the workspace profile is not narrowed.
+        let ws = ProfileName::Workspace
+            .resolve(&workspace, &config)
+            .expect("workspace profile must resolve");
+        assert!(
+            ws.read_write.contains(&home),
+            "the workspace profile must keep the full home writable: {:?}",
+            ws.read_write
+        );
+    }
+
     #[test]
     #[cfg(all(feature = "enforce", unix))]
     fn strict_capability_set_builds_without_openable_dev_tty() {

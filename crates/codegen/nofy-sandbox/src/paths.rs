@@ -74,10 +74,29 @@ pub(crate) fn temp_writable_paths() -> Vec<PathBuf> {
 
 // ── Essential writable paths ────────────────────────────────────────────────
 
-/// Writable directory paths for profiles that allow workspace writes (workspace, devbox, strict).
+/// Writable directory paths for profiles that allow workspace writes (workspace, devbox).
 /// Device files are handled separately via `allow_file` in `to_capability_set_with_config`.
 pub(crate) fn essential_writable_paths(workspace: &Path) -> Vec<PathBuf> {
     let mut paths = vec![workspace.to_path_buf(), nofy_home()];
+    paths.extend(temp_writable_paths());
+    paths
+}
+
+/// Writable directory paths for the strict profile (workspace, sessions, temp).
+///
+/// Strict may *read* all of `nofy_home()` — AuthManager, config, hooks and
+/// skills all live there — but must not *write* the parent. Landlock cannot
+/// carve a child out of a write grant, so `nofy_home()` itself stays off
+/// `read_write` and only `sessions/` is granted; that is where the session and
+/// events JSONL live, which is all a strict run needs to persist.
+///
+/// Everything else under `nofy_home()` (logs, memory, tasks, worktrees, MCP
+/// cache, slash MRU, …) therefore fails to write under strict. That is the
+/// point of the profile: those are best-effort surfaces, and a sandbox that
+/// could rewrite `config.toml`, credentials or hooks could escalate its own
+/// permissions on the next run.
+pub(crate) fn essential_writable_paths_strict(workspace: &Path) -> Vec<PathBuf> {
+    let mut paths = vec![workspace.to_path_buf(), nofy_home().join("sessions")];
     paths.extend(temp_writable_paths());
     paths
 }
