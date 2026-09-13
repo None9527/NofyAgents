@@ -1636,6 +1636,7 @@ fn make_entry_config_with_id(
         agent_type: config::default_agent_type(),
         inference_idle_timeout_secs: None,
         max_retries: None,
+        rate_limit_retry_threshold: None,
         hidden: false,
         supported_in_api: true,
         auth_scheme: None,

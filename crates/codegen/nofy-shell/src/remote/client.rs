@@ -163,6 +163,10 @@ pub(crate) fn parse_remote_model_value(
         max_retries: get_u64(obj, "maxRetries")
             .or_else(|| get_u64(obj, "max_retries"))
             .and_then(|v| u32::try_from(v).ok()),
+        // The remote catalog carries no per-model 429 ceiling; it is a local
+        // declaration (`model.<id>.rate_limit_retry_threshold` in config.toml,
+        // or the `[models]` default) and merges over this in `apply`.
+        rate_limit_retry_threshold: None,
         hidden: obj
             .get("hidden")
             .or_else(|| meta.and_then(|m| m.get("hidden")))

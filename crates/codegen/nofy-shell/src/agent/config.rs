@@ -831,6 +831,9 @@ pub struct ModelsConfig {
     pub max_completion_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_retries: Option<u32>,
+    /// Global default for `model.<id>.rate_limit_retry_threshold`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rate_limit_retry_threshold: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inference_idle_timeout_secs: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2935,6 +2938,9 @@ fn apply_global_scalar_defaults(
         if let Some(v) = models.max_retries {
             info.max_retries.get_or_insert(v);
         }
+        if let Some(v) = models.rate_limit_retry_threshold {
+            info.rate_limit_retry_threshold.get_or_insert(v);
+        }
         if let Some(v) = models.inference_idle_timeout_secs {
             info.inference_idle_timeout_secs.get_or_insert(v);
         }
@@ -3055,6 +3061,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 agent_type: m.agent_type,
                 inference_idle_timeout_secs: m.inference_idle_timeout_secs,
                 max_retries: None,
+                rate_limit_retry_threshold: None,
                 api_key: None,
                 env_key: None,
                 extra_headers: IndexMap::new(),
@@ -3167,6 +3174,10 @@ pub struct ModelEntryConfig {
     /// Can also be set via the `NOFY_MAX_RETRIES` environment variable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_retries: Option<u32>,
+    /// Total-attempt ceiling for rate-limited (429) requests, capped by the
+    /// resolved `max_retries`. `None` inherits the sampler actor's policy.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_limit_retry_threshold: Option<u32>,
     /// Exclude from the client model picker; still usable internally.
     #[serde(default, skip_serializing_if = "is_false")]
     pub hidden: bool,
@@ -3257,6 +3268,10 @@ pub struct ConfigModelOverride {
     pub agent_type: Option<String>,
     pub inference_idle_timeout_secs: Option<u64>,
     pub max_retries: Option<u32>,
+    /// Per-model 429 retry ceiling from `[model.<id>]`. Merged only when
+    /// `Some`, like `max_retries`, so an override cannot silently erase the
+    /// catalog's or the global `[models]` value.
+    pub rate_limit_retry_threshold: Option<u32>,
     pub hidden: Option<bool>,
     pub supported_in_api: Option<bool>,
     pub reasoning_effort: Option<ReasoningEffort>,
@@ -3336,6 +3351,9 @@ impl ConfigModelOverride {
         }
         if self.max_retries.is_some() {
             entry.info.max_retries = self.max_retries;
+        }
+        if self.rate_limit_retry_threshold.is_some() {
+            entry.info.rate_limit_retry_threshold = self.rate_limit_retry_threshold;
         }
         if let Some(v) = self.hidden {
             entry.info.hidden = v;
@@ -3454,6 +3472,12 @@ pub struct ModelInfo {
     /// Per-chunk idle timeout for inference streaming (see `ModelEntryConfig`).
     pub inference_idle_timeout_secs: Option<u64>,
     pub max_retries: Option<u32>,
+    /// Total-attempt ceiling for rate-limited (429) requests on this model,
+    /// capped by the resolved `max_retries`. `None` inherits the sampler
+    /// actor's policy. `Some(1)` (or `Some(0)`) disables 429 retries outright:
+    /// the first rate limit fails the turn instead of sitting through long
+    /// `Retry-After` waits.
+    pub rate_limit_retry_threshold: Option<u32>,
     /// Never show in picker (any auth). See also `supported_in_api`.
     pub hidden: bool,
     /// May the user select this model for normal chat? Derived from
@@ -3519,6 +3543,7 @@ impl ModelInfo {
             agent_type: default_agent_type(),
             inference_idle_timeout_secs: None,
             max_retries: None,
+            rate_limit_retry_threshold: None,
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
@@ -3558,6 +3583,7 @@ impl ModelInfo {
             agent_type: entry.agent_type.clone(),
             inference_idle_timeout_secs: entry.inference_idle_timeout_secs,
             max_retries: entry.max_retries,
+            rate_limit_retry_threshold: entry.rate_limit_retry_threshold,
             hidden: entry.hidden,
             supported_in_api: entry.supported_in_api,
             reasoning_effort: entry.reasoning_effort,
@@ -4278,6 +4304,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 agent_type: default_agent_type(),
                 inference_idle_timeout_secs: None,
                 max_retries: None,
+                rate_limit_retry_threshold: None,
                 hidden: true,
                 supported_in_api: true,
                 reasoning_effort: None,
@@ -4415,6 +4442,7 @@ pub(crate) fn sampling_config_for_model(
         reasoning_effort: info.reasoning_effort,
         force_http1: false,
         max_retries: info.max_retries,
+        rate_limit_retry_threshold: info.rate_limit_retry_threshold,
         stream_tool_calls: info.stream_tool_calls.unwrap_or(false),
         idle_timeout_secs: None,
         client_identifier: None,
@@ -5523,6 +5551,7 @@ reasoning_effort = "low"
                 agent_type: default_agent_type(),
                 inference_idle_timeout_secs: None,
                 max_retries: None,
+                rate_limit_retry_threshold: None,
                 hidden: false,
                 supported_in_api: true,
                 reasoning_effort: None,
@@ -6631,6 +6660,7 @@ reasoning_effort = "low"
             agent_type: default_agent_type(),
             inference_idle_timeout_secs: None,
             max_retries: None,
+            rate_limit_retry_threshold: None,
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
@@ -6790,6 +6820,7 @@ reasoning_effort = "low"
             agent_type: "codex".to_string(),
             inference_idle_timeout_secs: None,
             max_retries: None,
+            rate_limit_retry_threshold: None,
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
@@ -7241,6 +7272,7 @@ reasoning_effort = "low"
             agent_type: default_agent_type(),
             inference_idle_timeout_secs: Some(120),
             max_retries: None,
+            rate_limit_retry_threshold: None,
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
@@ -10094,6 +10126,7 @@ default = "grok-4.5"
                 agent_type: default_agent_type(),
                 inference_idle_timeout_secs: None,
                 max_retries: None,
+                rate_limit_retry_threshold: None,
                 hidden: false,
                 supported_in_api: true,
                 reasoning_effort: None,
@@ -10303,6 +10336,126 @@ default = "grok-4.5"
             "a field the prefetch left unset must inherit the [models] default"
         );
     }
+    /// `model.<id>.rate_limit_retry_threshold` reaches `ModelInfo`, and the
+    /// sampler config carries it so the actor's per-request override fires.
+    #[test]
+    fn parses_model_rate_limit_retry_threshold() {
+        let raw_config: toml::Value = toml::from_str(
+            r#"
+            [model.short-fuse]
+            model = "gateway-model"
+            base_url = "https://api.example.com/v1"
+            context_window = 200000
+            rate_limit_retry_threshold = 4
+
+            [model.no-wait]
+            model = "gateway-model-2"
+            base_url = "https://api.example.com/v1"
+            context_window = 200000
+            rate_limit_retry_threshold = 1
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
+        let resolved = resolve_model_list(&cfg, None);
+
+        assert_eq!(
+            resolved
+                .get("short-fuse")
+                .expect("model should exist")
+                .info
+                .rate_limit_retry_threshold,
+            Some(4)
+        );
+        assert_eq!(
+            resolved.get("no-wait").expect("model should exist").info.rate_limit_retry_threshold,
+            Some(1),
+            "1 is the documented way to disable 429 retries for a model"
+        );
+
+        let entry = resolved.get("short-fuse").expect("model should exist");
+        let sampling = sampling_config_for_model(
+            entry,
+            ResolvedCredentials {
+                api_key: Some("k".into()),
+                base_url: "https://api.example.com/v1".into(),
+                auth_scheme: Default::default(),
+                auth_type: nofy_chat_state::AuthType::ApiKey,
+            },
+            None,
+            None,
+            None,
+            None,
+        );
+        assert_eq!(
+            sampling.rate_limit_retry_threshold,
+            Some(4),
+            "the per-model ceiling must reach the sampler"
+        );
+    }
+
+    /// A model that declares no threshold stays `None` so the sampler actor's
+    /// policy applies, rather than silently inheriting a hard-coded number.
+    #[test]
+    fn rate_limit_retry_threshold_defaults_to_none() {
+        let raw_config: toml::Value = toml::from_str(
+            r#"
+            [model.plain]
+            model = "gateway-model"
+            base_url = "https://api.example.com/v1"
+            context_window = 200000
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
+        let resolved = resolve_model_list(&cfg, None);
+        assert_eq!(
+            resolved.get("plain").expect("model should exist").info.rate_limit_retry_threshold,
+            None
+        );
+    }
+
+    /// `[models].rate_limit_retry_threshold` is a fallback default, not an
+    /// override: a per-model value and a prefetched catalog value both win.
+    #[test]
+    fn global_rate_limit_retry_threshold_is_a_default_not_an_override() {
+        let mut cfg = Config::default();
+        cfg.models.rate_limit_retry_threshold = Some(9);
+        cfg.config_models.insert(
+            "overridden".to_owned(),
+            ConfigModelOverride {
+                rate_limit_retry_threshold: Some(2),
+                ..Default::default()
+            },
+        );
+        let mut prefetched = IndexMap::new();
+        let mut inherited = prefetch_model_entry("inherited", 200_000, ApiBackend::default());
+        inherited.info.rate_limit_retry_threshold = None;
+        prefetched.insert("inherited".to_owned(), inherited);
+        let mut from_catalog = prefetch_model_entry("from-catalog", 200_000, ApiBackend::default());
+        from_catalog.info.rate_limit_retry_threshold = Some(3);
+        prefetched.insert("from-catalog".to_owned(), from_catalog);
+        let overridden = prefetch_model_entry("overridden", 200_000, ApiBackend::default());
+        prefetched.insert("overridden".to_owned(), overridden);
+
+        let resolved = resolve_model_list(&cfg, Some(prefetched));
+        assert_eq!(
+            resolved.get("inherited").expect("exists").info.rate_limit_retry_threshold,
+            Some(9),
+            "an unset model must inherit the [models] default"
+        );
+        assert_eq!(
+            resolved.get("from-catalog").expect("exists").info.rate_limit_retry_threshold,
+            Some(3),
+            "a prefetched catalog value must beat the [models] default"
+        );
+        assert_eq!(
+            resolved.get("overridden").expect("exists").info.rate_limit_retry_threshold,
+            Some(2),
+            "a per-model override must win over the [models] default"
+        );
+    }
+
     #[test]
     fn config_model_reasoning_efforts_parses_inline_tables_and_bare_strings() {
         let raw_config: toml::Value = toml::from_str(

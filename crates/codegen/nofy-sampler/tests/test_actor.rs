@@ -85,6 +85,7 @@ fn test_config(base_url: String, model: &str) -> SamplerConfig {
         force_http1: false,
         // Keep retries minimal so tests don't take forever.
         max_retries: Some(2),
+        rate_limit_retry_threshold: None,
         stream_tool_calls: false,
         idle_timeout_secs: Some(30),
         reasoning_effort: None,

@@ -125,11 +125,14 @@ temperature                 = 0.7
 top_p                       = 0.95
 max_completion_tokens       = 8192
 max_retries                 = 8
+rate_limit_retry_threshold  = 4
 inference_idle_timeout_secs = 600
 stream_tool_calls           = true
 ```
 
 This is a small, fixed set of environment-wide knobs. Settings that identify a specific model (`model`, `base_url`, `api_key`, `context_window`, ...) cannot be defaulted this way, and a few settings with their own dedicated configuration -- auto-compaction (`[session]`), the system-prompt label (`[agent]`), and reasoning effort (`[models].default_reasoning_effort`) -- keep their existing homes.
+
+> **Note on `rate_limit_retry_threshold`:** the total-attempt ceiling for rate-limited (429) requests, always capped by the resolved `max_retries`. It is separate from `max_retries` because a 429 usually carries a long `Retry-After`, so sitting through the same number of waits as a transport error can stall a turn for minutes. Set it to `1` to make the first rate limit fail the turn immediately instead of waiting — useful on a gateway whose quota refills slowly enough that retrying is pointless. Leaving it unset keeps the built-in default of 2.
 
 > **Note on `stream_tool_calls`:** this one affects request *shape*, not just sampling. A few endpoints (some BYOK providers) expect it left unset; if a global `stream_tool_calls = true` causes problems for such a model, opt that model out with `stream_tool_calls = false` in its `[model.<id>]` block.
 

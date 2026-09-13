@@ -951,6 +951,10 @@ pub(crate) async fn run_shell_child(
             reasoning_effort: Some(effective_sampling_config.reasoning_effort),
         });
     let pins = ctx.compaction_pins_for_child(&definition.user_message_template);
+    // Captured before `effective_sampling_config` is moved into the spawn: the
+    // child resolves its own 429 ceiling from its selected model, so a subagent
+    // honors the same per-model retry settings as its parent.
+    let child_rate_limit_retry_threshold = effective_sampling_config.rate_limit_retry_threshold;
     let spawn_result = session::spawn_session_on_thread(
         child_session_info,
         gateway.clone(),
@@ -1044,6 +1048,7 @@ pub(crate) async fn run_shell_child(
         None,
         ctx.inference_idle_timeout_secs,
         None,
+        child_rate_limit_retry_threshold,
         ctx.web_fetch_config.clone(),
         ctx.app_builder_deployer_config.clone(),
         ctx.write_file_enabled,

@@ -1815,6 +1815,7 @@ fn find_model_by_id_prefers_key_then_falls_back_to_slug() {
             agent_type: config::default_agent_type(),
             inference_idle_timeout_secs: None,
             max_retries: None,
+            rate_limit_retry_threshold: None,
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,

@@ -263,6 +263,8 @@ pub(crate) async fn spawn_session_actor(
     session_client_identifier: Option<String>,
     inference_idle_timeout_secs: u64,
     max_retries: Option<u32>,
+    // Per-model 429 attempt ceiling; `None` keeps the crate default.
+    rate_limit_retry_threshold: Option<u32>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
@@ -1191,7 +1193,8 @@ pub(crate) async fn spawn_session_actor(
     }
     let sampler_retry_policy = nofy_sampler::RetryPolicy {
         max_retries: max_retries.unwrap_or(5),
-        rate_limit_retry_threshold: 2,
+        rate_limit_retry_threshold: rate_limit_retry_threshold
+            .unwrap_or(nofy_sampler::RATE_LIMIT_RETRY_THRESHOLD),
         retry_only_before_output,
     };
     let (sampler_event_tx, sampler_event_rx) =
@@ -1578,6 +1581,7 @@ pub(crate) async fn spawn_session_actor(
         inference_idle_timeout: Duration::from_secs(inference_idle_timeout_secs),
         max_turns,
         max_retries: nofy_sampler::resolve_max_retries(max_retries),
+        rate_limit_retry_threshold,
         pending_interjections: InterjectionBuffer::new(),
         pending_skill_reminders: Mutex::new(Vec::new()),
         idle_flush_timeout: memory_config
@@ -2154,6 +2158,8 @@ pub(crate) async fn spawn_session_on_thread(
     session_client_identifier: Option<String>,
     inference_idle_timeout_secs: u64,
     max_retries: Option<u32>,
+    // Per-model 429 attempt ceiling; `None` keeps the crate default.
+    rate_limit_retry_threshold: Option<u32>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
@@ -2318,6 +2324,7 @@ pub(crate) async fn spawn_session_on_thread(
                         session_client_identifier,
                         inference_idle_timeout_secs,
                         max_retries,
+                        rate_limit_retry_threshold,
                         web_fetch_config,
                         app_builder_deployer_config,
                         write_file_enabled,

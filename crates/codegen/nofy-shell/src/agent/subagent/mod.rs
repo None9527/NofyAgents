@@ -803,6 +803,7 @@ async fn read_parent_sampling_config(
                 reasoning_effort: cfg.reasoning_effort,
                 force_http1: false,
                 max_retries: None,
+                rate_limit_retry_threshold: None,
                 stream_tool_calls: cfg.stream_tool_calls.unwrap_or(false),
                 idle_timeout_secs: None,
                 client_identifier: ctx.sampling_config.client_identifier.clone(),

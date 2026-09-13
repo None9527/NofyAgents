@@ -73,6 +73,16 @@ pub struct SamplerConfig {
     pub context_window: u64,
     pub force_http1: bool,
     pub max_retries: Option<u32>,
+    /// Total-attempt ceiling for rate-limited (429) requests on *this* request,
+    /// overriding the actor's [`RetryPolicy::rate_limit_retry_threshold`].
+    /// `None` inherits the actor policy.
+    ///
+    /// Per-model because a 429 means very different things across BYOK
+    /// endpoints: a gateway with a short refill window wants a couple of quick
+    /// retries, one with a per-minute quota wants to give up and tell the user
+    /// rather than sit through long `Retry-After` waits.
+    #[serde(default)]
+    pub rate_limit_retry_threshold: Option<u32>,
     pub stream_tool_calls: bool,
     pub idle_timeout_secs: Option<u64>,
 
@@ -149,6 +159,7 @@ impl Default for SamplerConfig {
             context_window: 0,
             force_http1: false,
             max_retries: None,
+            rate_limit_retry_threshold: None,
             stream_tool_calls: false,
             idle_timeout_secs: None,
             reasoning_effort: None,

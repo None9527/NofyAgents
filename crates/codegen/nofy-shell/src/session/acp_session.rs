@@ -761,6 +761,11 @@ pub(crate) struct SessionActor {
     /// Resolved at construction: per-model config.toml → remote settings → 300s default.
     pub(crate) inference_idle_timeout: Duration,
     pub(crate) max_retries: u32,
+    /// Per-model total-attempt ceiling for rate-limited (429) requests.
+    /// Resolved at construction from `model.<id>.rate_limit_retry_threshold`
+    /// (or the `[models]` default); `None` leaves the sampler actor's own
+    /// `RetryPolicy` in charge.
+    pub(crate) rate_limit_retry_threshold: Option<u32>,
     /// Maximum tool-use turns before the session stops. `None` = unlimited.
     pub(crate) max_turns: Option<usize>,
     /// Pending mid-turn interjections from the user (Ctrl+Enter).

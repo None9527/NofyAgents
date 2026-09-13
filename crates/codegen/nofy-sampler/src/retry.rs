@@ -63,6 +63,26 @@ pub const DEFAULT_MAX_RETRIES: u32 = 15;
 /// path deliberately waits the full `Retry-After` instead, bounded by
 /// [`RATE_LIMIT_RETRY_THRESHOLD`] attempts (and by the parse-level 120s cap
 /// on the header).
+/// Resolve the 429 attempt ceiling for one request.
+///
+/// A per-request override (`SamplerConfig::rate_limit_retry_threshold`, set
+/// from `model.<id>.rate_limit_retry_threshold`) wins; otherwise the actor
+/// policy applies, where `0` means "unset" and [`RATE_LIMIT_RETRY_THRESHOLD`]
+/// takes over. `classify_error` caps the result by `max_retries`, so a
+/// threshold above the total attempt budget is harmless.
+pub fn resolve_rate_limit_threshold(
+    request_override: Option<u32>,
+    policy: &crate::config::RetryPolicy,
+) -> u32 {
+    request_override.unwrap_or_else(|| {
+        if policy.rate_limit_retry_threshold == 0 {
+            RATE_LIMIT_RETRY_THRESHOLD
+        } else {
+            policy.rate_limit_retry_threshold
+        }
+    })
+}
+
 pub const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(30);
 
 /// Backoff for the first retry of a transport-level failure, where the HTTP
@@ -805,6 +825,60 @@ mod tests {
             }
             other => panic!("expected Fatal at threshold, got {other:?}"),
         }
+    }
+
+    /// A per-model override wins over the actor policy; `None` inherits it; a
+    /// policy of `0` means "unset" and falls back to the crate default.
+    #[test]
+    fn resolve_rate_limit_threshold_prefers_the_request_override() {
+        let mut policy = crate::config::RetryPolicy::default();
+        assert_eq!(policy.rate_limit_retry_threshold, RATE_LIMIT_RETRY_THRESHOLD);
+
+        assert_eq!(resolve_rate_limit_threshold(Some(7), &policy), 7);
+        assert_eq!(
+            resolve_rate_limit_threshold(None, &policy),
+            RATE_LIMIT_RETRY_THRESHOLD
+        );
+
+        policy.rate_limit_retry_threshold = 5;
+        assert_eq!(resolve_rate_limit_threshold(None, &policy), 5);
+        assert_eq!(
+            resolve_rate_limit_threshold(Some(1), &policy),
+            1,
+            "the per-model value wins even when the actor policy is set"
+        );
+
+        // `0` at the policy level means "unset", not "disabled".
+        policy.rate_limit_retry_threshold = 0;
+        assert_eq!(
+            resolve_rate_limit_threshold(None, &policy),
+            RATE_LIMIT_RETRY_THRESHOLD
+        );
+        // An explicit per-request `0` does disable: `classify_error` caps at
+        // `max_retries.min(threshold)`, so 0 fails the first 429.
+        assert_eq!(resolve_rate_limit_threshold(Some(0), &policy), 0);
+    }
+
+    /// `Some(1)` is the documented way to turn 429 retries off for a model: the
+    /// first rate limit fails the turn instead of sitting through long
+    /// `Retry-After` waits.
+    #[test]
+    fn rate_limit_threshold_one_disables_429_retries() {
+        let err = api_err_with_retry_after(StatusCode::TOO_MANY_REQUESTS, 30);
+        assert!(matches!(
+            classify_error(&err, 0, 15, 1),
+            RetryDecision::Fatal(_)
+        ));
+        assert!(
+            matches!(
+                classify_error(&err, 0, 15, RATE_LIMIT_RETRY_THRESHOLD),
+                RetryDecision::RetryWithBackoff {
+                    is_rate_limited: true,
+                    ..
+                }
+            ),
+            "the default threshold must still retry the same 429"
+        );
     }
 
     #[test]

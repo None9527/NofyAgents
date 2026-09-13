@@ -3112,6 +3112,12 @@ impl MvpAgent {
             .values()
             .find(|entry| entry.info.model == sampling_config.model)
             .and_then(|entry| entry.info.max_retries);
+        let model_rate_limit_retry_threshold = self
+            .models_manager
+            .models()
+            .values()
+            .find(|entry| entry.info.model == sampling_config.model)
+            .and_then(|entry| entry.info.rate_limit_retry_threshold);
         let origin_client = self.origin_client_info_from_meta(init.meta.as_ref());
         let app_builder_deployer_config = self.prepare_app_builder_deployer_config();
         let web_fetch_config = self.prepare_web_fetch_config();
@@ -3332,6 +3338,7 @@ impl MvpAgent {
                     origin_client.as_ref().map(|o| o.product.clone()),
                     inference_idle_timeout_secs,
                     model_max_retries,
+                    model_rate_limit_retry_threshold,
                     web_fetch_config,
                     app_builder_deployer_config,
                     write_file_enabled,
