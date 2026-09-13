@@ -285,6 +285,9 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 | ② | rewind/模式切换后 token 数应匹配 server 报告值而非失准(1.0.12) | **消除我们树内部不一致**(非照搬上游):压缩路径 `replace_conversation` 已用 ratio reseed 保留 provider 开销(系统提示词/工具,state.rs 注释"carried across compaction"),但 rewind 路径 `truncate_to_prompt_index` 裸重估、delta 清零、丢弃开销。提取共享助手 `reseed_tokens_after_shrink`(state.rs,单一真源),压缩与 rewind 统一调用 | `25f53433` | chat-state 376(+1 新测试,4 压缩 reseed 测试验证重构等价含 total==6525)/ shell 5175(与基线一致);detect_changes low/0 流程 |
 | ③ | auto 模式不再瞬间执行破坏性 `git checkout --`(1.0.22#15,安全) | 根因:`ROUTINE_PREFIXES` 把 "git checkout" 当工作流动词放行,但 `git checkout -- <path>` 丢弃未提交工作树改动。`exec_risk.rs` 新增 `git_checkout_restores_pathspec`(`--` 分隔符为可靠破坏信号;分支切换无 `--`、良性切换有 git switch、git restore 本就不在表),`bash_command_is_routine` 加守卫→Block→走模型 | `b6fb756e` | workspace 1761(+2 新测试,0 失败);detect_changes low/0 流程 |
 | ④ | 模型后端选择修复:config.toml 显式 `chat_completions` 不被同 slug 兄弟覆盖(1.0.22#18,A2/22) | 根因:`resolve_model_list` 第 4 层 slug 传播用 `api_backend == ApiBackend::default()` 当"未设置"判据,而显式 `chat_completions` 与默认值**同值**,故被同 slug donor 的 `responses` 静默覆盖(BYOK 用户明确选的后端被换掉)。原生做法:覆盖循环旁路收集 `explicit_api_backend_keys`(含经 `model_provider` 继承的显式值),backend 分支加 `!contains(key)` 守卫。`ModelInfo` 未派生 `Default` 且构造点众多,故用侧信道 `HashSet` 而非改结构体;`context_window` 分支不动(NonZeroU64 vs 256k 默认可区分,已有守卫) | `187b7131` | 新增 `slug_propagation_does_not_overwrite_explicit_chat_completions_backend`,**红绿双验**(摘掉守卫→left=Responses/right=ChatCompletions 失败);shell --lib 5176 passed / 2 failed(既有 macOS 环境伪失败 memory_writer.rs:416、workflow/registry.rs:849,与基线一致);detect_changes low/0 流程 |
+| ⑤ | 参数完整的截断工具调用照常执行,而非整回合失败(1.0.13#12,A1/309) | **消除我们树内部不一致**:messages.rs 的 stop_reason 重写早已声明"Completed tool_use blocks win even over Refusal: the calls are real model output the agent loop must resolve",但同函数上方的 `final_stop_reason == Length` 早退把这批已完成的 tool_use 整体丢弃。原生做法:sampling-types 立单一真源判据 `ToolCall::arguments_complete`(空参=零参约定非截断证据;其余须可解析,用 `IgnoredAny` 免分配)+ `truncated_tool_calls_are_actionable` + `ConversationResponse::length_truncation_is_actionable`;messages.rs L2 早退与 request_task.rs `drive_l2` 两个终结点共用该谓词,不会各自漂移。**不引入**上游 `LengthPolicy` 三态请求级旋钮:我们树无 `CompletePartial` 消费方,且 `ConversationRequest` 有 43 处结构体字面量构造点,加字段是无收益的大面积改动 | `86fa559f` | 6 个谓词单测 + 2 个 messages L2 流测,**红绿双验**(摘掉守卫→complete_tool_use 测 FAILED);既有纯文本 `model_context_window_exceeded_fails_as_max_tokens_truncation` 仍失败如前;sampler 176 / sampling-types 307,0 failed;detect_changes low/0 流程;impact(stream_messages)=HIGH 但 16 个直接调用者中 15 个是其自身单测 |
+| ⑥ | 会话数据在 prompt 后与掉电时更可靠落盘(1.0.13#9,A1/308) | **消除我们树内部不一致**:JSONL **追加**路径早已 write→flush→sync_file(F_FULLFSYNC)→sync_parent 四步齐全,但**整文件原子重写**路径 `write_bytes_atomic` 只有 `std::fs::write` + rename,两道屏障全缺——而它正是 summary.json / plan_mode / signals / announcement_state / goal state / updates.jsonl 全量重写 / 会话导入列 / 会话索引的落盘口。temp+rename 只保证"旧或新",不保证新内容已落盘:掉电时 rename 已提交而数据未刷→读回 0 字节→我们的读取路径直接判 `InvalidData("summary.json is empty (0 bytes)")`,会话等于丢失。原生做法:拆出注入式 `write_bytes_atomic_with`,**先 sync temp 再 rename、rename 后再 sync 父目录**(替换与首次创建都付,因父目录 sync 失败后的重试无法区分 create/replace);新增共享 `sync_dir_durable`(macOS sync_all+F_FULLFSYNC / 其他 unix sync_all / windows no-op / 其他 Unsupported)+ `sync_parent_dir_durable`;jsonl 的三份 cfg 私有副本收敛为委托(顺带修正追加路径目录 sync 在 macOS 只做 sync_all 的既有不一致);`write_bytes_atomic_async` 改为 `spawn_blocking` 复用同步版(F_FULLFSYNC 可达数十毫秒,不能卡 reactor,且两路径共用一份实现) | `0574edf8` | 6 个注入式屏障契约测试(顺序/替换路径同样付/失败后重试仍付/失败清理 temp 且目标不变)+ `atomic_write_real_barriers_succeed_on_tempdir` 用真屏障跑通 create+replace,实证 macOS 目录 fd 上 F_FULLFSYNC 不被拒;shell --no-fail-fast lib 5182 passed / 2 failed(同既有环境伪失败,+6 为新测试),全部集成二进制 0 failed;detect_changes low/0 流程。**未纳入**:上游同批 `create_dir_all_durable`(目录链首次创建窗口)与 `sync_cwd_marker_if_present`(.cwd 标记),非本条 changelog 语义,另行评估 |
+| ⑦ | 瞬态推理失败(卡死/断连/5xx)自动重试而非结束回合(1.0.13#7,A1/307) | **对账定性:主体已对齐,不新造重试面**——`SamplingError::is_retryable` 已覆盖 Http(timeout/connect)、EventStreamError、StreamError、429+5xx(除 525/526)、EmptyResponse,`DEFAULT_MAX_RETRIES=15` 与上游同值,`IdleTimeout` 判 Fatal 也与上游逐字一致(上游同样不重试 stall,因重试仍会 stall)。真实余量仅一处:`classify_error` 通用可重试分支对所有错误一律走 2s 起指数阶梯,而传输层失败不是服务端拥塞(无 Retry-After 可尊重,且首次重试本就要重建 HTTP 客户端逃离被污染的 HTTP/2 池)。原生做法:新增 `TRANSPORT_REBUILD_BACKOFF=200ms`,退避按错误种类分派——`Http(_)` 走 jittered(200ms),其余不变;只影响 `next_attempt==1` 的 `RetryWithClientRebuild`,状态码错误(5xx=源站确在挣扎)仍走阶梯 | `5e46ce16` | 新增 `classify_transport_error_first_retry_rebuilds_client_fast`(loopback 端口 1 的确定性即时 ECONNREFUSED 造 `reqwest::Error`,因其无公开构造器),**红绿双验**(换掉 match 臂→backoff=2.027s 断言失败);既有 `classify_5xx_first_retry_rebuilds_client` 仍断言 >=1600ms 证明状态码路径未变;sampler 177 / 0 failed;detect_changes low/0 流程;⚠ impact(classify_error)=CRITICAL(17 直接调用者)但 15 个是其自身单测,唯一生产调用者 `apply_retry_decision`,0 流程 |
 
 辨别力记录:`conversation_content_bytes`(mutations.rs)也用 `encrypted_content.len()`,但它是**内存足迹日志测量**
 非 token 估算,base64 校正不适用,故不改——原生实现要按我们架构的语义辨别落点,不是见 base64 就改。
@@ -305,9 +308,9 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 **A1 韧性(★★★,计划 P0;多为"新增逻辑"类,比"重写既有核算"更易原生落地)**
 - 1.0.13#1 截断响应自动续传(不再 fail turn)★★★
-- 1.0.13#7 瞬态推理失败(卡死/断连/5xx)自动重试 ★★★(配 1.0.14#5 重试原因短提示 ★★)
-- 1.0.13#9 会话保存断电加固(prompt 后/掉电更可靠)★★★
-- 1.0.13#12 参数完整的截断工具调用照常执行 ★★
+- 1.0.13#7 瞬态推理失败(卡死/断连/5xx)自动重试 ★★★(配 1.0.14#5 重试原因短提示 ★★)—**主体已对齐,余量已落地 ⑦ `5e46ce16`**;1.0.14#5 短提示待做
+- 1.0.13#9 会话保存断电加固(prompt 后/掉电更可靠)★★★—**已落地 ⑥ `0574edf8`**
+- 1.0.13#12 参数完整的截断工具调用照常执行 ★★—**已落地 ⑤ `86fa559f`**
 - 1.0.13#13 >2000px 大图不再炸会话(多请求)★★(我们有图像输入面)
 - 1.0.14#12 上下文超限的压缩失败降级输入而非原样重试 ★★
 - 1.0.16#7 /mcps 触发的 MCP OAuth 不再死锁 ★★
@@ -321,7 +324,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.18#10 限流请求的重试行为按模型可配 ★★★(与 #6 一次设计)
 - 1.0.18#11 按模型 mTLS 客户端证书 ★★(BYOK 安全相关)
 - 1.0.18#18 子代理会话遵守所选模型的 retry/rate-limit ★★
-- 1.0.22#18 模型后端选择修复(config.toml 显式 chat_completions 不被同 slug 兄弟覆盖)★★★(与 D20 configOf 同区)
+- 1.0.22#18 模型后端选择修复(config.toml 显式 chat_completions 不被同 slug 兄弟覆盖)★★★(与 D20 configOf 同区)—**已落地 ④ `187b7131`**
 
 **A3 Hooks 能力(★★,架构能力扩展;我们已有 hooks 基建)**
 - 1.0.13#2 hook 可请求用户确认工具调用(非仅允许/拒绝)★★
@@ -331,7 +334,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.14#17 每个 SessionEnd hook 独立超时(单个慢 hook 不拖延关闭)★★
 
 **A4 权限/安全(★★★ 安全项优先)**
-- 1.0.22#15 auto 模式不再瞬间执行破坏性 `git checkout --`(走模型)★★★(安全)
+- 1.0.22#15 auto 模式不再瞬间执行破坏性 `git checkout --`(走模型)★★★(安全)—**已落地 ③ `b6fb756e`**
 - 1.0.21#1 权限模式在 plan 模式保持可见、退出恢复 ★★
 - 1.0.22#5 文件编辑权限提示自动展开 diff 行 ★★
 - 1.0.14#13 `--sandbox strict` 限制写入仅 ~/.nofy/sessions ★★
