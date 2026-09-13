@@ -11,7 +11,9 @@
 //! - 429 and any 5xx except 525/526 — covers the Cloudflare edge pages
 //!   (520–524 origin unreachable/timed out, 530 edge 1xxx) and upstream
 //!   overload (529). The rule is `RetryPolicy::edge_client`.
-//! - Connection errors (timeout, refused, reset)
+//! - Connection errors (timeout, refused, reset) — the first retry rebuilds
+//!   the HTTP client and waits only [`TRANSPORT_REBUILD_BACKOFF`], not the
+//!   ladder: a dropped connection is not congestion
 //! - `EventStreamError` / `StreamError` (mid-stream failures)
 //! - `EmptyResponse` (model returned no content/tool calls)
 //!
@@ -62,6 +64,13 @@ pub const DEFAULT_MAX_RETRIES: u32 = 15;
 /// [`RATE_LIMIT_RETRY_THRESHOLD`] attempts (and by the parse-level 120s cap
 /// on the header).
 pub const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(30);
+
+/// Backoff for the first retry of a transport-level failure, where the HTTP
+/// client gets rebuilt (see [`RetryDecision::RetryWithClientRebuild`]). A
+/// dropped or reset connection is not congestion, so this stays near-immediate
+/// instead of entering the exponential ladder; jitter de-syncs concurrent
+/// clients that all lost the same connection.
+pub const TRANSPORT_REBUILD_BACKOFF: Duration = Duration::from_millis(200);
 
 /// Resolve max API retries from an optional env override, model config,
 /// or default ([`DEFAULT_MAX_RETRIES`]).
@@ -264,10 +273,18 @@ pub fn classify_error(
         if next_attempt >= max_retries {
             return RetryDecision::Fatal(clone_error(err));
         }
-        let backoff = err
-            .retry_after()
-            .map(|secs| jittered(Duration::from_secs(secs).min(MAX_RETRY_BACKOFF)))
-            .unwrap_or_else(|| retry_backoff_with_jitter(next_attempt));
+        // A transport-level failure (connection reset/refused/timeout) is not
+        // server congestion: there is no `Retry-After` to honor, and the client
+        // is about to be rebuilt anyway, so waiting out the exponential ladder
+        // only delays a retry that will almost certainly succeed. Status-coded
+        // errors keep the ladder — a 5xx means the origin is struggling.
+        let backoff = match err {
+            SamplingError::Http(_) => jittered(TRANSPORT_REBUILD_BACKOFF),
+            _ => err
+                .retry_after()
+                .map(|secs| jittered(Duration::from_secs(secs).min(MAX_RETRY_BACKOFF)))
+                .unwrap_or_else(|| retry_backoff_with_jitter(next_attempt)),
+        };
         if next_attempt == 1 {
             return RetryDecision::RetryWithClientRebuild { backoff };
         }
@@ -707,6 +724,35 @@ mod tests {
         match classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD) {
             RetryDecision::RetryWithClientRebuild { backoff } => {
                 assert!(backoff >= Duration::from_millis(1600));
+            }
+            other => panic!("expected RetryWithClientRebuild, got {other:?}"),
+        }
+    }
+
+    /// A transport-level failure retries near-immediately with a rebuilt
+    /// client: a dropped or refused connection is not congestion, so waiting
+    /// out the exponential ladder would only delay a retry that will almost
+    /// certainly succeed. Loopback port 1 is used because `reqwest::Error` has
+    /// no public constructor and a refused connect is immediate and deterministic.
+    #[tokio::test]
+    async fn classify_transport_error_first_retry_rebuilds_client_fast() {
+        let reqwest_err = reqwest::Client::new()
+            .get("http://127.0.0.1:1/")
+            .send()
+            .await
+            .expect_err("loopback port 1 must refuse the connection");
+        let err = SamplingError::Http(reqwest_err);
+        assert!(err.is_retryable(), "a connect error must be retryable");
+        match classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD) {
+            RetryDecision::RetryWithClientRebuild { backoff } => {
+                assert!(
+                    backoff >= Duration::from_millis(160),
+                    "must stay jittered around TRANSPORT_REBUILD_BACKOFF: {backoff:?}"
+                );
+                assert!(
+                    backoff < Duration::from_secs(1),
+                    "transport rebuild must not wait out the exponential ladder: {backoff:?}"
+                );
             }
             other => panic!("expected RetryWithClientRebuild, got {other:?}"),
         }
