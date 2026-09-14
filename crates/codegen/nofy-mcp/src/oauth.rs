@@ -115,7 +115,17 @@ pub async fn authenticate_mcp_server_dedup(
                 if let Some(result) = snapshot {
                     if result.is_ok() {
                         let mut mgr = auth_manager.lock().await;
-                        let _ = mgr.initialize_from_store().await;
+                        // The leader authenticated, but *this* manager still has
+                        // to pick the credentials up from the store. Swallowing a
+                        // failure here reports success while handing back a
+                        // manager with no token, so the next request dies on a
+                        // confusing auth error — or silently re-opens a browser
+                        // flow the user never asked for. Surface it instead.
+                        if let Err(e) = mgr.initialize_from_store().await {
+                            return Err(format!(
+                                "Auth for '{server_name}' completed elsewhere but this manager failed to hydrate the stored credentials: {e}"
+                            ));
+                        }
                     }
                     return result;
                 }
