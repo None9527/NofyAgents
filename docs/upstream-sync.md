@@ -296,6 +296,18 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 | ⑬ | MCP OAuth 进程内去重的凭据水合失败不再被吞掉(核实 1.0.16#7 时挖出的真缺口) | 核实该条 changelog 时分出三层,本项是第三层。①**死锁本条早已对齐且我们更完整**:上游在 oauth.rs 内用 `discover_metadata_bounded`(5s)包住发现,我们在 servers.rs:1036 有同名同值 `OAUTH_DISCOVERY_TIMEOUT = 5s`,在调用点 4394-4398 包住 `discover_and_prepare_auth`,超时后除 warn 外**额外发 `McpOAuthDiscoveryTimeout` 事件给 UI**(上游没有)。②**legacy 端点拒绝不可移植**:上游把 `LegacyEndpointFallback` 判为 `NoAuthorizationSupport`,但我们 vendored 的 rmcp 没有 `resolve_metadata`/`AuthorizationMetadataSource` 这套 API(全域零匹配),属钉版差异需先升 rmcp。③**真缺口**:oauth.rs 去重分支里跟随者等到 leader 认证成功后执行 `let _ = mgr.initialize_from_store().await`——**返回值被丢弃**;上游对应处是 `if !ensure_oauth_ready(..).await.hydrated { return Err(..) }`。store 损坏/竞态/权限问题致水合失败时我们仍返回 Ok,把一个**没有 token 的 manager** 交回调用方,下一次请求要么死于令人困惑的 auth 错误,要么静默重开一次用户没要求的浏览器授权流。改为水合失败即返回带服务器名的明确错误 | `754d0e28` | 唯一调用方 servers.rs:2983 本就用 `if let Err(e)` 接住、warn 后 `return false`,故这是把"假成功"变成"调用方早已能处理的真失败",无需改调用方(已人工核对)。nofy-mcp 180 passed / 0 failed(与基线一致)+ 另一二进制 3 / 0;`cargo check -p nofy-mcp --all-targets` 零错误;impact=LOW。⚠ detect_changes 返回 "No changes detected / risk none"——gitnexus 索引未覆盖 nofy-mcp(与 ⑫ 的 nofy-sandbox 同一盲区),**不作为安全性证据** |
 | ⑭ | MCP 启动不再卡在固定 8 并发批次(1.0.13#19 性能,核实 A5 时确认的真缺口) | `start_mcp_servers` 用 `buffer_unordered(8)`。固定 8 个槽位意味着配了 9 个以上 MCP server 时,第 9 个必须等前面某个腾出槽位才能**开始**——哪怕前 8 个只是慢。而"慢"在这里是常态:OAuth 发现本身就有 5s 预算(servers.rs:1036),stdio server 的 init 握手要等子进程起来,任何一个卡住都把整条尾巴押后。改为不设上限的 `join_all`,理由(上游注释 + 我们的具体触发条件):数量由配置界定(非无界输入)、工作是 I/O 密集(故并发数不需对齐核数)、而任何上限都是一个要排在卡住的服务器后面等的槽位。`server_name` 需 `.to_owned()`,因 `async move` 否则会在把 `server` 移进 `start_mcp_server` 的同时借用它。**返回顺序不变**:`buffer_unordered` 完成顺序乱但 `collect::<Vec<_>>()` 按原流序收集,`join_all` 同样按入参序返回,故 4 个调用方(extensions/mcp.rs:785、session/mcp_servers.rs:90 与 131、nofy-workspace/handle.rs:2643)无需改动 | `7a276928` | nofy-mcp 180 passed / 0 failed(与基线逐字一致)+ 另一二进制 3 / 0;改后全树 `buffer_unordered(` 在 nofy-mcp 与 nofy-shell/session 下仅剩本提交注释里的那一处提及。impact=LOW;⚠ detect_changes 对 nofy-mcp 仍返回 "No changes detected"(索引盲区,与 ⑫⑬ 同),故以 183 个测试 + 4 个调用方人工核对为准 |
 
+> ⚠ **工具可靠性记录（重建索引后定论，影响以后每次提交前的验证方式）**
+>
+> 2026-09-14 跑了 `npx gitnexus analyze` 重建索引（原索引停在 `cee815e`/9-03，落后约 350 个提交；重建后 203191 nodes / 430253 edges / 300 flows，`status` 报 up-to-date，`Agents.md`、`Claude.md` 已同步且两者均被 gitignore）。**但重建并未修好 `detect_changes` 在 `nofy-sandbox` / `nofy-mcp` 上的假阴性**——根因不是陈旧也不是覆盖不全，而是调用图解析缺陷：
+>
+> - `context({name: "essential_writable_paths"})` 返回 `incoming: {}`（**零入边**），但 `profiles.rs:355` 与 `:439` 确实直接调用它（已人工读过源码）。
+> - `context({name: "authenticate_mcp_server_dedup"})` 同样 `incoming: {}`，但 `servers.rs:2983` 确实调用它。
+> - 两者的 `outgoing.calls` 都含**跨语言伪边**：前者指向 `desktop/src/src-reconstructed/renderer/assets/katex-*.jsx:e.extend#1`（KaTeX 的 JS 方法），后者指向 `nofy-desktop/packages/acp/scripts/gen-ext-names.ts:drop`——均为裸名匹配误中。
+> - 对照：`nofy-shell` 与 `nofy-sampler` 的入边解析正常（`impact(resolve_model_list)`=72 直接调用者、`impact(classify_error)`=17、`impact(sampling_config_for_model)`=11 含 3 个跨文件生产调用者）。故缺陷是**按 crate 分布的**，不是全局的。
+> - 索引确实含这两个 crate（`meta.json` 的 `fileHashes` 里 nofy-mcp 12 个文件、nofy-sandbox 15 个；符号能查到且行号区间正确），所以不是"没索引"。
+>
+> **结论与做法**：`impact(direction:upstream)` 与 `detect_changes` 都依赖入边，故在 `nofy-sandbox` / `nofy-mcp` 上会给出 "0 callers / No changes detected / risk none" 的**假阴性**，重建索引不能修好。在这两个 crate 上改代码时，**不得把 gitnexus 结论当安全性证据**；改用：① `grep` 人工枚举真实调用方并逐个核对其错误处理；② 跑该 crate 全量测试；③ 红绿双验。⑫⑬⑭ 三次提交均已按此做，并在提交说明里明确标注了盲区。另：`outgoing` 的跨语言伪边会**虚增** impact 计数，故 HIGH/CRITICAL 评级也需看具体调用者名单而非只看数字（本会话多次遇到：报 CRITICAL 但绝大多数调用者是符号自身的单测）。
+
 辨别力记录:`conversation_content_bytes`(mutations.rs)也用 `encrypted_content.len()`,但它是**内存足迹日志测量**
 非 token 估算,base64 校正不适用,故不改——原生实现要按我们架构的语义辨别落点,不是见 base64 就改。
 
