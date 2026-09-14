@@ -4461,17 +4461,19 @@ pub async fn start_mcp_servers(
         );
     }
 
-    futures::stream::iter(mcp_servers)
-        .map(|server| {
-            let server_name = mcp_server_name(&server);
-            let overrides = overrides_map.get(server_name);
-            let mc = meta_config_map.get(server_name);
-            let byo = oauth_config_map.get(server_name);
-            start_mcp_server(server, overrides, mc, byo, ctx)
-        })
-        .buffer_unordered(8)
-        .collect::<Vec<_>>()
-        .await
+    // Uncapped on purpose (one future per server): the count is
+    // config-bounded, the work is I/O-bound, and any cap is a slot to wait
+    // on behind a stalled server. A fixed `buffer_unordered(N)` made the
+    // (N+1)th server wait for a slot even when every one of the first N was
+    // merely slow — one hung OAuth discovery could hold up the whole tail.
+    futures::future::join_all(mcp_servers.into_iter().map(|server| {
+        let server_name = mcp_server_name(&server).to_owned();
+        let overrides = overrides_map.get(&server_name);
+        let mc = meta_config_map.get(&server_name);
+        let byo = oauth_config_map.get(&server_name);
+        async move { start_mcp_server(server, overrides, mc, byo, ctx).await }
+    }))
+    .await
 }
 
 /// Extract the name from an MCP server enum variant.
