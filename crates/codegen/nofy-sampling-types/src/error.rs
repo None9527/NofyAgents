@@ -796,6 +796,14 @@ pub fn try_parse_stream_error(data: &str) -> Option<SamplingError> {
 /// True when an error message indicates a context-window overflow. Backends report
 /// this inconsistently with no stable error code, so we match the message text; it's
 /// deterministic (re-sending the same payload always fails), so callers must not retry.
+///
+/// **Not the same predicate as [`SamplingError::is_context_length_error`]** despite
+/// the shared name. This free function sees only a string: it has no HTTP status and
+/// no [`ApiErrorCode`], so it cannot apply the 429 exception or the structured size
+/// code, and it will happily report a rate limit whose message quotes size wording as
+/// an overflow. Prefer the method whenever you hold a `SamplingError`; use this only
+/// where a bare message is all there is (e.g. an SSE error event whose `code` slot
+/// carried no status), and pair it with an explicit status guard.
 pub fn is_context_length_error(message: &str) -> bool {
     let m = message.to_ascii_lowercase();
     m.contains("too long for this model")

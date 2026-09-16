@@ -1000,7 +1000,20 @@ impl SessionActor {
         } else {
             detailed_message
         };
-        let error_type = if nofy_sampling_types::is_context_length_error(&error.message) {
+        // A 429 is a rate limit, not a context overflow, even when its message
+        // quotes the provider's size wording — labelling it `context_length`
+        // sends telemetry and the user-visible retry state down the wrong
+        // diagnostic path. Otherwise prefer the structured size code, then fall
+        // back to the text match for providers that stamp no code.
+        let size_coded = error
+            .error_code
+            .as_ref()
+            .is_some_and(nofy_sampling_types::ApiErrorCode::is_size_overflow);
+        let error_type = if error.status_code
+            == Some(reqwest::StatusCode::TOO_MANY_REQUESTS.as_u16())
+        {
+            error.kind.as_str()
+        } else if size_coded || nofy_sampling_types::is_context_length_error(&error.message) {
             "context_length"
         } else {
             error.kind.as_str()

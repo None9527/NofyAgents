@@ -64,6 +64,18 @@ pub(crate) use nofy_sampling_types::is_context_length_error;
 /// and stuck-model conditions all persist). 4xx API responses other than
 /// 408 (timeout) and 429 (rate limit) are likewise deterministic. Network
 /// transport errors, stream-level blips, and 5xx responses are transient.
+///
+/// **429 is transient unconditionally here.** That is deliberately stronger
+/// than [`nofy_sampling_types::SamplingError::is_context_length_error`], whose
+/// 429 exception is gated on a `Retry-After` header being present. The two
+/// answer different questions: that method feeds `is_retry_vetoed` ("should the
+/// retry loop give up?"), where `Retry-After` is the server's explicit
+/// wait-and-retry signal; this classifier answers "would re-sending the same
+/// payload necessarily fail again?", and a rate limit never qualifies — the
+/// quota refills. Note also that the *free function*
+/// [`nofy_sampling_types::is_context_length_error`] imported below is pure text
+/// matching with no status or code awareness, so it must never be the sole
+/// authority on an `Api` error that carries a status.
 fn classify_sampling_error(err: SamplingError) -> CompactFailure {
     let acp_err = acp::Error::internal_error().data(format!("compact failed: {err}"));
     let deterministic = match &err {
@@ -72,12 +84,30 @@ fn classify_sampling_error(err: SamplingError) -> CompactFailure {
         | SamplingError::Serialization(_)
         | SamplingError::IdleTimeout { .. } => true,
         SamplingError::Api {
-            status, message, ..
+            status,
+            message,
+            error_code,
+            ..
         } => {
-            is_context_length_error(message)
-                || (status.is_client_error()
-                    && *status != StatusCode::REQUEST_TIMEOUT
-                    && *status != StatusCode::TOO_MANY_REQUESTS)
+            // A 429 is a rate limit by definition: the quota refills, so
+            // re-issuing after a backoff can succeed. Its message routinely
+            // quotes the provider's quota or size wording ("too long for this
+            // model", "maximum context length"), so the text check must not be
+            // allowed to reclassify it as a deterministic overflow — that is
+            // exactly what made TPM limits during compaction bail instead of
+            // retry, stranding a session that was over its window for a
+            // transient reason.
+            if *status == StatusCode::TOO_MANY_REQUESTS {
+                false
+            } else {
+                // A structured size code is the reliable signal; the text match
+                // is the fallback for providers that stamp no code.
+                error_code
+                    .as_ref()
+                    .is_some_and(nofy_sampling_types::ApiErrorCode::is_size_overflow)
+                    || is_context_length_error(message)
+                    || (status.is_client_error() && *status != StatusCode::REQUEST_TIMEOUT)
+            }
         }
         SamplingError::MaxTokensTruncation => true,
         SamplingError::Http(_)
@@ -111,14 +141,20 @@ fn classify_response_event_error(code: Option<&str>, message: &str) -> CompactFa
     if matches!(code, Some("invalid_request_error")) || message.contains("invalid_request_error") {
         return CompactFailure::Deterministic(acp_err);
     }
-    if let Some(status_code) = code.and_then(|c| c.parse::<u16>().ok())
-        && (400..500).contains(&status_code)
-        && status_code != 408
-        && status_code != 429
+    let status_code = code.and_then(|c| c.parse::<u16>().ok());
+    if let Some(sc) = status_code
+        && (400..500).contains(&sc)
+        && sc != 408
+        && sc != 429
     {
         return CompactFailure::Deterministic(acp_err);
     }
-    if is_context_length_error(message) {
+    // Same rule as `classify_sampling_error`: a 429 is transient by definition,
+    // and rate-limit messages routinely quote size wording, so the text check
+    // must not be allowed to reclassify one as a deterministic overflow.
+    if status_code != Some(StatusCode::TOO_MANY_REQUESTS.as_u16())
+        && is_context_length_error(message)
+    {
         return CompactFailure::Deterministic(acp_err);
     }
     CompactFailure::Transient(acp_err)
@@ -852,6 +888,83 @@ mod classify_tests {
         assert!(!det(StatusCode::BAD_GATEWAY));
         assert!(!det(StatusCode::SERVICE_UNAVAILABLE));
     }
+    /// A TPM/rate-limit 429 whose message quotes the provider's size wording is
+    /// still transient. The text check used to be the first `||` disjunct with no
+    /// status guard, so it reclassified such an error as a deterministic context
+    /// overflow and compaction bailed instead of backing off and retrying.
+    #[test]
+    fn sampling_api_429_with_context_length_wording_is_transient() {
+        for message in [
+            "request is too long for this model, try again later",
+            "prompt is too long: rate limit exceeded",
+            "maximum context length reached for this tier",
+            "context_length_exceeded",
+        ] {
+            let err = SamplingError::Api {
+                status: StatusCode::TOO_MANY_REQUESTS,
+                message: message.into(),
+                model_metadata: None,
+                retry_after_secs: None,
+                should_retry: None,
+                error_code: None,
+            };
+            assert!(
+                !is_det(&classify_sampling_error(err)),
+                "a 429 must stay transient even when its message reads like an overflow: {message}"
+            );
+        }
+        // The same wording on a non-429 is still a deterministic overflow.
+        let overflow = SamplingError::Api {
+            status: StatusCode::BAD_REQUEST,
+            message: "prompt is too long".into(),
+            model_metadata: None,
+            retry_after_secs: None,
+            should_retry: None,
+            error_code: None,
+        };
+        assert!(is_det(&classify_sampling_error(overflow)));
+    }
+
+    /// A structured size code is the reliable overflow signal, so it classifies
+    /// deterministically even when the message wording is unfamiliar.
+    #[test]
+    fn sampling_api_size_code_is_deterministic_without_message_match() {
+        let err = SamplingError::Api {
+            status: StatusCode::BAD_REQUEST,
+            message: "some unfamiliar provider wording".into(),
+            model_metadata: None,
+            retry_after_secs: None,
+            should_retry: None,
+            error_code: Some(nofy_sampling_types::ApiErrorCode::ContextOverflow(
+                "exceed_context_size_error".into(),
+            )),
+        };
+        assert!(is_det(&classify_sampling_error(err)));
+    }
+
+    /// The stream-event classifier obeys the same 429 rule. Its numeric-status
+    /// branch already excluded 429, but the trailing text check did not.
+    #[test]
+    fn response_event_429_with_context_length_wording_is_transient() {
+        assert!(
+            !is_det(&classify_response_event_error(
+                Some("429"),
+                "request is too long for this model"
+            )),
+            "a 429 event must stay transient"
+        );
+        // A non-numeric code leaves the text check as the only signal, so it
+        // still fires — the guard is on 429, not on the text check itself.
+        assert!(is_det(&classify_response_event_error(
+            Some("rate_limit_exceeded"),
+            "maximum context length"
+        )));
+        assert!(is_det(&classify_response_event_error(
+            None,
+            "maximum context length"
+        )));
+    }
+
     #[test]
     fn sampling_non_api_variants_classify_correctly() {
         assert!(is_det(&classify_sampling_error(
