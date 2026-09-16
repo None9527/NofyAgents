@@ -121,3 +121,142 @@ xai-dirs(上游后续若依赖再取)、otel 降维(只取 W3C trace-context 传
 历史速率:批13–批23 共 11 批 / 2 天(专注投入)。本缺口 9–10 批、含三个大集群,
 预估 **2–3 周**;P0 链(批24→27)约 1 周,先拿到「自动重试韧性」与「模型管理面」
 两大收益,其中批31 的 chat_completions 修复与 D20 收尾互为对照。
+
+## 8. 重新评估（2026-09-17）：缺口已前移，方法必须改
+
+### 8.1 缺口现状
+
+`git fetch upstream` 后上游已从台账锚点 `37949780`（1.0.24）前进到 **`48271133`**，
+中间只有 **1 个 squash 提交**（"Synced from monorepo"），覆盖 **1.0.25 → 1.0.32 共 8 个版本**。
+规模：**1650 files changed, +122644 / −49180**。
+
+按目录分布（决定可吸收比例）：
+
+| 区域 | 文件数 | 处置 |
+|---|---|---|
+| `xai-grok-pager` + `pager-render` + `pager-minimal` + `pager-pty-harness` | 482 (29%) | **整体跳过**（A8，用户指示） |
+| `xai-grok-telemetry` | 89 | 多为云/mixpanel，**红线跳过**，逐项甄别 |
+| `xai-grok-shell` | 372 | 主战场 |
+| `xai-grok-tools` | 129 | 逐项甄别 |
+| `xai-grok-workspace` + `workspace-types` | 98 | 权限/沙箱，高价值 |
+| `xai-grok-test-support` | 65 | 测试基建，按需 |
+| `xai-fast-worktree` | 36 | 待评估（我们树是否有对应物） |
+| `memory` / `agent` / `markdown` / `config` / `sampler` / `chat-state` / `sampling-types` | 123 | 内核，高价值 |
+
+即：**约 29% 直接跳过（pager），约 5% 红线（telemetry），其余 ~66% 需逐项甄别。**
+
+⚠ 上游索引 `/Users/mac/nofy-upstream` 目前停在 `37949780`，**已落后于 `48271133`**。
+下次动手前需在该 worktree 里 `git checkout 48271133 && npx gitnexus analyze` 重建。
+
+### 8.2 方法必须改：旧方法的假阳性率已被实测
+
+批25 的「待合并项逐项决定」是**照 changelog 文本枚举再分类**产出的。本会话对它做了核实，结果：
+
+- **A1 韧性 11 项里，"剩余 6 项"有 5 项是错的**：3 项其实是 pager UX（归类错）、
+  1 项早已完整实现（1.0.14#12 压缩降级阶梯）、1 项钉版不可移植（rmcp 无 `resolve_metadata`）。
+- 另有 3 项在动手前被核实为已对齐：批24 的 monitor 超时、1.0.13#7 瞬态重试主体、1.0.19#10 输出泵背压。
+- **台账的 `1.0.xx#N` 编号与上游 changelog 行号不对应**（是早前自行枚举的序号），
+  例：台账"1.0.13#18"指 MCP 启动加速，上游 1.0.13 第 18 行是截断错误提示。
+
+结论：**照 changelog 列清单 → 分类 → 执行**这条路，假阳性/错归率约 80%，
+照单执行会把已存在的东西重做一遍、把 UX 当内核做。
+
+新方法（本会话已验证有效，⑫⑬⑭ 均按此产出）：
+
+1. **按内容匹配，不按编号**。先从上游 changelog 取原文句子，再定位实现。
+2. **双索引对账**。现在有 `/Users/mac/nofy-build` 与 `/Users/mac/nofy-upstream` 两份索引，
+   可对上游符号查 `context`/`impact` 找到实现落点与调用图，再对我们树查同名/同职责符号，
+   判断是「已对齐 / 真缺口 / 钉版不可移植 / 属 pager」。**定位必须传绝对路径**（两条注册项同名）。
+3. **先核实再动手**，核实结论（含"已对齐"）一律写回台账，避免下次重查。
+4. 在 `nofy-sandbox` / `nofy-mcp` 上**不得采信 gitnexus 结论**（入边解析缺陷，重建索引也没修好），
+   改用 grep 枚举调用方 + 全量测试 + 红绿双验。
+
+### 8.3 新批次（1.0.25–1.0.32）内核候选，按价值分层
+
+**T0 — 与本会话已落地工作直接接续，且已核实为真缺口：**
+
+| 项 | 上游原文 | 为什么是 T0 |
+|---|---|---|
+| **1.0.26 TPM 限流不再当上下文溢出** | "TPM rate-limit errors during compaction are now retried instead of treated as context overflow." | **已核实为真缺口，且是原生⑨ 留下的自相矛盾**，见 8.4 |
+| **1.0.28 per-model `reasoning_summary`** | "Per-model `reasoning_summary` setting is now available in config.toml for Responses API endpoints." | 已核实：我们树 `reasoning_summary` 只出现在测试夹具与 SSE 事件类型里（能收 delta，无配置旋钮）；上游 `config.rs` 有 12 处。⑧⑩ 已铺好 per-model 配置管道，属顺路 |
+
+**T1 — 内核韧性/正确性，未核实：**
+
+- 1.0.25 **启动设置与模型目录在并发启动/同机多账号间被共享或互相覆盖**（与 ④ 模型目录解析同区）
+- 1.0.29 **同 `GROK_HOME` 下多个并发 `agent stdio` 启动即崩**（与 ⑬ OAuth 去重、桌面 MCP 同区）
+- 1.0.25 headless prompt 超时干净退出而非永久挂起
+- 1.0.26 Memory v2 从 init 失败恢复、反复出错后不再卡住捕获
+- 1.0.26 回合早期 Ctrl+C 正确 rewind 无竞态（与原生② rewind 同区）
+- 1.0.26 失败的后台任务不再重复提醒
+- 1.0.25 `grok -c` 挂错空会话
+- 1.0.25 读含 PNG 缩略图前缀的 Adobe SVG 导致图像上传失败（与 ⑨ 图像分类同区）
+- 1.0.25 慢文件系统上扫 skills 目录导致嵌入式启动超时
+- 1.0.31 长 server 前缀的 MCP 工具被静默丢弃（能力静默丢失）
+- 1.0.31 回合取消横幅正确写出原因而非一律"by user"
+
+**T2 — 协议/表面，需先判定红线与钉版：**
+
+- 1.0.29 MCP 连接对 `2026-07-28` 版服务器不再失败（与 D 类 elicitation 钉版同区，可能需升 rmcp）
+- 1.0.26 legacy MCP server 正确声明 elicitation 支持（同上）
+- 1.0.25 后台任务列表作为可持久快照下发（断线重连恢复）
+- 1.0.25 workflow 工具支持 pause/stop source（**我们树已有 workflow 工具**）
+- 1.0.25 重复用户 prompt 渲染（live echo 改为 opt-in）——协议行为变更，需决策
+- 1.0.32 `x.ai/plugins/list`、`x.ai/skills/*` 反映最新 config.toml
+- 1.0.26 subagent interject 打断长时后台等待（**D 类曾把 interjection 判为 defer，需重评**）
+
+**跳过：** 1.0.27 全部（2 项皆 UX）、1.0.30 全部（5 项皆 UX）、
+所有 pager/dock/dashboard/vim/theme/prompt-editor 项、`/feedback`（云红线）、
+voice（已删）、auto-update（已删）、1.0.29/1.0.32 的 Windows 专项崩溃
+（ProjFS、TLS ARM64——我们不发 Windows 构建则无收益）。
+
+### 8.4 已核实的真缺口：compaction 把 TPM 限流误判为确定性上下文溢出
+
+**这是原生⑨ 留下的自相矛盾，优先级最高。**
+
+⑨ 给 `SamplingError::is_context_length_error()`（**方法**）加了 error_code 路径与
+「429 带 Retry-After 且无结构化尺寸码时不判上下文超限」的例外。但同文件里还有一个
+**自由函数** `is_context_length_error(message: &str)`（error.rs:799-807），纯文本匹配，
+**没有**这两个能力。而 compaction 分类器用的正是自由函数：
+
+- `session_compact.rs:58` `pub(crate) use nofy_sampling_types::is_context_length_error;`
+- `session_compact.rs:77`（`classify_sampling_error` 的 `Api` 臂）
+- `session_compact.rs:120`（`classify_response_event_error` 的收尾判定）
+
+两处的状态码分支**都已排除 429**（`*status != TOO_MANY_REQUESTS` / `status_code != 429`），
+但**文本判定那一支没有排除**，且它是 `||` 的第一项 / 收尾的独立 `if`。于是：
+
+> 一个 429（TPM 限流），只要 message 里含 "too long for this model" / "prompt is too long" /
+> "maximum context length" 之类措辞——而限流错误引用配额与尺寸措辞极常见——
+> 就会被判 `CompactFailure::Deterministic`，**压缩直接放弃、不重试**。
+
+后果与上游 1.0.26 描述一致：会话卡在上下文超限状态，而真正的病因是瞬时限流，
+退避重试本可恢复。
+
+**设计的修法**（尚未实施）：在 compaction 分类器里确立一条比 ⑨ 方法版更强的规则——
+**429 永远不是确定性上下文溢出**。理由是二者回答的是不同问题：
+
+- ⑨ 的方法版服务 `is_retry_vetoed`（"重试环该不该放弃"），上游以 `Retry-After` 存在与否
+  作为"服务端明确要求等待"的信号，故例外带该前提；
+- compaction 分类器回答"这是不是一次重发同样载荷也必然失败的溢出"，而 429 按定义是限流、
+  是瞬态的，配额会恢复，故**无论有无 Retry-After、无论 message 怎么写，都不该判 Deterministic**。
+
+具体：`classify_sampling_error` 的 `Api` 臂改为先判 `*status == TOO_MANY_REQUESTS → false`，
+否则走 `error_code.is_size_overflow() || is_context_length_error(message) || (4xx 且非 408)`；
+`classify_response_event_error` 的 line 120 文本判定同样加 429 守卫。
+两处都应改为消费 ⑨ 的 `error_code`（目前 `Api { status, message, .. }` 把 `error_code` 丢在 `..` 里）。
+并把方法版与自由函数版的关系在 doc 里写明，避免第三次出现同名不同义。
+
+### 8.5 修订节奏
+
+原估「9–10 批 / 2–3 周」是基于旧缺口（1.0.11尾差→1.0.24）与旧的照单执行法。
+按 8.2 的新方法，**核实成本前置但执行量大幅下降**（A1 实测 6 项里只有 1 项真需做）。
+
+建议顺序：
+
+1. **先修 8.4**（已核实、小、且是自身一致性缺陷）
+2. **1.0.28 per-model `reasoning_summary`**（已核实、⑧⑩ 管道现成）
+3. T1 逐项核实（预计再淘汰一半），核实完再动手
+4. T2 先判红线/钉版，再决定
+5. 重建上游索引到 `48271133` 后再做需要查上游调用图的项
+
+每轮结束把核实结论（含"已对齐"与"归类错误"）写回台账，这是本会话最有效的产出形式。
