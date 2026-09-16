@@ -327,6 +327,26 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 | ⑮ | compaction 不再把 TPM 限流误判为确定性上下文溢出(1.0.26,重新评估时核实出的 T0) | **修的是原生⑨ 留下的自相矛盾**。⑨ 给 `SamplingError::is_context_length_error()`（**方法**）加了 error_code 路径与 429 例外，但同文件的**自由函数** `is_context_length_error(message)`(error.rs:799) 纯文本匹配、两个能力都没有，而 compaction 分类器用的正是自由函数(session_compact.rs:58 导入，:77 与 :120 调用)。两处的状态码分支**都已排除 429**，但文本判定那一支没有——而且它在 `classify_sampling_error` 里是 `||` 的**第一项**。于是一个 429(TPM 限流)只要 message 含 "too long for this model"/"maximum context length" 之类措辞(限流错误引用配额与尺寸措辞极常见)，就被判 `Deterministic`——**压缩直接放弃、不退避重试**，会话因此卡在上下文超限状态，而真正病因是瞬态限流、配额刷新后本可恢复。原生做法（**三处消费点全部闭合**，不止 changelog 指的那一处）：① `classify_sampling_error` 的 Api 臂—429 一律 `false`，否则 `error_code.is_size_overflow() || 文本 || (4xx 且非 408)`；顺带把 ⑨ 加的 `error_code` 接上（原先被丢在 `..` 里，compaction 分类器完全没用上结构化码）。② `classify_response_event_error` 同一 bug 第二处：数字状态码分支早已排除 429，但**收尾那个独立的文本 if 没有**；守卫针对 429 而非砍掉文本检查（非数字 code 时文本判定仍生效）。③ `sampler_turn.rs:1003` 的 `error_type` 标签—grep 全树发现的**第三个消费点**，不在原计划内；它给遥测与用户可见 `RetryState` 选标签，同样会把 429 误标 `context_length` 把诊断引向错误方向。④ `error.rs` 自由函数 doc 明写它与方法版**同名不同义**，防止第三次出现。**刻意未改**：方法版的 429 例外仍要求 `retry_after_secs.is_some()`。两者答的是不同问题——方法版服务 `is_retry_vetoed`(“重试环该不该放弃”，Retry-After 是服务端明确要求等待的信号)，compaction 分类器答“重发同样载荷是否必然再次失败”，而 429 按定义瞬态。该区分写进 doc 而非强行统一(统一会偏离上游语义且无证据支持) | `5b37d12d` | 3 个新测试(4 种限流措辞×429 全保持瞬态且同措辞配 400 仍判确定性、结构化码在措辞陌生时仍能判定、事件分类器同规则含非数字 code 对照);**红绿双验**(429 守卫换成 `if false` → FAILED "a 429 must stay transient even when its message reads like an overflow");既有 `sampling_api_4xx_is_deterministic_except_408_and_429`、`sampling_api_500_with_context_length_message_is_deterministic`(证明守卫未放宽过头)、`response_event_context_length_message_is_deterministic`、`response_event_numeric_codes_match_http_classification` 全数保持;sampling-types 319 / 0 failed;shell lib 5194 passed / 2 failed(同既有 macOS 环境伪失败,+3 为新测试),38 个测试二进制 ok;`cargo check -p nofy-shell -p nofy-sampling-types --all-targets` 零错误;impact(classify_sampling_error)=LOW(3 直接调用者:1 生产+2 测试,0 流程);detect_changes low/0 流程 |
 
+> ⚠ **工具可靠性记录的更正（2026-09-17，全量重建后实测）**
+>
+> 上方那条记录把缺陷定性为「按 crate 分布的入边解析失败（nofy-sandbox / nofy-mcp），nofy-shell 与 nofy-sampler 正常」。**这个定性是错的**，在一次完整全量重建（203377 nodes / 430880 edges，`ANALYZE_EXIT=0`，indexed commit = current = `0745b76`）之后重测，真实情况更差：
+>
+> | 符号 | 所在 crate | incoming | outgoing | 实际情况 |
+> |---|---|---|---|---|
+> | `essential_writable_paths` | nofy-sandbox | **`{}` 零入边** | 2 条（含 1 条指向 KaTeX JS 的跨语言伪边） | `profiles.rs:355` 与 `:439` 确实调用它 |
+> | `classify_sampling_error` | **nofy-shell** | 3 条（正确：1 生产 + 2 测试） | **`{}` 零出边** | 它确实调用 `is_context_length_error`、`acp::Error::internal_error` 等多个函数 |
+>
+> 所以缺陷**不是按 crate 分布的，也不只是入边**：它是**双向的、按符号零散分布的调用图解析不完全**。同一个 nofy-shell 里，一个符号入边完整而出边为空，另一个 crate 里的符号出边有值（但含伪边）而入边为空。全量重建**不能**修好它。
+>
+> **因此结论比原记录更强，适用于全仓而不只两个 crate**：
+> - gitnexus 的调用图结论只能当**下界**用：报出的调用者是真的，但空集**不代表不存在**。
+> - `impact` 的 HIGH/CRITICAL 评级与 `detect_changes` 的 "0 affected processes" / "risk none" **均不得单独作为安全性证据**，无论哪个 crate。
+> - 必须配套：`grep` 人工枚举调用方 + 该 crate 全量测试 + 红绿双验。
+>
+> **本会话已落地提交的正确性不依赖 gitnexus**：③–⑮ 每一项的验证都是全量测试 + 红绿双验 + 人工核对调用方，三者都与索引无关。gitnexus 结果在提交说明里始终是作为额外信号引用、并在盲区处明确标注，没有任何一项拿 "risk none" 当过通过依据。
+>
+> 另记一次操作事故（与工具无关，是命令写法错）：用 `npx gitnexus analyze 2>&1 | tail -6` 刷索引，`tail` 截断了输出且管道吞掉了退出码（任务报 exit 0 实为 `tail` 的），analyze 实际中途停止，把索引留在 `incrementalInProgress` 脏状态并丢了主 DB 文件、留下孤儿 sidecar（`lbug.shadow`、`lbug.wal.checkpoint`）。gitnexus 自行检测到并强制全量重建自愈（清理孤儿 sidecar + 73.8s 重建成功）。**与本会话早先 `cargo test ... | tail -30` 掩盖失败是同一错误模式**：管道尾部截断 + 不查真实退出码。正确写法：输出重定向到文件、显式 `echo EXIT=$?`、不用 tail 截断管道。
+
 辨别力记录:`conversation_content_bytes`(mutations.rs)也用 `encrypted_content.len()`,但它是**内存足迹日志测量**
 非 token 估算,base64 校正不适用,故不改——原生实现要按我们架构的语义辨别落点,不是见 base64 就改。
 
