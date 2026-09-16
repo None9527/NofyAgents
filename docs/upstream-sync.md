@@ -308,6 +308,23 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 >
 > **结论与做法**：`impact(direction:upstream)` 与 `detect_changes` 都依赖入边，故在 `nofy-sandbox` / `nofy-mcp` 上会给出 "0 callers / No changes detected / risk none" 的**假阴性**，重建索引不能修好。在这两个 crate 上改代码时，**不得把 gitnexus 结论当安全性证据**；改用：① `grep` 人工枚举真实调用方并逐个核对其错误处理；② 跑该 crate 全量测试；③ 红绿双验。⑫⑬⑭ 三次提交均已按此做，并在提交说明里明确标注了盲区。另：`outgoing` 的跨语言伪边会**虚增** impact 计数，故 HIGH/CRITICAL 评级也需看具体调用者名单而非只看数字（本会话多次遇到：报 CRITICAL 但绝大多数调用者是符号自身的单测）。
 
+> ⚠ **双索引布局与定位方式（2026-09-17 建立）**
+>
+> 现在有两份 gitnexus 索引，可用于跨树对账：
+>
+> | 树 | 路径 | commit | 规模 |
+> |---|---|---|---|
+> | 二次开发分支 | `/Users/mac/nofy-build` | `7fc6be8` | 4856 files / 203191 nodes / 430253 edges / 9334 clusters |
+> | 上游 | `/Users/mac/nofy-upstream`（`git worktree add --detach` 自 `upstream/main`） | `37949780` | 3593 files / 128672 nodes / 311481 edges / 7185 clusters |
+>
+> **定位必须传绝对路径**：两条注册表项的 `name` **都是 `nofy-build`**（名字取自 git remote，而 worktree 与主仓共享 remote）。`resolveRepoFromCache` 的匹配顺序是 id → name（**首个命中即返回**）→ 绝对路径精确匹配 → 名字子串，所以传 `repo: "nofy-build"` 会**静默命中注册表里排在前面的那一个**，顺序一变就会惄惄打到另一棵树上。CLI 同理（`-r /Users/mac/nofy-upstream`）；cwd 不参与解析，在 worktree 里不带 `-r` 会报 "Multiple repositories indexed"。
+>
+> 已三向验证两份索引确实独立且定位正确：上游独有的 `LengthPolicy` 在上游索引命中（`xai-grok-sampling-types/src/conversation.rs:516`）、在我们索引报 not found；`lossy_input_budget` 在上游索引命中于 `xai-grok-shell/src/session/compaction.rs`（② 抽出后两树同名）。
+>
+> **重建索引并未修好入边缺陷**：在全新索引上重测 `context({name:"essential_writable_paths"})` 仍为 `incoming: {}`，且 `outgoing.calls` 仍含那条指向 `desktop/src/src-reconstructed/renderer/assets/katex-*.jsx:e.extend#1` 的跨语言伪边。故上方工具可靠性记录里的结论不变：在 `nofy-sandbox` / `nofy-mcp` 上改代码仍需走 grep 枚举调用方 + 全量测试 + 红绿双验。
+>
+> 维护：上游 worktree 不需要时用 `git worktree remove /Users/mac/nofy-upstream` 清掉（其 `.gitnexus` 约 1.2GB 会一并删除）；若只想释放磁盘而保留 worktree，用 `npx gitnexus remove /Users/mac/nofy-upstream`。两者都不会影响主仓库索引（已核：主仓 `meta.json` 的 repoPath/lastCommit/indexedAt 在上游索引前后逐字不变）。
+
 辨别力记录:`conversation_content_bytes`(mutations.rs)也用 `encrypted_content.len()`,但它是**内存足迹日志测量**
 非 token 估算,base64 校正不适用,故不改——原生实现要按我们架构的语义辨别落点,不是见 base64 就改。
 
