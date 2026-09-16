@@ -260,3 +260,61 @@ voice（已删）、auto-update（已删）、1.0.29/1.0.32 的 Windows 专项�
 5. 重建上游索引到 `48271133` 后再做需要查上游调用图的项
 
 每轮结束把核实结论（含"已对齐"与"归类错误"）写回台账，这是本会话最有效的产出形式。
+
+### 8.6 T0 第二项已核实：Responses API 的 `reasoning.summary` 在我们树里是硬编码
+
+上游 1.0.28 原文："Per-model `reasoning_summary` setting is now available in
+config.toml for Responses API endpoints."
+
+**核实结论：真缺口，且比"少个配置旋钮"更严重。** 我们树全域只有**一处**
+`ReasoningSummary` 引用——`nofy-sampling-types/src/conversation/responses.rs:133`：
+
+```rust
+reasoning: Some(rs::Reasoning {
+    effort: req.reasoning_effort.map(|e| e.to_responses_api()),
+    summary: Some(rs::ReasoningSummary::Concise),   // ← 硬编码字面量
+}),
+```
+
+注意**紧邻两行的不对称**：`effort` 由 `req.reasoning_effort` 驱动（可配、有完整
+per-model 管道），`summary` 却是写死的 `Concise`。后果有三层，第三层最要紧：
+
+1. 不想要 reasoning summary 的用户关不掉——它吃输出 token 预算，也会推迟首 token。
+2. 想要 `Detailed` 的用户拿不到。
+3. **兼容性风险**：`summary` 被无条件塞进每一个 Responses API 请求。对不认识
+   `reasoning.summary` 字段的严格网关，这可能直接 400。BYOK 场景下我们无法预知
+   对端实现，硬编码一个可选字段是把自己的假设强加给所有端点。
+
+**风险评级：低。** 上游枚举 `ReasoningSummary { None, Auto, #[default] Concise,
+Detailed }` 的默认值就是 `Concise`，与我们当前硬编码值一致，所以这是纯增量
+（新增 opt-out / opt-in），**默认行为不变**。
+
+**实施路径（三层管道，已探明，可直接执行）：**
+
+1. `nofy-sampling-types/src/types.rs`：新增
+   `pub enum ReasoningSummary { None, Auto, #[default] Concise, Detailed }`，
+   derive 与 `ReasoningEffort` 同套（`#[serde(rename_all = "lowercase")]` +
+   `strum` 的 `IntoStaticStr`/`EnumString`，`#[strum(serialize_all = "snake_case")]`），
+   加 `pub fn to_responses_api(self) -> Option<crate::rs::ReasoningSummary>`
+   （`None → None`，其余一一映射）。上游对应 `types.rs:845-860`。
+2. `ConversationRequest` 加字段，`responses.rs:133` 改为
+   `summary: req.reasoning_summary.map(|s| s.to_responses_api()).flatten()`
+   ——即 `None` 时**不发**该字段，而不是发 `null`。
+   ⚠ `ConversationRequest` 有 43 处结构体字面量，但**derive 了 `Default`**，
+   其中 24 处用 `..Default::default()`，故约 19 处需手改（与 ⑤ 评估时同一数字）。
+3. `SamplerConfig` 加 `Option<ReasoningSummary>`（`#[serde(default)]`）→
+   `sampling_config_for_model` 填 `info.reasoning_summary` →
+   配置面四层 `ModelInfo` / `ModelEntryConfig` / `ConfigModelOverride` /
+   `ModelsConfig` 各加字段 + `apply` 的"仅 Some 才覆盖" + `from_config` +
+   `apply_global_scalar_defaults` 的 `get_or_insert`。
+   **⑧（variants）与 ⑩（rate_limit_retry_threshold）已把这条管道走过两遍**，
+   站点清单可直接复用：`ModelInfo` 约 12 处字面量、`SamplerConfig` 约 4 处完整
+   字面量（config.rs:147 的 `Default` impl、actor/state.rs:83、client.rs:2107、
+   tests/test_actor.rs:72），其余走 `..Default::default()` 不受影响。
+4. 文档：`docs/user-guide/11-custom-models.md` 的 `[models]` 全局默认示例与
+   per-model 示例各加一行，并说明"仅对 Responses API 端点生效，
+   Chat Completions / Messages 后端忽略"。
+
+**为什么本轮未实施**：这是跨 3 个 crate、3 层管道的改动（sampling-types 新类型 +
+ConversationRequest 约 19 处字面量 + SamplerConfig + 配置面四层），量级大于 ⑩。
+在上下文预算耗尽时开工有留半截的风险，故只做到"核实 + 探明路径 + 记档"。
