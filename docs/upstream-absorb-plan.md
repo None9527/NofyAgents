@@ -318,3 +318,68 @@ Detailed }` 的默认值就是 `Concise`，与我们当前硬编码值一致，�
 **为什么本轮未实施**：这是跨 3 个 crate、3 层管道的改动（sampling-types 新类型 +
 ConversationRequest 约 19 处字面量 + SamplerConfig + 配置面四层），量级大于 ⑩。
 在上下文预算耗尽时开工有留半截的风险，故只做到"核实 + 探明路径 + 记档"。
+
+### 8.7 已探明但未实施：`mkdir`/`touch` 在 auto 模式免提示（上游 1.0.11 批次）
+
+上游原文："**mkdir and touch** no longer prompt in auto mode or safe-command lists."
+
+**核实结论：真缺口，且不是"往白名单加两个词"那么简单。**
+
+先排除一个错误猜测：上游的 `ROUTINE_PREFIXES`（auto_mode/mod.rs:482-511）里
+**同样没有** `mkdir`/`touch`，我们树也没有（auto_mode/mod.rs:494-534）。两边一致，
+所以改动不在 auto 模式白名单。真正落点是 `permission/shell_access.rs`。
+
+**机制**（我们树现状）：`manager/mod.rs:709-723` 里
+`command_write_paths_split` 取出写路径，任一非 `is_safe_write_sink` 就
+`assessment.insert(Finding::FileWrite)`，而 `FileWrite` 正是 auto 模式弹提示的原因。
+`mkdir`/`touch` 的操作数目前在 `shell_access.rs:1182` 与 `rm`/`rmdir`
+**同组**、一律标 `ShellFileMode::Write`，于是落进 `word_paths` → 触发 `FileWrite` → 弹提示。
+
+**上游的做法**：新增第三个模式 `ShellFileMode::Create`
+（doc："Empty dir/file creation (`mkdir`/`touch`): `Edit` for the inline-shell gate,
+not a content write"），把 `mkdir`/`touch` 的操作数从 `Write` 改判 `Create`；
+`command_words_write_paths` 只收 `Write`，`Create` 由新的
+`command_words_creation_paths` 单独收进 `WritePathsSplit.creation_paths`。
+于是创建类操作不再触发 `FileWrite`，但**仍被单独追踪**——上游
+`grants.rs:582` 用 `let mut protected_paths = writes.creation_paths;`
+把它作为编辑目标保护的种子。
+
+**⚠ 陷阱（这是不在预算耗尽时开工的理由）**：`creation_paths` 不是可以丢掉的余量。
+`touch` 对**已存在**文件只改 mtime、不写内容，所以判 `Create` 是对的；但它仍然
+**触碰了一个可能受保护的路径**。若只做前 5 步（加 `Create` 模式、拆分操作数、
+新增提取函数、加 `creation_paths` 字段）而不做第 6 步（把 `creation_paths`
+接进我们树的 `edit_target_protection`，该函数已在 `manager/mod.rs:28` 导入），
+结果就是 **`touch <受保护文件>` 被静默自动放行**——把一个"少弹一次提示"的
+便利性改动做成了权限绕过。这两半必须同批落地，不能分两次提交。
+
+**可执行规格（6 步，已探明站点）：**
+
+1. `shell_access.rs:599-602` `ShellFileMode` 加 `Create` 变体（带上游那句 doc）。
+   全树 `ShellFileMode::` 共 23 处引用，需逐一甄别哪些是穷举 match（编译器会报）。
+2. `shell_access.rs:1182` 把 `"rm" | "rmdir" | "mkdir" | "touch"` **拆开**：
+   `rm`/`rmdir` 保持 `Write`（破坏性，绝不能跟着变成 Create），
+   `mkdir`/`touch` 改 `Create`。同步改 1161 行那句 doc 注释。
+3. 新增 `pub(crate) fn is_creation_program(program: &str) -> bool`
+   （`matches!(program, "mkdir" | "touch")`），doc 注明"由写路径分类器与自动放行
+   共用，二者不能各自漂移"——这是上游把它抽成共享谓词的理由。
+4. 新增 `pub(crate) fn command_words_creation_paths(words: &[String]) -> Vec<String>`，
+   与 `command_words_write_paths`（:259）同构，只过滤 `ShellFileMode::Create`。
+5. `WritePathsSplit`（:311）加 `pub(crate) creation_paths: Vec<String>`，
+   在 `command_write_paths_split`（:319-343）的 invocation 循环里
+   `creation_paths.extend(command_words_creation_paths(&words))` 并返回。
+   我们树已有该结构体与 `unextracted_write_redirect`，脚手架是平行的。
+6. **消费端（不可省）**：`manager/mod.rs:709-723` 确认 `creation_paths`
+   **不参与** `Finding::FileWrite` 判定，同时把它接进 `edit_target_protection`
+   的保护集，对齐上游 `grants.rs:582` 的 `protected_paths` 种子用法。
+
+**必测（安全侧优先）：**
+- `rm -rf x` / `rmdir x` **仍然**触发 `FileWrite`、仍然弹提示（第 2 步拆分的回归防线）
+- `mkdir x` / `mkdir -p a/b` / `touch new.txt` 不触发 `FileWrite`
+- `touch <受 edit_target_protection 保护的路径>` **仍然**被拦（第 6 步的回归防线，
+  这是最容易漏的一条）
+- `is_creation_program` 与操作数分类器不漂移（共享谓词的意义所在）
+- 重定向仍按原样处理：`mkdir x > /etc/passwd` 之类的 `redirect_paths` 判定不受影响
+
+**规模评估**：6 处改动 + 约 5 个测试，单一消费端，脚手架已存在。
+量级小于 ⑩（rate_limit_retry_threshold 那次跨 4 层配置面），但**安全敏感度更高**
+——⑩ 错了是多重试几次，这里错了是权限绕过。故需要完整预算的一轮，不适合收尾时开工。
