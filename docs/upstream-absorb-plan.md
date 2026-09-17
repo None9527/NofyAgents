@@ -682,6 +682,8 @@ policy"），所以**不是权限绕过**；但用户拿到的是**假成功**�
 
 ### 10.2 为什么我们没有：缺一整层「策略裁决」抽象
 
+> **⚠ 本节结论已被实施时的实读推翻，保留原文以记录错误模式，正确结论见下方「更正」。**
+
 管道我们全有，裁决层全无：
 
 | 符号 | 我们 | 上游 |
@@ -716,6 +718,43 @@ PolicyPin` 字段——**我们没有**（`enable_all_project_mcp_servers` 全�
 上游 `ManagedSettings` 还多两个字段：`plugin_auto_update: PolicyPin`、
 `extra_marketplaces: Vec<ManagedMarketplace>`；且它已把整个托管策略抽成独立模块
 `permission/managed_policy/`，我们的还在 `permission/resolution.rs` 里。
+
+### 10.2bis 更正：我们**已经有**裁决层，只是名字不同（2026-09-17 实施时实读发现）
+
+§10.2 那张「0 vs 37 / 0 vs 44」的表是**对的但误导**。它按上游符号名统计，于是得出
+「缺一整层裁决抽象」的结论；实施时读了我们 `session/managed_mcp.rs:222-256` 才发现，
+**同一层我们已经有了，叫别的名字**：
+
+| 上游 | 我们（早已存在） |
+|---|---|
+| `McpBlockReason::Deny { source }` | `McpDisabledReason::Denylist { source }` |
+| `McpBlockReason::NotGranted { source }` | `McpDisabledReason::Allowlist { source }` |
+| `McpBlockReason::rule()` + `Display` | `impl Display for McpDisabledReason`，文案逐字相同：`"not in allowedMcpServers ({path})"` / `"matches deniedMcpServers ({path})"` |
+| `McpBlockReason::source()` | 变体自带的 `source: PathBuf` |
+| `mcp_blocked_reasons(...)` | `McpDisabledReason::for_blocked_server(policy, server)` |
+| `McpServerPolicy::is_server_allowed` | `McpServerAllowlist::is_server_allowed`（**已是 pub**） |
+| `McpServerPolicy::is_server_denied` | `McpServerAllowlist::is_server_denied`（**已是 pub**） |
+| `policy_add_refusal_with`（OnceLock seam） | `apply_mcp_server_policy` 早就为了同一理由被拆出来（其 doc 原话：「so the deny/allow enforcement chokepoint can be tested with an injected allowlist — the runtime path reads the process-wide managed-settings `OnceLock`, which a test can't populate」） |
+
+**连「为了可测而把 enforcement 拆成可注入 allowlist 的纯函数」这个设计我们都已经独立做过了。**
+
+真正缺的只有两样，且都不是抽象层：
+1. `McpBlockReason::Lockdown`（某来源封锁它绑定的一切，故任何 allow 条目都不可能授权）
+   与 `ProjectPin`（`enableAllProjectMcpServers = false`）——我们的 managed-settings
+   模型里没有这两个概念（`enable_all_project_mcp_servers` 全树 0 命中 vs 上游 6）。
+2. **CLI 侧的调用点**——裁决层存在，但 `mcp_cmd.rs` 从来没调它。这才是 1.0.18#1 /
+   1.0.19#3 的实际缺口，也是本轮真正修的东西。
+
+所以本轮的正确工作量是「加两个薄闸口 + 接线」，不是 §10.3 估计的「6 个新符号 + 数据模型
+重构」。**§10.3 的规模估计（「与 ⑩ 相当或略大」）因此是错的，实际远小于 ⑩。**
+
+**错误模式，记进方法论**：这正是 §9.1 自己写下的纪律——「先问我们的对应子系统是不是
+已经用另一种形状解决了同一问题，而不是直接去搜上游符号名」——而 §10.2 恰恰违反了它。
+按上游符号名 grep 得到 0 命中，就断言「整层缺失」，是**用符号名代替语义比对**。
+正确做法是：grep 到 0 之后，再去读我们树里**同一职责**的代码（这里是「运行时已经在拦，
+那它用什么拦的」），而不是直接下结论。`McpDisabledReason` 就写在
+`managed_mcp.rs` 里、就在我已经读过的那句 `"MCP server blocked by managed settings
+policy"` 旁边 30 行——我引用了那句话，却没读它上下文。
 
 ### 10.3 实施规格（下一轮，需完整预算）
 

@@ -261,6 +261,14 @@ async fn run_add(args: AddArgs) -> Result<()> {
         expose_image_base64: None,
     };
 
+    // Policy gate BEFORE the write. A blocked server written anyway reports
+    // success and leaves a policy-forbidden entry on disk, even though the
+    // session merge will refuse to spawn it.
+    if let Some(refusal) = nofy_shell::mcp_doctor::policy_add_refusal(name, &config) {
+        eprintln!("Cannot add MCP server '{name}': {refusal}");
+        std::process::exit(1);
+    }
+
     let path = scope_target(args.scope);
     nofy_shell::util::config::save_mcp_server_config_at(&path, name, &config).await?;
     println!("Added {summary} to {} config", args.scope.label());
@@ -590,6 +598,15 @@ async fn run_set_enabled(name: &str, enabled: bool) -> Result<()> {
         } else {
             eprintln!("No MCP servers configured. Run `nofy mcp add --help` to get started.");
         }
+        std::process::exit(1);
+    }
+
+    // Policy gate BEFORE the write, and only when enabling: disabling a blocked
+    // server is always fine, and refusing it would strand the entry.
+    if enabled
+        && let Some(refusal) = nofy_shell::mcp_doctor::policy_enable_refusal(&cwd, name)
+    {
+        eprintln!("Cannot enable MCP server '{name}': {refusal}");
         std::process::exit(1);
     }
 

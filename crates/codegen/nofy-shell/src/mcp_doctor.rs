@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use serde::Serialize;
+use agent_client_protocol as acp;
 use nofy_tools::types::config_source::ConfigSource;
 
 use crate::session::managed_mcp;
@@ -468,6 +469,100 @@ async fn check_server(
 
 // ── Entry point ─────────────────────────────────────────────────
 
+/// Resolve one configured MCP server by name, across every source the session
+/// merge reads (user/project TOML, `.mcp.json`, managed gateway, plugin registry).
+///
+/// Shared by the two pre-write gates below so they cannot disagree about which
+/// definition a name refers to.
+fn find_configured_server(cwd: &Path, name: &str) -> Option<acp::McpServer> {
+    let plugin_registry = crate::util::config::load_cli_plugin_registry(cwd);
+    managed_mcp::merge_managed_mcp_servers_sourced(
+        cwd,
+        Some(&plugin_registry),
+        &nofy_tools::types::compat::CompatConfig::default(),
+    )
+    .into_iter()
+    .find(|(server, _)| mcp_servers::mcp_server_name(server) == name)
+    .map(|(server, _)| server)
+}
+
+/// Render a policy block as a refusal line. The reason already carries the
+/// blocking policy file's path (`McpDisabledReason`'s `Display`), so the user is
+/// told *which* policy refused, not just that one did.
+fn policy_refusal(
+    allowlist: &nofy_workspace::permission::resolution::McpServerAllowlist,
+    server: &acp::McpServer,
+) -> String {
+    format!(
+        "blocked by organization policy — {}",
+        managed_mcp::McpDisabledReason::for_blocked_server(allowlist, server)
+    )
+}
+
+/// `nofy mcp enable` gate: the org-policy refusal, or `None` when policy permits.
+///
+/// Must be consulted **before** the config write. Enabling a blocked server
+/// otherwise reports success and flips the `enabled` flag on a definition the
+/// session merge will refuse to spawn anyway — a false success plus a
+/// policy-contradicting config file.
+pub fn policy_enable_refusal(cwd: &Path, name: &str) -> Option<String> {
+    let allowlist = &nofy_workspace::permission::resolution::managed_settings().mcp_allowlist;
+    policy_enable_refusal_with(allowlist, cwd, name)
+}
+
+/// [`policy_enable_refusal`] over an injected allowlist — same OnceLock seam as
+/// [`policy_add_refusal_with`], so the blocked path is unit-testable without a
+/// `managed-settings.json` on disk.
+///
+/// An unknown name yields `None`: "no such server" is the caller's error to
+/// report, and this gate must not compete with it.
+pub(crate) fn policy_enable_refusal_with(
+    allowlist: &nofy_workspace::permission::resolution::McpServerAllowlist,
+    cwd: &Path,
+    name: &str,
+) -> Option<String> {
+    let server = find_configured_server(cwd, name)?;
+    allowlist
+        .is_server_allowed(&server)
+        .then_some(())
+        .map_or_else(|| Some(policy_refusal(allowlist, &server)), |()| None)
+}
+
+/// `nofy mcp add` gate for a NEW definition, over an injected allowlist.
+///
+/// Split from [`policy_add_refusal`] because the runtime path reads a
+/// process-wide `OnceLock` that a test cannot populate.
+///
+/// Two of the four block reasons a full verdict layer would carry are
+/// deliberately **not** decided here: `Lockdown` (a source that blocks
+/// everything it binds, so no allow entry could grant the server) and
+/// `ProjectPin` (`enableAllProjectMcpServers = false`). Neither exists in our
+/// managed-settings model yet — see the ledger's A6 entry. Guessing their
+/// semantics to make the gate look complete would be worse than the gap.
+pub(crate) fn policy_add_refusal_with(
+    allowlist: &nofy_workspace::permission::resolution::McpServerAllowlist,
+    name: &str,
+    config: &crate::util::config::McpServerConfig,
+) -> Option<String> {
+    // A definition that cannot be materialised is not this gate's problem; the
+    // caller's own validation reports it. Failing open here keeps the two
+    // error paths from competing.
+    let server = config.to_acp_mcp_server(name)?;
+    allowlist
+        .is_server_allowed(&server)
+        .then_some(())
+        .map_or_else(|| Some(policy_refusal(allowlist, &server)), |()| None)
+}
+
+/// `nofy mcp add` gate: the org-policy refusal for a new definition, or `None`.
+pub fn policy_add_refusal(
+    name: &str,
+    config: &crate::util::config::McpServerConfig,
+) -> Option<String> {
+    let allowlist = &nofy_workspace::permission::resolution::managed_settings().mcp_allowlist;
+    policy_add_refusal_with(allowlist, name, config)
+}
+
 pub async fn run_doctor(cwd: &Path, name_filter: Option<&str>) -> DoctorReport {
     let (mut sources, mut discovered) = discover_servers(cwd);
 
@@ -684,4 +779,118 @@ mod tests {
         assert_eq!(check.label, "spawn failed");
         assert!(check.detail.as_deref().unwrap().contains("No such file"));
     }
+
+    /// The add-time gate, over an injected allowlist (the runtime path reads a
+    /// process-wide `OnceLock` a test cannot populate).
+    fn http_config(url: &str) -> crate::util::config::McpServerConfig {
+        toml::from_str(&format!(
+            "type = \"http\"\nurl = \"{url}\"\nenabled = true\n"
+        ))
+        .expect("a minimal http server table deserialises")
+    }
+    fn policy_source() -> std::path::PathBuf {
+        std::path::PathBuf::from("/test/managed-settings.json")
+    }
+
+    /// No policy at all: the gate must stay out of the way.
+    #[test]
+    fn add_refusal_is_none_when_policy_is_unrestricted() {
+        use nofy_workspace::permission::resolution::McpServerAllowlist;
+        let allowlist = McpServerAllowlist::new(vec![], vec![], None);
+        assert_eq!(
+            super::policy_add_refusal_with(
+                &allowlist,
+                "anything",
+                &http_config("https://example.com/mcp")
+            ),
+            None
+        );
+    }
+
+    /// A deny match is reported as a deny, and names the policy file — the user
+    /// must be told *which* policy refused, not just that one did.
+    #[test]
+    fn add_refusal_names_the_deny_rule_and_its_source() {
+        use nofy_workspace::permission::resolution::{AllowedMcpServer, McpServerAllowlist};
+        let allowlist = McpServerAllowlist::new(
+            vec![],
+            vec![AllowedMcpServer::Http {
+                url_pattern: "https://blocked.corp.com/*".into(),
+            }],
+            Some(policy_source()),
+        );
+        let refusal = super::policy_add_refusal_with(
+            &allowlist,
+            "blocked",
+            &http_config("https://blocked.corp.com/mcp"),
+        )
+        .expect("a denied server must be refused");
+        assert!(
+            refusal.contains("matches deniedMcpServers"),
+            "must name the deny rule: {refusal}"
+        );
+        assert!(
+            refusal.contains("/test/managed-settings.json"),
+            "must name the blocking policy file: {refusal}"
+        );
+    }
+
+    /// A restricted allowlist that does not grant the server is a *different*
+    /// refusal from a deny match: the fix is to get it allowlisted, not to
+    /// stop being denied.
+    #[test]
+    fn add_refusal_distinguishes_missing_allow_from_deny() {
+        use nofy_workspace::permission::resolution::{AllowedMcpServer, McpServerAllowlist};
+        let allowlist = McpServerAllowlist::new(
+            vec![AllowedMcpServer::Http {
+                url_pattern: "https://ok.corp.com/*".into(),
+            }],
+            vec![],
+            Some(policy_source()),
+        );
+        let refused = super::policy_add_refusal_with(
+            &allowlist,
+            "other",
+            &http_config("https://other.corp.com/mcp"),
+        )
+        .expect("a server missing from a restricted allowlist must be refused");
+        assert!(
+            refused.contains("not in allowedMcpServers"),
+            "must name the allowlist rule: {refused}"
+        );
+        // And a granted one passes.
+        assert_eq!(
+            super::policy_add_refusal_with(
+                &allowlist,
+                "ok",
+                &http_config("https://ok.corp.com/mcp")
+            ),
+            None
+        );
+    }
+
+
+    /// An unknown name is the caller's error to report, not this gate's — so the
+    /// gate stays silent rather than competing with "No MCP server named 'x'".
+    /// (The blocked/allowed legs share `policy_refusal` + `is_server_allowed`
+    /// with the add gate, which the tests above cover; the end-to-end blocked
+    /// enable needs a managed-settings fixture this crate has no seam for.)
+    #[test]
+    fn enable_refusal_is_silent_for_an_unknown_server() {
+        use nofy_workspace::permission::resolution::{AllowedMcpServer, McpServerAllowlist};
+        let tmp = tempfile::tempdir().unwrap();
+        let allowlist = McpServerAllowlist::new(
+            vec![AllowedMcpServer::Http {
+                url_pattern: "https://ok.corp.com/*".into(),
+            }],
+            vec![],
+            Some(policy_source()),
+        );
+        assert_eq!(
+            super::policy_enable_refusal_with(&allowlist, tmp.path(), "nope"),
+            None,
+            "an unknown server must not produce a policy refusal"
+        );
+    }
+
 }

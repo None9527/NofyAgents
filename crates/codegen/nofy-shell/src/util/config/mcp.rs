@@ -1739,7 +1739,9 @@ pub fn cli_known_mcp_server_names(cwd: &std::path::Path) -> std::collections::Ha
 }
 
 /// Plugin registry for one-shot CLI discovery (matches mcp doctor gating).
-fn load_cli_plugin_registry(cwd: &std::path::Path) -> nofy_agent::plugins::PluginRegistry {
+pub(crate) fn load_cli_plugin_registry(
+    cwd: &std::path::Path,
+) -> nofy_agent::plugins::PluginRegistry {
     let trust_store = nofy_agent::plugins::TrustStore::load();
     let mut plugins_cfg: crate::agent::config::PluginsConfig =
         crate::config::load_effective_config()
