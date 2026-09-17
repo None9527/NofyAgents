@@ -27,6 +27,97 @@ mod yolo_toggle_report_tests {
         assert_eq!(yolo_toggle_report(true, true), None);
     }
 }
+/// Run dream consolidation on a background task and hand back its handle.
+///
+/// A dream is a **model call** with a 30-minute budget, so it must never be
+/// awaited on a path the user is waiting on. Two such paths existed: the dream
+/// check timer (already spawned, but unguarded — see the call site) and session
+/// teardown, which awaited it inline and could hold the exit for the full budget.
+/// Consolidation now runs at launch and on the timer; teardown only *stops* it.
+///
+/// No `await_init_reindex` predecessor here: unlike upstream we have no
+/// background initial reindex task, so there is nothing to wait for.
+fn spawn_dream_check(session: &std::sync::Arc<SessionActor>) -> tokio::task::JoinHandle<()> {
+    let session = session.clone();
+    tokio::task::spawn_local(async move {
+        session.maybe_run_dream().await;
+    })
+}
+
+/// Abort a still-running dream and wait for it to stop, so session-end index
+/// work never overlaps it.
+///
+/// A finished dream makes this a no-op. A live one is parked on the model call,
+/// which sits **before** `execute_dream` writes the consolidation marker — so the
+/// abort returns at once without stamping the marker, leaving the gate open for
+/// the next launch. Aborting after the marker was written would be the bug: the
+/// work would be recorded as done and never retried.
+async fn stop_dream(dream_task: &mut Option<tokio::task::JoinHandle<()>>) {
+    if let Some(handle) = dream_task.take() {
+        handle.abort();
+        let _ = handle.await;
+    }
+}
+#[cfg(test)]
+mod stop_dream_tests {
+    use super::stop_dream;
+
+    /// `stop_dream` must **abort** a live task, not await it to completion. The
+    /// session-exit path calls it precisely because a dream can be parked on a
+    /// model call with a 30-minute budget; awaiting would reintroduce the block
+    /// this whole design exists to remove.
+    #[tokio::test(flavor = "current_thread")]
+    async fn aborts_a_live_task_without_waiting_for_it() {
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let started = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                let flag = started.clone();
+                let mut task = Some(tokio::task::spawn_local(async move {
+                    flag.store(true, std::sync::atomic::Ordering::Relaxed);
+                    std::future::pending::<()>().await;
+                }));
+                tokio::task::yield_now().await;
+                assert!(
+                    started.load(std::sync::atomic::Ordering::Relaxed),
+                    "the task must have started for this to test the live path"
+                );
+
+                let begin = std::time::Instant::now();
+                stop_dream(&mut task).await;
+                assert!(
+                    begin.elapsed() < std::time::Duration::from_secs(1),
+                    "stop_dream must abort, not await: took {:?}",
+                    begin.elapsed()
+                );
+                assert!(task.is_none(), "the handle must be taken");
+            })
+            .await;
+    }
+
+    /// Both no-op paths: nothing spawned, and a dream that already finished.
+    /// The finished case is the common one — aborting it must not disturb the
+    /// marker it already stamped.
+    #[tokio::test(flavor = "current_thread")]
+    async fn no_op_when_absent_or_finished() {
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let mut none: Option<tokio::task::JoinHandle<()>> = None;
+                stop_dream(&mut none).await;
+
+                let mut finished = Some(tokio::task::spawn_local(async {}));
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                assert!(
+                    finished.as_ref().is_some_and(|h| h.is_finished()),
+                    "the task must have finished for this to test that path"
+                );
+                stop_dream(&mut finished).await;
+                assert!(finished.is_none());
+            })
+            .await;
+    }
+}
 /// Best-effort removal of this session's per-session scratch staging on
 /// teardown. A no-op in builds without a scratch producer.
 fn cleanup_session_scratch(_session: &SessionActor) {}
@@ -316,6 +407,13 @@ pub(super) async fn run_session(
         None => tokio::time::sleep(std::time::Duration::MAX),
     };
     tokio::pin!(dream_check_sleep);
+    let mut dream_task: Option<tokio::task::JoinHandle<()>> = None;
+    // Consolidate at launch rather than at exit. The prior session's log is
+    // already on disk, so deferring loses nothing, and exit stops blocking on a
+    // model call. Subagents share the workspace memory and must not dream.
+    if !session.startup_hints.is_subagent && session.memory.is_enabled() {
+        dream_task = Some(spawn_dream_check(&session));
+    }
     loop {
         tokio::select! {
                 biased;
@@ -352,15 +450,21 @@ pub(super) async fn run_session(
                 }
                 // Dream check timer — periodically run dream consolidation.
                 _ = &mut dream_check_sleep, if session.dream_check_timeout.is_some()
-                    && session.memory.is_enabled() => {
+                    && session.memory.is_enabled()
+                    && !session.startup_hints.is_subagent => {
                     tracing::debug!(target: nofy_telemetry::memory_log::TARGET,
                         "MEMORY_DREAM_CHECK: timer fired");
-                    tokio::task::spawn_local({
-                        let session = session.clone();
-                        async move {
-                            session.maybe_run_dream().await;
-                        }
-                    });
+                    // Only start a new dream when the previous one has finished.
+                    // A dream is a model call with a 30-minute budget and the
+                    // consolidation lock is taken only *after* it returns, so an
+                    // unguarded spawn lets a short check interval stack up tasks
+                    // that each burn a model call before serialising on the lock.
+                    if dream_task.as_ref().is_none_or(|h| h.is_finished()) {
+                        dream_task = Some(spawn_dream_check(&session));
+                    } else {
+                        tracing::debug!(target: nofy_telemetry::memory_log::TARGET,
+                            "MEMORY_DREAM_CHECK: previous consolidation still running; not stacking");
+                    }
                     if let Some(timeout) = session.dream_check_timeout {
                         dream_check_sleep.as_mut().reset(tokio::time::Instant::now() + timeout);
                     }
@@ -561,6 +665,10 @@ pub(super) async fn run_session(
                         // session-end `Stop`. Hooks fire BEFORE memory auto-save per plan contract.
                         turn_end_queue.flush().await;
                         fire_session_end_hooks(&session, "channel_closed").await;
+                        // Stop a live dream before the session-end index work so
+                        // the two never overlap; see `stop_dream` for why the
+                        // abort leaves the consolidation gate open.
+                        stop_dream(&mut dream_task).await;
                         session
                             .run_session_end_memory_pipeline(
                                 "channel closed, session summary saved",
@@ -2115,6 +2223,9 @@ pub(super) async fn run_session(
                             // session-end `Stop`. Hooks fire BEFORE memory auto-save per plan contract.
                             turn_end_queue.flush().await;
                             fire_session_end_hooks(&session, "shutdown").await;
+                            // Stop a live dream before the session-end index work
+                            // so the two never overlap; see `stop_dream`.
+                            stop_dream(&mut dream_task).await;
                             session
                                 .run_session_end_memory_pipeline("session summary saved")
                                 .await;

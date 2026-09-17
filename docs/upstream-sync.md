@@ -405,12 +405,12 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.13#18 auth 已配时带 MCP 的会话启动更快 ★★ — 上游原文:"Session startup with MCP servers is now much faster when auth is already configured." **部分核实**:我们 servers.rs:1836-1848 已有存量凭证快速路径(非交互模式下 `get_access_token()` 成功即 `return ManagerReady`,不走发现),疑似已对齐,待确认
 - 1.0.13#19 MCP 启动不再卡在固定 batch ★★—**核实:真缺口,已落地 ⑭ `7a276928`**。上游原文 "MCP server startup no longer stalls behind a fixed batch size";我们原为 `buffer_unordered(8)`,上游 `xai-grok-mcp/src/` 全域已无 `buffer_unordered`,改为 `join_all` 不设上限
 - 1.0.14#24 大仓库首条消息不再等仓库状态扫描 ★★ — 上游原文:"First message on large repositories no longer waits on repository status scan." **未核实**:我们树无 `repo_status`/`status_scan` 符号,需先定位对应实现(可能在 pager 的 git_info)
-- 1.0.14#25 大会话内存不再在回合完成/子代理 spawn 时阻塞 agent ★★ — 上游原文:"Large session memory no longer blocks the agent during turn completion or subagent spawning." **未核实**
-- 1.0.15#2 会话关闭更快(记忆整合挪到下次启动)★★ — 上游原文:"Session close is now faster because memory consolidation runs at the next launch instead of blocking exit." **疑似真缺口**:我们 memory_dream.rs:105-142 明确在**会话结束时**跑 `run_exit_dream`("Session-end memory save, empty-session-gated dream",Shutdown 与 channel-closed 共用),与上游"挪到下次启动"相反;待确认是否阻塞关闭
+- 1.0.14#25 大会话内存不再在回合完成/子代理 spawn 时阻塞 agent ★★ — 上游原文:"Large session memory no longer blocks the agent during turn completion or subagent spawning." **核实:回合完成路径未复现,退出路径同源已随 ⑲ 修掉,子代理路径未定位**。`run_memory_flush` 全树三个调用点:`run_loop.rs:436` 已在 `spawn_local` 内(idle flush 定时器,非阻塞)、`run_loop.rs:1224` 是 `user_requested`、`slash_exec.rs:57` 是斜杠命令——后两处是用户显式请求,阻塞是预期语义。**故「回合完成时阻塞」在我们树里不成立**。会话结束路径确实内联,但与 1.0.15#2 同源,已随 ⑲ 一并修掉。「子代理 spawn 时阻塞」按内容匹配未定位到上游对应实现,留待后续
+- 1.0.15#2 会话关闭更快(记忆整合挪到下次启动)★★ — 上游原文:"Session close is now faster because memory consolidation runs at the next launch instead of blocking exit." **核实:真缺口,已落地原生⑲。且比原记的更严重**——原注只说「疑似,待确认是否阻塞关闭」,确认后:①**确实阻塞**,`run_session_end_memory_pipeline` 在两个退出臂(channel-closed、shutdown)都是被 `.await` 的;②**预算不是 60 秒而是 30 分钟**——`maybe_run_dream` 的 doc 写「The model call has a 60s timeout」,代码是 `Duration::from_secs(30 * 60)`,**doc 与代码矛盾**,故关闭会话最坏等半小时;③顺带纠正原注的另一处误判:dream-check 定时器臂**已经是** `spawn_local`、不阻塞 select 循环(核实中我一度以为它内联,读了实际代码才纠正),所以缺口只在退出路径 + 缺启动侧。修法与红绿见 ⑲ 行
 - 1.0.15#5 首响应延迟降低(会话启动时后台开模型连接)★★ — 上游原文:"First reply latency is reduced by opening the model connection in the background when a session starts." **部分对齐**:我们有 `warm_async_http_client()`(mvp_agent/mod.rs:823-828,起线程预热共享 HTTP client)与 `chat_modes.warm_in_background()`(acp_agent.rs:459),但未见针对**具体模型端点**的 TLS/连接预开;待确认是否等价
-- 1.0.15#7 新建会话更快返回(MCP/启动工作后台化)★★ — 上游原文:"Creating a new session returns faster; MCP tools and other startup work happen in the background." **未核实**
+- 1.0.15#7 新建会话更快返回(MCP/启动工作后台化)★★ — 上游原文:"Creating a new session returns faster; MCP tools and other startup work happen in the background." **核实:已对齐**。`run_loop.rs:391-395` 进主循环前就 `tokio::task::spawn_local` 了 `ensure_mcp_tools_initialized()` + `maybe_start_running_task`,即 MCP 工具与启动工作都在后台;`run_loop.rs:1508` 另有一处同型 spawn。无需工作
 - 1.0.18#22 resume picker 单次磁盘遍历标注本地会话 ★★(批22 已动 resume picker) — 上游原文:"Resume picker now labels local sessions with a single disk walk instead of per-row lookups." **未核实**;注:resume picker 在 pager 侧,可能属 A8
-- 1.0.18#26 新会话 start hooks 后台化更快响应 ★★ — 上游原文:"New sessions start responding faster by running start hooks in the background." **未核实**:在 mvp_agent/ 下未搜到 start hooks 的 spawn/后台化痕迹
+- 1.0.18#26 新会话 start hooks 后台化更快响应 ★★ — 上游原文:"New sessions start responding faster by running start hooks in the background." **核实:按内容匹配失败,上游对应实现未定位**。上游 `xai-grok-shell/src/session/` 全域搜 `fire_session_start_hooks`/`start_hooks` **零命中**,故无法按符号对照。我们侧有 `SessionCommand::DispatchSessionStartHook`(`run_loop.rs:1942`,`commands.rs:728`),是命令派发形态。**结论:待另找上游实现名后再判**;不轻易判「已对齐」也不轻易判「缺口」
 - 1.0.22#27 打开/恢复会话不再因读 MCP 配置卡顿 ★★(与本轮配置迁移同区) — 上游原文:"Opening or resuming sessions no longer pauses the interface while reading MCP config files." **未核实**;注:"卡顿界面"指 pager,可能属 A8
 
 **A6 策略/治理(★★,我们已有 nofy-governance/marketplace/requirements)**
@@ -420,7 +420,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.18#8 grok inspect/mcp doctor 显示托管策略详情 ★
 
 **A7 会话/resume 上下文(★★)**
-- 1.0.19#4 resume 时告知模型仍在运行的 loops/subagents/workflows ★★
+- 1.0.19#4 resume 时告知模型仍在运行的 loops/subagents/workflows ★★ — **核实:按内容匹配失败,上游对应实现未定位**。关键词(still.running / running loops / resume+subagent|workflow|loop)在上游只命中测试注释与 `activity.rs` 的忙判定,没有「resume 时把在跑的任务告知模型」的实现。**待另找上游实现名后再判**
 - 1.0.19#6 headless 会话支持 --worktree 旗标 ★★(批21 headless + 我们 worktree)
 - 1.0.22#13 恢复会话显示你为回合中跟进输入的确切原文 ★★
 - 1.0.14#15 失败的 task/todo 工具调用出现在 transcript ★★

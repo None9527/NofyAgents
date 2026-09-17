@@ -676,3 +676,114 @@ async fn test_idle_flush_timeout_from_config() {
         })
         .await;
 }
+
+/// An actor whose dream gates are open: memory enabled, storage wired, and five
+/// prior session logs on disk so `check_dream_gates` has something to consolidate.
+/// The `TempDir` is intentionally leaked (`mem::forget`) — the actor outlives this
+/// function and the storage paths must stay valid, matching the idiom used by
+/// `create_injection_ready_actor` above.
+#[allow(clippy::field_reassign_with_default)]
+async fn create_dream_ready_actor() -> SessionActor {
+    let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel();
+    let (persistence_tx, _persistence_rx) = mpsc::unbounded_channel();
+    let mut config = crate::config::MemoryConfig::default();
+    config.enabled = true;
+    let mut actor =
+        create_test_actor_with_memory(50_000, 100_000, 85, gateway_tx, persistence_tx, Some(config))
+            .await;
+    let tmp = tempfile::TempDir::new().unwrap();
+    let global_dir = tmp.path().join("memory");
+    let workspace_dir = global_dir.join("test_ws");
+    std::fs::create_dir_all(&workspace_dir).unwrap();
+    crate::session::memory::index::init_sqlite_vec();
+    let storage =
+        crate::session::memory::MemoryStorage::with_paths(global_dir, workspace_dir.clone());
+    let sessions_dir = storage.sessions_dir();
+    std::fs::create_dir_all(&sessions_dir).unwrap();
+    for i in 0..5 {
+        std::fs::write(
+            sessions_dir.join(format!("20200101-0000{i:02}-priorsession{i}.md")),
+            "prior session\n",
+        )
+        .unwrap();
+    }
+    actor.memory.storage = std::cell::RefCell::new(Some(storage));
+    std::mem::forget(tmp);
+    actor
+}
+
+fn dream_count(actor: &SessionActor) -> u64 {
+    actor
+        .memory
+        .dream_count
+        .load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// The launch wiring itself. Consolidation moved from session exit to session
+/// launch so that exit stops blocking on a model call with a 30-minute budget;
+/// this guards the replacement. Removing the launch `spawn_dream_check` leaves
+/// `dream_count` at 0, which calling `maybe_run_dream` directly would miss.
+#[tokio::test(flavor = "current_thread")]
+async fn run_session_spawns_launch_dream() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            let actor = Arc::new(create_dream_ready_actor().await);
+            let (_cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+            let (_chat_tx, chat_rx) = mpsc::unbounded_channel();
+            let (_event_tx, event_rx) = mpsc::unbounded_channel();
+            let codebase_indexes = Arc::new(parking_lot::Mutex::new(
+                nofy_workspace::file_system::CodebaseIndexManager::new(),
+            ));
+            tokio::task::spawn_local(super::run_session(
+                actor.clone(),
+                cmd_rx,
+                chat_rx,
+                event_rx,
+                None,
+                codebase_indexes,
+                std::path::PathBuf::from("/tmp"),
+                crate::session::fs_watch::FsWatchCapabilities::none(),
+            ));
+            let mut ran = false;
+            for _ in 0..400 {
+                if dream_count(&actor) >= 1 {
+                    ran = true;
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            }
+            assert!(ran, "run_session must spawn the launch dream when gated");
+        })
+        .await;
+}
+
+/// The other half of the move: the session-end pipeline must NOT dream. It used
+/// to await `maybe_run_dream` inline, so closing a session could block for the
+/// full `DREAM_MODEL_CALL_TIMEOUT` (30 minutes) even though the gates were open.
+/// Re-adding that await turns this red.
+#[tokio::test(flavor = "current_thread")]
+async fn session_end_pipeline_does_not_run_dream() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            let actor = create_dream_ready_actor().await;
+            // Sanity: the gates really are open, so a dream *would* run if the
+            // pipeline still asked for one. Without this the test could pass
+            // vacuously on a closed gate.
+            actor.maybe_run_dream().await;
+            let after_direct = dream_count(&actor);
+            assert!(
+                after_direct >= 1,
+                "the gate must be open for this test to mean anything"
+            );
+
+            actor.run_session_end_memory_pipeline("test").await;
+            assert_eq!(
+                dream_count(&actor),
+                after_direct,
+                "session end must not run a dream; consolidation belongs to the next launch"
+            );
+        })
+        .await;
+}

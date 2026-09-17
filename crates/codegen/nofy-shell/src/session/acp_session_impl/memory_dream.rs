@@ -3,6 +3,16 @@
 
 use super::*;
 
+/// Upper bound on the dream consolidation model call.
+///
+/// Deliberately generous — a dream summarises many prior session logs, so it is
+/// one of the longest prompts we send. The consequence is that **a dream must
+/// never be awaited on a path the user is waiting on**: at this budget an inline
+/// await can hold session close for half an hour. Every caller runs it inside
+/// `spawn_dream_check`, and teardown aborts rather than awaits it.
+pub(super) const DREAM_MODEL_CALL_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_secs(30 * 60);
+
 #[derive(Debug)]
 pub(super) struct MemoryFlushSnapshot {
     counts: nofy_chat_state::ConversationCounts,
@@ -111,10 +121,11 @@ impl SessionActor {
     pub(super) async fn run_session_end_memory_pipeline(&self, log_suffix: &str) {
         let mut session_end_result = "disabled";
         let mut total_chunks_at_end = 0usize;
-        // Dream consolidates *prior* logs. Run after Written/Failed, or when
-        // save was Skipped for config (`save_on_end=false`) but the session
-        // still meets the size threshold. Empty/brief sessions stay off.
-        let mut run_exit_dream = false;
+        // No dream here. Consolidation runs at the *next* launch and on the
+        // dream-check timer (see `spawn_dream_check` in `run_loop`): a dream is a
+        // model call with a 30-minute budget, and awaiting it inline made session
+        // close wait for it. Deferring loses nothing — this session's summary is
+        // written below, so the next launch's gate check finds it on disk.
         if !self.startup_hints.is_subagent {
             if let Some(storage) = self.memory.storage() {
                 let conversation = self.chat_state_handle.get_conversation().await;
@@ -127,7 +138,6 @@ impl SessionActor {
                 match &result {
                     crate::session::memory::hooks::SessionEndResult::Written(path_str) => {
                         session_end_result = "written";
-                        run_exit_dream = true;
                         self.reindex_and_embed(std::path::Path::new(path_str), "session")
                             .await;
                         self.send_xai_notification(NofySessionUpdate::MemorySessionSaved {
@@ -137,17 +147,9 @@ impl SessionActor {
                     }
                     crate::session::memory::hooks::SessionEndResult::Skipped => {
                         session_end_result = "skipped";
-                        // `Skipped` also means save_on_end=false — still dream
-                        // when the conversation is substantial.
-                        run_exit_dream =
-                            crate::session::memory::hooks::queries_meeting_session_end_threshold(
-                                &conversation,
-                            )
-                            .is_some();
                     }
                     crate::session::memory::hooks::SessionEndResult::Failed(_) => {
                         session_end_result = "failed";
-                        run_exit_dream = true;
                     }
                 }
                 total_chunks_at_end = storage.total_chunk_count();
@@ -167,9 +169,6 @@ impl SessionActor {
                 target: nofy_telemetry::memory_log::TARGET,
                 "MEMORY_SUBAGENT_SKIP: skipping on_session_end for subagent session"
             );
-        }
-        if run_exit_dream {
-            self.maybe_run_dream().await;
         }
         let telem = self.memory.telemetry_snapshot();
         self.emit_memory_session_summary(&telem, total_chunks_at_end, session_end_result);
@@ -203,9 +202,10 @@ impl SessionActor {
 
     /// Run dream consolidation if gates pass.
     ///
-    /// Called at session end after the session summary is written.
-    /// Uses the same sampling client infrastructure as flush but sends
-    /// the dream prompt instead. The model call has a 60s timeout.
+    /// Called only from `spawn_dream_check` — at session launch and on the
+    /// dream-check timer — never awaited inline. Uses the same sampling client
+    /// infrastructure as flush but sends the dream prompt instead; the model call
+    /// is bounded by [`DREAM_MODEL_CALL_TIMEOUT`].
     pub(super) async fn maybe_run_dream(&self) {
         if self.startup_hints.is_subagent {
             tracing::debug!(
@@ -317,7 +317,7 @@ impl SessionActor {
             };
 
         let model_response = match tokio::time::timeout(
-            std::time::Duration::from_secs(30 * 60),
+            DREAM_MODEL_CALL_TIMEOUT,
             self.run_dream_model_call(&dream_msg.content),
         )
         .await
@@ -335,7 +335,8 @@ impl SessionActor {
             Err(_) => {
                 tracing::warn!(
                     target: nofy_telemetry::memory_log::TARGET,
-                    "{log_prefix}: model call timed out (30m)"
+                    timeout_secs = DREAM_MODEL_CALL_TIMEOUT.as_secs(),
+                    "{log_prefix}: model call timed out"
                 );
                 self.memory.record_dream_result(false);
                 return;
