@@ -649,3 +649,113 @@ E 类七项全部定性完毕（4 跳过/跳云、1 已对齐、2 已做）。A5
 - **两个真内核缺口新立项候选**：`message-delivery-core`、`compaction-transcript`。
 - **per-model mTLS**（已核实为 BYOK/自建网关需求，零云依赖，规模约等于 ⑩ 一轮）。
 - **1.0.13#1 length salvage**（需先定原生预算分层设计）。
+
+
+## 10. A6 治理核实结论 + MCP 策略裁决层规格（2026-09-17）
+
+### 10.1 核实结论：4 项里 2 项是真缺口，且同源
+
+| 项 | 结论 |
+|---|---|
+| 1.0.18#1 托管策略在**写入前**阻止不允许的 MCP server/marketplace 安装 | **真缺口（MCP 侧）**。marketplace 侧我们已有（`plugin_cmd.rs:880`、`extensions/marketplace.rs:831` 都是 `strictKnownMarketplaces` fail-closed）；MCP 侧完全没有 |
+| 1.0.19#3 被组织策略阻止的 MCP server 显示清晰信息、**配置变更前**拒绝 | **真缺口**，与上同源 |
+| 1.0.14#9 `inspect` 把 Claude bypass 锁显示为 advisory 而非 enforced | 未核（本轮预算用尽） |
+| 1.0.18#8 `inspect`/`mcp doctor` 显示托管策略详情 | 未核；我们 `inspect/mod.rs:551,915` 与 `mcp_doctor.rs:478` 都已在读 `managed_settings()`，可能只是详情粒度差 |
+
+**缺口的具体形状**（不是「没有拦截」，而是「拦截点太晚」）：
+
+我们的 `nofy-pager/src/mcp_cmd.rs` 里 `managed_settings` / `allowlist` / `blocked` / `denied`
+**零命中**——`run_add`（:223）直接写配置并报成功，`mcp list` 也不显示 blocked 原因。
+运行时确实还会拦（`session/managed_mcp.rs:288` "MCP server blocked by managed settings
+policy"），所以**不是权限绕过**；但用户拿到的是**假成功**，而且配置文件里落下了一条
+策略禁止的条目。上游 `mcp_cmd.rs:639` 的注释把这件事说得很直白：
+
+> "Policy check BEFORE the config write, or a blocked server is written under a success [message]"
+
+上游有三个闸口，我们一个都没有：
+
+| 上游符号 | 位置 | 作用 | 我们 |
+|---|---|---|---|
+| `policy_blocked_servers(&cwd)` | `mcp_cmd.rs:167` | `mcp list` 的裁决表（名字 → 原因） | **0 命中** |
+| `policy_add_refusal(&cwd, name, &config, scope)` | `mcp_cmd.rs:284`，在 `run_add` 写之前 | 新增定义的闸口 | **0 命中** |
+| `policy_enable_refusal(&cwd, name)` | `mcp_cmd.rs:641`，在 enable 写之前 | 启用的闸口 | **0 命中** |
+
+### 10.2 为什么我们没有：缺一整层「策略裁决」抽象
+
+管道我们全有，裁决层全无：
+
+| 符号 | 我们 | 上游 |
+|---|---|---|
+| `project_scoped_mcp_names` | 11 | 19 |
+| `to_acp_mcp_server` | 10 | 13 |
+| `materialize_mcp_config` | 9→4 | 6 |
+| `load_mcp_server_configs_with_project` | 9 | 11 |
+| `MCP_SCOPE_PROJECT` / `McpEnabledFilter` / `load_mcp_preferences` | 8 / 6 / 18 | 11 / 8 / 20 |
+| **`McpSubject`** | **0** | **44** |
+| **`McpBlockReason`** | **0** | **37** |
+| **`mcp_blocked_reasons`** | **0** | 5 |
+| **`mcp_subject` / `mcp_subject_for_tier`** | **0** | 19 / 8 |
+| **`policy_enable_error`** | **0** | 10 |
+
+即：我们只在**会话加载时**用一句临时字符串拦一下，没有可复用的裁决类型，所以 CLI 侧
+无从复用。上游把裁决抽成了 `McpSubject`（这个 server 属于哪一层）+ `McpBlockReason`
+（为什么被拦，**每个变体都带 `source: PathBuf` 指明是哪份策略文件拦的**），
+放在独立模块 `xai-grok-workspace/src/permission/managed_policy/verdict.rs`。
+
+`McpBlockReason` 四个变体（已读到定义）：
+
+| 变体 | 含义 |
+|---|---|
+| `Deny { source }` | 命中 `deniedMcpServers` 条目 |
+| `NotGranted { source }` | 不在 `allowedMcpServers`（或 managed-only lockdown 的授权表）里 |
+| `Lockdown { source }` | 该来源封锁它绑定的一切（`McpServerAllowlist::is_lockdown`），故任何 allow 条目都不可能授权它 |
+| `ProjectPin { source }` | 项目声明的 server，且 `enableAllProjectMcpServers = false` 被钉住 |
+
+⚠ `ProjectPin` 依赖 `enableAllProjectMcpServers`，对应上游 `ManagedSettings.project_mcp:
+PolicyPin` 字段——**我们没有**（`enable_all_project_mcp_servers` 全树 0 命中 vs 上游 6）。
+上游 `ManagedSettings` 还多两个字段：`plugin_auto_update: PolicyPin`、
+`extra_marketplaces: Vec<ManagedMarketplace>`；且它已把整个托管策略抽成独立模块
+`permission/managed_policy/`，我们的还在 `permission/resolution.rs` 里。
+
+### 10.3 实施规格（下一轮，需完整预算）
+
+**分层，自下而上，每层可独立编译与测试：**
+
+1. **`McpSubject`**（层级判定：user / project / managed / plugin-registry）。上游定义在
+   `managed_policy/verdict.rs`，本轮**未读到**，实施前必须先读——它是 `mcp_subject` 与
+   `mcp_subject_for_tier` 的返回类型，形状错了上面全错。
+2. **`McpBlockReason`** 四变体 + `source()` 访问器。`ProjectPin` 需要
+   `ManagedSettings.project_mcp: PolicyPin` 与 `enable_all_project_mcp_servers` 的解析；
+   若本轮不做该字段，就**只实现前三个变体**并把 `ProjectPin` 留成显式 `todo` 缺口记进台账
+   ——不要为了凑齐而猜语义。
+3. **`mcp_blocked_reasons(iter, &ManagedSettings) -> HashMap<name, McpBlockReason>`**：
+   纯函数，输入 (name, server, subject) 三元组迭代器 + 策略，输出裁决表。这是唯一需要
+   单测穷举四变体 × 各来源优先级的地方。
+4. **`extensions::mcp::policy_enable_error(&ManagedSettings, &McpServer, McpSubject)
+   -> Option<String>`**：把裁决翻成人话。我们 `extensions/mcp.rs:1744` 已有一句
+   `"blocked by organization policy"` 的临时文案，应改为从这里出。
+5. **`mcp_doctor.rs` 的三个闸口**：`policy_subjects`（私有，走 TOML +
+   `merge_managed_mcp_servers_sourced`，注意上游那句注释「merge 会把已启用的 TOML server
+   加回来，上面的遍历已经判过每一个 TOML 条目」——即 `ConfigSource::ConfigToml` 要 `continue`，
+   否则同一 server 被判两次）、`policy_blocked_servers`、`policy_enable_refusal`、
+   `policy_add_refusal` + `McpWriteScope { User, Project }` + 可注入的
+   `policy_add_refusal_with`（上游用 OnceLock seam 做测试注入）。
+6. **接线 `nofy-pager/src/mcp_cmd.rs`**：`run_add` 写之前调 `policy_add_refusal`；
+   enable 路径写之前调 `policy_enable_refusal`；list 显示 `blocked_reason` 与
+   `"blocked by organization policy"` 注记。
+7. **`policy_add_refusal` 的一个非显然语义**（上游 doc 原话）：新定义默认按 grok-native
+   判，**除非写入目标是 project 作用域或该名字已被 project 认领**——因为定义落进 project
+   源之后它就成了 project 声明的 server，必须在写之前就按那个身份判，否则先写成 user 级、
+   再被 project 认领，就绕过了 `ProjectPin`。实现里对应
+   `if scope == Project { project_names.insert(name) }` 这一句。
+
+**测试要点（红绿靶子）**：
+- `mcp add` 一个被 `deniedMcpServers` 命中的 server → 必须**非零退出且不写配置文件**
+  （断言配置文件内容未变，不能只断言退出码——假成功正是这个 bug 的形状）。
+- `mcp enable` 同上。
+- `mcp list` 对被拦的 server 显示原因，且原因里**带策略文件路径**（`source`）。
+- 四变体各一个单测；`Lockdown` 要覆盖「allow 条目存在但来源是 lockdown」的情形。
+- 红绿：把 `run_add` 里的 `policy_add_refusal` 调用删掉 → 第一条测试必须红。
+
+**规模**：约 6 个新符号 + 3 个闸口 + 1 处 CLI 接线，跨 `nofy-workspace`（裁决类型）与
+`nofy-shell`（闸口）与 `nofy-pager`（接线）三个 crate。比 ⑰ 大，与 ⑩ 相当或略大。

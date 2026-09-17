@@ -415,10 +415,10 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - 1.0.22#27 打开/恢复会话不再因读 MCP 配置卡顿 ★★(与本轮配置迁移同区) — 上游原文:"Opening or resuming sessions no longer pauses the interface while reading MCP config files." **未核实**;注:"卡顿界面"指 pager,可能属 A8
 
 **A6 策略/治理(★★,我们已有 nofy-governance/marketplace/requirements)**
-- 1.0.18#1 托管策略在写入前阻止不允许的 MCP server/marketplace 安装 ★★
-- 1.0.19#3 被组织策略阻止的 MCP server 显示清晰信息、配置变更前拒绝 ★★
-- 1.0.14#9 grok inspect 把 Claude bypass 锁显示为 advisory 而非 enforced ★
-- 1.0.18#8 grok inspect/mcp doctor 显示托管策略详情 ★
+- 1.0.18#1 托管策略在写入前阻止不允许的 MCP server/marketplace 安装 ★★ — **核实:MCP 侧真缺口,marketplace 侧已有**。marketplace 我们已 fail-closed(`plugin_cmd.rs:880`、`extensions/marketplace.rs:831` 都是 `strictKnownMarketplaces` 拦截)。MCP 侧:我们 `nofy-pager/src/mcp_cmd.rs` 里 `managed_settings`/`allowlist`/`blocked`/`denied` **零命中**,`run_add`(:223)直接写配置并报成功。运行时仍会拦(`session/managed_mcp.rs:288`),故**不是权限绕过,而是假成功 + 配置文件里落下策略禁止的条目**。上游三个闸口(`policy_blocked_servers`/`policy_add_refusal`/`policy_enable_refusal`)我们**全部 0 命中**;根因是缺一整层策略裁决抽象(`McpSubject` 0 vs 44、`McpBlockReason` 0 vs 37、`mcp_blocked_reasons`/`mcp_subject`/`mcp_subject_for_tier`/`policy_enable_error` 全 0),而管道全有(`project_scoped_mcp_names`/`to_acp_mcp_server`/`materialize_mcp_config`/`load_mcp_server_configs_with_project` 都在)。上游 `mcp_cmd.rs:639` 注释原话:「Policy check BEFORE the config write, or a blocked server is written under a success [message]」。**分层实施规格见路线图 §10.3**(6 个新符号 + 3 闸口 + 1 处 CLI 接线,跨 nofy-workspace/nofy-shell/nofy-pager 三 crate,规模与 ⑩ 相当或略大)
+- 1.0.19#3 被组织策略阻止的 MCP server 显示清晰信息、配置变更前拒绝 ★★ — **核实:真缺口,与 1.0.18#1 同源同修**。两个子缺口:①「配置变更前拒绝」= `policy_enable_refusal`(上游 `mcp_cmd.rs:641`,我们 0 命中);②「显示清晰信息」= `mcp list` 的裁决表(上游 `mcp_cmd.rs:167,181-183,207-208` 显示 `blocked_reason` 与 "blocked by organization policy" 注记,我们 `mcp_cmd.rs` 无任何 blocked 显示)。上游 `McpBlockReason` **每个变体都带 `source: PathBuf`** 指明是哪份策略文件拦的(Deny/NotGranted/Lockdown/ProjectPin 四变体),这正是「清晰信息」的实质——不只说被拦,还说被哪份策略拦。见路线图 §10.2/§10.3
+- 1.0.14#9 grok inspect 把 Claude bypass 锁显示为 advisory 而非 enforced ★ — **本轮未核**(预算用尽)。注:我们 `inspect/mod.rs:551` 已在读 `managed_settings()`,上游同位置多一个 `ManagedOnlyScope::resolve(&ms.mcp_allowlist)`(`inspect/mod.rs:728`)抽象,可能相关
+- 1.0.18#8 grok inspect/mcp doctor 显示托管策略详情 ★ — **本轮未核**(预算用尽)。我们 `inspect/mod.rs:551,915` 与 `mcp_doctor.rs:478` 都已在读 `managed_settings()`/`mcp_allowlist`,故可能只是详情粒度差而非缺失;上游 `ManagedSettings` 比我们多三个字段(`project_mcp: PolicyPin`、`plugin_auto_update: PolicyPin`、`extra_marketplaces: Vec<ManagedMarketplace>`)且已抽成独立模块 `permission/managed_policy/`(我们的还在 `permission/resolution.rs`),详情差可能主要来自这里
 
 **A7 会话/resume 上下文(★★)**
 - 1.0.19#4 resume 时告知模型仍在运行的 loops/subagents/workflows ★★ — **核实:按内容匹配失败,上游对应实现未定位**。关键词(still.running / running loops / resume+subagent|workflow|loop)在上游只命中测试注释与 `activity.rs` 的忙判定,没有「resume 时把在跑的任务告知模型」的实现。**待另找上游实现名后再判**
