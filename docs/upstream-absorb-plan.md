@@ -476,7 +476,11 @@ elicitation 面也齐（`create_elicitation`、`UrlElicitationParam`、`elicitat
 LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协商是客户端提议、服务端回应，
 抬高客户端声明版本本身低风险，但多轮 elicitation 的行为变更需要单独验。
 
-### 8.9 E5 可执行规格：requirements 层的 `allowed_models` pin
+### 8.9 E5 可执行规格：requirements 层的 `allowed_models` pin — **已实施，原生⑰ `9fbf1910`**
+
+> 实施结果：规格里的 10 个站点全部落地，无一遗漏，也未发现规格之外的第 11 个站点（与 §8.7 相反——那次「单一消费端」的判断漏了两个闸口）。差别在于本规格的站点清单是逐个读上游真实实现枚举出来的，不是推断的。
+> 两处规格未预见、实施中补上的：① `Constrained<T>` 的 `Default` 必须从 derive 改手写，否则 `AllowlistPin` 被迫实现 `Default`，而「未钉」与「钉成空列表」语义不同，给它一个 Default 是错的（编译器逼出来的，E0277）；② 运行时消息（`acp_agent` 两处、`session_setup` 一处）也要按 provenance 拆分，规格里只写了 `validate_selectable` 的文案，漏了这三处——上游同样拆了（`remote_config/resolution.rs:306-326`），是对照上游才发现的。
+> 另修掉一个**既有缺口**（不属于本项，但同一条路径上）：`resolve_model_override_to_config` 此前完全没有 `user_selectable` 检查，子代理可被指向 catalog 里任何模型。
 
 **与 §8.7 的关键区别**：§8.7 的规格是推断出来的，结果错在危险的方向；本规格每一处都
 读自上游真实实现（`37949780`），站点清单是枚举出来的，不是猜的。
