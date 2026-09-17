@@ -6,7 +6,6 @@ use std::future::Future;
 use std::sync::{Arc, LazyLock};
 
 use agent_client_protocol as acp;
-use futures::StreamExt;
 use regex::Regex;
 use tokio::{
     io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
