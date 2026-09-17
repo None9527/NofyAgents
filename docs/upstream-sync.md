@@ -381,7 +381,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 **A2 模型管理(★★★,计划批27 P0;我们已有 modality 字段基础)**
 - 1.0.14#6 模型按 reasoning-effort 声明不同 id ★★★—**已落地 ⑧ `ff0e0e7c`**
 - 1.0.18#10 限流请求的重试行为按模型可配 ★★★—**已落地 ⑩ `68697b03`**(并修掉 spawn.rs 里硬编码的 `rate_limit_retry_threshold: 2`)(与 #6 一次设计)
-- 1.0.18#11 按模型 mTLS 客户端证书 ★★(BYOK 安全相关)
+- 1.0.18#11 按模型 mTLS 客户端证书 ★★—**归属已核实(2026-09-17,路线图 §8.8):是 BYOK/自建网关需求,不是 xAI 云或 Grok 模型需求**。上游 `mtls_cert_dir` 是 `[models.<id>]` 每模型字段,四条校验钉死用途(必须配同表 HTTPS `base_url`;不得与 `api_base_url` 或 provider 的 `api_base_url` 并存——「一个 mTLS 身份只能有一个目的地」),消费点 `sampler/client.rs:618` → `shared_http/mtls.rs` 找 `client.crt`/`client.key`、回退 `tls.crt`/`tls.key`(**K8s Secret 命名约定**),按证书内容摘要缓存客户端(上限 16)、`https_only` + 禁重定向。xAI 自家端点走 bearer token,永不用此路。**恰是我们 fork 的受众**,零云依赖,规模约等于 ⑩ 一轮(注意 ⑩ 的坑:`reconstruct_full_config` 才是主回合路径)。⚠ 勿与 `otel/otlp.rs` 的 `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` 混——那是 OTLP 标准环境变量契约,属遥测面。定性由「有企业需求再取」升级为「**与受众直接相关,可排期**」
 - 1.0.18#18 子代理会话遵守所选模型的 retry/rate-limit ★★—**已随 ⑩ `68697b03` 覆盖**(子代理 spawn 前取出所选模型阈值传入)
 - 1.0.22#18 模型后端选择修复(config.toml 显式 chat_completions 不被同 slug 兄弟覆盖)★★★(与 D20 configOf 同区)—**已落地 ④ `187b7131`**
 
@@ -452,13 +452,13 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - interjection 原子交付(上游 message-delivery-core,我们缺):1.0.14#19 interjection 原子交付——**defer/评估(批27)**
 
 ### E. 决策点(行为变更/需用户拍板)
-- 1.0.24#1 Esc 不再取消运行中回合、改提示 Ctrl+C(批30 决策#1,行为变更)
-- 1.0.19#1 计划 /loop 任务始终后台运行、不再注入回合(批30 决策#2,行为变更;我们有 scheduler)
-- 1.0.18#3 welcome 屏停留到真正发送、后台预备会话(批30 决策#5,UX 行为变更)
-- 1.0.17#1 MCP elicitation 升级到 2026-07-28 多轮(批28 决策#4;我们钉 V_2025_06_18,升级影响协议面)
-- 1.0.16#1 企业策略经签名 requirements.toml 限制可选模型(依赖我们 nofy-governance/requirements 基建现状,需核)
-- 1.0.22#9 grok-workspaced daemon 暴露文件夹给 Computer Hub(批31 决策,倾向跳云登记分歧)
-- 1.0.13#6 iTerm2 粘贴图实时像素预览(媒体/pager 面,我们图像输入策略需核)
+- 1.0.24#1 Esc 不再取消运行中回合、改提示 Ctrl+C(批30 决策#1,行为变更)—**定性:跳过(A8 pager 同类)**,纯键位行为
+- 1.0.19#1 计划 /loop 任务始终后台运行、不再注入回合(批30 决策#2,行为变更;我们有 scheduler)—**定性:待核,很可能已对齐或更完整**。我们 `nofy-scheduler` 是持久义务账本(arm/fire/drop、fork 安全、离线只补放最新一次),`ScheduleEntry` 已带 `goal`/`cwd`/`once`;只需核 fired payload 的投递方式
+- 1.0.18#3 welcome 屏停留到真正发送、后台预备会话(批30 决策#5,UX 行为变更)—**定性:跳过(A8 pager 同类)**
+- 1.0.17#1 MCP elicitation 升级到 2026-07-28 多轮(批28 决策#4;我们钉 V_2025_06_18,升级影响协议面)—**定性:可做,但先定版本策略。上一轮记的「rmcp 缺 API 不可移植」对本项是错的**:rmcp 2.1.0 有 `ProtocolVersion::V_2026_07_28`(`model.rs:162`,在 `KNOWN_VERSIONS` 内),elicitation 面也齐(`create_elicitation`/`UrlElicitationParam`/`elicitation_id`/`on_url_elicitation_notification_complete`)。真约束是 rmcp 自身 `LATEST` 只到 `V_2025_11_25`,2026-07-28 比 LATEST 更新、SDK 内目前仅用于 SEP-2164 错误码映射(`handler/server.rs:140`)。故不是「不能做」而是「钉到哪一版」:2026-07-28=前瞻钉版,2025-11-25=与 SDK 对齐。MCP 协商是客户端提议/服务端回应,抬高声明版本本身低风险,多轮行为变更需单独验
+- 1.0.16#1 企业策略经签名 requirements.toml 限制可选模型—**定性:真缺口,做。基建已核:全在**(`RequirementSource`/`apply_requirements_inner`/`enforce_str!`/`Constrained<T>`/`ModelGlobSet` 都有,用户级 `allowed_models` 也已完整接线),缺的只是 requirements 层的 pin。可执行规格见路线图 §8.9(站点清单逐个读过上游真实实现,非推断)
+- 1.0.22#9 grok-workspaced daemon 暴露文件夹给 Computer Hub(批31 决策)—**定性:跳云,登记有意分歧**(Computer Hub 是云表面)
+- 1.0.13#6 iTerm2 粘贴图实时像素预览(媒体/pager 面)—**定性:跳过(A8 pager 同类)**
 
 ### F. 已对齐/无对应
 - 1.0.13#11 截断错误措辞(我们树无该字符串,批25 已记)

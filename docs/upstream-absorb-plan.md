@@ -113,7 +113,7 @@ xai-dirs(上游后续若依赖再取)、otel 降维(只取 W3C trace-context 传
 | 4 | MCP 多轮 elicitation 协议升级 | 保持 V_2025_06_18,降维适配 |
 | 5 | 欢迎屏后台建会话(1.0.18) | 跟随上游(与桌面首屏体验一致) |
 | 6 | Desktop 第一方 MCP server(1.0.22) | 取——正是 nofy-desktop 想要的表面 |
-| 7 | mTLS per-model(1.0.18) | 有企业需求再取 |
+| 7 | mTLS per-model(1.0.18) | ~~有企业需求再取~~ → **归属已核实:BYOK/自建网关需求,非 xAI 云非 Grok 模型;与我们受众直接相关,可排期**(§8.8) |
 | 8 | session-search 本地搜索(08-13 波遗留) | 建议立项(批33) |
 
 ## 7. 节奏
@@ -415,3 +415,112 @@ not a content write"），把 `mkdir`/`touch` 的操作数从 `Write` 改判 `Cr
 读 `is_file_write_only`/`redirect_write`。
 **补偿性控制的覆盖面 = 被补偿机制的覆盖面，不是新数据的调用面。**
 下次写这类规格，先 grep 被削弱的那个谓词，而不是 grep 新增的那个字段。
+
+
+### 8.8 E 类决策点逐项定性（2026-09-17，用户已放行「e类可以做」）
+
+#### 先回答一个归属问题：per-model mTLS 是谁的需求？
+
+**结论：是 BYOK / 自建网关的需求，不是 xAI 云或 Grok 模型的需求——恰好就是我们这个 fork 的受众。**
+
+证据（全部来自上游源码，不是推测）：
+
+- `mtls_cert_dir` 是 `[models.<id>]` 的**每模型**字段：`ConfigModelOverride.mtls_cert_dir:
+  Option<PathBuf>`（`agent/config.rs:3790`），doc 写「Directory containing this model's mTLS
+  client certificate and private key. Requires one HTTPS `base_url`; an alternate
+  `api_base_url` is rejected.」
+- 四条校验把用途钉死了（`agent/config.rs:1879-1906`）：
+  1. `mtls_cert_dir requires base_url in the same model table`
+  2. `base_url must be an HTTPS URL with a host when mtls_cert_dir is set`
+  3. `cannot set both mtls_cert_dir and api_base_url; an mTLS identity must have one destination`
+  4. `cannot use model_providers.{provider_id}.api_base_url with mtls_cert_dir`
+  → **只有把模型指向你自己的 HTTPS 端点时才用得上**。xAI 自家端点用 bearer token 认证，
+  永远不会走这条路。
+- 消费点：`sampler/src/client.rs:618` → `shared_http::mtls_client(cert_dir, force_http1)`。
+  `shared_http/mtls.rs`（202 行）先找 `client.crt`/`client.key`，回退 `tls.crt`/`tls.key`
+  ——**这是 Kubernetes Secret 的命名约定**，指向 service mesh / 零信任 ingress 挂载的证书。
+  然后 `reqwest::Identity::from_pem`，按「证书+私钥内容摘要」缓存客户端（轮转即换新、
+  不无界增长，上限 16），并强制 `https_only(true)` + `redirect::Policy::none()`
+  （身份不得跟随重定向外泄到别的 origin）。
+- 台账原注「BYOK 安全相关」猜对了。计划 §6#7「有企业需求再取」的定性应升级为
+  「**与我们受众直接相关、零云依赖**」。规模约等于 ⑩ 一轮：`shared_http`（我们是单文件，
+  上游是目录模块）+ `SamplingError::MtlsConfiguration` 变体 + 四层配置字段
+  （`SamplerConfig`/`SamplingConfig`/`ConfigModelOverride`/`ModelEntryConfig`）+ 上述校验 +
+  `sampling_config_for_model` **和 `reconstruct_full_config`**（⑩ 踩过的坑：主回合路径走后者，
+  只接前者会让功能空转）+ 子代理 spawn + 文档。地基已在：我们有 `nofy-extra-ca`
+  （上游正是用 `xai_grok_extra_ca::build_reqwest_client` 建的客户端）。
+- ⚠ **别和同名的另一个东西混**：`otel/src/otlp.rs` 的
+  `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE`/`_KEY` 是 OpenTelemetry OTLP 的标准环境变量契约，
+  属遥测面（我们已降维/跳过），与每模型 mTLS 无关。
+
+#### E 类七项定性
+
+| # | 项 | 面 | 定性 | 依据 |
+|---|---|---|---|---|
+| 1 | 1.0.24#1 Esc 不再取消运行中回合、改提示 Ctrl+C | pager 输入 | **跳过**（A8 同类） | 纯 pager 键位行为，用户已指示 UX 先跳过 |
+| 2 | 1.0.19#1 计划 /loop 任务始终后台运行、不再注入回合 | 内核（scheduler） | **待核，很可能已对齐或更完整** | 我们 `nofy-scheduler` 是持久义务账本（arm/fire/drop、fork 安全、离线只补放最新一次），`ScheduleEntry` 已带 `goal`/`cwd`/`once`；需核的只是 fired payload 的投递方式 |
+| 3 | 1.0.18#3 welcome 屏停留到真正发送、后台预备会话 | pager UX | **跳过**（A8 同类） | |
+| 4 | 1.0.17#1 MCP elicitation 升级到 2026-07-28 多轮 | 协议面 | **可做，但要先定版本策略** | 见下 |
+| 5 | 1.0.16#1 企业策略经签名 requirements.toml 限制可选模型 | 内核（配置/治理） | **真缺口，做**（§8.9） | 我们只有用户级 `allowed_models`，没有 requirements 层的 pin |
+| 6 | 1.0.22#9 workspaced daemon 暴露文件夹给 Computer Hub | 云/桌面 | **跳云，登记分歧** | Computer Hub 是云表面 |
+| 7 | 1.0.13#6 iTerm2 粘贴图实时像素预览 | pager/媒体 | **跳过**（A8 同类） | |
+
+**#4 的更正**：上一轮台账记「rmcp 缺 API，版本钉死不可移植」——**对这一项是错的**。
+rmcp 2.1.0 里 `ProtocolVersion::V_2026_07_28` 存在（`model.rs:162`，也在 `KNOWN_VERSIONS` 里），
+elicitation 面也齐（`create_elicitation`、`UrlElicitationParam`、`elicitation_id`、
+`on_url_elicitation_notification_complete`）。真正的约束是：rmcp 自己的 `LATEST` 是
+`V_2025_11_25`，2026-07-28 比 LATEST 还新，目前 SDK 内只用于 SEP-2164 的错误码映射
+（`handler/server.rs:140`：≥2026-07-28 的对端把 resource-not-found 报成标准 `INVALID_PARAMS`）。
+我们钉在 `V_2025_06_18`（`servers.rs:3622`，注释说明「rmcp 默认跟随 LATEST，故显式钉住」）。
+所以这一项不是「不能做」，而是「**要决定钉到哪一版**」：跳到 2026-07-28 是超出 SDK 自身
+LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协商是客户端提议、服务端回应，
+抬高客户端声明版本本身低风险，但多轮 elicitation 的行为变更需要单独验。
+
+### 8.9 E5 可执行规格：requirements 层的 `allowed_models` pin
+
+**与 §8.7 的关键区别**：§8.7 的规格是推断出来的，结果错在危险的方向；本规格每一处都
+读自上游真实实现（`37949780`），站点清单是枚举出来的，不是猜的。
+
+**上游语义（必须照搬的是语义，不是代码）**：`EffectiveAllowlist` 四态
+（`remote_config/resolution.rs:205-250`）——
+
+| 态 | 触发 | 匹配方式 |
+|---|---|---|
+| `Unrestricted` | 无 pin 且用户列表为空/缺省 | 全放行 |
+| `Invalid` | pin 存在但值不可读（`AllowlistPin::FailClosed`） | **全不放行**（fail closed） |
+| `Fleet(patterns)` | pin 是合法非空列表 | **只匹配 model id** |
+| `User(patterns)` | 无 pin、用户列表非空 | 匹配 **catalog key 或 model id** |
+
+两个安全要点，漏一个就是绕过：
+
+1. **Fleet 替换 User，不是并集**——用户列表不能在 pin 存在时放宽集合。
+2. **Fleet 只匹配 model id，不匹配用户自定义的 catalog key**。用户能改自己的
+   `[models.<key>]` 键名；若键名也能满足 fleet 限制，改个键名就逃出去了。
+   上游专门有测试 `apply_requirements_allowed_models_ignores_user_catalog_key` 钉这一点。
+3. **fail-closed 的报错文案不得叫用户去改 `allowed_models`**——那是 fleet 钉的，用户改了也没用。
+   上游测试 `apply_requirements_malformed_allowed_models_fail_closes` 断言
+   `!err.contains("allowed_models")`。
+
+**我们树的站点清单（已逐个读过）**：
+
+| 站点 | 现状 | 要做的 |
+|---|---|---|
+| `agent/config.rs:447` `Constrained<T>` | 只有 `pin`/`pinned`/`source` | 加 `pin_ref()`、`is_pinned()`（放独立 `impl<T>` 块，二者不需要 `Clone`） |
+| `agent/config.rs:465` `Requirements` | 8 个字段，无模型相关 | 加 `allowed_models: Constrained<AllowlistPin>` |
+| `agent/config.rs`（新） | 无 | 加 `pub enum AllowlistPin { List(Vec<String>), FailClosed }`（`Debug, Clone, PartialEq, Eq`） |
+| `config/mod.rs:948` `apply_requirements_inner` | 有 `enforce_str!`，无数组变体 | 加 `ReqStrArray`（`Present(Vec<String>)`/`Malformed`）+ `pin_str_array!` 宏 + 一行调用 |
+| `agent/models/resolution.rs:203-218` | 主 catalog 循环直接读 `cfg.models.allowed_models` | 改读 `effective_allowlist(cfg)`，`is_selected(key, model)` 按态分流 |
+| `agent/models/resolution.rs:89` | fallback 条目同样直接读 | 同上 |
+| `agent/models/resolution.rs:267-277` | 「allowlist 导致无可选项」判定 | 同上，且 `Invalid` 态必须判为「无可选项」 |
+| `agent/models/resolution.rs:279-310` | 两处报错文案让用户「Broaden the patterns or remove allowed_models」 | fleet/Invalid 态换成不指向用户配置的文案 |
+| `agent/subagent/mod.rs` | 无对应门 | 上游 `subagent/mod.rs:898` 有 `!c.requirements.allowed_models.is_pinned()` 门，需核对我们的子代理模型选择路径 |
+| `11-custom-models.md` | 只讲用户级 `allowed_models` | 补 requirements 层 pin 的说明与「替换非并集」语义 |
+
+**测试（对齐上游 5 个 + 我们自己的红绿）**：
+`clamps_catalog_and_names_source`、`ignores_user_catalog_key`、`malformed_fail_closes`（含
+文案不含 `allowed_models` 的断言）、`empty_array_is_unrestricted`、`["*"]` 通配。
+红绿双验至少三项：把 Fleet 改成并集 → `ignores_user_catalog_key` 必须红；
+把 Fleet 的匹配从 `matches_model` 改成 `matches` → 同上；
+去掉 `FailClosed` 态 → `malformed_fail_closes` 必须红。
+
+**基线**：nofy-shell lib 5194 passed / 2 failed（那 2 个是 macOS 环境产物，已记录在案）。
