@@ -476,6 +476,27 @@ elicitation 面也齐（`create_elicitation`、`UrlElicitationParam`、`elicitat
 LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协商是客户端提议、服务端回应，
 抬高客户端声明版本本身低风险，但多轮 elicitation 的行为变更需要单独验。
 
+> **⚠ 上面这段「要决定钉到哪一版」的二选一是错的，已作废（2026-09-17 第一性原理复查）。**
+> 常量存在 ≠ 可以在 `initialize` 里自称该版本。**2026-07-28 删掉了 `initialize` 握手本身**
+> （SEP-2575 无会话发现），版本严格的服务端会**拒绝**一个自称 2026-07-28 的 `initialize`；
+> 上游 `servers.rs:4027` 的注释写得很直白：「Never pin 2026-07-28 here」。
+> 上游的 `with_protocol_version` 钉的是 **`V_2025_11_25`**；`2026-07-28` 只出现在
+> `probe_modern` 的 `ClientLifecycleMode::Discover { preferred_versions }` 里，走的是
+> `server/discover` 探测 + 两阶段 probe_modern/serve_legacy 回退，需要 **rmcp 3.x**
+> （上游在 3.2，我们在 2.1；rmcp 2.1.0 全树无 `ClientLifecycleMode`/`serve_with_lifecycle`/
+> `server/discover`，我们 4 个连接点调的都是裸 `handler.serve(transport)`）。
+>
+> 正确的拆分：**(a) 钉版改 `2025-11-25` —— 已做，原生⑱**；**(b) SEP-2575 无会话发现 ——
+> 前置是 rmcp 2.1→3.2 大版本升级 + 一套握手状态机，登记 defer**。
+>
+> (a) 最硬的理由与上游无关，是我们树内部的自相矛盾：`make_client_info` 早就声明了 URL 模式
+> elicitation 能力（`with_form(schema_validation=true)` + `with_url(...)`），而 URL elicitation
+> 晚于 2025-06-18。声明旧版意味着版本严格的服务端根本不会发它，**我们声明的能力有一半在空转**。
+>
+> **教训**：把「上游出现了某个版本号」当成「上游钉了某个版本号」，就会造出一个不存在的选择题，
+> 还会把决定权推给用户。定版本类结论必须读到**赋值那一行和它的注释**，不能停在常量表。
+> 同理，「rmcp 有这个常量」也不是可移植性证据——要读到**消费该常量的代码路径**。
+
 ### 8.9 E5 可执行规格：requirements 层的 `allowed_models` pin — **已实施，原生⑰ `9fbf1910`**
 
 > 实施结果：规格里的 10 个站点全部落地，无一遗漏，也未发现规格之外的第 11 个站点（与 §8.7 相反——那次「单一消费端」的判断漏了两个闸口）。差别在于本规格的站点清单是逐个读上游真实实现枚举出来的，不是推断的。
