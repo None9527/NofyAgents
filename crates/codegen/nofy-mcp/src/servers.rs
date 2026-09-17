@@ -3616,10 +3616,22 @@ impl McpClient {
                 nofy_version::VERSION.to_string(),
             ),
         )
-        // rmcp's default `ProtocolVersion` tracks its LATEST; pin explicitly
-        // so the advertised protocol only changes deliberately, never as a
-        // side effect of an rmcp bump.
-        .with_protocol_version(rmcp::model::ProtocolVersion::V_2025_06_18)
+        // The newest *initialize-era* protocol revision, and rmcp's own LATEST.
+        //
+        // Pin explicitly so the advertised protocol only changes deliberately,
+        // never as a side effect of an rmcp bump. Two constraints fix the value:
+        //
+        // - Never pin 2026-07-28 here. That revision removed the `initialize`
+        //   handshake (SEP-2575, session-less discovery), and version-strict
+        //   servers reject an `initialize` that names it. It is reachable only
+        //   through a `server/discover` probe, which needs rmcp 3.x's
+        //   `ClientLifecycleMode::Discover` — rmcp 2.1 has no such API, and we
+        //   call the plain `serve(...)`.
+        // - Do not stay below 2025-11-25. `make_client_info` advertises URL-mode
+        //   elicitation, which postdates 2025-06-18; declaring the older revision
+        //   means a version-strict server may never send it, leaving an advertised
+        //   capability inert.
+        .with_protocol_version(rmcp::model::ProtocolVersion::V_2025_11_25)
     }
 
     /// Build the [`NofyClientHandler`] that drives `client.serve(...)`.
@@ -7899,6 +7911,59 @@ mod tests {
         // fields the constructor sets.
         assert_eq!(got.client_info.name, info.client_info.name);
         assert_eq!(got.client_info.version, info.client_info.version);
+    }
+
+    /// The advertised protocol version rides the legacy `initialize` handshake,
+    /// so it must stay on the newest *initialize-era* revision. 2026-07-28
+    /// removed that handshake (SEP-2575) and version-strict servers reject an
+    /// `initialize` naming it; reaching that revision needs a `server/discover`
+    /// probe, which rmcp 2.1 cannot express. This test is the deliberate-change
+    /// gate the explicit `with_protocol_version` setter exists for: an rmcp bump
+    /// or a careless edit must not silently move the wire.
+    #[test]
+    fn make_client_info_pins_protocol_version() {
+        let version = McpClient::make_client_info("test-srv", true).protocol_version;
+        assert_eq!(version, rmcp::model::ProtocolVersion::V_2025_11_25);
+        // The specific hazard, asserted separately so a regression names the
+        // reason instead of just "the version changed".
+        assert_ne!(
+            version,
+            rmcp::model::ProtocolVersion::V_2026_07_28,
+            "2026-07-28 removed the initialize handshake (SEP-2575); \
+             version-strict servers reject an initialize that names it"
+        );
+    }
+
+    /// The other half of the pin's justification: we advertise URL-mode
+    /// elicitation, which postdates 2025-06-18. If this capability were dropped
+    /// the pin could move back down; if the pin moved down while this stayed,
+    /// a version-strict server would never send URL elicitation and the
+    /// advertised capability would be inert. The two must be changed together.
+    #[test]
+    fn make_client_info_advertises_form_and_url_elicitation() {
+        let info = McpClient::make_client_info("test-srv", true);
+        let elicitation = info
+            .capabilities
+            .elicitation
+            .as_ref()
+            .expect("elicitation capability advertised");
+        assert!(elicitation.form.is_some(), "form elicitation advertised");
+        assert!(elicitation.url.is_some(), "url elicitation advertised");
+        assert_eq!(
+            elicitation.form.as_ref().and_then(|f| f.schema_validation),
+            Some(true),
+            "the client validates form content before Accept"
+        );
+
+        // And the opt-out path really omits it, so `advertise_elicitation`
+        // is a live switch rather than a no-op.
+        assert!(
+            McpClient::make_client_info("test-srv", false)
+                .capabilities
+                .elicitation
+                .is_none(),
+            "elicitation must be absent when not advertised"
+        );
     }
 
     // A sender wired *after* the handler is constructed must still
