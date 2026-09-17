@@ -549,3 +549,82 @@ LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协�
 去掉 `FailClosed` 态 → `malformed_fail_closes` 必须红。
 
 **基线**：nofy-shell lib 5194 passed / 2 failed（那 2 个是 macOS 环境产物，已记录在案）。
+
+
+## 9. 两棵树的整体差异快照（2026-09-17 重测）
+
+上一轮的重测点是上游 `37949780`；本轮 `git fetch upstream` 后上游仍在 **`48271133`**
+（无新提交），上游 worktree 已 checkout 到该点，两个 gitnexus 索引都已重刷。
+
+### 9.1 crate 清单差异
+
+我们 90 个 crate，上游 95 个。**这不是「我们是上游的子集」**——两边各有对方没有的。
+
+**上游有、我们没有（21 个）**，按红线归类：
+
+| 归类 | crate |
+|---|---|
+| 云/账号/遥测（红线，永久跳过） | `login`、`mixpanel`、`otel`、`feedback`、`update`、`dashboard-store`、`voice`、`image`、`gboom`、`diag-server` |
+| 云/桌面表面（跳云） | `workspace-daemon`（Computer Hub 的文件夹暴露面） |
+| pager UX / 会话浏览（A8 同类，用户指示跳过） | `pager-diff`、`fuzzy-file-search`、`session-search`、`session-events`、`active-sessions`、`foreign-sessions` |
+| 平台/分发 | `dirs`（157 行，我们有 `nofy-paths`）、`bundle`（1538 行，打包分发） |
+| **真内核缺口，值得单独立项** | **`message-delivery-core`**（8 文件 1067 行，我们全树 `message_delivery`/`MessageDelivery` **零命中**）、**`compaction-transcript`**（1 文件 824 行，纯函数把压缩段渲染成自包含 markdown，对齐一份 Python 参考实现；我们 compaction 路径无任何 markdown 渲染） |
+
+**我们有、上游没有（16 个）**——这一栏是本轮最重要的认知修正：
+`agility`、`channel`、`control-schema`、`convergence`、`daemon`、`governance`、`marketplace`、
+`memorycore`、`orchestra`、`packcore`、`runtimecore`、`scheduler`、`session-journal`、
+`session-registry`、`stewardcore`、`surfaces`。
+
+即我们已经长出了上游没有的持久 daemon / 调度 / 治理 / 市场 / 会话日志与注册表 / 一组 `*core`
+子系统。**「吸收上游」不等于「向上游收敛」**：E2（`/loop` 后台化）核实为「按构造已对齐且强于
+上游」正是这个原因——上游那是 pager 侧功能，我们是 daemon 侧持久子系统。后续判断每一项时，
+应先问「我们的对应子系统是不是已经用另一种形状解决了同一问题」，而不是直接找上游符号。
+
+### 9.2 内核 crate 的体量差（含测试，行数）
+
+| crate | 我们 | 上游 | 差 |
+|---|---|---|---|
+| `nofy-shell` | 308,309 | 409,107 | **+100,798** |
+| `nofy-pager` | 444,894 | 527,173 | +82,279（UX，按指示跳过） |
+| `nofy-tools` | 131,831 | 152,969 | +21,138 |
+| `nofy-workspace` | 99,541 | 115,928 | +16,387 |
+| `nofy-sampler` | 11,089 | 15,390 | +4,301 |
+| `nofy-hooks` | 8,482 | 12,153 | +3,671 |
+| `nofy-mcp` | 11,690 | 14,881 | +3,191 |
+| `nofy-tool-types` | 4,124 | 4,414 | +290 |
+| `nofy-sampling-types` | 14,428 | 14,384 | **−44（我们略大，实质持平）** |
+
+**读这张表必须带的三个折扣**，否则会高估可吸收量：
+1. 行数含测试。上游测试密度更高，差值里有相当部分是测试而非行为。
+2. 上游 `nofy-shell` 含我们**已物理删除**的云特性（登录、遥测上传、remote sync、dashboard），
+   这部分差值永远不该吸收（DELETED-CLOUD-LEDGER）。
+3. 我们有 16 个上游没有的 crate，其代码量不在这张表里——表只覆盖两边同名的 9 个。
+
+`nofy-sampling-types` 实质持平是个有用的信号：**采样/错误模型这一层我们已经跟住了**
+（⑨ 的 OpenAI 兼容错误码地基、⑩ 的每模型 429 上限、⑮ 的 TPM 误分类修正都落在这一层）。
+差值集中在 `nofy-shell`（会话/agent 主体）与 `nofy-tools`，这与「A5 性能、A6 治理、A7 resume
+尚未逐项核实」的判断一致——缺口主要在会话生命周期与工具面，不在采样面。
+
+### 9.3 本轮（⑯–⑲）关闭了什么
+
+| 项 | 类别 | 提交 |
+|---|---|---|
+| `mkdir`/`touch` 免提示 + 四个 `protected_edit` 闸口 | A4 权限 | `84c1819d` |
+| requirements 层 `allowed_models` pin（企业限制可选模型） | A6 治理 | `9fbf1910` |
+| MCP 协议钉版 2025-06-18 → 2025-11-25 | A3/协议面 | `99d54359` |
+| 记忆整合移出会话退出路径（退出不再被 30 分钟模型调用阻塞） | A5 性能 | `154b3281` |
+
+E 类七项全部定性完毕（4 跳过/跳云、1 已对齐、2 已做）。A5 核了 5 项（1 真缺口已修、
+1 部分未复现、1 已对齐、2 按内容匹配失败未定位）。
+
+### 9.4 剩余待办的形状
+
+- **A6 治理 4 项完全未核**（托管策略阻止 MCP/marketplace 安装、被阻止时显示清晰信息、
+  `inspect` 把 Claude bypass 锁显示为 advisory、`inspect`/`mcp doctor` 显示托管策略详情）。
+  ⑰ 已经把 requirements 层的地基补齐，这 4 项现在比之前更可做。
+- **A5 余 4 项**：1.0.13#18（auth 已配时 MCP 启动更快，疑似已对齐）、1.0.15#5（首响应延迟，
+  部分对齐）、1.0.18#22 与 1.0.22#27（resume picker / 读 MCP 配置卡顿，可能属 A8 pager）。
+- **A7 余 3 项** + 1.0.19#4 需另找上游实现名。
+- **两个真内核缺口新立项候选**：`message-delivery-core`、`compaction-transcript`。
+- **per-model mTLS**（已核实为 BYOK/自建网关需求，零云依赖，规模约等于 ⑩ 一轮）。
+- **1.0.13#1 length salvage**（需先定原生预算分层设计）。
