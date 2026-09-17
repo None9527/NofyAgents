@@ -116,6 +116,10 @@ pub(crate) struct PermissionsReport {
     /// Settings forced by a policy layer.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub enforced: Vec<EnforcedPolicy>,
+    /// A Claude managed-settings `disableBypassPermissionsMode` request was
+    /// present. Reported separately from [`Self::enforced`] because this build
+    /// deliberately does not enforce it against Nofy's own YOLO/auto-approve.
+    pub claude_bypass_lock_advisory: bool,
 }
 
 /// One policy-enforced setting. Structured for `--json`; the human view
@@ -123,7 +127,9 @@ pub(crate) struct PermissionsReport {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EnforcedPolicy {
-    /// Stable key: "alwaysApprove" | "telemetry".
+    /// Stable key. Only "telemetry" is produced today; "alwaysApprove" was
+    /// dropped when the Claude bypass lock moved to
+    /// [`PermissionsReport::claude_bypass_lock_advisory`].
     pub setting: String,
     /// The enforced value.
     pub enabled: bool,
@@ -545,6 +551,39 @@ async fn list_instructions(cwd: &Path) -> Vec<InstructionFile> {
 
 /// Calls the production permission resolver (`resolve_permissions_with_provenance`)
 /// which handles both Nofy TOML and vendor settings fallback in one codepath.
+/// Split a managed-settings feature set into what this build actually **enforces**
+/// and what it only **reports**.
+///
+/// A Claude `disableBypassPermissionsMode` request is advisory for us, not
+/// enforced: `apply_managed_settings_features_inner` deliberately does not clamp
+/// Nofy's own YOLO/auto-approve (pinned by the
+/// `managed_settings_does_not_override_user_yolo` regression test). Listing it
+/// under "Enforced by policy" would claim an effect this build does not have, so
+/// it is returned separately and rendered as its own advisory line.
+///
+/// Split out from [`list_permissions`] because that reads the process-wide
+/// managed-settings `OnceLock`, which a test cannot populate.
+fn classify_managed_features(
+    features: &nofy_workspace::permission::resolution::ManagedSettingsFeatures,
+) -> (Vec<EnforcedPolicy>, bool) {
+    let claude_bypass_lock_advisory = features.disable_yolo == Some(true);
+    let mut enforced = Vec::new();
+    if let Some(src) = &features.source_path {
+        let source = src
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "managed-settings.json".to_string());
+        if features.disable_telemetry == Some(true) {
+            enforced.push(EnforcedPolicy {
+                setting: "telemetry".to_string(),
+                enabled: false,
+                source,
+            });
+        }
+    }
+    (enforced, claude_bypass_lock_advisory)
+}
+
 async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsReport {
     use nofy_workspace::permission::resolution;
 
@@ -579,25 +618,7 @@ async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsRepor
     // signal for "actually loaded" (vs present-but-broken).
     let managed_settings_active = ms.features.source_path.is_some();
 
-    let mut enforced = Vec::new();
-    if let Some(src) = &ms.features.source_path {
-        let source = src
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "managed-settings.json".to_string());
-        for (flag, setting) in [
-            (ms.features.disable_yolo, "alwaysApprove"),
-            (ms.features.disable_telemetry, "telemetry"),
-        ] {
-            if flag == Some(true) {
-                enforced.push(EnforcedPolicy {
-                    setting: setting.to_string(),
-                    enabled: false,
-                    source: source.clone(),
-                });
-            }
-        }
-    }
+    let (enforced, claude_bypass_lock_advisory) = classify_managed_features(&ms.features);
 
     let Some(resolved) =
         resolution::resolve_permissions_with_provenance(cwd, project_trusted).await
@@ -612,6 +633,7 @@ async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsRepor
             managed_settings_exists,
             managed_settings_active,
             enforced: enforced.clone(),
+            claude_bypass_lock_advisory,
         };
     };
 
@@ -637,6 +659,7 @@ async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsRepor
         managed_settings_exists,
         managed_settings_active,
         enforced,
+        claude_bypass_lock_advisory,
     }
 }
 
@@ -1367,6 +1390,12 @@ fn print_human(r: &InspectReport, out: &mut impl Write) -> std::io::Result<()> {
             writeln!(out, "    {TREE} {} ({})", enforced_label(e), e.source)?;
         }
     }
+    if r.permissions.claude_bypass_lock_advisory {
+        writeln!(
+            out,
+            "  {TREE} Claude managed-settings requests disableBypassPermissionsMode -- advisory only;              Nofy's own YOLO/auto-approve is not clamped by it"
+        )?;
+    }
     if !r.permissions.mcp_server_allowlist.is_empty() {
         writeln!(
             out,
@@ -1610,6 +1639,7 @@ mod tests {
                 managed_settings_exists: false,
                 managed_settings_active: false,
                 enforced: vec![],
+                claude_bypass_lock_advisory: false,
             },
             hooks: vec![],
             skills: vec![],
@@ -2205,4 +2235,59 @@ mod tests {
             "[skills].ignore must hide the skill"
         );
     }
+
+    /// The Claude bypass lock must be reported as advisory, never as an enforced
+    /// policy — this build deliberately does not clamp Nofy's own YOLO on it, so
+    /// claiming otherwise in a diagnostic surface is a false statement about
+    /// behaviour.
+    #[test]
+    fn claude_bypass_lock_is_advisory_not_enforced() {
+        use nofy_workspace::permission::resolution::ManagedSettingsFeatures;
+        let features = ManagedSettingsFeatures {
+            disable_telemetry: Some(true),
+            disable_yolo: Some(true),
+            source_path: Some(std::path::PathBuf::from(
+                "/etc/claude-code/managed-settings.json",
+            )),
+        };
+        let (enforced, advisory) = super::classify_managed_features(&features);
+        assert!(advisory, "the bypass lock request must be surfaced");
+        assert!(
+            !enforced.iter().any(|e| e.setting == "alwaysApprove"),
+            "the bypass lock must not be listed as enforced: {enforced:?}"
+        );
+        // Telemetry really is enforced, so it stays.
+        assert_eq!(enforced.len(), 1);
+        assert_eq!(enforced[0].setting, "telemetry");
+        assert_eq!(enforced[0].source, "managed-settings.json");
+
+        // Telemetry only: no advisory line.
+        let telemetry_only = ManagedSettingsFeatures {
+            disable_telemetry: Some(true),
+            disable_yolo: None,
+            source_path: Some(std::path::PathBuf::from("/etc/x/managed-settings.json")),
+        };
+        let (enforced2, advisory2) = super::classify_managed_features(&telemetry_only);
+        assert!(!advisory2);
+        assert_eq!(enforced2.len(), 1);
+
+        // Bypass lock only: advisory, and nothing enforced.
+        let bypass_only = ManagedSettingsFeatures {
+            disable_telemetry: None,
+            disable_yolo: Some(true),
+            source_path: Some(std::path::PathBuf::from("/etc/x/managed-settings.json")),
+        };
+        let (enforced3, advisory3) = super::classify_managed_features(&bypass_only);
+        assert!(advisory3);
+        assert!(enforced3.is_empty(), "nothing is enforced by a bypass lock alone");
+
+        // `disable_yolo = false` is an explicit non-request, not a request.
+        let off = ManagedSettingsFeatures {
+            disable_telemetry: None,
+            disable_yolo: Some(false),
+            source_path: Some(std::path::PathBuf::from("/etc/x/managed-settings.json")),
+        };
+        assert!(!super::classify_managed_features(&off).1);
+    }
+
 }
