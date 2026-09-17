@@ -554,7 +554,28 @@ LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协�
 ## 9. 两棵树的整体差异快照（2026-09-17 重测）
 
 上一轮的重测点是上游 `37949780`；本轮 `git fetch upstream` 后上游仍在 **`48271133`**
-（无新提交），上游 worktree 已 checkout 到该点，两个 gitnexus 索引都已重刷。
+（无新提交），上游 worktree 已 checkout 到该点，两个 gitnexus 索引都已重刷：
+
+| 索引 | 位置 | commit | nodes | edges | clusters | flows | 耗时/退出码 |
+|---|---|---|---|---|---|---|---|
+| 我们 | `/Users/mac/nofy-build` | `b586b7a5` | 203,194 | 429,919 | 9,359 | 300 | 419.6s / 0 |
+| 上游 | `/Users/mac/nofy-upstream` | `48271133` | 132,931 | 323,339 | 7,462 | 300 | 0（增量 changed=1371 added=233 deleted=38） |
+
+健康检查：两个 `lbug` 主库都在（1.2GB / 891MB），**无孤儿 sidecar**（`lbug.shadow`、
+`lbug.wal.checkpoint` 是上次管道截断损坏的特征），两次都打印了 "Repository indexed
+successfully"。命令形式严格为「重定向到文件 + `echo ANALYZE_EXIT=$?`，管道里不放 `tail`」。
+
+⚠ **两个索引仍注册在同一个名字 `nofy-build` 下**（名字取自 git remote，worktree 共享），
+`resolveRepoFromCache` 的顺序是 id → name（**首个命中即返回**）→ 绝对路径精确匹配 → 名字子串，
+cwd 不参与。**故每次调用都必须传绝对路径**，否则拿到的是哪一个不确定。
+
+刷新后立刻做了一次功能性验证，顺带又拿到一个调用图缺陷的实例：
+`impact({target: "stop_dream", repo: "/Users/mac/nofy-build"})` 能查到该符号（⑲ 新增，
+证明索引确实是最新的），报 2 个直接调用者——但**只有两个测试**
+（`aborts_a_live_task_without_waiting_for_it`、`no_op_when_absent_or_finished`），
+两个生产调用点（`run_loop.rs:611` channel-closed 臂、`:2168` shutdown 臂）**一个都没报**。
+原因大概是它们嵌在巨大的 `tokio::select!` 宏体里。这再次印证既有结论：
+**gitnexus 的调用图结果只是下界，空 ≠ 不存在**，任何提交的正确性都不能只靠它兜底。
 
 ### 9.1 crate 清单差异
 
