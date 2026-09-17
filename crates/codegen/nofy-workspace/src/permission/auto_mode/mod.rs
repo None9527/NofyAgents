@@ -487,8 +487,14 @@ impl HeuristicPermissionClassifier {
 /// managers `uv`/`npm`/`pnpm`/`yarn`/`rustup` are ABSENT: a blanket prefix is
 /// denylist-shaped whack-a-mole, so they go through the fail-closed
 /// SAFE-subcommand allowlist in [`package_manager_subcommand_is_routine`].
-/// `cp`/`mv`/`mkdir`/`touch` are also ABSENT: they write/create arbitrary
-/// destinations the write model already Blocks. `cd`/`pushd`/`popd` only move
+/// `cp`/`mv` are also ABSENT: they write arbitrary destinations the write model
+/// already Blocks. `mkdir`/`touch` are ABSENT for a different reason — creation
+/// operands are deliberately kept OUT of the write model (they write no
+/// content), so the absence itself is what gates them here: a bare creation
+/// command is auto-allowed earlier by the safe-list pre-decision
+/// (`is_safe_creation_command`) and only reaches this classifier when something
+/// else already forced a prompt, in which case not-routine is the fail-closed
+/// answer. `cd`/`pushd`/`popd` only move
 /// the spawned shell's cwd; git entries are the local workflow plus read-only
 /// queries.
 const ROUTINE_PREFIXES: &[&str] = &[

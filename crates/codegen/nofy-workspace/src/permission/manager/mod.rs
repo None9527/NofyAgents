@@ -25,8 +25,8 @@ use crate::permission::gate_preflight::GatePreflight;
 use crate::permission::policy::{CompiledPolicy, ShellWord};
 use crate::permission::prompter::{AcpPrompter, PromptOutcome, PromptOutcomeKind};
 use crate::permission::shell_access::{
-    command_write_paths_split, edit_target_protection, is_safe_write_sink, tree_has_opaque_shell,
-    words_are_opaque_shell,
+    ProtectedEditReason, command_write_paths_split, edit_target_protection, is_creation_program,
+    is_safe_write_sink, script_has_cwd_change, tree_has_opaque_shell, words_are_opaque_shell,
 };
 use crate::permission::state::{PermissionState, persist_state, replace_state_on_disk};
 use crate::permission::types::{
@@ -433,6 +433,26 @@ const ALWAYS_SAFE_COMMANDS: &[&str] = &[
     "bin/explorer ls",
 ];
 
+/// Auto-allow a bare `mkdir`/`touch`.
+///
+/// Creating an empty dir or file writes no content, so it does not trip the
+/// request-level `FileWrite` floor; this is the segment-level half of the same
+/// decision (without it the segment still lands in `NeedsPrompts`).
+///
+/// Bare name only — `words.first()` is matched verbatim, so `/bin/mkdir` keeps
+/// classifying (fail-safe: an absolute path could be any binary). Redirects are
+/// not this function's problem: `> f` is extracted at the tree level and floors
+/// the whole request as a `FileWrite` before any safe-list allow is consulted.
+/// Sensitive targets (`touch ~/.zshrc`, `touch /etc/…`) are covered separately
+/// by the protected-edit floor, which is seeded from
+/// `BashEvaluation::creation_paths`.
+fn is_safe_creation_command(words: &[String]) -> bool {
+    words
+        .first()
+        .map(String::as_str)
+        .is_some_and(is_creation_program)
+}
+
 /// Check whether parsed command words match the always-safe list.
 ///
 /// Applied per chained segment so that scripts like `ls && rm -rf /` cannot
@@ -653,6 +673,13 @@ struct BashEvaluation {
     redirect_write: bool,
     /// Raw segment word lists for ambient cwd tracking (git present, flags clean).
     ambient_segments: Option<Vec<Vec<String>>>,
+    /// `mkdir`/`touch` operands, for the manager's protected-target floor. They
+    /// are excluded from the `FileWrite` assessment above, so this is the only
+    /// record that the script touched those paths.
+    creation_paths: Vec<String>,
+    /// Script has an in-scope `cd`/`pushd`/`popd`, so a relative creation path
+    /// cannot be resolved against the request cwd — the floor fails closed.
+    has_cwd_change: bool,
 }
 
 fn unparseable_exec_risk(cmd: &str) -> bool {
@@ -704,9 +731,12 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
             assessment,
             redirect_write: true,
             ambient_segments: None,
+            creation_paths: Vec::new(),
+            has_cwd_change: false,
         };
     };
     let writes = command_write_paths_split(tree.root_node(), cmd);
+    let has_cwd_change = script_has_cwd_change(tree.root_node(), cmd);
     // An unextractable write-redirect target (`> $OUT`) is a write nothing can
     // vouch for: it both counts as FileWrite and pins `redirect_write`.
     let redirect_write = writes.unextracted_write_redirect
@@ -746,6 +776,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
             assessment,
             redirect_write: true,
             ambient_segments: None,
+            creation_paths: Vec::new(),
+            has_cwd_change: false,
         };
     };
     // Upgrade the raw-string compare with the dequoted single-command form now
@@ -798,6 +830,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
                 assessment: std::mem::take(&mut assessment),
                 redirect_write,
                 ambient_segments: None,
+                creation_paths: Vec::new(),
+                has_cwd_change: false,
             };
         }
 
@@ -852,7 +886,9 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         // 3. Auto-allow conditions. Built-in safe lists count only when
         //    `honor_safe_lists` is set; an explicit user grant always counts.
         let matched_safe = honor_safe_lists
-            && (is_safe_command_words(words) || is_always_safe_command_words(words));
+            && (is_safe_command_words(words)
+                || is_always_safe_command_words(words)
+                || is_safe_creation_command(words));
         if matched_grant || matched_safe {
             if matched_grant {
                 via_session_grant = true;
@@ -882,6 +918,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         assessment,
         redirect_write,
         ambient_segments,
+        creation_paths: writes.creation_paths,
+        has_cwd_change,
     }
 }
 
@@ -1248,6 +1286,47 @@ fn narrow_allow_clears_write_floor(
 ) -> bool {
     evaluation.is_some_and(|e| e.assessment.is_file_write_only() && !e.redirect_write)
         && policy.is_some_and(|p| p.narrow_allow_authorizes(access))
+}
+
+/// The protected-target floor for a Bash request: the first `mkdir`/`touch`
+/// operand naming a path a direct edit would have to confirm.
+///
+/// Creation operands are deliberately excluded from the `FileWrite` assessment
+/// (they write no content), so this is the compensating control — without it
+/// `touch ~/.zshrc` or `touch /etc/hosts` would auto-allow and the convenience
+/// would be a permission bypass. `touch` on an *existing* file only changes its
+/// mtime, but it still touches the target, which is what the floor is about.
+///
+/// A relative operand in a script that changes cwd cannot be resolved against
+/// the request cwd (`cd /etc && touch hosts` would resolve to `<cwd>/hosts`), so
+/// that combination fails closed instead of guessing. Deliberately coarser than
+/// the rule gate's per-invocation `cwd_unpinned_before` scoping: `mkdir x && cd x`
+/// prompts even though `x` was pinned when it ran. One extra prompt on an unusual
+/// shape is the cheap side of the trade; guessing wrong here is a bypass.
+fn bash_creation_protection(
+    evaluation: &BashEvaluation,
+    path_context: Option<&RequestPathContext>,
+    manager_cwd: &std::path::Path,
+) -> Option<ProtectedEditReason> {
+    if evaluation.has_cwd_change
+        && evaluation
+            .creation_paths
+            .iter()
+            .any(|p| !std::path::Path::new(p).is_absolute())
+    {
+        return Some(ProtectedEditReason::Sensitive);
+    }
+    evaluation.creation_paths.iter().find_map(|path| {
+        // Direct workspace callers predate per-request context and execute
+        // against the manager cwd; the shell always supplies context.
+        let resolved = match path_context {
+            Some(context) => {
+                resolve_model_path(&context.real_cwd, context.display_cwd.as_deref(), path)
+            }
+            None => resolve_model_path(manager_cwd, None, path),
+        };
+        edit_target_protection(&resolved)
+    })
 }
 
 /// A request has no static-analysis findings at all — the only case where a
@@ -1882,6 +1961,11 @@ fn spawn_permission_manager_with_pin(
                             let resolved = resolve_model_path(cwd.as_path(), None, path);
                             edit_target_protection(&resolved)
                         }
+                        // Shell creation operands ride the same floor as a direct
+                        // edit of the same path (see `bash_creation_protection`).
+                        (AccessKind::Bash(_), context) => bash_evaluation
+                            .as_ref()
+                            .and_then(|e| bash_creation_protection(e, context, cwd.as_path())),
                         _ => None,
                     };
 
@@ -2251,6 +2335,12 @@ fn spawn_permission_manager_with_pin(
                         )
                         && !policy_forced_prompt
                         && !auto_forced_prompt
+                        // A sandbox confines writes to the workspace, but the
+                        // protected-target floor covers paths *inside* it
+                        // (`.git/hooks`, `.nofy/hooks`, `.claude/settings.json`).
+                        // Creation operands carry no `FileWrite` finding, so
+                        // without this they would ride the sandbox auto-allow.
+                        && protected_edit.is_none()
                     {
                         tracing::debug!("sandbox: auto-approving bash");
                         let decision = Decision::Allow;
@@ -2385,7 +2475,14 @@ fn spawn_permission_manager_with_pin(
                             }
                         }
                         AccessKind::Bash(cmd) => {
-                            if bash_request_floor_requires_prompt(bash_evaluation.as_ref()) {
+                            // The protected-target floor must stand in front of
+                            // the safe-list grant here too: creation operands
+                            // carry no `FileWrite` finding, so without this a
+                            // bare `touch /etc/hosts` would auto-allow in ask
+                            // mode on the strength of `is_safe_creation_command`.
+                            if protected_edit.is_some()
+                                || bash_request_floor_requires_prompt(bash_evaluation.as_ref())
+                            {
                                 None
                             } else if policy_forced_prompt {
                                 // Ask floor: only explicit grants with remember on.
@@ -5922,7 +6019,7 @@ mod tests {
                 for prompt_policy in [PromptPolicy::Ask, PromptPolicy::Deny] {
                     let tmp = tempfile::tempdir().unwrap();
                     let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
-                    let rule = parse_permission_rule("Bash(touch:*)", RuleAction::Allow).unwrap();
+                    let rule = parse_permission_rule("Bash(cp:*)", RuleAction::Allow).unwrap();
                     let mut config = PermissionConfig::new(vec![rule]);
                     config.prompt_policy = prompt_policy;
                     let client = RecordingClient::default();
@@ -5935,7 +6032,7 @@ mod tests {
                     );
                     let d = mgr
                         .request(
-                            AccessKind::Bash("touch CANARY".into()),
+                            AccessKind::Bash("cp src CANARY".into()),
                             tool_call(),
                             None,
                             None,
@@ -5978,8 +6075,10 @@ mod tests {
                     ("Bash(touch:*)", "touch CANARY > $OUT"),
                     // Mixed findings: env injection alongside the word write.
                     ("Bash(touch:*)", "LD_PRELOAD=/x/e.so touch CANARY"),
-                    // Catch-all: `narrow_allow_authorizes` excludes it.
-                    ("Bash(*)", "touch CANARY"),
+                    // Catch-all: `narrow_allow_authorizes` excludes it. Not a
+                    // creation command — `touch CANARY` no longer carries a
+                    // write floor for a catch-all to fail to clear.
+                    ("Bash(*)", "cp src CANARY"),
                 ];
                 for (rule_str, cmd) in cases {
                     let tmp = tempfile::tempdir().unwrap();
@@ -6483,6 +6582,111 @@ mod tests {
             .await;
     }
 
+    /// End-to-end for the creation floor: `touch`/`mkdir` on a protected target
+    /// must prompt exactly like a direct edit of the same path, even though the
+    /// command is on the safe list and carries no `FileWrite` finding. This is
+    /// the assertion that keeps "creation no longer prompts" from being a
+    /// bypass — dropping `bash_creation_protection` from the `protected_edit`
+    /// match turns every case below into a silent allow.
+    #[tokio::test]
+    async fn protected_edit_floor_covers_shell_creation_operands() {
+        use crate::permission::types::{PermissionRule, RuleAction, ToolFilter};
+
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                for cmd in [
+                    "touch /etc/hosts",
+                    "mkdir -p /home/user/.nofy/hooks",
+                    "touch /home/user/.ssh/authorized_keys",
+                    "touch /home/user/.zshrc",
+                    "touch /home/user/.git/hooks/pre-commit",
+                    // Relative operand after a cwd change: unresolvable, so the
+                    // floor fails closed rather than guessing `<cwd>/hosts`.
+                    "cd /etc && touch hosts",
+                ] {
+                    let mut auto = crate::permission::types::PermissionConfig::new(vec![]);
+                    auto.prompt_policy = PromptPolicy::Auto;
+                    let allow =
+                        crate::permission::types::PermissionConfig::new(vec![PermissionRule {
+                            action: RuleAction::Allow,
+                            tool: ToolFilter::Edit,
+                            pattern: None,
+                            pattern_mode: Default::default(),
+                        }]);
+                    let mut dont_ask = crate::permission::types::PermissionConfig::new(vec![]);
+                    dont_ask.prompt_policy = PromptPolicy::Deny;
+
+                    for (name, config, expected_prompts, policy_deny) in [
+                        ("auto", auto, 1, false),
+                        ("configured allow", allow, 1, false),
+                        ("dontAsk", dont_ask, 0, true),
+                    ] {
+                        let tmp = tempfile::tempdir().unwrap();
+                        let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+                        let client = RecordingClient::default();
+                        let prompts = client.prompts.clone();
+                        let (mgr, _events) = manager_with_recording_client(
+                            &cwd,
+                            Some(config),
+                            client,
+                            ClientType::Generic,
+                        );
+                        let decision = mgr
+                            .request(AccessKind::Bash(cmd.into()), tool_call(), None, None, None)
+                            .await;
+                        assert_eq!(prompts.borrow().len(), expected_prompts, "{name} {cmd}");
+                        if policy_deny {
+                            assert!(
+                                matches!(decision, Decision::PolicyDeny(_)),
+                                "{name} {cmd} got {decision:?}"
+                            );
+                        } else {
+                            assert!(
+                                matches!(decision, Decision::Reject(_)),
+                                "{name} {cmd} got {decision:?}"
+                            );
+                        }
+                    }
+                }
+
+                // Control: an unprotected creation target really does auto-allow
+                // without a prompt in every mode, so the cases above are the
+                // protected-target floor firing and not a blanket prompt on every
+                // `touch`.
+                for prompt_policy in [PromptPolicy::Ask, PromptPolicy::Auto, PromptPolicy::Deny] {
+                    let mut config = crate::permission::types::PermissionConfig::new(vec![]);
+                    config.prompt_policy = prompt_policy;
+                    let tmp = tempfile::tempdir().unwrap();
+                    let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+                    let client = RecordingClient::default();
+                    let prompts = client.prompts.clone();
+                    let (mgr, _events) = manager_with_recording_client(
+                        &cwd,
+                        Some(config),
+                        client,
+                        ClientType::Generic,
+                    );
+                    for cmd in ["mkdir -p build/out", "touch build/notes.txt"] {
+                        let decision = mgr
+                            .request(AccessKind::Bash(cmd.into()), tool_call(), None, None, None)
+                            .await;
+                        assert_eq!(
+                            prompts.borrow().len(),
+                            0,
+                            "{cmd} must not prompt under {prompt_policy:?}"
+                        );
+                        assert_eq!(
+                            decision,
+                            Decision::Allow,
+                            "{cmd} must auto-allow under {prompt_policy:?}"
+                        );
+                    }
+                }
+            })
+            .await;
+    }
+
     #[test]
     fn sandbox_auto_allow_respects_real_file_write_floor() {
         let state = PermissionState::default();
@@ -6500,6 +6704,18 @@ mod tests {
             assert!(
                 sandbox_may_auto_allow_bash(Some(&evaluate_bash(cmd, &state, true)), true),
                 "sandbox control: {cmd}"
+            );
+        }
+        // Creation operands carry no `FileWrite`, so they clear this floor and
+        // reach the sandbox auto-allow. The call site's `protected_edit.is_none()`
+        // conjunct is then the only thing stopping `touch /etc/hosts` there (a
+        // sandbox confines writes to the workspace, but the protected-target
+        // floor covers paths *inside* it). This assertion records why that
+        // conjunct cannot be dropped.
+        for cmd in ["mkdir -p build/out", "touch notes.txt"] {
+            assert!(
+                sandbox_may_auto_allow_bash(Some(&evaluate_bash(cmd, &state, true)), true),
+                "creation clears the assessment floor: {cmd}"
             );
         }
     }
@@ -8533,6 +8749,209 @@ mod tests {
         let special =
             evaluate_bash("kubectl get pods --kubeconfig=/tmp/evil.yaml", &state, true).assessment;
         assert!(special.contains(SpecialExecSurface));
+    }
+
+    /// Creating an empty dir/file writes no content, so it must not trip the
+    /// `FileWrite` grant floor; destroying one must. This is the request-level
+    /// half of "mkdir and touch no longer prompt" — without it the safe-list
+    /// half below is inert, because the floor short-circuits
+    /// [`bash_grant_pre_decision`] before any segment outcome is consulted.
+    #[test]
+    fn creation_clears_the_write_floor_but_destruction_keeps_it() {
+        let state = PermissionState::default();
+        for cmd in ["mkdir x", "mkdir -p a/b", "touch new.txt", "touch a b"] {
+            let evaluation = evaluate_bash(cmd, &state, true);
+            assert!(
+                !evaluation
+                    .assessment
+                    .contains(ClassifierSecurityFinding::FileWrite),
+                "{cmd} must not be a content write"
+            );
+            assert!(
+                !bash_request_floor_requires_prompt(Some(&evaluation)),
+                "{cmd} must not hit the grant floor"
+            );
+        }
+        // Destructive verbs are untouched by the creation reclassification.
+        for cmd in ["rm -rf x", "rmdir x"] {
+            let evaluation = evaluate_bash(cmd, &state, true);
+            assert!(
+                evaluation
+                    .assessment
+                    .contains(ClassifierSecurityFinding::FileWrite),
+                "{cmd} must stay a content write"
+            );
+            assert!(bash_request_floor_requires_prompt(Some(&evaluation)));
+        }
+        // A redirect rides the tree-level extraction, so it still floors even
+        // though the command word is a creation program.
+        for cmd in ["mkdir x > out.txt", "touch x > /etc/thing"] {
+            let evaluation = evaluate_bash(cmd, &state, true);
+            assert!(evaluation.redirect_write, "{cmd} must pin redirect_write");
+            assert!(
+                evaluation
+                    .assessment
+                    .contains(ClassifierSecurityFinding::FileWrite),
+                "{cmd} must floor on the redirect"
+            );
+        }
+        // A mixed script keeps the floor from its destructive segment.
+        let mixed = evaluate_bash("mkdir x && rm -rf y", &state, true);
+        assert!(
+            mixed
+                .assessment
+                .contains(ClassifierSecurityFinding::FileWrite)
+        );
+        assert_eq!(mixed.creation_paths, vec!["x"]);
+    }
+
+    /// The segment-level half: a bare creation command auto-allows on the safe
+    /// list, and only when every segment does.
+    #[test]
+    fn creation_commands_auto_allow_on_the_safe_list() {
+        let state = PermissionState::default();
+        for cmd in [
+            "mkdir x",
+            "mkdir -p a/b",
+            "touch new.txt",
+            "touch a && ls",
+            "mkdir a && touch a/b",
+        ] {
+            let evaluation = evaluate_bash(cmd, &state, true);
+            assert!(
+                matches!(
+                    evaluation.segments,
+                    SegmentEvaluation::AutoAllow {
+                        via_session_grant: false
+                    }
+                ),
+                "{cmd} must auto-allow via the safe list"
+            );
+            assert!(
+                bash_grant_pre_decision(
+                    cmd,
+                    &evaluation,
+                    &state,
+                    None,
+                    BashGrantOpts::PRE_CLASSIFIER
+                )
+                .is_some(),
+                "{cmd} must reach an Allow pre-decision"
+            );
+        }
+        // Creation is not a licence for the shapes around it: a redirect, a
+        // substituted operand, an injected environment, and a destructive verb
+        // all stay gated.
+        for cmd in [
+            "touch a > b",
+            "mkdir \"$(id)\"",
+            "LD_PRELOAD=/x/e.so touch CANARY",
+            "rm -rf build",
+            "mkdir x && rm -rf y",
+        ] {
+            let evaluation = evaluate_bash(cmd, &state, true);
+            assert!(
+                bash_request_floor_requires_prompt(Some(&evaluation))
+                    || !matches!(evaluation.segments, SegmentEvaluation::AutoAllow { .. }),
+                "{cmd} must stay gated, got {:?}",
+                evaluation.segments
+            );
+        }
+        // One non-safe segment keeps the whole script prompting.
+        assert!(matches!(
+            evaluate_bash("mkdir x && cargo build", &state, true).segments,
+            SegmentEvaluation::NeedsPrompts { .. }
+        ));
+        // `honor_safe_lists: false` (the ask-floor remember path) must not
+        // auto-allow on the built-in list.
+        assert!(matches!(
+            evaluate_bash("mkdir x", &state, false).segments,
+            SegmentEvaluation::NeedsPrompts { .. }
+        ));
+    }
+
+    /// The safe-list entry matches the bare name only, so an absolute path
+    /// (which could be any binary) still classifies.
+    #[test]
+    fn safe_creation_command_requires_the_bare_name() {
+        let words = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(is_safe_creation_command(&words(&["mkdir", "x"])));
+        assert!(is_safe_creation_command(&words(&["touch"])));
+        assert!(!is_safe_creation_command(&words(&["/bin/mkdir", "x"])));
+        assert!(!is_safe_creation_command(&words(&["./touch", "x"])));
+        assert!(!is_safe_creation_command(&words(&["rm", "x"])));
+        assert!(!is_safe_creation_command(&words(&[])));
+    }
+
+    /// The compensating control for the two tests above: creation operands are
+    /// excluded from the write floor, so the protected-target floor is the only
+    /// thing standing between `touch <sensitive path>` and a silent auto-allow.
+    #[test]
+    fn creation_floor_still_covers_protected_targets() {
+        let state = PermissionState::default();
+        let cwd = std::path::Path::new("/work");
+        let reason_for =
+            |cmd: &str| bash_creation_protection(&evaluate_bash(cmd, &state, true), None, cwd);
+        assert_eq!(
+            reason_for("touch /etc/hosts"),
+            Some(ProtectedEditReason::Etc)
+        );
+        assert_eq!(
+            reason_for("mkdir -p /work/.git/hooks"),
+            Some(ProtectedEditReason::GitHooks)
+        );
+        assert_eq!(
+            reason_for("touch /home/u/.ssh/authorized_keys"),
+            Some(ProtectedEditReason::Ssh)
+        );
+        assert_eq!(
+            reason_for("touch /home/u/.zshrc"),
+            Some(ProtectedEditReason::StartupFile)
+        );
+        // Ordinary workspace targets stay unguarded by this floor.
+        assert_eq!(reason_for("touch notes.txt"), None);
+        assert_eq!(reason_for("mkdir -p src/generated"), None);
+        // A relative operand resolves against the request cwd when one is given,
+        // so the same spelling is protected under a sensitive cwd.
+        let context = RequestPathContext {
+            real_cwd: std::path::PathBuf::from("/etc"),
+            display_cwd: None,
+        };
+        assert_eq!(
+            bash_creation_protection(
+                &evaluate_bash("touch hosts", &state, true),
+                Some(&context),
+                cwd
+            ),
+            Some(ProtectedEditReason::Etc)
+        );
+        // A glob under a protected prefix is still caught: the prefix rule fires
+        // on the unexpanded operand, so `touch /etc/*` cannot widen past it.
+        assert_eq!(reason_for("touch /etc/*"), Some(ProtectedEditReason::Etc));
+    }
+
+    /// A relative creation operand in a script that changes cwd cannot be
+    /// resolved against the request cwd, so the floor fails closed instead of
+    /// resolving `cd /etc && touch hosts` to `<cwd>/hosts`.
+    #[test]
+    fn creation_floor_fails_closed_after_a_cwd_change() {
+        let state = PermissionState::default();
+        let cwd = std::path::Path::new("/work");
+        let unpinned = evaluate_bash("cd /etc && touch hosts", &state, true);
+        assert!(unpinned.has_cwd_change);
+        assert_eq!(
+            bash_creation_protection(&unpinned, None, cwd),
+            Some(ProtectedEditReason::Sensitive)
+        );
+        // An absolute operand is cwd-independent, so a `cd` elsewhere in the
+        // script does not fail it closed.
+        let pinned = evaluate_bash("cd /tmp && touch /work/notes.txt", &state, true);
+        assert!(pinned.has_cwd_change);
+        assert_eq!(bash_creation_protection(&pinned, None, cwd), None);
+        // No cwd change, no fail-closed.
+        let plain = evaluate_bash("touch notes.txt", &state, true);
+        assert!(!plain.has_cwd_change);
+        assert_eq!(bash_creation_protection(&plain, None, cwd), None);
     }
 
     #[test]

@@ -383,3 +383,35 @@ not a content write"），把 `mkdir`/`touch` 的操作数从 `Write` 改判 `Cr
 **规模评估**：6 处改动 + 约 5 个测试，单一消费端，脚手架已存在。
 量级小于 ⑩（rate_limit_retry_threshold 那次跨 4 层配置面），但**安全敏感度更高**
 ——⑩ 错了是多重试几次，这里错了是权限绕过。故需要完整预算的一轮，不适合收尾时开工。
+
+---
+
+**已实施（原生实现 ⑯）。规格有两处必须更正，都是"照规格做会漏"的类型：**
+
+1. **crate 写错了**：落点是 `nofy-workspace`（`crates/codegen/nofy-workspace/src/permission/`），
+   不是 `nofy-shell`。规格里只写了模块相对路径，没写 crate。
+2. **"单一消费端"是错的，而且错在危险的方向**。`protected_edit` 在
+   `manager/mod.rs` 有 **4 个**放行闸口，不是 1 个：
+   | 闸口 | 改前靠什么兜住创建类命令 | 是否需要新守卫 |
+   |---|---|---|
+   | 会话 grant 预决策（`session_grant_pre_decision`） | 已有 `protected_edit.is_none()` | 否 |
+   | 策略 Allow 快路径（auto 模式分类器前） | 已有 `protected_edit.is_none()` | 否 |
+   | **分类器后的 `pre_decision` Bash 臂** | **只靠 `FileWrite` floor** | **是** |
+   | **sandbox 自动放行** | **只靠 `FileWrite` floor**（经 `sandbox_may_auto_allow_bash`） | **是** |
+   后两个闸口原本完全依赖"创建 ⇒ `FileWrite` ⇒ floor ⇒ 不放行"这条链。
+   一旦第 1–5 步把创建从写集合里摘出去，这条链断了，而规格的第 6 步只说
+   "接进 `edit_target_protection`"——**接进去也没用，因为这两个闸口根本不读
+   `protected_edit`**。上游在这两处各加了一个 `protected_edit` 守卫
+   （`manager/mod.rs:2093` 与 `:1992`），规格漏掉了。
+   实测证据：只按规格做前 6 步时，端到端测试 `touch /etc/hosts` 报
+   `left: 0, right: 1`（**零次提示、直接放行**）。
+
+**方法论教训**：规格里的"消费端数量"必须靠**枚举闸口**得出，不能靠
+"谁调用了这个函数"。`creation_paths` 的调用方确实只有一个，但它要补偿的
+是 `FileWrite` floor 的缺席，而**读那个 floor 的生产点有 7 处**：
+`bash_request_floor_requires_prompt` 的 6 个调用点（1353 sandbox、1398 grant
+预决策、2063 策略 Allow 快路径、2374 策略 Allow 延迟臂、2483 分类器后 Bash 臂，
+以上 5 个是闸口；2634 只用于挑提示原因标签），再加 `narrow_allow_clears_write_floor`
+读 `is_file_write_only`/`redirect_write`。
+**补偿性控制的覆盖面 = 被补偿机制的覆盖面，不是新数据的调用面。**
+下次写这类规格，先 grep 被削弱的那个谓词，而不是 grep 新增的那个字段。

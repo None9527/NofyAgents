@@ -139,7 +139,7 @@ When the model requests a tool, the following checks happen in order:
 
 ## Operations That Never Prompt by Default
 
-The operations below are treated as read-only and run without prompting, in every mode including `dontAsk`, unless a matching `deny` rule or a hook blocks them. An `ask` rule forces a prompt for file reads, searches, and shell commands (see [How a Tool Call Is Authorized](#how-a-tool-call-is-authorized)).
+The operations below are treated as read-only and run without prompting, in every mode including `dontAsk`, unless a matching `deny` rule or a hook blocks them. An `ask` rule forces a prompt for file reads, searches, and shell commands (see [How a Tool Call Is Authorized](#how-a-tool-call-is-authorized)). The last subsection is the one exception to "read-only": empty file and directory creation writes nothing, and is gated the same way.
 
 ### Read-Only Tools
 
@@ -172,6 +172,17 @@ After splitting chained commands (on `&&`, `||`, `;`, and pipes), the following 
 > **Note:** `tee` is not on this list because it can write its input to arbitrary files. `cargo check` is not on this list because it compiles and runs `build.rs`, proc-macros, and any `build.rustc-wrapper` from the repo (in Ask mode it therefore prompts; Auto mode may still heuristic-allow `cargo` as a project code runner). `sort --compress-program=…` (including unique long-option abbreviations), `git -c` / `--config-env` overrides, and a git command whose local/worktree config installs an executable hook (`core.fsmonitor`, a `diff.*.command`/`textconv`/`external` driver, or a shell `alias.<safe-subcommand> = !…`) raise a request-level floor and prompt rather than auto-approve, unless the user granted that exact full script or always-approve is enabled.
 
 These checks apply per segment. In a command like `ls && rm -rf /`, the `ls` segment is recognized as read-only, but the `rm` segment is not on the list. In `default` mode the `rm` segment prompts; under `dontAsk` it is denied.
+
+### Empty File and Directory Creation
+
+`mkdir` and `touch` also run without prompting, in every mode including `dontAsk`. They create an empty directory or file, or update an existing file's timestamp; they write no content, so they are not treated as file writes. They are not on the read-only list above — a `Bash(...)` rule that names them still matches, and a `deny` or `ask` rule naming the *target path* still applies, because the gate treats a creation operand as an edit of that path.
+
+Two limits apply:
+
+- **Bare name only.** `/bin/mkdir` and `./touch` are not recognized and go through the normal checks, since a path could name any program.
+- **Protected targets still prompt.** Creating or touching a path that a direct edit would have to confirm — `/etc`, anything under `.ssh`, shell startup files such as `~/.zshrc`, `.git/hooks`, `.nofy/hooks`, `.claude/settings.json`, `.cursor/hooks.json`, `sandbox.toml`, and the Nofy config files — prompts exactly as an edit of that path would. A script that changes directory (`cd`, `pushd`, `popd`) and then creates a *relative* path also prompts, because the target can no longer be pinned to a directory.
+
+A redirect is a write regardless of the command word, so `mkdir build > out.txt` prompts on the redirect. `rm` and `rmdir` are destructive and are deliberately excluded from this section: they prompt as before.
 
 ---
 

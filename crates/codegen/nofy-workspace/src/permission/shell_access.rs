@@ -165,7 +165,10 @@ impl CompiledPolicy {
                 }
                 Some(ShellFileMode::Read) => &[ShellFileMode::Read],
                 Some(ShellFileMode::Write) => &[ShellFileMode::Write],
-                None => continue,
+                // `shell_file_mode` never yields `Create` (creation programs are
+                // handled by `shell_path_command_operands` above); listed so a
+                // future addition fails here instead of silently reading.
+                Some(ShellFileMode::Create) | None => continue,
             };
             for &token in &candidates {
                 if shell_arg_is_ambiguous(token) {
@@ -314,6 +317,11 @@ pub(crate) struct WritePathsSplit {
     /// Fail-closed signal: the write exists but nothing can vouch for it.
     pub(crate) unextracted_write_redirect: bool,
     pub(crate) word_paths: Vec<String>,
+    /// `mkdir`/`touch` operands, deliberately kept out of `word_paths` so a
+    /// creation-only script does not trip the `FileWrite` grant floor. Not
+    /// surplus: the manager seeds its protected-target floor from this set, so
+    /// `touch <protected path>` still prompts.
+    pub(crate) creation_paths: Vec<String>,
 }
 
 pub(crate) fn command_write_paths_split(root: Node<'_>, src: &str) -> WritePathsSplit {
@@ -330,18 +338,45 @@ pub(crate) fn command_write_paths_split(root: Node<'_>, src: &str) -> WritePaths
     }
     // Per-command writers, after peeling env/timeout/... wrappers.
     let mut word_paths = Vec::new();
+    let mut creation_paths = Vec::new();
     for invocation in shell_command_invocations(root, src) {
         let words = InvocationSlice {
             words: &invocation.words,
         }
         .literal_words();
         word_paths.extend(command_words_write_paths(&words));
+        creation_paths.extend(command_words_creation_paths(&words));
     }
     WritePathsSplit {
         redirect_paths,
         unextracted_write_redirect,
         word_paths,
+        creation_paths,
     }
+}
+
+/// Whether `program` only ever creates an empty dir/file. Shared by the
+/// write-path classifier ([`shell_path_command_operands`]) and the auto-allow
+/// (`is_safe_creation_command`) so the two cannot drift: a program allowed
+/// without a prompt must be a program the classifier judged non-destructive.
+pub(crate) fn is_creation_program(program: &str) -> bool {
+    matches!(program, "mkdir" | "touch")
+}
+
+/// The `Create`-mode operands [`command_words_write_paths`] omits. Wrapper-aware
+/// and sourced from the same [`shell_path_command_operands`] table, so the two
+/// sets partition the operands instead of each re-deriving them.
+pub(crate) fn command_words_creation_paths(words: &[String]) -> Vec<String> {
+    let inner = unwrap_wrappers(words);
+    let Some(program) = inner.first().map(|w| shell_program_name(w)) else {
+        return Vec::new();
+    };
+    shell_path_command_operands(&program.to_ascii_lowercase(), inner)
+        .into_iter()
+        .flatten()
+        .filter(|(_, mode)| matches!(mode, ShellFileMode::Create))
+        .map(|(path, _)| path.to_owned())
+        .collect()
 }
 
 /// Safe write sinks that do not touch a real file. Exact match.
@@ -599,6 +634,12 @@ fn resolved_path_is_within_root(resolved_path: &Path, root: &Path) -> bool {
 pub(crate) enum ShellFileMode {
     Read,
     Write,
+    /// Empty dir/file creation (`mkdir`/`touch`): `Edit` for the inline-shell
+    /// gate, not a content write. Kept out of the write-path set so a
+    /// creation-only script does not trip the `FileWrite` grant floor, but
+    /// still tracked separately (`WritePathsSplit::creation_paths`) so the
+    /// protected-target floor sees it.
+    Create,
 }
 
 /// Tools that read/write a file named as an argument. Not exhaustive — redirects
@@ -712,6 +753,14 @@ fn cwd_poison_positions(root: Node<'_>, src: &str) -> Vec<CwdPoison> {
         }
     }
     positions
+}
+
+/// Whether the script changes cwd anywhere (`cd`/`pushd`/`popd`). Callers that
+/// resolve a *relative* operand against the request cwd must fail closed when
+/// this holds: `cd /etc && touch hosts` would otherwise resolve to
+/// `<cwd>/hosts` and slip past a protected-target floor keyed on `/etc/hosts`.
+pub(crate) fn script_has_cwd_change(root: Node<'_>, src: &str) -> bool {
+    !cwd_poison_positions(root, src).is_empty()
 }
 
 /// Whether an operand runs after a cwd change in its nearest execution scope.
@@ -1135,7 +1184,9 @@ fn special_file_operands(program: &str, words: &[String]) -> Vec<(String, ShellF
 fn shell_access(mode: ShellFileMode, path: String) -> AccessKind {
     match mode {
         ShellFileMode::Read => AccessKind::Read(Some(path)),
-        ShellFileMode::Write => AccessKind::Edit(path),
+        // Creation still keys the rule gate as an `Edit` of the target: a deny
+        // or ask rule naming the path must cover `touch <path>` too.
+        ShellFileMode::Write | ShellFileMode::Create => AccessKind::Edit(path),
     }
 }
 
@@ -1158,8 +1209,9 @@ fn shell_file_candidates(words: &[String]) -> Vec<&str> {
 }
 
 /// File operands implied by path-moving commands. `cp`/`mv`/`ln`/`install` read
-/// source(s) and write the destination; `rm`/`rmdir`/`mkdir`/`touch` write every
-/// operand; `None` otherwise. (`chmod`/`chown` touch metadata, not content.)
+/// source(s) and write the destination; `rm`/`rmdir` write every operand
+/// (destructive — never `Create`); `mkdir`/`touch` create every operand; `None`
+/// otherwise. (`chmod`/`chown` touch metadata, not content.)
 fn shell_path_command_operands<'a>(
     program: &str,
     words: &'a [String],
@@ -1179,10 +1231,16 @@ fn shell_path_command_operands<'a>(
                     .collect(),
             )
         }
-        "rm" | "rmdir" | "mkdir" | "touch" => Some(
+        "rm" | "rmdir" => Some(
             shell_file_candidates(words)
                 .into_iter()
                 .map(|c| (c, ShellFileMode::Write))
+                .collect(),
+        ),
+        p if is_creation_program(p) => Some(
+            shell_file_candidates(words)
+                .into_iter()
+                .map(|c| (c, ShellFileMode::Create))
                 .collect(),
         ),
         // `uniq [INPUT [OUTPUT]]`: a 2nd positional is the output file (Write);
@@ -2815,6 +2873,114 @@ mod tests {
         assert!(parsed("cat payload 1>&-").is_empty());
         assert!(parsed("cat payload 0<&3").is_empty());
         assert_eq!(parsed("cat payload > 3"), vec!["3"]);
+    }
+
+    /// `mkdir`/`touch` operands are creation, not content writes: they leave the
+    /// write set (so a creation-only script no longer trips the `FileWrite`
+    /// grant floor) but stay tracked for the protected-target floor. `rm`/`rmdir`
+    /// are destructive and must not follow them.
+    #[test]
+    fn creation_operands_leave_the_write_set_but_stay_tracked() {
+        let split = |cmd: &str| {
+            let tree = try_parse_shell(cmd).expect("shell parses");
+            command_write_paths_split(tree.root_node(), cmd)
+        };
+        for cmd in ["mkdir x", "mkdir -p a/b", "touch new.txt", "touch a b c"] {
+            let s = split(cmd);
+            assert!(
+                s.word_paths.is_empty(),
+                "{cmd} must not count as a write: {:?}",
+                s.word_paths
+            );
+            assert!(!s.creation_paths.is_empty(), "{cmd} must stay tracked");
+            assert!(!s.unextracted_write_redirect);
+        }
+        assert_eq!(split("mkdir -p a/b").creation_paths, vec!["a/b"]);
+        assert_eq!(split("touch a b c").creation_paths, vec!["a", "b", "c"]);
+        // `--` ends option parsing, so a dash-named target is still an operand.
+        assert_eq!(split("touch -- -weird").creation_paths, vec!["-weird"]);
+        // Wrappers are peeled the same way the write classifier peels them.
+        assert_eq!(split("timeout 5 mkdir x").creation_paths, vec!["x"]);
+
+        // Destructive verbs keep their write classification.
+        for cmd in ["rm -rf x", "rmdir x", "rm a b"] {
+            let s = split(cmd);
+            assert!(!s.word_paths.is_empty(), "{cmd} must stay a write");
+            assert!(s.creation_paths.is_empty(), "{cmd} is not creation");
+        }
+        // A mixed script keeps only the destructive operand as a write.
+        let mixed = split("mkdir x && rm -rf y");
+        assert_eq!(mixed.word_paths, vec!["y"]);
+        assert_eq!(mixed.creation_paths, vec!["x"]);
+        // Redirect provenance is untouched: `mkdir x > f` still writes `f`, and
+        // an unextractable redirect target still fails closed.
+        let redirected = split("mkdir x > out.txt");
+        assert_eq!(redirected.redirect_paths, vec!["out.txt"]);
+        assert_eq!(redirected.creation_paths, vec!["x"]);
+        assert!(split("mkdir x > $OUT").unextracted_write_redirect);
+    }
+
+    /// Creation still keys the rule gate as an `Edit` of the target: dropping the
+    /// write floor must not drop a deny/ask rule that names the path.
+    #[test]
+    fn creation_operands_still_gate_as_edits() {
+        let deny = compiled(vec![file_rule(
+            RuleAction::Deny,
+            ToolFilter::Edit,
+            "**/.env",
+        )]);
+        for cmd in ["touch .env", "mkdir .env"] {
+            assert!(
+                matches!(
+                    deny.evaluate_shell_file_access_gate(cmd, cwd()),
+                    Some(GateDecision::Reject(_))
+                ),
+                "an Edit deny rule must still cover creation: {cmd}"
+            );
+        }
+        // A creation operand outside the rule is unaffected.
+        assert_eq!(
+            deny.evaluate_shell_file_access_gate("touch notes.txt", cwd()),
+            None
+        );
+    }
+
+    /// The shared predicate is the whole point of extracting it: a program the
+    /// auto-allow treats as creation must be exactly a program the operand
+    /// classifier marks `Create`. Either side drifting alone would silently
+    /// widen or narrow what runs without a prompt.
+    #[test]
+    fn creation_predicate_and_operand_classifier_agree() {
+        for program in [
+            "mkdir", "touch", "rm", "rmdir", "cp", "mv", "ln", "install", "uniq", "tee",
+            "truncate", "cat", "sed", "echo", "",
+        ] {
+            let words = vec!["x".to_owned(), "y".to_owned()];
+            let classified = shell_path_command_operands(program, &words)
+                .unwrap_or_default()
+                .iter()
+                .any(|(_, mode)| matches!(mode, ShellFileMode::Create));
+            assert_eq!(
+                classified,
+                is_creation_program(program),
+                "{program}: operand classifier and shared predicate drifted"
+            );
+        }
+    }
+
+    /// The protected-target floor fails closed on a relative creation operand
+    /// when the script changes cwd, so this detector is the guard's trigger.
+    #[test]
+    fn cwd_change_detection_covers_the_three_verbs() {
+        let has = |cmd: &str| {
+            let tree = try_parse_shell(cmd).expect("shell parses");
+            script_has_cwd_change(tree.root_node(), cmd)
+        };
+        assert!(has("cd /tmp && touch x"));
+        assert!(has("pushd /tmp; touch x"));
+        assert!(has("touch x; popd"));
+        assert!(!has("touch x"));
+        assert!(!has("mkdir -p a/b && touch a/b/.keep"));
     }
 
     /// An outer reader fed a substitution can't pin its operand (Ask); an inner
