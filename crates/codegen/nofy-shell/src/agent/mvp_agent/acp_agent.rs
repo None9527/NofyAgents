@@ -594,12 +594,12 @@ impl acp::Agent for MvpAgent {
             .await
             .ok_or_else(|| acp::Error::invalid_params().data("unknown session id"))?;
         if self.models_manager.allowlist_excludes_all() {
+            let reason = self.models_manager.allowlist_excludes_all_message();
             self.send_model_auto_switched(
                     &arguments.session_id,
                     &acp::ModelId::new(String::new()),
                     &acp::ModelId::new(String::new()),
-                    "None of your models are allowed by allowed_models. \
-                 Broaden it or remove it from your config, then restart.",
+                    &reason,
                 )
                 .await;
             return Ok(acp::PromptResponse::new(acp::StopReason::EndTurn));
@@ -1045,10 +1045,8 @@ impl acp::Agent for MvpAgent {
     ) -> Result<acp::SetSessionModelResponse, acp::Error> {
         let model = self.resolve_model_id(&args.model_id)?;
         if !model.info.user_selectable {
-            return Err(
-                acp::Error::invalid_params()
-                    .data("This model isn't allowed by your allowed_models setting."),
-            );
+            return Err(acp::Error::invalid_params()
+                .data(self.models_manager.allowlist_denied_message()));
         }
         let session_id = args.session_id.clone();
         let res = crate::agent::handlers::model_switch::apply(self, args).await;

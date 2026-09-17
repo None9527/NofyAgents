@@ -521,7 +521,8 @@ impl MvpAgent {
         if let Some(requested) = disallowed_custom {
             let current = self.models_manager.current_model_id();
             let reason = format!(
-                "\"{requested}\" isn't allowed by your allowed_models setting, so this session is using \"{}\".",
+                "\"{requested}\" was refused ({}), so this session is using \"{}\".",
+                self.models_manager.allowlist_denied_message(),
                 current.0
             );
             self.send_model_auto_switched(

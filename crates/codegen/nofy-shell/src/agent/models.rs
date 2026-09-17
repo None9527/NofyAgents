@@ -1108,6 +1108,18 @@ impl ModelsManager {
         self.inner.catalog.read().allowlist_excludes_all
     }
 
+    /// Provenance-aware wording for "this model was refused". A fleet pin from
+    /// `requirements.toml` is re-applied on every load, so the message must not
+    /// send the user to edit their own config.
+    pub fn allowlist_denied_message(&self) -> &'static str {
+        allowlist_denied_message(&self.inner.cfg.read())
+    }
+
+    /// Provenance-aware wording for "no model at all is selectable".
+    pub fn allowlist_excludes_all_message(&self) -> String {
+        allowlist_excludes_all_message(&self.inner.cfg.read())
+    }
+
     /// Re-pick the default if `current_model_id` is gone from the catalog *or*
     fn reselect_current_model_if_missing(&self, config: &config::Config) {
         let current = self.inner.current_model_id.read().clone();

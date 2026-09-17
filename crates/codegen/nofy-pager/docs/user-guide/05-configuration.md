@@ -521,6 +521,26 @@ context_window = 128000
 telemetry = false
 ```
 
+#### Restricting which models may be selected
+
+An organization can pin the model allowlist through `requirements.toml`, which sits above `config.toml` in the precedence order:
+
+```toml
+[models]
+allowed_models = ["nofy-build", "company-*"]
+```
+
+The pin **replaces** the user-level `[models] allowed_models` in `config.toml`; it is never combined with it, so a user cannot widen the set by adding patterns of their own. Patterns are globs matched against the **model id**, not against the `[model.<key>]` table name — renaming a custom-model table does not bring an excluded model back.
+
+Two failure modes fail closed rather than open:
+
+- A pin that is present but not a string array (for example `allowed_models = "nofy-build"`) leaves **no** model selectable.
+- A pin containing an invalid glob leaves **no** model selectable.
+
+An explicitly empty array (`allowed_models = []`) means "no restriction", not "nothing allowed".
+
+When a pin excludes everything, or excludes the configured default model, the error names your organization's model policy rather than telling you to edit `allowed_models` — that value is re-pinned from `requirements.toml` on every load, so editing your own config would have no effect. A pin also applies to subagents: a model the policy excluded cannot be reached by spawning a subagent against it.
+
 ---
 
 ## pager.toml (appearance configuration)

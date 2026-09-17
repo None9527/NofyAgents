@@ -442,11 +442,42 @@ pub(crate) enum GoalRoleModelChoice {
     /// Use this explicit pair (subject to auth/fail-open at spawn time).
     Explicit(crate::util::config::GoalRoleModel),
 }
+/// Fleet `allowed_models` pin. A list **replaces** the user/project allowlist —
+/// it is never unioned with it, so a user list cannot widen the set once the
+/// fleet has spoken. [`Self::FailClosed`] is a present-but-unreadable value:
+/// the policy exists but could not be parsed, so nothing is selectable rather
+/// than everything.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AllowlistPin {
+    List(Vec<String>),
+    FailClosed,
+}
 /// A requirement pin from `requirements.toml`. Wins over all other sources.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Constrained<T> {
     pin: Option<T>,
     source: Option<crate::config::RequirementSource>,
+}
+/// Manual, not derived: a derived `Default` would bound `T: Default`, and a
+/// `Default` for the pin payload is meaningless — "unpinned" is `pin: None`
+/// regardless of what `T` is.
+impl<T> Default for Constrained<T> {
+    fn default() -> Self {
+        Self {
+            pin: None,
+            source: None,
+        }
+    }
+}
+impl<T> Constrained<T> {
+    /// Borrow the pin without cloning. Separate `impl` block: these accessors
+    /// must not require `T: Clone`, or a non-Clone pin type loses them.
+    pub fn pin_ref(&self) -> Option<&T> {
+        self.pin.as_ref()
+    }
+    pub fn is_pinned(&self) -> bool {
+        self.pin.is_some()
+    }
 }
 impl<T: Clone> Constrained<T> {
     pub fn pin(&mut self, value: T, source: crate::config::RequirementSource) {
@@ -471,6 +502,8 @@ pub struct Requirements {
     pub sandbox_auto_allow_bash: Constrained<bool>,
     pub sandbox_profile: Constrained<String>,
     pub respect_gitignore: Constrained<bool>,
+    /// Fleet-pinned `[models] allowed_models`. Replaces the user/project list.
+    pub allowed_models: Constrained<AllowlistPin>,
 }
 /// Inputs for resolving `#[serde(skip)]` runtime fields after `new_from_toml_cfg()`.
 ///

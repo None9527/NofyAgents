@@ -2883,3 +2883,292 @@ fn resolve_env_gated_requires_xai_auth_for_writeback() {
         StorageMode::Local
     );
 }
+
+// ---------------------------------------------------------------------------
+// requirements-layer `allowed_models` pin (fleet policy)
+// ---------------------------------------------------------------------------
+
+/// Apply a `requirements.toml` fragment as the fleet layer and return what it enforced.
+fn pin_allowed_models(
+    cfg: &mut crate::agent::config::Config,
+    req_toml: &str,
+) -> Vec<EnforcedField> {
+    let req: toml::Value = toml::from_str(req_toml).unwrap();
+    let source = RequirementSource::Requirements {
+        path: std::path::PathBuf::from("/test/requirements.toml"),
+    };
+    apply_requirements_inner(cfg, &req, &source)
+}
+
+/// A catalog with `grok-3` and `grok-4`, plus whatever the user put in `[models]`.
+fn two_model_cfg(user_toml: &str) -> crate::agent::config::Config {
+    let raw: toml::Value = toml::from_str(&format!(
+        r#"
+        [models]
+        {user_toml}
+        [model.grok-3]
+        model = "grok-3"
+        base_url = "https://api.example.com/v1"
+        context_window = 256000
+        [model.grok-4]
+        model = "grok-4"
+        base_url = "https://api.example.com/v1"
+        context_window = 256000
+        "#
+    ))
+    .unwrap();
+    crate::agent::config::Config::new_from_toml_cfg(&raw).unwrap()
+}
+
+/// True when the catalog is non-empty and every entry is selectable. Asserted as
+/// a property rather than an exact id list because `resolve_model_catalog` also
+/// carries a bundled default entry alongside the declared `[model.*]` tables.
+fn all_selectable(cfg: &crate::agent::config::Config) -> bool {
+    let catalog = crate::agent::models::resolve_model_catalog(cfg, None);
+    !catalog.is_empty() && catalog.values().all(|e| e.info.user_selectable)
+}
+
+fn selectable_ids(cfg: &crate::agent::config::Config) -> Vec<String> {
+    let catalog = crate::agent::models::resolve_model_catalog(cfg, None);
+    let mut ids: Vec<String> = catalog
+        .values()
+        .filter(|e| e.info.user_selectable)
+        .map(|e| e.model.clone())
+        .collect();
+    ids.sort();
+    ids
+}
+
+#[test]
+fn apply_requirements_allowed_models_clamps_catalog_and_names_source() {
+    let mut cfg = two_model_cfg("");
+    let enforced = pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"grok-4\"]\n");
+    assert_eq!(selectable_ids(&cfg), vec!["grok-4".to_owned()]);
+    let field = enforced
+        .iter()
+        .find(|f| f.path == "models.allowed_models")
+        .expect("the pin must be reported as an enforced field");
+    assert_eq!(field.value, "grok-4");
+    assert!(
+        field.source.to_string().contains("requirements"),
+        "the enforced field must name the requirements layer, got {}",
+        field.source
+    );
+}
+
+/// The pin **replaces** the user list. Unioning would let a user widen a fleet
+/// restriction by adding patterns to their own config, which is the whole thing
+/// the pin exists to prevent.
+#[test]
+fn apply_requirements_allowed_models_replaces_not_unions_with_user_list() {
+    let mut cfg = two_model_cfg("allowed_models = [\"grok-3\"]");
+    assert_eq!(selectable_ids(&cfg), vec!["grok-3".to_owned()]);
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"grok-4\"]\n");
+    assert_eq!(
+        selectable_ids(&cfg),
+        vec!["grok-4".to_owned()],
+        "a fleet pin must replace the user list, not union with it"
+    );
+}
+
+/// A catalog key is user-defined, so it must not satisfy a fleet pattern —
+/// otherwise renaming `[model.grok-4-alias]` would be an escape hatch. The fleet
+/// pin matches the model **id** only.
+#[test]
+fn apply_requirements_allowed_models_ignores_user_catalog_key() {
+    let raw: toml::Value = toml::from_str(
+        r#"
+        [model.grok-4-alias]
+        model = "grok-3"
+        base_url = "https://api.example.com/v1"
+        context_window = 256000
+        "#,
+    )
+    .unwrap();
+    let mut cfg = crate::agent::config::Config::new_from_toml_cfg(&raw).unwrap();
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"grok-4*\"]\n");
+    let catalog = crate::agent::models::resolve_model_catalog(&cfg, None);
+    let alias = catalog
+        .get("grok-4-alias")
+        .expect("the aliased entry must still be in the catalog");
+    assert!(
+        !alias.info.user_selectable,
+        "a key matching the fleet pattern must not select a model id that does not"
+    );
+    // The user-level list still matches on key OR id — that asymmetry is the point.
+    let mut user_cfg = crate::agent::config::Config::new_from_toml_cfg(&raw).unwrap();
+    user_cfg.models.allowed_models = Some(vec!["grok-4*".to_owned()]);
+    let user_catalog = crate::agent::models::resolve_model_catalog(&user_cfg, None);
+    assert!(
+        user_catalog["grok-4-alias"].info.user_selectable,
+        "a user list matches its own catalog key"
+    );
+}
+
+/// A pin that is present but not a string array fails **closed**: nothing is
+/// selectable, and the message must not tell the user to edit `allowed_models`,
+/// because that value is re-pinned from the requirements layer on every load.
+#[test]
+fn apply_requirements_malformed_allowed_models_fail_closes() {
+    let mut cfg = two_model_cfg("");
+    let enforced = pin_allowed_models(&mut cfg, "[models]\nallowed_models = \"grok-4\"\n");
+    assert!(
+        selectable_ids(&cfg).is_empty(),
+        "a malformed pin must leave nothing selectable"
+    );
+    assert!(matches!(
+        cfg.requirements.allowed_models.pin_ref(),
+        Some(crate::agent::config::AllowlistPin::FailClosed)
+    ));
+    let field = enforced
+        .iter()
+        .find(|f| f.path == "models.allowed_models")
+        .expect("a malformed pin must still be reported");
+    assert!(
+        field.value.contains("nothing selectable"),
+        "the enforced-field value must say it fail-closed, got {:?}",
+        field.value
+    );
+    let catalog = crate::agent::models::resolve_model_catalog(&cfg, None);
+    let err = crate::agent::models::validate_selectable(&cfg, &catalog).unwrap_err();
+    assert!(
+        !err.contains("allowed_models"),
+        "a fleet policy message must not tell the user to edit allowed_models: {err}"
+    );
+    assert!(
+        err.contains("administrator"),
+        "a fleet policy message must point at the administrator: {err}"
+    );
+}
+
+/// A non-string entry inside an otherwise valid array is equally malformed.
+#[test]
+fn apply_requirements_allowed_models_non_string_entry_fail_closes() {
+    let mut cfg = two_model_cfg("");
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"grok-4\", 7]\n");
+    assert!(selectable_ids(&cfg).is_empty());
+}
+
+/// An explicitly empty array means "no restriction", not "nothing allowed" —
+/// a policy that clears its list must not brick the CLI.
+#[test]
+fn apply_requirements_allowed_models_empty_array_is_unrestricted() {
+    let mut cfg = two_model_cfg("allowed_models = [\"grok-3\"]");
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = []\n");
+    assert!(
+        all_selectable(&cfg),
+        "an empty fleet array lifts the restriction, including the user's"
+    );
+}
+
+#[test]
+fn apply_requirements_allowed_models_wildcard_selects_everything() {
+    let mut cfg = two_model_cfg("");
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"*\"]\n");
+    assert!(all_selectable(&cfg), "a wildcard pin selects everything");
+}
+
+/// An unparseable glob in a fleet pin fails closed the same way a malformed
+/// value does — the pin is authoritative, so a typo must not widen it.
+#[test]
+fn apply_requirements_allowed_models_invalid_glob_fail_closes() {
+    let mut cfg = two_model_cfg("");
+    pin_allowed_models(&mut cfg, "[models]\nallowed_models = [\"grok-4[\"]\n");
+    assert!(selectable_ids(&cfg).is_empty());
+}
+
+/// The two provenances get different wording. The user-level message says how to
+/// fix it; the fleet message must not, because the user cannot.
+#[test]
+fn validate_selectable_message_splits_on_provenance() {
+    // User-level: actionable wording, names the key.
+    let user_cfg = two_model_cfg("allowed_models = [\"nomatch-*\"]");
+    let user_catalog = crate::agent::models::resolve_model_catalog(&user_cfg, None);
+    let user_err =
+        crate::agent::models::validate_selectable(&user_cfg, &user_catalog).unwrap_err();
+    assert!(
+        user_err.contains("Broaden the patterns or remove allowed_models"),
+        "a user-level miss must tell the user how to fix it: {user_err}"
+    );
+
+    // Fleet-level: no editing advice, names the policy instead.
+    let mut fleet_cfg = two_model_cfg("");
+    pin_allowed_models(&mut fleet_cfg, "[models]\nallowed_models = [\"nomatch-*\"]\n");
+    let fleet_catalog = crate::agent::models::resolve_model_catalog(&fleet_cfg, None);
+    let fleet_err =
+        crate::agent::models::validate_selectable(&fleet_cfg, &fleet_catalog).unwrap_err();
+    assert!(
+        !fleet_err.contains("Broaden the patterns"),
+        "a fleet pin must not suggest editing it: {fleet_err}"
+    );
+    assert!(
+        fleet_err.contains("organization's model policy"),
+        "a fleet pin must name the policy: {fleet_err}"
+    );
+    assert!(
+        crate::agent::models::allowlist_matches_nothing(&fleet_cfg, &fleet_catalog),
+        "a fleet pin that matches nothing must still count as an active allowlist"
+    );
+}
+
+/// With no pin at all, behaviour is byte-identical to before the feature: the
+/// user list decides, and an absent list is unrestricted.
+#[test]
+fn unpinned_allowlist_behaviour_is_unchanged() {
+    let none = two_model_cfg("");
+    assert!(all_selectable(&none), "no list at all is unrestricted");
+    assert!(!crate::agent::models::allowlist_matches_nothing(
+        &none,
+        &crate::agent::models::resolve_model_catalog(&none, None)
+    ));
+    // Exact rather than `grok-4*`: the catalog also carries a bundled default
+    // entry whose id starts with `grok-4`, and a wildcard would sweep it in.
+    let user = two_model_cfg("allowed_models = [\"grok-4\"]");
+    assert_eq!(selectable_ids(&user), vec!["grok-4".to_owned()]);
+}
+
+/// The runtime messages split on provenance too, not just the startup
+/// validation — a fleet pin is re-applied on every load, so any wording that
+/// tells the user to edit their config sends them somewhere that cannot work.
+#[test]
+fn allowlist_runtime_messages_split_on_provenance() {
+    use crate::agent::models::{allowlist_denied_message, allowlist_excludes_all_message};
+
+    let user = two_model_cfg("allowed_models = [\"nomatch-*\"]");
+    assert!(
+        allowlist_denied_message(&user).contains("allowed_models setting"),
+        "a user-level refusal names the user's own setting"
+    );
+    assert!(
+        allowlist_excludes_all_message(&user).contains("Broaden the patterns"),
+        "a user-level miss must say how to fix it"
+    );
+
+    let mut fleet = two_model_cfg("");
+    pin_allowed_models(&mut fleet, "[models]\nallowed_models = [\"nomatch-*\"]\n");
+    let denied = allowlist_denied_message(&fleet);
+    let excludes = allowlist_excludes_all_message(&fleet);
+    for msg in [denied, excludes.as_str()] {
+        assert!(
+            msg.contains("administrator"),
+            "fleet wording must point at the administrator: {msg}"
+        );
+        assert!(
+            !msg.contains("Broaden"),
+            "fleet wording must not suggest editing the list: {msg}"
+        );
+        assert!(
+            !msg.contains("your config"),
+            "fleet wording must not point at the user's config: {msg}"
+        );
+    }
+
+    // An unreadable pin cannot echo patterns, so it names the policy instead.
+    let mut bad = two_model_cfg("");
+    pin_allowed_models(&mut bad, "[models]\nallowed_models = \"grok-4\"\n");
+    let bad_msg = allowlist_excludes_all_message(&bad);
+    assert!(
+        bad_msg.contains("administrator") && !bad_msg.contains("allowed_models"),
+        "an unreadable pin must not name the key the user cannot edit: {bad_msg}"
+    );
+}

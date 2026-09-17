@@ -2967,3 +2967,85 @@ fn inherited_child_toolset_cannot_reintroduce_workflow() {
             vec!["read_file", "run_terminal_cmd"]
         );
 }
+
+/// A fleet pin is authoritative for subagents too: spawning one must not become
+/// the escape hatch around `requirements.toml`. A model the *user's own* picker
+/// list hid stays a valid subagent target — that list governs what the picker
+/// offers, not what may run.
+#[test]
+fn resolve_model_override_respects_a_fleet_pin_but_not_a_user_picker_list() {
+    use crate::agent::config::AllowlistPin;
+    use crate::config::RequirementSource;
+
+    fn ctx_with_hidden_model(
+        cfg: Option<crate::agent::config::Config>,
+    ) -> crate::agent::subagent::SubagentSpawnContext {
+        let mut ctx = ctx_with_toggle(HashMap::new());
+        let mut hidden = test_model_entry("hidden-model");
+        hidden.info.user_selectable = false;
+        ctx.available_models
+            .insert("hidden-model".to_string(), hidden);
+        ctx.agent_config = cfg;
+        ctx
+    }
+    fn pinned(patterns: &[&str]) -> crate::agent::config::Config {
+        let mut cfg = crate::agent::config::Config::default();
+        cfg.requirements.allowed_models.pin(
+            AllowlistPin::List(patterns.iter().map(|s| s.to_string()).collect()),
+            RequirementSource::Requirements {
+                path: std::path::PathBuf::from("/test/requirements.toml"),
+            },
+        );
+        cfg
+    }
+
+    // No config at all: provenance is unknown, so a non-selectable model fails
+    // closed. We cannot tell a user picker list from a fleet pin without the
+    // config, and guessing permissive would make "spawn a subagent" the escape
+    // hatch whenever the config is absent.
+    assert!(
+        resolve_model_override_to_config("hidden-model", &ctx_with_hidden_model(None)).is_none(),
+        "with no agent_config the gate cannot prove the exclusion was picker-only"
+    );
+
+    // A user-level list hid the model. Picker-only, so the override still resolves.
+    let mut user_cfg = crate::agent::config::Config::default();
+    user_cfg.models.allowed_models = Some(vec!["something-else".to_owned()]);
+    assert!(
+        resolve_model_override_to_config("hidden-model", &ctx_with_hidden_model(Some(user_cfg)))
+            .is_some(),
+        "a user picker list must not block a subagent model override"
+    );
+
+    // A fleet pin hid the model. Authoritative — the override is refused.
+    assert!(
+        resolve_model_override_to_config("hidden-model", &ctx_with_hidden_model(Some(pinned(&["something-else"]))))
+            .is_none(),
+        "a fleet pin must block a subagent model override"
+    );
+
+    // A malformed pin is a pin: it fails closed here exactly as it does in the
+    // catalog, rather than falling back to the permissive no-pin branch.
+    let mut fail_closed = crate::agent::config::Config::default();
+    fail_closed.requirements.allowed_models.pin(
+        AllowlistPin::FailClosed,
+        RequirementSource::Requirements {
+            path: std::path::PathBuf::from("/test/requirements.toml"),
+        },
+    );
+    assert!(
+        resolve_model_override_to_config("hidden-model", &ctx_with_hidden_model(Some(fail_closed)))
+            .is_none(),
+        "an unreadable fleet pin must fail closed for subagents too"
+    );
+
+    // A selectable model is untouched by any of this.
+    let mut ctx = ctx_with_toggle(HashMap::new());
+    ctx.available_models
+        .insert("grok-4.5".to_string(), test_model_entry("grok-4.5"));
+    ctx.agent_config = Some(pinned(&["something-else"]));
+    assert!(
+        resolve_model_override_to_config("grok-4.5", &ctx).is_some(),
+        "the gate keys on user_selectable, not on the pin alone"
+    );
+}
