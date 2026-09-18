@@ -834,3 +834,167 @@ policy"` 旁边 30 行——我引用了那句话，却没读它上下文。
 
 **规模**：约 6 个新符号 + 3 个闸口 + 1 处 CLI 接线，跨 `nofy-workspace`（裁决类型）与
 `nofy-shell`（闸口）与 `nofy-pager`（接线）三个 crate。比 ⑰ 大，与 ⑩ 相当或略大。
+
+---
+
+## 11. per-model mTLS 可执行规格（2026-09-18，上游 1.0.18#11；已完整枚举，未实施）
+
+> **状态：规格已按实读枚举完毕，本轮未实施。** 原因是工作量实测**大于 ⑩**（台账记录里最大的
+> 一项），而本轮预算已用于 A7 的核实与 ㉒ 的落地；在剩余预算里动**采样路径**（产品里最关键的
+> 一段）会留下半验证状态，违背本项目一路的收口纪律。本节的存在意义正是 §8.9 的成功经验：
+> **站点清单逐个读上游真实实现枚举出来，而不是推断**——§8.7 那次「单一消费端」的推断漏了两个
+> 闸口，直接导致 `touch /etc/hosts` 零提示自动放行。
+
+### 11.1 为什么这一项属于我们而不是上游云面
+
+`mtls_cert_dir` 是 `[models.<id>]` 的**逐模型**字段，要求同一 table 里有 HTTPS 的 `base_url`，
+并拒绝与 `api_base_url` 共存（上游错误文案原话：「an mTLS identity must have one
+destination」）。这是**自建网关 / 企业内网 / BYOK 供应商**的形状——客户端证书向自己的入口
+证明身份——与 xAI 登录、计费、远端同步、Grok 模型都无关。**已确认零云依赖**
+（上游 `resume_status.rs` 同轮核对时一并 grep 过 `mtls.rs`：无 login/billing/dashboard/
+remote_sync/mixpanel/otel/feedback/hub_auth 命中）。
+
+⚠ **不要与 telemetry 那套混淆**：`nofy-telemetry/src/otlp_http.rs` 的
+`OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` 是标准 OTLP 环境变量契约（遥测面），
+上游 `xai-grok-telemetry/src/external/mod.rs` 的 `mtls_identity_configured` 也是那条线。
+本项是**模型采样面**，两者无关。
+
+### 11.2 上游实现的完整形状（已逐行读过）
+
+| 位置 | 内容 |
+|---|---|
+| `xai-grok-sampler/src/shared_http/mtls.rs`（200 行） | 核心：`client(cert_dir, force_http1)`、`identity_paths`、`read_identity_file`、`client_cache_key`、`cached_client`、`error_detail` |
+| `xai-grok-sampler/src/shared_http/mtls_tests.rs`（1.1KB） | 上游测试**极薄**——我们要自己补 |
+| `xai-grok-sampler/src/client.rs:624` | 消费点，三分支 |
+| `xai-grok-sampling-types/src/types.rs:1079` | `SamplingConfig.mtls_cert_dir` |
+| `xai-grok-sampling-types`（`SamplingError`） | 新变体 `MtlsConfiguration(String)` |
+| `xai-grok-shell/src/agent/config.rs:3849 / 4254` | 两个结构体上的字段 |
+| `xai-grok-shell/src/agent/config.rs:1880-1909` | 5 条校验规则 |
+| `xai-grok-shell/src/agent/config.rs:3917-3918` | 向 entry 传播 |
+| `xai-grok-shell/src/agent/config_model_override_parse.rs:721` | TOML 解析 |
+| `xai-grok-shell/src/tools/config.rs:200` | 一个构造点 |
+
+核心语义（都要保留）：
+- **证书文件名约定**：先找 `client.crt`/`client.key`，**任一存在**就用这一对；否则退到
+  `tls.crt`/`tls.key`（**Kubernetes Secret 的约定**，这是本项的真实受众信号）。
+- **缓存键含证书与私钥内容**（`blake3` 摘要，且摘要前各写入长度前缀以防拼接歧义），
+  故**凭据轮转会自然产生新 client**，不需要失效逻辑；LRU 上限 **16**（`tick` 计数，
+  非时间戳）。
+- **单文件上限 1MB**（`MAX_MTLS_IDENTITY_FILE_BYTES`），用 `take(LIMIT+1)` 读后再判长度，
+  避免把超大文件读进内存。
+- **强制 `https_only(true)` + `redirect::Policy::none()`**：身份只对它配置的那个 origin 有效，
+  重定向会把客户端证书泄露给别的 host。这是安全不变量，不是优化。
+- **cert 与 key 拼成一个 PEM**（cert 末尾补 `\n` 再拼 key）交给 `reqwest::Identity::from_pem`。
+- `sharing_disabled()` 为真时**绕过缓存**直接 build（与既有 kill switch 语义一致）。
+- `error_detail` 沿 `std::error::Error::source()` 链拼全部原因——rustls 的顶层错误
+  常常毫无信息量，真正的原因在 source 里。
+
+### 11.3 我们这侧的适配点（已逐个核实，非推断）
+
+**已具备**：
+- `crates/codegen/nofy-extra-ca` **存在**，有 `with_extra_root_certificates(builder)`。
+- reqwest features 与上游**逐字相同**：`["rustls-tls","stream","json","multipart","http2",
+  "blocking","socks"]` + `default-features = false`，故 `reqwest::Identity::from_pem` 可用。
+- `nofy-sampler/src/shared_http.rs` 已有 `sharing_disabled()`（私有）、`shared()`、
+  `client()`、`client_http1()`。
+- `blake3` 是 workspace 依赖（`nofy-shell`/`nofy-pager`/`nofy-governance`/`nofy-memorycore`
+  已用），但 **`nofy-sampler/Cargo.toml` 未引入**，需加一行。
+
+**需注意的三处结构差异**：
+
+1. **不要引入上游的 `extra_ca::build_reqwest_client(configure)`。** 上游那个函数会
+   `.use_rustls_tls().tls_built_in_native_certs(false).tls_built_in_webpki_certs(true)`，
+   即**把整个 sampler 的 TLS 根证书来源从系统原生换成 webpki 内置**，并显式
+   `ensure_default_crypto_provider()`。我们的 `build_http_client` 走的是
+   `with_extra_root_certificates(builder).build()`（原生根 + `NOFY_EXTRA_CA_BUNDLE`），
+   我们全树**没有任何** `ensure_default_crypto_provider`/`CryptoProvider` 调用
+   （唯一命中是 `auth/manager_tests.rs:3187` 的一句注释，讲 `jsonwebtoken`）。
+   **照搬会顺手改掉既有 TLS 信任链，属未经评估的行为变更。** 原生做法：mtls 路径沿用
+   `nofy_extra_ca::with_extra_root_certificates(...).build()`，与既有两个 builder 一致。
+   若 `Identity::from_pem` 在无默认 crypto provider 时失败，**那时**再单独评估安装 provider，
+   并作为独立提交，不与 mTLS 混在一起。
+
+2. **`configure_http1`/`configure_http2` 我们没有，需要从既有两个 builder 里抽。**
+   现状：`build_http_client()`（HTTP/2 + 池 + keepalive）与 `build_http_client_http1()`
+   （`pool_max_idle_per_host(0)` + `http1_only()`）各自读环境变量并整体 build。
+   抽成 `configure_http2(builder) -> builder` / `configure_http1(builder) -> builder`
+   后，三个调用方（两个既有 builder + mtls）共用同一份超时/池/keepalive 参数——
+   **否则 mtls client 会悄悄用上一套不同的池参数**，这正是 ⑯/⑰/㉑/㉒ 一路在消除的
+   「同一事实多处推导」。抽取必须是**纯移动**：既有两个 builder 的行为一字不改，
+   由 `shared_http_wire` / `shared_http_kill_switch` 两个集成二进制钉住
+   （它们各自拥有进程环境，见 `shared_http.rs:11-14` 的模块 doc）。
+
+3. **两个 config 类型都要加字段，且转换不集中。**
+   - `SamplingConfig`（`nofy-sampling-types/src/types.rs:979`，`base_url` 是第一个字段，
+     与上游同位置）——上游把 `mtls_cert_dir` 放在 `base_url` 之后。
+   - `SamplerConfig`（`nofy-sampler/src/config.rs`，`force_http1` 在 :74）——
+     **client.rs 的 `config` 是这个类型，不是 `SamplingConfig`**。
+   - 转换点**至少三处且不集中**：`agent/config.rs:4532 provider_task_sampling_config`、
+     `agent/config.rs:7382 resolve_sampling`、`session/acp_session_impl/sampler_turn.rs:329
+     reconstruct_full_config`。**⑩ 的教训在此直接适用：主回合路径是
+     `reconstruct_full_config`，不是 `sampling_config_for_model`**——只改后者会让 mTLS
+     在子代理/工具路径生效而在主回合静默失效，且不报错。
+
+**工作量实测（这是本轮不做的直接原因）**：
+- `SamplingConfig { … }` 字面量构造点 **37 处**（生产 27）
+- `SamplerConfig { … }` 字面量构造点 **43 处**（生产 29）
+- **全树 0 处使用 `..Default::default()`**，故加一个字段会打断全部 **80 处**
+- 合计 56 个生产构造点 + 新错误变体及其分类（`is_retryable` / `is_context_length_error` /
+  错误码映射）+ 200 行新模块 + 5 条校验规则 + 3 处转换传播
+
+### 11.4 实施顺序（每步可独立编译）
+
+1. `nofy-sampling-types`：`SamplingError::MtlsConfiguration(String)` + 分类。
+   **必须先决定分类**：证书读不到/解析失败是**确定性配置错误**，绝不能进
+   `is_retryable`（否则每次采样都白等一轮退避）；也不是 context overflow。
+   参照 ⑮ 的教训——`is_context_length_error` 与 `classify_sampling_error` 曾自相矛盾。
+2. `nofy-sampling-types`：`SamplingConfig.mtls_cert_dir`（`#[serde(default,
+   skip_serializing_if = "Option::is_none")]`）+ 修 37 处构造点（脚本化，编译器逐个点名）。
+3. `nofy-sampler`：`Cargo.toml` 加 `blake3 = { workspace = true }`；
+   `shared_http.rs` 抽 `configure_http1`/`configure_http2`（纯移动）；
+   新增 `shared_http/mtls.rs` + `shared_http/mtls_tests.rs`，`shared_http.rs` 里
+   `pub(crate) use` 出 `mtls_client`。
+4. `nofy-sampler`：`SamplerConfig.mtls_cert_dir` + 修 43 处构造点 + `client.rs:605` 改三分支。
+5. `nofy-shell/agent/config.rs`：模型覆盖结构加字段 + **5 条校验规则**（插在
+   `new_from_toml_cfg` 的 `parse_model_providers` 之后、`for (id, provider) in
+   &model_providers` 之前，即我们 :1709/:1710 之间；注意我们的 `parse_model_providers`
+   返回**三元组**含 `nested_models`，上游是二元组）+ 向 entry 传播。
+6. `nofy-shell/agent/config_model_override_parse.rs`：TOML 解析。
+7. **三处转换全部传播**（`provider_task_sampling_config`、`resolve_sampling`、
+   `reconstruct_full_config`），并为「主回合路径确实带上了 cert_dir」写一个专门测试
+   ——这是 ⑩ 那个 bug 的形状，必须有靶子。
+
+### 11.5 校验规则（5 条，上游文案已逐字读过，建议原样保留）
+
+1. `mtls_cert_dir` 非空路径，否则 `model.{id}.mtls_cert_dir must not be empty`
+2. 同一 model table 必须有 `base_url`，否则 `… requires base_url in the same model table`
+3. `base_url` 必须能解析，否则 `model.{id}.base_url is invalid: {error}`
+4. `base_url` 必须是 **https 且有 host**，否则 `… must be an HTTPS URL with a host when
+   mtls_cert_dir is set`
+5. **两条互斥**：不得同时设 `api_base_url`（模型级），也不得用带 `api_base_url` 的
+   `model_providers.{pid}`；文案均为 `… an mTLS identity must have one destination`
+
+规则 4/5 是**安全不变量**而非风格偏好：客户端证书是身份凭据，
+明文 HTTP 或第二个目的地都意味着它可能被送到别处。
+
+### 11.6 测试与红绿靶子
+
+上游 `mtls_tests.rs` 只有 1.1KB，**覆盖极薄，不能照抄**。我们要补：
+- `identity_paths`：只有 `client.crt` 时也选 client 对（**任一存在**即选，不是都存在）；
+  两者都无时退到 `tls.*`；`try_exists` 出错时返回 `MtlsConfiguration` 而非静默退化。
+- 1MB 上限：恰好等于上限通过、超一字节拒绝，且**不把超大文件读进内存**。
+- 缓存：同内容命中同一 client（`ptr_eq` 或计数 build 次数）；**改一个字节即换 client**
+  （轮转语义）；第 17 个身份淘汰最久未用；`sharing_disabled()` 时不缓存。
+- `https_only` + 无重定向：断言 builder 配置（或对 http:// URL 请求失败）。
+- `error_detail` 走 source 链。
+- 5 条校验规则各一个测试，**含两条互斥的不同文案**。
+- **`reconstruct_full_config` 带上 cert_dir** 的专门测试（⑩ 的坑）。
+- 红绿：① 摘掉 `https_only` → 安全测试红；② 缓存键不含 key 内容 → 轮转测试红；
+  ③ `identity_paths` 改成「都存在才选 client 对」→ 单文件测试红；
+  ④ 摘掉某条校验 → 对应测试红；⑤ 让 `reconstruct_full_config` 不传播 → ⑩ 靶子红。
+
+### 11.7 文档
+
+`crates/codegen/nofy-pager/docs/user-guide/11-custom-models.md`（⑰ 已在此加过
+requirements 层 pin 一节）新增 per-model mTLS 小节：证书文件名两种约定、
+必须 HTTPS、与 `api_base_url` 互斥的理由、轮转即生效（缓存键含内容）。
