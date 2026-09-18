@@ -403,7 +403,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 | # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
 |---|---|---|---|---|
-| ㉛ | `--trust`/Trust 项目后要能看出闸口是否真的放下(1.0.33 集群;上游 `GrantOutcome`/`dismisses_gate`) | `grant_folder_trust` 返回 `GrantOutcome`：Durable/AlreadyDurable/Inert/UnsafeRoot 关闸；写盘失败是 SessionLocal；无 home 是 Unrecorded。hooks `do_hooks_trust_project` 只在 `dismisses_gate` 时 Ok，并授权 `workspace_key(cwd)` 而非 git root。pager 接受信任问题时 Unrecorded 留在 Pending+toast。CLI `--trust` 失败走 `report_cli_trust_grant`。**有意不做**：PROCESS_DECISIONS 进程内旁路、KeyMoved canonicalize 预检、fs_notify 事件帧分批 | 本提交 | nofy-workspace `store_io_is_noop_on_local_build` + `release_grant_records_and_second_grant_is_already_durable`;`cargo check -p nofy-pager -p nofy-pager-bin -p nofy-shell` |
+| ㉛ | `--trust`/Trust 项目后要能看出闸口是否真的放下(1.0.33 集群;上游 `GrantOutcome`/`dismisses_gate`) | `grant_folder_trust` 返回 `GrantOutcome`：Durable/AlreadyDurable/Inert/UnsafeRoot 关闸；写盘失败是 SessionLocal；无 home 是 Unrecorded。hooks `do_hooks_trust_project` 只在 `dismisses_gate` 时 Ok，并授权 `workspace_key(cwd)` 而非 git root。pager 接受信任问题时 Unrecorded 留在 Pending+toast。CLI `--trust` 失败走 `report_cli_trust_grant`。**有意不做**：PROCESS_DECISIONS 进程内旁路、KeyMoved canonicalize 预检、fs_notify 事件帧分批 | `2c6503f8` | nofy-workspace `store_io_is_noop_on_local_build` + `release_grant_records_and_second_grant_is_already_durable`;`cargo check -p nofy-pager -p nofy-pager-bin -p nofy-shell` |
 
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
