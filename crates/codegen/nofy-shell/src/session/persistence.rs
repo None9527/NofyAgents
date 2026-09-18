@@ -76,12 +76,10 @@ fn default_btw_attempts() -> u32 {
     1
 }
 
-
 /// Helper for `#[serde(skip_serializing_if)]` on bool fields.
 pub(crate) fn is_false(v: &bool) -> bool {
     !v
 }
-
 
 #[derive(Debug, Clone)]
 pub struct CopiedSessionFile {
@@ -2447,7 +2445,9 @@ pub(crate) async fn new(
     if summary.session_kind.is_none()
         && let Some(kind) = session_kind
     {
-        storage.set_session_kind_if_absent(info, kind.clone()).await?;
+        storage
+            .set_session_kind_if_absent(info, kind.clone())
+            .await?;
         summary.session_kind = Some(kind);
     }
 
@@ -2748,14 +2748,23 @@ static CLEANUP_SESSIONS_ONCE: std::sync::Once = std::sync::Once::new();
 /// Default TTL for stale session files (30 days).
 const DEFAULT_CLEANUP_TTL_DAYS: u32 = 30;
 
-/// Walk `~/.nofy/sessions/` and delete files with mtime older than `ttl_days`.
-/// Removes empty session directories after file cleanup.
-/// Skips `skip_session_dir` if provided (current session).
+/// The only files swept inside a live (or still-active) session. Everything
+/// else there is a write-once artifact `updates.jsonl` still references, so
+/// its own age says nothing about whether it is needed.
+const SWEPT_BLOB_DIRS: [&str; 4] = ["images", "videos", "downloads", "terminal"];
+
+/// Once per process: removes sessions idle longer than `ttl_days` whole and
+/// prunes stale `SWEPT_BLOB_DIRS` files from the rest.
+///
+/// `live_session_dir` is being created or attached by the caller, so it is
+/// never removed whole, but its blob dirs are pruned like any other
+/// session's. Callers [`mark_session_live`] first so other processes do not
+/// judge the dir idle mid-attach.
 ///
 /// This is a **synchronous** function intended to be called via
 /// `tokio::task::spawn_blocking` so it runs on the thread pool and
 /// never competes with the agent's single-threaded `LocalSet`.
-pub(crate) fn cleanup_stale_sessions(skip_session_dir: Option<&Path>) {
+pub(crate) fn cleanup_stale_sessions(live_session_dir: Option<&Path>) {
     CLEANUP_SESSIONS_ONCE.call_once(|| {
         let ttl_days = resolve_cleanup_ttl_days();
         let root = nofy_home();
@@ -2776,14 +2785,14 @@ pub(crate) fn cleanup_stale_sessions(skip_session_dir: Option<&Path>) {
             target: "nofy_shell::session::persistence",
             sessions_root = %sessions_root.display(),
             ttl_days,
-            skip = ?skip_session_dir.map(|p| p.display().to_string()),
-            "SESSION_CLEANUP_START: scanning for stale session files"
+            live = ?live_session_dir.map(|p| p.display().to_string()),
+            "SESSION_CLEANUP_START: scanning for stale sessions"
         );
 
         let stats = cleanup_stale_sessions_inner(
             &sessions_root,
             ttl_days,
-            skip_session_dir,
+            live_session_dir,
             &relocation_view,
             &root,
             CleanupLevel::SessionsRoot,
@@ -2794,10 +2803,43 @@ pub(crate) fn cleanup_stale_sessions(skip_session_dir: Option<&Path>) {
             sessions_root = %sessions_root.display(),
             files_deleted = stats.files_deleted,
             dirs_removed = stats.dirs_removed,
+            sessions_removed = stats.sessions_removed,
             errors = stats.errors,
             "SESSION_CLEANUP_DONE"
         );
     });
+}
+
+pub(crate) fn session_sweep_done() -> bool {
+    CLEANUP_SESSIONS_ONCE.is_completed()
+}
+
+/// Bumps `summary.json`'s mtime so [`session_last_activity`] sees the attach
+/// that is about to read this dir. Must run synchronously before the sweep is
+/// spawned: the sweep's live-dir exclusion only covers one dir in one process,
+/// and neither load nor init rewrites the summary. A dir without a summary
+/// (fresh `session/new`, stub) has nothing to bump.
+pub(crate) fn mark_session_live(session_dir: &Path) {
+    let summary = session_dir.join("summary.json");
+    let Ok(metadata) = std::fs::symlink_metadata(&summary) else {
+        return;
+    };
+    if !metadata.file_type().is_file() {
+        return;
+    }
+    // Write access is required for `set_modified` on Windows; nothing is written.
+    let touched = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&summary)
+        .and_then(|file| file.set_modified(std::time::SystemTime::now()));
+    if let Err(error) = touched {
+        tracing::debug!(
+            target: "nofy_shell::session::persistence",
+            file = %summary.display(),
+            %error,
+            "SESSION_MARK_LIVE_ERROR"
+        );
+    }
 }
 
 /// Resolve TTL from config.toml `[storage] cleanup_ttl_days`, falling back to 30.
@@ -2816,42 +2858,41 @@ fn resolve_cleanup_ttl_days() -> u32 {
     DEFAULT_CLEANUP_TTL_DAYS
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 struct CleanupStats {
     files_deleted: u32,
     dirs_removed: u32,
+    sessions_removed: u32,
     errors: u32,
 }
 
+impl CleanupStats {
+    fn absorb(&mut self, other: CleanupStats) {
+        self.files_deleted += other.files_deleted;
+        self.dirs_removed += other.dirs_removed;
+        self.sessions_removed += other.sessions_removed;
+        self.errors += other.errors;
+    }
+}
+
+/// `sessions/` holds one dir per encoded cwd, each holding session dirs.
 #[derive(Clone, Copy)]
 enum CleanupLevel {
     SessionsRoot,
     Cwd,
-    Session,
 }
 
-/// Recursive cleanup: delete stale files, then rmdir empty dirs (post-order).
+/// Stray files at these two levels (`session_search.sqlite`, `prompt_history.jsonl`)
+/// keep the per-file mtime rule; dot entries are the `.cwd` markers.
 fn cleanup_stale_sessions_inner(
     root: &Path,
     ttl_days: u32,
-    skip: Option<&Path>,
+    live_session_dir: Option<&Path>,
     relocation_view: &crate::session::storage::relocation::RelocationView,
     nofy_home: &Path,
     level: CleanupLevel,
 ) -> CleanupStats {
     let mut stats = CleanupStats::default();
-
-    if root
-        .file_name()
-        .is_some_and(|name| name.to_string_lossy().starts_with('.'))
-    {
-        return stats;
-    }
-    if let Some(skip_dir) = skip
-        && root == skip_dir
-    {
-        return stats;
-    }
 
     let Ok(entries) = std::fs::read_dir(root) else {
         return stats;
@@ -2870,13 +2911,10 @@ fn cleanup_stale_sessions_inner(
                 continue;
             }
         };
-        let path = entry.path();
-
-        if let Some(skip_dir) = skip
-            && path == skip_dir
-        {
+        if entry.file_name().to_string_lossy().starts_with('.') {
             continue;
         }
+        let path = entry.path();
 
         let metadata = match std::fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
@@ -2885,116 +2923,225 @@ fn cleanup_stale_sessions_inner(
                 continue;
             }
         };
-        if metadata.file_type().is_dir() && !metadata.file_type().is_symlink() {
-            if matches!(level, CleanupLevel::SessionsRoot)
-                && relocation_view.protects_cwd_dir(&path)
-            {
-                continue;
-            }
-            let lease = if matches!(level, CleanupLevel::Cwd) {
-                let summary = path.join("summary.json");
-                let summary_type = match std::fs::symlink_metadata(&summary) {
-                    Ok(metadata) => metadata,
-                    Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                        let child_stats = cleanup_stale_sessions_inner(
-                            &path,
-                            ttl_days,
-                            skip,
-                            relocation_view,
-                            nofy_home,
-                            CleanupLevel::Session,
-                        );
-                        stats.files_deleted += child_stats.files_deleted;
-                        stats.dirs_removed += child_stats.dirs_removed;
-                        stats.errors += child_stats.errors;
-                        if child_stats.files_deleted > 0 && std::fs::remove_dir(&path).is_ok() {
-                            stats.dirs_removed += 1;
-                        }
+        let file_type = metadata.file_type();
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            match level {
+                CleanupLevel::SessionsRoot => {
+                    if relocation_view.protects_cwd_dir(&path) {
                         continue;
                     }
-                    Err(error) => {
-                        stats.errors += 1;
+                    let child = cleanup_stale_sessions_inner(
+                        &path,
+                        ttl_days,
+                        live_session_dir,
+                        relocation_view,
+                        nofy_home,
+                        CleanupLevel::Cwd,
+                    );
+                    let removed_session = child.sessions_removed > 0;
+                    stats.absorb(child);
+                    // A cwd dir we did not empty may belong to a session being created right now.
+                    if removed_session && std::fs::remove_dir(&path).is_ok() {
+                        stats.dirs_removed += 1;
                         tracing::debug!(
                             target: "nofy_shell::session::persistence",
-                            path = %summary.display(),
-                            %error,
-                            "SESSION_CLEANUP_METADATA_ERROR"
+                            dir = %path.display(),
+                            "SESSION_CLEANUP_RMDIR"
                         );
-                        continue;
                     }
-                };
-                if !summary_type.file_type().is_file() || summary_type.file_type().is_symlink() {
-                    continue;
                 }
-                let Some(id) = path.file_name().and_then(|name| name.to_str()) else {
-                    continue;
-                };
-                let storage = crate::session::storage::relocation::RelocationStorage::new(
-                    nofy_home.to_path_buf(),
-                );
-                let Ok(lease) = storage.acquire(id) else {
-                    continue;
-                };
-                match storage.read_journal(id) {
-                    Err(crate::session::storage::relocation::RelocationError::JournalMissing(
-                        _,
-                    )) => Some(lease),
-                    _ => continue,
+                CleanupLevel::Cwd => {
+                    if live_session_dir.is_some_and(|live| path == live) {
+                        prune_blob_dirs(&path, ttl_days, &mut stats);
+                    } else {
+                        match relocation_gate(nofy_home, &path) {
+                            RelocationGate::Skip => {}
+                            RelocationGate::SweepStub => {
+                                stats.absorb(cleanup_session_dir(&path, ttl_days));
+                            }
+                            RelocationGate::SweepLeased(lease) => {
+                                stats.absorb(cleanup_session_dir(&path, ttl_days));
+                                drop(lease);
+                            }
+                        }
+                    }
                 }
-            } else {
-                None
-            };
-            let next = match level {
-                CleanupLevel::SessionsRoot => CleanupLevel::Cwd,
-                CleanupLevel::Cwd | CleanupLevel::Session => CleanupLevel::Session,
-            };
-            let child_stats = cleanup_stale_sessions_inner(
-                &path,
-                ttl_days,
-                skip,
-                relocation_view,
-                nofy_home,
-                next,
-            );
-            stats.files_deleted += child_stats.files_deleted;
-            stats.dirs_removed += child_stats.dirs_removed;
-            stats.errors += child_stats.errors;
-
-            // Only attempt remove_dir if this subtree actually had stale
-            // files deleted in this pass. Otherwise we risk removing dirs
-            // that were deliberately created for use by concurrent sessions.
-            if child_stats.files_deleted > 0 && std::fs::remove_dir(&path).is_ok() {
-                stats.dirs_removed += 1;
-                tracing::debug!(
-                    target: "nofy_shell::session::persistence",
-                    dir = %path.display(),
-                    "SESSION_CLEANUP_RMDIR"
-                );
             }
-            drop(lease);
         } else if let Ok(mtime) = metadata.modified()
             && is_stale(mtime, ttl_days)
         {
-            if std::fs::remove_file(&path).is_ok() {
-                stats.files_deleted += 1;
-                tracing::debug!(
-                    target: "nofy_shell::session::persistence",
-                    file = %path.display(),
-                    "SESSION_CLEANUP_DELETE"
-                );
-            } else {
-                stats.errors += 1;
-            }
+            remove_stale_file(&path, &mut stats);
         }
     }
 
     stats
 }
 
+enum RelocationGate {
+    Skip,
+    SweepStub,
+    SweepLeased(crate::session::storage::relocation::RelocationLease),
+}
+
+/// Hold the relocation lease while we decide a real session's fate, so a
+/// concurrent relocate cannot race the sweep. Stubs (no `summary.json`) have
+/// no journal to race.
+fn relocation_gate(nofy_home: &Path, session_dir: &Path) -> RelocationGate {
+    let summary = session_dir.join("summary.json");
+    match std::fs::symlink_metadata(&summary) {
+        Ok(metadata) if metadata.file_type().is_file() && !metadata.file_type().is_symlink() => {}
+        Ok(_) => return RelocationGate::Skip,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return RelocationGate::SweepStub;
+        }
+        Err(error) => {
+            tracing::debug!(
+                target: "nofy_shell::session::persistence",
+                path = %summary.display(),
+                %error,
+                "SESSION_CLEANUP_METADATA_ERROR"
+            );
+            return RelocationGate::Skip;
+        }
+    }
+    let Some(id) = session_dir.file_name().and_then(|name| name.to_str()) else {
+        return RelocationGate::Skip;
+    };
+    let storage =
+        crate::session::storage::relocation::RelocationStorage::new(nofy_home.to_path_buf());
+    let Ok(lease) = storage.acquire(id) else {
+        return RelocationGate::Skip;
+    };
+    match storage.read_journal(id) {
+        Err(crate::session::storage::relocation::RelocationError::JournalMissing(_)) => {
+            RelocationGate::SweepLeased(lease)
+        }
+        _ => RelocationGate::Skip,
+    }
+}
+
+fn cleanup_session_dir(session_dir: &Path, ttl_days: u32) -> CleanupStats {
+    let mut stats = CleanupStats::default();
+    let last_activity = match session_last_activity(session_dir) {
+        Ok(t) => t,
+        Err(error) => {
+            stats.errors += 1;
+            tracing::debug!(
+                target: "nofy_shell::session::persistence",
+                dir = %session_dir.display(),
+                %error,
+                "SESSION_CLEANUP_METADATA_ERROR"
+            );
+            return stats;
+        }
+    };
+    if is_stale(last_activity, ttl_days) {
+        match std::fs::remove_dir_all(session_dir) {
+            Ok(()) => {
+                stats.sessions_removed += 1;
+                tracing::info!(
+                    target: "nofy_shell::session::persistence",
+                    dir = %session_dir.display(),
+                    "SESSION_CLEANUP_RM_SESSION"
+                );
+            }
+            Err(error) => {
+                stats.errors += 1;
+                tracing::warn!(
+                    target: "nofy_shell::session::persistence",
+                    dir = %session_dir.display(),
+                    %error,
+                    "SESSION_CLEANUP_RM_SESSION_ERROR"
+                );
+            }
+        }
+        return stats;
+    }
+
+    prune_blob_dirs(session_dir, ttl_days, &mut stats);
+    stats
+}
+
+/// Deletes regular files older than `ttl_days` from the session's `SWEPT_BLOB_DIRS`.
+/// Never rmdir: a writer may sit between its `create_dir_all` and `persist`.
+fn prune_blob_dirs(session_dir: &Path, ttl_days: u32, stats: &mut CleanupStats) {
+    for dir_name in SWEPT_BLOB_DIRS {
+        let Ok(entries) = std::fs::read_dir(session_dir.join(dir_name)) else {
+            continue;
+        };
+        for entry_result in entries {
+            let Ok(entry) = entry_result else {
+                stats.errors += 1;
+                continue;
+            };
+            let path = entry.path();
+            let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+                stats.errors += 1;
+                continue;
+            };
+            if metadata.file_type().is_file()
+                && let Ok(mtime) = metadata.modified()
+                && is_stale(mtime, ttl_days)
+            {
+                remove_stale_file(&path, stats);
+            }
+        }
+    }
+}
+
+/// Newest mtime among the session dir's own regular files (the dir's own
+/// mtime if it has none). `updates.jsonl` grows with every persisted update
+/// and [`mark_session_live`] bumps `summary.json` on every attach; loading
+/// alone rewrites neither.
+fn session_last_activity(session_dir: &Path) -> io::Result<std::time::SystemTime> {
+    let mut newest: Option<std::time::SystemTime> = None;
+    for entry in std::fs::read_dir(session_dir)? {
+        let metadata = std::fs::symlink_metadata(entry?.path())?;
+        if metadata.file_type().is_file()
+            && let Ok(mtime) = metadata.modified()
+        {
+            newest = Some(newest.map_or(mtime, |n| n.max(mtime)));
+        }
+    }
+    match newest {
+        Some(mtime) => Ok(mtime),
+        None => std::fs::symlink_metadata(session_dir)?.modified(),
+    }
+}
+
+fn remove_stale_file(path: &Path, stats: &mut CleanupStats) {
+    match std::fs::remove_file(path) {
+        Ok(()) => {
+            stats.files_deleted += 1;
+            tracing::debug!(
+                target: "nofy_shell::session::persistence",
+                file = %path.display(),
+                "SESSION_CLEANUP_DELETE"
+            );
+        }
+        Err(error) => {
+            stats.errors += 1;
+            tracing::debug!(
+                target: "nofy_shell::session::persistence",
+                file = %path.display(),
+                %error,
+                "SESSION_CLEANUP_DELETE_ERROR"
+            );
+        }
+    }
+}
+
 fn is_stale(mtime: std::time::SystemTime, ttl_days: u32) -> bool {
     let ttl = std::time::Duration::from_secs(u64::from(ttl_days) * 86400);
     mtime.elapsed().is_ok_and(|age| age > ttl)
 }
+
+#[cfg(test)]
+#[path = "persistence_cleanup_stale_sessions_tests.rs"]
+mod cleanup_stale_sessions_tests;
 
 #[cfg(test)]
 mod agent_name_persistence_tests {

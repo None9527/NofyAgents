@@ -136,6 +136,21 @@ fn session_info_for(session_id: &acp::SessionId, cwd: &AbsPathBuf) -> SessionInf
         cwd: cwd.as_str().to_owned(),
     }
 }
+
+/// The liveness bump runs on every call, before the sweep and before this
+/// session is loaded: another process's sweep may be judging the dir right
+/// now, and it only sees mtimes.
+fn spawn_session_sweep(session_info: &SessionInfo) {
+    use crate::session::persistence;
+    let live_session_dir = persistence::session_dir(session_info);
+    persistence::mark_session_live(&live_session_dir);
+    if persistence::session_sweep_done() {
+        return;
+    }
+    tokio::task::spawn_blocking(move || {
+        persistence::cleanup_stale_sessions(Some(&live_session_dir));
+    });
+}
 fn log_session_started(
     session_id: &acp::SessionId,
     kind: crate::agent::session_metrics::SessionStartKind,
@@ -300,6 +315,7 @@ impl MvpAgent {
                     .map(|s| s.to_string())
             });
         let session_info = session_info_for(&session_id, &cwd);
+        spawn_session_sweep(&session_info);
         let mut model_agent_type: Option<String> = None;
         let mut session_sampling_override: Option<SamplingConfig> = None;
         let mut disallowed_custom: Option<String> = None;
@@ -652,18 +668,14 @@ impl MvpAgent {
         let mut load_timer = crate::instrumentation_timer!("session.load_session");
         load_timer.with_field("session_id", session_id.0.as_ref());
         load_timer.with_field("cwd", cwd.as_str());
-        let git_root =
-            nofy_workspace::session::git::find_git_root_from_path(cwd.as_path()).ok();
+        let git_root = nofy_workspace::session::git::find_git_root_from_path(cwd.as_path()).ok();
         if let Some(root) = git_root {
             tokio::task::spawn_blocking(move || {
                 crate::session::worktree_pool::cleanup_stale_pool_worktrees(Some(&root));
             });
         }
         let session_info = session_info_for(&session_id, &cwd);
-        let current_session_dir = crate::session::persistence::session_dir(&session_info);
-        tokio::task::spawn_blocking(move || {
-            crate::session::persistence::cleanup_stale_sessions(Some(&current_session_dir));
-        });
+        spawn_session_sweep(&session_info);
         let session_exists = self.is_resident(&session_id);
         let no_replay = policy.no_replay;
         if session_exists {
@@ -943,11 +955,10 @@ impl MvpAgent {
         if restore_code_requested {
             nofy_workspace::session::git::warn_registry_disabled_restore(session_id.0.as_ref());
         }
-        let restore_checkout_allowed =
-            nofy_workspace::session::git::restore_code_checkout_allowed(
-                cwd.as_path(),
-                Some(summary.info.cwd.as_str()),
-            );
+        let restore_checkout_allowed = nofy_workspace::session::git::restore_code_checkout_allowed(
+            cwd.as_path(),
+            Some(summary.info.cwd.as_str()),
+        );
         if restore_code_requested
             && !restore_checkout_allowed
             && let Some(ref target_sha) = summary.head_commit

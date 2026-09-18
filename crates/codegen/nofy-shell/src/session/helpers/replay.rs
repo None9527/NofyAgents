@@ -285,57 +285,34 @@ impl ReplayState {
         session_dir: &Path,
     ) -> io::Result<ReplayAction> {
         if self.target < info.prompt_index_at_compaction {
-            // Target is before this compaction — don't load the compacted
-            // history (we'll reconstruct from raw updates). But the
-            // checkpoint is still required for original_user_info — the
-            // historical User(user_info) that the model saw for these
-            // pre-compaction turns. Without it we'd use the post-compaction
-            // rebuilt user_info, which is wrong data.
+            // Target is before this compaction — reconstruct from raw updates.
+            // The checkpoint file is only needed for original_user_info; a
+            // later checkpoint missing after a session sweep must not fail
+            // rewind to an earlier prompt (1.0.33#7: only the base
+            // checkpoint for the target matters).
             let checkpoint_path = session_dir.join(&info.checkpoint_file);
-            let bytes = match std::fs::read(&checkpoint_path) {
-                Ok(b) => b,
-                Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                    tracing::error!(
-                        path = %checkpoint_path.display(),
-                        "Compaction checkpoint file missing, cannot restore original user_info"
-                    );
-                    return Err(io::Error::new(
-                        io::ErrorKind::NotFound,
-                        format!(
-                            "Compaction checkpoint file missing: {}. \
-                             Cannot safely rewind past the compaction point.",
-                            checkpoint_path.display()
-                        ),
-                    ));
-                }
-                Err(e) => return Err(e),
-            };
-            match serde_json::from_slice::<CompactionCheckpointFile>(&bytes) {
-                Ok(file) => {
+            match std::fs::read(&checkpoint_path)
+                .ok()
+                .and_then(|bytes| serde_json::from_slice::<CompactionCheckpointFile>(&bytes).ok())
+            {
+                Some(file) => {
                     if self.original_user_info.is_none() {
                         self.original_user_info = file.original_user_info;
                     }
                 }
-                Err(e) => {
-                    tracing::error!(
-                        ?e,
+                None => {
+                    tracing::warn!(
                         path = %checkpoint_path.display(),
-                        "Compaction checkpoint file corrupt, cannot restore original user_info"
+                        compaction_at = info.prompt_index_at_compaction,
+                        target = self.target,
+                        "checkpoint unreadable; pre-compaction rewind keeps the current user_info"
                     );
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!(
-                            "Compaction checkpoint file corrupt: {}. \
-                             Cannot safely rewind past the compaction point.",
-                            checkpoint_path.display()
-                        ),
-                    ));
                 }
             }
             tracing::debug!(
                 target = self.target,
                 checkpoint_at = info.prompt_index_at_compaction,
-                "Replay: using raw updates (target is pre-compaction), original_user_info extracted"
+                "Replay: using raw updates (target is pre-compaction)"
             );
             Ok(ReplayAction::Continue)
         } else {
@@ -822,6 +799,31 @@ mod tests {
         }
         std::fs::write(&updates_path, content).unwrap();
         replay_to_prompt(&updates_path, session_dir, target).unwrap()
+    }
+
+    #[test]
+    fn test_replay_missing_later_checkpoint_pre_compaction_target_succeeds() {
+        let tmp = TempDir::new().unwrap();
+        let updates = vec![
+            make_user_update("s1", "P0"),
+            make_agent_update("s1", "R0"),
+            make_user_update("s1", "P1"),
+            make_agent_update("s1", "R1"),
+            make_checkpoint("ckpt1", 2, None),
+            make_user_update("s1", "P2"),
+            make_agent_update("s1", "R2"),
+        ];
+
+        let result = replay_updates(&updates, tmp.path(), 1);
+        let texts: Vec<_> = result
+            .conversation
+            .iter()
+            .map(ConversationItem::text_content)
+            .collect();
+        assert_eq!(vec!["P0", "R0"], texts);
+        assert_eq!(None, result.original_user_info);
+        assert_eq!(None, result.last_compaction_prompt_index);
+        assert_eq!(1, result.prompt_index_reached);
     }
 
     #[test]
