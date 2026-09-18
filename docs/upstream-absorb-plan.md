@@ -756,7 +756,43 @@ PolicyPin` 字段——**我们没有**（`enable_all_project_mcp_servers` 全�
 `managed_mcp.rs` 里、就在我已经读过的那句 `"MCP server blocked by managed settings
 policy"` 旁边 30 行——我引用了那句话，却没读它上下文。
 
-### 10.3 实施规格（下一轮，需完整预算）
+### 10.3 实施规格 — **已实施，原生⑳ `21416546`；本节步骤 1–4 全部作废，只做了 5–7 的瘦身版**
+
+> **实施结果（2026-09-17）：本规格是按 §10.2 的错误前提写的，§10.2bis 已更正前提，这里更正由它推出的步骤。**
+>
+> - **步骤 1–4 不需要做**。`McpSubject` / `McpBlockReason` / `mcp_blocked_reasons` /
+>   `policy_enable_error` 我们**都已经有**，只是名字不同：`McpDisabledReason::{Denylist,
+>   Allowlist}`（带 `source: PathBuf`，Display 文案与上游逐字相同）、`for_blocked_server`
+>   ≈ `mcp_blocked_reasons`、`is_server_allowed`/`is_server_denied` 已是 `pub`。
+>   实际落地只有 4 个薄函数（`find_configured_server`、`policy_refusal`、
+>   `policy_add_refusal`(+`_with`)、`policy_enable_refusal`(+`_with`)）+ 1 处可见性提升
+>   （`load_cli_plugin_registry` → `pub(crate)`）+ `nofy-pager` 两个调用点。
+> - **末尾「规模：约 6 个新符号…比 ⑰ 大，与 ⑩ 相当或略大」的估算作废**——它是 §10.2
+>   那次误判的直接产物。真实规模小于 ⑰。
+> - **步骤 2 的 `ProjectPin` 与 `Lockdown` 两个变体刻意未实现**（本规格自己的告诫「不要
+>   为了凑齐而猜语义」在此生效）：我们 managed-settings 模型里没有
+>   `enable_all_project_mcp_servers`（全树 0 命中 vs 上游 6）。
+> - **因此步骤 7 那条「非显然语义」对我们是空的**：新定义何时按 project 身份判，上游用它
+>   走 `ProjectPin` 那条腿；我们没有那条腿，`policy_add_refusal` 也就**不收 `scope` 参数**
+>   ——加一个用不上的参数只会暗示一个不存在的保证。
+> - **步骤 5 的 `ConfigSource::ConfigToml` 要 `continue` 那条告诫不适用**：那是「逐条目判
+>   裁决表」才有的重复判定问题；我们的 `find_configured_server` 是**按名字定位单个定义**，
+>   不做全表判定。
+> - **步骤 6 的 `mcp list` 显示 `blocked_reason` 未做**：我们 `mcp_doctor.rs:478` 已在渲染
+>   allowlist 并带策略文件路径，list 侧补注记属 UX，按指示 defer。
+> - **测试要点里「四变体各一个单测」与「`Lockdown` 要覆盖…」两条随之作废**；实际 4 个新测试
+>   全走可注入 seam，覆盖 deny 命中（带策略路径）、restricted allowlist 未授权、已授权放行、
+>   无策略不挡路、未知名字保持沉默。**「断言配置文件内容未变，不能只断言退出码」这条采纳了**，
+>   但因 `run_add`/`run_set_enabled` 以 `std::process::exit(1)` 结束、单测够不着，接线本身
+>   **无测试覆盖**，已如实登记在台账 ⑳ 行（上游是用 `pager-pty-harness` 的 PTY 级测试覆盖的，
+>   我们的 pty harness 里没有 MCP 用例）。
+>
+> **A6 本节 4 项至此全部收口**：1.0.18#1 + 1.0.19#3 → 原生⑳；1.0.14#9 → 原生㉑
+> （`inspect` 曾把 Claude bypass 锁报成 enforced，而配置层刻意不 clamp——诊断面在说谎，
+> 修法见台账 ㉑ 行）；1.0.18#8 → **粒度差非缺失**，其中唯一会产生错误陈述的一处已随 ㉑ 修掉，
+> 余下的 `PolicySourceAuthority`/`ManagedOnlyScope`/`YoloPolicyLock` 那层按来源标注权威度的
+> 展示粒度属 UX，defer。
+
 
 **分层，自下而上，每层可独立编译与测试：**
 
