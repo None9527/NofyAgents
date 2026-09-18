@@ -692,8 +692,16 @@ E 类七项全部定性完毕（4 跳过/跳云、1 已对齐、2 已做）。A5
   一项是 `inspect` 把 Claude bypass 锁报成 enforced（诊断面在说谎，已修），
   第四项（`inspect`/`mcp doctor` 显示托管策略详情）经核实是**粒度差异不是缺功能**，
   属 UX，按「UX 先跳过」defer。
-- **A5 余 4 项**：1.0.13#18（auth 已配时 MCP 启动更快，疑似已对齐）、1.0.15#5（首响应延迟，
-  部分对齐）、1.0.18#22 与 1.0.22#27（resume picker / 读 MCP 配置卡顿，可能属 A8 pager）。
+- ~~**A5 余 4 项**~~ — **已全部核实并关闭（2026-09-18，结论见 §12.0 表）**：
+  1.0.13#18 **已对齐**（我们的存量凭证快速路径已跳过 OAuth 发现）；
+  1.0.15#5 **真缺口**，原注「部分对齐」是错的——我们那两个 warm 机制**都不拨号**，
+  规格已写入 **§12**；1.0.18#22 与 1.0.22#27 **都是真缺口且都不属 A8 豁免**
+  （前者内核面是 `session/persistence.rs` 的批量解析 API，后者是把阻塞磁盘读移出
+  pager 的 async 执行器，两者都不是渲染改动）。
+  **A5 全节 9 项至此收口**：2 项真缺口已修（⑲/⑭）、1 项已对齐、1 项部分未复现、
+  2 项按内容匹配未定位、3 项本轮新定性（1 已对齐 + 2 真缺口待实施 + 1 真缺口已出规格）。
+- **A5 三个真缺口的实施顺序（按规模递增）**：1.0.22#27（4 处 `spawn_blocking`，最小）→
+  1.0.18#22（内核批量 API + pager 逐行谓词改批量，中）→ 1.0.15#5（§12 规格，最大）。
 - ~~**A7 余 3 项** + 1.0.19#4 需另找上游实现名~~ — **4 项已全部核实并关闭（㉒ `461fbc82`）**：
   1.0.19 idx4 是真缺口→原生㉒；1.0.19 idx10（headless `--worktree`）是我们**明确拒绝**的行为，
   登记 defer 且前置阻塞；1.0.22 idx8（interjection 精确文本）真缺口但属 UX，机制与规格已记；
@@ -1093,3 +1101,230 @@ remote_sync/mixpanel/otel/feedback/hub_auth 命中）。
 `crates/codegen/nofy-pager/docs/user-guide/11-custom-models.md`（⑰ 已在此加过
 requirements 层 pin 一节）新增 per-model mTLS 小节：证书文件名两种约定、
 必须 HTTPS、与 `api_base_url` 互斥的理由、轮转即生效（缓存键含内容）。
+
+
+## 12. sampler 传输预热可执行规格（2026-09-18，上游 1.0.15#5；已完整枚举，未实施）
+
+> **状态：规格已按实读枚举完毕，本轮未实施。** 本轮预算用于 ㉓ 的收尾、㉔ 的吸收与
+> ㉕ 的定性；A5 四项核实（下方 12.0）产出了三个真缺口，本项是其中最大的一个，
+> 故先交付规格。§11 的经验是**规格能把站点清单钉住**（㉓ 因此没有重演 §8.7 的漏闸口），
+> 但也**会低估传播点数量**（3 → 6），所以本节把「委托关系」一并写出。
+
+### 12.0 A5 余 4 项的核实结论（本规格的来源）
+
+| 台账编号 | 上游原文 | 结论 |
+|---|---|---|
+| 1.0.13#18 | Session startup with MCP servers is now much faster when auth is already configured | **已对齐**。我们 `nofy-mcp/src/servers.rs:1832-1848` 的存量凭证快速路径做的就是这件事：`initialize_from_store()` 成功 → 非交互模式下探一次 `get_access_token()` → 直接 `return HttpOauthPrep::ManagerReady(..)`，**不跑 `discover_metadata()`**。上游后来把 `HttpOauthPrep` 重构成 `HttpAuthDecision::ManagerReady { manager, observed }` 并加了 `OauthProbeOutcome`，那是**探测结果的可观测性细化**，不是本条特性 |
+| 1.0.15#5 | First reply latency is reduced by opening the model connection in the background when a session starts | **真缺口，本节规格**。台账原注「部分对齐」是**错的**：我们的 `warm_async_http_client()` 预热的是**进程级共享 client 的构建**（不碰任何端点），`chat_modes.warm_in_background()` 预热的是聊天模式，**两者都不拨号**。上游有 `xai-grok-sampler/src/prewarm.rs`(328 行) + `prewarm_tests.rs`(235 行) + `xai-grok-shell/src/agent/mvp_agent/sampler_prewarm.rs`(256 行)，我们全树 `prewarm` 只命中剪贴板预热（`prewarm_image_probe`/`clipboard_prewarm`，完全无关的子系统） |
+| 1.0.18#22 | Resume picker now labels local sessions with a single disk walk instead of per-row lookups | **真缺口，有内核面**。上游 `session/persistence.rs:535` 有批量 API `resolve_local_session_ids_any_cwd<S: AsRef<str>>(ids, ..)` → `resolve_local_session_ids_any_cwd_in_root`，**一次磁盘遍历解析一批 id**；我们只有逐个的 `resolve_local_session_any_cwd(id)`，而 pager 侧 `effects/helpers.rs:805` 正是在**逐行谓词**里调它（`&& resolve_local_session_any_cwd(&e.id)`），即 changelog 说的 per-row lookups。**不属 A8 豁免**：标签是 UX，但「一次遍历 vs 每行一次」是性能，且内核面（批量 API）在 `nofy-shell` |
+| 1.0.22#27 | Opening or resuming sessions no longer pauses the interface while reading MCP config files | **真缺口，最小**。上游 `pager/src/app/effects/mod.rs:67` 把 `load_mcp_servers` 包进 `tokio::task::spawn_blocking`；我们 **4 处全是同步直调**：`effects/mod.rs:92`、`:430`、`:480` 与 `event_loop.rs:2455`。`load_mcp_servers` 会读并解析全局配置 + 项目配置再合并，在 pager 的 async 执行器上同步做就是**卡住事件循环**。**不属 A8 豁免**：没有任何视觉变化，是把阻塞磁盘读移出执行器 |
+
+**建议实施顺序：1.0.22#27（最小）→ 1.0.18#22（中）→ 1.0.15#5（本节，最大）。**
+
+### 12.1 为什么这一项属于我们
+
+预热拨的是**模型自己的 `base_url`**，对 BYOK 就是用户自己的供应商端点。
+零云依赖：上游 `prewarm.rs` 全文无 login/billing/dashboard/remote_sync/mixpanel/otel-exporter/
+feedback/hub_auth 命中，唯一的遥测是 `tracing` span（我们已有同一套）。
+属 A5 性能（内核延迟），不属 UX。**且它正好落在 ㉓ 刚动过的 `shared_http` 上**，
+两轮的上下文是连续的。
+
+### 12.2 上游实现的完整形状（已逐行读过）
+
+**`xai-grok-sampler/src/prewarm.rs`（328 行）**
+
+- `prewarm_transport(base_url: &str) -> PrewarmReport`：模块 doc 原话——
+  「dial an origin **once per pool-idle window** through the shared client,
+  bounded by `PREWARM_TIMEOUT`, **carrying no credentials**.
+  Every non-warmed outcome **releases the origin's claim** so a later dial can retry.」
+- 常量：`PREWARM_TIMEOUT = 15s`、`DRAIN_CAP_BYTES = 64 KiB`、`MAX_TRACKED_ORIGINS = 32`。
+- `PrewarmOutcome`（`#[non_exhaustive]`，`strum` snake_case）九种：
+  `SharingDisabled` / `NoOrigin` / `ClientUnavailable` / `AlreadyClaimed` / `TrackerFull` /
+  `Warmed` / `Truncated` / `Failed` / `TimedOut`。
+- `PrewarmReport { outcome, duration_ms: i64, origin: Option<String> }`；
+  **`duration_ms` 是 `i64` 不是 `u64`**，上游注释原话「the OTel exporter allowlist keeps
+  i64 fields and drops u64」——我们若不走 OTel 导出可自行决定，但**保持 i64 更省事**。
+- `WARM_STATE: LazyLock<Mutex<HashMap<String, WarmState>>>`，`WarmState = InFlight | Warmed(Instant)`；
+  锁中毒用 `PoisonError::into_inner` 恢复（预热是尽力而为，不该因中毒而失效）。
+- `OriginClaim`（`#[must_use]`）+ `Drop`：`commit()` 才写 `Warmed(now)`，
+  **否则 Drop 时把 origin 从表里移除**——这是「每个非 warmed 结果都释放占位」的实现方式。
+- `claim_origin`：`should_dial` 判 `InFlight → false`、`Warmed(at) → now - at >= idle_window`、
+  `None → true`；表满 32 时先 `has_room_after_sweep`（按 idle_window 清掉过期的 `Warmed`，
+  `InFlight` 一律保留）再判。
+- `dial_and_drain`：**本模块最微妙的一段**，注释原话——
+  「h1 pools a connection only once its body reaches EOF; h2 pools at the handshake.」
+  所以它 `client.get(origin).send()` 后**必须把 body 抽干**才会真正入池；
+  抽到超过 64 KiB 就停，此时 `pools_at_handshake = response.version() >= HTTP_2`
+  决定结果是 `Pooled`（h2，握手即入池，截断无害）还是 `CappedUnpooled`（h1，**没入池，预热白做**）。
+  另注：「Redirects may be followed, but hyper pools the origin's connection before following,
+  so the dial still warms it.」
+- `endpoint_origin`：`Url::parse` → 要求 scheme 是 http/https 且有 host →
+  `url.origin().ascii_serialization()`。**注意它拨的是 origin（`https://host:port`）
+  而不是完整 base_url**，即一个不带路径的 GET。
+- `first_use` 子模块：`note_first_sampling_use(base_url)` 在**真正第一次采样**时打一个
+  `sampler.transport_prewarm_first_use` span，字段 `freshness` ∈
+  `warm_fresh`/`warm_stale`/`warm_pending`/`warm_absent`（按 `Warmed` 的年龄 vs idle_window 分类），
+  每 origin 只记一次（`FIRST_USE_NOTED: HashSet`，上限 32，满了任取一个逐出）。
+  注释原话解释了为什么只能这样测：「Warm freshness at first use, **not observed pool reuse**
+  — reqwest exposes no pool-hit signal.」
+
+**`shared_http.rs` 需要新增的两个助手**（我们没有）
+
+- `pub(crate) enum PooledClient { SharingDisabled, Unavailable(reqwest::Error), Ready(reqwest::Client) }`
+  与 `pooled_client()`：kill switch 打开时返回 `SharingDisabled`（**此时预热无意义**，
+  因为每个 `SamplingClient` 各建各的 client，没有共享池可暖）。
+- `pub(crate) fn pool_idle_timeout() -> Duration`：`OnceLock` 闩住
+  `GROK_POOL_IDLE_TIMEOUT_SECS`（我们对应 `NOFY_POOL_IDLE_TIMEOUT_SECS`），默认 90s。
+  **上游的 `configure_http2` 也改用了它**（`.pool_idle_timeout(pool_idle_timeout())`），
+  注释原话「read once so prewarm's re-warm window stays in step」——
+  **我们必须同样把 `configure_http2` 里那次 per-call 读取换成这个函数**，
+  否则「多久之后该重暖」与「池多久之后驱逐」会各读一次环境变量、可能不一致。
+  注意这会**同时影响 ㉓ 的 mTLS client**（它也调 `configure_http2`），方向是一致化，可接受。
+
+**`xai-grok-shell/src/agent/mvp_agent/sampler_prewarm.rs`（256 行，含 ~165 行测试）**
+
+- `MvpAgent::prewarm_final_model_base_url(session_id, provisional_base_url, origin_client)`：
+  取 `resident_handle(session_id).model_id` → `resolve_sampling_config_for_model(..).base_url`，
+  **只有当最终 base_url 与 spawn 时已拨过的不同才再拨一次**
+  （`prewarm_base_url_if_changed` = `(already != resolved).then(..)`）。
+  这是为了覆盖「spawn 时用的是临时模型，最终解析到另一个端点」的情形。
+- `spawn_sampler_transport_prewarm(base_url)` = `tokio::spawn(prewarm_and_record(..))`；
+  注释原话「**Detached by design**: the warm state is process-global, not session state,
+  and the dial is PREWARM_TIMEOUT-bounded.」——即**不持有句柄、不随会话取消**。
+- `PrewarmCancelGuard` + `Drop`：任务被取消时在 span 上补记 `outcome = "cancelled"` 与
+  `duration_ms`（否则 span 会留两个 Empty 字段）。
+- span 是 `parent: None` 的 **detached** `session.sampler_transport_prewarm`，
+  字段 `outcome`/`duration_ms`/`endpoint` 全部先 `Empty` 后 `record`。
+
+**四个调用点（`session_setup.rs`）**
+
+| 上游行 | 路径 | 调用 |
+|---|---|---|
+| :501 | 新建会话，`session_sampling` 解析完、`build_summary_client` 之前 | `spawn_sampler_transport_prewarm(&session_sampling.base_url)` |
+| :687 | 新建会话，最终模型解析后 | `self.prewarm_final_model_base_url(&session_id, &session_sampling.base_url, origin_client.clone())` |
+| :952 | 恢复会话，`persisted_base_url` 解析后 | `spawn_sampler_transport_prewarm(&persisted_base_url)` |
+| :1142 | 恢复会话，`load_is_current` 检查通过后 | `self.prewarm_final_model_base_url(&session_id, &persisted_base_url, origin_client.clone())` |
+
+**我们这侧的对应点已定位**（按机制而非行号，见 A7 的方法论更正）：
+`nofy-shell/src/agent/mvp_agent/session_setup.rs`（1478 行）
+- **:377** `self.resolve_sampling_config_for_model(..)` → **:393** `build_summary_client(&session_sampling)`
+  ＝上游 :501 的位置（新建路径）；:687 的对应点在同一函数内最终模型解析之后。
+- **:691** `let load_session_sampling = self.resolve_sampling_config_for_model(..)` →
+  **:695** `build_summary_client(&load_session_sampling)` ＝上游 :952 的位置（恢复路径）；
+  :1142 的对应点在 `load_is_current` 检查之后。
+
+**第五个调用点（`client.rs`）**：上游 `xai-grok-sampler/src/client.rs:695` 在 `post` 里调
+`crate::prewarm::note_first_sampling_use(&self.base_url)`。我们的对应位置需按机制定位
+（`SamplingClient::post` 的入口）。
+
+### 12.3 我们这侧的适配点 —— 含一个上游没有的设计问题
+
+**① `nofy_extra_ca` 的 API 不同（㉓ 已踩过）**：上游 `build_http_client()` 是
+`xai_grok_extra_ca::build_reqwest_client(configure_http2)`，我们是
+`nofy_extra_ca::with_extra_root_certificates(configure_http2(builder)).build()`。
+**`pooled_client()` 只是包一层我们既有的 `client()`，不碰这条**，故无影响。
+
+**② `strum` 依赖**：上游 `PrewarmOutcome`/`Freshness` 都用 `strum::AsRefStr` +
+`#[strum(serialize_all = "snake_case")]`。`nofy-sampler` **未依赖 strum**
+（它只是 workspace 依赖）。两个选择：加依赖，或手写 `as_str()` 穷尽 match。
+**建议手写**——与 ㉕ 对 `Newline` 的判断同理（为几个变体引入 derive 依赖不值，
+且穷尽 match 在加变体时是编译错）。**注意 `#[non_exhaustive]` 要保留**，
+它是这个枚举的公共 API 承诺。
+
+**③ 环境变量名**：`GROK_POOL_IDLE_TIMEOUT_SECS` → `NOFY_POOL_IDLE_TIMEOUT_SECS`
+（我们 `configure_http2` 里已经在读这个名字，所以是**复用**而非新增）。
+
+**④ ★ 上游没有的设计问题：mTLS 模型预热的是错的池。**
+`pooled_client()` 返回的是**共享的无凭据 client**。而 ㉓ 之后，配了 `mtls_cert_dir`
+的模型走的是 `shared_http::mtls::mtls_client(cert_dir, force_http1)` 缓存出来的
+**另一个 `reqwest::Client`，有自己独立的连接池**。后果有两层：
+- **预热无收益**：暖的是永远不会被这个模型使用的池。
+- **拨号会被拒**：预热「carrying no credentials」，即**不出示客户端证书**；
+  一个真正要求 mTLS 的网关会在 TLS 握手处拒绝。结果是 `Failed`，
+  并且在运营方的网关日志里留下一次认证失败——无害但是噪声，且遥测会误导。
+
+上游同样有这个盲点（它的 `pooled_client()` 不接受任何参数），
+但**我们的受众恰恰是自建网关/企业内网**（㉓ 的立项理由原话），所以这里比上游更需要处理。
+
+三个选项：
+- **(a) 跳过**：模型有 `mtls_cert_dir` 时不拨号，并**新增一个 `PrewarmOutcome::SkippedMtls`
+  变体**让它可见，而不是静默什么都不发生。约 5 行。
+- **(b) 走凭据 client 预热**：`prewarm_transport` 接受可选的 cert_dir，
+  用 `mtls_client(..)` 拨号。**收益最大**——mTLS 握手是双向认证，
+  正是最该被移出首响应路径的那一段。代价：签名变宽、`WARM_STATE` 的键要从
+  「origin」变成「(origin, identity)」（**同一 origin 上两个不同身份是两个独立的池**，
+  只按 origin 记会让 A 身份的预热挡住 B 身份）、以及 `mtls_client` 的失败要映射成
+  outcome 而不是 error。约 40 行 + 键类型改动 + 测试。
+- **(c) 什么都不做**（＝上游行为）：不可接受，因为它是**静默失效**。
+
+**建议：slice 1 做 (a)，但键类型现在就按 (b) 设计。**
+具体：`WARM_STATE` 的键从一开始就用
+`WarmKey { origin: String, identity: Option<[u8; 32]> }`（非 mTLS 时 `identity: None`，
+行为与上游逐字等价），这样 slice 2 实现 (b) 时**不需要改数据结构、不需要动上限与清扫逻辑**。
+理由：(a) 让常见情形（bearer token 端点，即绝大多数 BYOK 供应商）立刻拿到全部收益，
+且失败是**遥测可见**的而非静默的；(b) 的键类型改动会牵动 tracker 的上限/清扫与其测试，
+为一个较少见的配置扩大爆炸半径不值得——但**不现在定键类型就会把 slice 2 堵死**。
+
+**⑤ `note_first_sampling_use` 的落点**：上游在 `SamplingClient::post` 里调。
+我们 `post` 有 mTLS 三分支（㉓），**三条分支都要记**，否则 mTLS 模型的首次使用
+不会出现在 freshness 遥测里——而那正是 ④ 里最需要观测的情形。
+
+### 12.4 实施顺序（每步可独立编译）
+
+1. `nofy-sampler/src/shared_http.rs`：加 `PooledClient` + `pooled_client()` +
+   `pool_idle_timeout()`，并把 `configure_http2` 里那次 per-call 读取换成 `pool_idle_timeout()`。
+   **这一步单独可验**：既有 `shared_http` 测试（㉓ 后 18 个）必须全绿。
+2. `nofy-sampler/src/prewarm.rs` + `prewarm_tests.rs`；`lib.rs` 加 `mod prewarm;` 与
+   `pub use prewarm::{PrewarmOutcome, PrewarmReport, prewarm_transport};`。
+   键类型按 12.3④ 用 `WarmKey`。
+3. `nofy-sampler/src/client.rs`：`post` 的**三条分支**都调 `note_first_sampling_use`。
+4. `nofy-shell/src/agent/mvp_agent/sampler_prewarm.rs`（新文件）+ `mvp_agent/mod.rs` 加 `mod`。
+5. `session_setup.rs` 四个调用点（:377/:393 之间、新建路径最终解析后、
+   :691/:695 之间、恢复路径 `load_is_current` 之后）。
+6. mTLS 跳过分支（12.3④ 的 (a)）+ `SkippedMtls` 变体。
+
+### 12.5 测试与红绿靶子
+
+**上游 `prewarm_tests.rs` 只有 3 个测试**（`warm_state_machine`、`status_strings_are_stable`、
+`first_use_span_records_freshness_once_per_origin`），235 行——**与 `mtls_tests.rs` 同样的薄覆盖，
+不能照抄**（§11.6 的教训）。我们要补：
+
+- `dial_and_drain` 的 **h1/h2 分岔**：这是本模块最容易写错的地方。
+  需要一个能控制 `response.version()` 与 body 长度的测试替身，断言
+  「h2 + 超 64 KiB → `Pooled`（`Truncated` outcome）」与
+  「h1 + 超 64 KiB → `CappedUnpooled`（`Truncated` outcome）」**两者 outcome 相同但语义不同**，
+  以及「h1 + 抽干 → `Warmed`」。
+- `OriginClaim` 的 **Drop 释放**：`Failed`/`TimedOut`/`Truncated` 之后**同一个 origin 立刻可以再拨**；
+  `Warmed` 之后在 idle_window 内**不能再拨**（`AlreadyClaimed`），过了 window 可以。
+- **并发占位**：两个任务同时 claim 同一 origin，一个 `InFlight` 另一个必须 `AlreadyClaimed`。
+- `MAX_TRACKED_ORIGINS` 的**清扫优先于拒绝**：塞满 32 个**过期**的 `Warmed` 后仍能 claim
+  （`has_room_after_sweep` 生效）；塞满 32 个 `InFlight` 后返回 `TrackerFull`
+  （`InFlight` 一律保留，不被清扫）。
+- `endpoint_origin` 的拒绝面：非 http/https scheme、无 host、不可解析 → `NoOrigin`。
+  **注意 origin 序列化会丢掉路径**，要有一个测试钉住「拨的是 origin 不是 base_url」。
+- `note_first_sampling_use` 的**每 origin 只记一次**与 32 上限逐出。
+- **mTLS 跳过**（12.3④）：配了 `mtls_cert_dir` 的模型 → `SkippedMtls`，且**没有发生拨号**。
+- `prewarm_base_url_if_changed`：相同 base_url 不重复拨。
+- `PrewarmCancelGuard`：任务被 abort 时 span 上 `outcome == "cancelled"` 且 `duration_ms` 非 Empty。
+
+**红绿靶子（至少 6 项）**：
+① `OriginClaim::commit` 改成不写 `Warmed` → 重暖窗口测试红；
+② `Drop` 改成不移除 → 「失败后可立刻重试」测试红；
+③ `should_dial` 的 `Warmed` 臂去掉 idle_window 比较（永远 false）→ 过期后可重暖的测试红；
+④ `has_room_after_sweep` 改成不清扫 → 「塞满过期项仍能 claim」测试红；
+⑤ `dial_and_drain` 去掉抽干循环 → h1 的 `Warmed` 测试红（**这是最该有靶子的一处**：
+   不抽干则 h1 连接根本不入池，预热静默无效）；
+⑥ `pools_at_handshake` 恒判 true → h1 截断的 `CappedUnpooled` 测试红；
+⑦ mTLS 跳过分支去掉 → `SkippedMtls` 测试红。
+
+### 12.6 如实登记为难以覆盖的
+
+- **真实入池无法直接断言**：`reqwest` 不暴露 pool-hit 信号（上游注释已明说），
+  所以「预热真的让下一次请求复用了连接」只能靠 `note_first_sampling_use` 的
+  freshness 遥测**间接**观测，无法在单测里断言。可考虑用 `shared_http_wire`
+  集成二进制（它 owns 自己的进程环境）加一个真服务器用例，但那超出 slice 1。
+- **`PREWARM_TIMEOUT` 与 `pool_idle_timeout` 都是进程级闩住的**，
+  并行测试无法各自设定；需要像 ㉓ 那样把逻辑抽到可注入的私有实例上
+  （`claim_origin` 已经接受 `idle_window` 参数，这条路是通的）。
+- **detached spawn 不随会话取消**是上游的明确设计，但 `PrewarmCancelGuard` 的存在
+  说明它仍可能被 runtime 关闭时取消；这个交互难以在单测里稳定复现。
