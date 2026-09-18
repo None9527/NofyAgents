@@ -37,6 +37,46 @@ use agent::AgentId;
 use crate::unified_log as ulog;
 use nofy_shell::sampling::error::http_status_from_error;
 use nofy_shell::session::{ExtMethodResult, SessionInfoResponse};
+/// MCP discovery reads and parses several config sources (global and project,
+/// from `cwd` up to the repository root), so it runs on the blocking pool
+/// rather than the UI thread or a tokio worker.
+///
+/// Callers must be inside a spawned task, not in `execute` itself: `execute`
+/// runs on the event loop, and awaiting here is what keeps a slow config read
+/// from pausing the interface.
+///
+/// Session-open paths have no resolved per-vendor compat in scope; the default
+/// (all-on) preserves existing behavior.
+///
+/// `path` labels which open path is being measured. Ours, not upstream's:
+/// upstream logs one unattributed "mcp server discovery" line for all four
+/// callers, which tells you discovery was slow but not which entry point to
+/// look at. Our `LoadSession` arm already had an attributed line before this
+/// helper existed; collapsing four sites into one message would have dropped it.
+pub(crate) async fn discover_mcp_servers(
+    cwd: PathBuf,
+    path: &'static str,
+) -> Vec<acp::McpServer> {
+    let started = std::time::Instant::now();
+    let servers = tokio::task::spawn_blocking(move || {
+        nofy_shell::util::config::load_mcp_servers(
+            &cwd,
+            &nofy_tools::types::compat::CompatConfig::default(),
+        )
+    })
+    .await
+    .unwrap_or_else(|error| {
+        tracing::warn!(%error, path, "mcp server discovery task failed");
+        Vec::new()
+    });
+    tracing::info!(
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        server_count = servers.len(),
+        path,
+        "mcp server discovery"
+    );
+    servers
+}
 pub(crate) fn execute(
     effect: Effect,
     tasks: &mut JoinSet<TaskResult>,
@@ -88,12 +128,6 @@ pub(crate) fn execute(
             chat_kind,
         } => {
             let tx = acp_tx.clone();
-            let compat = nofy_tools::types::compat::CompatConfig::default();
-            let mcp_servers = nofy_shell::util::config::load_mcp_servers(
-                &session_cwd,
-                &compat,
-            );
-            let mcp_count = mcp_servers.len();
             #[allow(unused_mut)]
             let mut meta = session_flags.to_meta();
             let is_chat_path = chat_kind || session_flags.chat_mode;
@@ -124,6 +158,8 @@ pub(crate) fn execute(
                             };
                         }
                     }
+                    let mcp_servers = discover_mcp_servers(session_cwd.clone(), "create").await;
+                    let mcp_count = mcp_servers.len();
                     let _phase = startup::phase_scope(StartupPhase::SessionCreate);
                     ulog::info(
                         "session.create.start",
@@ -427,10 +463,8 @@ pub(crate) fn execute(
                             };
                         }
                     }
-                    let mcp_servers = nofy_shell::util::config::load_mcp_servers(
-                        &session_cwd,
-                        &nofy_tools::types::compat::CompatConfig::default(),
-                    );
+                    let mcp_servers =
+                        discover_mcp_servers(session_cwd.clone(), "create_worktree").await;
                     let _phase = startup::phase_scope(StartupPhase::SessionCreate);
                     let result = acp_send(
                             acp::NewSessionRequest::new(session_cwd.clone())
@@ -476,19 +510,10 @@ pub(crate) fn execute(
                     .insert("nofy/restore_code".into(), serde_json::Value::Bool(rc));
             }
             let cwd = session_cwd.unwrap_or_else(|| cwd.to_path_buf());
-            let mcp_started = std::time::Instant::now();
-            let mcp_servers = nofy_shell::util::config::load_mcp_servers(
-                &cwd,
-                &nofy_tools::types::compat::CompatConfig::default(),
-            );
-            tracing::info!(
-                elapsed_ms = mcp_started.elapsed().as_millis() as u64,
-                server_count = mcp_servers.len(),
-                "load_session: mcp server discovery"
-            );
             let acp_session_id = acp::SessionId::new(session_id);
             tasks
                 .spawn(async move {
+                    let mcp_servers = discover_mcp_servers(cwd.clone(), "load").await;
                     let _phase = startup::phase_scope(StartupPhase::SessionCreate);
                     ulog::info("session.load.start", Some(&acp_session_id.0), None);
                     let load_started = std::time::Instant::now();
@@ -497,7 +522,7 @@ pub(crate) fn execute(
                                     acp_session_id.clone(),
                                     cwd.clone(),
                                 )
-                                .mcp_servers(mcp_servers.clone())
+                                .mcp_servers(mcp_servers)
                                 .meta(meta.clone()),
                             &tx,
                         )

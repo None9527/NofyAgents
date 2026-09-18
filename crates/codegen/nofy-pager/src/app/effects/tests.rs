@@ -2456,3 +2456,43 @@ fn rewind_execute_params_sends_conversation_only_with_force() {
     assert_eq!(params["mode"], REWIND_MODE_WIRE);
     assert_eq!(params["mode"], "conversation_only");
 }
+/// `discover_mcp_servers` must produce exactly what the synchronous
+/// `load_mcp_servers` produces for the same cwd. Moving discovery onto the
+/// blocking pool changed *where* the work runs, not *what* it yields, and this
+/// is the only guard on that.
+///
+/// The fixture writes a real project-level server and asserts it is found
+/// *before* comparing, so the test cannot pass on two empty vectors — which is
+/// what it would do if the tempdir's `.nofy/config.toml` were not picked up.
+///
+/// Env-free by design: `load_mcp_servers` also reads the global
+/// `~/.nofy/config.toml`, so redirecting `NOFY_HOME` would be needed only to
+/// control that half, and the four existing `setup_nofy_home_in_tempdir` tests
+/// already race on it (they `set_var` with no `#[serial_test::serial]`).
+/// Comparing the two calls against each other cancels the global half out.
+#[tokio::test]
+async fn discover_mcp_servers_matches_the_synchronous_load() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let nofy = dir.path().join(".nofy");
+    std::fs::create_dir_all(&nofy).expect("mkdir .nofy");
+    std::fs::write(
+        nofy.join("config.toml"),
+        "[mcp_servers.discovery_probe]\ncommand = \"echo\"\nargs = [\"ok\"]\n",
+    )
+    .expect("write project config");
+
+    let compat = nofy_tools::types::compat::CompatConfig::default();
+    let expected = nofy_shell::util::config::load_mcp_servers(dir.path(), &compat);
+    assert!(
+        format!("{expected:?}").contains("discovery_probe"),
+        "fixture must actually produce a server, otherwise the comparison below \
+         passes on two empty vectors: {expected:?}",
+    );
+
+    let actual = super::discover_mcp_servers(dir.path().to_path_buf(), "test").await;
+    assert_eq!(
+        format!("{actual:?}"),
+        format!("{expected:?}"),
+        "the blocking-pool path must yield the identical server set",
+    );
+}
