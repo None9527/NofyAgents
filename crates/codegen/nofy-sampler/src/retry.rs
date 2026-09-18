@@ -344,6 +344,17 @@ pub fn format_sampling_error(err: &SamplingError, retry_count: Option<u32>) -> S
             )
         }
 
+        // Names both halves of the identity because the failure can be on
+        // either side: an endpoint that is not HTTPS-with-host, or a certificate
+        // directory that is missing/unreadable/unparseable. `msg` already
+        // carries the concrete path and the full error-source chain.
+        SamplingError::MtlsConfiguration(msg) => {
+            format!(
+                "{}Invalid mTLS configuration: {}. Please check the model endpoint and certificate directory.",
+                retry_prefix, msg
+            )
+        }
+
         SamplingError::Http(e) => {
             let mut details = Vec::new();
             if e.is_timeout() {
@@ -466,6 +477,11 @@ pub(crate) fn clone_error(err: &SamplingError) -> SamplingError {
             credential: *credential,
         },
         SamplingError::InvalidConfiguration(msg) => SamplingError::InvalidConfiguration(msg),
+        // Owns a String, so this is a real clone rather than the lossy
+        // re-encoding `Http` needs. Dropping the detail here would leave the
+        // retried attempt reporting only "invalid mTLS configuration" with no
+        // path — the same class of loss ⑨ fixed for `error_code`.
+        SamplingError::MtlsConfiguration(msg) => SamplingError::MtlsConfiguration(msg.clone()),
         SamplingError::Http(e) => {
             // reqwest::Error is not Clone; preserve the rendered message
             // as an EventStreamError (the closest retryable transport

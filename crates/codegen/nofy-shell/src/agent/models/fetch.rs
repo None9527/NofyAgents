@@ -12,6 +12,7 @@ pub(crate) fn build_prefetched_map(
         let key = m.id.clone().unwrap_or_else(|| m.model.clone());
         let info = config::ModelInfo::from_config(&m);
         let entry = ModelEntry {
+            mtls_cert_dir: None,
             info,
             api_key: None,
             env_key: None,

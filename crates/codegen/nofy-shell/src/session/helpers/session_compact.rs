@@ -81,6 +81,9 @@ fn classify_sampling_error(err: SamplingError) -> CompactFailure {
     let deterministic = match &err {
         SamplingError::Auth { .. }
         | SamplingError::InvalidConfiguration(_)
+        // Re-sending the same payload necessarily fails again: the certificate
+        // files and the model endpoint do not change between attempts.
+        | SamplingError::MtlsConfiguration(_)
         | SamplingError::Serialization(_)
         | SamplingError::IdleTimeout { .. } => true,
         SamplingError::Api {
@@ -1828,6 +1831,7 @@ mod reasoning_compaction_regression_tests {
     }
     fn test_config(base_url: &str) -> SamplerConfig {
         SamplerConfig {
+            mtls_cert_dir: None,
             api_key: Some("test-api-key".to_string()),
             base_url: base_url.to_string(),
             model: "test-model".to_string(),

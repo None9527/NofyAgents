@@ -1707,6 +1707,46 @@ impl Config {
         let (mut auth_providers, auth_provider_warnings) = parse_auth_providers(raw_config);
         let (model_providers, nested_models, mut model_provider_warnings) =
             parse_model_providers(raw_config);
+        // An mTLS client identity is a bearer credential: it authenticates this
+        // client to whoever answers at the configured origin. Both rules below
+        // that mention "one destination" exist so the certificate can never be
+        // presented somewhere the operator did not name — either because the
+        // origin is not HTTPS (plaintext, so the key is exposed) or because a
+        // second endpoint field would let auth-type routing pick a different
+        // host at request time. Rejected at parse time rather than at connect
+        // time so a misconfiguration fails before any credential is loaded.
+        for (model_id, model) in &config_models {
+            let Some(cert_dir) = model.mtls_cert_dir.as_deref() else {
+                continue;
+            };
+            if cert_dir.as_os_str().is_empty() {
+                return Err(format!("model.{model_id}.mtls_cert_dir must not be empty"));
+            }
+            let base_url = model.base_url.as_deref().ok_or_else(|| {
+                format!("model.{model_id}.mtls_cert_dir requires base_url in the same model table")
+            })?;
+            let parsed_url = url::Url::parse(base_url)
+                .map_err(|error| format!("model.{model_id}.base_url is invalid: {error}"))?;
+            if parsed_url.scheme() != "https" || parsed_url.host_str().is_none() {
+                return Err(format!(
+                    "model.{model_id}.base_url must be an HTTPS URL with a host when mtls_cert_dir is set"
+                ));
+            }
+            if model.api_base_url.is_some() {
+                return Err(format!(
+                    "model.{model_id} cannot set both mtls_cert_dir and api_base_url; an mTLS identity must have one destination"
+                ));
+            }
+            if let Some(provider_id) = model.model_provider.as_deref()
+                && model_providers
+                    .get(provider_id)
+                    .is_some_and(|provider| provider.api_base_url.is_some())
+            {
+                return Err(format!(
+                    "model.{model_id} cannot use model_providers.{provider_id}.api_base_url with mtls_cert_dir; an mTLS identity must have one destination"
+                ));
+            }
+        }
         for (id, provider) in &model_providers {
             if let Some(auth) = &provider.auth {
                 let synthetic = model_provider_auth_name(id);
@@ -3268,6 +3308,15 @@ pub struct ModalitiesConfig {
 pub struct ConfigModelOverride {
     pub model: Option<String>,
     pub base_url: Option<String>,
+    /// Directory containing this model's mTLS client certificate and private key
+    /// (`client.crt`/`client.key`, or the Kubernetes Secret names
+    /// `tls.crt`/`tls.key`).
+    ///
+    /// Requires an HTTPS `base_url` **in this same model table**, and rejects an
+    /// alternate `api_base_url` — see the validation in
+    /// [`Config::new_from_toml_cfg`]. An mTLS identity is a bearer credential, so
+    /// it must have exactly one destination.
+    pub mtls_cert_dir: Option<PathBuf>,
     pub name: Option<String>,
     pub description: Option<String>,
     pub api_key: Option<String>,
@@ -3342,6 +3391,12 @@ impl ConfigModelOverride {
             if self.api_base_url.is_none() {
                 entry.api_base_url = None;
             }
+        }
+        // `is_some` rather than an unconditional `clone_from`: an absent field
+        // means "inherit", consistent with every other scalar here, so a base
+        // entry's identity survives an override that does not mention it.
+        if self.mtls_cert_dir.is_some() {
+            entry.mtls_cert_dir.clone_from(&self.mtls_cert_dir);
         }
         if self.name.is_some() {
             entry.info.name.clone_from(&self.name);
@@ -3699,6 +3754,11 @@ impl ModelInfo {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelEntry {
     pub info: ModelInfo,
+    /// Local mTLS client identity directory, selected together with an explicit
+    /// model-level `base_url`. `None` for every bearer-token endpoint, which is
+    /// the whole built-in catalog.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtls_cert_dir: Option<PathBuf>,
     pub api_key: Option<String>,
     pub env_key: Option<EnvKeys>,
     /// Named credential helper (`[model.<id>] auth_provider = "<name>"`),
@@ -3716,6 +3776,9 @@ impl ModelEntry {
         info.base_url = endpoints.resolve_inference_base_url();
         Self {
             info,
+            // A local client identity is a user-override concept: the built-in
+            // catalog never carries one, same as `auth_provider`.
+            mtls_cert_dir: None,
             api_key: None,
             env_key: None,
             auth_provider: None,
@@ -3728,6 +3791,10 @@ impl ModelEntry {
     pub(crate) fn from_config_entry(entry: &ModelEntryConfig) -> Self {
         Self {
             info: ModelInfo::from_config(entry),
+            // `ModelEntryConfig` is the catalog shape and has no identity field;
+            // a `[model.<id>] mtls_cert_dir` override reaches the entry through
+            // `ConfigModelOverride::apply`, not through here.
+            mtls_cert_dir: None,
             api_key: entry.api_key.clone(),
             env_key: entry.env_key.clone(),
             auth_provider: None,
@@ -4313,6 +4380,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
         .or_else(|| endpoints.deployment_key.clone());
     if let Some(bearer) = xai_bearer {
         let entry = ModelEntry {
+            mtls_cert_dir: None,
             info: ModelInfo {
                 user_selectable: true,
                 id: None,
@@ -4459,6 +4527,13 @@ pub(crate) fn sampling_config_for_model(
     );
     let api_backend = info.api_backend.clone();
     SamplerConfig {
+        // Safe to pair with `credentials.base_url` below only because
+        // `new_from_toml_cfg` rejects `mtls_cert_dir` alongside any
+        // `api_base_url` (model-level or via `model_provider`). Without that
+        // rule, credential resolution could pick the api-key endpoint while the
+        // certificate was configured for the session endpoint, and the identity
+        // would be presented to a host the operator never named.
+        mtls_cert_dir: model.mtls_cert_dir.clone(),
         api_key: credentials.api_key,
         model: model_name,
         base_url: credentials.base_url,
@@ -5562,6 +5637,7 @@ reasoning_effort = "low"
         api_base_url: Option<&str>,
     ) -> ModelEntry {
         ModelEntry {
+            mtls_cert_dir: None,
             info: ModelInfo {
                 user_selectable: true,
                 id: None,
@@ -7418,6 +7494,171 @@ reasoning_effort = "low"
         );
         unsafe { std::env::remove_var("ENTERPRISE_AUTH_TOKEN") };
     }
+    /// Parse a `[model.<id>]` fragment through the real entry point so the
+    /// cross-field mTLS rules are exercised where they actually live.
+    fn parse_model_toml(body: &str) -> Result<Config, String> {
+        let raw: toml::Value = toml::from_str(body).expect("test TOML must parse");
+        Config::new_from_toml_cfg(&raw)
+    }
+
+    fn mtls_toml(extra: &str) -> String {
+        format!(
+            r#"
+            [model."mtls-model"]
+            base_url = "https://gateway.corp.example/v1"
+            mtls_cert_dir = "/run/model-identity"
+            {extra}
+            "#
+        )
+    }
+
+    #[test]
+    fn mtls_accepts_a_plain_https_model_table() {
+        let cfg = parse_model_toml(&mtls_toml("")).expect("a well-formed mTLS model must parse");
+        let entry = cfg
+            .config_models
+            .get("mtls-model")
+            .expect("the override must be recorded");
+        assert_eq!(
+            entry.mtls_cert_dir.as_deref(),
+            Some(std::path::Path::new("/run/model-identity"))
+        );
+    }
+
+    #[test]
+    fn mtls_rejects_an_empty_cert_dir() {
+        let err = parse_model_toml(
+            r#"
+            [model."m"]
+            base_url = "https://gateway.corp.example/v1"
+            mtls_cert_dir = ""
+            "#,
+        )
+        .unwrap_err();
+        assert!(err.contains("mtls_cert_dir must not be empty"), "{err}");
+    }
+
+    /// The identity is bound to an origin, so a model that names a certificate
+    /// but no destination has nowhere to present it.
+    #[test]
+    fn mtls_requires_base_url_in_the_same_model_table() {
+        let err = parse_model_toml(
+            r#"
+            [model."m"]
+            mtls_cert_dir = "/run/model-identity"
+            "#,
+        )
+        .unwrap_err();
+        assert!(
+            err.contains("requires base_url in the same model table"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn mtls_rejects_a_non_https_base_url() {
+        for base in ["http://gateway.corp.example/v1", "not a url"] {
+            let err = parse_model_toml(&format!(
+                r#"
+                [model."m"]
+                base_url = "{base}"
+                mtls_cert_dir = "/run/model-identity"
+                "#
+            ))
+            .unwrap_err();
+            assert!(
+                err.contains("base_url is invalid") || err.contains("must be an HTTPS URL"),
+                "{base} must be rejected: {err}"
+            );
+        }
+    }
+
+    /// A plaintext origin would expose the private key, and a host-less URL has
+    /// no origin to pin the identity to.
+    #[test]
+    fn mtls_rejects_a_model_level_api_base_url() {
+        let err = parse_model_toml(&mtls_toml(
+            r#"api_base_url = "https://other.corp.example/v1""#,
+        ))
+        .unwrap_err();
+        assert!(
+            err.contains("cannot set both mtls_cert_dir and api_base_url"),
+            "{err}"
+        );
+        assert!(
+            err.contains("one destination"),
+            "the reason must be stated, not just the rule: {err}"
+        );
+    }
+
+    #[test]
+    fn mtls_rejects_a_provider_level_api_base_url() {
+        let err = parse_model_toml(
+            r#"
+            [model_providers."gw"]
+            api_base_url = "https://other.corp.example/v1"
+
+            [model."m"]
+            base_url = "https://gateway.corp.example/v1"
+            mtls_cert_dir = "/run/model-identity"
+            model_provider = "gw"
+            "#,
+        )
+        .unwrap_err();
+        assert!(
+            err.contains("cannot use model_providers.gw.api_base_url"),
+            "must name the offending provider: {err}"
+        );
+    }
+
+    /// The ⑩ trap: `reconstruct_full_config`, not `sampling_config_for_model`,
+    /// is the main turn path, so a value that only reaches the latter shows up
+    /// in subagents and helpers while silently missing from real turns. This
+    /// asserts the shared builder carries it; the turn path reads the stored
+    /// config, which `spawn.rs` seeds from this same builder.
+    #[test]
+    fn mtls_cert_dir_reaches_the_sampler_config() {
+        let cfg = parse_model_toml(&mtls_toml("")).expect("must parse");
+        let models = resolve_model_list(&cfg, None);
+        let entry = models.get("mtls-model").expect("the model must resolve");
+        assert_eq!(
+            entry.mtls_cert_dir.as_deref(),
+            Some(std::path::Path::new("/run/model-identity")),
+            "the override must survive into the resolved catalog entry"
+        );
+        let credentials = resolve_credentials(entry, None);
+        let sampling = sampling_config_for_model(entry, credentials, None, None, None, None);
+        assert_eq!(
+            sampling.mtls_cert_dir.as_deref(),
+            Some(std::path::Path::new("/run/model-identity")),
+            "the identity must reach the sampler, or the client never presents it"
+        );
+        assert_eq!(sampling.base_url, "https://gateway.corp.example/v1");
+    }
+
+    /// A model without `mtls_cert_dir` must stay on the shared client: the
+    /// credentialed path pins redirects off and forces HTTPS, so applying it to
+    /// an ordinary endpoint would change behavior for everyone.
+    #[test]
+    fn a_model_without_mtls_carries_no_identity() {
+        let cfg = parse_model_toml(
+            r#"
+            [model."plain"]
+            base_url = "https://api.example.com/v1"
+            "#,
+        )
+        .expect("must parse");
+        let models = resolve_model_list(&cfg, None);
+        let entry = models.get("plain").expect("the model must resolve");
+        assert!(entry.mtls_cert_dir.is_none());
+        let credentials = resolve_credentials(entry, None);
+        let sampling = sampling_config_for_model(entry, credentials, None, None, None, None);
+        assert!(
+            sampling.mtls_cert_dir.is_none(),
+            "an ordinary endpoint must not be routed through the credentialed client"
+        );
+    }
+
     #[test]
     #[serial]
     fn e2e_config_toml_model_overrides_default() {
@@ -10139,6 +10380,7 @@ default = "grok-4.5"
         api_backend: ApiBackend,
     ) -> ModelEntry {
         ModelEntry {
+            mtls_cert_dir: None,
             info: ModelInfo {
                 user_selectable: true,
                 id: None,

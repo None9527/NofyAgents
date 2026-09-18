@@ -70,6 +70,7 @@ impl MockServer {
 
 fn test_config(base_url: String, model: &str) -> SamplerConfig {
     SamplerConfig {
+        mtls_cert_dir: None,
         api_key: Some("test-key".into()),
         base_url,
         model: model.into(),

@@ -683,6 +683,12 @@ mod tests {
         ConfigModelOverride {
             model: Some("m".into()),
             base_url: Some("https://example.com".into()),
+            // This fixture populates every field independently, so it sets
+            // `mtls_cert_dir` alongside `api_base_url` even though
+            // `Config::new_from_toml_cfg` rejects that combination. The
+            // cross-field rules are parse-time validation, not a struct
+            // invariant, and are covered by their own tests.
+            mtls_cert_dir: Some(std::path::PathBuf::from("/run/model-identity")),
             name: Some("Model M".into()),
             description: Some("desc".into()),
             api_key: Some("key".into()),

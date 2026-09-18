@@ -1793,6 +1793,7 @@ mod eligibility_gates {
 #[test]
 fn find_model_by_id_prefers_key_then_falls_back_to_slug() {
     let entry = |model: &str| ModelEntry {
+        mtls_cert_dir: None,
         info: config::ModelInfo {
             user_selectable: true,
             id: None,

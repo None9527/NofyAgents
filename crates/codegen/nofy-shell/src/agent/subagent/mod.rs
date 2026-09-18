@@ -787,6 +787,11 @@ async fn read_parent_sampling_config(
             let inherited_base_url = cfg.base_url.clone();
             let strip_guard = ctx.would_strip_fallback_key(creds.api_key.as_deref());
             let inherited = nofy_sampler::SamplerConfig {
+                // A subagent talks to the same endpoint as its parent, so it
+                // needs the same client identity; without this a child of an
+                // mTLS model would be rejected at the handshake while the
+                // parent worked fine.
+                mtls_cert_dir: cfg.mtls_cert_dir.clone(),
                 api_key: creds.api_key,
                 base_url: cfg.base_url,
                 model: cfg.model.clone(),

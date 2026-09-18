@@ -323,6 +323,7 @@ pub fn test_sampler_config(
     // Shell `Client` is `nofy_sampler::SamplingClient`, which takes a
     // `SamplerConfig` directly. Construct one inline here.
     SamplerConfig {
+        mtls_cert_dir: None,
         api_key: Some("test-api-key".to_string()),
         base_url: base_url.to_string(),
         model: "test-model".to_string(),

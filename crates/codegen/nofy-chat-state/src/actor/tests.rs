@@ -18,6 +18,7 @@ fn test_config() -> SamplingConfig {
 
 fn test_config_with_window(context_window: u64) -> SamplingConfig {
     SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://api.example.com".to_string(),
         model: "test-model".to_string(),
         max_completion_tokens: None,
@@ -1216,6 +1217,7 @@ async fn cache_prompt_text_appends_in_order() {
 async fn update_sampling_config_is_queryable() {
     let h = TestHarness::new();
     let new_config = SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://new.example.com".to_string(),
         model: "grok-3".to_string(),
         max_completion_tokens: Some(4096),
@@ -1603,6 +1605,7 @@ async fn build_request_with_tool_definitions() {
 #[tokio::test]
 async fn build_request_uses_sampling_config() {
     let config = SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://api.example.com".to_string(),
         model: "grok-3".to_string(),
         max_completion_tokens: Some(8192),
@@ -3746,6 +3749,7 @@ async fn sampling_config_survives_compaction_replacement() {
     use nofy_sampling_types::ApiBackend;
 
     let config = SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://api.example.com".to_string(),
         model: "nofy-build".to_string(),
         max_completion_tokens: None,
@@ -3831,6 +3835,7 @@ async fn sampling_config_survives_compaction_replacement() {
 #[tokio::test]
 async fn model_metadata_lost_after_compaction_then_recovered_on_next_turn() {
     let config = SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://api.example.com".to_string(),
         model: "nofy-build".to_string(),
         max_completion_tokens: None,
@@ -3921,6 +3926,7 @@ async fn context_window_downgrade_triggers_auto_compact() {
 
     // Initial config: 500k context, Responses backend (matches grok-4.5)
     let config = SamplingConfig {
+        mtls_cert_dir: None,
         base_url: "https://api.x.ai/v1".to_string(),
         model: "grok-4.5".to_string(),
         max_completion_tokens: None,

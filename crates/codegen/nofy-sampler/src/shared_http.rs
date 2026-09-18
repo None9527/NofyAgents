@@ -12,6 +12,15 @@
 //! fallback, kill switch) is pinned by the `shared_http_wire` and
 //! `shared_http_kill_switch` integration binaries, which own their process
 //! environment. Extra roots: `NOFY_EXTRA_CA_BUNDLE` via `nofy_extra_ca`.
+//!
+//! A model configured with `mtls_cert_dir` cannot use these shared clients — a
+//! client certificate is bound to the client, not the request — so [`mtls`]
+//! builds and caches one credentialed client per distinct identity, reusing the
+//! same [`configure_http2`] / [`configure_http1`] tuning.
+
+mod mtls;
+
+pub(crate) use mtls::mtls_client;
 
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -67,9 +76,15 @@ pub(crate) fn client_http1() -> Result<reqwest::Client, reqwest::Error> {
     shared(&SHARED_HTTP1, build_http_client_http1, sharing_disabled())
 }
 
-/// Build a `reqwest::Client` for sampling with HTTP/2 + connection pooling.
-/// Env knobs are read once, when the shared client is first built.
-fn build_http_client() -> Result<reqwest::Client, reqwest::Error> {
+/// Apply the shared HTTP/2 + connection-pooling knobs to a builder.
+///
+/// Extracted from [`build_http_client`] so the mTLS path
+/// (`shared_http::mtls`) configures the *same* timeouts, pool sizes and
+/// keepalive as the plain shared client. Without this the credentialed client
+/// would silently carry its own set of pool parameters, and a knob change here
+/// would not reach it. Env knobs are read per call, i.e. when a client is first
+/// built — unchanged from before the extraction.
+pub(crate) fn configure_http2(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
     let pool_max_idle: usize = std::env::var("NOFY_POOL_MAX_IDLE")
         .ok()
         .and_then(|v| v.parse().ok())
@@ -78,42 +93,49 @@ fn build_http_client() -> Result<reqwest::Client, reqwest::Error> {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(90);
-    let connect_timeout_secs: u64 = std::env::var("NOFY_CONNECT_TIMEOUT_SECS")
+    let connect_timeout_secs: u64 = connect_timeout_secs();
+
+    builder
+        .pool_max_idle_per_host(pool_max_idle)
+        .pool_idle_timeout(Duration::from_secs(pool_idle_timeout_secs))
+        .connect_timeout(Duration::from_secs(connect_timeout_secs))
+        .tcp_nodelay(true)
+        // HTTP/2 keep-alive: ping every 15s, timeout after 5s.
+        .http2_keep_alive_interval(Duration::from_secs(15))
+        .http2_keep_alive_timeout(Duration::from_secs(5))
+        .http2_keep_alive_while_idle(true)
+}
+
+/// Apply the shared HTTP/1.1-only, pool-less knobs to a builder.
+///
+/// Extracted from [`build_http_client_http1`] for the same reason as
+/// [`configure_http2`].
+pub(crate) fn configure_http1(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    builder
+        .pool_max_idle_per_host(0)
+        .pool_idle_timeout(Duration::from_secs(0))
+        .connect_timeout(Duration::from_secs(connect_timeout_secs()))
+        .tcp_nodelay(true)
+        .http1_only()
+}
+
+fn connect_timeout_secs() -> u64 {
+    std::env::var("NOFY_CONNECT_TIMEOUT_SECS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(10);
+        .unwrap_or(10)
+}
 
-    nofy_extra_ca::with_extra_root_certificates(
-        reqwest::Client::builder()
-            .pool_max_idle_per_host(pool_max_idle)
-            .pool_idle_timeout(Duration::from_secs(pool_idle_timeout_secs))
-            .connect_timeout(Duration::from_secs(connect_timeout_secs))
-            .tcp_nodelay(true)
-            // HTTP/2 keep-alive: ping every 15s, timeout after 5s.
-            .http2_keep_alive_interval(Duration::from_secs(15))
-            .http2_keep_alive_timeout(Duration::from_secs(5))
-            .http2_keep_alive_while_idle(true),
-    )
-    .build()
+/// Build a `reqwest::Client` for sampling with HTTP/2 + connection pooling.
+/// Env knobs are read once, when the shared client is first built.
+fn build_http_client() -> Result<reqwest::Client, reqwest::Error> {
+    nofy_extra_ca::with_extra_root_certificates(configure_http2(reqwest::Client::builder())).build()
 }
 
 /// Build a `reqwest::Client` constrained to HTTP/1.1 with pooling disabled.
 /// Used as a fallback after HTTP/2 transport failures.
 fn build_http_client_http1() -> Result<reqwest::Client, reqwest::Error> {
-    let connect_timeout_secs: u64 = std::env::var("NOFY_CONNECT_TIMEOUT_SECS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(10);
-
-    nofy_extra_ca::with_extra_root_certificates(
-        reqwest::Client::builder()
-            .pool_max_idle_per_host(0)
-            .pool_idle_timeout(Duration::from_secs(0))
-            .connect_timeout(Duration::from_secs(connect_timeout_secs))
-            .tcp_nodelay(true)
-            .http1_only(),
-    )
-    .build()
+    nofy_extra_ca::with_extra_root_certificates(configure_http1(reqwest::Client::builder())).build()
 }
 
 #[cfg(test)]

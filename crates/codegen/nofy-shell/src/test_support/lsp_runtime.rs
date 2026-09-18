@@ -23,6 +23,7 @@ pub(crate) fn ctx_with_toggle(toggle: HashMap<String, bool>) -> SubagentSpawnCon
         parent_max_turns: None,
         client_hooks: Default::default(),
         sampling_config: nofy_sampler::SamplerConfig {
+            mtls_cert_dir: None,
             api_key: None,
             base_url: String::new(),
             model: String::new(),

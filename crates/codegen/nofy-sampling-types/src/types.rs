@@ -978,6 +978,18 @@ impl ApiBackend {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct SamplingConfig {
     pub base_url: String,
+    /// Local directory holding this model's mTLS client identity
+    /// (`client.crt`/`client.key`, falling back to the Kubernetes Secret
+    /// convention `tls.crt`/`tls.key`). `None` for the overwhelmingly common
+    /// bearer-token endpoint.
+    ///
+    /// When set, `base_url` must be HTTPS with a host and no second destination
+    /// may be configured — an mTLS identity must have exactly one place it is
+    /// presented. That invariant is enforced where the model table is parsed
+    /// (`nofy_shell::agent::config`), not here, because this struct only sees
+    /// the already-resolved values.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtls_cert_dir: Option<std::path::PathBuf>,
     pub model: String,
     pub max_completion_tokens: Option<u32>,
     pub temperature: Option<f32>,

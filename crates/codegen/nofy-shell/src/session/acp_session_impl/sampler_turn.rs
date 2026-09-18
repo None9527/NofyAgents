@@ -344,6 +344,7 @@ impl SessionActor {
             .get_sampling_config()
             .await
             .unwrap_or_else(|| nofy_sampling_types::SamplingConfig {
+                mtls_cert_dir: None,
                 base_url: String::new(),
                 model: String::new(),
                 max_completion_tokens: None,
@@ -406,6 +407,13 @@ impl SessionActor {
             }
         }
         SamplingConfig {
+            // Carried from the stored `SamplingConfig`, not re-derived from the
+            // model catalog: this is the main turn path, and re-resolving here
+            // would let the identity silently vanish whenever the catalog and
+            // the stored config disagree (the shape of the ⑩ retry-policy bug,
+            // where this function rather than `sampling_config_for_model` was
+            // the path that actually ran).
+            mtls_cert_dir: cfg.mtls_cert_dir.clone(),
             api_key,
             base_url: cfg.base_url,
             model: cfg.model,

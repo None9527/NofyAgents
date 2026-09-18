@@ -67,6 +67,10 @@ pub(crate) fn map_sampling_err_to_acp(err: SamplingError) -> acp::Error {
     match err {
         SamplingError::Auth { message, .. } => acp::Error::auth_required().data(message),
         SamplingError::InvalidConfiguration(msg) => acp::Error::invalid_params().data(msg),
+        // A client-side identity/endpoint problem, not a server fault: the
+        // caller can fix it by editing config, so it must not surface as an
+        // internal error or the retry path.
+        SamplingError::MtlsConfiguration(msg) => acp::Error::invalid_params().data(msg),
         SamplingError::Http(e) => {
             acp::Error::internal_error().data(format!("http client init failed: {e}"))
         }

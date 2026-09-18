@@ -602,8 +602,16 @@ impl SamplingClient {
             }
         }
 
-        let http = if config.force_http1 {
+        if config.force_http1 {
             tracing::info!("Using HTTP/1.1 for sampling client (force_http1=true)");
+        }
+        // A credentialed model gets its own client: the identity is bound to the
+        // client, not the request, so it cannot ride the shared ones. The mTLS
+        // branch honors `force_http1` too, so the HTTP/1.1 transport fallback
+        // still applies to a credentialed model.
+        let http = if let Some(cert_dir) = config.mtls_cert_dir.as_deref() {
+            crate::shared_http::mtls_client(cert_dir, config.force_http1)?
+        } else if config.force_http1 {
             crate::shared_http::client_http1().map_err(SamplingError::Http)?
         } else {
             crate::shared_http::client().map_err(SamplingError::Http)?
@@ -2105,6 +2113,7 @@ mod tests {
 
     fn minimal_config() -> SamplerConfig {
         SamplerConfig {
+            mtls_cert_dir: None,
             api_key: Some("test-key".to_string()),
             base_url: "https://example.test".to_string(),
             model: "test-model".to_string(),

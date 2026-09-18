@@ -334,6 +334,7 @@ mod tests {
 
     fn test_sampling_config() -> SamplingConfig {
         SamplingConfig {
+            mtls_cert_dir: None,
             base_url: "https://api.example.com".to_string(),
             model: "test-model".to_string(),
             max_completion_tokens: None,

@@ -44,6 +44,10 @@ impl SessionActor {
         );
         self.chat_state_handle
             .update_sampling_config(nofy_sampling_types::SamplingConfig {
+                // A model switch replaces the whole stored config, so the new
+                // model's identity must be carried over explicitly — this is a
+                // fresh literal, not a `..current` spread.
+                mtls_cert_dir: sampling_config.mtls_cert_dir.clone(),
                 base_url: sampling_config.base_url.clone(),
                 model: sampling_config.model.clone(),
                 max_completion_tokens: sampling_config.max_completion_tokens,

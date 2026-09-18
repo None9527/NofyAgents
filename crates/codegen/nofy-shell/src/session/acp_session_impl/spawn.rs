@@ -505,6 +505,10 @@ pub(crate) async fn spawn_session_actor(
         );
     }
     let chat_state_sampling_config = nofy_sampling_types::SamplingConfig {
+        // Origin of the stored config that `reconstruct_full_config` later reads
+        // back on every turn: dropping the identity here would silence it for
+        // the whole session no matter what the model table says.
+        mtls_cert_dir: sampling_config.mtls_cert_dir.clone(),
         base_url: sampling_config.base_url.clone(),
         model: sampling_config.model.clone(),
         max_completion_tokens: sampling_config.max_completion_tokens,

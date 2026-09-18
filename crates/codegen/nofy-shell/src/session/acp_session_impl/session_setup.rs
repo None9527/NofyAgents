@@ -562,6 +562,10 @@ impl SessionActor {
         let updated_config = nofy_sampling_types::SamplingConfig {
             context_window: new_context_window,
             max_completion_tokens: new_max_completion_tokens,
+            // Everything else, `mtls_cert_dir` included, is inherited: naming a
+            // field here would override the spread, so a routine context-window
+            // or max-tokens update must not be able to drop the model's client
+            // identity.
             ..current_config
         };
         self.chat_state_handle

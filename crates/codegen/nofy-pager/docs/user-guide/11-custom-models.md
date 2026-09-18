@@ -168,6 +168,40 @@ Both fields also work on a shared `[model_providers.<id>]` block. A model that p
 
 ---
 
+### Client Certificate (mTLS)
+
+A gateway that authenticates clients by certificate — a corporate proxy, an in-cluster inference gateway, a Kubernetes-ingressed LiteLLM — needs a client identity rather than a header. Point a model at the directory holding it:
+
+```toml
+[model."corp-gateway"]
+model = "gpt-5"
+base_url = "https://gateway.corp.example/v1"
+mtls_cert_dir = "/run/model-identity"
+```
+
+The directory must contain a certificate and a private key, under either naming convention:
+
+| Files | Where this comes from |
+| --- | --- |
+| `client.crt` + `client.key` | the explicit convention |
+| `tls.crt` + `tls.key` | what a Kubernetes Secret projects by default |
+
+`client.*` wins if **either** half is present, so a certificate with a missing key reports the missing key instead of quietly falling back to an unrelated `tls.*` pair.
+
+Three rules are enforced when the config is parsed, before any credential is loaded:
+
+- `base_url` must be present **in the same `[model.<id>]` table**, must be HTTPS, and must have a host. A plaintext origin would expose the private key.
+- `api_base_url` may not be set on the same model.
+- The model may not use a `[model_providers.<id>]` that sets `api_base_url`.
+
+The last two exist because a client certificate is a bearer credential: it must have exactly one destination. If a second endpoint were allowed, auth-type routing could pick a different host at request time and present your identity somewhere you never named. For the same reason a credentialed client is pinned to its origin — HTTPS only, and redirects are not followed.
+
+The identity may be used alongside `api_key` or `env_key`. The certificate authenticates the *client*; the key authenticates the *caller*. A gateway can require both.
+
+Rotating the certificate takes effect on the next request with no restart: clients are cached by the hash of the certificate and key contents, not by the directory path, so new file contents simply produce a new client. Up to 16 identities are cached at once. Each certificate and key file must be 1 MiB or smaller.
+
+Subagents inherit the parent's identity, so a child of an mTLS model authenticates the same way. A model without `mtls_cert_dir` is unaffected: it keeps using the process-wide shared HTTP client.
+
 ## Overriding Built-in Models
 
 You can override specific fields of built-in models without redefining everything. Only specify the fields you want to change:

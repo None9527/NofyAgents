@@ -49,6 +49,17 @@ pub enum AuthScheme {
 pub struct SamplerConfig {
     pub api_key: Option<String>,
     pub base_url: String,
+    /// Directory holding this model's mTLS client identity, or `None` for a
+    /// bearer-token endpoint. When set, [`crate::client::SamplingClient`] builds
+    /// a credentialed client pinned to `base_url` (HTTPS only, no redirects)
+    /// instead of using the process-wide shared client — see
+    /// [`crate::shared_http::mtls_client`].
+    ///
+    /// An `api_key` may still be set alongside it: the certificate
+    /// authenticates the *client*, the key authenticates the *caller*, and a
+    /// gateway can require both.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtls_cert_dir: Option<std::path::PathBuf>,
     pub model: String,
     pub max_completion_tokens: Option<u32>,
     pub temperature: Option<f32>,
@@ -147,6 +158,7 @@ impl Default for SamplerConfig {
         Self {
             api_key: None,
             base_url: String::new(),
+            mtls_cert_dir: None,
             model: String::new(),
             max_completion_tokens: None,
             temperature: None,

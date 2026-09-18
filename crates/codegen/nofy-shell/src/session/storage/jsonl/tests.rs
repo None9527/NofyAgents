@@ -2182,6 +2182,7 @@ async fn retry_after_lost_ack_converges_memory_and_disk_to_authoritative_item() 
     let chat = nofy_chat_state::ChatStateActor::spawn(
         vec![],
         nofy_sampling_types::SamplingConfig {
+            mtls_cert_dir: None,
             base_url: String::new(),
             model: String::new(),
             max_completion_tokens: None,

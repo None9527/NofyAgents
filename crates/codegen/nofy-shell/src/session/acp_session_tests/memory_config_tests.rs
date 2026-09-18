@@ -98,6 +98,7 @@ async fn create_test_actor_with_memory(
     let chat_state_handle = nofy_chat_state::ChatStateActor::spawn(
         vec![],
         nofy_sampling_types::SamplingConfig {
+            mtls_cert_dir: None,
             base_url: "http://localhost".to_string(),
             model: "test".to_string(),
             max_completion_tokens: None,

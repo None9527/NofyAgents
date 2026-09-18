@@ -153,6 +153,20 @@ pub enum SamplingError {
     },
     #[error("invalid client configuration: {0}")]
     InvalidConfiguration(&'static str),
+    /// The model's mTLS endpoint or its local client identity cannot be used
+    /// safely: a missing/unreadable/oversized certificate or key, a PEM that
+    /// does not parse, or a client build that would not pin the identity to its
+    /// configured origin.
+    ///
+    /// Carries a rendered string rather than a `&'static str` because the useful
+    /// detail is dynamic — which file, and the full `source()` chain behind
+    /// rustls' typically uninformative top-level error.
+    ///
+    /// **Deterministic, never retryable**: the files and the config do not
+    /// change between attempts, so a retry only burns the backoff budget before
+    /// failing identically.
+    #[error("invalid mTLS client configuration: {0}")]
+    MtlsConfiguration(String),
     #[error("request error: {0}")]
     Http(reqwest::Error),
     #[error("{prefix}{0}", prefix = SERIALIZATION_DISPLAY_PREFIX)]
@@ -431,6 +445,7 @@ impl SamplingError {
             SamplingError::Api { .. }
             | SamplingError::Auth { .. }
             | SamplingError::InvalidConfiguration(_)
+            | SamplingError::MtlsConfiguration(_)
             | SamplingError::Http(_)
             | SamplingError::Serialization(_)
             | SamplingError::EventStreamError(_)
@@ -445,6 +460,10 @@ impl SamplingError {
         match self {
             SamplingError::Auth { .. } => false,
             SamplingError::InvalidConfiguration(_) => false,
+            // Deterministic: the certificate files and the model config do not
+            // change between attempts, so a retry fails identically after
+            // burning the backoff budget.
+            SamplingError::MtlsConfiguration(_) => false,
             SamplingError::Http(err) => is_retryable_reqwest(err),
             SamplingError::Serialization(_) => false,
             SamplingError::Api { status, .. } => is_retryable_api_status(*status),
@@ -515,6 +534,7 @@ impl SamplingError {
             // Explicit so a new variant must state its size classification.
             SamplingError::Auth { .. }
             | SamplingError::InvalidConfiguration(_)
+            | SamplingError::MtlsConfiguration(_)
             | SamplingError::Http(_)
             | SamplingError::Serialization(_)
             | SamplingError::EventStreamError(_)
@@ -541,6 +561,7 @@ impl SamplingError {
             // Explicit so a new variant must state its size classification.
             SamplingError::Auth { .. }
             | SamplingError::InvalidConfiguration(_)
+            | SamplingError::MtlsConfiguration(_)
             | SamplingError::Http(_)
             | SamplingError::Serialization(_)
             | SamplingError::EventStreamError(_)

@@ -35,6 +35,7 @@ fn detector_entry(
         include_reasoning: None,
     };
     crate::agent::config::ModelEntry {
+        mtls_cert_dir: None,
         info,
         api_key: None,
         env_key: None,
