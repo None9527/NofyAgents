@@ -1312,8 +1312,14 @@ impl SessionActor {
         let (discovered_agents_md, all_skills_for_compaction, _agent_edited_paths, state_context) =
             if use_short_prompt {
                 let empty_edited: std::collections::BTreeSet<String> = Default::default();
-                let ctx =
-                    CompactionStateContext::build(&conversation, CompactionInputs::default()).await;
+                let ctx = CompactionStateContext::build(
+                    &conversation,
+                    CompactionInputs {
+                        goal_objective: self.goal_objective_for_compaction(),
+                        ..Default::default()
+                    },
+                )
+                .await;
                 (Vec::<std::path::PathBuf>::new(), vec![], empty_edited, ctx)
             } else {
                 let agents_md: Vec<std::path::PathBuf> = self
@@ -1446,6 +1452,7 @@ impl SessionActor {
                             agent_edited_paths: edited_paths.clone(),
                             connected_mcp_servers,
                             todos,
+                            goal_objective: self.goal_objective_for_compaction(),
                             ..Default::default()
                         },
                     )
@@ -1701,9 +1708,15 @@ impl SessionActor {
             )
             .await
         };
-        let new_len = compacted_history.len();
         self.chat_state_handle
             .replace_conversation_for_compaction(compacted_history);
+        // A live goal keeps its continuation directive across the replacement:
+        // the compacted history does not carry it, and the next sample needs the
+        // current next step rather than create-style goal rules.
+        self.reseed_active_goal_after_compaction().await;
+        // Counted after the reseed so the journal reports the length the session
+        // actually continues with.
+        let new_len = self.chat_state_handle.get_conversation_len().await;
         // Runtime journal: compaction committed.
         self.runtime_journal.emit(
             nofy_session_journal::EventKind::Compacted,

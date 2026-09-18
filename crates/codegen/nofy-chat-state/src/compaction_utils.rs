@@ -567,6 +567,9 @@ pub struct CompactionInputs {
     pub agent_edited_paths: BTreeSet<String>,
     pub connected_mcp_servers: Vec<CompactionServerSummary>,
     pub todos: Vec<TodoSummary>,
+    /// When set, used as `last_user_query` so compact cannot revive a stale
+    /// pre-goal prompt. Callers pass the objective of a live (Active) goal.
+    pub goal_objective: Option<String>,
 }
 impl CompactionStateContext {
     /// Build the state context from current session state.
@@ -574,12 +577,19 @@ impl CompactionStateContext {
     /// Uses real-user-aware helpers so that synthetic user injections
     /// (system reminders, auto-continue prompts) do not corrupt the
     /// compaction boundary.
+    ///
+    /// `last_user_query` prefers `inputs.goal_objective` when it is set and
+    /// non-blank: a compaction that lands mid-goal must summarize toward the
+    /// goal, not toward the human prompt that happened to precede it.
     pub async fn build(conversation: &[ConversationItem], inputs: CompactionInputs) -> Self {
         Self {
             cwd_generation: inputs.cwd_generation,
             destination_project_instructions: inputs.destination_project_instructions,
             recent_messages: extract_messages_since_last_real_user(conversation),
-            last_user_query: extract_last_real_user_query(conversation),
+            last_user_query: inputs
+                .goal_objective
+                .filter(|objective| !objective.trim().is_empty())
+                .or_else(|| extract_last_real_user_query(conversation)),
             agent_edited_paths: inputs.agent_edited_paths.into_iter().collect(),
             running_tasks: inputs.running_tasks,
             running_subagents: inputs.running_subagents,
@@ -1671,6 +1681,50 @@ actual user question";
         assert_eq!(ctx.agent_edited_paths, vec!["src/main.rs".to_string()]);
         assert_eq!(ctx.running_tasks.len(), 1);
         assert_eq!(ctx.running_tasks[0].command, "cargo test");
+    }
+    #[tokio::test]
+    async fn build_prefers_goal_objective_over_stale_pre_goal_query() {
+        let conversation = vec![
+            ConversationItem::user("<user_query>\nplease review the PR\n</user_query>"),
+            ConversationItem::assistant("Starting the code review."),
+            ConversationItem::system_reminder(
+                "A goal has been set: ssh to device-001 and test the meter. Start now.",
+            ),
+        ];
+        let objective = "ssh to device-001 and test that the meter emits no aggregate data";
+        let ctx = CompactionStateContext::build(
+            &conversation,
+            CompactionInputs {
+                goal_objective: Some(objective.to_string()),
+                ..Default::default()
+            },
+        )
+        .await;
+        assert_eq!(
+            ctx.last_user_query.as_deref(),
+            Some(objective),
+            "a live goal must seed last_user_query, not the stale pre-goal human prompt"
+        );
+        let compacted = ctx.for_compaction();
+        assert_eq!(compacted.last_user_query, ctx.last_user_query);
+    }
+    #[tokio::test]
+    async fn build_ignores_blank_goal_objective() {
+        let conversation =
+            vec![ConversationItem::user("<user_query>\nplease review the PR\n</user_query>")];
+        let ctx = CompactionStateContext::build(
+            &conversation,
+            CompactionInputs {
+                goal_objective: Some("   ".to_string()),
+                ..Default::default()
+            },
+        )
+        .await;
+        assert_eq!(
+            ctx.last_user_query.as_deref(),
+            Some("please review the PR"),
+            "a blank objective must not displace the real human query"
+        );
     }
     #[tokio::test]
     async fn build_stores_running_subagents() {

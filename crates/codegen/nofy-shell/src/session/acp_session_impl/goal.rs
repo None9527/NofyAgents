@@ -1094,9 +1094,14 @@ impl SessionActor {
         true
     }
 
-    async fn prepare_goal_continuation(&self, current_tokens: i64) -> Option<GoalContinuationPlan> {
+    async fn prepare_goal_continuation(
+        &self,
+        current_tokens: i64,
+        purpose: GoalContinuationPurpose,
+    ) -> Option<GoalContinuationPlan> {
         let legacy = !self.goal_runs_on_workflow_engine();
-        if legacy {
+        let apply_turn_end = matches!(purpose, GoalContinuationPurpose::TurnEnd);
+        if apply_turn_end && legacy {
             self.drain_goal_updates(current_tokens, DrainPurpose::TurnEnd)
                 .await;
         }
@@ -1109,18 +1114,22 @@ impl SessionActor {
             return None;
         }
 
-        let stop_pattern = match self.assistant_text_signals_premature_stop().await {
-            Some(pattern) if self.has_pending_goal_todos().await => Some(pattern),
-            _ => None,
+        let stop_pattern = if apply_turn_end {
+            match self.assistant_text_signals_premature_stop().await {
+                Some(pattern) if self.has_pending_goal_todos().await => Some(pattern),
+                _ => None,
+            }
+        } else {
+            None
         };
 
         let (tokens_used, finished_marginal) = self.goal_tokens(current_tokens);
 
-        if self.enforce_goal_token_budget(current_tokens).await {
+        if apply_turn_end && self.enforce_goal_token_budget(current_tokens).await {
             return None;
         }
 
-        {
+        if apply_turn_end {
             let notify = self.goal_notify_sender();
             notify.emit_goal_updated(
                 &mut self.goal_tracker.lock(),
@@ -1150,7 +1159,9 @@ impl SessionActor {
             let mut tracker = self.goal_tracker.lock();
             tracker.account_elapsed();
             let o = tracker.snapshot_mut()?;
-            o.rounds_since_verify = o.rounds_since_verify.saturating_add(1);
+            if apply_turn_end {
+                o.rounds_since_verify = o.rounds_since_verify.saturating_add(1);
+            }
             let rounds_since_verify = o.rounds_since_verify;
             let refuted = o.consecutive_not_achieved >= 1;
             let elapsed = crate::session::goal_orchestrator::format_elapsed(o.elapsed_ms);
@@ -1354,7 +1365,10 @@ impl SessionActor {
             return GoalRoundDecision::EndTurn;
         }
         let current_tokens = self.chat_state_handle.get_total_tokens().await as i64;
-        let Some(mut plan) = self.prepare_goal_continuation(current_tokens).await else {
+        let Some(mut plan) = self
+            .prepare_goal_continuation(current_tokens, GoalContinuationPurpose::TurnEnd)
+            .await
+        else {
             return GoalRoundDecision::EndTurn;
         };
         plan.directive.push_str("\nEvaluator next step: ");
@@ -1375,9 +1389,48 @@ impl SessionActor {
             .push_user_message(ConversationItem::goal_summary(directive));
     }
 
+    /// Re-inject the continuation directive right after a compaction replaced the
+    /// history. The compacted history no longer carries the directive, so without
+    /// this the next sample would fall back to create-style goal rules instead of
+    /// the current next step. Turn-end bookkeeping is skipped — see
+    /// [`GoalContinuationPurpose`].
+    pub(crate) async fn reseed_active_goal_after_compaction(&self) {
+        let current_tokens = self.chat_state_handle.get_total_tokens().await as i64;
+        let Some(plan) = self
+            .prepare_goal_continuation(current_tokens, GoalContinuationPurpose::Compaction)
+            .await
+        else {
+            return;
+        };
+        self.inject_goal_continuation_message(plan.directive).await;
+    }
+
+    /// Objective of a live goal, used to seed the compaction state context.
+    ///
+    /// `None` when there is no goal or it is not `Active`: a paused, blocked or
+    /// budget-limited goal leaves the human prompt as `last_user_query`, because
+    /// the summary should describe what the user asked, not a goal the model is
+    /// currently not allowed to pursue.
+    pub(crate) fn goal_objective_for_compaction(&self) -> Option<String> {
+        let tracker = self.goal_tracker.lock();
+        let o = tracker.snapshot()?;
+        if o.status != crate::session::goal_tracker::GoalStatus::Active {
+            return None;
+        }
+        let objective = o.objective.trim();
+        if objective.is_empty() {
+            None
+        } else {
+            Some(objective.to_string())
+        }
+    }
+
     pub(super) async fn maybe_queue_goal_continuation(&self) {
         let current_tokens = self.chat_state_handle.get_total_tokens().await as i64;
-        let Some(plan) = self.prepare_goal_continuation(current_tokens).await else {
+        let Some(plan) = self
+            .prepare_goal_continuation(current_tokens, GoalContinuationPurpose::TurnEnd)
+            .await
+        else {
             return;
         };
         {
@@ -1949,7 +2002,10 @@ impl SessionActor {
     /// emitted here — once per continued round.
     pub(super) async fn run_goal_round_end_legacy(&self) -> GoalRoundDecision {
         let current_tokens = self.chat_state_handle.get_total_tokens().await as i64;
-        let Some(plan) = self.prepare_goal_continuation(current_tokens).await else {
+        let Some(plan) = self
+            .prepare_goal_continuation(current_tokens, GoalContinuationPurpose::TurnEnd)
+            .await
+        else {
             return GoalRoundDecision::EndTurn;
         };
         // A Continue directive is unconditionally injected — returning it

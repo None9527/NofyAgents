@@ -297,6 +297,17 @@ pub(super) const GOAL_CONTINUATION_DIRECTIVE_TEMPLATE: &str =
     include_str!("templates/goal_continuation_directive.md");
 pub(super) const GOAL_CONTINUATION_DIRECTIVE_TEMPLATE_LEGACY: &str =
     include_str!("templates/goal_continuation_directive_legacy.md");
+/// Why a continuation directive is being prepared.
+///
+/// `TurnEnd` runs the bookkeeping a finished turn owns: draining goal updates,
+/// scanning for a premature stop, enforcing the token budget, and counting a
+/// verify round. `Compaction` reseeds the directive only — a compaction is not a
+/// turn end, so running any of that would charge the goal a round it never took
+/// or stop it on a budget check that belongs to the next turn boundary.
+enum GoalContinuationPurpose {
+    TurnEnd,
+    Compaction,
+}
 /// Built continuation directive plus the optional premature-stop pattern that
 /// the caller emits when it actually continues. Produced by
 /// [`SessionActor::prepare_goal_continuation`].
@@ -2202,6 +2213,9 @@ mod managed_gateway_tool_tests {
 #[cfg(test)]
 #[path = "acp_session_tests/goal/goal_planner_e2e_tests.rs"]
 mod goal_planner_e2e_tests;
+#[cfg(test)]
+#[path = "acp_session_tests/goal/goal_compaction_reseed_tests.rs"]
+mod goal_compaction_reseed_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/interjection_tests.rs"]
 mod interjection_tests;
