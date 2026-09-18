@@ -8,9 +8,9 @@
 
 | 项 | 值 |
 |---|---|
-| 当前吸收前沿 | 上游 1.0.10(批1–批23,台账落点 77cd7eb;本地 0.2.159) |
-| 剩余版本 | 1.0.11(尾差,需对账)→ 1.0.24 |
-| 剩余上游提交 | 9684fa3c(08-27,无 changelog,仍标 1.0.10)、bc7f02ed(08-28,**1.0.11+1.0.12**)、bb7f39d5(08-31,1.0.12改+**1.0.13**)、72a61251(09-01,**1.0.14+1.0.15+1.0.16**)、75810042(09-08,**1.0.17–1.0.24 八版**)、37949780(09-09,无 changelog);批24 校正:原表偏移约一版,**对账单位是 changelog 条目而非提交**,批次边界跨提交边界 |
+| 当前吸收前沿 | 上游 1.0.10(批1–批23,台账落点 77cd7eb;本地 0.2.159)。**自 1.0.11 起改为原生实现路线**:批25 ①–㉕ 以 1.0.32@48271133 为参照逐条落地,不再按版本整体同步 |
+| 剩余版本 | 1.0.11(尾差,需对账)→ **1.0.35**(2026-09-18 更新:1.0.25–1.0.32 见 §8,**1.0.33–1.0.35 见 §13**) |
+| 剩余上游提交 | 9684fa3c(08-27,无 changelog,仍标 1.0.10)、bc7f02ed(08-28,**1.0.11+1.0.12**)、bb7f39d5(08-31,1.0.12改+**1.0.13**)、72a61251(09-01,**1.0.14+1.0.15+1.0.16**)、75810042(09-08,**1.0.17–1.0.24 八版**)、37949780(09-09,无 changelog)、**48271133(09-13,1.0.25–1.0.32 八版,1650 文件)**、**a28ee2b2(09-17,1.0.33+1.0.34+1.0.35,356 文件)**;批24 校正:原表偏移约一版,**对账单位是 changelog 条目而非提交**,批次边界跨提交边界 |
 | 原始 churn | 约 +38.7 万 / −33 万行(含上游内部重构虚高,实际移植面远小于此);批24 复测:净 diff(77cd7eb..upstream/main)= **+323,720/−225,805**(2969 文件),逐提交求和 = +358K/−290K——原值接近求和口径,净 diff 更低,「虚高」判断成立 |
 | blob 交集佐证 | HEAD∩上游 1.0.10 = 726 → ∩1.0.12 = 491(断崖即未吸收的 pager input 重构);批24 复测:HEAD∩77cd7eb=818、HEAD∩bc7f02ed=571(落差 247),绝对值因 HEAD 又走 336 提交且含 desktop/ 而偏高,**断崖定性成立** |
 | 上游 changelog | `crates/codegen/xai-grok-shell/changelogs/1.0.x.md`,缺口内每版都有,批前必读 |
@@ -145,8 +145,11 @@ xai-dirs(上游后续若依赖再取)、otel 降维(只取 W3C trace-context 传
 
 即：**约 29% 直接跳过（pager），约 5% 红线（telemetry），其余 ~66% 需逐项甄别。**
 
-⚠ 上游索引 `/Users/mac/nofy-upstream` 目前停在 `37949780`，**已落后于 `48271133`**。
-下次动手前需在该 worktree 里 `git checkout 48271133 && npx gitnexus analyze` 重建。
+⚠ 上游索引 `/Users/mac/nofy-upstream`：**2026-09-18 更正**——该 worktree 实际已 checkout 到
+`48271133`（§9 的快照就是在这个点重测的，本节早先写的「停在 37949780」已过期），
+但上游又前进到 **`a28ee2b2`**（1.0.35），故索引当时**落后一轮**。
+✅ **已处置（2026-09-18 16:31）**：worktree 已 detached 到 `a28ee2b2`，两个索引都已重建，
+`gitnexus status` 双侧均 ✅ up-to-date；数字与查询纪律见 **§14.0**。
 
 ### 8.2 方法必须改：旧方法的假阳性率已被实测
 
@@ -555,6 +558,15 @@ LATEST 的前瞻钉版，跳到 2025-11-25 是与 SDK 对齐。MCP 的版本协�
 
 上一轮的重测点是上游 `37949780`；本轮 `git fetch upstream` 后上游仍在 **`48271133`**
 （无新提交），上游 worktree 已 checkout 到该点，两个 gitnexus 索引都已重刷：
+
+> **2026-09-18 更新（索引已重建，下表数字属上一轮）**：上游此后又前进一个 squash 提交到
+> **`a28ee2b2`**（1.0.33–1.0.35，356 文件 +27,478/−6,217）。两个索引都已在新落点重刷：
+> **我们 `79002da` = 203,385 nodes / 430,338 edges / 9,359 clusters / 300 flows（141.5s，增量 changed=71 added=2）**；
+> **上游 `a28ee2b2` = 134,329 nodes / 327,031 edges / 7,544 clusters / 300 flows（265.4s，增量 changed=309 added=40 deleted=1）**。
+> 对照下表：我们 +191 nodes（批25 尾部提交），上游 +1,398 nodes / +3,692 edges / +82 clusters。
+> §9.1/§9.2 的结构性结论（crate 清单差异、体量差的方向）不受单个提交影响，仍可引用；
+> **§9.2 的具体行数仍是 `48271133` 那一轮的口径，引用时须标注**。
+> 本轮增量的摸底见台账「增量摸底(1.0.33–1.0.35@a28ee2b2)」，候选分层见 §13，**执行方案见 §14**。
 
 | 索引 | 位置 | commit | nodes | edges | clusters | flows | 耗时/退出码 |
 |---|---|---|---|---|---|---|---|
@@ -1328,3 +1340,248 @@ feedback/hub_auth 命中，唯一的遥测是 `tracing` span（我们已有同�
   （`claim_origin` 已经接受 `idle_window` 参数，这条路是通的）。
 - **detached spawn 不随会话取消**是上游的明确设计，但 `PrewarmCancelGuard` 的存在
   说明它仍可能被 runtime 关闭时取消；这个交互难以在单测里稳定复现。
++
+## 13. 1.0.33–1.0.35 增量（`a28ee2b2`）候选分层（2026-09-18 摸底）
+
+摸底数据、区域互斥分布、缺失明细与 changelog 23 条初判都在台账
+「增量摸底(1.0.33–1.0.35@a28ee2b2,2026-09-18)」专节；本节只回答**怎么吃**。
+规模一句话：`48271133..a28ee2b2` 一个 squash 提交，**356 文件 +27,478/−6,217**，
+其中 **44.1% 是 pager 家族（A8 整体跳过）**、7.6% 云/hub/clone/feedback 红线、5.1% 测试基建、
+2.0% telemetry、1.1% 仓库元数据，**真正要逐项甄别的内核面 143 文件（40.2%）**。
+命名归一后 **存在 226 / 缺失 124**（`crates/` 350 文件口径）。
+
+### 13.1 T0 — 已核实为真缺口、外科可落地、与已落地工作直接接续
+
+| 项 | 上游实体 | 为什么是 T0 |
+|---|---|---|
+| **C2 goal × 压缩交接** | `prepare_goal_continuation` 加 `GoalContinuationPurpose::{Compaction,TurnEnd}`、token 预算加 `apply_turn_end` 门、新 `reseed_active_goal_after_compaction` + `GOAL_CONTINUATION_SENTINEL`（+383 行新测试 `goal_compaction_reseed_tests.rs`） | 改的是我们**已有函数的签名与调用点**（我们 `goal.rs:1097` 是 `prepare_goal_continuation(current_tokens)` 单参定义，调用点在 `:1357` 与 `:1380`），与原生② 的 `reseed_tokens_after_shrink` 同域。上游把「压缩后重新播种 goal 的 token 基准」与「回合结束才 enforce 预算」分开——**正是②只做了 chat-state 侧、没做 goal 侧的那一半**。零云依赖、零新子系统 |
+| **C3① 构建期 dump 语法集** | 新 `nofy-markdown/build.rs`：`two_face::syntax::extra_newlines()` + Swift 语法 → `OUT_DIR/syntaxes.bin`（上游注释原话：运行时 `SyntaxSet::build` 拖住首次 Read 上色，GB-5513 PTY fold） | 我们 `syntax.rs:41` 正是运行时构建，**属 A5 性能且零新依赖**；顺带把 1.0.35#3 的 `Swift.sublime-syntax`（+417）带进来。与 §12 的 sampler 预热同属「首次使用前的准备」思路 |
+
+### 13.2 T1 — 内核韧性/正确性，形状差已核实、需读实现后动手
+
+- **C1 配置写入原子性/并发隔离**（本轮最大集群：12 文件 +4,369/−328）。三个**可分离**的想法：
+  ① `fs_atomic` 的符号链接感知发布（我们 43 行 vs 上游 1,284 行，`resolve_atomic_destination`/
+  `LeafSymlink`/`SYMLINK_FOLLOW_LIMIT` 全树零命中）；② `ConfigWriteGuard` + `run_blocking` 的**取消安全**
+  （被取消的 await 不能在 async frame 里放锁，`SAVE_LOCK` 要移进阻塞任务；我们已有 `SAVE_LOCK` +
+  `save_config_locked`，但 `acquire_init_lock` 只用在 `extensions/marketplace.rs`，配置保存路径没上 flock）；
+  ③ watcher 对 `$NOFY_HOME/config.toml` **外链 referent** 的归类与 A→B retarget 跟随。
+  这正是 §8.3 T1 里「1.0.25 启动设置/模型目录在并发启动间被共享或互相覆盖」与
+  「1.0.29 同 `GROK_HOME` 并发 `agent stdio` 启动即崩」两条的上游落地面。
+  ⚠ **前置冲突**：与在飞的配置 TOML→JSON 迁移（`9383df3a`）同在配置写入路径，**先定次序再动手**。
+- **C6 `folder_trust` 的 `GrantResolution::resolution()`/`dismisses_gate()`**：授权结果分类 + 是否解除闸口，
+  与 ⑰⑳ 立下的闸口语义直接相关（我们零命中）。同集群的 `fs_notify` 事件帧 root 限制/分批要单独核——
+  我们的 `confine_to_root` 在 `handle.rs:1904`（API 层），上游这轮加在**事件帧**层，不是同一层。
+- **1.0.33#7 + #9（/rewind 与 30 天清扫）**：压缩检查点的保留与清扫策略，与原生② 同域；
+  两条同源（清扫掉了 rewind 需要的检查点），应一起核实、一起改。
+- **1.0.33#4（父会话关闭时后台子代理正确显示 cancelled）**：`spawn.rs` +49/−67、`session_setup.rs` +117、
+  新 `isolated_spawn_e2e.rs` +284；与 ㉒（resume 告知在跑的 loops/subagents）同域。
+- **1.0.33#6 + #2（MCP 取消/超时通知 server、结果带 structuredContent）**：协议正确性，架构无关。
+  #2 需先确认我们 vendored rmcp 是否暴露 structuredContent——⑬ 已有「钉版差异需先升 rmcp」的教训。
+- **1.0.33#10（在跑的计划任务/monitor/workflow 期间不出 auto recap）**：按 §9.1 纪律
+  **先问我们自己的 daemon/scheduler/orchestra 是否已用另一种形状解决**，再决定移植/原生/登记分歧。
+- **1.0.33#8（skill 文件也受同一 token 上限）**：想法可取，但我们 read_file 的截断层不同源
+  （走 `extract_file_content_lines` + `max_delta_bytes`，全树无 `READ_FILE_MAX_TOKENS`），
+  属**原生实现**而非移植，别照搬上游的 `max_output_bytes` 形状。
+
+### 13.3 T2 — 需先判定红线/钉版/结构，或需用户拍板
+
+- **C3② 高亮后端 fancy→onig**（`syntect` `default-fancy`→`default-onig`、`two-face` `syntect-fancy`→`syntect-onig`）：
+  内存与速度收益是上游 1.0.35#4 的主体，代价是引入 **oniguruma 原生 C 依赖**（构建/体积/交叉编译）。
+  **需用户拍板**；C3① 可以先单独做，两者在上游是同一个提交里但技术上可分离。
+- **C5 的 1.0.35#1（headless MCP 状态与 connecting 提示对齐真实握手）**：缠批15 托管连接器分歧
+  （`mcp_connecting_reminder_tests.rs` 我们缺失，上游本轮又 +327）；`util/config/mcp.rs` +469/−163 需逐段读。
+- **C4 的 `tool-types` 抽包**（新 `glob.rs`/`grep.rs`/`read.rs`/`web_search.rs`）：结构搬迁，
+  其中 `web_search` 是红线（网页搜索已剔除）；只在 C4 的想法落地时顺带评估，不单独立项。
+- **Memory v2 整层**（6 个 `nofy-memory/src/v2*.rs` + shell 6 个 memory 文件〔5 实现 + 1 测试〕，本轮 +2,417/−385，
+  含新 `v2_carryover.rs` +529/+439、新 `memory_control.rs` +650）：**「缺失」不等于「该移植」**。
+  我们同域是 `nofy-memorycore` + v1 `memory_dream.rs`（⑲ 刚动过，本轮上游也改了它 +40/−21 与
+  `v2_memory_dream.rs` +141/−103）。按 §9.1 纪律先回答「memorycore 是否已用另一种形状解决
+  carryover/maintenance/control」，再决定立项、只取想法、还是登记分歧。**这是本轮最大的未决项**，
+  形状与 `message-delivery-core` 那次撤销定性高度相似（当时正是靠「零命中」误判过一次）。
+- **`permission/managed_policy/tests.rs` +696/−1,006（实现未动，净删 310 行）**：先判性质——
+  「放宽脆弱文本断言」按批16/17/20 方针**不跟**，「改成结构对比」按批23 方针**跟**。
+- **`ptyctl/src/term.rs` +130、`ratatui-inline` `terminal.rs` +199/`tests.rs` +375、`shared/stderr.rs` +20/−3**：
+  三个文件我们都有（存在），需按「是否只影响渲染」判 A8 边界，别默认归 UX。
+
+### 13.4 跳过（红线 / 已物理剔除 / A8）
+
+pager 家族 157 文件（A8，用户指示）、telemetry 7、shell `feedback*` 6 + `prod/mc` `feedback_types.rs`、
+`computer-hub-*` 3 + `tool-protocol` 的 BotRelay 生成物（swift/kotlin，批23 已定不移植）、
+`fast-worktree` grove/nfs 6 + `e2e_grove_worktree.rs`、`tool-types/web_search.rs`、
+1.0.33#15（Windows `grok clone`：无 clone 表面且不发 Windows 构建）、1.0.33#5/#11/#12/#14（dock/minimal/footer UX）、
+1.0.34#1（主题色渲染）、1.0.35#5/#6（minimal 复制粘贴、`/memory` 模态 UX）、
+1.0.35#2（疑 workspace-daemon 云面，**需确认后正式登记**，别默认跳过）。
+> `tool-protocol` 的 `frames.rs`/`lib.rs` 被上面的路径关键词一起算进了云面（27 个里的 2 个），
+> 它们是协议管线不是 BotRelay 生成物，**归云面这一步是关键词判的，需单独看**。
+
+### 13.5 一条不在任何 changelog 里、但建议吸收的
+
+主提示词模板 `templates/prompt.md` 新增：「Never fabricate a person’s name or infer it from a username,
+handle, email address, or initials…」——架构无关、纯正确性，是「取想法原生实现」的典型（同 ㉔ 那类
+非 changelog 项，只能靠逐文件比对看见）。同轮上游**删掉**了整个 `<tool_calling>` 段与
+「These are the only memory locations…」一句（我们 `prompt.md:18–20` 仍有该段）：这是**行为指导的减法**，
+**不跟**，除非我们独立判断该段已无价值。⚠ 改模板后必须重跑
+`crates/codegen/nofy-agent/scripts/encrypt_templates.py`（台账既有约束）。
+
+### 13.6 节奏
+
+T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；C3① 加一个 `build.rs`），
+可以合成一批先落地，顺带把 1.0.33–1.0.35 的台账**初判升级成核实结论**（按 §8.2 的新方法：
+按内容匹配、双索引对账、核实结论一律回写）。**C1 与 Memory v2 各自需要一次单独决策**
+（C1 撞在飞的配置迁移，Memory v2 撞 §9.1 纪律），不要塞进同一批。
+动手前必须先做台账「前置动作」三条（重建上游 worktree/索引到 `a28ee2b2`、确认 `crates/` 干净、定 C1 次序）。
+
+## 14. 1.0.33–1.0.35 吸收执行方案（2026-09-18，索引重建后）
+
+### 14.0 索引状态（本轮已重建，双索引对账法可用）
+
+| 索引 | 位置 | commit | nodes | edges | clusters | flows | 耗时/退出码 |
+|---|---|---|---|---|---|---|---|
+| 我们 | `/Users/mac/nofy-build` | `79002da` | 203,385 | 430,338 | 9,359 | 300 | 141.5s / 0（增量 changed=71 added=2） |
+| 上游 | `/Users/mac/nofy-upstream` | `a28ee2b2` | 134,329 | 327,031 | 7,544 | 300 | 265.4s / 0（增量 changed=309 added=40 deleted=1） |
+
+两边都打印了 "Repository indexed successfully"，`gitnexus status` 均 ✅ up-to-date；
+日志 `/tmp/gn_up.log`、`/tmp/gn_build.log`（命令形式仍守台账纪律：重定向到文件 + `echo *_EXIT=$?`，管道里不放 tail）。
+
+- ⚠ 两个索引**仍注册在同一个名字 `nofy-build` 下**（名字取自 git remote，worktree 共享），
+  故每次 CLI 调用都必须传 `-r <绝对路径>`（§9 的既有结论，本轮全程照做）。
+- ⚠ **调用图又两次被实测为下界**：`impact(prepare_goal_continuation)` 与 `impact(cleanup_stale_sessions)`
+  （消歧到 `session/persistence.rs` 那个 uid）都报 `impactedCount: 0 / risk LOW`，而 grep 实测前者有
+  `goal.rs:1357`、`:1380` 两个调用点。**空 ≠ 不存在，一律以 grep 枚举为准。**
+- ⚠ 本会话**没有 GitNexus 的 MCP 工具**，全部查询走 CLI（`query`/`context`/`impact`/`detect-changes`）。
+  `detect-changes` 可用，但 `nofy-sandbox`/`nofy-mcp` 仍是索引盲区（⑫⑬ 已记），其 "No changes" 不采信。
+- 一次成功的定位示例（14.2 靠它才找到实现）：`gitnexus query 'compaction checkpoint retention cleanup sweep' -r /Users/mac/nofy-upstream`
+  直接返回 `persistence_cleanup_stale_sessions_tests.rs` 的两个靶子——**关键词扫 diff 失败时，索引 query 是第二条腿**。
+
+### 14.1 批26（T0，两项小手术，可合一批）
+
+**A. goal × 压缩交接（C2）— 已核实真缺口，落点精确到行**
+
+- 上游形状（已逐行读）：`goal.rs:1169–1178` 的 `reseed_active_goal_after_compaction`（仅 10 行）=
+  `get_total_tokens()` → `prepare_goal_continuation(tokens, GoalContinuationPurpose::Compaction)` →
+  `inject_goal_continuation_message(plan.directive)`；**生产调用点只有一个：`session/compaction.rs:1912`**
+  （另 3 个调用者是本轮新增的测试）。purpose 参数带来的行为差是：token 预算强制被 `apply_turn_end` 门控，
+  **Compaction 用途不触发「预算到了就停 goal」**。
+- 我们这侧（已核实）：`goal.rs:1097` 是单参 `prepare_goal_continuation(current_tokens)`，调用点 `:1357`
+  （goal round 决策）与 `:1380`（`maybe_queue_goal_continuation`）；`enforce_goal_token_budget` 另有
+  `goal.rs:1302` 与 `turn.rs:1494` 两处；**`goal.rs` 全文零 "compact"**，即压缩路径完全不通知 goal。
+  可复用的件已在：`prune_prior_goal_continuation_directives`(:1052)、`inject_goal_continuation_message`(:1372)。
+  ⚠ 我们已有的 `DrainPurpose::{TurnEnd,MidTurn}`（`types.rs:215`）是**另一条轴**（drain goal updates 的时机），
+  别与新的 `GoalContinuationPurpose` 混用，也别误当成已实现。
+- 落点：`compaction.rs` 的 `replace_conversation_for_compaction`(:1706) 之后（对应上游 `:1912`）。
+- 做法（原生）：加 purpose 参数 + `apply_turn_end` 门 + reseed 方法 + 一个调用点。上游 sentinel 语义
+  （"Do not restart this goal or revive a prior unrelated task"）值得保留，但要与我们
+  `is_goal_continuation_directive`(:1055) 的识别方式对齐——上游用 `SyntheticReason::GoalSummary` +
+  `GOAL_CONTINUATION_SENTINEL` 双条件，需核我们是否同形。
+- 验证：`cargo check -p nofy-shell --all-targets`；nofy-shell 全量对基线（5,245 passed / 2 macOS 伪失败）；
+  照上游三个靶子改写测试（`post_compact_history_keeps_objective_and_goal_summary_continuation`、
+  `paused_goal_does_not_override_later_human_query`、`compact_reseed_skips_turn_end_drain_and_round_count`）；
+  **红绿双验**：去掉 reseed 调用 → 靶子 1 必须红；去掉 `apply_turn_end` 门 → 靶子 3 必须红。
+
+**B. 语法集构建期 dump + 跨主题共享（C3①）— 已核实，且我们的收益大于上游**
+
+- 上游形状：新 `build.rs`（`extra_newlines()` + Swift 补丁语法 → `dump_to_uncompressed_file(OUT_DIR/syntaxes.bin)`，
+  注释原话：运行时 `SyntaxSet::build` 拖住首次 Read 上色，GB-5513 PTY fold）；`syntax.rs` 改为 `syntax_set()` =
+  `OnceLock<SyntaxSet>` + `from_uncompressed_data(include_bytes!(concat!(env!("OUT_DIR"), "/syntaxes.bin")))`；
+  Swift 走 `is_swift_token`/`patched_swift`（「最后一个 `.swift` 胜出」，补丁语法追加在 two-face 之后）。
+- 我们这侧（已核实）：`nofy-markdown/src/syntax.rs:41` 运行时 `two_face::syntax::extra_newlines()`；
+  **`nofy-pager-render/src/syntax.rs:152/154/156` 为三个主题各建一个 `Syntect::new` 单例**
+  （nofy-night / tokyo-night / nofy-day）→ 最坏情况**三份 250+ 语言语法集**；另有 `open_code_highlighter.rs`、
+  `benches/bench.rs`、`bin/playground_common.rs` 用同一构造。
+- ⚠ **上游没解决、我们要顺手解决的一点**：syntect 5.3.0 的 `SyntaxReference` 是 `#[derive(Clone)]` 且含
+  `serialized_lazy_contexts: Vec<u8>`（`syntax_set.rs:51–63`），所以上游那句 `SYNTAX_SET.get_or_init(load_syntax_set).clone()`
+  **是深拷贝序列化字节**，每个 `Syntect` 一份；我们的三主题单例照抄上游仍是 3 份。**原生做法：
+  `OnceLock<Arc<SyntaxSet>>` + 字段改 `Arc<SyntaxSet>`**（调用点都写 `&syn.syntax_set`，`Arc` 自动 deref，改动面小），
+  一次拿到「不再运行时构建」+「跨主题只留一份」。
+- 代价：`include_bytes!` 把 dump 嵌进二进制，**体积增量需实测并记进台账**；Swift 资产(+417)与 `patched_swift`
+  是 1.0.35#3 的实体，随本项进来。**fancy→onig（C3②）不在本批**，见 14.4。
+- 验证：`cargo build -p nofy-markdown` 确认 build.rs 生效 + 记录二进制体积前后差；markdown/pager-render 测试；
+  **性能靶子**：首次高亮耗时与三主题并存时的 RSS（用 `benches/bench.rs` 或临时二进制量化后写回台账）；
+ `impact(Syntect)` 需先消歧（`Impl:` 与结构体两个同名 uid）。
+
+### 14.2 批27（T1-a，会话清扫的活跃标记 — 1.0.33#7 + #9）
+
+**已核实真缺口；且上游的实现不在本轮 delta 里——这条最容易找错地方。**
+
+- 定位经过：按 `checkpoint`/`offload`/`sweep`/`retention` 扫本轮 diff **只命中 changelog 文本**；
+  改用上游索引 query 才找到实体：`session/persistence.rs:3264 mark_session_live(session_dir)` + 测试文件
+  `session/persistence_cleanup_stale_sessions_tests.rs`（靶子 `live_session_dir_is_never_removed_but_its_stale_blobs_are_pruned`、
+  `mark_session_live_keeps_an_idle_session_out_of_a_foreign_sweep`），生产调用点在 `agent/mvp_agent/session_setup.rs`。
+  **该测试文件本轮未改** → 机制早于 `a28ee2b2`，属 1.0.25–1.0.32 那段缺口；1.0.33#9 是把它扩到压缩检查点与
+  prompt offload，1.0.33#7 是 rewind 侧的容错（只需目标的 base checkpoint 在）。
+- 我们这侧（已核实）：`session/persistence.rs:2749 DEFAULT_CLEANUP_TTL_DAYS = 30`、`:2758 cleanup_stale_sessions(skip_session_dir)`
+  按 **mtime** 删 `~/.nofy/sessions/` 下的文件、**只跳过当前会话目录**，TTL 可由 `[storage] cleanup_ttl_days` 配置；
+  全树 `mark_session_live` **零命中**，也没有那个测试文件。⚠ 另有**同名不同物**的第二个清扫面：
+  `nofy-workspace/src/recovery.rs:388 cleanup_stale_sessions`（7 天、删整个会话目录），改的时候别混
+  （`impact` 也因此报 ambiguous，必须用 uid 消歧）。
+- 结论：**bug 形状我们大概率同样有**（长驻会话的旧 checkpoint/offload 因 mtime 老化被别的进程扫掉）。
+  做法：移植活跃标记 + 清扫先判活跃 + 活跃会话只 prune blob 不删目录；rewind 侧改为只要求 base checkpoint。
+- 验证：照上游两个靶子写我们的版本（**必须含「外来进程发起的清扫」这一情形**）；nofy-shell 全量对基线；
+  `impact` 报 0 不可采信（它经 `spawn_blocking` 调用，宏体内的调用点图看不见），以 grep 枚举为准。
+
+### 14.3 批28（T1-b，配置写入的跨进程与取消安全 — C1）**前置决策未解，暂不开工**
+
+- 已核实：我们的 `SAVE_LOCK` 是**进程内** `tokio::sync::Mutex`（`persist.rs:11`），`save_config_locked` 在锁内做
+  read-modify-write，但发布走 `nofy_config::save_user_config_value`，**既无跨进程 flock、也不做符号链接解析**；
+  `acquire_init_lock` 只用在 `extensions/marketplace.rs:1208`（配置保存路径没用）；`nofy-config/src/fs_atomic.rs` 仅 43 行。
+  即**两个并发 `nofy` 进程写同一 config 无任何互斥**（这正是 §8.3 T1 里「并发启动互相覆盖」与
+  「同 `GROK_HOME` 并发 `agent stdio` 启动即崩」两条的机制面）。
+- 上游 `impact(resolve_atomic_destination)` = **CRITICAL**（27 直接 / 50 受影响 / 8 模块）——它是所有原子写的公共入口。
+  **按 AGENTS.md 要求在此明确提示 CRITICAL 风险。**
+- 因此必须**三步走、每步可独立编译**：① `nofy-config/fs_atomic.rs` 加解析器 + 全量单测（从上游 `fs_atomic_tests.rs`
+  的 1,584 行里挑靶子，尤其符号链接跳数上限与 `..` 穿越的 ENOTDIR/ENOENT）；② 只把配置保存这一处发布换成
+  解析后的目标 + 加跨进程 flock；③ 最后才做 watcher 的外链 referent 归类（`resolve_global_config_dest`/
+  `classify_watched_path`）与 retarget 跟随。每步 `cargo check --workspace --all-targets` + `detect-changes`。
+- ⚠ **阻塞项**：与在飞的配置 TOML→JSON 迁移（`9383df3a`、`desktop/scripts/migrate-config-to-json.mjs`、
+  `save_user_config_value` 的格式感知写回）改的是同一段发布逻辑。**需用户先定次序**（建议迁移先落地）。
+- 取消安全那半（`ConfigWriteGuard` + `run_blocking`：被取消的 await 不能在 async frame 里放锁）可独立于
+ 符号链接那半先做，风险面小得多，**若要拆批，先做这半**。
+
+### 14.4 需用户拍板的两项（不排进批次）
+
+| 项 | 取舍（均已核实） | 建议 |
+|---|---|---|
+| **C3② fancy→onig** | 收益是 1.0.35#4 的内存/速度主体；代价是引入 oniguruma 原生 C 依赖（构建链、体积、交叉编译），且 `syntect` 与 `two-face` 两处 feature 要一起改（上游是 `default-fancy`→`default-onig`、`syntect-fancy`→`syntect-onig`；我们根 `Cargo.toml` 现为 `syntect = "5.3"` 默认即 fancy） | **先做 14.1B**（零依赖即可拿到「不再运行时构建 + 三主题共享一份」），实测后再决定是否值得上 onig；若上，需单独一次构建面验证（macOS/Linux、release 体积、构建耗时） |
+| **Memory v2 整层** | 上游 v2 是**独立磁盘地基**（`v2.rs` 模块 doc 原话：「V2 never reads from or writes to the legacy `memory/` tree」；rusqlite 状态库 + topics/observations/archive/manifest/lexical index，本轮新增 `v2_carryover.rs` +529 与 +439 测试）。我们这侧：`nofy-memory`（v1，markdown + rusqlite 索引/embedding，15 文件）**是在用的**；`nofy-memorycore`（12 文件约 2,025 行：auditstore/compact/compleases/curator/dreaming/forkrev/injection/modelops/projstore/seal/snapshot）**除 `nofy-daemon/tests/ratchet.rs` 外无任何消费者＝未接线** | **不移植 v2**。理由与撤销 `message-delivery-core` 同构：移植会在同一域造出第三套模型（v1 + memorycore + v2）。改为两个独立决定：① 1.0.35#7 的实质（删除慢、开关不接线 agent）按内容在我们 v1 路径上核实后原生修；② `memorycore` 接线是**我们自己的绿地项目**（与 `attempt_store` 同类），不属吸收上游 |
+
+### 14.5 批26/27 之后的待核实队列（逐项核实后写回台账，含「已对齐」与「假阳性纠正」）
+
+1. **C5 MCP 三项**：#6 取消/超时通知 server——我们 `nofy-mcp` 只有 init 进度(`servers.rs:282/590`)与 elicitation 的
+   cancel，**工具调用取消未见通知 server 的代码**，疑真缺口，需读上游 `util/config/mcp.rs`(+469/−163) 定位；
+   #2 structuredContent——**已核实不受钉版阻塞**：`rmcp 2.1.0` 的 `model.rs:2937` 就有 `pub structured_content: Option<Value>`
+   （我们是 crates.io 的 rmcp 2.1，隔离在 `nofy-mcp` 里因其要 reqwest 0.13），而我们全树零使用，属纯增量；
+   #1 headless 状态/connecting 提示——缠批15 托管连接器分歧，排最后。
+2. **C6 两项**：`folder_trust`——我们的 `grant_folder_trust(cwd)` **返回 `()`**（`:186`），即「授权是否真的解除了闸口」
+   不可观测，正是上游 `GrantResolution::dismisses_gate()` 要解决的（我们有 `TrustOutcome`(:37)/`decide`(:61)，
+   但无授权结果分类）；`fs_notify` 的事件帧 root 限制/分批——我们的 `confine_to_root` 在 `handle.rs:1904`
+   （API 层，含 dotdot/绝对路径/symlink 逃逸测试），**不是同一层**，需读实现判是否等价。
+3. **1.0.33#10 recap 门控**：落点存在（`extensions/recap.rs`、`run_loop.rs:1978 s.handle_recap(auto)`）；
+   需核我们是否已在「计划任务/monitor/workflow 在跑」时抑制 auto recap（㉒ 做的是 resume 告知，不是抑制）。
+4. **1.0.33#4 子代理 cancelled 状态**：上游落点 `spawn.rs`(+49/−67)/`session_setup.rs`(+117)/新 `isolated_spawn_e2e.rs`(+284)；
+   与 ㉒ 同域，先读 `session_setup.rs` 的 +117（它同时也是 14.2 活跃标记的调用点，两项可一起读）。
+5. **1.0.33#8 skill token 上限**：我们的截断层不同源（`max_delta_bytes` 当前传 `None`、全树无 `READ_FILE_MAX_TOKENS`），
+   按「想法原生实现」做，别照搬 `max_output_bytes` 形状。
+6. **提示词姓名规则**（见 14.6）。
+7. `managed_policy/tests.rs`(+696/−1,006，实现未动) 的性质判定：放宽脆弱断言（批16/17/20 方针＝不跟）
+   还是改结构对比（批23 方针＝跟）。
+
+### 14.6 一条独立小项（可与批26 合并）
+
+主提示词模板新增「不得凭 username/handle/email/首字母臆造人名」规则（**非 changelog 项**，只能靠逐文件比对看见）。
+我们 `prompt.md` 无此句，且仍保留上游本轮删掉的 `<tool_calling>` 段（`:18–20`）——**不跟删**，
+除非独立判断该段已无价值。⚠ 改模板必须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py`
+（上游本轮也改了 `prompt_encrypted.rs` 4 行，属同一机制）。
+
+### 14.7 执行顺序与每批固定动作
+
+**批26（14.1 A+B，可含 14.6）→ 批27（14.2）→ 批28（14.3，先解前置决策）→ 14.5 队列逐项核实。**
+
+每批固定动作（台账「标准流程」+ §8.2 新方法）：读上游实现 → 原生落地 → `cargo check --workspace --all-targets` →
+相关 crate 全量测试对基线（shell 5,245 passed / 2 macOS 伪失败、workspace 1,761、mcp 180、config 188；
+markdown/pager-render **需先建基线**）→ 红绿双验（含「还原后必须回绿」这道检查，㉔ 的教训）→
+`gitnexus detect-changes -r <绝对路径>` → 提交（中文信息）→ **核实结论一律回写台账**。
+
+> **本方案里「已核实」与「待核实」的分界（如实登记）**：14.1A/14.1B/14.2/14.3 的上游形状与我们落点都做过
+> grep 或逐行读；14.5 全部是**待核实**，其中 #2 structuredContent 与 rmcp 钉版、14.4 Memory v2 的
+> 「memorycore 未接线」两条已经核实过。1.0.33#1（macOS 粘贴错图）与 1.0.35#2（daemon 路径渲染）
+> **本轮完全未定位**，仍停在台账初判。

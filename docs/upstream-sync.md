@@ -9,10 +9,10 @@
 | 项 | 值 |
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
-| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb) |
-| 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780) |
+| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb)。**自 1.0.11 起不再按版本整体同步**:批24 只做预检对账(对照 1.0.24@37949780),批25 改为「以 1.0.32@48271133 为参照、逐条原生实现」(①–㉕,见下方「批25 原生实现日志」) |
+| 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780,**2026-09-18 fetch 到 upstream/main=1.0.35@a28ee2b2**)。上游对照 worktree `/Users/mac/nofy-upstream` **已 detached 到 `a28ee2b2` 并重建索引(2026-09-18 16:31,134,329 nodes/327,031 edges/7,544 clusters)**;本仓库索引同步重建到 `79002da`(203,385 nodes/430,338 edges)。双索引对账法可用,查询纪律(必须传 `-r <绝对路径>`)见计划 §14.0 |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
-| 剩余缺口 | 上游 1.0.11 尾差 → 1.0.24 未吸收;**批24 预检对账已完成(2026-09-13)**,缺口清单见下方专节;批次路线图见 [upstream-absorb-plan.md](upstream-absorb-plan.md)(自批25 起,批25 有前置阻塞) |
+| 剩余缺口 | 上游 1.0.11 尾差 → **1.0.35** 未吸收。分段:1.0.11–1.0.24 见下方「缺口清单(批24 对账)」;1.0.25–1.0.32 见计划 §8;**1.0.33–1.0.35 见下方「增量摸底(1.0.33–1.0.35@a28ee2b2)」专节(2026-09-18)**。批次路线图与候选分层见 [upstream-absorb-plan.md](upstream-absorb-plan.md)(1.0.33–1.0.35 的候选在 §13) |
 
 ## 标准流程(每批)
 
@@ -124,6 +124,11 @@ bc7f02ed(pager input 重写)与 bb7f39d5(shell 重构)的新增文件面,只能�
 | 72a61251 | 09-01 | 1.0.16/17 | **1.0.14 + 1.0.15 + 1.0.16** | 310 |
 | 75810042 | 09-08 | 1.0.18→1.0.24 | **1.0.17–1.0.24(八版)** | 1896 |
 | 37949780 | 09-09 | 1.0.24 | 无(1.0.24 后修补) | 684 |
+| 48271133 | 09-13 | —(计划外) | **1.0.25–1.0.32(八版)** | 1650(计划 §8.1 实测) |
+| a28ee2b2 | 09-17 | —(计划外) | **1.0.33 + 1.0.34 + 1.0.35** | 356(本轮实测) |
+
+> 2026-09-18 补两行:`48271133` 与 `a28ee2b2` 都是单 squash 提交,继续印证「**对账单位是 changelog 条目,
+> 不是提交**」——一个提交可以盖八个版本,也可以盖三个。
 
 ### 1.0.11 尾差对账
 
@@ -365,6 +370,117 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - ③ 压缩起始即刷新 context bar(UX 润色非架构合理性;我们 `apply_session_event` 无 AgentView、`AutoCompactStarted` 仅带 percentage,需线入 view 或加 wire 字段,中等 pager 手术 + ~9min pager 测试周期。优先级低)
 - ④ MCP 瞬断重试 / 后台流式时抑制 auto recap(韧性想法,需各自调查与我们分歧——批15 托管连接器、批17 subagent 结构——的相容性)
 - ⑤ 1.0.12 余条已定性:worktree reflog(缠批23 fast-worktree 云面)、interjection 等待(缠批17 结构分歧)、截断措辞(我们树无对应)、monitor 10h(已对齐)、credit upsell(云跳过)——均非原生候选
+
+## 增量摸底(1.0.33–1.0.35@a28ee2b2,2026-09-18)
+
+`git fetch upstream` 后上游从 `48271133`(1.0.32)前进到 **`a28ee2b2`**(2026-09-17,仍是单 squash 提交
+"Synced from monorepo"),覆盖 **1.0.33(09-15)+ 1.0.34(09-16)+ 1.0.35(09-16)**,changelog 合计 **23 条**
+(15+1+7,按 `changelogs/1.0.3x.json` 实测条数)。本节只做**摸底与初判**:表里标注的 grep/行数实证是已核实的,
+其余**未逐项读实现**;候选分层与优先级写在 [upstream-absorb-plan.md](upstream-absorb-plan.md) §13。
+
+> **2026-09-18 后续(索引重建后)**:T0/T1 各项已按 §8.2 方法核实,**执行方案与核实结论见计划 §14**。
+> 两处需要修正本节初判的地方:① 1.0.33#7/#9 的上游实现**不在本轮 delta 内**(`mark_session_live` 机制早于
+> `a28ee2b2`,靠上游索引 query 才定位到,详见 §14.2);② 1.0.33#2 的 structuredContent **不受 rmcp 钉版阻塞**
+> (`rmcp 2.1.0 model.rs:2937` 已有该字段),由「待核实」升为可做的纯增量。
+
+### 摸底数据
+
+| 项 | 值 |
+|---|---|
+| 范围 | `48271133..a28ee2b2`(= `48271133..upstream/main`,只 1 个提交) |
+| 全树 churn | **356 文件,+27,478/−6,217** |
+| `crates/` churn | 350 文件,+27,404/−6,182(其中 `.rs` 313) |
+| 命名归一后 | **存在 226 / 缺失 124**(`UPSTREAM_REPO=本仓库 scripts/upstream_diff.sh --changed 48271133..upstream/main`,清单落盘 `/tmp/upstream_changed_20260918_131740.txt`) |
+| 版本锚 | `xai-grok-version` 1.0.32 → **1.0.35**;`SOURCE_REV` `be7ce6e8` → `e8563f8f` |
+
+按区域**互斥**分类(157+7+18+27+143+4 = 356,逐项相加全等):
+
+| 区域 | 文件数 | 占比 | 处置 |
+|---|---|---|---|
+| pager 家族(`pager` 123、`pager-render` 14、`pager-pty-harness` 13、`pager-minimal` 5、`pager-diff` 1、`pager-bin` 1) | 157 | 44.1% | **整体跳过**(A8,用户指示)。本轮占比高于上一轮(计划 §8.1 的 29%) |
+| `telemetry` | 7 | 2.0% | 红线跳过,逐项甄别 |
+| `test-support` | 18 | 5.1% | 测试基建,按需(6 存在 / 12 缺失) |
+| 云/hub/clone/feedback 面 | 27 | 7.6% | 红线跳过(批23 已定 bot_relay/grove/clone/feedback 不移植)。明细:`fast-worktree` 6(全 grove/nfs)、shell `feedback*` 6、`tool-protocol` 7、`computer-hub-*` 3、workspace `hub_server*` 2、`tool-types/web_search.rs` 1、`prod/mc/.../feedback_types.rs` 1。⚠ `tool-protocol` 那 7 个里 `frames.rs`/`lib.rs` 是协议管线而非 BotRelay 生成物,**「归云面」是路径关键词判的,需单独看** |
+| **其余内核面** | **143** | **40.2%** | 逐项甄别,见下方集群清单 |
+| 仓库元数据 | 4 | 1.1% | `Cargo.toml`(syntect/two-face 后端开关,见 C3)、`Cargo.lock`、`SOURCE_REV`、`THIRD-PARTY-NOTICES` |
+
+缺失大户(按 crate 计 `缺失`):pager 31、**shell 30**、test-support 12、pager-pty-harness 11、pager-render 7、
+**memory 6**、tool-protocol 5、tool-types 4、workspace/telemetry/**markdown**/fast-worktree 各 3、
+computer-hub-core/shared/pager-diff/config/chat-state/agent 各 1。shell 那 30 个缺失拆开是:
+**13 个云面或台账面**(changelog 6 + feedback 6 + `e2e_grove_worktree.rs`)、**6 个 Memory v2**
+(`memory_control.rs`、`memory_carryover.rs`、`memory_capture.rs`、`memory_status.rs`、`v2_memory_dream.rs`+tests)、
+**8 个新增测试文件**(`goal_compaction_reseed_tests`、`mcp_connecting_reminder_tests`、`persist_tests`、
+`consent_tests`、`slash_commands_tests`、`slash_authority_turn_tests`、`compaction_inline_auto_compact_flow_tests`、
+`isolated_spawn_e2e`)、**3 个待核实**(`agent/cursor_worker_config.rs`、`agent/testkit/mod.rs`、`plugin/mod.rs`——
+我们的插件面在 `nofy-packcore`/`marketplace`,同名缺失不等于缺功能,按 §9.1 纪律先查我们自己的形状)。
+
+### 已摸到的六个集群(附我们这侧的 grep 实证)
+
+判据同计划 §9.3bis:**「上游有、我们零命中」只是候选,不等于该吸收**。每条都标了我们树的实测形状,
+并区分「已核实(grep/行数)」与「待核实(需读实现)」。
+
+| # | 集群(上游规模) | 上游做了什么(读到的实体) | 我们这侧实测 | 初判 |
+|---|---|---|---|---|
+| C1 | **配置写入原子性/并发隔离**(12 文件 +4,369/−328:`config/fs_atomic.rs` +1,310、新 `fs_atomic_tests.rs` +1,584、`shell/config/watcher.rs` +277/−45、`util/config/persist.rs` +151/−79、新 `persist_tests.rs` +330、新 `tests/test_config_update_isolation.rs` +129、`config/tests.rs` +39) | `resolve_atomic_destination`/`resolve_destination` 按内核上限跟随符号链接(Linux 40、Darwin/BSD 32、Windows 63 相对/31 全限定)+ `LeafSymlink::{Follow,Replace}` 叶策略 + `WRITE_NONCE`;`ConfigWriteGuard` + `run_blocking`(被取消的 await 不能在 async frame 里放锁)、`SAVE_LOCK` 移进阻塞任务、`save_config_locked` **发布前重新解析 dest**(上游注释:「retarget 不能把 A 合并到 B」)、`acquire_init_lock(grok_home)` flock;watcher 侧 `resolve_global_config_dest`/`classify_watched_path`——`$GROK_HOME/config.toml` 是外链时其 referent 必须归类为 Global 而非 Project,referent A→B 改写后跟随新 dest | 我们的 `nofy-config/src/fs_atomic.rs` **仅 43 行**(上游 1,284 行);全树 `resolve_atomic_destination`/`atomic_write_resolved`/`LeafSymlink`/`SYMLINK_FOLLOW_LIMIT` **零命中**。`SAVE_LOCK` + `save_config_locked` **已有**(`persist.rs:11/13/49/176/181`);`acquire_init_lock` **已有但在 `extensions/marketplace.rs`**(:1208 定义,配置保存路径未用);`ConfigWriteGuard`/`run_blocking`/`resolve_global_config_dest`/`classify_watched_path` 零命中 | **真缺口(本轮最高价值)**:多进程/取消场景下写同一 `config.toml` 的正确性 + 符号链接正确性,架构无关无云依赖。与 ⑰⑳ 的治理写入路径、以及在飞的配置 TOML→JSON 迁移同区,**动手前先定次序** |
+| C2 | **goal × 压缩交接**(`goal.rs` +132/−57、新 `goal_compaction_reseed_tests.rs` +383、`chat-state/compaction_utils.rs` + 新 `compaction_utils_tests.rs` +45、`session/compaction.rs`) | `prepare_goal_continuation` 加 `GoalContinuationPurpose::{Compaction,TurnEnd}` 参数;token 预算强制加 `apply_turn_end` 门(只在回合结束 enforce);新增 `reseed_active_goal_after_compaction`、`goal_objective_for_compaction`、`goal_compaction_user_context`、`merge_goal_compaction_user_context` 与 `GOAL_CONTINUATION_SENTINEL`;指令文案加「Do not restart this goal or revive a prior unrelated task」 | `goal.rs` **我们有且形状接近**:`prepare_goal_continuation(current_tokens)` 单参(:1097)、`GoalContinuationPlan`、`prune_prior_goal_continuation_directives`(:1052)、`inject_goal_continuation_message`(:1372)、`maybe_queue_goal_continuation`(:1378);`reseed_active_goal_after_compaction`/`GoalContinuationPurpose`/`goal_objective_for_compaction` **零命中**;原生② 的 `reseed_tokens_after_shrink` 在 chat-state 的 queries/state/mutations 各 1 处 | **真缺口,且是本轮最外科的一项**:改的是我们已有函数的签名与调用点,与原生② 同域(压缩后重播 token 基准),不引入云依赖 |
+| C3 | **语法高亮性能**(`nofy-markdown` 7 文件:新 `build.rs` +21、新 `assets/Swift.sublime-syntax` +417、`src/syntax.rs` +297/−4、新 `syntax_backend_tests.rs` +123;根 `Cargo.toml` 2 行) | 两个**可分离**的想法:① 构建期把 `two_face::syntax::extra_newlines()` 加 Swift 语法 dump 成 `OUT_DIR/syntaxes.bin`(上游 `build.rs` 注释原话:运行时 `SyntaxSet::build` 拖住首次 Read 上色,GB-5513 PTY fold);② 高亮后端 fancy→onig:`syntect` `default-fancy`→`default-onig`、`two-face` `syntect-fancy`→`syntect-onig` | `syntax.rs:41` 正是 `let syntax_set = two_face::syntax::extra_newlines();`(**运行时构建**);我们无 `build.rs`、无 `syntaxes.bin`;根 `Cargo.toml`:`syntect = "5.3"`(默认即 fancy)、`two-face ... features = ["syntect-fancy"]`,与上游改前逐字相同 | **① 真缺口(A5 性能,零新依赖)**;**② 需拍板**:onig 引入 oniguruma 原生 C 依赖(构建/体积/工具链代价)换内存与速度。按「取想法原生实现」方针可只取 ①,② 单独决策 |
+| C4 | **read_file 输出预算 + skill 上限**(`tools/.../read_file/mod.rs` +214/−1、`tool-types` 新 `read.rs` +20/`grep.rs` +177/`glob.rs` +19/`web_search.rs` +32、`tool-runtime/context.rs` +91/−8) | 窗口化读取加 `max_output_bytes` 预算,按**整行**截断并附标记「[N characters truncated; file has M total lines; showing lines 1-K]」;**整篇返回的 skill markdown 豁免字节预算但仍受 `READ_FILE_MAX_TOKENS` 约束**(= changelog 1.0.33#8 的 25k 上限);`ReadLineCounts`/`ReadLineRange` 抽到 `tool-types` 供后端随内容回传行数 | 我们 `read_file/mod.rs` 对 `max_output_bytes`/`READ_FILE_MAX_TOKENS`/`skill_full` **零命中**;全树 `READ_FILE_MAX_TOKENS` **零命中**——我们的截断走另一套(`extract_file_content_lines` + `max_delta_bytes`(当前传 `None`)+ `PDF_MAX_PAGES_PER_READ`);`tool-types` 的 glob/grep/read/web_search 四个新模块我们都缺(类型仍散在 `nofy-tools/src/types/*`) | **待核实(形状不同,不是简单缺常量)**:照搬会撞 `max_delta_bytes` 语义;「skill 也受同一 token 上限」这个**想法**值得原生实现,tool-types 抽包属结构搬迁、`web_search` 是红线 |
+| C5 | **MCP 状态/取消/结构化结果**(`util/config/mcp.rs` +469/−163、新 `mcp_connecting_reminder_tests.rs` +327、`workspace/src/mcp.rs` +63、`acp_session_impl/mcp.rs`、`config-types/src/mcp.rs`、`extensions/mcp.rs`、`mcp_failed_reminder_tests.rs`) | 对应 1.0.35#1(headless MCP 状态与 connecting 提示对齐真实握手状态)、1.0.33#2(server 提供时工具结果带 structured JSON)、#3(直接列出的 MCP 工具调用显示名/参数/错误)、#6(**取消或超时的调用通知 server 停止工作**)、#13(无参工具不再显示多余 `{}`) | `mcp_connecting_reminder_tests.rs` 我们**缺失**(批25 调查定性已记:缠批15 托管连接器 `nofy_com_` 前缀分歧);`nofy-mcp` 其余面在 ⑬⑭ 之后与上游有已知分歧 | **逐项待核实**:#6(取消通知)与 #2(structuredContent)属协议/内核面、架构无关,价值高;#1/#3/#13 偏渲染与提示面(A8/UX 边界),须按内容定位后再定性 |
+| C6 | **workspace 信任/事件帧**(`nofy-workspace` 15 文件 + `workspace-types` 2:`folder_trust.rs` +56/−53、`fs_notify.rs` +55/−10(+`fs_notify_tests.rs` +147/−13)、`workspace_ops.rs` +84/−1、`worktree/mod.rs` +73/−18、`config.rs` +45/−4、`lib.rs` +49、`recovery.rs` +18、`handle.rs` +17、`events/workspace.rs` +5、`rpc/fs.rs` +25;另 `permission/managed_policy/tests.rs` +696/−1,006 **只有测试**) | `folder_trust` 加 `GrantResolution::resolution()`/`dismisses_gate()`(授权结果分类 + 是否解除闸口);`fs_notify` 加 `confine_to_root`(变更路径先限制在 root 内,跨边界 rename 只报在内的那半:离开的报 `Removed`、到达的报 `Created`,因为单路径 `Renamed` 说不清是哪边)+ `FS_CHANGED_PATHS_PER_FRAME` 分批 | `folder_trust.rs` 里 `GrantResolution`/`dismisses_gate` **零命中**;`confine_to_root` **我们有但在另一层**——`nofy-workspace/src/handle.rs:1904` 的 API(带 dotdot/绝对路径/symlink 逃逸测试),`extensions/fs.rs:165` 调用;`fs_notify.rs` 侧零命中 | **待核实**:`fs_notify` 侧的「事件帧限制 + 分批」是否已被我们 handle 层等价覆盖(形状不同,不能只看符号名);`folder_trust` 的授权分类与 ⑰⑳ 的闸口语义直接相关,优先核。`managed_policy/tests.rs` 净删 310 行是**测试重写**(实现未动),按批16/17/20「保留严格断言」与批23「跟随放宽」两种先例,须先判性质再决定跟不跟 |
+
+### changelog 23 条初判(**未逐项核实**;按内容不按编号,方法论见计划 §8.2)
+
+| 版本# | 条目(上游原文摘要) | 初判 | 依据 |
+|---|---|---|---|
+| 1.0.33#1 | macOS 粘贴图片可能附错图 | 待核实 | 与 ⑨ 图像分类同区;需定位是 pager 剪贴板面还是内核 |
+| 1.0.33#2 | MCP 工具结果带 structured JSON | **候选(内核)** | C5 |
+| 1.0.33#3 | 直接列出的 MCP 工具调用显示名/参数/错误 | 待核实(偏渲染) | C5 |
+| 1.0.33#4 | 父会话关闭时后台子代理任务正确显示 cancelled | **候选(内核)** | `spawn.rs` +49/−67、`session_setup.rs` +117、新 `isolated_spawn_e2e.rs` +284;与 ㉒(resume 告知在跑的 loops)同域 |
+| 1.0.33#5 | Subagents dock 不再显示不可点的 "Done N completed" | 跳过 | dock = UX(A8) |
+| 1.0.33#6 | 取消/超时的 MCP 调用通知 server 停止 | **候选(内核,协议正确性)** | C5 |
+| 1.0.33#7 | /rewind 在旧压缩检查点被清扫后不再失败(只需目标的 base 检查点) | **候选(内核)** | 与原生② 同域;`session/persistence.rs`、`session/compaction.rs` 本轮均有改动 |
+| 1.0.33#8 | 大 skill 文件同受 25k token 上限,超限显示截断说明 | **候选(想法原生实现)** | C4 |
+| 1.0.33#9 | 长会话不再在 30 天清扫中丢失旧压缩检查点/prompt offload | **候选(内核)** | 与 #7 同源(清扫保留策略),需定位保留窗口实现 |
+| 1.0.33#10 | 计划任务/monitor/workflow 仍在跑时不再出现 auto "where was I" recap | **候选(内核)** | `run_loop.rs` +149/−60;与 ㉒ 同域,且我们有自有 daemon/scheduler/orchestra——按 §9.1 先问我们是否已用另一种形状解决 |
+| 1.0.33#11 | minimal 模式确认 /delete、/exit 立即开新空会话 | 跳过 | pager-minimal UX(A8) |
+| 1.0.33#12 | minimal 模式 /new 后 resume 正确重载历史 | 跳过 | 同上。`slash_exec.rs` +47/−198 **疑为**其落点(推测,未读实现) |
+| 1.0.33#13 | 无参 MCP 工具在权限卡里不再多出 `{}` 行 | 待核实(偏渲染) | C5;权限卡文案生成侧可能在内核 |
+| 1.0.33#14 | Composer footer 显示 Alt+Enter 换行提示 | 跳过 | UX(A8) |
+| 1.0.33#15 | Windows 上 `grok clone` 遇 git config 反斜杠/引号不再失败 | 跳过 | 无 clone 表面 + 不发 Windows 构建(批23 已定) |
+| 1.0.34#1 | Markdown 标题正确获得主题色 | 跳过 | 主题/渲染(A8)。注意 `nofy-markdown` 本轮确被改,但改的是 C3 的高亮后端,不是主题色 |
+| 1.0.35#1 | headless MCP 状态报告与 connecting 提示对齐真实握手状态 | 待核实 | C5;缠批15 托管连接器分歧 |
+| 1.0.35#2 | daemon 路径上 MCP 工具搜索/调用渲染 query/results/args/output | 待核实(疑云面) | 上游 "daemon path" 指 workspace-daemon(Computer Hub 文件夹暴露面,§9.1 已归云);我们有自有 `nofy-daemon`,**不可直接对号** |
+| 1.0.35#3 | Swift 字符串插值(嵌套括号)在 TUI 正确高亮 | 可选低成本 | 实体是新资产 `assets/Swift.sublime-syntax`(+417),随 C3① 的构建期 dump 一起进来才有意义 |
+| 1.0.35#4 | 语法高亮内存大降、大文件更快 | **候选(A5 性能)** | C3(① 零新依赖 / ② onig 需拍板) |
+| 1.0.35#5 | `--minimal` 复制粘贴不再插入多余空行/在折行处断长路径 | 跳过 | pager-minimal UX(A8) |
+| 1.0.35#6 | `/memory` 模态显示复制确认、搜索笔记内容、窄终端可用 | 跳过(模态 UX) | 但其内核侧是 Memory v2 集群,须分开看(下一行) |
+| 1.0.35#7 | Memory 删除大幅加速;从 config-disabled 会话切换 memory 开关能正确接线 agent | 待核实 | 上游落在 **Memory v2**(`v2_maintenance.rs` +47/−30、新 `v2_carryover.rs` +529 与 +439 测试、新 shell `memory_control.rs` +650、`extensions/memory.rs` +314/−30、`v2_memory_dream.rs` +141/−103)——**我们整层缺失**(6 个 `nofy-memory/src/v2*.rs` + shell 5 个 memory 文件);我们同域是 `nofy-memorycore` 与 v1 `memory_dream.rs`(本轮也被改 +40/−21)。按 §9.1 纪律:先问 memorycore 是否已用另一种形状解决,再决定移不移 |
+
+### changelog **没有**记载、但本轮确实改了的(㉔ 那类「非 changelog 项」,只能靠逐文件比对看见)
+
+| 改动 | 规模 | 我们的状态 | 初判 |
+|---|---|---|---|
+| **主提示词模板**:`templates/prompt.md` 删掉整个 `<tool_calling>` 段(「优先用专用工具而非 bash」)与「These are the only memory locations…」一句;**新增**「Never fabricate a person’s name or infer it from a username, handle, email address, or initials…」;`template.rs` −72 行;`prompt/paths.rs`(我们缺) | agent 6 文件 +37/−97 | 我们 `prompt.md:18–20` **仍有** `<tool_calling>`,**无**那条姓名规则;模板经身份清理(0.2.159)已与上游分歧 | **姓名规则值得原生吸收**(架构无关、纯正确性);`<tool_calling>` 的删除是**行为指导的减法**,需单独判断(我们可能正依赖它约束 bash 滥用)。⚠ 改模板后必须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py`(台账既有约束) |
+| `fs_atomic` 的符号链接感知原子写 | 见 C1 | 43 行 vs 上游 1,284 行 | C1 |
+| `fs_notify` 事件帧的 root 限制与分批 | 见 C6 | 见 C6 | C6 |
+| `permission/managed_policy/tests.rs` 测试重写(**实现未动**) | +696/−1,006(净 −310) | ⑰⑳ 动过该子系统的闸口位置 | 先判性质(放宽脆弱断言 vs 改结构对比)再决定跟不跟 |
+| `ptyctl/src/term.rs` +130、`ratatui-inline` `terminal.rs` +199 与 `tests.rs` +375、`shared/stderr.rs` +20/−3(新 `stderr_tests.rs` +36) | — | 这三个文件我们**都有**(存在) | 待核实;ratatui-inline/ptyctl 属 TUI 底层,与 A8 的边界按「是否只影响渲染」判 |
+
+### 本轮**未触及**的对账锚点(不必重查)
+
+- `attempt_store/`:本轮 diff **零命中**,㉔ 之后「15 文件中 9 个与上游逐字相同」的对齐状态不变。
+- `nofy-config/src/managed_text/format.rs`(有意分歧表里那条 fail-open 加固):本轮 **零命中**,
+  「不吸收」的决定不需要重评。
+
+### 动手前的前置动作
+
+1. ✅ **已完成(2026-09-18 16:31)**:`/Users/mac/nofy-upstream` 已 detached 到 `a28ee2b2` 并重建上游索引
+   (265.4s/exit 0,增量 changed=309 added=40 deleted=1);本仓库索引也重建到 `79002da`(141.5s/exit 0)。
+   两侧 `gitnexus status` 均 up-to-date,数字见计划 §14.0。
+2. 本仓库工作树 15 个已改文件**全在 `desktop/`**(构建产物 + i18n),不碰内核 `crates/`;
+   按批25 前置的既有纪律,内核批次提交前仍须确认 `crates/` 干净。
+3. **C1 与在飞的配置 TOML→JSON 迁移同区**(`9383df3a`、未跟踪的 `desktop/scripts/migrate-config-to-json.mjs`、
+   `desktop/src/out/main/seam/nofy-config-toml.js`),两边都在改配置写入路径,动手前先定次序。
 
 ## 待合并项逐项决定(1.0.13–1.0.24 + 缺失 crate,2026-09-13)
 
