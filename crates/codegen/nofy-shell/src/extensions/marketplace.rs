@@ -911,16 +911,23 @@ async fn handle_add_source(url: &str) -> nofy_hooks_plugins_types::ActionOutcome
     };
 
     // Run the write under SAVE_LOCK + flock, off the reactor.
-    let config_path = nofy_config::user_config_path_at(&nofy_config::nofy_home());
-    let nofy_home = nofy_config::nofy_home();
-    let _save_guard = crate::util::config::lock_config_writes().await;
+    let config_path = nofy_config::user_config_save_path_at(&nofy_config::nofy_home());
+    let guard = match crate::util::config::lock_config_writes().await {
+        Ok(g) => g,
+        Err(e) => {
+            return ActionOutcome {
+                status: OutcomeStatus::InternalError,
+                message: format!("failed to lock user config: {e}"),
+                requires_reload: false,
+                requires_restart: false,
+            };
+        }
+    };
     let write = {
         let name = name.clone();
-        tokio::task::spawn_blocking(move || {
-            let _flock = acquire_init_lock(&nofy_home).ok();
-            add_marketplace_source(&config_path, &name, &input, is_official)
-        })
-        .await
+        guard
+            .run_blocking(move || add_marketplace_source(&config_path, &name, &input, is_official))
+            .await
     };
     match write {
         Ok(Ok(())) => {}
@@ -1038,8 +1045,18 @@ fn add_marketplace_source(
 async fn handle_remove_source(source_url_or_path: &str) -> nofy_hooks_plugins_types::ActionOutcome {
     let src = source_url_or_path.to_string();
     // Lock + run the blocking FS work off the reactor.
-    let _save_guard = crate::util::config::lock_config_writes().await;
-    match tokio::task::spawn_blocking(move || remove_source_locked(&src)).await {
+    let guard = match crate::util::config::lock_config_writes().await {
+        Ok(g) => g,
+        Err(e) => {
+            return nofy_hooks_plugins_types::ActionOutcome {
+                status: nofy_hooks_plugins_types::OutcomeStatus::InternalError,
+                message: format!("failed to lock user config: {e}"),
+                requires_reload: false,
+                requires_restart: false,
+            };
+        }
+    };
+    match guard.run_blocking(move || remove_source_locked(&src)).await {
         Ok(outcome) => outcome,
         Err(e) => nofy_hooks_plugins_types::ActionOutcome {
             status: nofy_hooks_plugins_types::OutcomeStatus::InternalError,

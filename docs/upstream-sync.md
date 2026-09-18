@@ -393,6 +393,12 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 |---|---|---|---|---|
 | ㉙ | 取消/超时的 MCP 工具调用要通知 server 停工;server 提供 structured JSON 时模型要看见(1.0.33#6/#2) | **不搬 MRTR 整环**。① `call_tool_cancel_aware`：`send_cancellable_request` + `PeerRequestOptions::with_timeout`，超时走 rmcp 自带 `notifications/cancelled`（`ServiceError::Timeout`）；future drop（Esc 取消回合）由 `CancelOnDrop` spawn `notify_cancelled`。替换原来的 `tokio::time::timeout(mcp_service.call_tool)`。② `mcp_output_from_call_result` 用 `render_structured_content` 把未内联的 `structuredContent` 接到文本末尾（错误结果同样接，且丢掉 image/resource 块）。helper 放 `nofy-tools` 与上游同位置。**有意不做**：SEP-2322 多轮 `input_required`/`CallToolResponse` 枚举、C5#1 headless connecting（缠批15） | `a261a782` | nofy-tools structuredContent 6 passed；nofy-mcp 3 cancel 靶子 + 3 structured 靶子全绿 |
 
+### 批28 原生实现日志(C1 配置 JSON + 跨进程 flock,2026-09-19)
+
+| # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**有意不做**:`resolve_atomic_destination` 整段(仍可后补)、watcher retarget | 本提交 | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
+
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
 > `syntect v5.3.0 → onig v6.5.1 → onig_sys v69.9.1`,全工作区 `onig_sys` 命中 1 次。

@@ -53,7 +53,7 @@ pub use loader::{
     load_system_managed_config, load_toml_file, managed_config_layers, managed_config_layers_at,
     save_config_toml_text_at, save_config_value_at, save_user_config_toml_text,
     save_user_config_value, toml_error_detail, toml_to_json, user_config_filename_at,
-    user_config_path, user_config_path_at,
+    user_config_path, user_config_path_at, user_config_save_path, user_config_save_path_at,
 };
 pub use macos_managed::MDM_REQUIREMENTS_SOURCE;
 pub use managed_cache::{

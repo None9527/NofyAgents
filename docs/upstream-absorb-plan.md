@@ -1528,7 +1528,12 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
 - 验证：照上游两个靶子写我们的版本（**必须含「外来进程发起的清扫」这一情形**）；nofy-shell 全量对基线；
   `impact` 报 0 不可采信（它经 `spawn_blocking` 调用，宏体内的调用点图看不见），以 grep 枚举为准。
 
-### 14.3 批28（T1-b，配置写入的跨进程与取消安全 — C1）**前置决策未解，暂不开工**
+### 14.3 批28（T1-b，配置写入的跨进程与取消安全 — C1）
+
+> ✅ **前置决策已拍板（2026-09-19）**：用户配置**走 JSON、舍弃 TOML 写回**（TOML 无法结构化供应商嵌套 `models`）。
+> 已落地：新建默认 `config.json`；写 `config.toml` 的入口一律改写到旁路 JSON 并把遗留 toml 改名为 `.bak-json-*`；
+> `ConfigWriteGuard` = SAVE_LOCK ⊃ `.config-init.lock` flock，写回在 `run_blocking` 里持锁（取消安全）。
+> **未做**：上游 `resolve_atomic_destination` 整段符号链接跟随（仍可后补）；watcher retarget（步骤③）。
 
 - 已核实：我们的 `SAVE_LOCK` 是**进程内** `tokio::sync::Mutex`（`persist.rs:11`），`save_config_locked` 在锁内做
   read-modify-write，但发布走 `nofy_config::save_user_config_value`，**既无跨进程 flock、也不做符号链接解析**；

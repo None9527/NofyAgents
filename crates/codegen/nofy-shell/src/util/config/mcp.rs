@@ -748,7 +748,7 @@ async fn write_toml_table_if_changed(
 ) -> Result<bool> {
     let is_user = path == config_path().as_path();
     let _guard = if is_user {
-        Some(super::persist::lock_config_writes().await)
+        Some(super::persist::lock_config_writes().await?)
     } else {
         None
     };
@@ -1766,9 +1766,10 @@ pub(crate) fn load_cli_plugin_registry(
 }
 
 fn config_path() -> PathBuf {
-    // JSON 体系：用户配置可能是 config.json（优先）或 config.toml。
-    nofy_config::user_config_path()
-        .unwrap_or_else(|| crate::util::nofy_home::nofy_home().join("config.toml"))
+    // Load path: json if present, else leftover toml, else json (new default).
+    nofy_config::user_config_path().unwrap_or_else(|| {
+        crate::util::nofy_home::nofy_home().join(nofy_config::USER_CONFIG_FILENAME_JSON)
+    })
 }
 
 /// Path to the user-level config file (`~/.nofy/config.toml`).

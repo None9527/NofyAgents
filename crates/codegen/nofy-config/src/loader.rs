@@ -41,14 +41,25 @@ fn parse_toml_str(s: &str, path: &Path) -> std::io::Result<toml::Value> {
 /// JSON 用户配置文件名：存在时优先于 [`USER_CONFIG_FILENAME`]（JSON 体系）。
 pub const USER_CONFIG_FILENAME_JSON: &str = "config.json";
 
-/// `home` 下用户配置的文件名：`config.json` 存在则用它（JSON 体系），否则
-/// `config.toml`（含两者皆无时的新建默认，保持上游行为）。
+/// `home` 下用户配置的**读取**文件名。
+///
+/// JSON 优先；仅当还没有 `config.json`、但遗留 `config.toml` 仍在时读 TOML。
+/// 两者皆无时返回 `config.json`（新建默认）。写回永远走
+/// [`user_config_save_path_at`]，不会再创建 TOML。
 pub fn user_config_filename_at(home: &Path) -> &'static str {
     if home.join(USER_CONFIG_FILENAME_JSON).is_file() {
         USER_CONFIG_FILENAME_JSON
-    } else {
+    } else if home.join(USER_CONFIG_FILENAME).is_file() {
         USER_CONFIG_FILENAME
+    } else {
+        USER_CONFIG_FILENAME_JSON
     }
+}
+
+/// 用户配置的**写入**路径：永远是 `config.json`。TOML 无法表达供应商嵌套
+/// `models` 子表，写回不再生成 `.toml`。
+pub fn user_config_save_path_at(home: &Path) -> std::path::PathBuf {
+    home.join(USER_CONFIG_FILENAME_JSON)
 }
 
 /// `home` 下用户配置文件的完整路径（两者皆无时返回 json 名，作为新建默认）。
@@ -59,6 +70,11 @@ pub fn user_config_path_at(home: &Path) -> std::path::PathBuf {
 /// `$NOFY_HOME` 下用户配置文件路径；无可用 home 返回 None。
 pub fn user_config_path() -> Option<std::path::PathBuf> {
     user_nofy_home().map(|h| user_config_path_at(&h))
+}
+
+/// `$NOFY_HOME/config.json`；无可用 home 返回 None。
+pub fn user_config_save_path() -> Option<std::path::PathBuf> {
+    user_nofy_home().map(|h| user_config_save_path_at(&h))
 }
 
 /// 文件是否为 JSON 配置：扩展名 .json，或内容首非空字符为 `{`
@@ -149,27 +165,48 @@ fn is_json_path(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()) == Some("json")
 }
 
-/// 原子写回任意配置文件：按扩展名选格式（`.json` → JSON，否则 TOML）。
+/// 原子写回任意配置文件：用户 `config.toml` 一律改写为旁路 `config.json`。
 pub fn save_config_value_at(path: &Path, value: &toml::Value) -> std::io::Result<()> {
-    let text = if is_json_path(path) {
+    let (dest, retire_home) = json_save_dest(path);
+    let text = if is_json_path(&dest) {
         serde_json::to_string_pretty(&toml_to_json(value))
             .map_err(|e| std::io::Error::other(e.to_string()))?
             + "\n"
     } else {
         toml::to_string_pretty(value).map_err(|e| std::io::Error::other(e.to_string()))?
     };
-    atomic_write_text(path, &text)
+    atomic_write_text(&dest, &text)?;
+    if let Some(home) = retire_home {
+        retire_legacy_user_toml(home);
+    }
+    Ok(())
 }
 
-/// 把一段 TOML 文本写到 `path`：目标为 JSON 时转换格式，否则原样原子写
-/// （保留 toml_edit 侧的注释与键序）。
+/// 把一段 TOML 文本写到 `path`：用户 `config.toml` / `.json` 都落到 JSON。
 pub fn save_config_toml_text_at(path: &Path, text: &str) -> std::io::Result<()> {
-    if is_json_path(path) {
+    let (dest, retire_home) = json_save_dest(path);
+    if is_json_path(&dest) {
         let value: toml::Value =
             toml::from_str(text).map_err(|e| std::io::Error::other(e.to_string()))?;
-        save_config_value_at(path, &value)
+        save_config_value_at(&dest, &value)?;
     } else {
-        atomic_write_text(path, text)
+        atomic_write_text(&dest, text)?;
+    }
+    if let Some(home) = retire_home {
+        retire_legacy_user_toml(home);
+    }
+    Ok(())
+}
+
+/// `config.toml` → sibling `config.json` plus a retire of the toml after write.
+fn json_save_dest(path: &Path) -> (std::path::PathBuf, Option<&Path>) {
+    if path.file_name().and_then(|n| n.to_str()) == Some(USER_CONFIG_FILENAME) {
+        (
+            path.with_file_name(USER_CONFIG_FILENAME_JSON),
+            path.parent(),
+        )
+    } else {
+        (path.to_path_buf(), None)
     }
 }
 
@@ -189,17 +226,46 @@ pub fn load_config_text_as_toml(path: &Path) -> std::io::Result<String> {
     toml::to_string_pretty(&value).map_err(|e| std::io::Error::other(e.to_string()))
 }
 
-/// 原子写回用户配置：按目标文件现有格式（无文件时 JSON）序列化。
+/// 原子写回用户配置：永远写 `config.json`。成功后把遗留 `config.toml` 改名为
+/// `.bak`，避免两份文件并存、下次读取又绕回 TOML。
 pub fn save_user_config_value(value: &toml::Value) -> std::io::Result<()> {
     let home = user_nofy_home().ok_or_else(|| std::io::Error::other("no nofy home resolvable"))?;
-    save_config_value_at(&user_config_path_at(&home), value)
+    save_config_value_at(&user_config_save_path_at(&home), value)?;
+    retire_legacy_user_toml(&home);
+    Ok(())
 }
 
-/// 写回一段 TOML 文本到用户配置：目标为 JSON 时转换格式，否则原样原子写
-/// （保留 toml_edit 侧的注释与键序）。
+/// 写回一段 TOML 文本到用户配置：转换成 JSON 落到 `config.json`（注释不保留）。
 pub fn save_user_config_toml_text(text: &str) -> std::io::Result<()> {
     let home = user_nofy_home().ok_or_else(|| std::io::Error::other("no nofy home resolvable"))?;
-    save_config_toml_text_at(&user_config_path_at(&home), text)
+    save_config_toml_text_at(&user_config_save_path_at(&home), text)?;
+    retire_legacy_user_toml(&home);
+    Ok(())
+}
+
+/// 用户配置已落到 JSON 后，把遗留 `config.toml` 挪走。失败只记日志，不回滚 JSON。
+pub(crate) fn retire_legacy_user_toml(home: &Path) {
+    let toml_path = home.join(USER_CONFIG_FILENAME);
+    if !toml_path.is_file() {
+        return;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let bak = home.join(format!("config.toml.bak-json-{stamp}"));
+    match std::fs::rename(&toml_path, &bak) {
+        Ok(()) => tracing::info!(
+            from = %toml_path.display(),
+            to = %bak.display(),
+            "retired legacy config.toml after JSON save"
+        ),
+        Err(e) => tracing::warn!(
+            path = %toml_path.display(),
+            error = %e,
+            "failed to retire legacy config.toml after JSON save"
+        ),
+    }
 }
 
 fn atomic_write_text(path: &Path, text: &str) -> std::io::Result<()> {
@@ -208,10 +274,13 @@ fn atomic_write_text(path: &Path, text: &str) -> std::io::Result<()> {
     }
     // 保留原文件权限位（config 常含 api_key，用户可能 chmod 600）。
     #[cfg(unix)]
-    let prior_mode: Option<u32> = std::fs::metadata(path).ok().map(|m| {
-        use std::os::unix::fs::PermissionsExt;
-        m.permissions().mode()
-    });
+    let prior_mode: Option<u32> = std::fs::metadata(path)
+        .ok()
+        .map(|m| {
+            use std::os::unix::fs::PermissionsExt;
+            m.permissions().mode()
+        })
+        .or(Some(0o600));
     let tmp = path.with_file_name(format!(
         ".{}.tmp-{}-{}",
         path.file_name().and_then(|s| s.to_str()).unwrap_or("config"),
@@ -291,7 +360,7 @@ pub fn load_from_disk() -> std::io::Result<toml::Value> {
     let filename = user_nofy_home()
         .as_deref()
         .map(user_config_filename_at)
-        .unwrap_or(USER_CONFIG_FILENAME);
+        .unwrap_or(USER_CONFIG_FILENAME_JSON);
     load_user_config_layer(user_nofy_home().as_deref(), filename)
 }
 
@@ -517,7 +586,7 @@ pub fn hook_config_layers_at(
     // under first-wins dedup; every distinct hook runs regardless.
     let user_filename = user_home
         .map(user_config_filename_at)
-        .unwrap_or(USER_CONFIG_FILENAME);
+        .unwrap_or(USER_CONFIG_FILENAME_JSON);
     let specs = [
         LayerSpec {
             dir: system_dir,
@@ -1193,16 +1262,50 @@ mod tests {
     #[test]
     fn user_config_filename_prefers_json_when_present() {
         let home = tempfile::tempdir().unwrap();
-        // 两者皆无：沿用上游默认 config.toml。
-        assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME);
+        // 两者皆无：新建默认是 config.json（TOML 无法结构化嵌套 models）。
+        assert_eq!(
+            user_config_filename_at(home.path()),
+            USER_CONFIG_FILENAME_JSON
+        );
         write(home.path(), USER_CONFIG_FILENAME, "[ui]\ntheme = \"dark\"\n");
         assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME);
-        write(home.path(), USER_CONFIG_FILENAME_JSON, "{\"ui\":{\"theme\":\"dark\"}}");
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME_JSON,
+            "{\"ui\":{\"theme\":\"dark\"}}",
+        );
         assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME_JSON);
         assert_eq!(
             user_config_path_at(home.path()),
             home.path().join(USER_CONFIG_FILENAME_JSON)
         );
+        assert_eq!(
+            user_config_save_path_at(home.path()),
+            home.path().join(USER_CONFIG_FILENAME_JSON)
+        );
+    }
+
+    #[test]
+    fn save_user_config_writes_json_and_retires_legacy_toml() {
+        let home = tempfile::tempdir().unwrap();
+        write(home.path(), USER_CONFIG_FILENAME, "[ui]\ntheme = \"dark\"\n");
+        let value: toml::Value = toml::from_str("[ui]\ntheme = \"light\"\n").unwrap();
+        save_config_value_at(&user_config_save_path_at(home.path()), &value).unwrap();
+        retire_legacy_user_toml(home.path());
+        assert!(home.path().join(USER_CONFIG_FILENAME_JSON).is_file());
+        assert!(!home.path().join(USER_CONFIG_FILENAME).is_file());
+        let json: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(home.path().join(USER_CONFIG_FILENAME_JSON)).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(json["ui"]["theme"], "light");
+        let baks: Vec<_> = std::fs::read_dir(home.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with("config.toml.bak-json-"))
+            .collect();
+        assert_eq!(baks.len(), 1, "{baks:?}");
     }
 
     #[test]

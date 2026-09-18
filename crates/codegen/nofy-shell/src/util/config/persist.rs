@@ -4,13 +4,14 @@ use anyhow::Result;
 use toml::Value as TomlValue;
 use toml::map::Map as TomlMap;
 use nofy_agent::prompt::skills::SkillsConfig;
-/// Process-wide write lock for `~/.nofy/config.toml`.
+/// Process-wide write lock for user config (`config.json`).
 ///
 /// Serializes the read-modify-write in `save_config` so two rapid
-/// settings toggles can't interleave and clobber each other.
+/// settings toggles can't interleave and clobber each other. Cross-process
+/// exclusion is the flock inside [`ConfigWriteGuard`].
 static SAVE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-/// [`save_config`] body; caller must hold [`SAVE_LOCK`].
-async fn save_config_locked(config: &Config) -> Result<()> {
+/// [`save_config`] body; caller must hold [`ConfigWriteGuard`].
+async fn save_config_locked(guard: ConfigWriteGuard, config: &Config) -> Result<()> {
     let path = user_config_path();
     let mut root: TomlValue = match nofy_config::load_raw_config_file(&path) {
         Ok(v) => v,
@@ -38,15 +39,78 @@ async fn save_config_locked(config: &Config) -> Result<()> {
     } else {
         merge_section(table, "skills", &config.skills);
     }
-    // 格式感知写回：config.json 目标序列化为 JSON，config.toml 目标序列化为 TOML。
-    nofy_config::save_user_config_value(&root)?;
+    // Always publish JSON. TOML cannot carry nested provider `models`.
+    guard
+        .run_blocking(move || nofy_config::save_user_config_value(&root))
+        .await
+        .map_err(|e| anyhow::anyhow!("config write task failed: {e}"))??;
     Ok(())
 }
-/// Acquire the `config.toml` write lock used by [`save_config`], so callers that
-/// mutate the file directly (marketplace add/remove) can't interleave with a
-/// settings save and clobber it.
-pub(crate) async fn lock_config_writes() -> tokio::sync::MutexGuard<'static, ()> {
-    SAVE_LOCK.lock().await
+
+/// Guard for a user config read-modify-write: [`SAVE_LOCK`] plus the
+/// config-init flock. Without the flock, two `nofy` processes silently
+/// drop each other's edits.
+#[must_use]
+pub(crate) struct ConfigWriteGuard {
+    _save: tokio::sync::MutexGuard<'static, ()>,
+    _flock: std::fs::File,
+}
+
+impl ConfigWriteGuard {
+    /// Run `f` on the blocking pool with this guard living in that task.
+    /// Cancelling the returned future must not drop the guard in the async frame.
+    pub(crate) async fn run_blocking<T, F>(self, f: F) -> Result<T, tokio::task::JoinError>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> T + Send + 'static,
+    {
+        tokio::task::spawn_blocking(move || {
+            let _guard = self;
+            f()
+        })
+        .await
+    }
+}
+
+/// Acquire SAVE_LOCK ⊃ init flock on the blocking pool; fails closed —
+/// callers must not fall back to an unguarded write.
+pub(crate) async fn lock_config_writes() -> std::io::Result<ConfigWriteGuard> {
+    let save = SAVE_LOCK.lock().await;
+    let home = crate::util::nofy_home::nofy_home();
+    tokio::task::spawn_blocking(move || {
+        let flock = acquire_init_lock(&home)?;
+        Ok(ConfigWriteGuard {
+            _save: save,
+            _flock: flock,
+        })
+    })
+    .await
+    .map_err(|e| std::io::Error::other(format!("config lock task failed: {e}")))?
+}
+
+/// Exclusive advisory `flock` on `<nofy_home>/.config-init.lock`.
+pub(crate) fn acquire_init_lock(nofy_home: &std::path::Path) -> std::io::Result<std::fs::File> {
+    use fs2::FileExt;
+    let _ = std::fs::create_dir_all(nofy_home);
+    let lock_path = nofy_home.join(".config-init.lock");
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&lock_path)?;
+    for _ in 0..50 {
+        match file.try_lock_exclusive() {
+            Ok(()) => return Ok(file),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::WouldBlock,
+        format!("timed out waiting for {} after 1s", lock_path.display()),
+    ))
 }
 /// Read a config file as TOML text, treating only `NotFound` as empty. JSON
 /// targets (`config.json`) are converted to an equivalent TOML document so the
@@ -64,7 +128,9 @@ pub(crate) fn read_config_text_or_empty(path: &std::path::Path) -> std::io::Resu
 /// 用户配置文件（config.toml/config.json）走格式感知写回：TOML 文本在 JSON
 /// 目标下自动转换，避免把 TOML 写进 .json 或反之。
 pub(crate) fn atomic_write_string(path: &std::path::Path, content: &str) -> std::io::Result<()> {
-    if path.extension().and_then(|e| e.to_str()) == Some("json") {
+    if path.file_name().and_then(|n| n.to_str()) == Some("config.toml")
+        || path.extension().and_then(|e| e.to_str()) == Some("json")
+    {
         return nofy_config::save_config_toml_text_at(path, content);
     }
     atomic_write_string_raw(path, content)
@@ -173,12 +239,12 @@ pub async fn update_config<F>(f: F) -> Result<()>
 where
     F: FnOnce(&mut Config),
 {
-    let _guard = SAVE_LOCK.lock().await;
+    let guard = lock_config_writes().await?;
     let root: TomlValue =
         crate::config::load_from_disk().unwrap_or_else(|_| TomlValue::Table(TomlMap::new()));
     let mut cfg = load_config_from_toml(&root);
     f(&mut cfg);
-    save_config_locked(&cfg).await
+    save_config_locked(guard, &cfg).await
 }
 #[cfg(test)]
 mod tests {
