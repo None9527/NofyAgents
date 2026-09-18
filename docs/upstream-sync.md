@@ -391,7 +391,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 | # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
 |---|---|---|---|---|
-| ㉙ | 取消/超时的 MCP 工具调用要通知 server 停工;server 提供 structured JSON 时模型要看见(1.0.33#6/#2) | **不搬 MRTR 整环**。① `call_tool_cancel_aware`：`send_cancellable_request` + `PeerRequestOptions::with_timeout`，超时走 rmcp 自带 `notifications/cancelled`（`ServiceError::Timeout`）；future drop（Esc 取消回合）由 `CancelOnDrop` spawn `notify_cancelled`。替换原来的 `tokio::time::timeout(mcp_service.call_tool)`。② `mcp_output_from_call_result` 用 `render_structured_content` 把未内联的 `structuredContent` 接到文本末尾（错误结果同样接，且丢掉 image/resource 块）。helper 放 `nofy-tools` 与上游同位置。**有意不做**：SEP-2322 多轮 `input_required`/`CallToolResponse` 枚举、C5#1 headless connecting（缠批15） | 本提交 | nofy-tools structuredContent 6 passed；nofy-mcp 3 cancel 靶子 + 3 structured 靶子全绿 |
+| ㉙ | 取消/超时的 MCP 工具调用要通知 server 停工;server 提供 structured JSON 时模型要看见(1.0.33#6/#2) | **不搬 MRTR 整环**。① `call_tool_cancel_aware`：`send_cancellable_request` + `PeerRequestOptions::with_timeout`，超时走 rmcp 自带 `notifications/cancelled`（`ServiceError::Timeout`）；future drop（Esc 取消回合）由 `CancelOnDrop` spawn `notify_cancelled`。替换原来的 `tokio::time::timeout(mcp_service.call_tool)`。② `mcp_output_from_call_result` 用 `render_structured_content` 把未内联的 `structuredContent` 接到文本末尾（错误结果同样接，且丢掉 image/resource 块）。helper 放 `nofy-tools` 与上游同位置。**有意不做**：SEP-2322 多轮 `input_required`/`CallToolResponse` 枚举、C5#1 headless connecting（缠批15） | `a261a782` | nofy-tools structuredContent 6 passed；nofy-mcp 3 cancel 靶子 + 3 structured 靶子全绿 |
 
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
