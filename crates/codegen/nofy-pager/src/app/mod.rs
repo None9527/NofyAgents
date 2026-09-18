@@ -592,7 +592,9 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     }
     if args.trust {
         match std::env::current_dir() {
-            Ok(cwd) => nofy_shell::agent::folder_trust::grant_folder_trust(&cwd),
+            Ok(cwd) => nofy_shell::agent::folder_trust::report_cli_trust_grant(
+                &nofy_shell::agent::folder_trust::grant_folder_trust(&cwd),
+            ),
             Err(e) => {
                 tracing::warn!(error = %e, "--trust: failed to resolve cwd; folder not trusted")
             }

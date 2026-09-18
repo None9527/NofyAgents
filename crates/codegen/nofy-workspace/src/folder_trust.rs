@@ -24,8 +24,9 @@
 //! provisional and re-checked rather than cached — is a `nofy-shell`
 //! concern, documented there.)
 
-use std::io::IsTerminal;
-use std::path::Path;
+use std::fmt;
+use std::io::{self, IsTerminal, Write as _};
+use std::path::{Path, PathBuf};
 
 use toml::Value as TomlValue;
 use nofy_config_types::BoolFlag;
@@ -178,18 +179,134 @@ fn feature_enabled_for_build(is_local_build: bool) -> bool {
         .value
 }
 
-/// Persist an explicit `--trust` grant for `cwd`'s workspace so repo-local
-/// servers are honored on the next resolve. Done client-side because trust is
-/// durable: even when the agent runs in a separate leader process it reads the
-/// same `~/.nofy/trusted_folders.toml`. Best-effort; a write failure is logged,
-/// not fatal.
-pub fn grant_folder_trust(cwd: &Path) {
-    // Local/dev builds never gate, so there is nothing to grant: `--trust` is a
-    // no-op and the store is left untouched (the whole feature is inert).
-    if folder_trust_inert() {
+/// Why a grant was not recorded durably.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrantRefuse {
+    /// Local/dev build: the gate is inert, so `--trust` is a no-op that still
+    /// looks trusted (same as feature-off).
+    InertBuild,
+    /// Over-broad root the store refuses to persist (`$HOME` / fs-root).
+    UnsafeRoot,
+    /// No user home, so there is no store path.
+    NoHome,
+}
+
+impl fmt::Display for GrantRefuse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InertBuild => write!(f, "folder trust is off in this build"),
+            Self::UnsafeRoot => write!(f, "folder trust is not recorded for this path"),
+            Self::NoHome => write!(
+                f,
+                "Couldn't save folder trust: no home directory for the trust store. \
+                 Set NOFY_HOME to an absolute directory, then start Nofy again."
+            ),
+        }
+    }
+}
+
+/// Disk result after a real insert was attempted.
+#[derive(Debug)]
+pub enum PersistStatus {
+    Durable,
+    /// Read succeeded; persist failed. Gate is not dismissed.
+    ProcessLocalOnly { error: std::io::Error },
+}
+
+/// Result of an explicit `--trust` / Trust-project grant.
+#[derive(Debug)]
+pub enum GrantOutcome {
+    Granted {
+        key: PathBuf,
+        persist: PersistStatus,
+    },
+    AlreadyDurable {
+        key: PathBuf,
+    },
+    Refused {
+        reason: GrantRefuse,
+    },
+}
+
+impl fmt::Display for GrantOutcome {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Granted {
+                persist: PersistStatus::ProcessLocalOnly { .. },
+                ..
+            } => write!(
+                f,
+                "Couldn't save folder trust. Check that ~/.nofy is writable, \
+                 then run `nofy --trust` in this folder."
+            ),
+            Self::Refused { reason } => write!(f, "{reason}"),
+            Self::Granted { .. } | Self::AlreadyDurable { .. } => {
+                write!(f, "folder trust was saved")
+            }
+        }
+    }
+}
+
+impl std::error::Error for GrantOutcome {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrantResolution {
+    Trusted,
+    SessionLocal,
+    Unrecorded,
+}
+
+impl GrantOutcome {
+    #[must_use]
+    pub fn resolution(&self) -> GrantResolution {
+        match self {
+            Self::Granted {
+                persist: PersistStatus::Durable,
+                ..
+            }
+            | Self::AlreadyDurable { .. } => GrantResolution::Trusted,
+            Self::Granted {
+                persist: PersistStatus::ProcessLocalOnly { .. },
+                ..
+            } => GrantResolution::SessionLocal,
+            Self::Refused { reason } => match reason {
+                GrantRefuse::InertBuild | GrantRefuse::UnsafeRoot => GrantResolution::Trusted,
+                GrantRefuse::NoHome => GrantResolution::Unrecorded,
+            },
+        }
+    }
+
+    /// Whether this grant is enough to drop the folder-trust gate.
+    #[must_use]
+    pub fn dismisses_gate(&self) -> bool {
+        matches!(self.resolution(), GrantResolution::Trusted)
+    }
+}
+
+/// Print `--trust` status. Durable and auto-trust outcomes are silent.
+pub fn report_cli_trust_grant(outcome: &GrantOutcome) {
+    if outcome.dismisses_gate() {
         return;
     }
-    persist_trust(&mut TrustStore::load(), &workspace_key(cwd));
+    tracing::warn!(error = %outcome, "--trust: folder trust was not saved");
+    let _ = writeln!(io::stderr(), "{outcome}");
+}
+
+/// Persist an explicit `--trust` grant for `cwd`'s workspace so repo-local
+/// servers are honored on the next resolve. The return value says whether the
+/// gate can actually be dismissed (store write may fail or be refused).
+pub fn grant_folder_trust(cwd: &Path) -> GrantOutcome {
+    if folder_trust_inert() {
+        return GrantOutcome::Refused {
+            reason: GrantRefuse::InertBuild,
+        };
+    }
+    grant_folder_trust_key(&workspace_key(cwd))
+}
+
+/// Grant the shown key. Does not re-run [`workspace_key`].
+pub fn grant_folder_trust_key(key: &Path) -> GrantOutcome {
+    apply_grant_to_store(&mut TrustStore::load(), key)
 }
 
 /// Store-only half of revoking trust for `cwd`'s workspace: persist an explicit
@@ -218,12 +335,59 @@ pub fn revoke_folder_trust_store(cwd: &Path) -> bool {
 }
 
 pub fn persist_trust(store: &mut TrustStore, key: &Path) {
-    if let Err(e) = store.set_trusted(key) {
-        tracing::warn!(
-            path = %key.display(),
-            error = %e,
-            "folder trust: failed to persist trust decision"
-        );
+    match apply_grant_to_store(store, key) {
+        GrantOutcome::Granted {
+            persist: PersistStatus::Durable,
+            ..
+        }
+        | GrantOutcome::AlreadyDurable { .. } => {}
+        GrantOutcome::Granted {
+            persist: PersistStatus::ProcessLocalOnly { error },
+            ..
+        } => {
+            tracing::warn!(
+                path = %key.display(),
+                error = %error,
+                "folder trust: failed to persist trust decision"
+            );
+        }
+        GrantOutcome::Refused { reason } => {
+            tracing::warn!(
+                path = %key.display(),
+                ?reason,
+                "folder trust: grant refused"
+            );
+        }
+    }
+}
+
+fn apply_grant_to_store(store: &mut TrustStore, key: &Path) -> GrantOutcome {
+    let key = key.to_path_buf();
+    if crate::trust::is_unsafe_trust_root(&key) {
+        return GrantOutcome::Refused {
+            reason: GrantRefuse::UnsafeRoot,
+        };
+    }
+    if TrustStore::default_path().is_none() {
+        return GrantOutcome::Refused {
+            reason: GrantRefuse::NoHome,
+        };
+    }
+    if store.is_trusted(&key) {
+        return GrantOutcome::AlreadyDurable { key };
+    }
+    match store.set_trusted(&key) {
+        Ok(()) if store.is_trusted(&key) => GrantOutcome::Granted {
+            key,
+            persist: PersistStatus::Durable,
+        },
+        Ok(()) => GrantOutcome::Refused {
+            reason: GrantRefuse::UnsafeRoot,
+        },
+        Err(error) => GrantOutcome::Granted {
+            key,
+            persist: PersistStatus::ProcessLocalOnly { error },
+        },
     }
 }
 
@@ -947,6 +1111,27 @@ mod tests {
     }
 
     #[test]
+    fn release_grant_records_and_second_grant_is_already_durable() {
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home = EnvVarGuard::set("NOFY_HOME", home.path());
+        let _sim = simulate_release_build();
+        let tmp = repo_tmp();
+        let key = workspace_key(tmp.path());
+
+        let first = grant_folder_trust(tmp.path());
+        assert!(first.dismisses_gate(), "{first:?}");
+        assert!(TrustStore::load().is_trusted(&key));
+
+        let second = grant_folder_trust(tmp.path());
+        assert!(
+            matches!(second, GrantOutcome::AlreadyDurable { .. }),
+            "{second:?}"
+        );
+        assert!(second.dismisses_gate());
+    }
+
+    #[test]
     fn local_build_ignores_explicit_env_optin() {
         // Auto-trust is absolute on a local build: even an explicit
         // NOFY_FOLDER_TRUST=1 does NOT enable the feature (so a self-built nofy
@@ -1007,7 +1192,20 @@ mod tests {
         let key = workspace_key(tmp.path());
 
         // grant is a no-op: a local-build grant never trusts the fresh key.
-        grant_folder_trust(tmp.path());
+        let outcome = grant_folder_trust(tmp.path());
+        assert!(
+            outcome.dismisses_gate(),
+            "inert build still dismisses the gate (feature-off equivalent)"
+        );
+        assert!(
+            matches!(
+                outcome,
+                GrantOutcome::Refused {
+                    reason: GrantRefuse::InertBuild
+                }
+            ),
+            "{outcome:?}"
+        );
         assert!(
             !TrustStore::load().is_trusted(&key),
             "local build: grant_folder_trust must not trust the folder"

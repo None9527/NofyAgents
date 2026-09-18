@@ -3,17 +3,27 @@ use super::*;
 impl SessionActor {
     // ── Shared hook/plugin operation functions ────────────────────────
 
-    /// Trust the current project via the unified folder-trust store. Now an
-    /// alias of `--trust`: also allows repo-local MCP/LSP for this folder.
+    /// Same as `--trust`: also allows repo-local MCP/LSP for this folder.
+    /// Still requires a git worktree, but grants `workspace_key(cwd)` (the
+    /// session key `decide` uses), not the raw git root.
     pub(super) fn do_hooks_trust_project(cwd: &str) -> Result<std::path::PathBuf, String> {
-        let root =
-            nofy_workspace::session::git::find_git_root_from_path(std::path::Path::new(cwd))
-                .map_err(|_| {
-                    "Not in a git repository. Project hooks require a git worktree root."
-                        .to_string()
-                })?;
-        crate::agent::folder_trust::grant_folder_trust(&root);
-        Ok(root)
+        let cwd_path = std::path::Path::new(cwd);
+        nofy_workspace::session::git::find_git_root_from_path(cwd_path).map_err(|_| {
+            "Not in a git repository. Project hooks require a git worktree root.".to_string()
+        })?;
+        let outcome = crate::agent::folder_trust::grant_folder_trust(cwd_path);
+        if outcome.dismisses_gate() {
+            return Ok(match &outcome {
+                nofy_workspace::folder_trust::GrantOutcome::Granted { key, .. }
+                | nofy_workspace::folder_trust::GrantOutcome::AlreadyDurable { key } => {
+                    key.clone()
+                }
+                nofy_workspace::folder_trust::GrantOutcome::Refused { .. } => {
+                    nofy_workspace::trust::workspace_key(cwd_path)
+                }
+            });
+        }
+        Err(outcome.to_string())
     }
 
     /// Untrust the current project in the unified folder-trust store.

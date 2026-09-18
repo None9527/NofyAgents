@@ -885,7 +885,9 @@ pub async fn run_single_turn(
     };
 
     if options.trust {
-        nofy_shell::agent::folder_trust::grant_folder_trust(&cwd);
+        nofy_shell::agent::folder_trust::report_cli_trust_grant(
+            &nofy_shell::agent::folder_trust::grant_folder_trust(&cwd),
+        );
     }
 
     let cancel = CancellationToken::new();

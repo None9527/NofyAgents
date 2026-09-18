@@ -41,7 +41,7 @@ use nofy_workspace::trust::{TrustStore, is_unsafe_trust_root, workspace_key};
 // re-export is deliberately avoided: it would silently re-publish the
 // cache-SKIPPING `revoke_folder_trust_store` next to the real
 // `revoke_folder_trust` wrapper, inviting a stale-untrust security bug.
-pub use nofy_workspace::folder_trust::grant_folder_trust;
+pub use nofy_workspace::folder_trust::{grant_folder_trust, report_cli_trust_grant};
 use nofy_workspace::folder_trust::{
     DecideInputs, TrustOutcome, claude_project_mcp_names, decide, decide_inputs,
     decide_inputs_with_interactive, feature_enabled, folder_trust_inert, persist_trust,

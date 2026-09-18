@@ -399,6 +399,12 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 |---|---|---|---|---|
 | ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**有意不做**:`resolve_atomic_destination` 整段(仍可后补)、watcher retarget | `ec617324` | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
 
+### 14.5 C6 原生实现日志(folder_trust GrantOutcome,2026-09-19)
+
+| # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ㉛ | `--trust`/Trust 项目后要能看出闸口是否真的放下(1.0.33 集群;上游 `GrantOutcome`/`dismisses_gate`) | `grant_folder_trust` 返回 `GrantOutcome`：Durable/AlreadyDurable/Inert/UnsafeRoot 关闸；写盘失败是 SessionLocal；无 home 是 Unrecorded。hooks `do_hooks_trust_project` 只在 `dismisses_gate` 时 Ok，并授权 `workspace_key(cwd)` 而非 git root。pager 接受信任问题时 Unrecorded 留在 Pending+toast。CLI `--trust` 失败走 `report_cli_trust_grant`。**有意不做**：PROCESS_DECISIONS 进程内旁路、KeyMoved canonicalize 预检、fs_notify 事件帧分批 | 本提交 | nofy-workspace `store_io_is_noop_on_local_build` + `release_grant_records_and_second_grant_is_already_durable`;`cargo check -p nofy-pager -p nofy-pager-bin -p nofy-shell` |
+
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
 > `syntect v5.3.0 → onig v6.5.1 → onig_sys v69.9.1`,全工作区 `onig_sys` 命中 1 次。

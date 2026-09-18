@@ -1573,10 +1573,9 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
    落点不在 `util/config/mcp.rs`，在 `xai-grok-mcp/src/servers.rs` 的 `call_tool_cancel_aware` + `CancelOnDrop`。
    我们原先 `tokio::time::timeout(mcp_service.call_tool)` 超时/Esc drop **不**发 `notifications/cancelled`。
    #1 headless 状态/connecting 提示——缠批15 托管连接器分歧，仍排后。
-2. **C6 两项**：`folder_trust`——我们的 `grant_folder_trust(cwd)` **返回 `()`**（`:186`），即「授权是否真的解除了闸口」
-   不可观测，正是上游 `GrantResolution::dismisses_gate()` 要解决的（我们有 `TrustOutcome`(:37)/`decide`(:61)，
-   但无授权结果分类）；`fs_notify` 的事件帧 root 限制/分批——我们的 `confine_to_root` 在 `handle.rs:1904`
-   （API 层，含 dotdot/绝对路径/symlink 逃逸测试），**不是同一层**，需读实现判是否等价。
+2. **C6 两项**：`folder_trust` **已落地（㉛）**——`grant_folder_trust` 返回 `GrantOutcome`，
+   `dismisses_gate()` 才关闸；hooks Trust 失败会报错而不是假装成功；`--trust` 失败打 stderr。
+   `fs_notify` 事件帧 root 限制/分批仍待核实（`confine_to_root` 不是同一层）。
 3. **1.0.33#10 recap 门控**：落点存在（`extensions/recap.rs`、`run_loop.rs:1978 s.handle_recap(auto)`）；
    需核我们是否已在「计划任务/monitor/workflow 在跑」时抑制 auto recap（㉒ 做的是 resume 告知，不是抑制）。
 4. **1.0.33#4 子代理 cancelled 状态**：上游落点 `spawn.rs`(+49/−67)/`session_setup.rs`(+117)/新 `isolated_spawn_e2e.rs`(+284)；

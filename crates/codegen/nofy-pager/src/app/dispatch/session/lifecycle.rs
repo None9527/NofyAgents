@@ -619,11 +619,26 @@ pub(in crate::app::dispatch) fn dispatch_delete_current_session_answered(
 /// Handle the user accepting the folder-trust question: persist the grant for
 /// the workspace (writes `~/.nofy/trusted_folders.toml`), mark trust resolved,
 /// then replay any deferred session startup (only if auth is also done).
+/// If the grant did not actually dismiss the gate, stay pending and toast.
 pub(in crate::app::dispatch) fn dispatch_trust_folder(app: &mut AppView) -> Vec<Effect> {
-    if let TrustState::Pending { workspace } = &app.trust_state {
-        nofy_workspace::folder_trust::grant_folder_trust(workspace);
+    let TrustState::Pending { workspace } = &app.trust_state else {
+        return vec![];
+    };
+    let shown = workspace.clone();
+    let outcome = nofy_workspace::folder_trust::grant_folder_trust_key(&shown);
+    match outcome.resolution() {
+        nofy_workspace::folder_trust::GrantResolution::Trusted => finish_trust(app),
+        nofy_workspace::folder_trust::GrantResolution::SessionLocal => {
+            app.show_toast(
+                "Folder trusted for this session only. Run `nofy --trust` here to save it for next time.",
+            );
+            finish_trust(app)
+        }
+        nofy_workspace::folder_trust::GrantResolution::Unrecorded => {
+            app.show_toast(&outcome.to_string());
+            vec![]
+        }
     }
-    finish_trust(app)
 }
 /// Tail of accepting the folder-trust question (via [`dispatch_trust_folder`];
 /// declining quits instead): resolve `trust_state` to `Done`, focus the welcome
