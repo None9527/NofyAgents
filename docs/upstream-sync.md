@@ -397,7 +397,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 | # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
 |---|---|---|---|---|
-| ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**有意不做**:`resolve_atomic_destination` 整段(仍可后补)、watcher retarget | 本提交 | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
+| ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**有意不做**:`resolve_atomic_destination` 整段(仍可后补)、watcher retarget | `ec617324` | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
 
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
