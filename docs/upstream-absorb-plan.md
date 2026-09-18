@@ -1455,6 +1455,13 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
 
 ### 14.1 批26（T0，两项小手术，可合一批）
 
+> ✅ **批26 已落地（2026-09-18）**：A = 原生㉖ `74bf0a3d`、B = 原生㉗ `a9dcd5d2`。
+> 验证、红绿双验、基线（markdown 477 / pager-render 1,053）与如实登记的局限全部写在
+> 台账「批26 原生实现日志」。下面两小节保留为**当时的核实记录**，其中 B 的一处判断已被
+> 依赖图证据推翻（见本节末与 §14.4 之后的更正）。A 的实际规模也比这里估的大：不止
+> 「改一个函数签名 + 加一个 reseed 方法」，而是横跨 chat-state 与 shell 的四个协作部件
+> （objective pin 的通道在 chat-state 的 `CompactionInputs`）。
+
 **A. goal × 压缩交接（C2）— 已核实真缺口，落点精确到行**
 
 - 上游形状（已逐行读）：`goal.rs:1169–1178` 的 `reseed_active_goal_after_compaction`（仅 10 行）=
@@ -1543,6 +1550,15 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
 |---|---|---|
 | **C3② fancy→onig** | 收益是 1.0.35#4 的内存/速度主体；代价是引入 oniguruma 原生 C 依赖（构建链、体积、交叉编译），且 `syntect` 与 `two-face` 两处 feature 要一起改（上游是 `default-fancy`→`default-onig`、`syntect-fancy`→`syntect-onig`；我们根 `Cargo.toml` 现为 `syntect = "5.3"` 默认即 fancy） | **先做 14.1B**（零依赖即可拿到「不再运行时构建 + 三主题共享一份」），实测后再决定是否值得上 onig；若上，需单独一次构建面验证（macOS/Linux、release 体积、构建耗时） |
 | **Memory v2 整层** | 上游 v2 是**独立磁盘地基**（`v2.rs` 模块 doc 原话：「V2 never reads from or writes to the legacy `memory/` tree」；rusqlite 状态库 + topics/observations/archive/manifest/lexical index，本轮新增 `v2_carryover.rs` +529 与 +439 测试）。我们这侧：`nofy-memory`（v1，markdown + rusqlite 索引/embedding，15 文件）**是在用的**；`nofy-memorycore`（12 文件约 2,025 行：auditstore/compact/compleases/curator/dreaming/forkrev/injection/modelops/projstore/seal/snapshot）**除 `nofy-daemon/tests/ratchet.rs` 外无任何消费者＝未接线** | **不移植 v2**。理由与撤销 `message-delivery-core` 同构：移植会在同一域造出第三套模型（v1 + memorycore + v2）。改为两个独立决定：① 1.0.35#7 的实质（删除慢、开关不接线 agent）按内容在我们 v1 路径上核实后原生修；② `memorycore` 接线是**我们自己的绿地项目**（与 `attempt_store` 同类），不属吸收上游 |
+
+> ⚠ **更正（2026-09-18，㉗ 实施时以依赖图核实）：上表的 C3② 一行作废——我们本来就在 onig。**
+> `cargo tree -p nofy-markdown` 实测 `syntect v5.3.0 → onig v6.5.1 → onig_sys v69.9.1`；
+> 根 `Cargo.toml` 的 `syntect = "5.3"` 未关默认 feature，而 syntect 5.3 的 `default = ["default-onig"]`，
+> `two-face` 那侧的 `features = ["syntect-fancy"]` 不改变 syntect 自身后端。故「引入 oniguruma 原生 C
+> 依赖」这个代价我们**早已付过**，无需拍板；1.0.35#4 剩下的全部收益就是 ㉗（构建期 dump + 全进程共享
+> 一份），已落地。§13.3 的 T2「C3② fancy→onig」条目同样作废。
+> **方法论教训（比这条本身重要）**：「上游把 X 改成 Y」不能推出「我们是 X」——feature 的默认值与
+> 统一规则会让实际形态与 Cargo.toml 字面不一致，判后端/特性开关一律查 `cargo tree` 或编译产物。
 
 ### 14.5 批26/27 之后的待核实队列（逐项核实后写回台账，含「已对齐」与「假阳性纠正」）
 

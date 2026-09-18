@@ -371,6 +371,28 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - ④ MCP 瞬断重试 / 后台流式时抑制 auto recap(韧性想法,需各自调查与我们分歧——批15 托管连接器、批17 subagent 结构——的相容性)
 - ⑤ 1.0.12 余条已定性:worktree reflog(缠批23 fast-worktree 云面)、interjection 等待(缠批17 结构分歧)、截断措辞(我们树无对应)、monitor 10h(已对齐)、credit upsell(云跳过)——均非原生候选
 
+### 批26 原生实现日志(1.0.33–1.0.35,2026-09-18)
+
+方法同批25(校准后):以上游为参照提炼想法、用我们自己的架构原生实现。摸底与候选分层见上方
+「增量摸底」专节与计划 §13/§14;本节只记落地结果与验证。
+
+| # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ㉖ | 压缩不能丢掉活跃 goal:压缩替换历史后续跑指令一并消失,下一次采样看到 create-style 规则而非当前 next step;且压缩时的 `last_user_query` 可能还是 goal 之前那句人类 prompt,摘要会把旧任务当当前任务复活(1.0.33,C2;上游 `goal.rs` +132/−57、`compaction.rs` +15/−6、新 `goal_compaction_reseed_tests.rs` +383、chat-state `compaction_utils` +45 及其新测试) | **两个 crate 的四个协作部件,全部原生落地**:① chat-state `CompactionInputs` 加 `goal_objective: Option<String>`,`build()` 的 `last_user_query` 改为「非空 objective 优先,否则回退 `extract_last_real_user_query`」(字段走 `Default`,10 个构造点无需改动);② shell 新增 `GoalContinuationPurpose{TurnEnd,Compaction}`——与既有 `DrainPurpose{TurnEnd,MidTurn}` 是**不同的轴**,没有混用——`prepare_goal_continuation` 加 purpose 参数,五处回合末簿记(drain / premature-stop 扫描 / token 预算 enforce / `GoalUpdated` 通知 / `rounds_since_verify` 自增)统一由 `apply_turn_end` 门控;③ 新增 `reseed_active_goal_after_compaction` 与 `goal_objective_for_compaction`(仅 Active 且非空才 pin,暂停/阻塞/预算受限的 goal 让人类 prompt 留在 `last_user_query`);④ `compaction.rs` 在 `replace_conversation_for_compaction` 之后调用 reseed,并把 `new_len` 改为 reseed 之后取 `get_conversation_len()`(journal 的 `item_count` 要反映会话实际续跑长度),两处生产 `CompactionStateContext::build`(短提示分支与完整分支)都接上 `goal_objective`。**有意不做**:上游同轮的 `build_two_pass_compaction_prompt` → `build_compaction_prompt(user_context, bool)` 改名与 `merge_goal_compaction_user_context`(把 goal pin 折进 `/compact <text>`)缠在我们没有的 prompt 管道重构上,留待核实队列(计划 §14.5) | `74bf0a3d` | nofy-chat-state **378 passed / 0 failed**(基线 376 + 2 新靶子);nofy-shell --lib 全量 **5,248 passed / 2 failed / 12 ignored**,两个失败是台账既有的 macOS 环境伪失败(`memory_writer` 的 "/tmp is ephemeral" 前置、`workflow::registry` 的 symlink 规范化),**5,248 = ㉔ 基线 5,245 + 本次 3 个新靶子**;`cargo check --workspace --all-targets` exit 0;detect-changes 19 文件/21 符号/**0 执行流**/risk low。**红绿双验 3 项全 ok**:A 去掉 rounds 门 → "must not count as a worker round" FAILED;B 去掉 drain 门 → "must not TurnEnd-drain pending classifier completions" FAILED;C 回退 chat-state 的 seeding → chat-state 与 shell 两个靶子**同时** FAILED;三次还原后均回绿(3 passed / 378 passed)。**如实登记的局限**:① 全量 lib 第一次跑时 `workflow::manager::tests::resume_reconciles_agents_used_from_journal_no_double_charge` 卡住 7 分钟以上,单独跑 0.05s 通过、第二次全量 40s 完成且该测试通过——并行竞争下的偶发,与本改动无因果关系(未触及 workflow manager);② `compaction.rs` 里 reseed 的**调用点本身无测试覆盖**(三个靶子都直接调该方法),上游同样如此,覆盖它要跑通整条 `run_compact_inner`,留待后续;③ `impact(prepare_goal_continuation)` 报 LOW/0 直接调用者,grep 实测 3 个(`goal.rs:1357/:1380/:1952`),再次印证调用图只是下界 |
+| ㉗ | 语法高亮不该在运行时构建语法集:上游注释原话「运行时 `SyntaxSet::build` 拖住首次 Read 上色」(GB-5513 PTY fold),故构建期 dump + 运行时反序列化一次(1.0.35#4,C3①;上游新 `build.rs` +21、`syntax.rs` +297/−4、新 `syntax_backend_tests.rs` +123、新资产 `Swift.sublime-syntax` +417,并把 `syntect` 从 `default-fancy` 改 `default-onig`) | 新增 `nofy-markdown/build.rs`(`rerun-if-changed` + `dump_to_uncompressed_file`),`Syntect.syntax_set` 由 `SyntaxSet` 改为 **`Arc<SyntaxSet>`**,由进程级 `OnceLock<Arc<SyntaxSet>>` 的 `shared_syntax_set()` 提供。**比上游多拿一个收益**:上游是 `OnceLock<SyntaxSet>` + `.clone()`,而 syntect 5.3.0 的 `SyntaxReference` 是 `#[derive(Clone)]` 且含 `serialized_lazy_contexts: Vec<u8>`,clone 会复制序列化字节——上游那句每个 `Syntect` 一份;我们 `nofy-pager-render/src/syntax.rs` 为 nofy-night/tokyo-night/nofy-day **三个主题各建一个单例**,照抄上游就是三份。改 `Arc` 后全进程只有一份,消费面 15 处 `&syn.syntax_set` 靠 deref 强制转换**零改动**(pager-render/pager/open_code_highlighter/benches/bin 全部编译通过)。**有意不做**:上游同轮的 Swift 资产与 `patched_swift`/`is_swift_token`(1.0.35#3)是独立的资产 + 查找特例,放进来会把验证面从「高亮后端」扩到「语法资产」,留作 B2 小项 | `a9dcd5d2` | nofy-markdown **477 passed / 0 failed**(基线 476 + 1 新靶子 `syntax_set_is_shared_and_survives_the_dump_round_trip`:`Arc::ptr_eq` 共享 + `rust` token 可解析 + 与运行时构建的集合**等量 199=199**——用等量对比而非魔数,two-face 升级不会让断言悄悄失效);nofy-pager-render 全量 **1,053 passed / 0 failed**;`cargo check --workspace --all-targets` exit 0;detect-changes 17 文件/11 符号/**0 执行流**/risk low。**红绿双验**:把 `shared_syntax_set()` 改成每次 `Arc::new(extra_newlines())` → 新靶子 FAILED("one shared set per process…"),还原后 477 全绿。**序列化丢字段已核实无影响**:syntect 的 `SyntaxSet.metadata` 在 `metadata` feature 下是 `#[serde(skip)]`,dump/load 会丢;全树 grep 确认**没有任何代码使用高亮 metadata**(nofy-markdown/nofy-pager-render/nofy-pager 零命中),上游同样承担这个取舍。**体积代价**:dump 实测 **921,717 字节(约 900KB)** 经 `include_bytes!` 进二进制;release 二进制的实测增量**未做**(deferred)。**基线与偶发登记**:① markdown/pager-render 的测试基线台账此前没有(计划 §14.7 标注「需先建基线」),本次实测 **477 与 1,053**,已建;② pager-render 的 `terminal::tmux_probe::tests::successful_near_deadline_exit_still_returns_captured_output` 是**既有计时偶发**——基线对照(`git stash push -u -- crates/codegen/nofy-markdown` 后连跑 3 次 = 绿/绿/**红**;带改动连跑 3 次 = 绿/绿/绿;全量 1,053 项时也是绿),它与高亮无代码关系,但会随机打红过滤跑 |
+
+> **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
+> **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
+> `syntect v5.3.0 → onig v6.5.1 → onig_sys v69.9.1`,全工作区 `onig_sys` 命中 1 次。
+> 原因是根 `Cargo.toml` 的 `syntect = "5.3"` **未关默认 feature**,而 syntect 5.3 的
+> `default = ["default-onig"]`;`two-face` 那侧写着 `features = ["syntect-fancy"]`,
+> 但那只影响 two-face 自己的取舍,不改变 syntect 的后端。C3 行里「默认即 fancy」与
+> 「与上游改前逐字相同」两句因此都是错的(上游是**显式** pin `default-fancy`,我们从未 pin)。
+> **结论:1.0.35#4 的后端切换收益我们早已具备,它剩下的全部收益就是 ㉗ 这一项**;
+> 计划 §13.3 的 T2「C3② 需用户拍板」与 §14.4 的对应行随之作废。
+> **方法论教训**:「上游把 X 改成 Y」不能推出「我们是 X」——要查依赖图/编译产物,
+> feature 的默认值与统一规则会让两边的实际形态与 Cargo.toml 字面不一致。
+
 ## 增量摸底(1.0.33–1.0.35@a28ee2b2,2026-09-18)
 
 `git fetch upstream` 后上游从 `48271133`(1.0.32)前进到 **`a28ee2b2`**(2026-09-17,仍是单 squash 提交
