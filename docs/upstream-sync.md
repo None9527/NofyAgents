@@ -387,6 +387,12 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 |---|---|---|---|---|
 | ㉘ | 长驻会话的压缩检查点/prompt offload 不该被 30 天 mtime 清扫删掉;rewind 只要求目标的 base checkpoint,后续 checkpoint 文件缺失不能让更早的 rewind 失败(1.0.33#7/#9;上游 `mark_session_live` + `SWEPT_BLOB_DIRS` 只剪 images/videos/downloads/terminal,测试 `live_session_dir_is_never_removed_but_its_stale_blobs_are_pruned` / `mark_session_live_keeps_an_idle_session_out_of_a_foreign_sweep`) | **清扫改语义,不是照搬文件**:① `mark_session_live` 在 spawn sweep 之前同步 bump `summary.json` mtime(Windows 需 write 打开);② 空闲会话按 `session_last_activity`(目录自身正规文件最新 mtime)整目录删除,活跃/live 会话只 prune 四个 blob 目录,checkpoint/prompts/lock **一律保留**;③ `spawn_session_sweep` 接到 `session/new` 与 attach,`session_sweep_done` 避免二次 spawn;④ 仍走我们的 relocation 闸口(`protects_cwd_dir` + journal 缺失才扫,stub 无 lease)。**rewind**:`handle_checkpoint` 在 `target < compaction_at` 时 checkpoint 文件缺失/损坏只 warn,继续用 raw updates(不再 fail-closed 整段 rewind)。**有意不做**:上游 replay 的 `bases` 栈(后一个 checkpoint 覆盖前一个不可读 blob)——缺文件时目标若已过 compaction 仍报错,因为清扫不再删 checkpoint,base 应还在;workspace `recovery.rs` 的同名 `cleanup_stale_sessions`(7 天整目录)未动 | `c532956a` | cleanup 9 靶子全绿(含外来进程清扫);replay 模块 14 passed(含新 `test_replay_missing_later_checkpoint_pre_compaction_target_succeeds` + 原有 pre/post compaction)。grep 生产调用:`session_setup::spawn_session_sweep` 两处 + `acp_agent` 启动 `cleanup(None)`。`impact(cleanup_stale_sessions)` 因与 workspace recovery 同名报 not found/0,以 grep 为准。**未跑** nofy-shell 全量 lib(基线 5,248+伪失败)与 workspace `cargo check`——本批只改 shell persistence/replay/session_setup |
 
+### 14.5 C5 原生实现日志(1.0.33#2 + #6,2026-09-19)
+
+| # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ㉙ | 取消/超时的 MCP 工具调用要通知 server 停工;server 提供 structured JSON 时模型要看见(1.0.33#6/#2) | **不搬 MRTR 整环**。① `call_tool_cancel_aware`：`send_cancellable_request` + `PeerRequestOptions::with_timeout`，超时走 rmcp 自带 `notifications/cancelled`（`ServiceError::Timeout`）；future drop（Esc 取消回合）由 `CancelOnDrop` spawn `notify_cancelled`。替换原来的 `tokio::time::timeout(mcp_service.call_tool)`。② `mcp_output_from_call_result` 用 `render_structured_content` 把未内联的 `structuredContent` 接到文本末尾（错误结果同样接，且丢掉 image/resource 块）。helper 放 `nofy-tools` 与上游同位置。**有意不做**：SEP-2322 多轮 `input_required`/`CallToolResponse` 枚举、C5#1 headless connecting（缠批15） | 本提交 | nofy-tools structuredContent 6 passed；nofy-mcp 3 cancel 靶子 + 3 structured 靶子全绿 |
+
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
 > `syntect v5.3.0 → onig v6.5.1 → onig_sys v69.9.1`,全工作区 `onig_sys` 命中 1 次。

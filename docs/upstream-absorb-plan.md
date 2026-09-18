@@ -1564,11 +1564,10 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
 
 ### 14.5 批26/27 之后的待核实队列（逐项核实后写回台账，含「已对齐」与「假阳性纠正」）
 
-1. **C5 MCP 三项**：#6 取消/超时通知 server——我们 `nofy-mcp` 只有 init 进度(`servers.rs:282/590`)与 elicitation 的
-   cancel，**工具调用取消未见通知 server 的代码**，疑真缺口，需读上游 `util/config/mcp.rs`(+469/−163) 定位；
-   #2 structuredContent——**已核实不受钉版阻塞**：`rmcp 2.1.0` 的 `model.rs:2937` 就有 `pub structured_content: Option<Value>`
-   （我们是 crates.io 的 rmcp 2.1，隔离在 `nofy-mcp` 里因其要 reqwest 0.13），而我们全树零使用，属纯增量；
-   #1 headless 状态/connecting 提示——缠批15 托管连接器分歧，排最后。
+1. **C5 MCP 三项**：#6 取消/超时通知 server + #2 structuredContent **已落地（㉙，2026-09-19）**。
+   落点不在 `util/config/mcp.rs`，在 `xai-grok-mcp/src/servers.rs` 的 `call_tool_cancel_aware` + `CancelOnDrop`。
+   我们原先 `tokio::time::timeout(mcp_service.call_tool)` 超时/Esc drop **不**发 `notifications/cancelled`。
+   #1 headless 状态/connecting 提示——缠批15 托管连接器分歧，仍排后。
 2. **C6 两项**：`folder_trust`——我们的 `grant_folder_trust(cwd)` **返回 `()`**（`:186`），即「授权是否真的解除了闸口」
    不可观测，正是上游 `GrantResolution::dismisses_gate()` 要解决的（我们有 `TrustOutcome`(:37)/`decide`(:61)，
    但无授权结果分类）；`fs_notify` 的事件帧 root 限制/分批——我们的 `confine_to_root` 在 `handle.rs:1904`

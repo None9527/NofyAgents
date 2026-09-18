@@ -16,12 +16,12 @@ use tokio::{
 use rmcp::{
     ClientHandler, ServiceExt,
     model::{
-        CallToolRequestParams, ClientCapabilities, ClientInfo, Implementation,
-        PaginatedRequestParams,
+        CallToolRequest, CallToolRequestParams, CancelledNotificationParam, ClientCapabilities,
+        ClientInfo, ClientRequest, Implementation, PaginatedRequestParams, ServerResult,
     },
     service::{
-        ClientInitializeError, NotificationContext, RequestContext, RoleClient, RunningService,
-        ServiceError,
+        ClientInitializeError, NotificationContext, PeerRequestOptions, RequestContext, RoleClient,
+        RunningService, ServiceError,
     },
     service::{RxJsonRpcMessage, TxJsonRpcMessage},
     transport::{
@@ -1479,48 +1479,12 @@ impl nofy_tool_runtime::Tool for McpErasedTool {
             }
         };
 
-        let is_error = call_result.is_error.unwrap_or(false);
-        let mut output = if is_error {
-            let error_msg = call_result
-                .content
-                .iter()
-                .filter_map(|c| match c {
-                    rmcp::model::ContentBlock::Text(t) => Some(t.text.clone()),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
-            ToolOutput::MCP(MCPOutput::errored(tool.clone(), server.clone(), error_msg))
-        } else {
-            let expose_base64 = client.expose_image_base64();
-            let parts: Vec<String> = call_result
-                .content
-                .into_iter()
-                .filter_map(|c| match c {
-                    rmcp::model::ContentBlock::Text(t) => Some(t.text),
-                    rmcp::model::ContentBlock::Image(img) => {
-                        Some(format_mcp_image(&img.mime_type, &img.data, expose_base64))
-                    }
-                    rmcp::model::ContentBlock::Resource(r) => match &r.resource {
-                        rmcp::model::ResourceContents::BlobResourceContents {
-                            mime_type,
-                            blob,
-                            ..
-                        } if mime_type
-                            .as_deref()
-                            .is_some_and(|m| m.starts_with("image/")) =>
-                        {
-                            let mime = mime_type.as_deref().unwrap();
-                            Some(format_mcp_image(mime, blob, expose_base64))
-                        }
-                        _ => serde_json::to_string(&r).ok(),
-                    },
-                    _ => None,
-                })
-                .collect();
-            let text = parts.join("\n");
-            ToolOutput::MCP(MCPOutput::okay_output(tool.clone(), server.clone(), text))
-        };
+        let mut output = ToolOutput::MCP(mcp_output_from_call_result(
+            tool.clone(),
+            server.clone(),
+            call_result,
+            client.expose_image_base64(),
+        ));
 
         if let ToolOutput::MCP(ref mut mcp_out) = output {
             mcp_out.auth_retry_attempted = auth_retry_attempted;
@@ -1528,18 +1492,13 @@ impl nofy_tool_runtime::Tool for McpErasedTool {
             mcp_out.is_timeout = is_timeout;
         }
 
-        let success = !is_error;
         let duration_ms = mcp_call_start.elapsed().as_millis() as u64;
-        let error_text = if is_error {
-            match &output {
-                ToolOutput::MCP(mcp) => match mcp.output() {
-                    MCPOutputDetails::Error(e) => Some(e.clone()),
-                    _ => None,
-                },
-                _ => None,
-            }
-        } else {
-            None
+        let (success, error_text) = match &output {
+            ToolOutput::MCP(mcp) => match mcp.output() {
+                MCPOutputDetails::Error(e) => (false, Some(e.clone())),
+                _ => (true, None),
+            },
+            _ => (true, None),
         };
         event_writer.emit(nofy_file_utils::events::Event::McpToolCallCompleted {
             server_name: server.clone(),
@@ -1578,6 +1537,114 @@ fn format_mcp_image(mime: &str, base64_data: &str, expose_base64: bool) -> Strin
         )
     } else {
         format!("data:{mime};base64,{base64_data}")
+    }
+}
+
+/// Model-visible text for an MCP `tools/call` result. Error results keep only
+/// their text blocks; both branches append [`render_structured_content`].
+pub(crate) fn mcp_output_from_call_result(
+    tool: String,
+    server: String,
+    call_result: rmcp::model::CallToolResult,
+    expose_base64: bool,
+) -> MCPOutput {
+    let is_error = call_result.is_error.unwrap_or(false);
+    let mut parts: Vec<String> = call_result
+        .content
+        .into_iter()
+        .filter_map(|c| match c {
+            rmcp::model::ContentBlock::Text(t) => Some(t.text),
+            _ if is_error => None,
+            rmcp::model::ContentBlock::Image(img) => {
+                Some(format_mcp_image(&img.mime_type, &img.data, expose_base64))
+            }
+            rmcp::model::ContentBlock::Resource(r) => match &r.resource {
+                rmcp::model::ResourceContents::BlobResourceContents {
+                    mime_type: Some(mime),
+                    blob,
+                    ..
+                } if mime.starts_with("image/") => {
+                    Some(format_mcp_image(mime, blob, expose_base64))
+                }
+                _ => serde_json::to_string(&r).ok(),
+            },
+            _ => None,
+        })
+        .collect();
+    parts.extend(nofy_tools::util::mcp_structured_content::render_structured_content(
+        call_result.structured_content.as_ref(),
+        parts.iter().map(String::as_str),
+    ));
+
+    let text = parts.join("\n");
+    if is_error {
+        MCPOutput::errored(tool, server, text)
+    } else {
+        MCPOutput::okay_output(tool, server, text)
+    }
+}
+
+/// One `tools/call` that tells the server when the host stops waiting for it.
+///
+/// Two abandonment paths send `notifications/cancelled` for the request id:
+/// rmcp sends it itself when the tool timeout elapses (surfaced as
+/// [`ServiceError::Timeout`]), and [`CancelOnDrop`] sends it when the future
+/// is dropped before a reply, which is how a cancelled turn (Esc) reaches
+/// the server.
+pub(crate) async fn call_tool_cancel_aware(
+    service: &McpService,
+    params: CallToolRequestParams,
+    timeout: std::time::Duration,
+) -> Result<rmcp::model::CallToolResult, ServiceError> {
+    let handle = service
+        .peer()
+        .send_cancellable_request(
+            ClientRequest::CallToolRequest(CallToolRequest::new(params)),
+            PeerRequestOptions::with_timeout(timeout),
+        )
+        .await?;
+    let mut guard = CancelOnDrop {
+        peer: service.peer().clone(),
+        request_id: Some(handle.id.clone()),
+    };
+    let response = handle.await_response().await;
+    guard.request_id = None;
+    match response? {
+        ServerResult::CallToolResult(result) => Ok(result),
+        _ => Err(ServiceError::UnexpectedResponse),
+    }
+}
+
+/// Sends `notifications/cancelled` for an in-flight request when its future is
+/// dropped before the reply arrived. Disarmed (`request_id = None`) once the
+/// request settles.
+struct CancelOnDrop {
+    peer: rmcp::service::Peer<RoleClient>,
+    request_id: Option<rmcp::model::RequestId>,
+}
+
+impl Drop for CancelOnDrop {
+    fn drop(&mut self) {
+        let Some(request_id) = self.request_id.take() else {
+            return;
+        };
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            tracing::debug!(
+                ?request_id,
+                "MCP call dropped outside a runtime; cancel not sent"
+            );
+            return;
+        };
+        let peer = self.peer.clone();
+        runtime.spawn(async move {
+            let params = CancelledNotificationParam::new(
+                Some(request_id.clone()),
+                Some("client cancelled".to_owned()),
+            );
+            if let Err(e) = peer.notify_cancelled(params).await {
+                tracing::debug!(?request_id, error = %e, "notifications/cancelled not delivered");
+            }
+        });
     }
 }
 
@@ -1638,12 +1705,24 @@ impl McpErasedTool {
         let mut params = CallToolRequestParams::new(self.tool.name.clone());
         params.arguments = raw.as_object().cloned();
 
-        let result =
-            tokio::time::timeout(timeout_duration, mcp_service.call_tool(params.clone())).await;
-
-        match result {
-            Ok(Ok(call_result)) => Ok(call_result),
-            Ok(Err(service_err))
+        match call_tool_cancel_aware(&mcp_service, params.clone(), timeout_duration).await {
+            Ok(call_result) => Ok(call_result),
+            Err(ServiceError::Timeout { .. }) => {
+                *is_timeout = true;
+                // Reset for the next call but don't retry — a slow side-effecting tool must not run twice.
+                if client.is_http() && !*reconnect_attempted {
+                    client.reset_transport().await;
+                    *reconnect_attempted = true;
+                }
+                Err(nofy_tool_runtime::ToolError::custom(
+                    "process_manager",
+                    format!(
+                        "MCP tool '{}' timed out after {} seconds",
+                        self.tool.name, tool_timeout
+                    ),
+                ))
+            }
+            Err(service_err)
                 if should_recover_service_error(
                     &service_err,
                     client.is_http(),
@@ -1662,25 +1741,10 @@ impl McpErasedTool {
                 )
                 .await
             }
-            Ok(Err(e)) => Err(nofy_tool_runtime::ToolError::custom(
+            Err(e) => Err(nofy_tool_runtime::ToolError::custom(
                 "process_manager",
                 e.to_string(),
             )),
-            Err(_) => {
-                *is_timeout = true;
-                // Reset for the next call but don't retry — a slow side-effecting tool must not run twice.
-                if client.is_http() && !*reconnect_attempted {
-                    client.reset_transport().await;
-                    *reconnect_attempted = true;
-                }
-                Err(nofy_tool_runtime::ToolError::custom(
-                    "process_manager",
-                    format!(
-                        "MCP tool '{}' timed out after {} seconds",
-                        self.tool.name, tool_timeout
-                    ),
-                ))
-            }
         }
     }
 
@@ -1731,13 +1795,9 @@ impl McpErasedTool {
                 ));
             }
         };
-        match tokio::time::timeout(timeout_duration, mcp_service.call_tool(params)).await {
-            Ok(Ok(call_result)) => Ok(call_result),
-            Ok(Err(retry_err)) => Err(nofy_tool_runtime::ToolError::custom(
-                "process_manager",
-                retry_err.to_string(),
-            )),
-            Err(_) => {
+        match call_tool_cancel_aware(&mcp_service, params, timeout_duration).await {
+            Ok(call_result) => Ok(call_result),
+            Err(ServiceError::Timeout { .. }) => {
                 *is_timeout = true;
                 Err(nofy_tool_runtime::ToolError::custom(
                     "process_manager",
@@ -1747,6 +1807,10 @@ impl McpErasedTool {
                     ),
                 ))
             }
+            Err(retry_err) => Err(nofy_tool_runtime::ToolError::custom(
+                "process_manager",
+                retry_err.to_string(),
+            )),
         }
     }
 }
@@ -8083,5 +8147,239 @@ mod tests {
             Err(error) => error,
         };
         assert!(error.to_string().contains("invalid X-Nofy-Agent-ID value"));
+    }
+
+    /// George's shape: payload in `structuredContent`, one-line summary in `content`.
+    const STRUCTURED_SUMMARY: &str = "7 product folders, 2 custom folders";
+
+    fn folders_payload() -> serde_json::Value {
+        serde_json::json!({"folders": [{"id": "p1", "name": "Alpha"}, {"id": "c1", "name": "Custom One"}]})
+    }
+
+    fn call_tool_result(
+        is_error: bool,
+        texts: &[&str],
+        structured: Option<serde_json::Value>,
+    ) -> rmcp::model::CallToolResult {
+        let content = texts
+            .iter()
+            .map(|t| rmcp::model::ContentBlock::text(*t))
+            .collect();
+        let mut result = if is_error {
+            rmcp::model::CallToolResult::error(content)
+        } else {
+            rmcp::model::CallToolResult::success(content)
+        };
+        result.structured_content = structured;
+        result
+    }
+
+    fn okay_text(result: rmcp::model::CallToolResult) -> String {
+        let out = mcp_output_from_call_result("t".into(), "s".into(), result, false);
+        match out.output() {
+            MCPOutputDetails::OkayOutput(text) => text.clone(),
+            MCPOutputDetails::Error(e) => panic!("expected success output, got error: {e}"),
+        }
+    }
+
+    fn error_text(result: rmcp::model::CallToolResult) -> String {
+        let out = mcp_output_from_call_result("t".into(), "s".into(), result, false);
+        assert!(out.is_error);
+        match out.output() {
+            MCPOutputDetails::Error(text) => text.clone(),
+            MCPOutputDetails::OkayOutput(text) => panic!("expected error output, got: {text}"),
+        }
+    }
+
+    #[test]
+    fn structured_content_is_appended_when_content_is_only_a_summary() {
+        let payload = folders_payload();
+        let text = okay_text(call_tool_result(
+            false,
+            &[STRUCTURED_SUMMARY],
+            Some(payload.clone()),
+        ));
+        assert_eq!(format!("{STRUCTURED_SUMMARY}\n{payload}"), text);
+    }
+
+    #[test]
+    fn structured_content_inlined_as_text_is_not_duplicated() {
+        let payload = folders_payload();
+        let inlined = payload.to_string();
+        let text = okay_text(call_tool_result(
+            false,
+            &[STRUCTURED_SUMMARY, &inlined],
+            Some(payload),
+        ));
+        assert_eq!(format!("{STRUCTURED_SUMMARY}\n{inlined}"), text);
+    }
+
+    #[test]
+    fn structured_content_is_appended_on_error_results() {
+        let structured = serde_json::json!({"code": "NOT_FOUND", "folder_id": "p9"});
+        let text = error_text(call_tool_result(
+            true,
+            &["lookup failed"],
+            Some(structured.clone()),
+        ));
+        assert_eq!(format!("lookup failed\n{structured}"), text);
+    }
+
+    /// A scripted MCP server over an in-memory duplex that answers `initialize`,
+    /// records every message it receives, and answers `tools/call` only when
+    /// `reply` is set.
+    async fn recording_service(
+        reply: bool,
+    ) -> (
+        McpService,
+        Arc<parking_lot::Mutex<Vec<serde_json::Value>>>,
+    ) {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+        let received: Arc<parking_lot::Mutex<Vec<serde_json::Value>>> = Arc::default();
+        let (client_read, server_write) = tokio::io::duplex(64 * 1024);
+        let (server_read, client_write) = tokio::io::duplex(64 * 1024);
+        let sink = received.clone();
+        tokio::spawn(async move {
+            let mut reader = BufReader::new(server_read);
+            let mut writer = server_write;
+            let mut line = String::new();
+            loop {
+                line.clear();
+                if reader.read_line(&mut line).await.unwrap_or(0) == 0 {
+                    return;
+                }
+                let Ok(msg) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
+                    continue;
+                };
+                sink.lock().push(msg.clone());
+                let id = msg.get("id").cloned().unwrap_or(serde_json::Value::Null);
+                let response = match msg.get("method").and_then(|m| m.as_str()) {
+                    Some("initialize") => Some(serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "protocolVersion": msg.pointer("/params/protocolVersion"),
+                            "capabilities": { "tools": {} },
+                            "serverInfo": { "name": "recording", "version": "0.0.0" },
+                        }
+                    })),
+                    Some("tools/call") if reply => Some(serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "content": [{ "type": "text", "text": "done" }],
+                            "isError": false,
+                        }
+                    })),
+                    _ => None,
+                };
+                if let Some(response) = response {
+                    let mut encoded = serde_json::to_string(&response).unwrap();
+                    encoded.push('\n');
+                    let _ = writer.write_all(encoded.as_bytes()).await;
+                    let _ = writer.flush().await;
+                }
+            }
+        });
+        let handler = NofyClientHandler {
+            info: McpClient::make_client_info("recording", false),
+            server_name: "recording".to_string(),
+            notify_tx: Arc::new(parking_lot::Mutex::new(None)),
+            elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
+        };
+        let transport = rmcp::transport::async_rw::AsyncRwTransport::<RoleClient, _, _>::new(
+            client_read,
+            client_write,
+        );
+        let service: McpService = Arc::new(handler.serve(transport).await.expect("handshake"));
+        (service, received)
+    }
+
+    fn cancellations(
+        received: &parking_lot::Mutex<Vec<serde_json::Value>>,
+    ) -> Vec<serde_json::Value> {
+        messages_with_method(received, "notifications/cancelled", "/params/requestId")
+    }
+
+    fn call_ids(received: &parking_lot::Mutex<Vec<serde_json::Value>>) -> Vec<serde_json::Value> {
+        messages_with_method(received, "tools/call", "/id")
+    }
+
+    fn messages_with_method(
+        received: &parking_lot::Mutex<Vec<serde_json::Value>>,
+        method: &str,
+        pointer: &str,
+    ) -> Vec<serde_json::Value> {
+        received
+            .lock()
+            .iter()
+            .filter(|m| m.get("method").and_then(|v| v.as_str()) == Some(method))
+            .map(|m| {
+                m.pointer(pointer)
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null)
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn dropped_tool_call_sends_one_cancellation_for_its_request() {
+        let (service, received) = recording_service(false).await;
+        let params = CallToolRequestParams::new("slow");
+        let mut call = Box::pin(call_tool_cancel_aware(
+            &service,
+            params,
+            std::time::Duration::from_secs(30),
+        ));
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), &mut call)
+                .await
+                .is_err(),
+            "the server never replies, so the call must still be pending"
+        );
+        drop(call);
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+        let ids = call_ids(&received);
+        assert_eq!(ids.len(), 1, "{ids:?}");
+        assert_eq!(
+            cancellations(&received),
+            ids,
+            "one cancel, for the dropped request"
+        );
+    }
+
+    #[tokio::test]
+    async fn timed_out_tool_call_is_classified_and_cancelled_once() {
+        let (service, received) = recording_service(false).await;
+        let round = call_tool_cancel_aware(
+            &service,
+            CallToolRequestParams::new("slow"),
+            std::time::Duration::from_millis(50),
+        )
+        .await;
+        assert!(matches!(round, Err(ServiceError::Timeout { .. })));
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        let ids = call_ids(&received);
+        assert_eq!(
+            cancellations(&received),
+            ids,
+            "rmcp's timeout cancel, and nothing more"
+        );
+    }
+
+    #[tokio::test]
+    async fn completed_tool_call_sends_no_cancellation() {
+        let (service, received) = recording_service(true).await;
+        let round = call_tool_cancel_aware(
+            &service,
+            CallToolRequestParams::new("fast"),
+            std::time::Duration::from_secs(5),
+        )
+        .await;
+        assert!(matches!(round, Ok(_)));
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        assert!(cancellations(&received).is_empty());
     }
 }
