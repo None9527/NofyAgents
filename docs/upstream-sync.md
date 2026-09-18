@@ -170,7 +170,7 @@ bc7f02ed(pager input 重写)与 bb7f39d5(shell 重构)的新增文件面,只能�
 | image | 2 | 图像校验/转码(tools 与 clients 共享) | 评估 | 计划第 4 节已有条目,维持 |
 | dirs | 1 | home 目录解析(USERPROFILE-first + grok-home) | 跳过 | 已有 `nofy_config::nofy_home` 等价;上游若新依赖再取(批33) |
 | mixpanel | 1 | Mixpanel HTTP 追踪客户端 | **跳过** | 遥测云,分歧表已覆盖(mixpanel_enabled 已删) |
-| message-delivery-core | 8 | interjection 原子交付 | 批27 评估 | 计划第 4 节已有条目,维持 |
+| message-delivery-core | 8 | ~~interjection 原子交付~~ **原定性错误,2026-09-18 实读更正:是 agent→运行中子代理消息通道的类型化内核** | **不移植** | 见下方「message-delivery-core 定性更正」专条;我们已有自己的同域设计 `agent/subagent/attempt_store`(4525 行,尚未接线) |
 | login | 46 | xAI 登录流 | **跳过** | 分歧表:BYOK,物理剔除 |
 | dashboard-store | 14 | hub dashboard 持久化 | **跳过** | 云表面,计划第 4 节已有 |
 | feedback | 12 | 退出反馈云上传 | **跳过** | 分歧表已有 |
@@ -461,7 +461,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 - MCP elicitation 协议钉版(批11 V_2025_06_18):1.0.17#1 2026-07-28 多轮 elicitation——**决策点(见 E)**
 - fast-worktree/clone 云面(批23):1.0.13 的 worktree reflog(批25 已定性跳歧)
 - pager input 重写(bc7f02ed 红线):1.0.15#3 启动期保留输入(缠 pager 重写,defer)
-- interjection 原子交付(上游 message-delivery-core,我们缺):1.0.14#19 interjection 原子交付——**defer/评估(批27)**
+- ~~interjection 原子交付(上游 message-delivery-core,我们缺)~~ **原定性错误,2026-09-18 实读更正**:上游 `message-delivery-core` 与「interjection 原子交付」无关,它是 **agent→运行中子代理消息通道**(`ActiveAgentMessage`,上游 825 命中 / 我们 0)的类型化内核。详见下方专条与路线图 §12
 
 ### E. 决策点(行为变更/需用户拍板)
 - 1.0.24#1 Esc 不再取消运行中回合、改提示 Ctrl+C(批30 决策#1,行为变更)—**定性:跳过(A8 pager 同类)**,纯键位行为
@@ -548,3 +548,75 @@ P2:A8 pager UX(按需取离散小项)。
 | 批22 | 42e3abdb | picker 路由重构(上游 1.0.10):①新增 SessionPickerHost{Welcome/AgentModal/Dashboard}+SessionPickerSurface,picker_routing.rs 三重门(host 存活+generation 相等+seq 当前)统一结果路由;②AppView 新增 picker_generation_counter/session_picker_generation/alloc_picker_generation,welcome generation 每次 browse fetch 与每次 dismiss 重分配,session_picker_detail_generation 改名 detail_seq;③Effect/TaskResult 全量携带 host+generation 回显,wire 层 nofy/session/list 与 search 加 headless 参数,FetchDashboardSessions 恒 Exclude;④SourceFilter 新增 Headless 页(Nofy→Headless→External→All→Local→Remote),跨越 Headless 触发 refetch+清过期 natives+重启深搜,hidden_external_hint 移 Headless 页专属;⑤parse_session_picker_entries 解析 sessionKind,invalidate_picker_fetch_on_dismiss 改 generation+list_seq 双隔离,debounce 过期加 welcome 视图存活性检查(仅 build 模式深搜);⑥收尾 PersistedInfoLight 改名 PersistedInfo(上游合并 dead-code load(),我们本无);测试 8062 过(净增 18,含 8 个上游新测试),删 1 过时测试重写 2,minimal panel 删 pin-hint 测试;跳过 dashboard peek Esc changelog(窗口内无代码)/dashboard.rs 12 行(批18)/last_recap(云),dashboard_session_picker 预留臂照搬 | 0.2.157 |
 | 批23 | 49b789d0 | shell-terminal 拆包+工具修复集群(上游 1.0.9/1.0.10,末批):①终端模块移出为独立 crate nofy-shell-terminal(11 文件机械移动+路径改写,移动的是我们的文件——对上游基线有 live_waiters/KillSource 等真实分歧,不照搬上游最终版),nofy-shell `pub use nofy_shell_terminal as terminal` 重导出路径不变,From<TerminalExtError> impl 移 session/result.rs,pty_session 内联路由通知,shlex/process-wrap/portable-pty 依赖迁移;②子代理 workflow 剥离补全(apply_child_tool_policy 按 kind/短 id 剥离+agent config.rs nofy_build_core_toolset(include_workflow) 拆分,general-purpose 定义自带无 workflow 工具集)+4 测试;③two_pass 压缩默认翻转开启(批20 暂缓解除,上游 1.0.10 全量);④工具测试断言放宽集群(bash/kill_task/task_output/search_replace/enter·exit_plan/ask_user_question/types·output/registry·types/plan_mode/opencode bash/tools-api slash,措辞去钉选改结构对比);⑤携带:build.rs 版本哈希 12 位、sandbox 钉 NOFY_DEFAULT_PERMISSION_MODE=ask、ConnectionKind::as_wire_str 协议单一来源+hub-sdk 改用、用户指南 6 处同步;测试 tools 2906/shell 5183/agent 575/subagent-resolution 108/shell-terminal 63/协议层全过;跳过 hunk-tracker SetWorkingDir(路径虚拟化配套)/config-types RemoteSettings(无此结构)/agent crate 测试放宽(保留严格断言)/bot_relay+hub_auth/proactive+status_config+grok clone 系列+/feedback 附图+Dashboard Shift+Tab(云/hub,登记分歧表);bash_grants warn 与 send-now 转后台核查批20 已移植 | 0.2.158 |
 | 身份清理 | aa2c94ec+14b5c54a | Grok/xAI 身份与品牌遗留全量清理(非上游移植,自主清理):①系统提示词模板 7 个 8 处(主提示词删 "released by xAI"、用户指南引导块改 Nofy Build TUI+`~/.nofy/`、子代理/apply_patch 改 Nofy Build、goal 四模板改 Nofy Build harness)+context.rs 注释,重跑 encrypt_templates.py 重新生成加密产物;②26 用户指南+2 参考文档+9 教程全量 Nofy 品牌化(按代码实况校正 NOFY_* 环境变量/目录/子命令/wire 前缀/遥测 schema/主题名/旗标,删除代码中不存在的 OIDC 变量、mixpanel、Grok Desktop、nofy update、/feedback、fleet 策略抑制段);③default_models.json system_prompt_label "Grok 4.5"→"Nofy"(经模型表注入系统提示词)、显示名/描述去 SpaceXAI,模型 ID grok-4.5 功能性保留;④排查「仍回答 xAI」:根因是双二进制(~/.local/bin 旧版遮蔽修复)+版本号机制(NOFY_VERSION 构建注入);收敛为唯一安装位 ~/.local/bin/nofy;测试 575+610+148 全过,冒烟身份回答纯净 | 0.2.159 |
+
+### message-delivery-core 定性更正与结论(2026-09-18,实读 8 个文件 + 消费者枚举)
+
+**原记录「interjection 原子交付」是错的**,属 §10.2 同类错误(凭 crate 名与符号名推断,未实读)。
+实读后的形状:
+
+- `envelope.rs`(124 行):`Principal::{Human, Agent, Runtime}`、
+  `Operation::{Queue, Steer, Interject, InterruptAndSend}`、
+  `DeliveryEnvelope<Source, Grant, Content, Identity>` 用 `HumanSource`/`AgentSource`
+  **幻影类型做 typestate**(`from_human`/`from_agent` 是唯一构造器,故 principal 不可伪造)、
+  `OperationSet` 位标志(三个具名预设 `QUEUE`/`QUEUE_AND_STEER`/`QUEUE_STEER_AND_INTERJECT`)、
+  `authorize_operation(allowed, requested) -> Result<AuthorizedOperation, UnsupportedOperation>`
+  ——**类型化的授权结果**,未授权的操作在类型上就用不了。
+- `identity.rs`(160 行):`AgentId`/`AttemptId`(`mint(entropy)` 由宿主提供熵、core 不持进程级计数器;
+  `parse` 接受 UUIDv7 或带前缀的 hex)、`IdentityAction`、`next_identity`。
+- `address.rs`(138 行):`AgentAddress`、`AddressCandidate`/`AddressDecision`/`AddressPresence`、
+  `advertised_address`、`mint_child_address`、`resolve_address`。
+- `lifecycle.rs`(288 行):`DeliveryMessage`、`MessageDeliveryLifecycle`、`OwnedDelivery`、
+  `TerminalCause`/`TerminalTarget`/`TerminalTransition`、`TurnBinding`。
+
+**消费者枚举**(决定「单独移植有没有意义」的关键):`agent/mvp_agent/session_setup.rs`
+(`AgentId::parse`/`AttemptId::parse`)、`agent/mvp_agent/agent_directory.rs`、
+`agent/mvp_agent/acp_agent.rs:1379`(`DeliveryEnvelope::from_human(Operation::Queue, …)`,
+即**也**服务人类 prompt 路径)、`agent/subagent/*`(`AttemptId`)。
+上游 `ActiveAgentMessageOperation` 定义在**两处**(`telemetry/events/active_agent_message.rs:26`
+与 `tools/…/task/active_message.rs:35`)——这个 core 正是为消除该重复而抽出的。
+
+**结论:不移植。** 理由不是「太大」,而是**我们已有自己的同域设计,且形状更持久化**:
+`crates/codegen/nofy-shell/src/agent/subagent/attempt_store/`(**4525 行**,
+codec/decoder/intent/completion/recovery/rewind/accounting 七个模块)已经建模了
+`AgentMessageId`、`SenderSessionId`、`SourceAttemptId`、`AgentSenderRelationV1`、
+`AgentAuthorityV1`、`AcceptedAgentContentRecord`,并且是**两阶段提交 + 事件溯源 + 可 rewind**
+(事务相位 `Prepared`/`SubordinatePrepared`/`CommitObserved`/`ProjectionsCommitted`;
+记录类型含 `TurnCommitIntentRecord`/`TurnResolutionRecord`/`QueueCutRecord`/
+`AdmissionClosedRecord`/`AttemptOutcomeRecord`/`SegmentReservedRecord`)。
+上游那个 core 是**内存态 typestate**,我们这个是**持久记录层**——同一问题域,
+我们的形状严格更强(能恢复、能回退、能审计)。
+**移植它会造出同一域的两套竞争模型**,正是 §9.1 明令禁止的、也是 ⑯/⑰/㉑/㉒ 一路在消除的
+「同一事实多处推导」。
+
+⚠ 但必须如实记:`attempt_store` 的**七个模块全部标着**
+`#[allow(dead_code, reason = "consumed by the next storage slice")]`,即**地基已铺、尚未接线**。
+所以「我们已有更强的解法」目前只是**设计层面**成立,运行层面还没有任何东西在用它。
+这不改变「不移植」的结论(移植一套竞争模型会让接线更难),但意味着
+**真正的待办是把 `attempt_store` 接上线**,而不是从上游搬类型。
+
+**值得作为想法借鉴(不是搬代码)的四点**,接线时应吸收:
+1. `authorize_operation` 返回**类型化**的 `AuthorizedOperation`/`UnsupportedOperation`
+   ——把「未授权」变成不可表示,而非运行时检查。我们的 `AgentAuthorityV1` 目前只有
+   `ModelAuthoredUntrusted` 一个变体,授权轴已建模但尚未分化。
+2. `OperationSet` 位标志 + 按 principal 的具名预设,是表达「这个来源可以做这些」的紧凑形式。
+3. `Principal::Runtime` 这个**第三来源**(既非人类也非代理)。我们的
+   `AgentSenderRelationV1` 目前只有 `ParentToOwnedDescendant` 一个变体,
+   运行时自身发起的投递是一个值得单独建模的情形。
+4. 幻影类型 typestate 让 principal 不可伪造——我们的 codec 是运行时校验
+   (`CodecError::Invalid("sender relation")`),接线时可考虑在类型层面补一道。
+
+**另一个独立发现(与本 crate 不同,是真正的能力缺口)**:上游在这个 core 之上建的**特性**
+——父代理向**正在运行的**子代理发 Queue/Steer/Interject 消息——我们完全没有:
+`ActiveAgentMessage` 上游 825 命中 / 我们 **0**,`active_message` 328 / 0,
+`relay_to_subagent` 10 / 0。我们的 `nofy_build/task/` 目录有
+admission/backend/coordinator/coordinator_state/types,上游**多出**
+`active_message.rs`(406 行 + 78 行测试)、`agent_message_sender.rs`、`root_control.rs`。
+整个特性横跨 **5 个 crate、约 40+ 文件**(tools/task 12 + task/coordinator 10 +
+shell acp_session_impl 7 + subagent 6 + session 5 + workspace 3 + telemetry 3 + core 8),
+**已确认零云依赖**。
+**前置基建我们已有**(coordinator 相关符号 96 命中)。
+但这是**要不要引入一个新特性**的决策,不是「移植一个 crate」,且规模大于台账既有全部条目
+(含 ⑩ 与 §11 的 mTLS)。其中相当一部分表面是 pager 渲染
+(参 changelog 1.0.26 idx2「Subagent message rows in scrollback now indicate whether a
+message was sent as interject, queued, or steer」),按「UX 先跳过」需先切分内核面与渲染面。
+**登记为待用户决策的立项候选,本轮不实施。**

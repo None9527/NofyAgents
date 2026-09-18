@@ -589,7 +589,7 @@ cwd 不参与。**故每次调用都必须传绝对路径**，否则拿到的是
 | 云/桌面表面（跳云） | `workspace-daemon`（Computer Hub 的文件夹暴露面） |
 | pager UX / 会话浏览（A8 同类，用户指示跳过） | `pager-diff`、`fuzzy-file-search`、`session-search`、`session-events`、`active-sessions`、`foreign-sessions` |
 | 平台/分发 | `dirs`（157 行，我们有 `nofy-paths`）、`bundle`（1538 行，打包分发） |
-| **真内核缺口，值得单独立项** | **`message-delivery-core`**（8 文件 1067 行，我们全树 `message_delivery`/`MessageDelivery` **零命中**）、**`compaction-transcript`**（1 文件 824 行，纯函数把压缩段渲染成自包含 markdown，对齐一份 Python 参考实现；我们 compaction 路径无任何 markdown 渲染） |
+| **真内核缺口，值得单独立项** | ~~**`message-delivery-core`**（8 文件 1067 行，我们全树 `message_delivery`/`MessageDelivery` **零命中**）~~ **2026-09-18 实读后撤销此定性：不移植。**「零命中」是真的，但结论错了——我们已有同域设计 `agent/subagent/attempt_store`（4525 行，两阶段提交 + 事件溯源 + 可 rewind，形状严格强于上游的内存态 typestate），只是七个模块全标着 `#[allow(dead_code, reason = "consumed by the next storage slice")]` 即尚未接线。移植会造出同一域的两套竞争模型。**这是 §9.1 那条纪律自己被抓到的一次违反：「零命中」正是符号名 grep，而 §9.1 明写它只是下界。**详见台账「message-delivery-core 定性更正与结论」专条、**`compaction-transcript`**（1 文件 824 行，纯函数把压缩段渲染成自包含 markdown，对齐一份 Python 参考实现；我们 compaction 路径无任何 markdown 渲染） |
 
 **我们有、上游没有（16 个）**——这一栏是本轮最重要的认知修正：
 `agility`、`channel`、`control-schema`、`convergence`、`daemon`、`governance`、`marketplace`、
@@ -646,7 +646,7 @@ E 类七项全部定性完毕（4 跳过/跳云、1 已对齐、2 已做）。A5
 - **A5 余 4 项**：1.0.13#18（auth 已配时 MCP 启动更快，疑似已对齐）、1.0.15#5（首响应延迟，
   部分对齐）、1.0.18#22 与 1.0.22#27（resume picker / 读 MCP 配置卡顿，可能属 A8 pager）。
 - **A7 余 3 项** + 1.0.19#4 需另找上游实现名。
-- **两个真内核缺口新立项候选**：`message-delivery-core`、`compaction-transcript`。
+- **两个真内核缺口新立项候选**：~~`message-delivery-core`~~（**2026-09-18 实读后撤销：不移植，改为把我们的 `attempt_store` 接上线，并吸收上游四点想法**）、`compaction-transcript`。
 - **per-model mTLS**（已核实为 BYOK/自建网关需求，零云依赖，规模约等于 ⑩ 一轮）。
 - **1.0.13#1 length salvage**（需先定原生预算分层设计）。
 
