@@ -667,7 +667,21 @@ E 类七项全部定性完毕（4 跳过/跳云、1 已对齐、2 已做）。A5
    即上面那张 `same` 排序表——它是**接线/对账成本**的指标，不是缺口的指标。
    顺带一个有用副产物：`nofy-config/src/managed_text` 的 `format.rs` 有 83 行差异而
    同目录 `tests.rs`/`source.rs`/`transaction.rs` **逐字相同**，这个形状（测试没动、实现动了）
-   正是「上游做了行为保持的加固」的特征，已列为 ㉕。
+   正是「上游做了行为保持的加固」的特征。
+   > **追下去的结果是「不吸收」，而理由比这条发现本身更有价值**：上游那轮把
+   > `Line::content()` 从 `&str` 改成 `Option<&str>`，三个调用点随之变成
+   > `else { continue }`——在 `parse_block` 的 marker 校验循环与
+   > `reject_owned_markers_outside` 里，「跳过一行」就等于**该拒绝的 marker 没被拒绝**，
+   > 即 **fail-open**；我们的形式越界即 panic，是 fail-closed。而 ⑰/⑳ 已经把 fail-closed
+   > 立为这个子系统的原则。详见台账「有意分歧」表该条。
+   >
+   > **由此确立一条判据**：一次系统性的 panic-安全加固**不能整体吸收**。
+   > `x[i]` → `x.get(i) else { fallback }` 只有在 **fallback 的方向**适合该站点职责时才是改进：
+   > ㉔ 的 `attempt_store/decoder.rs` 解析不可信字节，fallback 是「拒绝输入」= fail-closed → **吸收**；
+   > `managed_text/format.rs` 校验企业策略文件，fallback 是「跳过检查」= fail-open → **不吸收**。
+   > **判据是 fallback 的方向，不是「有没有消除 panic」。**
+   > 这也说明上面那个「测试没动、实现动了」的特征只能用来**找到候选**，
+   > 不能用来判定该不该吸收——找到之后仍要逐站点读 fallback 的语义。
 
 ### 9.4 剩余待办的形状
 
