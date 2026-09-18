@@ -5,8 +5,10 @@
 
 use std::io::Cursor;
 use std::path::Path;
+use std::sync::{Arc, OnceLock};
 
 use syntect::{
+    dumps::from_uncompressed_data,
     easy::HighlightLines,
     highlighting::{Theme as SyntectTheme, ThemeSet},
     parsing::{SyntaxReference, SyntaxSet},
@@ -20,14 +22,21 @@ pub struct Syntect {
     /// The color theme for syntax highlighting.
     pub theme: SyntectTheme,
     /// The syntax definitions (supports 250+ languages via two-face).
-    pub syntax_set: SyntaxSet,
+    ///
+    /// Shared by every `Syntect` in the process: the set does not depend on the
+    /// theme, and a `SyntaxSet` clone copies each syntax's serialized contexts
+    /// (`SyntaxReference` holds them in a `Vec<u8>`), so one set per theme would
+    /// duplicate megabytes for no benefit. Callers keep passing `&syn.syntax_set`;
+    /// deref coercion hands them the `&SyntaxSet` they expect.
+    pub syntax_set: Arc<SyntaxSet>,
 }
 
 impl Syntect {
     /// Create a new Syntect instance from theme bytes.
     ///
     /// The theme bytes should be a TextMate `.tmTheme` file.
-    /// Uses two-face's extended syntax set with 250+ languages.
+    /// Uses two-face's extended syntax set with 250+ languages, deserialized
+    /// from the build-time dump (see `build.rs`) and shared across instances.
     ///
     /// # Example
     ///
@@ -37,9 +46,10 @@ impl Syntect {
     pub fn new(theme_bytes: &[u8]) -> Self {
         let mut cursor = Cursor::new(theme_bytes);
         let theme = ThemeSet::load_from_reader(&mut cursor).expect("Failed to load theme");
-        // Use two-face's extended syntax set which includes 250+ languages from bat
-        let syntax_set = two_face::syntax::extra_newlines();
-        Self { theme, syntax_set }
+        Self {
+            theme,
+            syntax_set: shared_syntax_set(),
+        }
     }
 
     /// Find a syntax definition by file path extension.
@@ -159,6 +169,23 @@ pub(crate) fn syntax_highlight_raw(
     Some(lines)
 }
 
+/// The process-wide syntax set, deserialized once from the build-time dump.
+///
+/// `Syntect::new` is called per theme (nofy-night / tokyo-night / nofy-day), so
+/// without this the same 250+ language set would be built — and then held — once
+/// per theme.
+fn shared_syntax_set() -> Arc<SyntaxSet> {
+    static SYNTAX_SET: OnceLock<Arc<SyntaxSet>> = OnceLock::new();
+    SYNTAX_SET
+        .get_or_init(|| {
+            Arc::new(
+                from_uncompressed_data(include_bytes!(concat!(env!("OUT_DIR"), "/syntaxes.bin")))
+                    .expect("syntax set dumped by build.rs"),
+            )
+        })
+        .clone()
+}
+
 /// Get a shared Syntect instance for tests.
 ///
 /// This loads the tokyo-night theme bundled with the crate.
@@ -166,7 +193,6 @@ pub(crate) fn syntax_highlight_raw(
 #[cfg(any(test, fuzzing))]
 #[allow(dead_code)]
 pub fn test_syntect() -> &'static Syntect {
-    use std::sync::OnceLock;
     static TEST_SYNTECT: OnceLock<Syntect> = OnceLock::new();
     TEST_SYNTECT.get_or_init(|| Syntect::new(include_bytes!("../assets/tokyo-night.tmTheme")))
 }
@@ -174,6 +200,33 @@ pub fn test_syntect() -> &'static Syntect {
 #[cfg(test)]
 mod tests {
     use super::parse_line_citation_fence_info;
+
+    /// The set is theme-independent, so every `Syntect` must share one copy, and
+    /// the build-time dump must round-trip (syntect skips some fields when
+    /// serializing, so this also pins that nothing we rely on is lost).
+    #[test]
+    fn syntax_set_is_shared_and_survives_the_dump_round_trip() {
+        let a = super::Syntect::new(include_bytes!("../assets/tokyo-night.tmTheme"));
+        let b = super::Syntect::new(include_bytes!("../assets/tokyo-night.tmTheme"));
+        assert!(
+            std::sync::Arc::ptr_eq(&a.syntax_set, &b.syntax_set),
+            "one shared set per process; a set per theme would duplicate it for nothing"
+        );
+        assert!(
+            a.syntax_set.find_syntax_by_token("rust").is_some(),
+            "the dumped set must still resolve syntaxes"
+        );
+        // Compared against a runtime-built set rather than a magic count: the
+        // invariant is "the dump loses nothing", and a constant would silently
+        // rot on every two-face bump. This is the only place that pays the
+        // runtime build, which is exactly what production no longer does.
+        let runtime = two_face::syntax::extra_newlines();
+        assert_eq!(
+            a.syntax_set.syntaxes().len(),
+            runtime.syntaxes().len(),
+            "the dumped set must carry every syntax the runtime build has"
+        );
+    }
 
     #[test]
     fn line_citation_fence_parses_start_end_path() {
