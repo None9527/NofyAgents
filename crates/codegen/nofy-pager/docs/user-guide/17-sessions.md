@@ -32,11 +32,14 @@ Nofy stores each session in its own directory, grouped by working directory. It 
   rewind_points.jsonl     # rewind points for /rewind undo
   signals.json            # session signals (token usage, tool/turn counters)
   feedback.jsonl          # user feedback and ratings
+  resume_status.json      # what was still in flight at teardown; consumed once on resume
   compaction_checkpoints/ # saved state from compaction (manual or auto)
   subagents/              # per-subagent metadata (meta.json); the child sessions live in the normal sessions tree
 ```
 
 `summary.json` is the index entry. It records the session summary and generated title, the model ID, the creation and update timestamps, the message counts, and a parent session reference for forked or restored sessions. `updates.jsonl` is the authoritative conversation log that drives `/resume` and session restore.
+
+`resume_status.json` is written when a session ends and lists the scheduled loops, background commands, monitors, subagents, workflows and goal that were still in flight. On the first prompt after a resume it is turned into a one-time system reminder so the model knows what the process exit interrupted, then deleted. A session that crashed wrote no snapshot, so on startup Nofy rebuilds one from the scheduler's own `resources_state.json` and the `subagents/` metadata; background commands and monitors cannot be recovered that way because their liveness was process-local.
 
 ---
 

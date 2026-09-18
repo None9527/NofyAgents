@@ -1256,6 +1256,36 @@ pub(crate) async fn spawn_session_actor(
     let workflow_tracker = Arc::new(parking_lot::Mutex::new(
         crate::session::workflow::tracker::WorkflowTracker::from_snapshot(workflow_snapshots),
     ));
+    // Crash recovery: a process that died without running teardown wrote no
+    // resume-status snapshot, so rebuild one from what the scheduler, subagent
+    // and workflow layers persisted independently. `create_new` inside
+    // `persist` keeps a clean exit's snapshot authoritative when both exist.
+    // Workflows are read from the tracker *after* restore, which has already
+    // marked non-resumable runs `Interrupted` — the same status the live
+    // teardown path filters on.
+    if !startup_hints.is_subagent && !crate::session::resume_status::exists(&workflow_session_dir) {
+        let resume_workflows: Vec<crate::session::resume_status::ResumeWorkflow> = workflow_tracker
+            .lock()
+            .list()
+            .into_iter()
+            .filter(|w| crate::session::resume_status::is_in_flight_workflow(w.status))
+            .map(|w| crate::session::resume_status::ResumeWorkflow {
+                run_id: w.run_id,
+                objective: w.objective,
+            })
+            .collect();
+        let resume_goal = goal_tracker
+            .lock()
+            .snapshot()
+            .and_then(crate::session::resume_status::resume_goal);
+        let snapshot = crate::session::resume_status::reconstruct_from_disk(
+            &workflow_session_dir,
+            session_info.id.0.as_ref(),
+            resume_workflows,
+            resume_goal,
+        );
+        crate::session::resume_status::persist(&workflow_session_dir, &snapshot);
+    }
     let workflow_notify = crate::session::workflow::notify::WorkflowNotifySender::new(
         session_info.id.clone(),
         gateway.clone(),

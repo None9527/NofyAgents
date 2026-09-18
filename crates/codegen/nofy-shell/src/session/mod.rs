@@ -416,6 +416,7 @@ pub mod prompt_parser;
 pub(crate) mod prompt_timing;
 pub(crate) mod replay_events;
 pub mod result;
+pub(crate) mod resume_status;
 pub(crate) mod runtime_journal;
 pub mod signals;
 pub(crate) mod slash_commands;

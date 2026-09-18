@@ -287,6 +287,22 @@ impl ScheduledTask {
     pub fn is_expired(&self, now: DateTime<Utc>) -> bool {
         self.expires_at.is_some_and(|exp| now >= exp)
     }
+
+    /// When this task will next fire, or `None` if it never will.
+    ///
+    /// A one-shot task that already fired is done; an expired task is done
+    /// regardless of `recurring`. This is the **single** answer to "is this
+    /// loop still going to fire" — both the live scheduler snapshot and the
+    /// on-disk `resources_state.json` recovery path in
+    /// `nofy_shell::session::resume_status` must go through it, so a session
+    /// resumed after a crash and one resumed after a clean exit cannot
+    /// disagree about which loops are still pending.
+    pub fn pending_fire_at(&self, now: DateTime<Utc>) -> Option<DateTime<Utc>> {
+        if self.is_expired(now) || (!self.recurring && self.last_fired_at.is_some()) {
+            return None;
+        }
+        Some(self.next_fire_at())
+    }
 }
 
 /// Persisted state for the scheduler, stored via Resources + ResourcesPersistence.
@@ -389,6 +405,40 @@ mod tests {
     fn is_expired_returns_false_for_one_shot() {
         let task = ScheduledTask::new(300, "test".into(), false, false);
         assert!(!task.is_expired(Utc::now()));
+    }
+
+    #[test]
+    fn pending_fire_at_is_none_once_a_one_shot_has_fired() {
+        let mut task = ScheduledTask::new(300, "test".into(), false, false);
+        assert!(task.pending_fire_at(Utc::now()).is_some());
+        task.last_fired_at = Some(Utc::now());
+        assert!(
+            task.pending_fire_at(Utc::now()).is_none(),
+            "a one-shot that fired is done"
+        );
+    }
+
+    #[test]
+    fn pending_fire_at_survives_repeated_fires_while_recurring() {
+        let mut task = ScheduledTask::new(300, "test".into(), true, false);
+        task.last_fired_at = Some(Utc::now());
+        assert!(
+            task.pending_fire_at(Utc::now()).is_some(),
+            "recurring keeps firing no matter how often it already did"
+        );
+    }
+
+    #[test]
+    fn pending_fire_at_is_none_past_expiry_even_when_recurring() {
+        let mut task = ScheduledTask::new(300, "test".into(), true, false);
+        task.expires_at = Some(Utc::now() - chrono::Duration::hours(1));
+        assert!(task.pending_fire_at(Utc::now()).is_none());
+    }
+
+    #[test]
+    fn pending_fire_at_returns_next_fire_at_when_pending() {
+        let task = ScheduledTask::new(300, "test".into(), true, false);
+        assert_eq!(task.pending_fire_at(Utc::now()), Some(task.next_fire_at()));
     }
 
     #[test]

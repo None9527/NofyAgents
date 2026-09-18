@@ -148,11 +148,11 @@ async fn fire_session_end_hooks(session: &SessionActor, reason: &str) {
     }
     session.dispatch_session_end_stop(reason).await;
 }
-/// Stop the signals actor, persist background-task state, and drop scratch.
+/// Stop the signals actor, persist the resume-status snapshot, and drop scratch.
 async fn finish_session_exit_signals(session: &SessionActor) {
     session.signals_handle().shutdown();
     if !session.startup_hints.is_subagent {
-        session.persist_background_task_manifest().await;
+        session.persist_resume_status().await;
     }
     cleanup_session_scratch(session);
 }

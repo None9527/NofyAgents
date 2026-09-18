@@ -293,8 +293,14 @@ pub struct BackgroundTaskManifestEntry {
 
 /// Persist a manifest of running background tasks to the session directory.
 ///
-/// Only writes a file when `entries` is non-empty. Called during session
-/// shutdown when background tasks are intentionally left alive.
+/// Only writes a file when `entries` is non-empty.
+///
+/// **Legacy format — no longer written on shutdown.** Session teardown now
+/// writes the richer `resume_status.json` snapshot (loops, subagents and
+/// workflows as well as tasks); see `nofy_shell::session::resume_status`.
+/// This writer is retained because [`load_and_clear_manifest`] still has to
+/// *read* manifests left behind by sessions persisted before that change, and
+/// a reader with no writer cannot be tested against the real on-disk shape.
 pub fn persist_manifest(session_dir: &Path, entries: Vec<BackgroundTaskManifestEntry>) {
     if entries.is_empty() {
         return;
@@ -324,54 +330,6 @@ pub fn load_and_clear_manifest(session_dir: &Path) -> Vec<BackgroundTaskManifest
     // Delete regardless of parse success — stale manifests should not accumulate.
     let _ = std::fs::remove_file(&path);
     serde_json::from_slice(&data).unwrap_or_default()
-}
-
-/// Format a system-reminder about background tasks that were running when the
-/// session was last active.
-pub fn format_resumed_tasks_reminder(entries: &[BackgroundTaskManifestEntry]) -> String {
-    use std::fmt::Write;
-
-    let now = std::time::SystemTime::now();
-    let mut buf = String::from(
-        "This session was resumed. The following background tasks were running \
-         when the session was last active and may still be in progress:\n",
-    );
-    for entry in entries {
-        let cmd = entry.display_command.as_deref().unwrap_or(&entry.command);
-        let ago = format_duration_ago(now, entry.start_time);
-        let kind_label = match entry.kind {
-            nofy_tools::computer::types::TaskKind::Monitor => " [monitor]",
-            nofy_tools::computer::types::TaskKind::Bash => "",
-        };
-        let _ = writeln!(
-            buf,
-            "- \"{}\"{} (started {}): {}",
-            entry.task_id, kind_label, ago, cmd
-        );
-        let _ = writeln!(buf, "  Output log: {}", entry.output_file.display());
-    }
-    buf.push_str(
-        "Check whether each is still running and read its output log to determine \
-         if it completed successfully.",
-    );
-    buf
-}
-
-fn format_duration_ago(now: std::time::SystemTime, start: std::time::SystemTime) -> String {
-    let secs = now.duration_since(start).map(|d| d.as_secs()).unwrap_or(0);
-    if secs < 60 {
-        format!("{secs}s ago")
-    } else if secs < 3600 {
-        format!("{}m ago", secs / 60)
-    } else {
-        let hours = secs / 3600;
-        let mins = (secs % 3600) / 60;
-        if mins == 0 {
-            format!("{hours}h ago")
-        } else {
-            format!("{hours}h {mins}m ago")
-        }
-    }
 }
 
 #[cfg(test)]
@@ -666,42 +624,6 @@ mod tests {
     }
 
     #[test]
-    fn format_reminder_single_task() {
-        let entries = vec![make_manifest_entry("bg-1", 7200)];
-        let reminder = format_resumed_tasks_reminder(&entries);
-        assert!(reminder.contains("This session was resumed"));
-        assert!(reminder.contains("bg-1"));
-        assert!(reminder.contains("2h ago"));
-        assert!(reminder.contains("rsync -aP src:bg-1 /data/"));
-        assert!(reminder.contains("Output log:"));
-        assert!(reminder.contains("Check whether each is still running"));
-    }
-
-    #[test]
-    fn format_reminder_prefers_display_command() {
-        let mut entry = make_manifest_entry("bg-1", 60);
-        entry.display_command = Some("rsync /data".to_string());
-        let reminder = format_resumed_tasks_reminder(&[entry]);
-        assert!(reminder.contains("rsync /data"));
-        assert!(!reminder.contains("rsync -aP"));
-    }
-
-    #[test]
-    fn format_reminder_labels_monitor_tasks() {
-        let mut entry = make_manifest_entry("mon-1", 300);
-        entry.kind = nofy_tools::computer::types::TaskKind::Monitor;
-        let reminder = format_resumed_tasks_reminder(&[entry]);
-        assert!(reminder.contains("[monitor]"));
-    }
-
-    #[test]
-    fn format_reminder_no_label_for_bash_tasks() {
-        let entry = make_manifest_entry("bg-1", 300);
-        let reminder = format_resumed_tasks_reminder(&[entry]);
-        assert!(!reminder.contains("[monitor]"));
-    }
-
-    #[test]
     fn manifest_roundtrip_preserves_kind() {
         let dir = tempfile::tempdir().unwrap();
         let mut entry = make_manifest_entry("mon-1", 60);
@@ -716,48 +638,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn format_duration_seconds() {
-        let now = std::time::SystemTime::now();
-        assert_eq!(
-            format_duration_ago(now, now - Duration::from_secs(30)),
-            "30s ago"
-        );
-    }
-
-    #[test]
-    fn format_duration_minutes() {
-        let now = std::time::SystemTime::now();
-        assert_eq!(
-            format_duration_ago(now, now - Duration::from_secs(300)),
-            "5m ago"
-        );
-    }
-
-    #[test]
-    fn format_duration_hours_and_minutes() {
-        let now = std::time::SystemTime::now();
-        assert_eq!(
-            format_duration_ago(now, now - Duration::from_secs(5400)),
-            "1h 30m ago"
-        );
-    }
-
-    #[test]
-    fn format_duration_exact_hours() {
-        let now = std::time::SystemTime::now();
-        assert_eq!(
-            format_duration_ago(now, now - Duration::from_secs(7200)),
-            "2h ago"
-        );
-    }
-
-    #[test]
-    fn format_duration_future_start_returns_zero() {
-        let now = std::time::SystemTime::now();
-        assert_eq!(
-            format_duration_ago(now, now + Duration::from_secs(100)),
-            "0s ago"
-        );
-    }
 }

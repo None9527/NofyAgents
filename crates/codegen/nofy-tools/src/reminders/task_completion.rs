@@ -103,6 +103,19 @@ crate::register_resource!(
     "ReportedTaskCompletions",
     ReportedTaskCompletions
 );
+/// Recover a monitor's description from its `display_command`.
+///
+/// The monitor tool bakes a `"[monitor] <desc>"` prefix into the command it
+/// reports, so backends and persisted manifests that predate a dedicated
+/// description field still carry the label there. `None` means the command is
+/// a plain bash command, not a monitor.
+pub fn monitor_label(display_command: &str) -> Option<&str> {
+    display_command
+        .strip_prefix("[monitor] ")
+        .map(str::trim)
+        .filter(|label| !label.is_empty())
+}
+
 /// Format a model-facing message from a [`TaskSnapshot`].
 ///
 /// `task_output_name` controls the pointer-vs-inline rendering of the output
@@ -2062,5 +2075,26 @@ mod tests {
         assert!(batched.contains("description=\"журнал 🚨\""), "{batched}");
         assert!(batched.contains("[1] строка №1"), "{batched}");
         assert!(batched.contains("[2] строка №2"), "{batched}");
+    }
+
+    #[test]
+    fn monitor_label_strips_the_prefix_and_rejects_plain_commands() {
+        assert_eq!(monitor_label("[monitor] watch build"), Some("watch build"));
+        assert_eq!(
+            monitor_label("[monitor]   padded  "),
+            Some("padded"),
+            "the label is trimmed"
+        );
+        assert_eq!(
+            monitor_label("[monitor] "),
+            None,
+            "an empty label is not a label"
+        );
+        assert_eq!(monitor_label("cargo build"), None);
+        assert_eq!(
+            monitor_label("[monitor]x"),
+            None,
+            "the prefix includes its trailing space"
+        );
     }
 }

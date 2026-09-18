@@ -210,6 +210,25 @@ The same hint appears as `◎ waiting · send a message to interrupt` when the a
 
 ---
 
+## What Happens When a Session Ends
+
+Background commands, monitors and subagents do not outlive the process: when a session ends they are killed or cancelled. Scheduled loops are different — the scheduler's task list lives in the session's own resources state, which a resume reads back and re-arms, so a loop that had not expired keeps firing after a restart. (That is separate from `scheduler_create`'s `durable` flag, which controls whether a task carries over into *other* sessions.)
+
+So that a resumed session does not have to guess, Nofy writes a snapshot at teardown listing everything that was still in flight — loops, background commands, monitors, subagents, workflows and the goal. On the first prompt after you resume, that snapshot becomes a one-time system reminder and is then deleted. The wording differs per category because the right response differs:
+
+| Category | The reminder says | Which means |
+| --- | --- | --- |
+| Loops | still scheduled despite the restart | it will fire again on its own; do not re-create it |
+| Background commands, monitors | were killed when the session stopped | no output will ever arrive; restart it if you still need it |
+| Subagents, workflows | were cancelled when the session stopped | resumable, but nothing is running right now |
+| Goal | was paused and can be resumed | pick it up rather than starting over |
+
+Only loops that would actually fire again are listed: an expired loop, and a one-shot that already fired, are left out.
+
+If the process crashed instead of exiting cleanly, no snapshot was written. Nofy then rebuilds one at startup from the scheduler's own state file and the subagent metadata, so loops and subagents are still reported. Background commands and monitors cannot be recovered this way — whether they were alive was process-local knowledge.
+
+---
+
 ## Use Cases and Patterns
 
 ### Dev Server + Coding

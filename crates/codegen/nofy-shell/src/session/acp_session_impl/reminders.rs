@@ -715,55 +715,158 @@ impl SessionActor {
             ));
         }
     }
-    /// Persist a manifest of running background tasks to the session directory.
+    /// Snapshot everything still in flight and write it to the session
+    /// directory before teardown.
     ///
     /// Called during session shutdown (both explicit and channel-closed paths)
-    /// so a resumed session can inform the model about processes that were
-    /// still alive when the session ended.
-    pub(super) async fn persist_background_task_manifest(&self) {
-        let tasks = self
-            .agent
-            .borrow()
-            .tool_bridge()
-            .list_background_tasks()
-            .await;
-        let entries: Vec<crate::terminal::BackgroundTaskManifestEntry> = tasks
-            .into_iter()
-            .filter(|t| !t.completed)
-            .map(|t| crate::terminal::BackgroundTaskManifestEntry {
-                task_id: t.task_id,
-                command: t.command,
-                display_command: t.display_command,
-                output_file: t.output_file,
-                start_time: t.start_time,
-                cwd: t.cwd,
-                kind: t.kind,
-            })
-            .collect();
-        if !entries.is_empty() {
-            tracing::info!(
-                count = entries.len(),
-                "persisting background task manifest for session resume"
-            );
+    /// so a resumed session can tell the model what a process exit did to its
+    /// loops, background commands, monitors, subagents, workflows and goal.
+    /// Subagents are skipped: a child session's work is reported to its parent,
+    /// and a child has no scheduler or workflow registry of its own.
+    pub(super) async fn persist_resume_status(&self) {
+        if self.startup_hints.is_subagent {
+            return;
         }
         let session_dir = crate::session::persistence::session_dir(&self.session_info);
-        crate::terminal::persist_manifest(&session_dir, entries);
-    }
-    /// Load the background task manifest from a prior session and inject a
-    /// system-reminder so the model knows about orphaned tasks.
-    ///
-    /// The manifest file is deleted after loading so it is only shown once.
-    pub(super) fn inject_resumed_tasks_reminder(&self) {
-        let session_dir = crate::session::persistence::session_dir(&self.session_info);
-        let entries = crate::terminal::load_and_clear_manifest(&session_dir);
-        if entries.is_empty() {
+        let snapshot = self.collect_resume_status().await;
+        if snapshot.is_empty() {
             return;
         }
         tracing::info!(
-            count = entries.len(),
-            "injecting resumed background tasks reminder"
+            loops = snapshot.loops.len(),
+            background = snapshot.background.len(),
+            monitors = snapshot.monitors.len(),
+            subagents = snapshot.subagents.len(),
+            workflows = snapshot.workflows.len(),
+            goal = snapshot.goal.is_some(),
+            "persisting resume status snapshot"
         );
-        let reminder = crate::terminal::format_resumed_tasks_reminder(&entries);
+        let _ = tokio::task::spawn_blocking({
+            let session_dir = session_dir.clone();
+            move || crate::session::resume_status::persist(&session_dir, &snapshot)
+        })
+        .await;
+    }
+    /// Gather the live state behind a resume-status snapshot.
+    ///
+    /// Every query is bounded by [`ONESHOT_TIMEOUT`]: this runs on the exit
+    /// path, so a wedged scheduler or workflow actor must degrade to "category
+    /// not reported" rather than hang shutdown. The loops and workflows queries
+    /// fall back to the on-disk reconstruction on timeout, because both have a
+    /// durable file that outlives the actor; background tasks and monitors have
+    /// no such file and fall back to nothing.
+    async fn collect_resume_status(&self) -> crate::session::resume_status::ResumeStatusSnapshot {
+        use crate::session::resume_status::{
+            ResumeLoop, ResumeStatusSnapshot, ResumeTask, ResumeWorkflow,
+        };
+        use nofy_tools::computer::types::TaskKind;
+        // Bind the clone before any `.await` so no `RefCell::Ref<Agent>` guard
+        // is held across a suspension point.
+        let bridge = self.agent.borrow().tool_bridge().clone();
+        let oneshot = crate::session::resume_status::ONESHOT_TIMEOUT;
+        let session_dir = crate::session::persistence::session_dir(&self.session_info);
+
+        let tasks = tokio::time::timeout(oneshot, bridge.list_background_tasks())
+            .await
+            .unwrap_or_default();
+        let mut background = Vec::new();
+        let mut monitors = Vec::new();
+        for t in tasks.into_iter().filter(|t| !t.completed) {
+            let task = ResumeTask {
+                description: crate::session::resume_status::resume_task_description(
+                    t.description,
+                    t.display_command.as_deref(),
+                ),
+                task_id: t.task_id,
+            };
+            match t.kind {
+                TaskKind::Monitor => monitors.push(task),
+                TaskKind::Bash => background.push(task),
+            }
+        }
+
+        let now = chrono::Utc::now();
+        let loops = match tokio::time::timeout(oneshot, bridge.list_scheduled_tasks()).await {
+            Ok(tasks) => tasks
+                .into_iter()
+                // Same predicate the disk-recovery path uses, so a clean exit
+                // and a crash cannot report different loop sets.
+                .filter(|t| t.pending_fire_at(now).is_some())
+                .map(|t| ResumeLoop {
+                    id: t.id,
+                    interval_secs: t.interval_secs,
+                    prompt: t.prompt,
+                })
+                .collect(),
+            Err(_) => crate::session::resume_status::loops_from_resources_state(&session_dir),
+        };
+
+        let subagents = {
+            let session_dir = session_dir.clone();
+            let sid = self.session_info.id.0.to_string();
+            tokio::task::spawn_blocking(move || {
+                crate::session::resume_status::running_subagent_metas(&session_dir, &sid)
+            })
+            .await
+            .unwrap_or_default()
+        };
+
+        let workflows = match tokio::time::timeout(oneshot, self.workflow_tracker()).await {
+            Ok(tracker) => tracker
+                .lock()
+                .list()
+                .into_iter()
+                .filter(|w| crate::session::resume_status::is_in_flight_workflow(w.status))
+                .map(|w| ResumeWorkflow {
+                    run_id: w.run_id,
+                    objective: w.objective,
+                })
+                .collect(),
+            Err(_) => crate::session::resume_status::reconstruct_from_disk(
+                &session_dir,
+                self.session_info.id.0.as_ref(),
+                std::iter::empty(),
+                None,
+            )
+            .workflows,
+        };
+
+        let goal = self
+            .goal_tracker
+            .lock()
+            .snapshot()
+            .and_then(crate::session::resume_status::resume_goal);
+
+        ResumeStatusSnapshot {
+            loops,
+            background,
+            monitors,
+            subagents,
+            workflows,
+            goal,
+        }
+    }
+    /// Load the resume-status snapshot from a prior session and inject a
+    /// system-reminder so the model knows what the process exit interrupted.
+    ///
+    /// The snapshot file is deleted after loading so it is shown once: a second
+    /// prompt must not be told again that tasks "were killed", since by then
+    /// the model may have restarted them.
+    pub(super) fn inject_resumed_tasks_reminder(&self) {
+        let session_dir = crate::session::persistence::session_dir(&self.session_info);
+        let snapshot = crate::session::resume_status::load_and_clear(&session_dir);
+        let Some(reminder) = crate::session::resume_status::format_reminder(&snapshot) else {
+            return;
+        };
+        tracing::info!(
+            loops = snapshot.loops.len(),
+            background = snapshot.background.len(),
+            monitors = snapshot.monitors.len(),
+            subagents = snapshot.subagents.len(),
+            workflows = snapshot.workflows.len(),
+            goal = snapshot.goal.is_some(),
+            "injecting resume status reminder"
+        );
         self.push_system_reminder(&reminder);
     }
     /// Turn-end TodoGate config, or `None` when [`todo_gate_active`] is false.

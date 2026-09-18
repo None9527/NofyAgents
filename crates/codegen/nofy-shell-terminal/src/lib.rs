@@ -8,7 +8,7 @@ pub use runner::{AsyncTerminalRunner, TerminalError, TerminalRunRequest, Termina
 mod background_task;
 pub use background_task::{
     BackgroundTaskManifestEntry, BackgroundTaskRegistry, TaskId, TaskSnapshot,
-    format_resumed_tasks_reminder, get_task_output_path, load_and_clear_manifest, persist_manifest,
+    get_task_output_path, load_and_clear_manifest, persist_manifest,
 };
 
 mod local_terminal;
