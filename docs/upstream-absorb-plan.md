@@ -1649,6 +1649,10 @@ markdown/pager-render **需先建基线**）→ 红绿双验（含「还原后�
 
 ### 15.2 批29：协议、配置与工具契约（P0，5 项）
 
+> ✅ **批29 已落地（2026-09-20）**：提交 `d22a69eb`。mixed-case effort、prompt-suggest
+> 预算与 `read_file` 整读策略原生实现；默认 agent 与 inline-only `use_tool` schema 由新增/加强回归证明
+> 本地已对齐，未为追上游符号制造重复实现。Memory v2 未引入。
+
 目标：先关闭不依赖复杂 pager 状态机的确定性缺口，为后续批次提供稳定配置和 schema。
 
 | 项 | 原生落点 | 必须钉住的验收 |

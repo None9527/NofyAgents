@@ -841,3 +841,17 @@ message was sent as interject, queued, or steer」),按「UX 先跳过」需先�
 完整批次、落点、验收与执行纪律见 `docs/upstream-absorb-plan.md` §15：批29（协议/配置/工具）→
 批30（hooks/信任/权限）→批31（模型/上下文/子代理）→批32（Dashboard/图片）→批33（Mermaid）。
 用户要求“一次做完”，解释为同一执行周期连续完成五个可独立回滚的提交，而不是混成一个大提交。
+
+### 批29 原生实现日志（1.0.36–1.0.38，2026-09-20）
+
+| 上游项 | 落地结论 | 提交 | 验证 |
+|---|---|---|---|
+| mixed-case `reasoning_effort` | `ReasoningEffort` 手写 `Deserialize`，统一复用既有大小写无关 `FromStr`；序列化仍保持小写，非法值仍报错 | `d22a69eb` | 新靶子先红后绿；`nofy-sampling-types` 320/320 |
+| 默认 TUI agent 尊重 `[agent]` | **已对齐**：启动配置已完整进入 `AgentConfig`，resolver 本来就按 `definition > name > NOFY_AGENT > builtin`；新增优先级回归，不改生产代码 | `d22a69eb` | 优先级回归 + profile model override 2/2 |
+| prompt-suggest 长回复 | 最新 agent 回复使用剩余总预算，旧消息仍受单条上限；在后半段换行/空白边界截断并加 `…` 标记，UTF-8 边界由共享 `truncate_str` 保证 | `d22a69eb` | 两个新靶子先红后绿；prompt-suggest 29/29 |
+| `read_file` 整读策略 | 新增 `WholeReadPolicy { skill_markdown, instruction_files }`，进入内部 truncation 配置与 tools API；精确识别 instruction 文件名；默认整读，两个开关可独立关闭；整读仅在 25k token cap 内，超限回退 offset/limit。保留现有 canonicalize/gitignore/memory v1 路径，**未引入 Memory v2** | `d22a69eb` | `AGENTS.md` 与超限 `SKILL.md` 两靶子先红后绿；四条定向回归全绿；`nofy-tools` 2,962 passed / 22 ignored |
+| Messages inline-only `use_tool` schema | **已对齐**：本地 `UseToolInput` 从未引入上游 file-input root union；加强 schema 回归，明确断言根节点无 `oneOf/anyOf`，`tool_input` 仍允许任意对象键 | `d22a69eb` | schema 靶子通过；`nofy-tools-api` 22/22 |
+
+批级验证：`cargo check --workspace --all-targets` exit 0；GitNexus `detect-changes` = 9 文件 / 50 符号 /
+0 执行流 / risk low。全量输出只有仓库既有 warnings。`cargo fmt --all -- --check` 会被工作树中大量与本批无关的
+历史格式差异打红，因此没有机械格式化整树；仅对本批 Rust 文件运行 rustfmt，`git diff --check` 通过。
