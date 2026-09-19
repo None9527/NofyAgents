@@ -44,16 +44,22 @@
         }
     }
 
-    /// A `tool_input` that is missing or JSON null renders nothing rather
-    /// than a misleading `null`.
+    /// Missing, JSON null, or empty `{}`/`[]` `tool_input` renders nothing
+    /// rather than a misleading `null` or a lone `{}` row.
     #[test]
-    fn mcp_args_lines_empty_for_missing_or_null_input() {
+    fn mcp_args_lines_empty_for_missing_null_or_empty_input() {
         for raw in [
             serde_json::json!({"variant": "UseTool", "tool_name": "t"}),
             serde_json::json!({"variant": "UseTool", "tool_name": "t", "tool_input": null}),
+            serde_json::json!({"variant": "UseTool", "tool_name": "t", "tool_input": {}}),
+            serde_json::json!({"variant": "MCPTool", "tool_name": "t", "tool_input": {}}),
+            serde_json::json!({"variant": "UseTool", "tool_name": "t", "tool_input": []}),
         ] {
-            let req = permission_req_with_raw_input(Some(raw));
-            assert!(mcp_args_lines(&req).is_empty());
+            let req = permission_req_with_raw_input(Some(raw.clone()));
+            assert!(
+                mcp_args_lines(&req).is_empty(),
+                "expected no lines for {raw}"
+            );
         }
     }
 

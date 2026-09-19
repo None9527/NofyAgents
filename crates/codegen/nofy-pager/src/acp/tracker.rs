@@ -20,13 +20,13 @@ use crate::scrollback::state::ScrollbackState;
 use crate::scrollback::state::verb_group::verb_group_kind_changed;
 use agent_client_protocol as acp;
 use chrono::{DateTime, Local, TimeZone};
+use nofy_tools::types::output::{BashOutput, ToolOutput};
+use nofy_tools::types::output::{ReadFileOutput, SearchToolOutput, WebFetchOutput};
+use nofy_tools::util::strip_redundant_session_cd;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tracing::debug;
-use nofy_tools::types::output::{BashOutput, ToolOutput};
-use nofy_tools::types::output::{ReadFileOutput, SearchToolOutput, WebFetchOutput};
-use nofy_tools::util::strip_redundant_session_cd;
 /// Convert a UTC millisecond timestamp to local time.
 fn utc_ms_to_local(ms: i64) -> DateTime<Local> {
     chrono::Utc
@@ -183,8 +183,8 @@ impl WritingToolCall {
             Some(name) => {
                 use nofy_tools::types::tool::ToolKind;
                 let copy =
-                    nofy_tools::tool_taxonomy::writing_tool_kind(name).and_then(|kind| {
-                        match kind {
+                    nofy_tools::tool_taxonomy::writing_tool_kind(name).and_then(
+                        |kind| match kind {
                             ToolKind::Write => Some("Writing file"),
                             ToolKind::Edit => Some("Writing edit"),
                             ToolKind::Execute => Some("Writing command"),
@@ -192,13 +192,12 @@ impl WritingToolCall {
                             ToolKind::Workflow => Some("Writing workflow"),
                             ToolKind::AskUser => Some("Preparing question"),
                             _ => None,
-                        }
-                    });
+                        },
+                    );
                 match copy {
                     Some(copy) => format!("{copy}{ordinal}…"),
                     None => {
-                        let name =
-                            nofy_workspace::permission::mcp_pretty_name_if_qualified(name);
+                        let name = nofy_workspace::permission::mcp_pretty_name_if_qualified(name);
                         format!("Preparing {}{ordinal}…", clamp_activity_subject(&name))
                     }
                 }
@@ -1597,8 +1596,7 @@ fn user_message_hidden_from_scrollback(
         return true;
     }
     if let Some(pid) = meta.prompt_id.as_deref()
-        && nofy_shell::session::PromptOrigin::from_prompt_id(pid)
-            .hide_user_echo_from_scrollback()
+        && nofy_shell::session::PromptOrigin::from_prompt_id(pid).hide_user_echo_from_scrollback()
     {
         return true;
     }
@@ -1912,11 +1910,20 @@ fn tool_call_to_block(tc: &acp::ToolCall, session_cwd: Option<&Path>) -> RenderB
                 block.content = Some(content);
             }
             if !success {
-                block = block.with_error("Search failed");
+                let error = block
+                    .content
+                    .take()
+                    .filter(|_| block.results.is_empty())
+                    .unwrap_or_else(|| "Search failed".to_owned());
+                block = block.with_error(error);
             }
             RenderBlock::ToolCall(ToolCallBlock::IntegrationSearch(block))
         }
-        _ if extract_raw_field(tc, "variant").as_deref() == Some("UseTool") => {
+        _ if matches!(
+            extract_raw_field(tc, "variant").as_deref(),
+            Some("UseTool") | Some("MCPTool")
+        ) =>
+        {
             let tool_name = extract_raw_field(tc, "tool_name").unwrap_or_else(|| tc.title.clone());
             let mut block = UseToolCallBlock::new(tool_name);
             block.input_args = extract_use_tool_args(tc);
@@ -2604,7 +2611,7 @@ fn maybe_pretty_json(s: &str) -> String {
         s.to_owned()
     }
 }
-/// Extract input arguments from a use_tool call's raw_input.tool_input.
+/// Extract input arguments from a use_tool or MCPTool call's raw_input.tool_input.
 ///
 /// Flattens the top-level JSON object into key-value string pairs for display.
 /// Nested objects/arrays are rendered as compact JSON strings.
@@ -3686,8 +3693,8 @@ mod tests {
     /// 4. Second Completed ToolCallUpdate (from acp_session completion handler)
     #[test]
     fn production_execute_sequence() {
-        use serde_json::json;
         use nofy_tools::types::output::{BashOutput, ToolOutput};
+        use serde_json::json;
         let mut sb = ScrollbackState::new();
         let mut tracker = AcpUpdateTracker::new();
         let tc_id = "call_abc123";
@@ -4982,8 +4989,14 @@ mod tests {
                 ordinal: std::num::NonZeroU32::MIN,
             }))
         );
-        tracker.backdate_last_tool_call_delta(WRITING_DELTA_STALE_AFTER + std::time::Duration::from_secs(1));
-        assert_eq!(tracker.activity(), None, "a silent stream is no longer writing");
+        tracker.backdate_last_tool_call_delta(
+            WRITING_DELTA_STALE_AFTER + std::time::Duration::from_secs(1),
+        );
+        assert_eq!(
+            tracker.activity(),
+            None,
+            "a silent stream is no longer writing"
+        );
         assert!(tracker.has_stale_tool_call_write());
         assert!(
             tracker.note_tool_call_arguments_delta(Some("write"), 0),
@@ -6782,6 +6795,65 @@ mod tests {
             panic!("expected UseTool block, got {block:?}");
         };
         assert_eq!(ut.tool_name, "grafana__search");
+    }
+    #[test]
+    fn a_failed_tool_search_shows_its_output_text_as_the_error() {
+        let tc = acp::ToolCall::new(
+            acp::ToolCallId::new(Arc::from("mcp2")),
+            "Search tools slack",
+        )
+        .kind(acp::ToolKind::Other)
+        .status(acp::ToolCallStatus::Failed)
+        .content(vec![])
+        .raw_input(Some(
+            serde_json::json!({ "variant": "SearchTool", "query": "slack" }),
+        ))
+        .raw_output(Some(serde_json::json!({
+            "type": "SearchTool",
+            "result_count": 0,
+            "content": "no such server: slack"
+        })))
+        .locations(vec![]);
+        let block = tool_call_to_block(&tc, None);
+        let RenderBlock::ToolCall(ToolCallBlock::IntegrationSearch(st)) = block else {
+            panic!("expected IntegrationSearch block, got {block:?}");
+        };
+        assert_eq!(st.error.as_deref(), Some("no such server: slack"));
+    }
+    #[test]
+    fn directly_listed_mcp_tool_renders_like_a_use_tool_call() {
+        let mcp = nofy_tools::types::output::MCPOutput::errored(
+            "computer_check_permissions".into(),
+            "computer_use".into(),
+            "Failed to call computer_check_permissions: the helper did not answer within 15s"
+                .into(),
+        );
+        let input = nofy_tools::types::tool_io::ToolInput::MCPTool(
+            nofy_tools::types::tool_io::MCPToolInput {
+                tool_name: "computer_use__computer_check_permissions".into(),
+                tool_input: serde_json::json!({"x": 1}),
+            },
+        );
+        let tc = acp::ToolCall::new(
+            acp::ToolCallId::new(Arc::from("mcp2")),
+            "computer_use__computer_check_permissions",
+        )
+        .kind(acp::ToolKind::Other)
+        .status(acp::ToolCallStatus::Failed)
+        .content(vec![])
+        .raw_input(serde_json::to_value(input).ok())
+        .raw_output(serde_json::to_value(ToolOutput::MCP(mcp)).ok())
+        .locations(vec![]);
+        let block = tool_call_to_block(&tc, None);
+        let RenderBlock::ToolCall(ToolCallBlock::UseTool(ut)) = block else {
+            panic!("expected UseTool block, got {block:?}");
+        };
+        assert_eq!("computer_use__computer_check_permissions", ut.tool_name);
+        assert_eq!(vec![("x".to_owned(), "1".to_owned())], ut.input_args);
+        assert_eq!(
+            Some("Failed to call computer_check_permissions: the helper did not answer within 15s"),
+            ut.error.as_deref()
+        );
     }
     #[test]
     fn call_mcp_tool_no_raw_input_does_not_panic() {
