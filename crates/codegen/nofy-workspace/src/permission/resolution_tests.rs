@@ -3338,6 +3338,29 @@ async fn managed_bypass_under_pin_records_skip_without_catchall() {
     );
 }
 
+#[test]
+fn managed_hooks_only_accepts_both_spellings_and_fails_closed() {
+    let path = Path::new("/etc/nofy/managed-settings.json");
+    assert!(!managed_hooks_only_from_json(&serde_json::json!({}), path));
+    assert!(managed_hooks_only_from_json(
+        &serde_json::json!({"allowManagedHooksOnly": true}),
+        path
+    ));
+    assert!(managed_hooks_only_from_json(
+        &serde_json::json!({"allow_managed_hooks_only": "yes"}),
+        path
+    ));
+    assert!(!managed_hooks_only_from_json(
+        &serde_json::json!({"allowManagedHooksOnly": false}),
+        path
+    ));
+
+    let native: toml::Value = toml::from_str("allow_managed_hooks_only = true").unwrap();
+    assert!(managed_hooks_only_from_toml(&native, path));
+    let malformed: toml::Value = toml::from_str("allowManagedHooksOnly = 'yes'").unwrap();
+    assert!(managed_hooks_only_from_toml(&malformed, path));
+}
+
 #[tokio::test]
 async fn nested_dont_ask_with_allow_rules_preserves_allow_and_deny_policy() {
     let tmp = tempfile::tempdir().unwrap();

@@ -202,6 +202,14 @@ pub struct HookSpec {
     pub layer: HookProvenance,
 }
 
+impl HookSpec {
+    /// Whether this hook comes from a root-owned managed-policy tier and is
+    /// therefore exempt from user disable state.
+    pub fn is_managed_policy(&self) -> bool {
+        self.layer.is_managed_policy()
+    }
+}
+
 /// Namespace prefixes stamped on hook names, matched by [`hook_origin`]. Shared
 /// so a rename can't silently reclassify a tier.
 pub const GLOBAL_HOOK_PREFIX: &str = "global/";
@@ -229,7 +237,7 @@ pub fn hook_origin(spec: &HookSpec) -> HookOrigin {
     match spec.layer {
         HookProvenance::SystemManaged => HookOrigin::SystemManaged,
         HookProvenance::Managed => HookOrigin::Managed,
-        HookProvenance::Requirements => HookOrigin::Requirements,
+        HookProvenance::Requirements | HookProvenance::UserRequirements => HookOrigin::Requirements,
         HookProvenance::User => HookOrigin::UserConfig,
         HookProvenance::Plugin => HookOrigin::Plugin,
         HookProvenance::Unknown => HookOrigin::Unknown,
@@ -603,11 +611,7 @@ mod tests {
     fn config_layer(source_name: &str, toml_src: &str) -> nofy_config::HookConfigLayer {
         let value: toml::Value = toml::from_str(toml_src).unwrap();
         let hooks = value.get("hooks").cloned().unwrap();
-        nofy_config::HookConfigLayer::new(
-            nofy_config::HookProvenance::Managed,
-            source_name,
-            hooks,
-        )
+        nofy_config::HookConfigLayer::new(nofy_config::HookProvenance::Managed, source_name, hooks)
     }
 
     #[test]

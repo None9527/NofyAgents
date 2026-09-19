@@ -1,9 +1,10 @@
 use super::*;
 use ClassifierSecurityFinding::*;
 
-const ALL: [ClassifierSecurityFinding; 9] = [
+const ALL: [ClassifierSecurityFinding; 10] = [
     FailClosedPolicy,
     UnparseableShell,
+    UnresolvedArgument,
     OpaqueShell,
     ExecOrAmbientGit,
     EnvInjection,
@@ -21,6 +22,7 @@ fn tokens_are_stable_and_unique() {
         [
             "fail_closed_policy",
             "unparseable_shell",
+            "unresolved_argument",
             "opaque_shell",
             "exec_or_ambient_git",
             "env_injection",
@@ -55,6 +57,10 @@ fn descriptions_are_fixed_per_variant() {
         (
             UnparseableShell,
             "shell structure could not be fully parsed",
+        ),
+        (
+            UnresolvedArgument,
+            "argument values depend on shell expansion",
         ),
         (
             OpaqueShell,
@@ -115,6 +121,7 @@ fn grant_floor_subset_is_exactly_the_broad_grant_findings() {
     // Findings that must block a broad grant / sandbox auto-allow.
     for f in [
         FileWrite,
+        UnresolvedArgument,
         UnvettedEnv,
         EnvInjection,
         OpaqueShell,

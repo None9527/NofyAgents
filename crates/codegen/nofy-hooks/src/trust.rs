@@ -36,13 +36,63 @@ pub fn list_trusted_projects_with_file(trust_file: &Path) -> std::io::Result<Vec
 
 // ── Hook enable/disable ─────────────────────────────────────────────────
 
-/// Check whether a hook is disabled by name.
-///
-/// Disabled hooks are listed in , one hook name per line.
-pub fn is_hook_disabled(hook_name: &str) -> bool {
-    match disabled_hooks_file_path() {
-        Some(file) => is_hook_disabled_with_file(hook_name, &file),
-        None => false,
+/// Why a hook is skipped at dispatch and shown disabled in the modal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HookSkipReason {
+    UserDisabled,
+    ManagedOnly,
+}
+
+/// Point-in-time snapshot of every input to the hook skip decision. Dispatch,
+/// stop-gate discovery and UI display share this rule so managed-only policy
+/// cannot become a presentation-only restriction.
+#[derive(Debug, Default)]
+pub struct DisabledHooks {
+    names: std::collections::HashSet<String>,
+    managed_only: bool,
+}
+
+impl DisabledHooks {
+    pub fn new<I: IntoIterator<Item = String>>(names: I, managed_only: bool) -> Self {
+        Self {
+            names: names.into_iter().collect(),
+            managed_only,
+        }
+    }
+
+    pub fn load(managed_only: bool) -> Self {
+        let names = disabled_hooks_file_path()
+            .and_then(|file| std::fs::read_to_string(file).ok())
+            .map(|content| {
+                content
+                    .lines()
+                    .map(str::trim)
+                    .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        Self::new(names, managed_only)
+    }
+
+    pub fn managed_only(&self) -> bool {
+        self.managed_only
+    }
+
+    /// Managed-policy hooks always run. Otherwise the organization lockdown
+    /// outranks the user's per-name disabled file.
+    pub fn skip_reason(&self, spec: &crate::config::HookSpec) -> Option<HookSkipReason> {
+        if spec.is_managed_policy() {
+            return None;
+        }
+        if self.managed_only {
+            return Some(HookSkipReason::ManagedOnly);
+        }
+        (!spec.enabled || self.names.contains(&spec.name)).then_some(HookSkipReason::UserDisabled)
+    }
+
+    pub fn blocks(&self, spec: &crate::config::HookSpec) -> bool {
+        self.skip_reason(spec).is_some()
     }
 }
 
@@ -132,6 +182,29 @@ fn disabled_hooks_file_path() -> Option<PathBuf> {
 mod tests {
     use super::*;
 
+    fn hook(
+        name: &str,
+        layer: crate::config::HookProvenance,
+        enabled: bool,
+    ) -> crate::config::HookSpec {
+        crate::config::HookSpec {
+            name: name.to_owned(),
+            event: crate::event::HookEventName::Stop,
+            handler_type: crate::config::HandlerType::Command,
+            configured_matcher: None,
+            matcher: None,
+            enabled,
+            command: Some("stop.sh".into()),
+            command_raw: Some("stop.sh".into()),
+            url: None,
+            url_raw: None,
+            timeout_ms: 5_000,
+            source_dir: "/tmp".into(),
+            extra_env: Default::default(),
+            layer,
+        }
+    }
+
     /// Each test creates its own legacy file in its own temp dir -- no shared state.
     fn trust_file_in(dir: &Path) -> PathBuf {
         let nofy_dir = dir.join(".nofy");
@@ -167,5 +240,34 @@ mod tests {
             list_trusted_projects_with_file(Path::new("/nonexistent/trusted-hook-projects"))
                 .expect("missing file resolves to Ok(empty)");
         assert!(projects.is_empty());
+    }
+
+    #[test]
+    fn managed_only_blocks_non_managed_but_never_managed_policy() {
+        use crate::config::HookProvenance::{File, Requirements, SystemManaged, UserRequirements};
+
+        let lockdown = DisabledHooks::new(["managed".to_owned()], true);
+        assert_eq!(
+            lockdown.skip_reason(&hook("file", File, true)),
+            Some(HookSkipReason::ManagedOnly)
+        );
+        assert_eq!(
+            lockdown.skip_reason(&hook("requirements/user", UserRequirements, true)),
+            Some(HookSkipReason::ManagedOnly)
+        );
+        assert_eq!(
+            lockdown.skip_reason(&hook("managed", SystemManaged, false)),
+            None
+        );
+        assert_eq!(
+            lockdown.skip_reason(&hook("requirements/system", Requirements, false)),
+            None
+        );
+
+        let ordinary = DisabledHooks::new(["file".to_owned()], false);
+        assert_eq!(
+            ordinary.skip_reason(&hook("file", File, true)),
+            Some(HookSkipReason::UserDisabled)
+        );
     }
 }

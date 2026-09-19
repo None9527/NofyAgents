@@ -424,9 +424,7 @@ impl ResolveInputs<'static> {
         Self {
             policy_block: yolo_disabled_by_policy(),
             managed: managed_settings(),
-            managed_config_rules: managed_config_permissions(
-                &nofy_config::managed_config_layers(),
-            ),
+            managed_config_rules: managed_config_permissions(&nofy_config::managed_config_layers()),
             project_trusted,
         }
     }
@@ -730,6 +728,9 @@ pub struct ManagedSettings {
     default_mode: Option<DefaultPermissionMode>,
     pub mcp_allowlist: McpServerAllowlist,
     pub marketplace_allowlist: MarketplaceAllowlist,
+    /// Tighten-only policy pin: when any managed/requirements source enables
+    /// it, hooks outside root-owned managed policy cannot run.
+    pub allow_managed_hooks_only: bool,
 }
 
 static MANAGED_SETTINGS: OnceLock<ManagedSettings> = OnceLock::new();
@@ -739,13 +740,24 @@ pub fn managed_settings() -> &'static ManagedSettings {
 }
 
 fn load_managed_settings() -> ManagedSettings {
-    let Some(path) = nofy_config::claude_managed_settings_path() else {
-        return ManagedSettings::default();
-    };
-    let Some(json) = read_managed_settings_json(&path) else {
-        return ManagedSettings::default();
-    };
-    parse_managed_settings_json(&json, &path)
+    let mut settings = nofy_config::claude_managed_settings_path()
+        .and_then(|path| {
+            read_managed_settings_json(&path).map(|json| parse_managed_settings_json(&json, &path))
+        })
+        .unwrap_or_default();
+
+    // Tighten-only across every native managed layer. A later `false` cannot
+    // release a restriction established by another source.
+    settings.allow_managed_hooks_only |= nofy_config::managed_config_layers()
+        .iter()
+        .any(|layer| managed_hooks_only_from_toml(&layer.value, &layer.path));
+    settings.allow_managed_hooks_only |= nofy_config::requirements_layers().iter().any(|layer| {
+        managed_hooks_only_from_toml(
+            &layer.value,
+            std::path::Path::new(layer.source.label().as_ref()),
+        )
+    });
+    settings
 }
 
 fn parse_managed_settings_json(json: &serde_json::Value, path: &Path) -> ManagedSettings {
@@ -826,7 +838,34 @@ fn parse_managed_settings_json(json: &serde_json::Value, path: &Path) -> Managed
             allowed_urls: marketplace_urls,
             source_path: Some(path.to_path_buf()),
         },
+        allow_managed_hooks_only: managed_hooks_only_from_json(json, path),
     }
+}
+
+const MANAGED_HOOKS_ONLY_KEYS: [&str; 2] = ["allowManagedHooksOnly", "allow_managed_hooks_only"];
+
+/// Parse a tighten-only managed hook pin. A present non-boolean is treated as
+/// enabled so an administrator typo cannot silently fail open.
+fn managed_hooks_only_from_json(json: &serde_json::Value, path: &Path) -> bool {
+    MANAGED_HOOKS_ONLY_KEYS.iter().any(|key| match json.get(key) {
+        None => false,
+        Some(serde_json::Value::Bool(value)) => *value,
+        Some(_) => {
+            warn!(path = %path.display(), key, "managed hook policy must be boolean; failing closed");
+            true
+        }
+    })
+}
+
+fn managed_hooks_only_from_toml(value: &toml::Value, path: &Path) -> bool {
+    MANAGED_HOOKS_ONLY_KEYS.iter().any(|key| match value.get(key) {
+        None => false,
+        Some(toml::Value::Boolean(value)) => *value,
+        Some(_) => {
+            warn!(path = %path.display(), key, "managed hook policy must be boolean; failing closed");
+            true
+        }
+    })
 }
 
 const ALLOWED_MCP_SERVERS_KEY: &str = "allowedMcpServers";

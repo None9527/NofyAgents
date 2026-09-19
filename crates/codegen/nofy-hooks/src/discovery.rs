@@ -26,12 +26,12 @@ impl HookRegistry {
 
     /// Returns true when any enabled hook is registered for `event` or its
     /// alias spelling. Allocation-free guard for hot paths.
-    pub fn has_enabled_hooks_for_canonical(&self, event: HookEventName) -> bool {
-        let enabled = |specs: &[HookSpec]| {
-            specs
-                .iter()
-                .any(|s| s.enabled && !crate::trust::is_hook_disabled(&s.name))
-        };
+    pub fn has_enabled_hooks_for_canonical(
+        &self,
+        event: HookEventName,
+        disabled: &crate::trust::DisabledHooks,
+    ) -> bool {
+        let enabled = |specs: &[HookSpec]| specs.iter().any(|spec| !disabled.blocks(spec));
         let canonical = event.canonical();
         enabled(self.hooks_for(canonical))
             || (canonical == HookEventName::SubagentStop
@@ -97,6 +97,12 @@ impl HookRegistry {
             all.extend(self.hooks_for(*event));
         }
         all
+    }
+
+    /// Resolve a modal action back to its typed provenance. Dispatch remains
+    /// the enforcement boundary if a stale or unknown name reaches the UI.
+    pub fn find_by_name(&self, name: &str) -> Option<&HookSpec> {
+        self.hooks.values().flatten().find(|spec| spec.name == name)
     }
 
     /// Rebuild the `matcher` field (serde skips it) from `configured_matcher`

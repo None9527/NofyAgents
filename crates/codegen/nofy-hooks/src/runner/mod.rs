@@ -18,6 +18,15 @@ pub struct RunContext<'a> {
     pub session_id: &'a str,
     pub workspace_root: &'a str,
     pub process_scope: Option<nofy_tools::util::ProcessScope>,
+    /// Loaded once per dispatch so every hook in the batch sees the same policy
+    /// and disabled-hooks file snapshot.
+    pub disabled: std::sync::Arc<crate::trust::DisabledHooks>,
+}
+
+impl RunContext<'_> {
+    pub fn disabled(&self) -> &crate::trust::DisabledHooks {
+        &self.disabled
+    }
 }
 
 /// Result of running a single hook (any handler type).

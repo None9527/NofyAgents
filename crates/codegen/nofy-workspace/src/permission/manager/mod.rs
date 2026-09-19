@@ -6,8 +6,8 @@ use parking_lot::Mutex;
 
 use agent_client_protocol as acp;
 use chrono::Utc;
-use tokio::sync::{mpsc, oneshot};
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
+use tokio::sync::{mpsc, oneshot};
 
 use crate::permission::auto_mode::{
     BashSecurityAssessment, ClassifierSecurityFinding, ClassifierVerdict, EnvRisk,
@@ -16,6 +16,7 @@ use crate::permission::auto_mode::{
 use crate::permission::bash_command_splitting::{
     is_setup_command, try_parse_shell, try_parse_word_only_commands_sequence, unwrap_wrappers,
 };
+use crate::permission::bash_permission_script::PermissionScript;
 use crate::permission::exec_risk::{
     AmbientScanPlan, SAFE_GIT_SUBCOMMANDS, ambient_exec_risk_from_plan,
     ambient_scan_plan_from_segments, git_words_are_read_only_query,
@@ -680,6 +681,13 @@ struct BashEvaluation {
     /// Script has an in-scope `cd`/`pushd`/`popd`, so a relative creation path
     /// cannot be resolved against the request cwd — the floor fails closed.
     has_cwd_change: bool,
+    /// Strict word decomposition failed, but every command was a reviewed
+    /// reader with understood filename positions and witnessed assignments.
+    recovered_eligible: bool,
+    /// Conservative command-word projections for a recovered filename script.
+    /// Unresolved operands retain their quoted source spelling; this is policy
+    /// evidence only and never a guessed runtime expansion.
+    recovered_commands: Vec<String>,
 }
 
 fn unparseable_exec_risk(cmd: &str) -> bool {
@@ -733,6 +741,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
             ambient_segments: None,
             creation_paths: Vec::new(),
             has_cwd_change: false,
+            recovered_eligible: false,
+            recovered_commands: Vec::new(),
         };
     };
     let writes = command_write_paths_split(tree.root_node(), cmd);
@@ -761,23 +771,54 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         assessment.insert(finding);
     }
     let Some(segments) = segments else {
-        // WHY: undecomposable dynamic `bash -c "$X"`/`eval` is still opaque shell.
-        assessment.insert(Finding::UnparseableShell);
-        if tree_has_opaque_shell(tree.root_node(), cmd) {
+        let recovery = PermissionScript::analyze(&tree, cmd);
+        if recovery.has_unresolved() {
+            assessment.insert(Finding::UnresolvedArgument);
+        }
+        let projections = recovery.projections();
+        let recovered_commands = recovery.policy_projections();
+        for words in &projections {
+            let words = unwrap_wrappers(words);
+            if is_dangerous_command_words(words) {
+                assessment.insert(Finding::DangerousCommand);
+            }
+            if kubectl_has_unsafe_flag(words)
+                || rg_has_pre_flag(words)
+                || ps_dumps_environment(words)
+                || git_words_have_unsafe_query_option(words)
+            {
+                assessment.insert(Finding::SpecialExecSurface);
+            }
+            if segment_exec_facts(words).exec_risk {
+                assessment.insert(Finding::ExecOrAmbientGit);
+            }
+        }
+        if !recovery.is_eligible() {
+            assessment.insert(Finding::UnparseableShell);
+        }
+        if !recovery.is_eligible() && tree_has_opaque_shell(tree.root_node(), cmd) {
             assessment.insert(Finding::OpaqueShell);
         }
         if unparseable_exec_risk(cmd) {
             assessment.insert(Finding::ExecOrAmbientGit);
         }
         return BashEvaluation {
-            segments: raw_deny_rejection(cmd, state).unwrap_or(SegmentEvaluation::Unparseable),
+            segments: raw_deny_rejection(cmd, state)
+                .or_else(|| {
+                    projections.iter().find_map(|words| {
+                        raw_deny_rejection(&unwrap_wrappers(words).join(" "), state)
+                    })
+                })
+                .unwrap_or(SegmentEvaluation::Unparseable),
             exact_grant,
             all_segments_granted: false,
             assessment,
-            redirect_write: true,
+            redirect_write: redirect_write || !recovery.is_eligible(),
             ambient_segments: None,
             creation_paths: Vec::new(),
-            has_cwd_change: false,
+            has_cwd_change,
+            recovered_eligible: recovery.is_eligible(),
+            recovered_commands,
         };
     };
     // Upgrade the raw-string compare with the dequoted single-command form now
@@ -832,6 +873,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
                 ambient_segments: None,
                 creation_paths: Vec::new(),
                 has_cwd_change: false,
+                recovered_eligible: false,
+                recovered_commands: Vec::new(),
             };
         }
 
@@ -920,6 +963,8 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         ambient_segments,
         creation_paths: writes.creation_paths,
         has_cwd_change,
+        recovered_eligible: false,
+        recovered_commands: Vec::new(),
     }
 }
 
@@ -1271,6 +1316,42 @@ fn persisted_bash_auto_allows(
 /// [`BashSecurityAssessment`] — no re-derivation of per-effect fields.
 fn bash_request_floor_requires_prompt(evaluation: Option<&BashEvaluation>) -> bool {
     evaluation.is_some_and(|e| !e.exact_grant && e.assessment.constrains_broad_grant())
+}
+
+/// A configured allow may cover the narrowly recovered filename shape only
+/// when its sole findings are the unresolved argv and witnessed assignment.
+fn configured_filename_allow(
+    evaluation: Option<&BashEvaluation>,
+    policy: Option<&CompiledPolicy>,
+) -> bool {
+    use ClassifierSecurityFinding::{UnresolvedArgument, UnvettedEnv};
+    evaluation.is_some_and(|evaluation| {
+        evaluation.recovered_eligible
+            && ClassifierSecurityFinding::ALL.iter().all(|finding| {
+                matches!(finding, UnresolvedArgument | UnvettedEnv)
+                    || !evaluation.assessment.contains(*finding)
+            })
+            && policy.is_some_and(|policy| {
+                !evaluation.recovered_commands.is_empty()
+                    && evaluation.recovered_commands.iter().all(|command| {
+                        matches!(
+                            policy.evaluate(&AccessKind::Bash(command.clone())),
+                            Some(Decision::Allow)
+                        )
+                    })
+            })
+    })
+}
+
+/// Auto mode must classify recovered argv unless an exact whole-script grant
+/// already names the command.
+fn requires_recovered_classification(evaluation: Option<&BashEvaluation>) -> bool {
+    evaluation.is_some_and(|evaluation| {
+        evaluation
+            .assessment
+            .contains(ClassifierSecurityFinding::UnresolvedArgument)
+            && !evaluation.exact_grant
+    })
 }
 
 /// Whether a configured allow rule clears the bash request floor in ask/dontAsk
@@ -1946,6 +2027,8 @@ fn spawn_permission_manager_with_pin(
                         }
                         _ => None,
                     };
+                    let recovered_classification =
+                        auto_mode && requires_recovered_classification(bash_evaluation.as_ref());
                     let protected_edit = match (&access, path_context.as_ref()) {
                         (AccessKind::Edit(path), Some(context)) => {
                             let resolved = resolve_model_path(
@@ -1980,7 +2063,13 @@ fn spawn_permission_manager_with_pin(
                         request_cwd,
                         auto_mode,
                     );
-                    let policy_decision = preflight.policy_decision();
+                    let covering_filename_allow = configured_filename_allow(
+                        bash_evaluation.as_ref(),
+                        compiled_policy.as_ref(),
+                    );
+                    let policy_decision = preflight
+                        .policy_decision()
+                        .or_else(|| covering_filename_allow.then_some(Decision::Allow));
                     let policy_forced_prompt = preflight.policy_forced_prompt();
                     // An `Ask` from either bash gate must block the YOLO/auto fast paths.
                     let shell_forced_prompt = preflight.shell_forced_prompt();
@@ -2033,6 +2122,7 @@ fn spawn_permission_manager_with_pin(
                             !(auto_mode && web_fetch_allowlist_is_default),
                             yolo_pin,
                         )
+                        && (!recovered_classification || !matches!(decision, Decision::Allow))
                     {
                         tracing::debug!(
                             tool = %tool_name,
@@ -2056,11 +2146,13 @@ fn spawn_permission_manager_with_pin(
                     // and boundaries on `narrow_allow_authorizes`. That walk
                     // re-parses the script, so it runs only when findings exist.
                     if auto_mode
+                        && (covering_filename_allow || !recovered_classification)
                         && !policy_forced_prompt
                         && !shell_forced_prompt
                         && protected_edit.is_none()
                         && matches!(policy_decision, Some(Decision::Allow))
-                        && (bash_assessment_is_clear(bash_evaluation.as_ref())
+                        && (covering_filename_allow
+                            || bash_assessment_is_clear(bash_evaluation.as_ref())
                             || (!bash_request_floor_requires_prompt(bash_evaluation.as_ref())
                                 && compiled_policy
                                     .as_ref()
@@ -2329,6 +2421,7 @@ fn spawn_permission_manager_with_pin(
                     }
 
                     if matches!(&access, AccessKind::Bash(_))
+                        && !recovered_classification
                         && sandbox_may_auto_allow_bash(
                             bash_evaluation.as_ref(),
                             nofy_sandbox::should_auto_allow_bash(),
@@ -2372,13 +2465,20 @@ fn spawn_permission_manager_with_pin(
                         Some(Decision::Allow)
                             if protected_edit.is_some()
                                 || auto_forced_prompt
-                                || (bash_request_floor_requires_prompt(
+                                || ((requires_recovered_classification(
                                     bash_evaluation.as_ref(),
-                                ) && !narrow_allow_clears_write_floor(
+                                ) || bash_request_floor_requires_prompt(
+                                    bash_evaluation.as_ref(),
+                                )) && !narrow_allow_clears_write_floor(
                                     bash_evaluation.as_ref(),
                                     compiled_policy.as_ref(),
                                     &access,
-                                )) =>
+                                ) && !(prompt_policy
+                                    != crate::permission::types::PromptPolicy::Deny
+                                    && configured_filename_allow(
+                                        bash_evaluation.as_ref(),
+                                        compiled_policy.as_ref(),
+                                    ))) =>
                         {
                             // Auto forced a prompt (classifier timeout/unavailable/
                             // denial-limit on a findings-bearing command): a broad
@@ -2587,8 +2687,8 @@ fn spawn_permission_manager_with_pin(
                                 if *reason == reasons::STATIC_ALLOWLIST
                                     || *reason == reasons::PERSISTED_GRANT
                         );
-                    if auto_forced_prompt
-                        && auto_prompt_blocks_allow(&access)
+                    if (recovered_classification
+                        || (auto_forced_prompt && auto_prompt_blocks_allow(&access)))
                         && matches!(pre_decision, Some((Decision::Allow, _)))
                         && !webfetch_static_fallback
                     {
@@ -5987,6 +6087,67 @@ mod tests {
                     assert!(matches!(decision, Decision::Reject(_)), "{cmd}");
                 }
                 assert_eq!(prompts.borrow().len(), 2);
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn configured_allow_covers_safe_quoted_filename_variables() {
+        use crate::permission::rules::parse_permission_rule;
+        use crate::permission::types::{PermissionConfig, RuleAction};
+
+        const SCRIPT: &str = r#"LOG="/tmp/nofy-permission-fixture/sim.log"
+echo "===== exists ====="
+ls -lh "$LOG"
+echo "===== errors ====="
+rg -n "ERROR|FATAL" "$LOG" | rg -v "summary|counts" | head -40
+echo "===== summary ====="
+rg -n "Summary|ERROR :|FATAL :" "$LOG" | tail -15"#;
+
+        tokio::task::LocalSet::new()
+            .run_until(async {
+                let directory = tempfile::tempdir().unwrap();
+                let cwd = AbsPathBuf::new(directory.path().to_path_buf()).unwrap();
+                let rule = parse_permission_rule("Bash", RuleAction::Allow).unwrap();
+                let mut config = PermissionConfig::new(vec![rule]);
+                config.prompt_policy = PromptPolicy::Ask;
+                let policy = CompiledPolicy::new(config.clone());
+                let evaluation = evaluate_bash(SCRIPT, &PermissionState::default(), true);
+                for command in &evaluation.recovered_commands {
+                    assert_eq!(
+                        policy.evaluate(&AccessKind::Bash(command.clone())),
+                        Some(Decision::Allow),
+                        "{command}"
+                    );
+                }
+                assert!(
+                    configured_filename_allow(Some(&evaluation), Some(&policy)),
+                    "{evaluation:#?}"
+                );
+                let client = RecordingClient::default();
+                let prompts = client.prompts.clone();
+                let (manager, _events) = manager_with_recording_client_remember(
+                    &cwd,
+                    Some(config),
+                    client,
+                    ClientType::NofyPager,
+                    true,
+                );
+
+                let decision = manager
+                    .request(
+                        AccessKind::Bash(SCRIPT.to_owned()),
+                        tool_call(),
+                        None,
+                        None,
+                        None,
+                    )
+                    .await;
+                assert_eq!(Decision::Allow, decision);
+                assert!(
+                    prompts.borrow().is_empty(),
+                    "configured allow must not prompt"
+                );
             })
             .await;
     }

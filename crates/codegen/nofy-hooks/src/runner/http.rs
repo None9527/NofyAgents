@@ -674,6 +674,7 @@ mod tests {
             session_id: "test",
             workspace_root: "/tmp",
             process_scope: None,
+            disabled: Default::default(),
         };
         let (result, _, info) = run_http_hook(&spec, &envelope, &ctx, GateKind::Tool).await;
 
@@ -753,6 +754,7 @@ mod tests {
             session_id: "test",
             workspace_root: "/tmp",
             process_scope: None,
+            disabled: Default::default(),
         };
 
         let (result, _, info) = run_http_hook(&spec, &envelope, &ctx, GateKind::Tool).await;

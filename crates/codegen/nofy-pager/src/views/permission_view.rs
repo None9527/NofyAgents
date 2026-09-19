@@ -16,10 +16,6 @@
 //! No rendering or input handling here — this is pure data and helpers.
 
 use agent_client_protocol as acp;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
 use nofy_workspace::permission::bash_command_splitting::{
     BashCommandHighlights, heredoc_payload_byte_ranges, range_fully_inside,
     soft_break_offsets_after_operators,
@@ -28,6 +24,10 @@ use nofy_workspace::permission::{
     ALLOW_EDITS_SESSION_OPTION_ID, BashCommandPermission, McpToolPermission, mcp_titleize_segment,
     mcp_tool_action, mcp_tool_display_name,
 };
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
 
 use unicode_width::UnicodeWidthStr;
 
@@ -1329,9 +1329,9 @@ fn soft_wrap_row_texts<'a>(
 /// single- or double-quoted strings.
 ///
 /// Break candidates are byte offsets *after* a run of whitespace that is not
-/// inside quotes. If a single unbreakable span (e.g. a long `'...'` literal)
-/// still exceeds `width`, it is emitted as one row (may overflow the panel —
-/// better than splitting `jq '.[] | ...'` mid-expression).
+/// inside quotes. Quoted expressions stay intact whenever they fit. If one
+/// unbreakable span still exceeds `width`, it is split strictly by display
+/// width so a long argument cannot overflow the permission panel.
 ///
 /// At most `max_rows` rows are produced; the scan returns as soon as the cap
 /// is reached and break points are discovered lazily, so a huge unquoted
@@ -1350,11 +1350,7 @@ fn bash_quote_aware_wrap(line: &str, width: usize, max_rows: usize) -> Vec<&str>
 
     // Lazy candidate stream: quote-aware break offsets, then EOL. Nothing
     // past the last consumed candidate is ever scanned.
-    let mut break_points = QuoteAwareBreakPoints::new(line).peekable();
-    if break_points.peek().is_none() {
-        // Nowhere safe to break (entire line is one quoted span, or no spaces).
-        return vec![line];
-    }
+    let break_points = QuoteAwareBreakPoints::new(line);
 
     let mut rows: Vec<&str> = Vec::new();
     let mut row_start = 0usize;
@@ -1393,14 +1389,14 @@ fn bash_quote_aware_wrap(line: &str, width: usize, max_rows: usize) -> Vec<&str>
                 if UnicodeWidthStr::width(candidate) <= width {
                     last_break = b;
                 } else {
-                    // Still too wide with nothing smaller — force-emit unbreakable.
+                    // Still too wide with nothing smaller: split this one
+                    // otherwise-unbreakable span by display width.
                     let force_end = b;
-                    let row = line[row_start..force_end].trim_end();
-                    if !row.is_empty() {
-                        rows.push(row);
-                        if rows.len() >= max_rows {
-                            return rows;
-                        }
+                    extend_display_width_rows(
+                        &mut rows, line, row_start, force_end, width, max_rows,
+                    );
+                    if rows.len() >= max_rows {
+                        return rows;
                     }
                     row_start = force_end;
                     while row_start < line.len() && line.as_bytes()[row_start].is_ascii_whitespace()
@@ -1412,12 +1408,9 @@ fn bash_quote_aware_wrap(line: &str, width: usize, max_rows: usize) -> Vec<&str>
             }
         } else {
             // No prior break in this row — unbreakable span larger than width.
-            let row = line[row_start..b].trim_end();
-            if !row.is_empty() {
-                rows.push(row);
-                if rows.len() >= max_rows {
-                    return rows;
-                }
+            extend_display_width_rows(&mut rows, line, row_start, b, width, max_rows);
+            if rows.len() >= max_rows {
+                return rows;
             }
             row_start = b;
             while row_start < line.len() && line.as_bytes()[row_start].is_ascii_whitespace() {
@@ -1433,6 +1426,53 @@ fn bash_quote_aware_wrap(line: &str, width: usize, max_rows: usize) -> Vec<&str>
         }
     }
     if rows.is_empty() { vec![line] } else { rows }
+}
+
+/// Return the UTF-8 byte end of the largest prefix whose terminal display
+/// width is at most `width`. A single over-wide character still advances so a
+/// tiny terminal cannot trap the wrapper in place.
+fn display_width_end(s: &str, start: usize, limit: usize, width: usize) -> usize {
+    let Some(rest) = s.get(start..limit.min(s.len())) else {
+        return start;
+    };
+    let mut used = 0usize;
+    let mut end = start;
+    for ch in rest.chars() {
+        let char_width = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+        if used + char_width > width && end > start {
+            break;
+        }
+        used += char_width;
+        end += ch.len_utf8();
+        if used >= width {
+            break;
+        }
+    }
+    end
+}
+
+fn extend_display_width_rows<'a>(
+    rows: &mut Vec<&'a str>,
+    line: &'a str,
+    start: usize,
+    end: usize,
+    width: usize,
+    max_rows: usize,
+) {
+    let end = end.min(line.len());
+    let mut pos = start.min(end);
+    while pos < end && rows.len() < max_rows {
+        let chunk_end = display_width_end(line, pos, end, width);
+        if chunk_end <= pos {
+            break;
+        }
+        if let Some(row) = line.get(pos..chunk_end) {
+            rows.push(row);
+        } else {
+            break;
+        }
+        pos = chunk_end;
+    }
 }
 
 /// Lazy iterator over byte offsets at the *start* of whitespace runs that
@@ -3217,6 +3257,30 @@ mod tests {
             rows.iter().any(|r| r.contains("'.[] | not a pipe'")),
             "quoted span must be intact in some row: {rows:?}"
         );
+    }
+
+    #[test]
+    fn bash_quote_aware_wrap_force_breaks_overwide_single_quoted_arg() {
+        let payload = "a".repeat(200);
+        let line = format!("ssh host '{payload}'");
+        let width = 40;
+        let rows = bash_quote_aware_wrap(&line, width, usize::MAX);
+        for row in &rows {
+            assert!(UnicodeWidthStr::width(*row) <= width, "{row:?}");
+        }
+        assert_eq!(rows.first().copied(), Some("ssh host"));
+        assert_eq!(
+            rows.get(1..).unwrap_or_default().concat(),
+            format!("'{payload}'")
+        );
+
+        let mut state = long_bash_state();
+        state.bash_command_raw = Some(line);
+        state.args_expanded = true;
+        let text = render_to_text(&state, Rect::new(0, 0, 40, 30));
+        assert!(text.contains("ssh host"), "{text}");
+        assert!(text.contains("aa'"), "{text}");
+        assert!(text.contains("Yes"), "{text}");
     }
 
     #[test]

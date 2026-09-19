@@ -6,10 +6,10 @@
 use std::collections::HashMap;
 
 use agent_client_protocol as acp;
-use serde::Deserialize;
 use nofy_hooks::event::{HookEventEnvelope, HookEventName};
 use nofy_hooks::matcher::HookMatcher;
 use nofy_hooks_plugins_types::{HookEvent, HookHandlerType, HookInfo};
+use serde::Deserialize;
 
 use crate::agent::MvpAgent;
 
@@ -73,7 +73,7 @@ pub(crate) fn hook_spec_to_info(spec: &nofy_hooks::config::HookSpec) -> HookInfo
         url: url_display,
         timeout_ms: spec.timeout_ms,
         source_dir: spec.source_dir.display().to_string(),
-        disabled: nofy_hooks::trust::is_hook_disabled(&spec.name),
+        disabled: crate::util::hooks::disabled_hooks_snapshot().blocks(spec),
     }
 }
 
@@ -227,9 +227,7 @@ fn parse_hook_group(event: HookEventName, value: &serde_json::Value) -> Option<C
         None | Some("") | Some("*") => None,
         // Same policy as file hooks (`MatcherPolicy::Ignored`): warn and drop
         // the matcher rather than let the registration appear scoped.
-        Some(pattern)
-            if event.traits().matcher == nofy_hooks::event::MatcherPolicy::Ignored =>
-        {
+        Some(pattern) if event.traits().matcher == nofy_hooks::event::MatcherPolicy::Ignored => {
             tracing::warn!(%event, pattern, "matcher on a {event} hook group is ignored (this event always fires)");
             None
         }
@@ -277,10 +275,10 @@ pub async fn handle(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
-    use std::path::PathBuf;
     use nofy_hooks::config::HookSpec;
     use nofy_hooks::event::HookEventName;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
 
     /// Minimal `HookSpec` for `hook_spec_to_info` tests (`handler_type` is unused;
     /// the DTO derives it from `url`).

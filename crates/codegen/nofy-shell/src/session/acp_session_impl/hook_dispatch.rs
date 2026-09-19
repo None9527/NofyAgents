@@ -99,6 +99,7 @@ impl SessionActor {
             session_id: &self.session_info.id.0,
             workspace_root: &self.hook_resolved_workspace_root,
             process_scope: self.tool_context.process_scope.clone(),
+            disabled: std::sync::Arc::new(crate::util::hooks::disabled_hooks_snapshot()),
         }
     }
 
@@ -214,11 +215,12 @@ impl SessionActor {
 
     /// Whether any file or client hook listens for `event`.
     pub(super) fn has_enabled_hooks_for(&self, event: nofy_hooks::event::HookEventName) -> bool {
+        let disabled = crate::util::hooks::disabled_hooks_snapshot();
         let has_file_hooks = self
             .hook_registry
             .borrow()
             .as_ref()
-            .is_some_and(|r| r.has_enabled_hooks_for_canonical(event));
+            .is_some_and(|r| r.has_enabled_hooks_for_canonical(event, &disabled));
         has_file_hooks || self.client_hooks.borrow().contains_key(&event)
     }
 
@@ -255,8 +257,7 @@ impl SessionActor {
         };
         let ctx = self.hook_run_ctx();
         let results =
-            nofy_hooks::dispatcher::dispatch_non_blocking(&registry, event, &envelope, &ctx)
-                .await;
+            nofy_hooks::dispatcher::dispatch_non_blocking(&registry, event, &envelope, &ctx).await;
         self.send_hook_execution(&event.to_string(), tool_name, prompt_id, &results)
             .await;
         self.emit_hook_executed_telemetry(&event.to_string(), tool_name, &results)

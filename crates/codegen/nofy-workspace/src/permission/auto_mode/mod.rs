@@ -14,7 +14,8 @@ use super::bash_command_splitting::{
     try_parse_word_only_commands_sequence, unwrap_wrappers,
 };
 use super::exec_risk::{
-    git_checkout_restores_pathspec, git_words_are_read_only_query, git_words_have_unsafe_query_option,
+    git_checkout_restores_pathspec, git_words_are_read_only_query,
+    git_words_have_unsafe_query_option,
 };
 use super::shell_access::{
     command_words_write_paths, command_write_paths_in_tree, is_safe_write_sink,
@@ -1010,7 +1011,7 @@ const INJECTION_ENV_KEYS: &[&str] = &[
 
 const INJECTION_ENV_KEY_PREFIXES: &[&str] = &["DYLD_", "GIT_CONFIG"];
 
-fn env_key_risk(key: &str) -> EnvRisk {
+pub(crate) fn env_key_risk(key: &str) -> EnvRisk {
     if is_safe_env_key(key) {
         EnvRisk::Safe
     } else if INJECTION_ENV_KEYS.contains(&key)
@@ -1882,7 +1883,10 @@ mod tests {
         // Destructive: restores files, discarding working-tree changes → model.
         assert_eq!(v("git checkout -- src/main.rs"), ClassifierVerdict::Block);
         assert_eq!(v("git checkout HEAD -- ."), ClassifierVerdict::Block);
-        assert_eq!(v("git -C sub checkout -- file.txt"), ClassifierVerdict::Block);
+        assert_eq!(
+            v("git -C sub checkout -- file.txt"),
+            ClassifierVerdict::Block
+        );
         // Benign branch switches stay routine.
         assert_eq!(v("git checkout main"), ClassifierVerdict::Allow);
         assert_eq!(v("git checkout -b feature"), ClassifierVerdict::Allow);

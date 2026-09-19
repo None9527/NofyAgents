@@ -121,6 +121,15 @@ pub(crate) fn discover_hooks(
     assemble_hooks(&config_layers, git_root, compat, trusted)
 }
 
+/// Snapshot the user's disabled-hook names together with the organization
+/// managed-only pin. Callers create one snapshot per dispatch so discovery and
+/// execution apply the same rule without reading policy inside `nofy-hooks`.
+pub(crate) fn disabled_hooks_snapshot() -> nofy_hooks::trust::DisabledHooks {
+    let managed_only =
+        nofy_workspace::permission::resolution::managed_settings().allow_managed_hooks_only;
+    nofy_hooks::trust::DisabledHooks::load(managed_only)
+}
+
 /// Pure, injectable core: combine config-layer hooks with file-source hooks and
 /// dedup once. Config-layer specs are placed first so that, under the first-wins
 /// dedup in [`nofy_hooks::discovery::registry_from_specs_deduped`], a config
@@ -132,8 +141,7 @@ pub(crate) fn assemble_hooks(
     compat: &nofy_tools::types::compat::CompatConfig,
     trusted: bool,
 ) -> (nofy_hooks::discovery::HookRegistry, Vec<HookError>) {
-    let (mut specs, mut errors) =
-        nofy_hooks::config::parse_hooks_from_config_layers(config_layers);
+    let (mut specs, mut errors) = nofy_hooks::config::parse_hooks_from_config_layers(config_layers);
 
     let source_paths = discover_hook_source_paths(git_root, compat);
     let (global_sources, project_sources) = source_paths.as_sources(trusted);

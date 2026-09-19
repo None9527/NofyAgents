@@ -23,9 +23,10 @@ fn eligible_or_record_skip(
     spec: &HookSpec,
     match_value: Option<&str>,
     results: &mut Vec<HookRunResult>,
+    disabled: &crate::trust::DisabledHooks,
 ) -> bool {
-    if !spec.enabled || crate::trust::is_hook_disabled(&spec.name) {
-        tracing::info!(hook_name = %spec.name, "hook skipped (disabled)");
+    if let Some(reason) = disabled.skip_reason(spec) {
+        tracing::info!(hook_name = %spec.name, skip_reason = ?reason, "hook skipped");
         results.push(HookRunResult::Skipped {
             hook_name: spec.name.clone(),
         });
@@ -77,7 +78,12 @@ pub async fn dispatch_pre_tool_use(
     let mut run_results = Vec::new();
 
     for spec in hooks {
-        if !eligible_or_record_skip(spec, match_value.as_deref(), &mut run_results) {
+        if !eligible_or_record_skip(
+            spec,
+            match_value.as_deref(),
+            &mut run_results,
+            ctx.disabled(),
+        ) {
             continue;
         }
 
@@ -273,7 +279,12 @@ pub async fn dispatch_stop(
     let match_value = envelope.payload.match_value().map(str::to_string);
 
     for spec in hooks {
-        if !eligible_or_record_skip(spec, match_value.as_deref(), &mut out.results) {
+        if !eligible_or_record_skip(
+            spec,
+            match_value.as_deref(),
+            &mut out.results,
+            ctx.disabled(),
+        ) {
             continue;
         }
 
@@ -376,7 +387,7 @@ pub async fn dispatch_non_blocking(
     let mut results = Vec::with_capacity(hooks.len());
 
     for spec in hooks {
-        if !eligible_or_record_skip(spec, match_value.as_deref(), &mut results) {
+        if !eligible_or_record_skip(spec, match_value.as_deref(), &mut results, ctx.disabled()) {
             continue;
         }
 
@@ -527,6 +538,7 @@ mod tests {
             session_id: "test-session",
             workspace_root: "/tmp",
             process_scope: None,
+            disabled: Default::default(),
         }
     }
 
@@ -643,6 +655,40 @@ mod tests {
         let envelope = pre_tool_use_envelope("run_terminal_cmd");
         let result = dispatch_pre_tool_use(&registry, &envelope, &run_ctx()).await;
         assert_eq!(result.decision, HookDecision::Allow);
+    }
+
+    #[tokio::test]
+    async fn managed_only_is_enforced_at_dispatch_and_managed_hooks_still_run() {
+        let untrusted = make_command_spec(
+            "file-deny",
+            None,
+            true,
+            "echo '{\"decision\":\"deny\",\"reason\":\"file hook ran\"}'; exit 2",
+        );
+        let mut managed = make_command_spec(
+            "managed-deny",
+            None,
+            false,
+            "echo '{\"decision\":\"deny\",\"reason\":\"managed hook ran\"}'; exit 2",
+        );
+        managed.layer = crate::config::HookProvenance::SystemManaged;
+        let registry = registry_from_specs(vec![untrusted, managed]);
+        let envelope = pre_tool_use_envelope("run_terminal_cmd");
+        let ctx = RunContext {
+            disabled: std::sync::Arc::new(crate::trust::DisabledHooks::new([], true)),
+            ..run_ctx()
+        };
+
+        let result = dispatch_pre_tool_use(&registry, &envelope, &ctx).await;
+        assert!(matches!(
+            result.decision,
+            HookDecision::Deny { ref hook_name, ref reason }
+                if hook_name == "managed-deny" && reason == "managed hook ran"
+        ));
+        assert!(matches!(
+            result.results.first(),
+            Some(HookRunResult::Skipped { hook_name }) if hook_name == "file-deny"
+        ));
     }
 
     #[tokio::test]

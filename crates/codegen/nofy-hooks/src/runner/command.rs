@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use tokio::io::AsyncWriteExt;
 use nofy_tools::util::ProcessGroup;
+use tokio::io::AsyncWriteExt;
 
 use crate::config::HookSpec;
 use crate::event::HookEventEnvelope;
@@ -947,6 +947,7 @@ mod tests {
             session_id: "test-session",
             workspace_root: "/tmp",
             process_scope: None,
+            disabled: Default::default(),
         }
     }
 
@@ -1154,6 +1155,7 @@ mod tests {
             session_id: "test-session",
             workspace_root: &workspace,
             process_scope: None,
+            disabled: Default::default(),
         };
         let (result, _) = run_command_hook(&spec, &envelope, &ctx, GateKind::Observe).await;
 

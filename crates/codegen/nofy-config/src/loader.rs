@@ -80,7 +80,8 @@ pub fn user_config_save_path() -> Option<std::path::PathBuf> {
 /// 文件是否为 JSON 配置：扩展名 .json，或内容首非空字符为 `{`
 /// （合法 TOML 文档不可能以 `{` 开头）。
 fn is_json_config(path: &Path, content: &str) -> bool {
-    path.extension().and_then(|e| e.to_str()) == Some("json") || content.trim_start().starts_with('{')
+    path.extension().and_then(|e| e.to_str()) == Some("json")
+        || content.trim_start().starts_with('{')
 }
 
 /// serde_json → toml::Value。JSON null 在 TOML 无对应：表内键丢弃、数组元素丢弃（告警）。
@@ -139,7 +140,8 @@ fn read_config_file_sniffed(path: &Path) -> std::io::Result<toml::Value> {
         Ok(s) => {
             if is_json_config(path, &s) {
                 match serde_json::from_str::<serde_json::Value>(&s) {
-                    Ok(j) => Ok(json_to_toml(&j).unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()))),
+                    Ok(j) => Ok(json_to_toml(&j)
+                        .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()))),
                     Err(e) => {
                         // serde_json 的 Display 只含消息与行列号，不回显源码行（可能带密钥）。
                         let detail = format!("JSON parse error: {e}");
@@ -283,7 +285,9 @@ fn atomic_write_text(path: &Path, text: &str) -> std::io::Result<()> {
         .or(Some(0o600));
     let tmp = path.with_file_name(format!(
         ".{}.tmp-{}-{}",
-        path.file_name().and_then(|s| s.to_str()).unwrap_or("config"),
+        path.file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("config"),
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -453,6 +457,10 @@ pub enum HookProvenance {
     Managed,
     /// `requirements.toml` (user or system tier).
     Requirements,
+    /// `$NOFY_HOME/requirements.toml` (user-writable). Kept distinct from the
+    /// root-owned requirements tier so hook enforcement never trusts a path
+    /// merely because its filename is `requirements.toml`.
+    UserRequirements,
     /// `$NOFY_HOME/config.toml`.
     User,
     /// A JSON hook file (the hooks directory, a vendor settings file, or a
@@ -476,12 +484,18 @@ impl Default for HookProvenance {
 }
 
 impl HookProvenance {
+    /// Root-owned policy tiers whose hooks cannot be disabled by the user.
+    pub fn is_managed_policy(self) -> bool {
+        matches!(self, Self::SystemManaged | Self::Requirements)
+    }
+
     /// The snake_case wire string (matches the derived serde representation).
     pub fn as_str(self) -> &'static str {
         match self {
             Self::SystemManaged => "system_managed",
             Self::Managed => "managed",
             Self::Requirements => "requirements",
+            Self::UserRequirements => "user_requirements",
             Self::User => "user",
             Self::File => "file",
             Self::Plugin => "plugin",
@@ -500,6 +514,7 @@ impl std::str::FromStr for HookProvenance {
             "system_managed" => Self::SystemManaged,
             "managed" => Self::Managed,
             "requirements" => Self::Requirements,
+            "user_requirements" => Self::UserRequirements,
             "user" => Self::User,
             "file" => Self::File,
             "plugin" => Self::Plugin,
@@ -597,7 +612,7 @@ pub fn hook_config_layers_at(
         LayerSpec {
             dir: user_home,
             filename: REQUIREMENTS_FILENAME,
-            provenance: HookProvenance::Requirements,
+            provenance: HookProvenance::UserRequirements,
             source_name: "requirements/user",
         },
         LayerSpec {
@@ -1267,14 +1282,21 @@ mod tests {
             user_config_filename_at(home.path()),
             USER_CONFIG_FILENAME_JSON
         );
-        write(home.path(), USER_CONFIG_FILENAME, "[ui]\ntheme = \"dark\"\n");
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME,
+            "[ui]\ntheme = \"dark\"\n",
+        );
         assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME);
         write(
             home.path(),
             USER_CONFIG_FILENAME_JSON,
             "{\"ui\":{\"theme\":\"dark\"}}",
         );
-        assert_eq!(user_config_filename_at(home.path()), USER_CONFIG_FILENAME_JSON);
+        assert_eq!(
+            user_config_filename_at(home.path()),
+            USER_CONFIG_FILENAME_JSON
+        );
         assert_eq!(
             user_config_path_at(home.path()),
             home.path().join(USER_CONFIG_FILENAME_JSON)
@@ -1288,7 +1310,11 @@ mod tests {
     #[test]
     fn save_user_config_writes_json_and_retires_legacy_toml() {
         let home = tempfile::tempdir().unwrap();
-        write(home.path(), USER_CONFIG_FILENAME, "[ui]\ntheme = \"dark\"\n");
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME,
+            "[ui]\ntheme = \"dark\"\n",
+        );
         let value: toml::Value = toml::from_str("[ui]\ntheme = \"light\"\n").unwrap();
         save_config_value_at(&user_config_save_path_at(home.path()), &value).unwrap();
         retire_legacy_user_toml(home.path());
@@ -1341,7 +1367,11 @@ mod tests {
     fn save_config_value_at_writes_json_for_json_target_and_preserves_mode() {
         let home = tempfile::tempdir().unwrap();
         let path = home.path().join(USER_CONFIG_FILENAME_JSON);
-        write(home.path(), USER_CONFIG_FILENAME_JSON, "{\"ui\":{\"theme\":\"dark\"}}");
+        write(
+            home.path(),
+            USER_CONFIG_FILENAME_JSON,
+            "{\"ui\":{\"theme\":\"dark\"}}",
+        );
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -1370,7 +1400,10 @@ mod tests {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
         }
     }
 

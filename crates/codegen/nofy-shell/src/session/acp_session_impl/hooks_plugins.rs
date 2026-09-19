@@ -1,5 +1,8 @@
 use super::*;
 
+pub(super) const MANAGED_HOOKS_ONLY_REFUSAL: &str =
+    "Hooks outside managed policy are disabled by your organization.";
+
 impl SessionActor {
     // ── Shared hook/plugin operation functions ────────────────────────
 
@@ -15,9 +18,7 @@ impl SessionActor {
         if outcome.dismisses_gate() {
             return Ok(match &outcome {
                 nofy_workspace::folder_trust::GrantOutcome::Granted { key, .. }
-                | nofy_workspace::folder_trust::GrantOutcome::AlreadyDurable { key } => {
-                    key.clone()
-                }
+                | nofy_workspace::folder_trust::GrantOutcome::AlreadyDurable { key } => key.clone(),
                 nofy_workspace::folder_trust::GrantOutcome::Refused { .. } => {
                     nofy_workspace::trust::workspace_key(cwd_path)
                 }
@@ -31,9 +32,8 @@ impl SessionActor {
     pub(super) fn do_hooks_untrust_project(
         cwd: &str,
     ) -> Result<(std::path::PathBuf, bool), String> {
-        let root =
-            nofy_workspace::session::git::find_git_root_from_path(std::path::Path::new(cwd))
-                .map_err(|_| "Not in a git repository.".to_string())?;
+        let root = nofy_workspace::session::git::find_git_root_from_path(std::path::Path::new(cwd))
+            .map_err(|_| "Not in a git repository.".to_string())?;
         // revoke_folder_trust persists set_untrusted AND downgrades the decision
         // cache so the untrust takes effect on the next reload, not just restart.
         let was_trusted = crate::agent::folder_trust::revoke_folder_trust(&root);
@@ -90,6 +90,33 @@ impl SessionActor {
         } else {
             p.to_path_buf()
         }
+    }
+
+    /// UX guard for the same typed provenance rule enforced again by dispatch.
+    pub(super) fn is_managed_policy_hook(&self, name: &str) -> bool {
+        self.hook_registry
+            .borrow()
+            .as_ref()
+            .and_then(|registry| registry.find_by_name(name))
+            .is_some_and(nofy_hooks::config::HookSpec::is_managed_policy)
+    }
+
+    fn refuse_enable_under_managed_only<'a>(
+        &self,
+        names: impl IntoIterator<Item = &'a str>,
+    ) -> Option<nofy_hooks_plugins_types::ActionOutcome> {
+        if !crate::util::hooks::disabled_hooks_snapshot().managed_only() {
+            return None;
+        }
+        names
+            .into_iter()
+            .any(|name| !self.is_managed_policy_hook(name))
+            .then(|| nofy_hooks_plugins_types::ActionOutcome {
+                status: nofy_hooks_plugins_types::OutcomeStatus::ValidationError,
+                message: MANAGED_HOOKS_ONLY_REFUSAL.to_owned(),
+                requires_reload: false,
+                requires_restart: false,
+            })
     }
 
     // ── Hooks/plugins action handlers (pager modal) ──────────────────
@@ -216,6 +243,15 @@ impl SessionActor {
                 }
             }
             HooksAction::Disable { hook_name } => {
+                if self.is_managed_policy_hook(&hook_name) {
+                    return ActionOutcome {
+                        status: OutcomeStatus::ValidationError,
+                        message: "This hook is enforced by managed policy and cannot be disabled."
+                            .to_owned(),
+                        requires_reload: false,
+                        requires_restart: false,
+                    };
+                }
                 match nofy_hooks::trust::disable_hook(&hook_name) {
                     Ok(()) => ActionOutcome {
                         status: OutcomeStatus::Success,
@@ -232,6 +268,9 @@ impl SessionActor {
                 }
             }
             HooksAction::Enable { hook_name } => {
+                if let Some(refused) = self.refuse_enable_under_managed_only([hook_name.as_str()]) {
+                    return refused;
+                }
                 match nofy_hooks::trust::enable_hook(&hook_name) {
                     Ok(true) => ActionOutcome {
                         status: OutcomeStatus::Success,
@@ -257,21 +296,38 @@ impl SessionActor {
                 hook_names,
                 disable,
             } => {
+                if !disable
+                    && let Some(refused) =
+                        self.refuse_enable_under_managed_only(hook_names.iter().map(String::as_str))
+                {
+                    return refused;
+                }
                 let mut toggled = 0usize;
+                let mut managed_skipped = 0usize;
                 for name in &hook_names {
+                    if disable && self.is_managed_policy_hook(name) {
+                        managed_skipped += 1;
+                        continue;
+                    }
                     let ok = if disable {
                         nofy_hooks::trust::disable_hook(name).is_ok()
                     } else {
-                        nofy_hooks::trust::enable_hook(name).is_ok()
+                        nofy_hooks::trust::enable_hook(name) == Ok(true)
                     };
                     if ok {
                         toggled += 1;
                     }
                 }
                 let action = if disable { "Disabled" } else { "Enabled" };
+                let mut message = format!("{action} {toggled}/{} hooks", hook_names.len());
+                if managed_skipped > 0 {
+                    message.push_str(&format!(
+                        " ({managed_skipped} enforced by managed policy, not disabled)"
+                    ));
+                }
                 ActionOutcome {
                     status: OutcomeStatus::Success,
-                    message: format!("{action} {toggled}/{} hooks", hook_names.len()),
+                    message,
                     requires_reload: false,
                     requires_restart: false,
                 }
@@ -637,9 +693,9 @@ impl SessionActor {
     /// (the parent module) can invoke it after an interactive folder-trust
     /// grant — same visibility as `apply_plugin_registry_snapshot` below.
     pub(super) async fn reload_hooks_impl(self: &std::sync::Arc<Self>) -> String {
-        let git_root = nofy_workspace::session::git::find_git_root_from_path(
-            std::path::Path::new(&self.session_info.cwd),
-        )
+        let git_root = nofy_workspace::session::git::find_git_root_from_path(std::path::Path::new(
+            &self.session_info.cwd,
+        ))
         .ok();
         // Reconcile folder-trust so a mid-session /hooks-trust (or --trust) grant
         // is honored on reload, then gate project hook sources on the verdict.
@@ -662,13 +718,12 @@ impl SessionActor {
         if let Some(ref pr) = plugin_registry_snapshot {
             for plugin in pr.active_plugins() {
                 if let Some(ref hooks_path) = plugin.hooks_path {
-                    let (specs, warnings) =
-                        nofy_agent::plugins::hooks_adapter::parse_plugin_hooks(
-                            hooks_path,
-                            &plugin.name,
-                            &plugin.root_str(),
-                            &plugin.data_dir_str(),
-                        );
+                    let (specs, warnings) = nofy_agent::plugins::hooks_adapter::parse_plugin_hooks(
+                        hooks_path,
+                        &plugin.name,
+                        &plugin.root_str(),
+                        &plugin.data_dir_str(),
+                    );
                     for w in &warnings {
                         tracing::warn!("{w}");
                     }
@@ -751,8 +806,7 @@ impl SessionActor {
         // commands/list and the fan-out, so no gate read ever precedes the
         // site's own resolve. Pure verdict: the session-start hook load already
         // printed the folder-untrusted notice, so don't print a second.
-        let project_trusted =
-            crate::agent::folder_trust::resolve_and_record(session_cwd, false);
+        let project_trusted = crate::agent::folder_trust::resolve_and_record(session_cwd, false);
 
         let t0 = std::time::Instant::now();
         // Resolve effective [plugins] config (global + ancestor project
@@ -862,13 +916,12 @@ impl SessionActor {
             for plugin in new_registry.active_plugins() {
                 // File-based hooks
                 if let Some(ref hooks_path) = plugin.hooks_path {
-                    let (specs, warnings) =
-                        nofy_agent::plugins::hooks_adapter::parse_plugin_hooks(
-                            hooks_path,
-                            &plugin.name,
-                            &plugin.root_str(),
-                            &plugin.data_dir_str(),
-                        );
+                    let (specs, warnings) = nofy_agent::plugins::hooks_adapter::parse_plugin_hooks(
+                        hooks_path,
+                        &plugin.name,
+                        &plugin.root_str(),
+                        &plugin.data_dir_str(),
+                    );
                     for w in &warnings {
                         tracing::warn!("{w}");
                     }
