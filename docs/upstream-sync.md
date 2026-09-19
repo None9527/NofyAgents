@@ -818,3 +818,26 @@ shell acp_session_impl 7 + subagent 6 + session 5 + workspace 3 + telemetry 3 + 
 (参 changelog 1.0.26 idx2「Subagent message rows in scrollback now indicate whether a
 message was sent as interject, queued, or steer」),按「UX 先跳过」需先切分内核面与渲染面。
 **登记为待用户决策的立项候选,本轮不实施。**
+
+## 最新增量摸底（1.0.36–1.0.38@`4247f661`，2026-09-20）
+
+- 本地对账点：`054e5131`；上游从 `a28ee2b2` 前进到 `4247f661`，发布 1.0.36/1.0.37/1.0.38。
+- 增量体量：403 文件，+24,000/−6,610；A 52 / M 351 / D 0 / R 0；changelog 共 22 项。
+- 两侧 GitNexus 索引已重建并分别钉到 `054e5131`、`4247f661`。两树无可用 merge-base，
+  `599/2` 不是功能差距，禁止用它排期；全树直接 diff 也受 nofy/xai 改名与本地产物污染，不作为吸收证据。
+- 逐项代码抽查结论：**5 项已对齐，17 项待吸收**。Memory v2 按用户裁定继续搁置，未计入 17 项。
+
+已对齐 5 项：后台 shell live task row、Swift 三引号高亮、MCP manifest client-id 认证、后台子代理权限请求、
+队列行 `y` 复制完整 prompt。
+
+待吸收 17 项：
+
+1. 内核/行为（9）：managed-only hooks、sandbox 接受 trust 后继续、mixed-case reasoning effort、默认 TUI agent、
+   Mermaid 复杂/大图、bash 引号 filename 变量权限、prompt-suggest 长回复、read_file 整读部署策略、
+   Messages inline-only `use_tool` schema。
+2. UI/会话（8）：dashboard preview、pinned 稳定排序、避免空 dashboard session、`/context` 百分比、
+   `/model` 推荐 effort、subagent cancelling 收口、图片 yank/undo/history + 丢失 notice、权限长参数换行。
+
+完整批次、落点、验收与执行纪律见 `docs/upstream-absorb-plan.md` §15：批29（协议/配置/工具）→
+批30（hooks/信任/权限）→批31（模型/上下文/子代理）→批32（Dashboard/图片）→批33（Mermaid）。
+用户要求“一次做完”，解释为同一执行周期连续完成五个可独立回滚的提交，而不是混成一个大提交。

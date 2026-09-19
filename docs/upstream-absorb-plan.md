@@ -1617,3 +1617,118 @@ markdown/pager-render **需先建基线**）→ 红绿双验（含「还原后�
 | ㊸ | 用户配置外链 referent 监视 + A→B retarget | `FollowDestWatch` 盯 `config.json`（无 json 时遗留 toml）的 live dest parent | 不搬 bound dest TOCTOU / inode 整段 |
 
 **本轮仍跳过（有意分歧，不是漏项）**：Memory v2 / v2_carryover；xAI 云/登录/GCS/`x.ai/*`；TOML 写回；MCP pin `V_2025_11_25`（拒绝 `V_2026_07_28`）；headless `--worktree`（`has_worktree: false`）；`grok-workspaced`；pager UX（A8）；1.0.33#1 粘贴错图、1.0.35#2 daemon MCP 渲染。
+
+## 15. 1.0.36–1.0.38 吸收计划（2026-09-20，目标 `4247f661`）
+
+### 15.0 基线、口径与边界
+
+- 本地基线：`054e5131`（`二次开发分支`）；上游基线：`4247f661`（`upstream/main`，1.0.38）。
+- 增量窗口：`a28ee2b2..4247f661`，共 **403 文件、+24,000/−6,610**；三个 changelog 共 **22 项**。
+- 两侧 GitNexus 索引均已重建并钉到上述提交。两棵历史没有可用 merge-base，
+  `git rev-list --left-right --count HEAD...upstream/main = 599/2` 只描述两条快照历史，**不能解释为“还差 2 个提交”**。
+- 本轮按功能行为对账，不按文件名、crate 名或符号存在与否判断。禁止整树 merge/拷贝；仍采用“读上游实现 →
+  在 Nofy 架构内原生落地 → 红绿测试 → 全量回归 → GitNexus 变更检测”的方式。
+- **Memory v2 继续排除**；xAI 云/登录/GCS、TOML 写回、协议钉版等既有有意分歧继续有效。
+- §14.8 的“A8/pager UX 跳过”对本节列出的 8 个已发布正确性/状态问题**不再适用**：用户要求把最新差距做成完整吸收计划，
+  因而本节 17 项全部进入执行范围。视觉重设计、云 Dashboard 能力仍不借题扩张。
+
+### 15.1 22 项审计结论：5 项已对齐，17 项进入执行
+
+**已对齐，不再改代码（5）**：
+
+| 上游项 | 本地证据/结论 |
+|---|---|
+| 后台 shell 命令显示实时任务行与流式输出 | 已有 `BgTaskState`、任务行与集中输出通道；行为等价 |
+| Swift 三引号高亮 | `Swift.sublime-syntax` 已含 multiline string 规则，且 §14.8 的 last-wins 已落地 |
+| MCP 插件 manifest client-id 认证 | 托管 MCP/OAuth 路径已有 client-id 解析与认证测试 |
+| 后台子代理 shell 权限请求可见 | `handle_permission_request` 能找到拥有者会话并排队，不再静默拒绝 |
+| 队列行按 `y` 复制完整 prompt | `queue_pane.rs` 已有 GB-4151 行为与回归测试 |
+
+**待吸收（17）**分为：内核/行为 9 项，UI/会话 8 项。执行时每项先用上游回归用例或等价最小测试证明红；
+若测试直接为绿，则把该项更正为“已对齐”，不得为了追上游符号而制造重复实现。
+
+### 15.2 批29：协议、配置与工具契约（P0，5 项）
+
+目标：先关闭不依赖复杂 pager 状态机的确定性缺口，为后续批次提供稳定配置和 schema。
+
+| 项 | 原生落点 | 必须钉住的验收 |
+|---|---|---|
+| mixed-case `reasoning_effort` | `nofy-sampling-types::ReasoningEffort` 改为经现有 `FromStr` 的手写 `Deserialize`；序列化仍保持小写 | `xHigh`/`XHIGH`/`Medium` 可读，非法值仍报错，小写输出不变 |
+| 默认 TUI agent 尊重 `[agent]` | TUI 启动解析链；仅在无 `--plan`/`--ask-user`/`--agent-profile` 时采用配置 | 优先级固定为 `definition > name > NOFY_AGENT > builtin`；所有 CLI 显式选择仍覆盖配置 |
+| prompt-suggest 长回复不截半句 | `session/helpers/prompt_suggest.rs` 的 transcript 预算器 | 较旧消息仍受单条上限；最新 agent 回复使用剩余总预算；优先在单词/换行边界截断并带标记 |
+| `read_file` 整读策略可部署配置 | `WholeReadPolicy { skill_markdown, instruction_files }` 进入 truncation 配置与 tools API 传播；识别 `AGENTS.md`/`CLAUDE.md`/local 变体 | 两个开关独立；默认保持当前整读；关闭后 offset/limit 生效；token 总上限不可绕过 |
+| Messages 模型只收到 inline `use_tool` schema | 在 schema 导出处按宿主能力投影，不改变运行时对合法输入的校验 | 发给 Messages 的 schema 无 root union/文件分支；Responses/支持文件输入的宿主不被意外降级 |
+
+`read_file` 的上游实现穿过 Memory v2 的 read policy；本地实现**不得因此引入 Memory v2**，只复用现有
+gitignore、路径规范化和当前 memory v1 检查。`use_tool` 先做导出 schema 快照测试：若本地当前简单结构天然已是
+inline-only，则登记“已对齐”并关闭该项，不搬上游的文件输入整层。
+
+验证：`cargo test -p nofy-sampling-types`、`-p nofy-tools`、`-p nofy-tools-api`、
+`-p nofy-shell --lib prompt_suggest`，再跑相关 crate 全量与 `cargo check --workspace --all-targets`。
+
+### 15.3 批30：Hooks、信任与权限安全（P0，4 项）
+
+| 项 | 原生落点 | 必须钉住的验收 |
+|---|---|---|
+| `allow_managed_hooks_only` | requirements/托管策略解析 → hooks trust snapshot → discovery/dispatcher；非托管 hook 统一跳过 | pin 开启时 file/SDK 非托管 hook 均不执行，托管 hook 仍执行；disabled-hooks 文件不能反向放行 |
+| `nofy --sandbox` 接受 folder trust 后不退出 | 在 ㉛ `GrantOutcome` 之上修正启动闸/命令完成信号生命周期 | 接受信任后同一进程继续创建会话；拒绝/失败仍按原语义停住；不得把失败当成功 |
+| 引号包裹的 filename 变量遵守 bash 权限规则 | workspace bash parser/permission policy；按上游 filename-argument 测试移植思想 | `cmd "$file"`、空格路径、多个变量按配置规则放行/拒绝；不能退化成字符串拼接白名单 |
+| 权限提示长引号参数可换行 | `nofy-pager::permission_view` 的参数分段/换行渲染 | 窄终端不裁切、不越界；引号与转义内容保持可读；选择行和 diff 展开不回归 |
+
+本批涉及安全策略。实施前必须对实际编辑符号逐一跑 GitNexus upstream impact；任何 HIGH/CRITICAL 结果先在会话中
+报告直接调用者、受影响流程和风险，再动代码。尤其禁止把“managed-only”降格为仅 UI 隐藏，它必须在执行边界强制。
+
+验证：hooks、workspace permission、shell trust、pager-render/PTY 定向测试；再跑 `nofy-hooks`、`nofy-workspace`、
+`nofy-shell`、`nofy-pager` 全量和 workspace check。
+
+### 15.4 批31：模型、上下文与子代理收口（P1，3 项）
+
+| 项 | 原生落点 | 必须钉住的验收 |
+|---|---|---|
+| `/context` 百分比合计 100% | token 分类引入/复用 `window_tokens`，显示层按同一分母与余量核算 | 常规、压缩后、工具占比高三组 golden 的各项之和恒为 100%；“已计入上项”不重复入账 |
+| `/model` effort 菜单默认推荐档 | `ModelState::preselected_effort_option_for` + slash 参数预选；只在刚进入 effort 阶段生效 | 模型推荐档优先；当前模型已显式 effort 时保留当前选择；用户已输入过滤词时不抢焦点 |
+| 子代理 overlay 不再卡 `Cancelling` | child turn terminal signal统一走 `turn_completion` 唯一出口，清理 overlay/agent state | cancel→child completed、cancel→child errored、重复 terminal 通知三条路径均最终关闭；幂等且不提前显示成功 |
+
+验证：`nofy-pager` 单元/渲染测试、subagent ACP handler 测试、对应 PTY scenario；再跑 pager 全量。
+
+### 15.5 批32：Dashboard 与图片编辑状态（P1，4 项）
+
+| 项 | 原生落点 | 必须钉住的验收 |
+|---|---|---|
+| `ui.dashboard_preview` | shared `UiConfig`、设置注册/写入、dashboard state/render；默认 `true` | 开/关即时反映；重启持久；关闭后布局不保留幽灵宽度 |
+| pinned agents 活动变化不跳位 | dashboard 排序拆成稳定 pin rank 与动态 activity 展示 | 同一批刷新、跨批刷新、并列时间戳均保持 pin 顺序；非 pinned 排序不回归 |
+| Dashboard 发送后立刻 Enter 不建空会话 | prompt origin/ack 与 dashboard dispatch 加发送代际或消费闸 | 快速双 Enter 只产生一个有内容会话；失败重试不吞掉用户输入；正常新建仍可用 |
+| 图片跨 yank/undo/history 存活并报告丢失 | `prompt_widget::image_state` 将文本历史与图片引用一起做快照；notice 汇总不可发送项 | kill/yank、undo/redo、history recall 保留图片；失效/超限图片给用户 notice；成功图片不重复发送 |
+
+这批只做上游已发布的状态正确性，不做 Dashboard 视觉重设计。图片状态是数据完整性问题，不能只补 notice；
+同时必须防止撤销栈长期持有大图字节，优先保存受控引用/ID并复用既有生命周期。
+
+验证：dashboard state/dispatch、prompt widget、image render 单元测试 + 两个 PTY 场景；`nofy-pager` 与
+`nofy-pager-render` 全量。
+
+### 15.6 批33：Mermaid 复杂标签与大图（P1，1 项）
+
+先从 `third_party/mermaid-to-svg` 的 parser、dagre layout、SVG renderer 三层提取上游最小行为差，不整目录覆盖。
+
+- 复杂 label：HTML/引号/转义/多行文本必须被正确解析并转义到 SVG，不能出现双重转义或注入。
+- 大尺寸：布局与 viewBox 使用同一边界；pager 打开路径不能因整数截断、固定画布或临时文件尺寸假设失败。
+- 验证：移植/改写上游 `pure_engine` fixtures，增加复杂 label 与大图 golden；跑 mermaid crate、pager Mermaid worker、
+  pager-render 全量。对生成 SVG 做结构断言，不用脆弱的整文件空白对比。
+
+### 15.7 一次完成的执行顺序与提交边界
+
+执行顺序固定为：**批29 → 批30 → 批31 → 批32 → 批33 → 总回归 → 台账回填**。
+
+每批独立提交，允许在同一轮连续完成，但不得把五批 squash 成一个不可定位的提交。每批固定动作：
+
+1. 读上游对应实现与测试，先写/移植最小红测试；若直接为绿，登记“已对齐”而不是改代码。
+2. 编辑任何函数/类/方法前，对精确符号执行 `gitnexus impact --direction upstream` 并在会话报告 blast radius；
+   HIGH/CRITICAL 必须先告警。
+3. 原生实现，不恢复 Grok/xAI 品牌、云登录、Memory v2 或 TOML 写回。
+4. 相关 crate 全量测试 + `cargo check --workspace --all-targets`；对关键行为做红绿变异验证并恢复绿。
+5. 提交前执行 `gitnexus detect-changes`，确认只有预期符号/流程；只暂存本批文件，保护当前 desktop 未提交工作。
+6. 中文提交信息；提交后把提交号、测试数字、已对齐/有意分歧写回 `docs/upstream-sync.md` 与本节。
+
+完成定义：22 项中 5 项已有证据保持对齐，17 项全部达到“原生落地”或“回归测试证明已对齐”；不得留下
+“待核实”。总回归至少覆盖 `nofy-sampling-types`、`nofy-tools(-api)`、`nofy-hooks`、`nofy-workspace`、
+`nofy-shell`、`nofy-pager`、`nofy-pager-render`、Mermaid 与 workspace all-targets。
