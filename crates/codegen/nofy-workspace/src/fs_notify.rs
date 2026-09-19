@@ -71,6 +71,46 @@ pub(crate) fn fs_event_to_codebase_graph_event(
     FileEvent::new(paths.to_vec(), graph_kind)
 }
 
+/// Keep only paths under `root`. A rename across the root boundary is reported
+/// as the half inside: `Removed` for a file that left, `Created` for one that
+/// arrived. Absolute paths are preserved (wire `FsChanged.path` is absolute).
+pub fn confine_to_root(
+    paths: Vec<PathBuf>,
+    kind: nofy_workspace_types::FsEventKind,
+    root: &Path,
+) -> (Vec<PathBuf>, nofy_workspace_types::FsEventKind) {
+    let inside = |path: &PathBuf| path.starts_with(root).then(|| path.clone());
+    match (kind, paths.as_slice()) {
+        (nofy_workspace_types::FsEventKind::Renamed, [from, to]) => {
+            match (inside(from), inside(to)) {
+                (Some(from), Some(to)) => (vec![from, to], kind),
+                (Some(from), None) => (vec![from], nofy_workspace_types::FsEventKind::Removed),
+                (None, Some(to)) => (vec![to], nofy_workspace_types::FsEventKind::Created),
+                (None, None) => (Vec::new(), kind),
+            }
+        }
+        _ => (paths.into_iter().filter(|p| p.starts_with(root)).collect(), kind),
+    }
+}
+
+/// Same as [`confine_to_root`] for the OS-watcher kind used by session
+/// `fs_watch` (the live producer). Wire `FsChanged` still uses the workspace
+/// kind via [`to_workspace_event_kind`].
+pub fn confine_fs_event_to_root(
+    paths: Vec<PathBuf>,
+    kind: FsEventKind,
+    root: &Path,
+) -> (Vec<PathBuf>, FsEventKind) {
+    let (paths, ws_kind) = confine_to_root(paths, to_workspace_event_kind(kind), root);
+    let kind = match ws_kind {
+        nofy_workspace_types::FsEventKind::Created => FsEventKind::Created,
+        nofy_workspace_types::FsEventKind::Modified => FsEventKind::Modified,
+        nofy_workspace_types::FsEventKind::Removed => FsEventKind::Removed,
+        nofy_workspace_types::FsEventKind::Renamed => FsEventKind::Renamed,
+    };
+    (paths, kind)
+}
+
 /// Convert [`nofy_fsnotify::FsEventKind`] to the wire-type
 /// [`nofy_workspace_types::FsEventKind`].
 ///
@@ -129,11 +169,14 @@ pub(crate) fn spawn_fs_event_forwarder(
                                 }
                             }
                             // Broadcast per-path WorkspaceEvent::FsChanged.
-                            let ws_kind = to_workspace_event_kind(kind);
+                            // Confine first: paths outside `cwd` are dropped
+                            // (a rename across the root becomes Removed/Created).
+                            let (paths, ws_kind) =
+                                confine_to_root(paths.clone(), to_workspace_event_kind(kind), &cwd);
                             for path in paths {
                                 let _ = events_tx.send(
                                     nofy_workspace_types::WorkspaceEvent::FsChanged {
-                                        path: path.clone(),
+                                        path,
                                         kind: ws_kind,
                                     },
                                 );
@@ -340,6 +383,108 @@ mod tests {
 
         let ev = fs_event_to_codebase_graph_event(&paths, FsEventKind::Renamed);
         assert_eq!(ev.kind, FileEventKind::Renamed);
+    }
+
+    #[test]
+    fn confine_to_root_keeps_inside_and_drops_outside() {
+        use nofy_workspace_types::FsEventKind as WsKind;
+        let root = PathBuf::from("/watch");
+        let (paths, kind) = confine_to_root(
+            vec![
+                PathBuf::from("/watch/inside.rs"),
+                PathBuf::from("/elsewhere/outside.rs"),
+                PathBuf::from("/watch/nested/file.rs"),
+            ],
+            WsKind::Modified,
+            &root,
+        );
+        assert_eq!(
+            vec![
+                PathBuf::from("/watch/inside.rs"),
+                PathBuf::from("/watch/nested/file.rs"),
+            ],
+            paths
+        );
+        assert_eq!(WsKind::Modified, kind);
+    }
+
+    #[test]
+    fn confine_to_root_rename_across_boundary_becomes_removed_or_created() {
+        use nofy_workspace_types::FsEventKind as WsKind;
+        let root = PathBuf::from("/watch");
+
+        let (paths, kind) = confine_to_root(
+            vec![
+                PathBuf::from("/watch/left.rs"),
+                PathBuf::from("/elsewhere/left.rs"),
+            ],
+            WsKind::Renamed,
+            &root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/left.rs")], paths);
+        assert_eq!(WsKind::Removed, kind);
+
+        let (paths, kind) = confine_to_root(
+            vec![
+                PathBuf::from("/elsewhere/arrived.rs"),
+                PathBuf::from("/watch/arrived.rs"),
+            ],
+            WsKind::Renamed,
+            &root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/arrived.rs")], paths);
+        assert_eq!(WsKind::Created, kind);
+
+        let (paths, kind) = confine_to_root(
+            vec![
+                PathBuf::from("/watch/old.rs"),
+                PathBuf::from("/watch/new.rs"),
+            ],
+            WsKind::Renamed,
+            &root,
+        );
+        assert_eq!(
+            vec![
+                PathBuf::from("/watch/old.rs"),
+                PathBuf::from("/watch/new.rs"),
+            ],
+            paths
+        );
+        assert_eq!(WsKind::Renamed, kind);
+
+        let (paths, kind) = confine_to_root(
+            vec![PathBuf::from("/watch/lone.rs")],
+            WsKind::Renamed,
+            &root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/lone.rs")], paths);
+        assert_eq!(WsKind::Renamed, kind);
+
+        let (paths, kind) = confine_to_root(
+            vec![
+                PathBuf::from("/elsewhere/a.rs"),
+                PathBuf::from("/elsewhere/b.rs"),
+            ],
+            WsKind::Renamed,
+            &root,
+        );
+        assert!(paths.is_empty());
+        assert_eq!(WsKind::Renamed, kind);
+    }
+
+    #[test]
+    fn confine_fs_event_to_root_maps_watcher_kind() {
+        let root = PathBuf::from("/watch");
+        let (paths, kind) = confine_fs_event_to_root(
+            vec![
+                PathBuf::from("/watch/left.rs"),
+                PathBuf::from("/elsewhere/left.rs"),
+            ],
+            FsEventKind::Renamed,
+            &root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/left.rs")], paths);
+        assert_eq!(FsEventKind::Removed, kind);
     }
 
     #[test]

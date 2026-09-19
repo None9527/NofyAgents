@@ -6,7 +6,9 @@
 
 use std::path::Path;
 
-use crate::implementations::skills::skill::{SkillOutput, extract_skill_body, format_skill_name};
+use crate::implementations::skills::skill::{
+    SkillOutput, cap_skill_body, extract_skill_body, format_skill_name,
+};
 use crate::implementations::skills::types::SkillInfo;
 use crate::types::requirements::{Expr, ToolRequirement};
 #[allow(unused_imports)]
@@ -123,7 +125,11 @@ fn find_skill<'a>(name: &str, skills: &'a [SkillInfo]) -> FindSkillResult<'a> {
 async fn load_skill_content(skill: &SkillInfo) -> Result<String, String> {
     let path = Path::new(&skill.path);
     match tokio::fs::read_to_string(path).await {
-        Ok(content) => Ok(extract_skill_body(&content)),
+        Ok(content) => {
+            let mut body = extract_skill_body(&content);
+            cap_skill_body(&mut body);
+            Ok(body)
+        }
         Err(e) => Err(format!("Failed to read skill file '{}': {}", skill.path, e)),
     }
 }

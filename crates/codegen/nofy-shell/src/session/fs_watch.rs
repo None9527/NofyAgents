@@ -617,23 +617,33 @@ impl FsWatchPlan {
     // Phase subsets differ on purpose — replay excludes hunk (baselines on refresh).
 
     async fn on_files_changed(&self, paths: &[PathBuf], kind: FsEventKind) {
+        let (paths, kind) =
+            nofy_workspace::fs_notify::confine_fs_event_to_root(paths.to_vec(), kind, &self.cwd);
+        if paths.is_empty() {
+            return;
+        }
         if let Some(h) = &self.hunk {
-            h.on_change(paths, kind);
+            h.on_change(&paths, kind);
         }
         if let Some(i) = &self.index {
-            i.on_change(paths, kind);
+            i.on_change(&paths, kind);
         }
         if let Some(c) = &self.client_notify {
-            c.on_change(paths, kind).await;
+            c.on_change(&paths, kind).await;
         }
     }
 
     async fn on_replayed_change(&self, paths: &[PathBuf], kind: FsEventKind) {
+        let (paths, kind) =
+            nofy_workspace::fs_notify::confine_fs_event_to_root(paths.to_vec(), kind, &self.cwd);
+        if paths.is_empty() {
+            return;
+        }
         if let Some(i) = &self.index {
-            i.on_change(paths, kind);
+            i.on_change(&paths, kind);
         }
         if let Some(c) = &self.client_notify {
-            c.on_change(paths, kind).await;
+            c.on_change(&paths, kind).await;
         }
     }
 
@@ -1084,6 +1094,32 @@ mod tests {
             &PathBuf::from("/home/user/.cache/repo/src/main.rs"),
             &PathBuf::from("/some/other/root"),
         ));
+    }
+
+    #[test]
+    fn session_watch_drops_off_root_and_rewrites_boundary_rename() {
+        let root = Path::new("/watch");
+        let (paths, kind) = nofy_workspace::fs_notify::confine_fs_event_to_root(
+            vec![
+                PathBuf::from("/watch/inside.rs"),
+                PathBuf::from("/elsewhere/outside.rs"),
+            ],
+            FsEventKind::Modified,
+            root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/inside.rs")], paths);
+        assert_eq!(FsEventKind::Modified, kind);
+
+        let (paths, kind) = nofy_workspace::fs_notify::confine_fs_event_to_root(
+            vec![
+                PathBuf::from("/watch/left.rs"),
+                PathBuf::from("/elsewhere/left.rs"),
+            ],
+            FsEventKind::Renamed,
+            root,
+        );
+        assert_eq!(vec![PathBuf::from("/watch/left.rs")], paths);
+        assert_eq!(FsEventKind::Removed, kind);
     }
 
     #[test]

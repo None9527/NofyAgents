@@ -215,7 +215,7 @@
     }
 
     #[test]
-    fn recap_idle_allows_monitors_but_not_subagents_or_turn_wait() {
+    fn recap_idle_drops_monitor_scheduled_workflow() {
         let mut agent = make_agent(Some("s1"));
         agent.scrollback.push_block(
             crate::scrollback::block::RenderBlock::agent_message("done"),
@@ -227,9 +227,85 @@
 
         agent.session.bg_tasks.insert("mon".into(), running_bg_task(true));
         assert!(
-            !should_drop_late_auto_recap(true, false, &agent),
-            "running monitors must not block recap"
+            should_drop_late_auto_recap(true, false, &agent),
+            "running monitor is not idle for auto recap"
         );
+        agent.session.bg_tasks.clear();
+
+        agent.session.scheduled_tasks.insert(
+            "loop-1".into(),
+            crate::app::agent::ScheduledTaskInfo {
+                task_id: "loop-1".into(),
+                prompt: "check".into(),
+                human_schedule: "every 5m".into(),
+                created_at: std::time::Instant::now(),
+                next_fire_at: None,
+                tag: "loop".into(),
+                last_subagent_id: None,
+            },
+        );
+        assert!(
+            should_drop_late_auto_recap(true, false, &agent),
+            "scheduled task is not idle for auto recap"
+        );
+        agent.session.scheduled_tasks.clear();
+
+        agent.workflow_runs.push(crate::views::workflows::WorkflowRunSnapshot {
+            run_id: "wf-1".into(),
+            name: "run".into(),
+            objective: "do".into(),
+            status: "active".into(),
+            management_available: true,
+            builtin: false,
+            phases: Vec::new(),
+            current_phase: None,
+            agents: Vec::new(),
+            agent_budget: None,
+            agents_used: 0,
+            agents_reserved: 0,
+            agents_remaining: None,
+            agent_usage_incomplete: false,
+            active_agents: 0,
+            elapsed_ms: 0,
+            received_at: std::time::Instant::now(),
+            pause_message: None,
+            result_summary: None,
+        });
+        assert!(
+            should_drop_late_auto_recap(true, false, &agent),
+            "active workflow is not idle for auto recap"
+        );
+        agent.workflow_runs[0].status = "complete".into();
+        assert!(
+            !should_drop_late_auto_recap(true, false, &agent),
+            "a finished workflow run cannot wake a turn"
+        );
+        agent.workflow_runs.clear();
+
+        agent.running_wake_turn = Some(crate::app::agent_view::RunningWakeTurn {
+            prompt_id: "task-completed-mon-1".into(),
+            cancel_sent: false,
+        });
+        assert!(
+            should_drop_late_auto_recap(true, false, &agent),
+            "streaming wake turn is not idle for recap"
+        );
+        agent.running_wake_turn = None;
+
+        agent.goal_state = Some(crate::app::agent::GoalDisplayState::test_stub());
+        assert!(
+            should_drop_late_auto_recap(true, false, &agent),
+            "an active goal queues its own continuation turns"
+        );
+        agent.goal_state = Some(crate::app::agent::GoalDisplayState {
+            status: crate::app::agent::GoalDisplayStatus::UserPaused,
+            ..crate::app::agent::GoalDisplayState::test_stub()
+        });
+        assert!(
+            !should_drop_late_auto_recap(true, false, &agent),
+            "a paused goal needs the user to resume it"
+        );
+        agent.goal_state = None;
 
         agent
             .session

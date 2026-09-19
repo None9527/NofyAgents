@@ -464,8 +464,6 @@ pub(super) fn should_drop_late_auto_recap(
 
 /// Recap must not paint in the gap before the next turn starts.
 fn cli_is_idle_for_recap(agent: &crate::app::agent_view::AgentView) -> bool {
-    use crate::app::agent::BgTaskStatus;
-
     if !agent.session.state.is_idle() {
         return false;
     }
@@ -475,11 +473,22 @@ fn cli_is_idle_for_recap(agent: &crate::app::agent_view::AgentView) -> bool {
     if agent.subagent_sessions.values().any(|s| !s.finished) {
         return false;
     }
+    if agent.running_wake_turn.is_some() {
+        return false;
+    }
+    if agent.session.has_running_bg_tasks() {
+        return false;
+    }
+    if !agent.session.scheduled_tasks.is_empty() {
+        return false;
+    }
+    if agent.workflow_runs.iter().any(|run| run.is_active()) {
+        return false;
+    }
     if agent
-        .session
-        .bg_tasks
-        .values()
-        .any(|t| t.status == BgTaskStatus::Running && !t.is_monitor)
+        .goal_state
+        .as_ref()
+        .is_some_and(|goal| goal.status == crate::app::agent::GoalDisplayStatus::Active)
     {
         return false;
     }

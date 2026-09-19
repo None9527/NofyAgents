@@ -452,6 +452,35 @@ pub fn resolve_skill_internal_links(body: &str, skill_dir: &std::path::Path) -> 
     result
 }
 
+/// Cap a skill body at the same 25k-token limit as file reads. Cut at the last
+/// line boundary that fits (char boundary when the body is a single oversized
+/// line) and append a note pointing at offset/limit for the rest. Call before
+/// `apply_substitutions` so the `**ARGUMENTS:**` suffix lands after the cut.
+pub fn cap_skill_body(body: &mut String) -> bool {
+    use crate::implementations::nofy_build::read_file::MAX_NUM_TOKENS;
+    use crate::util::{estimate_tokens, floor_char_boundary};
+
+    if estimate_tokens(body) <= MAX_NUM_TOKENS {
+        return false;
+    }
+    let note = format!(
+        "[Skill body truncated at the {MAX_NUM_TOKENS}-token cap. Read the rest of the \
+         skill file with the file read tool using a line offset and limit.]"
+    );
+    let max_bytes = MAX_NUM_TOKENS * nofy_token_estimation::BYTES_PER_TOKEN as usize;
+    let budget = max_bytes.saturating_sub(note.len() + 2);
+    let end = floor_char_boundary(body, budget);
+    let cut = body
+        .get(..end)
+        .and_then(|head| head.rfind('\n'))
+        .filter(|&i| i > 0)
+        .unwrap_or(end);
+    body.truncate(cut);
+    body.push_str("\n\n");
+    body.push_str(&note);
+    true
+}
+
 /// Extract the body of a skill file (everything after the YAML frontmatter).
 ///
 /// Returns the content unchanged if there is no frontmatter.
@@ -484,7 +513,9 @@ pub async fn load_skill_content(skill: &SkillInfo) -> Result<String, String> {
     // Producers strip frontmatter before setting `body`. Re-strip would drop a
     // leading Markdown HR (`---`) and skip link resolution for disk skills.
     if let Some(body) = skill.body.as_ref().filter(|b| !b.is_empty()) {
-        return Ok(body.clone());
+        let mut body = body.clone();
+        cap_skill_body(&mut body);
+        return Ok(body);
     }
     // Synthetic product paths are never on disk; empty body is authoritative.
     if skill.path.contains("://") {
@@ -496,7 +527,8 @@ pub async fn load_skill_content(skill: &SkillInfo) -> Result<String, String> {
     let path = std::path::Path::new(&skill.path);
     match tokio::fs::read_to_string(path).await {
         Ok(content) => {
-            let body = extract_skill_body(&content);
+            let mut body = extract_skill_body(&content);
+            cap_skill_body(&mut body);
             Ok(match path.parent() {
                 Some(skill_dir) => resolve_skill_internal_links(&body, skill_dir),
                 None => body,
@@ -512,7 +544,8 @@ pub async fn load_skill_with_body(skill: &SkillInfo) -> Result<SkillInfo, String
     let content = tokio::fs::read_to_string(path)
         .await
         .map_err(|e| format!("Failed to read {}: {}", skill.path, e))?;
-    let body = extract_skill_body(&content);
+    let mut body = extract_skill_body(&content);
+    cap_skill_body(&mut body);
     let body = match path.parent() {
         Some(skill_dir) => resolve_skill_internal_links(&body, skill_dir),
         None => body,
@@ -554,6 +587,44 @@ It has multiple lines."#;
         let content = "Just some content without frontmatter";
         let body = extract_skill_body(content);
         assert_eq!(body, content);
+    }
+
+    #[test]
+    fn cap_skill_body_leaves_body_under_cap_untouched() {
+        let mut body = "# Small skill\n\nDo the thing.".to_owned();
+        assert!(!cap_skill_body(&mut body));
+        assert_eq!("# Small skill\n\nDo the thing.", body);
+    }
+
+    #[test]
+    fn cap_skill_body_cuts_on_line_boundary_under_cap() {
+        let mut body = (1..=1100)
+            .map(|n| format!("{n:05} {}", "x".repeat(194)))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(cap_skill_body(&mut body));
+        assert!(
+            crate::util::estimate_tokens(&body)
+                <= crate::implementations::nofy_build::read_file::MAX_NUM_TOKENS
+        );
+        assert!(!body.contains("01100 "));
+        assert!(body.contains("offset"));
+        let (head, _) = body.rsplit_once("\n\n").expect("note separator");
+        let last_line = head.rsplit('\n').next().expect("head has a line");
+        assert_eq!(200, last_line.len());
+    }
+
+    #[test]
+    fn cap_skill_body_single_long_line_falls_back_to_char_cut() {
+        let mut body = "é".repeat(60_000);
+
+        assert!(cap_skill_body(&mut body));
+        assert!(
+            crate::util::estimate_tokens(&body)
+                <= crate::implementations::nofy_build::read_file::MAX_NUM_TOKENS
+        );
+        assert!(body.starts_with("éé"));
     }
 
     #[tokio::test]

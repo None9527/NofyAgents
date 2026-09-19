@@ -1331,6 +1331,7 @@ pub(super) async fn build_skill_information_for_refs(
         };
         match load_skill_content(info).await {
             Ok(mut content) => {
+                nofy_tools::implementations::skills::skill::cap_skill_body(&mut content);
                 let skill_dir = std::path::Path::new(&info.path)
                     .parent()
                     .and_then(|p| p.to_str());
