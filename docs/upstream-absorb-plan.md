@@ -1572,26 +1572,20 @@ T0 两项都是小手术（C2 改一个函数签名 + 加一个 reseed 方法；
 1. **C5 MCP 三项**：#6 取消/超时通知 server + #2 structuredContent **已落地（㉙，2026-09-19）**。
    落点不在 `util/config/mcp.rs`，在 `xai-grok-mcp/src/servers.rs` 的 `call_tool_cancel_aware` + `CancelOnDrop`。
    我们原先 `tokio::time::timeout(mcp_service.call_tool)` 超时/Esc drop **不**发 `notifications/cancelled`。
-   #1 headless 状态/connecting 提示——缠批15 托管连接器分歧，仍排后。
+   #1 headless 状态/connecting 提示——**跳过**：缠批15 托管连接器分歧，本队列关闭，不在 14.5 再排后。
 2. **C6 两项**：`folder_trust` **已落地（㉛）**——`grant_folder_trust` 返回 `GrantOutcome`，
    `dismisses_gate()` 才关闸；hooks Trust 失败会报错而不是假装成功；`--trust` 失败打 stderr。
-   `fs_notify` 事件帧 root 限制/分批仍待核实（`confine_to_root` 不是同一层）。
-3. **1.0.33#10 recap 门控**：落点存在（`extensions/recap.rs`、`run_loop.rs:1978 s.handle_recap(auto)`）；
-   需核我们是否已在「计划任务/monitor/workflow 在跑」时抑制 auto recap（㉒ 做的是 resume 告知，不是抑制）。
-4. **1.0.33#4 子代理 cancelled 状态**：上游落点 `spawn.rs`(+49/−67)/`session_setup.rs`(+117)/新 `isolated_spawn_e2e.rs`(+284)；
-   与 ㉒ 同域，先读 `session_setup.rs` 的 +117（它同时也是 14.2 活跃标记的调用点，两项可一起读）。
-5. **1.0.33#8 skill token 上限**：我们的截断层不同源（`max_delta_bytes` 当前传 `None`、全树无 `READ_FILE_MAX_TOKENS`），
-   按「想法原生实现」做，别照搬 `max_output_bytes` 形状。
-6. **提示词姓名规则**（见 14.6）。
-7. `managed_policy/tests.rs`(+696/−1,006，实现未动) 的性质判定：放宽脆弱断言（批16/17/20 方针＝不跟）
-   还是改结构对比（批23 方针＝跟）。
+   `fs_notify` 事件帧 root 限制 **已落地（㉞，`dcb9a807`）**：`confine_to_root` 加在 workspace `fs_notify`（绝对路径保留，因 wire `FsChanged.path` 仍是单 path），会话 live 路径 `fs_watch::on_files_changed` 经 `confine_fs_event_to_root` 调用。跨 root rename → `Removed`/`Created`。**分批跳过**：上游 `FS_CHANGED_PATHS_PER_FRAME` + `FsChanged { paths, kind }` 要改 wire；我们仍逐 path 发 `{path, kind}`。
+3. **1.0.33#10 recap 门控** **已落地（㉜，`dcb9a807`）**：`cli_is_idle_for_recap` 在 monitor/后台任务、`scheduled_tasks`、active workflow、running wake turn、Active goal 时抑制 auto recap（㉒ 只是 resume 告知）。
+4. **1.0.33#4 子代理 cancelled 状态** **已对齐**：`cancelled_orphan_finish` / `finalize_orphaned_subagent` 写 `status: "cancelled"`；pager `SubagentFinished` 的 `"cancelled"` 走 `SubagentBlock::cancelled`；`acp_handler/tests/subagents.rs` 已钉。不跟 `isolated_spawn_e2e.rs`（上游新 e2e，想法已在我们树）。
+5. **1.0.33#8 skill token 上限** **已落地（㉝，`dcb9a807`）**：`cap_skill_body` 用 `read_file::MAX_NUM_TOKENS=25_000`，行界截断 + 单行 char 回退，load / opencode skill / slash 加载路径都走。不照搬 `max_output_bytes`。
+6. **提示词姓名规则** **已落地（㉟，`dcb9a807`）**（见 14.6）。
+7. `managed_policy/tests.rs`(+696/−1,006，实现未动) **跳过 不跟**：测试重写、实现零改动，按批16/17/20「保留严格断言」方针。
 
 ### 14.6 一条独立小项（可与批26 合并）
 
 主提示词模板新增「不得凭 username/handle/email/首字母臆造人名」规则（**非 changelog 项**，只能靠逐文件比对看见）。
-我们 `prompt.md` 无此句，且仍保留上游本轮删掉的 `<tool_calling>` 段（`:18–20`）——**不跟删**，
-除非独立判断该段已无价值。⚠ 改模板必须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py`
-（上游本轮也改了 `prompt_encrypted.rs` 4 行，属同一机制）。
+**已落地（㉟，`dcb9a807`）**：`prompt.md` 在 `</action_safety>` 后加姓名规则；`<tool_calling>` **不跟删**。已重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py`。
 
 ### 14.7 执行顺序与每批固定动作
 
@@ -1603,6 +1597,5 @@ markdown/pager-render **需先建基线**）→ 红绿双验（含「还原后�
 `gitnexus detect-changes -r <绝对路径>` → 提交（中文信息）→ **核实结论一律回写台账**。
 
 > **本方案里「已核实」与「待核实」的分界（如实登记）**：14.1A/14.1B/14.2/14.3 的上游形状与我们落点都做过
-> grep 或逐行读；14.5 全部是**待核实**，其中 #2 structuredContent 与 rmcp 钉版、14.4 Memory v2 的
-> 「memorycore 未接线」两条已经核实过。1.0.33#1（macOS 粘贴错图）与 1.0.35#2（daemon 路径渲染）
-> **本轮完全未定位**，仍停在台账初判。
+> grep 或逐行读；**14.5–14.6 队列已全部写回结论**（已落地 ㉙–㉟ / 已对齐 / 跳过+理由），不再留「待核实」。
+> 1.0.33#1（macOS 粘贴错图）与 1.0.35#2（daemon 路径渲染）**不在 14.5–14.6 队列**，仍停在台账初判。
