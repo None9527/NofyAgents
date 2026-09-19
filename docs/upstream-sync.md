@@ -855,3 +855,19 @@ message was sent as interject, queued, or steer」),按「UX 先跳过」需先�
 批级验证：`cargo check --workspace --all-targets` exit 0；GitNexus `detect-changes` = 9 文件 / 50 符号 /
 0 执行流 / risk low。全量输出只有仓库既有 warnings。`cargo fmt --all -- --check` 会被工作树中大量与本批无关的
 历史格式差异打红，因此没有机械格式化整树；仅对本批 Rust 文件运行 rustfmt，`git diff --check` 通过。
+
+### 批30 原生实现日志（1.0.36–1.0.38，2026-09-20）
+
+| 上游项 | 落地结论 | 提交 | 验证 |
+|---|---|---|---|
+| `allow_managed_hooks_only` | requirements/系统托管来源进入 `HookProvenance`，`DisabledHooks` 快照同时携带用户禁用集合与 managed-only pin；discovery、registry、dispatcher 和设置 modal 共用同一判定，最终在 dispatcher 边界再强制一次。非托管 file hook 被跳过，托管 hook 即使出现在 disabled 文件也继续运行；ACP client hooks 不被误伤 | `749de458` | dispatcher 边界新回归；`nofy-hooks` lib 204/204、integration 13/13 |
+| `nofy --sandbox` 接受 folder trust 后不退出 | **已对齐**：既有 `GrantOutcome`/startup resolver 已在接受信任后解析启动闸并由同一进程继续；新增/复用两条回归钉住 folder grant 与 startup replay，没有重复实现第二套生命周期 | `749de458` | `finish_trust_resolves_and_replays_startup`、`trust_folder_grants_and_resolves` 均通过 |
+| 引号 filename 变量遵守 bash 权限规则 | 新增保守 `PermissionScript` AST 恢复：只接受脚本开头已见证的绝对/相对路径赋值、双引号纯变量、`ls/rg/echo/head/tail` 只读命令与受限参数；未赋值变量、危险命令、`LD_*`/加载器变量、`rg --pre` 均失败关闭。因本地仍是旧版单体 manager，没有照搬上游后来的 policy/grants 拆层，而是在既有判定边界以 shell-safe projection 复用当前 policy matcher | `749de458` | 两个恢复器测试 + manager 端到端配置 allow 测试；`nofy-workspace` 1,779/1,779 |
+| 权限提示长引号参数换行 | permission view 使用 quote-aware token 分段；能放下的引号 token 保持整体，单 token 超宽时按 Unicode 显示宽度强制切块，避免窄终端裁切和越界 | `749de458` | 新窄宽 quoted-arg 回归；pager 定向测试通过 |
+
+批级验证：`cargo test -p nofy-hooks -p nofy-workspace` 全绿；`nofy-shell` 为 5,247 passed / 24 failed /
+12 ignored，`nofy-pager` 为 8,056 passed / 8 failed / 6 ignored。失败均可单独复现于既有基线：TOML→JSON 测试仍断言
+`config.toml`、macOS `/tmp`→`/private/tmp` 路径别名、已明确后看的 memory 前置条件，以及 pager 的平台快捷键文案；本批定向
+hooks/trust/permission/wrap 测试全绿。`cargo check --workspace --all-targets` exit 0，`git diff --check` 通过。
+GitNexus `detect-changes` = 24 文件 / 133 符号 / 1 执行流 / risk medium，唯一流程为
+`Spawn_session_actor → Managed_settings`。整树 `cargo fmt --all -- --check` 仍被历史格式差异阻断；本批触及文件已单独 rustfmt。

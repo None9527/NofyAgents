@@ -1672,6 +1672,11 @@ inline-only，则登记“已对齐”并关闭该项，不搬上游的文件输
 
 ### 15.3 批30：Hooks、信任与权限安全（P0，4 项）
 
+> ✅ **批30 已落地（2026-09-20）**：提交 `749de458`。managed-only 在 dispatcher 执行边界强制，
+> 托管 hook 不受用户 disabled 文件反向关闭；sandbox folder trust 的既有同进程续跑路径由回归钉住；
+> 引号 filename 变量以保守 AST 恢复接入旧版 permission manager；权限卡长引号参数改为 quote-aware、显示宽度换行。
+> GitNexus 提交前检查为 medium，唯一受影响流程是 `Spawn_session_actor → Managed_settings`，无意外高风险流程。
+
 | 项 | 原生落点 | 必须钉住的验收 |
 |---|---|---|
 | `allow_managed_hooks_only` | requirements/托管策略解析 → hooks trust snapshot → discovery/dispatcher；非托管 hook 统一跳过 | pin 开启时 file/SDK 非托管 hook 均不执行，托管 hook 仍执行；disabled-hooks 文件不能反向放行 |
