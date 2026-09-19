@@ -148,6 +148,21 @@ fn detect_effort_phase(models: &ModelState, args_query: &str) -> Option<acp::Mod
     None
 }
 
+/// Opening row for the model effort phase. A typed effort fragment deliberately
+/// returns `None` so fuzzy-match ranking keeps control of the selection.
+pub(in crate::slash) fn preselected_effort_arg(
+    models: &ModelState,
+    args_query: &str,
+) -> Option<String> {
+    let model_id = detect_effort_phase(models, args_query)?;
+    let model_name = models.display_name_for(&model_id);
+    if !args_query.trim_end().eq_ignore_ascii_case(&model_name) {
+        return None;
+    }
+    let option = models.preselected_effort_option_for(&model_id)?;
+    Some(format!("{model_name} {}", option.id))
+}
+
 /// One row per logical model. Reasoning models get a trailing space in
 /// `insert_text` so the prompt widget chains into the effort sub-menu.
 fn build_model_items(models: &ModelState) -> Vec<ArgItem> {
@@ -203,8 +218,8 @@ fn build_effort_items(models: &ModelState, model_id: &acp::ModelId) -> Vec<ArgIt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use nofy_shell::sampling::types::ReasoningEffort;
+    use std::sync::Arc;
 
     fn model_with_reasoning(id: &str, name: &str) -> (acp::ModelId, acp::ModelInfo) {
         let id = acp::ModelId::new(Arc::from(id));

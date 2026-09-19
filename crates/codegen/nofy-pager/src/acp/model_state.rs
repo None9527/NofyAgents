@@ -204,6 +204,28 @@ impl ModelState {
         parse_reasoning_efforts_meta(info.meta.as_ref()).unwrap_or_else(legacy_effort_options)
     }
 
+    /// Effort row highlighted when a model's picker first opens. The live
+    /// session choice wins for the current model, then catalog metadata, then
+    /// an option explicitly marked as the default.
+    pub(crate) fn preselected_effort_option_for(
+        &self,
+        id: &acp::ModelId,
+    ) -> Option<ReasoningEffortOption> {
+        let options = self.reasoning_effort_options_for(id);
+        let offered = |effort: ReasoningEffort| options.iter().find(|opt| opt.value == effort);
+        let live = self
+            .reasoning_effort
+            .filter(|_| self.current.as_ref() == Some(id));
+        let catalog = self
+            .available
+            .get(id)
+            .and_then(|info| parse_reasoning_effort_meta(info.meta.as_ref()));
+        live.and_then(offered)
+            .or_else(|| catalog.and_then(offered))
+            .or_else(|| options.iter().find(|opt| opt.default))
+            .cloned()
+    }
+
     /// Map a typed/selected effort token to its canonical value for the current
     /// model. Accepts a menu option id (case-insensitive) or a canonical level
     /// that appears as a **value** in that model's menu. Levels the model does
@@ -520,6 +542,45 @@ mod tests {
                 .collect();
             assert_eq!(ids, ["xhigh", "high", "medium", "low"], "for meta {meta}");
         }
+    }
+
+    #[test]
+    fn preselected_effort_follows_live_then_catalog_then_default_flag() {
+        let menu = serde_json::json!([
+            { "value": "xhigh" },
+            { "value": "high", "default": true },
+            { "value": "medium" },
+            { "value": "low" },
+        ]);
+        let selected_id = |state: &ModelState| {
+            state
+                .preselected_effort_option_for(&acp::ModelId::new(Arc::from("m")))
+                .map(|option| option.id)
+        };
+
+        let mut state = state_with_meta(Some(serde_json::json!({
+            "supportsReasoningEffort": true,
+            "reasoningEffort": "medium",
+            "reasoningEfforts": menu.clone(),
+        })));
+        state.reasoning_effort = Some(ReasoningEffort::Low);
+        assert_eq!(Some("low".to_owned()), selected_id(&state));
+
+        state.current = None;
+        assert_eq!(Some("medium".to_owned()), selected_id(&state));
+
+        let state = state_with_meta(Some(serde_json::json!({
+            "supportsReasoningEffort": true,
+            "reasoningEfforts": menu,
+        })));
+        assert_eq!(Some("high".to_owned()), selected_id(&state));
+
+        let state = state_with_meta(Some(serde_json::json!({
+            "supportsReasoningEffort": true,
+            "reasoningEffort": "none",
+            "reasoningEfforts": [{ "value": "xhigh" }, { "value": "high" }],
+        })));
+        assert_eq!(None, selected_id(&state));
     }
 
     #[test]

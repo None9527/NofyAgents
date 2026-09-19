@@ -2,10 +2,7 @@ use super::*;
 use nofy_shell::sampling::error::format_rate_limited_user_message;
 /// Read a string field off a terminal's `_meta` (defensive: the meta is an
 /// open JSON object; absent/non-string yields `None`).
-fn terminal_meta_str<'a>(
-    meta: Option<&'a serde_json::Value>,
-    key: &str,
-) -> Option<&'a str> {
+fn terminal_meta_str<'a>(meta: Option<&'a serde_json::Value>, key: &str) -> Option<&'a str> {
     meta.and_then(|v| v.get(key)).and_then(|v| v.as_str())
 }
 /// Stash a live stop/stop_failure batch under `stash_pid` for the turn marker
@@ -155,6 +152,7 @@ pub(super) fn handle_session_notification_with_origin(
     };
     let parent_id = matched.agent_id();
     let is_active = is_matched_agent_active(app, parent_id);
+    let meta = NotificationMeta::from_json(session_notif.meta.as_ref().and_then(|v| v.as_object()));
     let agent = app
         .agents
         .get_mut(&parent_id)
@@ -165,10 +163,11 @@ pub(super) fn handle_session_notification_with_origin(
             session_notif.update,
             child_sid,
             agent,
+            meta.is_replay,
+            session_notif.meta.as_ref(),
         );
         return changed && is_active;
     }
-    let meta = NotificationMeta::from_json(session_notif.meta.as_ref().and_then(|v| v.as_object()));
     if drop_unexpected_replay(
         agent,
         &meta,
@@ -234,11 +233,7 @@ pub(super) fn handle_session_notification_with_origin(
         | NofySessionUpdate::MemoryFlushCompleted { .. }
         | NofySessionUpdate::MemoryDreamCompleted { .. }
         | NofySessionUpdate::MemorySessionSaved { .. }) => {
-            let changed = apply_session_event(
-                update,
-                &mut agent.session,
-                &mut agent.scrollback,
-            );
+            let changed = apply_session_event(update, &mut agent.session, &mut agent.scrollback);
             if let NofySessionUpdate::AutoCompactCompleted { tokens_after, .. } = update {
                 refresh_context_used(agent, *tokens_after);
                 agent.todo.update_todos(Vec::new());
@@ -1218,6 +1213,8 @@ pub(super) fn handle_child_session_notification(
     update: NofySessionUpdate,
     child_sid: &str,
     agent: &mut AgentView,
+    is_replay: bool,
+    meta: Option<&serde_json::Value>,
 ) -> bool {
     match update {
         NofySessionUpdate::AutoCompactStarted { .. }
@@ -1255,11 +1252,7 @@ pub(super) fn handle_child_session_notification(
         | NofySessionUpdate::MemoryDreamCompleted { .. }
         | NofySessionUpdate::MemorySessionSaved { .. }) => {
             if let Some(child_view) = agent.subagent_views.get_mut(child_sid) {
-                apply_session_event(
-                    update,
-                    &mut child_view.session,
-                    &mut child_view.scrollback,
-                )
+                apply_session_event(update, &mut child_view.session, &mut child_view.scrollback)
             } else {
                 false
             }
@@ -1292,6 +1285,45 @@ pub(super) fn handle_child_session_notification(
             let activity_label = subagent_activity_label(child_view);
             sync_subagent_activity(agent, child_sid, activity_label);
             true
+        }
+        NofySessionUpdate::TurnCompleted {
+            prompt_id,
+            stop_reason,
+            agent_result,
+            ..
+        } => {
+            if is_replay {
+                return false;
+            }
+            let finished = {
+                let Some(child_view) = agent.subagent_views.get_mut(child_sid) else {
+                    return false;
+                };
+                super::super::turn_completion::finalize_child_view_turn(
+                    child_view,
+                    super::super::turn_completion::TerminalSignal {
+                        prompt_id: Some(&prompt_id),
+                        stop_reason: Some(&stop_reason),
+                        agent_result: agent_result.as_deref(),
+                        cancel_trigger: terminal_meta_str(
+                            meta,
+                            super::super::turn_completion::CANCEL_TRIGGER_KEY,
+                        ),
+                        cancellation_category: terminal_meta_str(
+                            meta,
+                            super::super::turn_completion::CANCELLATION_CATEGORY_KEY,
+                        ),
+                    },
+                )
+            };
+            if finished {
+                let activity_label = agent
+                    .subagent_views
+                    .get(child_sid)
+                    .and_then(|child| subagent_activity_label(child));
+                sync_subagent_activity(agent, child_sid, activity_label);
+            }
+            finished
         }
         _ => false,
     }
@@ -1440,17 +1472,15 @@ pub(super) fn apply_retry_state(
             session.set_retry_activity(None);
             session.rate_limited = *rate_limited;
             if *rate_limited {
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::RateLimitHit {
-                        model_id: session
-                            .models
-                            .current
-                            .as_ref()
-                            .map(|m| m.0.to_string())
-                            .unwrap_or_default(),
-                        attempts: *attempts,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::RateLimitHit {
+                    model_id: session
+                        .models
+                        .current
+                        .as_ref()
+                        .map(|m| m.0.to_string())
+                        .unwrap_or_default(),
+                    attempts: *attempts,
+                });
             }
             if !*rate_limited && is_reauthable_failure(None, reason) {
                 is_reauth = true;

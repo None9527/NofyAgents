@@ -17,12 +17,10 @@ use super::cancel_latency::TurnEnd;
 
 /// `_meta.cancellationCategory` of a hook-denied turn end: renders the
 /// "blocked by a hook" marker instead of "cancelled by user" on every rail.
-pub(crate) const HOOK_DENIED_CATEGORY: &str =
-    nofy_shell::session::commands::HOOK_DENIED_CATEGORY;
+pub(crate) const HOOK_DENIED_CATEGORY: &str = nofy_shell::session::commands::HOOK_DENIED_CATEGORY;
 /// `_meta.cancellationCategory` of a governor no-progress early stop: renders
 /// the honest "unable to make progress" marker instead of "cancelled by user".
-pub(crate) const NO_PROGRESS_CATEGORY: &str =
-    nofy_shell::session::commands::NO_PROGRESS_CATEGORY;
+pub(crate) const NO_PROGRESS_CATEGORY: &str = nofy_shell::session::commands::NO_PROGRESS_CATEGORY;
 
 /// `_meta` key of a cancelled terminal's trigger (`"send_now"`, `"ctrl_c"`, …).
 pub(crate) const CANCEL_TRIGGER_KEY: &str = "cancelTrigger";
@@ -364,6 +362,57 @@ pub(super) fn finalize_turn_from_terminal(
     agent.mark_turn_finished(TurnEnd::Completed);
 
     TerminalApply::ViewerFinalized
+}
+
+/// Finish a terminal child turn directly. Child overlays never receive the
+/// parent's `PromptResponse`, so either terminal rail is authoritative here.
+/// The idle/current-id guard makes duplicate notifications a no-op.
+pub(super) fn finalize_child_view_turn(child: &mut AgentView, signal: TerminalSignal<'_>) -> bool {
+    if child.session.loading_replay || child.session.state.command_in_flight().is_some() {
+        return false;
+    }
+    let signal_pid = signal.prompt_id.filter(|pid| !pid.is_empty());
+    if child
+        .session
+        .current_prompt_id
+        .as_deref()
+        .zip(signal_pid)
+        .is_some_and(|(current, terminal)| current != terminal)
+    {
+        return false;
+    }
+    if !child.session.state.is_busy() && child.session.current_prompt_id.is_none() {
+        return false;
+    }
+
+    let elapsed = child.turn_elapsed().unwrap_or_default();
+    let ending_prompt_id = child
+        .session
+        .current_prompt_id
+        .clone()
+        .or_else(|| signal_pid.map(str::to_owned));
+    child.session.finish_turn(&mut child.scrollback);
+    child.scrollback.finish_all_running();
+
+    let expected_send_now = child.expect_send_now_cancel.take();
+    let send_now_cancel = match signal.cancel_trigger {
+        Some(trigger) => trigger == "send_now",
+        None => expected_send_now.is_some(),
+    };
+    let event = match signal.stop_reason {
+        Some("cancelled") if send_now_cancel => None,
+        Some("cancelled") => Some(cancelled_turn_event(signal.cancellation_category, elapsed)),
+        Some("rate_limit") => None,
+        Some("error") => turn_failed_event(&child.scrollback, signal.agent_result, elapsed),
+        _ => Some(SessionEvent::TurnCompleted {
+            elapsed: Some(elapsed),
+        }),
+    };
+    push_turn_terminal_marker(child, event, ending_prompt_id.as_deref());
+    child.pending_cancel_resend = None;
+    child.pending_turn_end_reconcile = None;
+    child.mark_turn_finished(TurnEnd::Completed);
+    true
 }
 
 /// Map a [`finalize_turn_from_terminal`] outcome to the redraw/tick bool that

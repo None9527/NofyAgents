@@ -636,7 +636,8 @@
             elapsed_ms: Some(300),
             summary_preview: None,
         };
-        let changed = handle_child_session_notification(update, child_sid, &mut agent);
+        let changed =
+            handle_child_session_notification(update, child_sid, &mut agent, false, None);
         assert!(changed);
 
         let info = agent.subagent_sessions.get(child_sid).unwrap();
@@ -676,7 +677,7 @@
             percentage: 72,
             reason: "threshold".into(),
         };
-        let _ = handle_child_session_notification(update, child_sid, &mut agent);
+        let _ = handle_child_session_notification(update, child_sid, &mut agent, false, None);
 
         let child_view = agent.subagent_views.get(child_sid).unwrap();
         assert_eq!(
@@ -695,7 +696,8 @@
             percentage: 85,
             reason: "threshold".into(),
         };
-        let changed = handle_child_session_notification(update, "unknown-child", &mut agent);
+        let changed =
+            handle_child_session_notification(update, "unknown-child", &mut agent, false, None);
         assert!(!changed);
     }
 
@@ -714,7 +716,8 @@
             elapsed_ms: Some(300),
             summary_preview: None,
         };
-        let changed = handle_child_session_notification(update, child_sid, &mut agent);
+        let changed =
+            handle_child_session_notification(update, child_sid, &mut agent, false, None);
         // No child_view means nothing visible changed — must not trigger redraw.
         assert!(!changed);
         // SubagentInfo should still be updated (data correctness).
@@ -727,7 +730,8 @@
     fn child_unknown_event_returns_false() {
         let mut agent = make_agent(Some("root-sess"));
         let update = NofySessionUpdate::MemoryFlushStarted;
-        let changed = handle_child_session_notification(update, "child-1", &mut agent);
+        let changed =
+            handle_child_session_notification(update, "child-1", &mut agent, false, None);
         assert!(!changed);
     }
 
@@ -888,4 +892,3 @@
             "replayed deltas must not set the streaming-only writing state"
         );
     }
-

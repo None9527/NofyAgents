@@ -3,10 +3,10 @@
 //! Tracking state for spawned child sessions. [`SubagentInfo`] is the single
 //! source of truth — used by both the subagent pane (display) and the
 //! permission view (provenance labels).
+use nofy_shell::session::storage::{ReplayEmission, stream_replay_updates_at};
 use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Instant;
-use nofy_shell::session::storage::{ReplayEmission, stream_replay_updates_at};
 /// Enriched subagent tracking info.
 ///
 /// Keyed by `child_session_id` in `AgentView::subagent_sessions`.
@@ -290,7 +290,7 @@ pub(crate) fn ensure_subagent_child_replayed(
     }
 }
 /// Finalize a finished child view: end the turn and append the `TurnCompleted`
-/// footer. Shared by the live `SubagentFinished` path and the deferred resume path.
+/// footer. Idempotent when a child terminal already supplied a trailing marker.
 pub(crate) fn finalize_finished_child_view(
     child_view: &mut crate::app::agent_view::AgentView,
     elapsed: std::time::Duration,
@@ -300,6 +300,22 @@ pub(crate) fn finalize_finished_child_view(
         .tracker
         .finish_turn(&mut child_view.scrollback);
     child_view.scrollback.finish_all_running();
+    let already_has_terminal = child_view.scrollback.last().is_some_and(|entry| {
+        matches!(
+            &entry.block,
+            crate::scrollback::block::RenderBlock::SessionEvent(block)
+                if matches!(
+                    block.event,
+                    crate::scrollback::blocks::SessionEvent::TurnCompleted { .. }
+                        | crate::scrollback::blocks::SessionEvent::TurnCancelled { .. }
+                        | crate::scrollback::blocks::SessionEvent::TurnFailed { .. }
+                        | crate::scrollback::blocks::SessionEvent::TurnBlockedByHook { .. }
+                )
+        )
+    });
+    if already_has_terminal {
+        return;
+    }
     child_view
         .scrollback
         .push_block(crate::scrollback::block::RenderBlock::session_event(

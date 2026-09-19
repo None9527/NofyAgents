@@ -185,4 +185,3 @@ mod tests {
         assert_eq!(items[top1[0].0], "pager-headless");
     }
 }
-

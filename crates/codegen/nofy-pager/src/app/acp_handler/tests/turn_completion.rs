@@ -1635,6 +1635,160 @@
         );
     }
 
+    fn cancelling_child(app: &mut AppView, child_sid: &str, prompt_id: &str) {
+        let child = app
+            .agents
+            .get_mut(&AgentId(0))
+            .unwrap()
+            .subagent_views
+            .get_mut(child_sid)
+            .unwrap();
+        child.session.state = AgentState::TurnCancelling;
+        child.session.current_prompt_id = Some(prompt_id.to_owned());
+    }
+
+    fn child_turn_completed_notif(
+        child_sid: &str,
+        prompt_id: &str,
+        stop_reason: &str,
+        agent_result: Option<&str>,
+        is_replay: bool,
+    ) -> acp::ExtNotification {
+        let payload = SessionNotification {
+            session_id: acp::SessionId::new(child_sid),
+            update: NofySessionUpdate::TurnCompleted {
+                prompt_id: prompt_id.into(),
+                stop_reason: stop_reason.into(),
+                agent_result: agent_result.map(str::to_owned),
+                usage: None,
+            },
+            meta: Some(serde_json::json!({ "isReplay": is_replay })),
+        };
+        acp::ExtNotification::new(
+            "nofy/session/update",
+            std::sync::Arc::from(serde_json::value::to_raw_value(&payload).unwrap()),
+        )
+    }
+
+    #[test]
+    fn child_turn_completed_cancelled_clears_cancelling_and_is_idempotent() {
+        let child_sid = "child-cancelled";
+        let prompt_id = "pid-child";
+        let mut app = make_app_with_parent_and_child("sess-parent", child_sid);
+        cancelling_child(&mut app, child_sid, prompt_id);
+
+        let notification = child_turn_completed_notif(
+            child_sid,
+            prompt_id,
+            "cancelled",
+            None,
+            false,
+        );
+        assert!(handle_ext_notification(&notification, &mut app));
+        let child = app.agents[&AgentId(0)].subagent_views.get(child_sid).unwrap();
+        assert!(child.session.state.is_idle());
+        assert!(child.session.current_prompt_id.is_none());
+        assert!(matches!(
+            last_session_event(&child.scrollback),
+            Some(SessionEvent::TurnCancelled { .. })
+        ));
+
+        let len = child.scrollback.len();
+        assert!(!handle_ext_notification(&notification, &mut app));
+        assert_eq!(
+            len,
+            app.agents[&AgentId(0)].subagent_views[child_sid]
+                .scrollback
+                .len()
+        );
+
+        let child = app
+            .agents
+            .get_mut(&AgentId(0))
+            .unwrap()
+            .subagent_views
+            .get_mut(child_sid)
+            .unwrap();
+        crate::app::subagent::finalize_finished_child_view(
+            child,
+            std::time::Duration::from_secs(1),
+        );
+        assert_eq!(len, child.scrollback.len());
+    }
+
+    #[test]
+    fn child_turn_completed_error_clears_cancelling() {
+        let child_sid = "child-error";
+        let prompt_id = "pid-child";
+        let mut app = make_app_with_parent_and_child("sess-parent", child_sid);
+        cancelling_child(&mut app, child_sid, prompt_id);
+
+        assert!(handle_ext_notification(
+            &child_turn_completed_notif(child_sid, prompt_id, "error", Some("boom"), false),
+            &mut app,
+        ));
+        let child = app.agents[&AgentId(0)].subagent_views.get(child_sid).unwrap();
+        assert!(child.session.state.is_idle());
+        assert!(matches!(
+            last_session_event(&child.scrollback),
+            Some(SessionEvent::TurnFailed { .. })
+        ));
+    }
+
+    #[test]
+    fn child_turn_completed_end_turn_clears_cancelling() {
+        let child_sid = "child-completed";
+        let prompt_id = "pid-child";
+        let mut app = make_app_with_parent_and_child("sess-parent", child_sid);
+        cancelling_child(&mut app, child_sid, prompt_id);
+
+        assert!(handle_ext_notification(
+            &child_turn_completed_notif(child_sid, prompt_id, "end_turn", None, false),
+            &mut app,
+        ));
+        let child = app.agents[&AgentId(0)].subagent_views.get(child_sid).unwrap();
+        assert!(child.session.state.is_idle());
+        assert!(matches!(
+            last_session_event(&child.scrollback),
+            Some(SessionEvent::TurnCompleted { .. })
+        ));
+    }
+
+    #[test]
+    fn replayed_child_turn_completed_does_not_finish_live_turn() {
+        let child_sid = "child-replayed";
+        let prompt_id = "pid-child";
+        let mut app = make_app_with_parent_and_child("sess-parent", child_sid);
+        cancelling_child(&mut app, child_sid, prompt_id);
+
+        assert!(!handle_ext_notification(
+            &child_turn_completed_notif(child_sid, prompt_id, "end_turn", None, true),
+            &mut app,
+        ));
+        let child = app.agents[&AgentId(0)].subagent_views.get(child_sid).unwrap();
+        assert!(child.session.state.is_cancelling());
+        assert!(child.scrollback.is_empty());
+    }
+
+    #[test]
+    fn child_prompt_complete_cancelled_clears_cancelling() {
+        let child_sid = "child-legacy-terminal";
+        let prompt_id = "pid-child";
+        let mut app = make_app_with_parent_and_child("sess-parent", child_sid);
+        cancelling_child(&mut app, child_sid, prompt_id);
+
+        assert!(handle_ext_notification(
+            &prompt_complete_ext_with_reason(child_sid, "cancelled", None),
+            &mut app,
+        ));
+        let child = app.agents[&AgentId(0)].subagent_views.get(child_sid).unwrap();
+        assert!(child.session.state.is_idle());
+        assert!(matches!(
+            last_session_event(&child.scrollback),
+            Some(SessionEvent::TurnCancelled { .. })
+        ));
+    }
+
     /// The core reattach-finalization: a `TurnCompleted` seen during a load's
     /// replay window records its prompt id (the running turn isn't adopted yet),
     /// and the post-replay `SessionLoaded` adoption then SKIPS that same id — so
