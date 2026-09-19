@@ -33,6 +33,16 @@ use crate::stream::responses::stream_responses_tracked;
 use crate::stream::{stream_chat_completions, stream_messages};
 use crate::types::RequestId;
 
+fn salvage_partial_length() -> bool {
+    match std::env::var("NOFY_LENGTH_SALVAGE") {
+        Ok(v) => {
+            let v = v.trim().to_ascii_lowercase();
+            !matches!(v.as_str(), "0" | "false" | "no" | "off" | "disabled")
+        }
+        Err(_) => true,
+    }
+}
+
 /// Default per-chunk idle timeout when neither config nor caller
 /// supplies one. Matches the shell's session-level default
 /// (5 minutes -- long enough for cold-start reasoning, short enough
@@ -655,6 +665,13 @@ async fn drive_l2(
                                     .assistant()
                                     .map_or(0, |a| a.content.len()),
                                 "completing Length-truncated response with completed tool calls"
+                            );
+                        } else if salvage_partial_length() && response.empty_reason().is_none() {
+                            tracing::info!(
+                                content_len = response
+                                    .assistant()
+                                    .map_or(0, |a| a.content.len()),
+                                "completing Length-truncated partial text for salvage"
                             );
                         } else {
                             return AttemptOutcome::Failed {

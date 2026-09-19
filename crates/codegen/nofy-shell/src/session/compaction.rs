@@ -2347,6 +2347,7 @@ mod inline_auto_compact_flow_tests {
                 context_window: std::num::NonZeroU64::new(context_window)
                     .expect("test context_window must be non-zero"),
                 reasoning_effort: None,
+                reasoning_summary: None,
                 stream_tool_calls: None,
             },
             Box::new(nofy_chat_state::NullChatPersistence),

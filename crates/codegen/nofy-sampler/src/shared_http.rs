@@ -70,6 +70,31 @@ pub(crate) fn client() -> Result<reqwest::Client, reqwest::Error> {
     shared(&SHARED_H2, build_http_client, sharing_disabled())
 }
 
+pub(crate) fn pool_idle_timeout() -> Duration {
+    Duration::from_secs(
+        std::env::var("NOFY_POOL_IDLE_TIMEOUT_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(90),
+    )
+}
+
+pub(crate) enum PooledClient {
+    SharingDisabled,
+    Unavailable(String),
+    Ready(reqwest::Client),
+}
+
+pub(crate) fn pooled_client() -> PooledClient {
+    if sharing_disabled() {
+        return PooledClient::SharingDisabled;
+    }
+    match client() {
+        Ok(client) => PooledClient::Ready(client),
+        Err(error) => PooledClient::Unavailable(error.to_string()),
+    }
+}
+
 /// Shared HTTP/1.1 fallback client. Pool-less by construction, so sharing it
 /// is behaviorally identical to building a fresh one.
 pub(crate) fn client_http1() -> Result<reqwest::Client, reqwest::Error> {

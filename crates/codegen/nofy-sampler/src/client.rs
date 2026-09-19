@@ -325,6 +325,7 @@ struct ClientDefaults {
     api_backend: ApiBackend,
     auth_scheme: AuthScheme,
     stream_tool_calls: bool,
+    reasoning_summary: Option<nofy_sampling_types::ReasoningSummary>,
     doom_loop_recovery: Option<nofy_sampling_types::DoomLoopRecoveryPolicy>,
 }
 
@@ -641,6 +642,7 @@ impl SamplingClient {
             api_backend: config.api_backend,
             auth_scheme: config.auth_scheme,
             stream_tool_calls: config.stream_tool_calls,
+            reasoning_summary: config.reasoning_summary,
             doom_loop_recovery: config.doom_loop_recovery,
         };
 
@@ -1149,6 +1151,20 @@ impl SamplingClient {
         // Set store to false if not specified (default is true, but that breaks ZDR compliance)
         if request.inner.store.is_none() {
             request.inner.store = Some(false);
+        }
+
+        if let Some(summary) = self.defaults.reasoning_summary {
+            let summary = summary.to_responses_api();
+            match request.inner.reasoning.as_mut() {
+                Some(reasoning) => reasoning.summary = summary,
+                None if summary.is_some() => {
+                    request.inner.reasoning = Some(rs::Reasoning {
+                        effort: None,
+                        summary,
+                    });
+                }
+                None => {}
+            }
         }
 
         // Include encrypted reasoning content if not specified
@@ -2132,6 +2148,7 @@ mod tests {
             stream_tool_calls: false,
             idle_timeout_secs: None,
             reasoning_effort: None,
+            reasoning_summary: None,
             origin_client: None,
             client_identifier: None,
             deployment_id: None,
@@ -2144,6 +2161,84 @@ mod tests {
             doom_loop_recovery: None,
             header_injector: None,
         }
+    }
+
+    fn built_response_request() -> CreateResponseWrapper {
+        CreateResponseWrapper::new(rs::CreateResponse {
+            reasoning: Some(rs::Reasoning {
+                effort: Some(rs::ReasoningEffort::High),
+                summary: Some(rs::ReasoningSummary::Concise),
+            }),
+            ..Default::default()
+        })
+    }
+
+    fn client_with_summary(
+        summary: Option<nofy_sampling_types::ReasoningSummary>,
+    ) -> SamplingClient {
+        SamplingClient::new(SamplerConfig {
+            reasoning_summary: summary,
+            ..minimal_config()
+        })
+        .expect("client should construct")
+    }
+
+    #[test]
+    fn reasoning_summary_unset_keeps_the_built_request() {
+        let client = client_with_summary(None);
+        let mut request = built_response_request();
+        client.apply_response_defaults(&mut request).unwrap();
+        let reasoning = request.inner.reasoning.expect("reasoning block kept");
+        assert_eq!(reasoning.effort, Some(rs::ReasoningEffort::High));
+        assert_eq!(reasoning.summary, Some(rs::ReasoningSummary::Concise));
+    }
+
+    #[test]
+    fn reasoning_summary_none_omits_the_field_but_keeps_effort() {
+        let client = client_with_summary(Some(nofy_sampling_types::ReasoningSummary::None));
+        let mut request = built_response_request();
+        client.apply_response_defaults(&mut request).unwrap();
+        let body = serde_json::to_value(&request.inner).unwrap();
+        assert_eq!(
+            body.get("reasoning"),
+            Some(&serde_json::json!({ "effort": "high" }))
+        );
+        let reasoning = request
+            .inner
+            .reasoning
+            .expect("reasoning block kept for effort");
+        assert_eq!(reasoning.effort, Some(rs::ReasoningEffort::High));
+        assert_eq!(reasoning.summary, None);
+    }
+
+    #[test]
+    fn reasoning_summary_override_replaces_the_built_value() {
+        let client = client_with_summary(Some(nofy_sampling_types::ReasoningSummary::Detailed));
+        let mut request = built_response_request();
+        client.apply_response_defaults(&mut request).unwrap();
+        assert_eq!(
+            request.inner.reasoning.unwrap().summary,
+            Some(rs::ReasoningSummary::Detailed)
+        );
+    }
+
+    #[test]
+    fn reasoning_summary_adds_a_reasoning_block_only_when_there_is_something_to_send() {
+        let with_summary = client_with_summary(Some(nofy_sampling_types::ReasoningSummary::Auto));
+        let mut request = CreateResponseWrapper::new(rs::CreateResponse::default());
+        with_summary.apply_response_defaults(&mut request).unwrap();
+        assert_eq!(
+            request.inner.reasoning,
+            Some(rs::Reasoning {
+                effort: None,
+                summary: Some(rs::ReasoningSummary::Auto),
+            })
+        );
+
+        let without = client_with_summary(Some(nofy_sampling_types::ReasoningSummary::None));
+        let mut request = CreateResponseWrapper::new(rs::CreateResponse::default());
+        without.apply_response_defaults(&mut request).unwrap();
+        assert_eq!(request.inner.reasoning, None);
     }
 
     /// Verify the serialized shape of StreamingChatRequest matches the

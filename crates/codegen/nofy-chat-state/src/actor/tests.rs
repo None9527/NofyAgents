@@ -31,6 +31,7 @@ fn test_config_with_window(context_window: u64) -> SamplingConfig {
         context_window: NonZeroU64::new(context_window)
             .expect("test context_window must be non-zero"),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     }
 }
@@ -1229,6 +1230,7 @@ async fn update_sampling_config_is_queryable() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(200_000).unwrap(),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     };
     h.handle.update_sampling_config(new_config.clone());
@@ -1617,6 +1619,7 @@ async fn build_request_uses_sampling_config() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(128_000).unwrap(),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     };
     let h = TestHarness::with_config(vec![ConversationItem::user("hi")], config);
@@ -3761,6 +3764,7 @@ async fn sampling_config_survives_compaction_replacement() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     };
 
@@ -3847,6 +3851,7 @@ async fn model_metadata_lost_after_compaction_then_recovered_on_next_turn() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     };
 
@@ -3938,6 +3943,7 @@ async fn context_window_downgrade_triggers_auto_compact() {
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(500_000).unwrap(),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     };
 

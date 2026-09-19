@@ -692,6 +692,29 @@ impl CompactionsRemaining {
     }
 }
 
+/// The `reasoning.summary` requested on the Responses API.
+/// `None` omits the field for gateways that reject it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReasoningSummary {
+    None,
+    Auto,
+    #[default]
+    Concise,
+    Detailed,
+}
+
+impl ReasoningSummary {
+    pub fn to_responses_api(self) -> Option<crate::rs::ReasoningSummary> {
+        match self {
+            Self::None => None,
+            Self::Auto => Some(crate::rs::ReasoningSummary::Auto),
+            Self::Concise => Some(crate::rs::ReasoningSummary::Concise),
+            Self::Detailed => Some(crate::rs::ReasoningSummary::Detailed),
+        }
+    }
+}
+
 /// Reasoning effort level. `None`/`Minimal` are omitted on the Anthropic Messages API.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -1012,10 +1035,38 @@ pub struct SamplingConfig {
     /// Reasoning effort level for reasoning models.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<ReasoningEffort>,
+    /// Overrides the Responses API `reasoning.summary`; `None` keeps Concise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_summary: Option<ReasoningSummary>,
     /// When true, inject `stream_tool_calls: true` into the Responses
     /// API request body so the upstream emits per-chunk argument deltas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream_tool_calls: Option<bool>,
+}
+
+impl Default for SamplingConfig {
+    /// Empty defaults so construction sites (tests especially) can use
+    /// `..Default::default()` and new fields don't ripple through every
+    /// literal. `context_window` defaults to the inert minimum; real configs
+    /// must set it.
+    fn default() -> Self {
+        Self {
+            base_url: String::new(),
+            mtls_cert_dir: None,
+            model: String::new(),
+            max_completion_tokens: None,
+            temperature: None,
+            top_p: None,
+            api_backend: ApiBackend::default(),
+            extra_headers: indexmap::IndexMap::new(),
+            query_params: indexmap::IndexMap::new(),
+            env_http_headers: indexmap::IndexMap::new(),
+            context_window: NonZeroU64::MIN,
+            reasoning_effort: None,
+            reasoning_summary: None,
+            stream_tool_calls: None,
+        }
+    }
 }
 
 // ============ Responses API wrapper ============

@@ -15,7 +15,7 @@ use nofy_agent::prompt::skills::SkillsConfig;
 use nofy_sampler::{AuthScheme, SamplerConfig};
 use nofy_sampling_types::{
     CompactionAtTokens, CompactionsRemaining, REASONING_EFFORT_META_KEY,
-    REASONING_EFFORTS_META_KEY, ReasoningEffort, ReasoningEffortOption,
+    REASONING_EFFORTS_META_KEY, ReasoningEffort, ReasoningEffortOption, ReasoningSummary,
     reasoning_effort_meta_value, reasoning_efforts_meta_value,
 };
 use nofy_tools::types::compat::{
@@ -3142,6 +3142,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 hidden: m.hidden,
                 supported_in_api: m.supported_in_api,
                 reasoning_effort: m.reasoning_effort,
+                reasoning_summary: None,
                 supports_reasoning_effort: m.supports_reasoning_effort,
                 reasoning_efforts: m.reasoning_efforts,
                 variants: m.variants,
@@ -3274,6 +3275,10 @@ pub struct ModelEntryConfig {
     /// flag should leave this unset to avoid request errors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream_tool_calls: Option<bool>,
+    /// Responses API `reasoning.summary` for this model; unset keeps Concise.
+    /// `none` omits the field for BYOK gateways that reject it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_summary: Option<ReasoningSummary>,
     /// Per-model Layer-3 LazinessDetector configuration. Defaults to
     /// the all-disabled state via `#[serde(default)]`.
     #[serde(default, skip_serializing_if = "is_default_laziness_detector")]
@@ -3357,6 +3362,8 @@ pub struct ConfigModelOverride {
     pub hidden: Option<bool>,
     pub supported_in_api: Option<bool>,
     pub reasoning_effort: Option<ReasoningEffort>,
+    #[serde(default)]
+    pub reasoning_summary: Option<nofy_sampling_types::ReasoningSummary>,
     pub supports_reasoning_effort: Option<bool>,
     pub reasoning_efforts: Vec<ReasoningEffortOption>,
     /// Per-effort wire ids from `[[model.<id>.variants]]`. Merged only when
@@ -3477,6 +3484,9 @@ impl ConfigModelOverride {
         if self.stream_tool_calls.is_some() {
             entry.info.stream_tool_calls = self.stream_tool_calls;
         }
+        if self.reasoning_summary.is_some() {
+            entry.info.reasoning_summary = self.reasoning_summary;
+        }
         if self.api_key.is_some() {
             entry.api_key.clone_from(&self.api_key);
         }
@@ -3576,6 +3586,8 @@ pub struct ModelInfo {
     #[serde(default = "default_true")]
     pub supported_in_api: bool,
     pub reasoning_effort: Option<ReasoningEffort>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_summary: Option<nofy_sampling_types::ReasoningSummary>,
     /// When true, the UI shows effort controls for this model.
     pub supports_reasoning_effort: bool,
     /// Per-model reasoning-effort menu (source of truth); legacy fields derived from it.
@@ -3635,6 +3647,7 @@ impl ModelInfo {
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),
@@ -3675,6 +3688,7 @@ impl ModelInfo {
             hidden: entry.hidden,
             supported_in_api: entry.supported_in_api,
             reasoning_effort: entry.reasoning_effort,
+            reasoning_summary: entry.reasoning_summary,
             supports_reasoning_effort: entry.supports_reasoning_effort,
             reasoning_efforts: entry.reasoning_efforts.clone(),
             variants: entry.variants.clone(),
@@ -4409,6 +4423,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 hidden: true,
                 supported_in_api: true,
                 reasoning_effort: None,
+                reasoning_summary: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
                 variants: Vec::new(),
@@ -4548,6 +4563,7 @@ pub(crate) fn sampling_config_for_model(
         context_window: info.context_window.get(),
         client_version,
         reasoning_effort: info.reasoning_effort,
+        reasoning_summary: info.reasoning_summary,
         force_http1: false,
         max_retries: info.max_retries,
         rate_limit_retry_threshold: info.rate_limit_retry_threshold,
@@ -5664,6 +5680,7 @@ reasoning_effort = "low"
                 hidden: false,
                 supported_in_api: true,
                 reasoning_effort: None,
+                reasoning_summary: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
                 variants: Vec::new(),
@@ -6773,6 +6790,7 @@ reasoning_effort = "low"
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),
@@ -6933,6 +6951,7 @@ reasoning_effort = "low"
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),
@@ -7385,6 +7404,7 @@ reasoning_effort = "low"
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),
@@ -10405,6 +10425,7 @@ default = "grok-4.5"
                 hidden: false,
                 supported_in_api: true,
                 reasoning_effort: None,
+                reasoning_summary: None,
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
                 variants: Vec::new(),

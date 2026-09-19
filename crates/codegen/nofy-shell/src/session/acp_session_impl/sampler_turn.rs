@@ -356,6 +356,7 @@ impl SessionActor {
                 env_http_headers: Default::default(),
                 context_window: std::num::NonZeroU64::new(256_000).unwrap(),
                 reasoning_effort: None,
+                reasoning_summary: None,
                 stream_tool_calls: None,
             });
         let creds = self.chat_state_handle.get_credentials().await;
@@ -428,6 +429,7 @@ impl SessionActor {
             context_window: cfg.context_window.get(),
             client_version: creds.client_version,
             reasoning_effort: cfg.reasoning_effort,
+            reasoning_summary: cfg.reasoning_summary,
             force_http1: false,
             max_retries: Some(self.max_retries),
             rate_limit_retry_threshold: self.rate_limit_retry_threshold,

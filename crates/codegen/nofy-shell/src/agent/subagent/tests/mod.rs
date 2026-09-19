@@ -1823,6 +1823,7 @@ fn test_model_entry(model_id: &str) -> crate::agent::config::ModelEntry {
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),
@@ -2116,6 +2117,7 @@ fn test_sampling_config(model_slug: &str) -> nofy_sampling_types::SamplingConfig
         env_http_headers: Default::default(),
         context_window: NonZeroU64::new(256_000).expect("non-zero context window"),
         reasoning_effort: None,
+        reasoning_summary: None,
         stream_tool_calls: None,
     }
 }

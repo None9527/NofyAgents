@@ -130,7 +130,10 @@ impl From<&ConversationRequest> for rs::CreateResponse {
             prompt_cache_retention: None,
             reasoning: Some(rs::Reasoning {
                 effort: req.reasoning_effort.map(|e| e.to_responses_api()),
-                summary: Some(rs::ReasoningSummary::Concise),
+                summary: req
+                    .reasoning_summary
+                    .unwrap_or_default()
+                    .to_responses_api(),
             }),
             safety_identifier: None,
             service_tier: None,

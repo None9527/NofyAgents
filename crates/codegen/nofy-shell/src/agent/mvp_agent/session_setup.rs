@@ -406,6 +406,12 @@ impl MvpAgent {
             self.models_manager
                 .route_model_for_effort(&mut session_sampling, effort);
         }
+        {
+            let url = session_sampling.base_url.clone();
+            tokio::spawn(async move {
+                let _ = nofy_sampler::prewarm_transport(&url).await;
+            });
+        }
         let (summary_client, summary_model) = self.build_summary_client(&session_sampling)?;
         let model_id = match &session_initial_model {
             Some(chat_model) => acp::ModelId::new(chat_model.clone()),
@@ -704,6 +710,12 @@ impl MvpAgent {
             &self.models_manager.current_model_id(),
             origin_client.clone(),
         );
+        {
+            let url = load_session_sampling.base_url.clone();
+            tokio::spawn(async move {
+                let _ = nofy_sampler::prewarm_transport(&url).await;
+            });
+        }
         let (summary_client, summary_model) = self.build_summary_client(&load_session_sampling)?;
         let mut persistence_timer = crate::instrumentation_timer!("session.load_light");
         persistence_timer.with_field("session_id", session_id.0.as_ref());

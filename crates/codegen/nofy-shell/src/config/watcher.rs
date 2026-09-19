@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use notify::RecursiveMode;
+use notify::{RecursiveMode, Watcher};
 use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer_opt};
 use tokio::sync::mpsc;
 
@@ -131,6 +131,7 @@ pub struct ConfigFileWatcher {
     /// that is no longer needed, bounding inotify-watch accumulation
     /// as sessions churn across directories.
     watched_cwds: HashSet<PathBuf>,
+    _dest_watch: Option<FollowDestWatch>,
 }
 
 impl ConfigFileWatcher {
@@ -168,56 +169,33 @@ impl ConfigFileWatcher {
         // canonicalized in `parent_is_dir`.
         let user_home_buf: Option<PathBuf> =
             dirs::home_dir().map(|h| dunce::canonicalize(&h).unwrap_or(h));
+        // Follow dest may live outside `$NOFY_HOME`. Classify against the live
+        // dest (not a startup snapshot) so A→B retargets still match B writes.
+        let dest_watch = FollowDestWatch::start(&nofy_home_buf, tx.clone());
+        let dest_watch_for_events = dest_watch.clone();
 
         let mut debouncer = new_filtered_debouncer(debounce, move |res: DebounceEventResult| {
             let Ok(events) = res else { return };
 
+            let mut saw_slot = false;
             let mut batch_events: Vec<ConfigChangeEvent> = Vec::new();
+            let live_dest = resolve_global_config_dest(&nofy_home_buf);
             for event in events {
-                let path = &event.path;
-                let name = path.file_name().and_then(|n| n.to_str());
-                let parent = path.parent();
-
-                let change = match name {
-                    Some("auth.json") if parent == Some(nofy_home_buf.as_path()) => {
-                        Some(ConfigChangeEvent::AuthChanged)
-                    }
-                    Some("config.toml") if parent == Some(nofy_home_buf.as_path()) => {
-                        Some(ConfigChangeEvent::GlobalConfigChanged)
-                    }
-                    // JSON 体系：用户配置可能是 config.json。
-                    Some("config.json") if parent == Some(nofy_home_buf.as_path()) => {
-                        Some(ConfigChangeEvent::GlobalConfigChanged)
-                    }
-                    Some("models_cache.json") if parent == Some(nofy_home_buf.as_path()) => {
-                        Some(ConfigChangeEvent::ModelsCacheChanged)
-                    }
-                    Some("config.toml") => {
-                        Some(ConfigChangeEvent::ProjectConfigChanged { path: path.clone() })
-                    }
-                    // `~/.claude.json` routes through
-                    // the dedicated home-level variant so the
-                    // reloader can broadcast. Project-level
-                    // `<cwd>/.claude.json` (and any `.mcp.json`)
-                    // continues to be a per-cwd reload.
-                    Some(".claude.json")
-                        if user_home_buf
-                            .as_deref()
-                            .is_some_and(|h| parent_is_dir(parent, h)) =>
-                    {
-                        Some(ConfigChangeEvent::HomeClaudeJsonChanged)
-                    }
-                    Some(".mcp.json") | Some(".claude.json") => {
-                        Some(ConfigChangeEvent::McpConfigChanged { path: path.clone() })
-                    }
-                    _ => None,
-                };
-
-                if let Some(evt) = change
-                    && !batch_events.contains(&evt)
+                if is_user_config_slot(&event.path, &nofy_home_buf) {
+                    saw_slot = true;
+                }
+                if let Some(evt) = classify_watched_path(
+                    &event.path,
+                    &nofy_home_buf,
+                    live_dest.as_deref(),
+                    user_home_buf.as_deref(),
+                ) && !batch_events.contains(&evt)
                 {
                     batch_events.push(evt);
                 }
+            }
+            if saw_slot && let Some(dest_watch) = &dest_watch_for_events {
+                dest_watch.refresh();
             }
             for evt in batch_events {
                 let _ = tx.send(evt);
@@ -237,6 +215,10 @@ impl ConfigFileWatcher {
                 )
             })
             .ok()?;
+
+        if let Some(dest_watch) = &dest_watch {
+            dest_watch.refresh();
+        }
 
         for p in extra_paths {
             if let Some(parent) = p.parent() {
@@ -278,6 +260,7 @@ impl ConfigFileWatcher {
             Self {
                 debouncer,
                 watched_cwds,
+                _dest_watch: dest_watch,
             },
             rx,
         ))
@@ -336,6 +319,128 @@ impl ConfigFileWatcher {
 /// symlink / canonicalization differences between a `notify`-delivered
 /// event path and a `dirs::home_dir()`-style reference. `dir` is
 /// expected to be already canonicalized (see `ConfigFileWatcher::start`).
+/// Snapshot the follow dest of the live user-config slot (`config.json`,
+/// leftover `config.toml` if json is absent). Canonicalize for notify match.
+fn resolve_global_config_dest(nofy_home: &Path) -> Option<PathBuf> {
+    let slot = nofy_config::user_config_path_at(nofy_home);
+    nofy_config::fs_atomic::resolve_atomic_destination(&slot)
+        .ok()
+        .map(|p| dunce::canonicalize(&p).unwrap_or(p))
+}
+
+fn is_user_config_slot(path: &Path, nofy_home: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+        return false;
+    };
+    matches!(name, "config.json" | "config.toml") && path.parent() == Some(nofy_home)
+}
+
+/// External dest-parent watch that retargets when the slot is rewritten A→B.
+struct FollowDestWatch {
+    inner: std::sync::Arc<std::sync::Mutex<FollowDestWatchInner>>,
+}
+
+struct FollowDestWatchInner {
+    watcher: AccessFilteredWatcher,
+    nofy_home: PathBuf,
+    dest_parent: Option<PathBuf>,
+}
+
+impl Clone for FollowDestWatch {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl FollowDestWatch {
+    fn start(nofy_home: &Path, tx: mpsc::UnboundedSender<ConfigChangeEvent>) -> Option<Self> {
+        let nofy_home_buf = nofy_home.to_path_buf();
+        let watcher = AccessFilteredWatcher::new(
+            move |res: notify::Result<notify::Event>| {
+                let Ok(event) = res else { return };
+                let dest = resolve_global_config_dest(&nofy_home_buf);
+                for path in &event.paths {
+                    if classify_watched_path(path, &nofy_home_buf, dest.as_deref(), None)
+                        == Some(ConfigChangeEvent::GlobalConfigChanged)
+                    {
+                        let _ = tx.send(ConfigChangeEvent::GlobalConfigChanged);
+                        break;
+                    }
+                }
+            },
+            notify::Config::default(),
+        )
+        .map_err(|e| tracing::warn!(error = %e, "failed to create config dest watcher"))
+        .ok()?;
+        Some(Self {
+            inner: std::sync::Arc::new(std::sync::Mutex::new(FollowDestWatchInner {
+                watcher,
+                nofy_home: nofy_home.to_path_buf(),
+                dest_parent: None,
+            })),
+        })
+    }
+
+    fn refresh(&self) {
+        let Ok(mut inner) = self.inner.lock() else {
+            return;
+        };
+        let dest = resolve_global_config_dest(&inner.nofy_home);
+        let parent = dest
+            .as_deref()
+            .and_then(Path::parent)
+            .filter(|p| !paths_equal(p, &inner.nofy_home))
+            .map(Path::to_path_buf);
+        if parent == inner.dest_parent {
+            return;
+        }
+        if let Some(old) = inner.dest_parent.take() {
+            let _ = inner.watcher.unwatch(&old);
+        }
+        if let Some(ref parent) = parent
+            && let Err(e) = inner.watcher.watch(parent, RecursiveMode::NonRecursive)
+        {
+            log_watch_error(&e, "failed to watch global config.json referent parent");
+            return;
+        }
+        inner.dest_parent = parent;
+    }
+}
+
+fn classify_watched_path(
+    path: &Path,
+    nofy_home: &Path,
+    global_config_dest: Option<&Path>,
+    user_home: Option<&Path>,
+) -> Option<ConfigChangeEvent> {
+    if global_config_dest.is_some_and(|d| paths_equal(path, d)) {
+        return Some(ConfigChangeEvent::GlobalConfigChanged);
+    }
+    let name = path.file_name().and_then(|n| n.to_str());
+    let parent = path.parent();
+    match name {
+        Some("auth.json") if parent == Some(nofy_home) => Some(ConfigChangeEvent::AuthChanged),
+        Some("config.toml" | "config.json") if parent == Some(nofy_home) => {
+            Some(ConfigChangeEvent::GlobalConfigChanged)
+        }
+        Some("models_cache.json") if parent == Some(nofy_home) => {
+            Some(ConfigChangeEvent::ModelsCacheChanged)
+        }
+        Some("config.toml" | "config.json") => Some(ConfigChangeEvent::ProjectConfigChanged {
+            path: path.to_path_buf(),
+        }),
+        Some(".claude.json") if user_home.is_some_and(|h| parent_is_dir(parent, h)) => {
+            Some(ConfigChangeEvent::HomeClaudeJsonChanged)
+        }
+        Some(".mcp.json") | Some(".claude.json") => Some(ConfigChangeEvent::McpConfigChanged {
+            path: path.to_path_buf(),
+        }),
+        _ => None,
+    }
+}
+
 fn parent_is_dir(parent: Option<&Path>, dir: &Path) -> bool {
     let Some(parent) = parent else {
         return false;
@@ -1864,5 +1969,73 @@ mod tests {
         assert!(!watcher.watched_cwds.contains(p));
         watcher.unwatch_path(p);
         assert!(!watcher.watched_cwds.contains(p));
+    }
+
+    /// Writes to an external referent must be observed as GlobalConfigChanged.
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn watcher_emits_global_change_for_external_config_json_referent() {
+        let nofy = TempDir::new().unwrap();
+        let repo = TempDir::new().unwrap();
+        let dest = repo.path().join("config.json");
+        fs::write(&dest, r#"{"a":1}"#).unwrap();
+        std::os::unix::fs::symlink(&dest, nofy.path().join("config.json")).unwrap();
+
+        let (_w, mut rx) =
+            ConfigFileWatcher::start(nofy.path(), &[], None, Some(Duration::from_millis(50)))
+                .expect("watcher should start");
+        wait_ms(150);
+        while rx.try_recv().is_ok() {}
+
+        fs::write(&dest, r#"{"a":2}"#).unwrap();
+        wait_ms(300);
+        let mut found = false;
+        while let Ok(evt) = rx.try_recv() {
+            if evt == ConfigChangeEvent::GlobalConfigChanged {
+                found = true;
+            }
+        }
+        assert!(
+            found,
+            "write to the external config.json referent must emit GlobalConfigChanged"
+        );
+    }
+
+    /// Retarget A→B, then edit B: the watcher must follow the live dest.
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn watcher_emits_global_change_after_referent_retarget() {
+        let nofy = TempDir::new().unwrap();
+        let repo = TempDir::new().unwrap();
+        let a = repo.path().join("a.json");
+        let b = repo.path().join("b.json");
+        fs::write(&a, r#"{"a":1}"#).unwrap();
+        fs::write(&b, r#"{"b":1}"#).unwrap();
+        let slot = nofy.path().join("config.json");
+        std::os::unix::fs::symlink(&a, &slot).unwrap();
+
+        let (_w, mut rx) =
+            ConfigFileWatcher::start(nofy.path(), &[], None, Some(Duration::from_millis(50)))
+                .expect("watcher should start");
+        wait_ms(150);
+        while rx.try_recv().is_ok() {}
+
+        std::fs::remove_file(&slot).unwrap();
+        std::os::unix::fs::symlink(&b, &slot).unwrap();
+        wait_ms(300);
+        while rx.try_recv().is_ok() {}
+
+        fs::write(&b, r#"{"b":2}"#).unwrap();
+        wait_ms(300);
+        let mut found = false;
+        while let Ok(evt) = rx.try_recv() {
+            if evt == ConfigChangeEvent::GlobalConfigChanged {
+                found = true;
+            }
+        }
+        assert!(
+            found,
+            "write to the retargeted config.json referent must emit GlobalConfigChanged"
+        );
     }
 }

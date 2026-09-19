@@ -431,6 +431,33 @@ pub fn resolve_local_session_any_cwd(session_id: &str) -> Option<String> {
         .flatten()
 }
 
+/// Resolve a batch of IDs against one storage walk.
+/// Callers that classify a list must use this instead of per-entry
+/// [`resolve_local_session_any_cwd`].
+pub fn resolve_local_session_ids_any_cwd<S: AsRef<str>>(
+    session_ids: &[S],
+) -> io::Result<std::collections::HashSet<String>> {
+    resolve_local_session_ids_any_cwd_in_root(session_ids, &nofy_home().join("sessions"))
+        .map_err(io::Error::other)
+}
+
+fn resolve_local_session_ids_any_cwd_in_root<S: AsRef<str>>(
+    session_ids: &[S],
+    sessions_root: &Path,
+) -> Result<std::collections::HashSet<String>, crate::session::storage::relocation::RelocationError>
+{
+    let view = storage_view(sessions_root)?;
+    Ok(session_ids
+        .iter()
+        .map(AsRef::as_ref)
+        .filter(|session_id| {
+            view.find_persisted_session_dir(session_id)
+                .is_ok_and(|path| path.is_some())
+        })
+        .map(str::to_owned)
+        .collect())
+}
+
 pub(crate) fn resolve_local_session_any_cwd_result(session_id: &str) -> io::Result<Option<String>> {
     resolve_local_session_any_cwd_in_root(session_id, &nofy_home().join("sessions"))
         .map_err(io::Error::other)
@@ -4023,8 +4050,8 @@ mod resumed_sandbox_profile_tests {
 #[cfg(test)]
 mod session_exists_for_cwd_tests {
     use super::{
-        resolve_local_session_any_cwd_in_root, session_exists_for_cwd_in_root,
-        session_exists_in_root,
+        resolve_local_session_any_cwd_in_root, resolve_local_session_ids_any_cwd_in_root,
+        session_exists_for_cwd_in_root, session_exists_in_root,
     };
     use std::fs;
     use tempfile::TempDir;
@@ -4145,6 +4172,27 @@ mod session_exists_for_cwd_tests {
             Some(cwd_a),
             "must anchor to the real session's cwd, not the stub's"
         );
+    }
+
+    #[test]
+    fn resolve_local_session_ids_any_cwd_one_walk() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("sessions");
+        let session_id = "batch-session";
+        let cwd = "/project/alpha";
+        let encoded = crate::util::nofy_home::encode_cwd_dirname(cwd);
+        let dir = root.join(&encoded).join(session_id);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("summary.json"), b"{}").unwrap();
+
+        let found = resolve_local_session_ids_any_cwd_in_root(
+            &["batch-session", "missing-session"],
+            &root,
+        )
+        .unwrap();
+        assert!(found.contains("batch-session"));
+        assert!(!found.contains("missing-session"));
+        assert_eq!(found.len(), 1);
     }
 
     #[test]

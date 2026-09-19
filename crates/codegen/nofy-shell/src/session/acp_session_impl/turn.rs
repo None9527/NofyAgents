@@ -1941,6 +1941,11 @@ impl SessionActor {
         // mutations, feeding the governor's no-progress early-finish.
         let mut no_new_info_streak: u64 = 0;
         let mut last_ledger_len: usize = 0;
+        let mut length_salvage = super::length_salvage::LengthSalvage::new(
+            super::length_salvage::resolve_length_salvage_budget(nofy_config::env_bool(
+                "NOFY_LENGTH_SALVAGE",
+            )),
+        );
         let mut loop_index: u32 = 0;
         let mut identical_tool_calls = IdenticalToolCallRun::default();
         let mut todo_gate_fires: u32 = 0;
@@ -2458,6 +2463,34 @@ impl SessionActor {
                 .await;
             }
             self.send_buffered_xai_update(response_completed).await;
+            if stop_reason == Some(nofy_sampling_types::StopReason::Length)
+                && tool_calls.is_empty()
+            {
+                match length_salvage.on_length_stop() {
+                    super::length_salvage::SalvageStep::Continue { inject_reminder } => {
+                        if inject_reminder {
+                            self.push_system_reminder(
+                                super::length_salvage::LENGTH_CONTINUE_REMINDER_BODY,
+                            );
+                        }
+                        tracing::warn!(
+                            session_id = %self.session_info.id,
+                            retry = length_salvage.continues(),
+                            max = length_salvage.budget(),
+                            "Output token limit exceeded — injecting reminder and retrying"
+                        );
+                        continue;
+                    }
+                    super::length_salvage::SalvageStep::Exhaust => {
+                        tracing::error!(
+                            session_id = %self.session_info.id,
+                            retries = length_salvage.continues(),
+                            "Output token limit retries exhausted, completing the turn truncated"
+                        );
+                    }
+                    super::length_salvage::SalvageStep::None => {}
+                }
+            }
             if tool_calls.is_empty() {
                 if !schema_ok
                     && !turn_refused

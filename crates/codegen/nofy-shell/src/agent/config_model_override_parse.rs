@@ -458,6 +458,7 @@ mod tests {
     use crate::sampling::ApiBackend;
     use nofy_sampling_types::{
         CompactionAtTokens, CompactionsRemaining, ReasoningEffort, ReasoningEffortOption,
+        ReasoningSummary,
     };
 
     fn parse_cfg(toml_str: &str) -> crate::agent::config::Config {
@@ -513,6 +514,45 @@ mod tests {
             Some(CompactionsRemaining::Fixed(2))
         );
         assert!(cfg.config_warnings.is_empty());
+    }
+
+    #[test]
+    fn reasoning_summary_parses_and_reaches_the_resolved_model() {
+        let cfg = parse_cfg(
+            r#"
+            [model.bedrock]
+            model = "xai.grok-4.6"
+            base_url = "https://bedrock-mantle.us-west-2.api.aws/openai/v1"
+            api_backend = "responses"
+            env_key = "BEDROCK_TOKEN"
+            reasoning_summary = "none"
+            "#,
+        );
+        assert_eq!(
+            cfg.config_models.get("bedrock").unwrap().reasoning_summary,
+            Some(ReasoningSummary::None)
+        );
+        let resolved = crate::agent::config::resolve_model_list(&cfg, None);
+        assert_eq!(
+            resolved.get("bedrock").unwrap().info.reasoning_summary,
+            Some(ReasoningSummary::None)
+        );
+    }
+
+    #[test]
+    fn invalid_reasoning_summary_skips_field_keeps_model() {
+        let cfg = parse_cfg(
+            r#"
+            [model."grok-4.5"]
+            model = "grok-4.5"
+            reasoning_summary = "verbose"
+            "#,
+        );
+        let model = cfg.config_models.get("grok-4.5").unwrap();
+        assert!(model.reasoning_summary.is_none());
+        assert!(cfg.config_warnings.iter().any(|w| {
+            w.kind == ConfigWarningKind::InvalidValue && w.field() == Some("reasoning_summary")
+        }));
     }
 
     #[test]
@@ -720,6 +760,7 @@ mod tests {
             hidden: Some(false),
             supported_in_api: Some(true),
             reasoning_effort: Some(ReasoningEffort::High),
+            reasoning_summary: Some(ReasoningSummary::None),
             supports_reasoning_effort: Some(true),
             reasoning_efforts: vec![ReasoningEffortOption {
                 id: "deep".to_string(),

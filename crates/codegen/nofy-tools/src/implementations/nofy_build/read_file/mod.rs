@@ -377,7 +377,7 @@ pub(crate) async fn run_read_file(
             )));
         }
     }
-    let file_bytes = match fs.read_file(&path).await {
+    let mut file_bytes = match fs.read_file(&path).await {
         Ok(bytes) => bytes,
         Err(e) => {
             tracing::debug!(?e, "Failed to read file");
@@ -416,12 +416,23 @@ pub(crate) async fn run_read_file(
     };
     if let Ok(metadata) = bytes_to_metadata(&file_bytes)
         && metadata.is_image()
+        && crate::implementations::read_file::should_embed_as_conversation_image(
+            &path,
+            &file_bytes,
+            &metadata.mime_type,
+        )
     {
         return Ok(crate::implementations::read_file::image::image_read_output(
             file_bytes,
             metadata.mime_type,
         )
         .await);
+    }
+    if file_bytes.starts_with(b"\x89PNG\r\n\x1a\n")
+        && let Some(svg) =
+            crate::implementations::read_file::metadata::extract_svg_text(&file_bytes)
+    {
+        file_bytes = svg.into_bytes();
     }
     let extension = path
         .extension()

@@ -806,6 +806,7 @@ async fn read_parent_sampling_config(
                 context_window: cfg.context_window.get(),
                 client_version: creds.client_version,
                 reasoning_effort: cfg.reasoning_effort,
+                reasoning_summary: cfg.reasoning_summary,
                 force_http1: false,
                 max_retries: None,
                 rate_limit_retry_threshold: None,

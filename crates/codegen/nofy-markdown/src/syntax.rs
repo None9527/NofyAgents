@@ -55,11 +55,17 @@ impl Syntect {
     /// Find a syntax definition by file path extension.
     pub fn find_syntax_by_file_path(&self, file_path: &Path) -> Option<&SyntaxReference> {
         let ext = file_path.extension()?.to_str()?;
+        if is_swift_token(ext) {
+            return patched_swift(&self.syntax_set);
+        }
         self.syntax_set.find_syntax_by_extension(ext)
     }
 
     /// Find a syntax definition by language token (e.g., "rust", "python").
     pub fn find_syntax_by_token(&self, token: &str) -> Option<&SyntaxReference> {
+        if is_swift_token(token) {
+            return patched_swift(&self.syntax_set);
+        }
         self.syntax_set.find_syntax_by_token(token)
     }
 
@@ -174,6 +180,20 @@ pub(crate) fn syntax_highlight_raw(
 /// `Syntect::new` is called per theme (nofy-night / tokyo-night / nofy-day), so
 /// without this the same 250+ language set would be built — and then held — once
 /// per theme.
+fn is_swift_token(token: &str) -> bool {
+    token.eq_ignore_ascii_case("swift")
+}
+
+fn patched_swift(set: &SyntaxSet) -> Option<&SyntaxReference> {
+    // Last `.swift` wins: the patched grammar is appended after two-face's Swift.
+    set.syntaxes().iter().rev().find(|syntax| {
+        syntax
+            .file_extensions
+            .iter()
+            .any(|ext| ext.eq_ignore_ascii_case("swift"))
+    })
+}
+
 fn shared_syntax_set() -> Arc<SyntaxSet> {
     static SYNTAX_SET: OnceLock<Arc<SyntaxSet>> = OnceLock::new();
     SYNTAX_SET
@@ -216,6 +236,10 @@ mod tests {
             a.syntax_set.find_syntax_by_token("rust").is_some(),
             "the dumped set must still resolve syntaxes"
         );
+        assert!(
+            a.find_syntax_by_token("swift").is_some(),
+            "patched Swift grammar must be in the dumped set"
+        );
         // Compared against a runtime-built set rather than a magic count: the
         // invariant is "the dump loses nothing", and a constant would silently
         // rot on every two-face bump. This is the only place that pays the
@@ -223,8 +247,8 @@ mod tests {
         let runtime = two_face::syntax::extra_newlines();
         assert_eq!(
             a.syntax_set.syntaxes().len(),
-            runtime.syntaxes().len(),
-            "the dumped set must carry every syntax the runtime build has"
+            runtime.syntaxes().len() + 1,
+            "the dumped set carries two-face plus the last-wins patched Swift"
         );
     }
 

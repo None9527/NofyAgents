@@ -1820,6 +1820,7 @@ fn find_model_by_id_prefers_key_then_falls_back_to_slug() {
             hidden: false,
             supported_in_api: true,
             reasoning_effort: None,
+            reasoning_summary: None,
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             variants: Vec::new(),

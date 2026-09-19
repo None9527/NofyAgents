@@ -1,7 +1,51 @@
 //! Atomic file writes, shared by the managed-cache marker, the signature
 //! sidecar, and downstream identifier caches (e.g. the telemetry agent id).
 
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
+
+#[cfg(not(windows))]
+const SYMLINK_FOLLOW_LIMIT: u8 = if cfg!(target_os = "linux") { 40 } else { 32 };
+
+/// Follow parent and leaf file-symlinks up to the kernel hop cap, then
+/// tmp+rename the referent so a user symlink into another tree survives.
+#[cfg(not(windows))]
+pub fn resolve_atomic_destination(path: &Path) -> io::Result<PathBuf> {
+    let mut current = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(path)
+    };
+    let mut hops = 0u8;
+    loop {
+        if hops >= SYMLINK_FOLLOW_LIMIT {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "too many symlink hops",
+            ));
+        }
+        match std::fs::symlink_metadata(&current) {
+            Ok(meta) if meta.file_type().is_symlink() => {
+                let target = std::fs::read_link(&current)?;
+                current = if target.is_absolute() {
+                    target
+                } else {
+                    current
+                        .parent()
+                        .unwrap_or_else(|| Path::new("."))
+                        .join(target)
+                };
+                hops += 1;
+            }
+            Ok(_) | Err(_) => return Ok(current),
+        }
+    }
+}
+
+#[cfg(windows)]
+pub fn resolve_atomic_destination(path: &Path) -> io::Result<PathBuf> {
+    Ok(path.to_path_buf())
+}
 
 /// Atomic temp + rename so a torn write can't leave a half-written file. The temp
 /// name is unique per writer (pid + counter) and `create_new`, so concurrent
@@ -16,6 +60,7 @@ pub fn write_atomically(
     use std::sync::atomic::{AtomicU64, Ordering};
     static WRITE_NONCE: AtomicU64 = AtomicU64::new(0);
 
+    let final_path = resolve_atomic_destination(final_path)?;
     let dir = final_path.parent().unwrap_or_else(|| Path::new("."));
     let name = final_path
         .file_name()
@@ -40,4 +85,25 @@ pub fn write_atomically(
         let _ = std::fs::remove_file(&tmp);
     }
     result
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::os::unix::fs::symlink;
+
+    #[test]
+    fn resolve_atomic_destination_follows_leaf_symlink() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real.json");
+        fs::write(&real, b"old").unwrap();
+        let link = dir.path().join("link.json");
+        symlink(&real, &link).unwrap();
+        let dest = resolve_atomic_destination(&link).unwrap();
+        assert_eq!(dest, real);
+        write_atomically(&link, "new", None).unwrap();
+        assert_eq!(fs::read_to_string(&real).unwrap(), "new");
+        assert!(link.symlink_metadata().unwrap().file_type().is_symlink());
+    }
 }

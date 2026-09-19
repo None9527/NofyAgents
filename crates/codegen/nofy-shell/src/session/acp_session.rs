@@ -128,6 +128,8 @@ use turn_end_hooks::TurnEnd;
 pub(crate) use interjection::*;
 #[path = "acp_session_impl/laziness.rs"]
 mod laziness;
+#[path = "acp_session_impl/length_salvage.rs"]
+mod length_salvage;
 #[cfg(test)]
 pub(crate) use laziness::*;
 #[path = "acp_session_impl/queue_mutation.rs"]

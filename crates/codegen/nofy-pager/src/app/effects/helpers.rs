@@ -659,7 +659,7 @@ pub(super) fn parse_session_picker_entries(
         .unwrap_or_default();
     let now = chrono::Utc::now();
     let cutoff = now - chrono::Duration::days(30);
-    entries
+    let parsed: Vec<SessionPickerEntry> = entries
         .into_iter()
         .filter_map(|v| {
             let id = v
@@ -793,6 +793,16 @@ pub(super) fn parse_session_picker_entries(
                 card_detail: None,
             })
         })
+        .collect();
+    let remote_ids: Vec<&str> = parsed
+        .iter()
+        .filter(|e| e.source == "remote")
+        .map(|e| e.id.as_str())
+        .collect();
+    let local_ids = nofy_shell::session::resolve_local_session_ids_any_cwd(&remote_ids)
+        .unwrap_or_default();
+    parsed
+        .into_iter()
         .filter_map(|mut e| {
             if e.summary.is_empty() {
                 if e.source == "conversation" {
@@ -801,10 +811,7 @@ pub(super) fn parse_session_picker_entries(
                     return None;
                 }
             }
-            if e.source == "remote"
-                && nofy_shell::session::resolve_local_session_any_cwd(&e.id)
-                    .is_some()
-            {
+            if e.source == "remote" && local_ids.contains(&e.id) {
                 e.source = "local".to_string();
             }
             Some(e)

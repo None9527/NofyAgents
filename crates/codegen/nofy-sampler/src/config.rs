@@ -99,6 +99,9 @@ pub struct SamplerConfig {
 
     // Reasoning effort
     pub reasoning_effort: Option<ReasoningEffort>,
+    /// Overrides Responses API `reasoning.summary`; `None` keeps Concise.
+    #[serde(default)]
+    pub reasoning_summary: Option<nofy_sampling_types::ReasoningSummary>,
 
     // Client identity
     pub origin_client: Option<OriginClientInfo>,
@@ -175,6 +178,7 @@ impl Default for SamplerConfig {
             stream_tool_calls: false,
             idle_timeout_secs: None,
             reasoning_effort: None,
+            reasoning_summary: None,
             origin_client: None,
             client_identifier: None,
             deployment_id: None,

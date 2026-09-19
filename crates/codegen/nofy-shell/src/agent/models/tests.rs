@@ -1655,6 +1655,7 @@ fn make_entry_config_with_id(
         supported_in_api: true,
         auth_scheme: None,
         reasoning_effort: None,
+        reasoning_summary: None,
         supports_reasoning_effort: false,
         reasoning_efforts: Vec::new(),
         variants: Vec::new(),
