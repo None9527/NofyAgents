@@ -1713,6 +1713,12 @@ durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口
 
 ### 15.5 批32：Dashboard 与图片编辑状态（P1，4 项）
 
+> ✅ **批32 已落地（2026-09-20）**：提交 `d9670002`。`ui.dashboard_preview` 已接入共享配置、
+> 设置写入与即时 UI 状态；关闭时释放预览面板、下拉目标与视口占位。Pinned 行使用手工 rank → session id → row id
+> 的稳定顺序，不再被活动时间或目录/状态分组扰动；未 pinned 行保持原有动态排序。Dashboard 发送后的 1 秒回声窗口
+> 只吞掉紧随其后的空 Enter，不影响换行或后续真实输入。图片占位符与受控图片记录可在 kill/yank、stash/restore、
+> history recall 间重新绑定；不可绑定占位符与不可读图片会给出 notice，且不会重复发送。
+
 | 项 | 原生落点 | 必须钉住的验收 |
 |---|---|---|
 | `ui.dashboard_preview` | shared `UiConfig`、设置注册/写入、dashboard state/render；默认 `true` | 开/关即时反映；重启持久；关闭后布局不保留幽灵宽度 |
@@ -1728,6 +1734,12 @@ durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口
 
 ### 15.6 批33：Mermaid 复杂标签与大图（P1，1 项）
 
+> ✅ **批33 已落地（2026-09-20）**：提交 `b79e6cad`。仅提取上游 parser、layout、dagre bridge、
+> SVG renderer 的最小行为差：支持 `:::class`、`classDef` 文本颜色、引号感知 shape 分隔符、`A & B --> C`
+> 笛卡尔展开与可忽略 directive；没有整目录覆盖，也没有引入无行为意义的 Cargo 注释差异。新增复杂 class/ampersand
+> 大图端到端 PNG/SVG 回归。GitNexus 不索引 `third_party/mermaid-to-svg`，该盲区由原生库 85 个测试、
+> `nofy-mermaid` 66 个测试和 pager worker 36 个测试覆盖。
+
 先从 `third_party/mermaid-to-svg` 的 parser、dagre layout、SVG renderer 三层提取上游最小行为差，不整目录覆盖。
 
 - 复杂 label：HTML/引号/转义/多行文本必须被正确解析并转义到 SVG，不能出现双重转义或注入。
@@ -1736,6 +1748,10 @@ durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口
   pager-render 全量。对生成 SVG 做结构断言，不用脆弱的整文件空白对比。
 
 ### 15.7 一次完成的执行顺序与提交边界
+
+> ✅ **执行完成（2026-09-20）**：批29–33 均按独立提交完成，22 项中 5 项由回归证明原本已对齐，
+> 17 项全部完成原生落地或等价行为闭环；没有“待核实”残项。Memory v2、xAI 云/登录/GCS、TOML 写回、
+> MCP 协议钉版等既有有意分歧保持不变。最新一次 `git fetch upstream` 确认目标仍为 `4247f661`。
 
 执行顺序固定为：**批29 → 批30 → 批31 → 批32 → 批33 → 总回归 → 台账回填**。
 
@@ -1752,3 +1768,9 @@ durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口
 完成定义：22 项中 5 项已有证据保持对齐，17 项全部达到“原生落地”或“回归测试证明已对齐”；不得留下
 “待核实”。总回归至少覆盖 `nofy-sampling-types`、`nofy-tools(-api)`、`nofy-hooks`、`nofy-workspace`、
 `nofy-shell`、`nofy-pager`、`nofy-pager-render`、Mermaid 与 workspace all-targets。
+
+最终回归：`cargo check --workspace --all-targets` exit 0；批32 下 `nofy-pager` 为 8,080 passed / 8 failed /
+6 ignored，8 个失败与批前基线完全相同；`nofy-pager-render` 为 1,053 passed / 1 failed / 2 ignored，唯一失败是
+既有近 deadline 竞态且空载单测重跑通过。批33 下 `mermaid-to-svg` 85/85、`nofy-mermaid` 66/66、
+pager Mermaid worker 36/36。批32 GitNexus 检测为 27 文件 / 127 符号 / 1 条预期 dispatch 流 / medium；
+批33 为 6 文件 / 1 个索引内测试符号 / 0 流 / low（第三方目录为明确索引盲区）。

@@ -886,3 +886,35 @@ GitNexus `detect-changes` = 24 文件 / 133 符号 / 1 执行流 / risk medium�
 同一测试立即单独重跑通过。`cargo check --workspace --all-targets` exit 0，`git diff --check` 通过。
 GitNexus `detect-changes` = 11 文件 / 51 符号 / 3 执行流 / risk medium；三条流程都从
 `handle_session_notification_with_origin` 到现有 agent 查找/活跃判定，未出现计划外子系统。
+
+### 批32 原生实现日志（1.0.37–1.0.38，2026-09-20）
+
+| 上游项 | 落地结论 | 提交 | 验证 |
+|---|---|---|---|
+| `ui.dashboard_preview` | 进入 `UiConfig`、设置 registry/写回、live setter 与 dashboard render；默认开启，关闭时主动清理 peek、target、dropdown 并恢复 viewport，不再保留幽灵宽度。沿用本地 JSON `update_config`，**不恢复 TOML 写回** | `d9670002` | 关闭预览释放面板/下拉/目标/视口回归通过 |
+| pinned agents 稳定排序 | pinned 统一按手工 reorder rank → session id → row id，忽略 activity/state/directory 分组；未 pinned 行保持原动态行为 | `d9670002` | 跨 state/directory activity 变化与无 rank 并列顺序回归通过 |
+| 快速双 Enter 不建空会话 | 非空 dashboard send 记录 1 秒发送回声；其后空 Enter 在 list/button focus 均被消费，非 Enter、换行 Enter 与真实文本不会被吞 | `d9670002` | list/button/超时/换行/非 Enter 定向测试通过 |
+| 图片编辑状态闭环 | 新 `prompt_widget::image_state` 在 drain/route/stash 前重新绑定 orphan placeholder；`TextArea::restore_element` 只恢复受控 metadata；history recall 不再让旧 token 夺取当前图片；builder 返回 unbound 报告，队列/直发均向用户提示不可发送项 | `d9670002` | prompt widget 246/246；kill/yank、stash/restore、history、重复/重叠、unbound notice 与 builder report 回归通过 |
+
+批级验证：`nofy-pager` 全量 8,080 passed / 8 failed / 6 ignored，8 个失败与批前基线完全相同
+（dismissed plugin CTA、三条 TOML→JSON 旧断言、lease/memory 的 macOS `/tmp` 路径别名、两条平台快捷键文案）。
+`nofy-pager-render` 为 1,053 passed / 1 failed / 2 ignored，唯一失败仍是近 deadline 竞态；空载单测重跑通过。
+`cargo check --workspace --all-targets` exit 0，`git diff --check` 通过。GitNexus `detect-changes` =
+27 文件 / 127 符号 / 1 条预期 `dispatch` 流 / risk medium，无计划外执行流。
+
+### 批33 原生实现日志（Mermaid，2026-09-20）
+
+| 上游项 | 落地结论 | 提交 | 验证 |
+|---|---|---|---|
+| 复杂 class/ampersand 流程图 | 从上游最小提取 parser、layout、dagre bridge、SVG renderer：支持 `:::class`、`classDef` 与文本 `color`、引号感知 shape 分隔符、`A & B --> C` 笛卡尔展开及忽略 directive；未整目录覆盖，未复制只有注释的 Cargo 改动 | `b79e6cad` | `mermaid-to-svg` 85/85；`nofy-mermaid` 57 unit + 8 integration + 1 doctest；pager Mermaid worker 36/36 |
+
+新增端到端 fixture 同时验证大型复杂图能产出非零 PNG 尺寸、SVG 节点标签完整。`cargo check --workspace --all-targets`
+已在本批源码存在时通过，`git diff --check` 通过。GitNexus staged 检测为 6 文件 / 1 个索引内测试符号 /
+0 执行流 / risk low；`third_party/mermaid-to-svg` 不在索引中，这是明确记录的覆盖盲区，以上三层真实测试作为补偿证据。
+
+### 1.0.36–1.0.38 吸收收口（2026-09-20）
+
+批29–33 已按独立提交全部完成。22 项审计清单中 5 项经回归证明原本已对齐，17 项均已原生落地或完成等价行为闭环；
+没有剩余“待核实”。Memory v2 按用户决定继续后看，xAI 云/登录/GCS、TOML 写回、MCP 协议钉版等既有分歧未被带回。
+收口时重新 `git fetch upstream`，`upstream/main` 仍为 `4247f661`（2026-09-19）；两棵无 merge-base 历史的
+`608/2` 仅是提交拓扑计数，不代表还差 2 个功能提交。完整计划与最终回归数字见 `docs/upstream-absorb-plan.md` §15。
