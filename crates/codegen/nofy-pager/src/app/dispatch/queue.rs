@@ -146,6 +146,7 @@ pub(super) fn retire_optimistic_echo(
 /// last queued entry already has `wire_blocks` (skill injection), images
 /// are dropped with a toast instead of merged.
 pub(super) fn drain_prompt_state_to_last_queued(agent: &mut AgentView) {
+    agent.show_unbound_image_placeholder_notice();
     let prompt_state = agent.prompt.stash();
     let (_, images, chip_elements) = prompt_state.into_submission();
 
@@ -426,11 +427,13 @@ pub(super) fn maybe_drain_queue(agent: &mut AgentView) -> QueueDrain {
                 // can be recovered from disk via the shared helper.
                 // Token ranges are NOT stamped here: the builder rewrites the
                 // text (placeholder stripping), which would shift byte offsets.
-                let mut blocks = crate::prompt_images::build_content_blocks_with_workspace(
+                let build = crate::prompt_images::build_content_blocks_with_workspace_report(
                     queued.text,
                     queued.images,
                     Some(std::path::Path::new(&agent.session.cwd)),
                 );
+                agent.show_skipped_image_send_notice(&build.skipped_display_numbers);
+                let mut blocks = build.blocks;
                 if let Some(acp::ContentBlock::Text(tb)) = blocks.first_mut() {
                     let map = tb.meta.get_or_insert_with(acp::Meta::new);
                     nofy_prompt_queue::stamp_combined_display_texts(map, &combined_segs);

@@ -420,13 +420,11 @@ impl AgentView {
                     self.prompt.prompt_suggestion_ghost().unwrap_or_default(),
                 );
                 self.prompt.prompt_suggestion.dismiss();
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::PromptSuggestion {
-                        action: nofy_telemetry::events::PromptSuggestionAction::Dismissed,
-                        chars,
-                        words,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PromptSuggestion {
+                    action: nofy_telemetry::events::PromptSuggestionAction::Dismissed,
+                    chars,
+                    words,
+                });
                 return InputOutcome::Changed;
             }
         }
@@ -955,10 +953,10 @@ impl AgentView {
     fn populate_prompt_from_history(&mut self, text: &str) {
         if let Some(cmd) = text.strip_prefix("! ") {
             self.prompt_input_mode = PromptInputMode::Bash;
-            self.prompt.set_text(cmd);
+            self.prompt.set_text_discarding_images(cmd);
         } else {
             self.prompt_input_mode = PromptInputMode::Normal;
-            self.prompt.set_text(text);
+            self.prompt.set_text_discarding_images(text);
         }
         let len = self.prompt.textarea.text().len();
         self.prompt.textarea.set_cursor(len);
@@ -1025,12 +1023,12 @@ impl AgentView {
                     && let Some(cmd) = text.strip_prefix("! ")
                 {
                     self.prompt_input_mode = PromptInputMode::Bash;
-                    self.prompt.set_text(cmd);
+                    self.prompt.set_text_discarding_images(cmd);
                 } else if self.prompt_input_mode == PromptInputMode::Bash {
                     self.prompt_input_mode = PromptInputMode::Normal;
-                    self.prompt.set_text(&text);
+                    self.prompt.set_text_discarding_images(&text);
                 } else {
-                    self.prompt.set_text(&text);
+                    self.prompt.set_text_discarding_images(&text);
                 }
                 // Move cursor to end of text.
                 let len = self.prompt.textarea.text().len();
@@ -1443,6 +1441,21 @@ mod history_browse_panel_tests {
         agent
     }
 
+    fn test_image() -> crate::prompt_images::PastedImage {
+        crate::prompt_images::PastedImage {
+            element_id: nofy_ratatui_textarea::ElementId::from_raw(0),
+            display_number: 0,
+            mime_type: "image/png".into(),
+            dimensions: Some((40, 40)),
+            byte_len: 16,
+            encoded_bytes: Some(vec![0u8; 16].into()),
+            source_path: None,
+            staged_temp_path: None,
+            session_image_path: None,
+            preview: crate::prompt_images::PromptImagePreview::default(),
+        }
+    }
+
     /// Spin-poll the panel's background matcher until `expect` results are
     /// visible (the daemon fills the snapshot asynchronously after open).
     fn poll_results(agent: &mut AgentView, expect: usize) {
@@ -1472,6 +1485,27 @@ mod history_browse_panel_tests {
         assert!(agent.prompt.history_search.is_active());
         assert!(agent.prompt.history_search.is_browse());
         assert_eq!(agent.prompt.text(), "say cherry");
+    }
+
+    #[test]
+    fn history_placeholder_never_claims_current_drafts_stashed_image() {
+        let mut agent = agent_with_history(&["older [Image #1] prompt"]);
+        agent.prompt.insert_image(test_image()).unwrap();
+        agent
+            .prompt
+            .handle_key(&KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
+        agent
+            .prompt
+            .handle_key(&KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
+        assert!(agent.prompt.text().is_empty());
+        assert_ne!(agent.prompt.image_undo_stash_len(), 0);
+
+        agent.handle_prompt_key_for_test(&key(KeyCode::Up));
+
+        assert_eq!(agent.prompt.text(), "older [Image #1] prompt");
+        assert!(agent.prompt.images.is_empty());
+        assert_eq!(agent.prompt.image_undo_stash_len(), 0);
+        assert_eq!(agent.prompt.unbound_image_placeholders(), vec![1]);
     }
 
     /// While browsing, Up/Down move the selection and live-populate the

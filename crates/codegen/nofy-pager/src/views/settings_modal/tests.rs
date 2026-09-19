@@ -154,19 +154,10 @@ fn setting_row_visible_hides_theme_rows_in_minimal() {
     ] {
         let meta = meta_for(&reg, key);
         assert!(meta.hidden_in_minimal, "{key} must declare the flag");
-        assert!(
-            !setting_row_visible(meta, true),
-            "{key} in minimal"
-        );
-        assert!(
-            setting_row_visible(meta, false),
-            "{key} in full TUI"
-        );
+        assert!(!setting_row_visible(meta, true), "{key} in minimal");
+        assert!(setting_row_visible(meta, false), "{key} in full TUI");
     }
-    assert!(setting_row_visible(
-        meta_for(&reg, "vim_mode"),
-        true
-    ));
+    assert!(setting_row_visible(meta_for(&reg, "vim_mode"), true));
 }
 
 /// `action_for_bool` mirrors `current_value_for`: every registered
@@ -516,6 +507,7 @@ fn rows_contain_categories_and_settings_through_pr_14() {
             "screen_mode",
             "show_timestamps",
             "show_timeline",
+            "dashboard_preview",
             // PAGER-owned page_flip_on_send (Appearance).
             "page_flip_on_send",
             "simple_mode",
@@ -4813,9 +4805,9 @@ fn two_line_row_hit_rect_spans_both_lines() {
     let row_idx = s
         .rows
         .iter()
-        .position(|r| {
-            matches!(r, RowEntry::Setting { key, .. } if *key == "default_selected_permission")
-        })
+        .position(
+            |r| matches!(r, RowEntry::Setting { key, .. } if *key == "default_selected_permission"),
+        )
         .expect("default_selected_permission must be registered");
     // Render at a narrow width so the long row forces a two-line layout.
     let area = Rect {
@@ -4879,9 +4871,9 @@ fn two_line_row_with_expansion_renders_three_segments() {
     let row_idx = s
         .rows
         .iter()
-        .position(|r| {
-            matches!(r, RowEntry::Setting { key, .. } if *key == "default_selected_permission")
-        })
+        .position(
+            |r| matches!(r, RowEntry::Setting { key, .. } if *key == "default_selected_permission"),
+        )
         .expect("default_selected_permission must be registered");
     s.selected = row_idx;
     s.expanded_keys.insert("default_selected_permission");

@@ -73,14 +73,14 @@ use super::settings::setters::{
     set_combine_queued_prompts, set_compact_mode, set_confirm_before_rewind,
     set_contextual_hint_image_input, set_contextual_hint_plan_mode, set_contextual_hint_send_now,
     set_contextual_hint_small_screen, set_contextual_hint_ssh_wrap, set_contextual_hint_undo,
-    set_contextual_hint_word_select, set_default_model, set_default_selected_permission,
-    set_display_refresh_auto_cadence, set_follow_up_behavior, set_fork_secondary_model,
-    set_group_tool_verbs, set_hunk_tracker_mode, set_invert_scroll, set_keep_text_selection,
-    set_max_thoughts_width,
-    set_multiline_mode, set_page_flip_on_send, set_prompt_suggestions, set_remember_tool_approvals,
-    set_render_mermaid, set_respect_manual_folds, set_screen_mode, set_scroll_lines,
-    set_scroll_mode, set_scroll_speed, set_show_thinking_blocks, set_show_tips, set_simple_mode,
-    set_theme, set_timeline, set_timestamps, set_vim_mode,
+    set_contextual_hint_word_select, set_dashboard_preview, set_default_model,
+    set_default_selected_permission, set_display_refresh_auto_cadence, set_follow_up_behavior,
+    set_fork_secondary_model, set_group_tool_verbs, set_hunk_tracker_mode, set_invert_scroll,
+    set_keep_text_selection, set_max_thoughts_width, set_multiline_mode, set_page_flip_on_send,
+    set_prompt_suggestions, set_remember_tool_approvals, set_render_mermaid,
+    set_respect_manual_folds, set_screen_mode, set_scroll_lines, set_scroll_mode, set_scroll_speed,
+    set_show_thinking_blocks, set_show_tips, set_simple_mode, set_theme, set_timeline,
+    set_timestamps, set_vim_mode,
 };
 use super::settings::ui::{
     dispatch_confirm_reset_setting, dispatch_open_command_palette, dispatch_open_howto_guides,
@@ -958,9 +958,10 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             dispatch_show_release_notes(app, title, content)
         }
         Action::OpenTutorial => dispatch_open_tutorial(app),
-        Action::RenameSession { title, reset_to_auto } => {
-            dispatch_rename_session(app, title, reset_to_auto)
-        }
+        Action::RenameSession {
+            title,
+            reset_to_auto,
+        } => dispatch_rename_session(app, title, reset_to_auto),
         Action::ShowContextInfo => dispatch_show_context_info(app),
         Action::ShowUsage => dispatch_show_usage(app),
         Action::ShowQueue => dispatch_show_queue(app),
@@ -1003,6 +1004,7 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SetCompactMode(v) => set_compact_mode(app, v),
         Action::SetTimestamps(v) => set_timestamps(app, v),
         Action::SetTimeline(v) => set_timeline(app, v),
+        Action::SetDashboardPreview(v) => set_dashboard_preview(app, v),
         Action::SetPageFlipOnSend(v) => set_page_flip_on_send(app, v),
         Action::SetConfirmBeforeRewind(v) => set_confirm_before_rewind(app, v),
         Action::SetCombineQueuedPrompts(v) => set_combine_queued_prompts(app, v),

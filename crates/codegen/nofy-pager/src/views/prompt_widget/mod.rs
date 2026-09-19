@@ -20,12 +20,12 @@
 use std::path::Path;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use nofy_ratatui_textarea::{ElementId, ElementKind, TextArea, TextAreaState, TextElement};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidgetRef;
-use nofy_ratatui_textarea::{ElementId, ElementKind, TextArea, TextAreaState, TextElement};
 
 use crate::clipboard::{SystemClipboard, system_clipboard_get};
 use crate::input::key::key;
@@ -844,6 +844,11 @@ impl PromptWidget {
         self.textarea.cursor()
     }
 
+    #[cfg(test)]
+    pub(crate) fn image_undo_stash_len(&self) -> usize {
+        self.image_undo_stash.len()
+    }
+
     /// Clear the undo/redo history (see [`TextArea::clear_history`]).
     /// Pair with `set_text("")` when reusing the widget for a new
     /// logical context so an undo can't resurrect the previous draft.
@@ -859,6 +864,7 @@ impl PromptWidget {
 
     /// Move the current prompt state into a snapshot for later restoration.
     pub fn stash(&mut self) -> StashedPrompt {
+        self.rebind_image_placeholders();
         let chip_elements = self
             .textarea
             .elements()
@@ -900,8 +906,18 @@ impl PromptWidget {
         self.set_images(images);
         self.image_counter = self.image_counter.max(image_counter);
         self.image_undo_stash = image_undo_stash;
+        self.rechip_orphan_image_placeholders();
         self.set_cursor(cursor);
         self.update_file_search_context();
+    }
+
+    /// Replace this draft with text from another prompt lifetime, releasing images first so an
+    /// old `[Image #N]` token cannot bind to this draft's record with the same display number.
+    pub fn set_text_discarding_images(&mut self, text: &str) {
+        crate::prompt_images::drain_and_cleanup(&mut self.images);
+        crate::prompt_images::drain_and_cleanup(&mut self.image_undo_stash);
+        crate::prompt_images::reset_counter(&mut self.image_counter);
+        self.set_text(text);
     }
 
     /// Set the text content.
@@ -2313,6 +2329,8 @@ impl PromptWidget {
         use std::collections::HashMap;
         use std::collections::hash_map::Entry;
 
+        self.rechip_orphan_image_placeholders();
+
         let live_image_elements: Vec<(ElementId, std::ops::Range<usize>)> = self
             .textarea
             .elements()
@@ -2357,6 +2375,7 @@ impl PromptWidget {
         // prompt lifetime; a collision-warn keeps any future regression visible.
         let mut stash_by_number: HashMap<usize, PastedImage> =
             HashMap::with_capacity(self.image_undo_stash.len());
+        let mut stash_duplicates = Vec::new();
         for img in self.image_undo_stash.drain(..) {
             let display_number = img.display_number;
             let element_id = img.element_id;
@@ -2370,8 +2389,9 @@ impl PromptWidget {
                         display_number,
                         element_id = ?element_id,
                         "sync_images_with_textarea: duplicate display_number \
-                         in undo stash — dropping later entry",
+                         in undo stash — retaining it outside redo lookup",
                     );
+                    stash_duplicates.push(img);
                 }
             }
         }
@@ -2415,6 +2435,7 @@ impl PromptWidget {
         let mut new_stash: Vec<PastedImage> = stored_by_id
             .into_values()
             .chain(stash_by_number.into_values())
+            .chain(stash_duplicates)
             .collect();
         let stash_cap = Self::IMAGE_CAP * 2;
         if new_stash.len() > stash_cap {
@@ -2530,6 +2551,7 @@ impl PromptWidget {
     /// storage is left empty.
     pub fn drain_images(&mut self) -> Vec<PastedImage> {
         self.post_insert_image_preview = None;
+        self.rebind_image_placeholders();
         let live_ids: std::collections::HashSet<_> = self
             .textarea
             .elements()
@@ -2646,15 +2668,29 @@ impl PromptWidget {
         // the counter only ever advances upward within a prompt lifetime.
         self.image_counter = self.image_counter.max(images_high_water(&images));
         self.images = images;
+        self.rechip_orphan_image_placeholders();
     }
 
     /// Re-register all chip elements (paste blocks, @-file refs, image
     /// chips) after a `set_text` restore. Uses the byte ranges stored at
     /// capture time — no buffer re-scanning.
     pub fn restore_chip_elements(&mut self, elems: &[crate::app::agent::ChipElement]) {
+        let covered: Vec<(ElementKind, std::ops::Range<usize>)> = self
+            .textarea
+            .elements()
+            .iter()
+            .map(|element| (element.kind, element.range.clone()))
+            .collect();
         self.textarea.restore_elements(
             elems
                 .iter()
+                .filter(|element| {
+                    !covered.iter().any(|(kind, range)| {
+                        *kind == element.kind
+                            && range.start < element.range.end
+                            && element.range.start < range.end
+                    })
+                })
                 .map(|e| (e.range.clone(), e.kind, e.display.clone())),
         );
     }
@@ -3584,6 +3620,8 @@ fn paste_chip_display_bytes(byte_len: usize) -> Line<'static> {
 fn images_high_water(images: &[PastedImage]) -> usize {
     images.iter().map(|i| i.display_number).max().unwrap_or(0)
 }
+
+mod image_state;
 
 #[cfg(test)]
 mod tests;

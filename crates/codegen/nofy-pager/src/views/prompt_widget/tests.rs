@@ -2062,6 +2062,86 @@
     }
 
     #[test]
+    fn kill_yank_rebinds_image_chip_and_record() {
+        let mut pw = PromptWidget::new();
+        pw.insert_image(test_image()).unwrap();
+        pw.textarea.insert_str("what is this");
+        let identity = pw.images[0].preview.identity();
+
+        pw.handle_key(&key!(Home).to_key_event());
+        pw.handle_key(&key!('k', CONTROL).to_key_event());
+        assert!(pw.textarea.elements().is_empty());
+        assert!(pw.images.is_empty());
+        assert_eq!(pw.image_undo_stash.len(), 1);
+
+        pw.handle_key(&key!('y', CONTROL).to_key_event());
+        assert_eq!(pw.textarea.text(), "[Image #1] what is this");
+        let chips: Vec<_> = pw
+            .textarea
+            .elements()
+            .iter()
+            .filter(|element| element.kind == KIND_IMAGE)
+            .collect();
+        assert_eq!(chips.len(), 1);
+        assert_eq!(pw.images.len(), 1);
+        assert_eq!(pw.images[0].element_id, chips[0].id);
+        assert_eq!(pw.images[0].preview.identity(), identity);
+        assert!(pw.image_undo_stash.is_empty());
+        assert_eq!(pw.drain_images().len(), 1);
+    }
+
+    #[test]
+    fn orphan_placeholder_is_reported_without_becoming_a_chip() {
+        let mut pw = PromptWidget::new();
+        pw.textarea
+            .insert_str("recall [Image #1] and [Image #3] and [Image #3]");
+
+        pw.rebind_image_placeholders();
+
+        assert!(pw.textarea.elements().is_empty());
+        assert!(pw.images.is_empty());
+        assert_eq!(pw.unbound_image_placeholders(), vec![1, 3]);
+    }
+
+    #[test]
+    fn set_text_discarding_images_does_not_rebind_history_tokens() {
+        let mut pw = PromptWidget::new();
+        pw.insert_image(test_image()).unwrap();
+        let mut stashed = test_image();
+        stashed.display_number = 2;
+        pw.image_undo_stash.push(stashed);
+
+        pw.set_text_discarding_images("[Image #1] older prompt");
+
+        assert!(pw.images.is_empty());
+        assert!(pw.image_undo_stash.is_empty());
+        assert_eq!(pw.image_counter, 0);
+        assert!(pw.textarea.elements().is_empty());
+        assert_eq!(pw.unbound_image_placeholders(), vec![1]);
+        assert!(pw.drain_images().is_empty());
+    }
+
+    #[test]
+    fn restore_chip_elements_does_not_duplicate_rechipped_range() {
+        use crate::app::agent::ChipElement;
+
+        let mut pw = PromptWidget::new();
+        let mut image = test_image();
+        image.display_number = 1;
+        pw.set_text("[Image #1] and more");
+        pw.set_images(vec![image]);
+        assert_eq!(pw.textarea.elements().len(), 1);
+
+        pw.restore_chip_elements(&[ChipElement {
+            range: 0..10,
+            kind: KIND_IMAGE,
+            display: None,
+        }]);
+
+        assert_eq!(pw.textarea.elements().len(), 1);
+    }
+
+    #[test]
     fn image_cap_enforced() {
         let mut pw = PromptWidget::new();
         for _ in 0..PromptWidget::IMAGE_CAP {
@@ -2097,10 +2177,9 @@
         pw.textarea.set_cursor(len);
         pw.insert_image(test_image()).unwrap();
 
-        // Delete the first element via textarea (simulates backspace)
-        pw.textarea.set_cursor(0);
-        let first_id = pw.textarea.elements()[0].id;
-        pw.textarea.inline_element(first_id);
+        // Delete the first chip's text via textarea (simulates backspace).
+        let first_range = pw.textarea.elements()[0].range.clone();
+        pw.textarea.replace_range(first_range, "");
         // Now there's one image element left, but images vec still has 2
 
         let drained = pw.drain_images();
@@ -2154,10 +2233,8 @@
 
         // Delete the higher-numbered chip (#2). After deletion live==[#1] but
         // counter must remain 2 so the next insert lands at #3.
-        let second_id = pw.textarea.elements()[1].id;
-        let second_range_start = pw.textarea.elements()[1].range.start;
-        pw.textarea.set_cursor(second_range_start);
-        pw.textarea.inline_element(second_id);
+        let second_range = pw.textarea.elements()[1].range.clone();
+        pw.textarea.replace_range(second_range, "");
 
         // Force the reconciliation that `handle_key` runs after
         // every text edit.
@@ -2228,10 +2305,8 @@
         pw.insert_image(test_image()).unwrap(); // #2
 
         // Transient delete of `[Image #2]` mid-prompt.
-        let id2 = pw.textarea.elements()[1].id;
-        let r2_start = pw.textarea.elements()[1].range.start;
-        pw.textarea.set_cursor(r2_start);
-        pw.textarea.inline_element(id2);
+        let second_range = pw.textarea.elements()[1].range.clone();
+        pw.textarea.replace_range(second_range, "");
         pw.sync_images_with_textarea();
 
         pw.insert_image(test_image()).unwrap(); // MUST be #3
@@ -2243,8 +2318,6 @@
             "after a transient #2 delete, the next drop must issue \
              #3 (not reuse #2). Got {numbers:?}",
         );
-        // `inline_element` leaves the deleted chip's text behind as plain
-        // characters, so count chip ELEMENTS not text matches.
         let live_image_numbers: Vec<usize> = pw
             .textarea
             .elements()
@@ -3200,10 +3273,9 @@
         pw.insert_image(test_image()).unwrap();
         assert_eq!(pw.images.len(), 2);
 
-        // Delete first element by inlining (simulates backspace removal path).
-        pw.textarea.set_cursor(0);
-        let first_id = pw.textarea.elements()[0].id;
-        pw.textarea.inline_element(first_id);
+        // Delete the first chip's text (simulates backspace removal path).
+        let first_range = pw.textarea.elements()[0].range.clone();
+        pw.textarea.replace_range(first_range, "");
 
         // Drain and build content blocks.
         let images = pw.drain_images();

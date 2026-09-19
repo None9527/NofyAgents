@@ -20,10 +20,10 @@ use crate::views::welcome::WelcomePromptFocus;
 use agent_client_protocol as acp;
 use crossterm::event::{Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind};
 use indexmap::IndexMap;
+use nofy_acp_lib::AcpAgentTx;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use nofy_acp_lib::AcpAgentTx;
 /// State for the "New Worktree" popup dialog on the welcome screen.
 #[derive(Debug, Default)]
 pub struct NewWorktreeDialogState {
@@ -195,8 +195,7 @@ impl WorktreeMode {
     }
     /// Same as [`Self::resolve_from_hints`], for merged effective config (`toml::Value`).
     pub fn resolve_from_hints_value(hints: Option<&toml::Value>) -> (Self, Self) {
-        let (new_session, fork) =
-            nofy_shell::util::config::WorktreeHintMode::resolve_pair(hints);
+        let (new_session, fork) = nofy_shell::util::config::WorktreeHintMode::resolve_pair(hints);
         (new_session.into(), fork.into())
     }
     fn resolve_from_hint_strings(get_str: impl Fn(&str) -> Option<Self>) -> (Self, Self) {
@@ -1772,7 +1771,7 @@ impl AppView {
                     announcement_rect: self.welcome_announcement.rect.as_ref(),
                     on_announcement_cta: &mut self.welcome_announcement.on_cta,
                     announcement_expanded: &mut self.welcome_announcement.expanded,
-                            sp_entries: &mut self.session_picker_entries,
+                    sp_entries: &mut self.session_picker_entries,
                     sp_loading,
                     sp_state: &mut self.session_picker_state,
                     sp_content_results: &self.session_picker_content_results,
@@ -2012,6 +2011,12 @@ impl AppView {
                 }
             }
             ActiveView::AgentDashboard => {
+                if let Some(key) = key_event
+                    && key.code != KeyCode::Enter
+                    && let Some(dashboard) = self.dashboard.as_mut()
+                {
+                    dashboard.last_send_at = None;
+                }
                 let attached_raw = self.dashboard.as_ref().and_then(|d| d.attached_agent);
                 let attached = attached_raw.filter(|id| self.agents.contains_key(id));
                 if attached_raw.is_some()
@@ -2354,8 +2359,7 @@ struct WelcomeInputCtx<'a> {
     /// picker still owns input (Esc must dismiss it, not hit the hidden menu).
     sp_loading: bool,
     sp_state: &'a mut crate::views::picker::PickerState,
-    sp_content_results:
-        &'a Option<Vec<nofy_shell::extensions::session_search::SearchSessionHit>>,
+    sp_content_results: &'a Option<Vec<nofy_shell::extensions::session_search::SearchSessionHit>>,
     sp_content_loading: bool,
     /// The query `sp_entries` were server-fetched with (see
     /// [`crate::views::session_picker::effective_filter_query`]).
@@ -2905,10 +2909,7 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
             if key!(Enter).matches(key)
                 && let Some(idx) = *ctx.menu_index
             {
-                return dispatch_menu_action(
-                    idx,
-                    ctx.has_claude_import,
-                );
+                return dispatch_menu_action(idx, ctx.has_claude_import);
             }
             if crate::input::key::is_text_input_key(key) {
                 *ctx.prompt_focused = true;
@@ -2963,10 +2964,7 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                         {
                             return InputOutcome::Action(Action::DismissClaudeImport);
                         }
-                        return dispatch_menu_action(
-                            i,
-                            ctx.has_claude_import,
-                        );
+                        return dispatch_menu_action(i, ctx.has_claude_import);
                     }
                 }
                 if let Some(rect) = ctx.upgrade_cta_rect

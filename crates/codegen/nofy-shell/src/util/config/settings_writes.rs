@@ -102,6 +102,12 @@ pub async fn set_show_timeline(value: bool) -> Result<()> {
     update_config(|cfg| cfg.ui.show_timeline = Some(value)).await
 }
 
+/// Persist `[ui].dashboard_preview` via the repository's canonical JSON
+/// config writer. `None` resolves to enabled in `UiConfig`.
+pub async fn set_dashboard_preview(value: bool) -> Result<()> {
+    update_config(|cfg| cfg.ui.dashboard_preview = Some(value)).await
+}
+
 pub async fn set_page_flip_on_send(value: bool) -> Result<()> {
     update_config(|cfg| cfg.ui.page_flip_on_send = Some(value)).await
 }

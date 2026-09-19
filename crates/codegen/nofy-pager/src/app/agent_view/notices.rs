@@ -19,6 +19,44 @@ impl AgentView {
         self.toast = Some((crate::glyphs::sanitize_toast_message(msg).into_owned(), 90));
     }
 
+    /// Re-bind image placeholders and warn when any remaining token has no attachment record.
+    pub(crate) fn show_unbound_image_placeholder_notice(&mut self) {
+        self.prompt.rebind_image_placeholders();
+        let numbers = self.prompt.unbound_image_placeholders();
+        if numbers.is_empty() {
+            return;
+        }
+        let list = numbers
+            .iter()
+            .map(|number| format!("#{number}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let noun = if numbers.len() == 1 {
+            "Image placeholder"
+        } else {
+            "Image placeholders"
+        };
+        self.show_toast(&format!("{noun} {list} had no attachment — sent as text"));
+    }
+
+    /// Warn when attached images were omitted because their bytes could not be read.
+    pub(crate) fn show_skipped_image_send_notice(&mut self, numbers: &[usize]) {
+        if numbers.is_empty() {
+            return;
+        }
+        let list = numbers
+            .iter()
+            .map(|number| format!("#{number}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let noun = if numbers.len() == 1 {
+            "Image"
+        } else {
+            "Images"
+        };
+        self.show_toast(&format!("{noun} {list} couldn't be read — not sent"));
+    }
+
     /// Show an ephemeral tip in the banner row above the prompt, gated by the
     /// app-level per-session `seen_counts` map (`AppView::tip_seen_counts`).
     /// Returns true when the tip was newly shown (and the per-session count
@@ -451,5 +489,29 @@ mod mouse_off_banner_tests {
             !msg.chars().any(char::is_control),
             "sticky toast must scrub controls: {msg:?}"
         );
+    }
+
+    #[test]
+    fn unbound_image_placeholder_notice_names_missing_attachment() {
+        let mut view = make_running_agent();
+        view.prompt.set_text("look at [Image #2]");
+
+        view.show_unbound_image_placeholder_notice();
+
+        let message = view.toast.as_ref().map(|(message, _)| message.as_str());
+        assert_eq!(
+            message,
+            Some("Image placeholder #2 had no attachment — sent as text")
+        );
+    }
+
+    #[test]
+    fn skipped_image_send_notice_names_every_unreadable_image() {
+        let mut view = make_running_agent();
+
+        view.show_skipped_image_send_notice(&[2, 4]);
+
+        let message = view.toast.as_ref().map(|(message, _)| message.as_str());
+        assert_eq!(message, Some("Images #2, #4 couldn't be read — not sent"));
     }
 }

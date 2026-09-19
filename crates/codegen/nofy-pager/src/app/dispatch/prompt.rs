@@ -122,9 +122,7 @@ pub(super) fn open_doctor_fix_question(
     plan: Box<crate::diagnostics::FixPlan>,
 ) {
     use crate::views::question_view::{LocalQuestionKind, QuestionViewState};
-    use nofy_tools::implementations::nofy_build::ask_user_question::{
-        Question, QuestionOption,
-    };
+    use nofy_tools::implementations::nofy_build::ask_user_question::{Question, QuestionOption};
 
     let Some(agent) = app.agents.get_mut(&target.agent_id) else {
         return;
@@ -458,6 +456,12 @@ pub(super) fn dispatch_send_prompt_inner(
         return vec![];
     }
 
+    // A yank or undo can restore `[Image #N]` as plain text while its record remains held.
+    // Re-bind before routing decides whether this is an image-bearing prompt.
+    if consume_input {
+        agent.prompt.rebind_image_placeholders();
+    }
+
     // Submitting the prompt retires any edit-contextual ephemeral tip
     // (ambient tips live out their TTL across the submit).
     agent.ephemeral_tip.clear_on_submit();
@@ -766,6 +770,7 @@ pub(super) fn dispatch_send_prompt_inner(
             && parked_sendable_wait
             && !hold_behind_existing_queue
         {
+            agent.show_unbound_image_placeholder_notice();
             let images = agent.prompt.drain_images();
             if consume_input {
                 agent.prompt.set_text("");
@@ -792,6 +797,7 @@ pub(super) fn dispatch_send_prompt_inner(
             // Plain image-free sends stay unarmed: shell queue state and cancelTrigger decide disposition.
 
             if consume_input {
+                agent.show_unbound_image_placeholder_notice();
                 // Plain prompt: no images to drain. Clear textarea + record
                 // up-arrow history (same as the local path's history insert).
                 agent.prompt.set_text("");

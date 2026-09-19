@@ -209,77 +209,86 @@ pub fn render_dashboard(
     let fixed = super::layout::chrome_overhead(area);
     let reply_text_w = layout.dispatch.width.saturating_sub(6);
 
-    match state.selected.clone() {
-        Some(sel) => match super::peek::compute_peek_fields(&sel, agents) {
-            Some(fields) => {
-                let question = fields.question.is_some();
-                let peek_min = if question {
-                    super::layout::PEEK_MIN_BOX_QUESTION
-                } else {
-                    super::layout::PEEK_MIN_BOX_LIVE_TAIL
-                };
-                let content_rows = if question {
-                    1 + fields.options.len().min(9) as u16
-                } else {
-                    let reply_rows = super::peek::reply_row_count(
-                        &state.peek_reply,
-                        reply_text_w,
-                        super::peek::MAX_REPLY_ROWS,
-                    );
-                    let max_content = super::layout::max_peek_content_rows(area);
-                    // Middle content width ≈ dispatch box minus borders + insets.
-                    let middle_w = layout.dispatch.width.saturating_sub(4);
-                    let (body_measured, pin_user) =
-                        super::state::scrollback_mut_for_row(&sel, agents)
-                            .map(|sb| {
-                                (
-                                    super::peek_tail::densified_body_line_count(sb, middle_w),
-                                    super::peek_tail::scrollback_has_last_user(sb),
-                                )
-                            })
-                            .unwrap_or((0, false));
-                    super::layout::peek_live_tail_desired_content(
-                        max_content,
-                        reply_rows,
-                        body_measured,
-                        pin_user,
-                    )
-                    .content_rows
-                };
-                let alloc =
-                    super::layout::allocate_peek(area.height, fixed, content_rows, peek_min);
-                if alloc.show_peek {
-                    state.set_peek_reply_target_cwd(peeked_agent_cwd(&sel, agents));
-                    let badge = super::peek::peek_model_and_mode(&sel, agents);
-                    match state.peek.as_mut() {
-                        Some(p) => {
-                            if p.apply_fields(sel, fields) {
-                                state.clear_peek_reply();
+    if state.preview_enabled {
+        match state.selected.clone() {
+            Some(sel) => match super::peek::compute_peek_fields(&sel, agents) {
+                Some(fields) => {
+                    let question = fields.question.is_some();
+                    let peek_min = if question {
+                        super::layout::PEEK_MIN_BOX_QUESTION
+                    } else {
+                        super::layout::PEEK_MIN_BOX_LIVE_TAIL
+                    };
+                    let content_rows = if question {
+                        1 + fields.options.len().min(9) as u16
+                    } else {
+                        let reply_rows = super::peek::reply_row_count(
+                            &state.peek_reply,
+                            reply_text_w,
+                            super::peek::MAX_REPLY_ROWS,
+                        );
+                        let max_content = super::layout::max_peek_content_rows(area);
+                        // Middle content width ≈ dispatch box minus borders + insets.
+                        let middle_w = layout.dispatch.width.saturating_sub(4);
+                        let (body_measured, pin_user) =
+                            super::state::scrollback_mut_for_row(&sel, agents)
+                                .map(|sb| {
+                                    (
+                                        super::peek_tail::densified_body_line_count(sb, middle_w),
+                                        super::peek_tail::scrollback_has_last_user(sb),
+                                    )
+                                })
+                                .unwrap_or((0, false));
+                        super::layout::peek_live_tail_desired_content(
+                            max_content,
+                            reply_rows,
+                            body_measured,
+                            pin_user,
+                        )
+                        .content_rows
+                    };
+                    let alloc =
+                        super::layout::allocate_peek(area.height, fixed, content_rows, peek_min);
+                    if alloc.show_peek {
+                        state.set_peek_reply_target_cwd(peeked_agent_cwd(&sel, agents));
+                        let badge = super::peek::peek_model_and_mode(&sel, agents);
+                        match state.peek.as_mut() {
+                            Some(p) => {
+                                if p.apply_fields(sel, fields) {
+                                    state.clear_peek_reply();
+                                }
+                            }
+                            None => {
+                                state.set_peek(Some(super::peek::PeekPanelState::new(sel, fields)))
                             }
                         }
-                        None => state.set_peek(Some(super::peek::PeekPanelState::new(sel, fields))),
+                        if let Some(p) = state.peek.as_mut() {
+                            p.model_name = badge.model;
+                            p.auto_approve = badge.yolo;
+                            p.auto = badge.auto;
+                            p.plan_mode = badge.plan;
+                        }
+                        layout =
+                            super::layout::compute_layout_with_peek_box(area, alloc.peek_box_h);
+                    } else {
+                        state.set_peek_reply_target_cwd(None);
+                        state.set_peek(None);
                     }
-                    if let Some(p) = state.peek.as_mut() {
-                        p.model_name = badge.model;
-                        p.auto_approve = badge.yolo;
-                        p.auto = badge.auto;
-                        p.plan_mode = badge.plan;
-                    }
-                    layout = super::layout::compute_layout_with_peek_box(area, alloc.peek_box_h);
-                } else {
+                }
+                None => {
                     state.set_peek_reply_target_cwd(None);
                     state.set_peek(None);
                 }
-            }
+            },
             None => {
                 state.set_peek_reply_target_cwd(None);
                 state.set_peek(None);
             }
-        },
-        None => {
-            state.set_peek_reply_target_cwd(None);
-            state.set_peek(None);
         }
+    } else {
+        state.set_peek_reply_target_cwd(None);
+        state.set_peek(None);
+        state.file_search_dropdown_items_area = None;
     }
 
     ensure_peek_viewport_lifecycle(state, agents);
@@ -4550,6 +4559,7 @@ mod tests {
         let rows = vec![
             DashboardRow {
                 id: DashboardRowId::TopLevel(crate::app::agent::AgentId(1)),
+                session_id: None,
                 label: "Add responsiveness to /context".to_string(),
                 subtitle: Some("nofy my-branch-2 worktree".to_string()),
                 state: RowState::NeedsInput,
@@ -4569,6 +4579,7 @@ mod tests {
             },
             DashboardRow {
                 id: DashboardRowId::TopLevel(crate::app::agent::AgentId(2)),
+                session_id: None,
                 label: "Add buttons for /models".to_string(),
                 subtitle: Some("nofy my-branch-3 worktree".to_string()),
                 state: RowState::Completed,
@@ -4588,6 +4599,7 @@ mod tests {
             },
             DashboardRow {
                 id: DashboardRowId::TopLevel(crate::app::agent::AgentId(3)),
+                session_id: None,
                 label: "Investigate bug".to_string(),
                 subtitle: Some("nofy main".to_string()),
                 state: RowState::Working,
@@ -4607,6 +4619,7 @@ mod tests {
             },
             DashboardRow {
                 id: DashboardRowId::TopLevel(crate::app::agent::AgentId(4)),
+                session_id: None,
                 label: "Add responsiveness to /context".to_string(),
                 subtitle: Some("nofy my-branch-2 worktree".to_string()),
                 state: RowState::Working,
@@ -4626,6 +4639,7 @@ mod tests {
             },
             DashboardRow {
                 id: DashboardRowId::TopLevel(crate::app::agent::AgentId(5)),
+                session_id: None,
                 label: "Add buttons for /models".to_string(),
                 subtitle: Some("nofy mybranch worktree".to_string()),
                 state: RowState::Working,
@@ -5209,6 +5223,7 @@ mod tests {
         let mut state = DashboardState::new();
         let row = DashboardRow {
             id: DashboardRowId::TopLevel(AgentId(1)),
+            session_id: None,
             label: "abcdefghij ".repeat(10),
             subtitle: None,
             state: RowState::Working,
@@ -5729,6 +5744,7 @@ mod tests {
         let id = DashboardRowId::TopLevel(AgentId(7));
         let row = DashboardRow {
             id: id.clone(),
+            session_id: None,
             label: "row label".to_string(),
             subtitle: None,
             state: RowState::Working,
@@ -5793,6 +5809,7 @@ mod tests {
         let id = DashboardRowId::TopLevel(AgentId(7));
         let row = DashboardRow {
             id: id.clone(),
+            session_id: None,
             label: "row label".to_string(),
             subtitle: None,
             state: RowState::Idle,
@@ -5901,6 +5918,7 @@ mod tests {
         let id = DashboardRowId::TopLevel(AgentId(7));
         let row = DashboardRow {
             id: id.clone(),
+            session_id: None,
             label: "row label".to_string(),
             subtitle: None,
             state: RowState::Idle,
@@ -6256,6 +6274,7 @@ mod tests {
         use crate::app::agent::AgentId;
         DashboardRow {
             id: DashboardRowId::TopLevel(AgentId(id as usize)),
+            session_id: None,
             label: label.to_string(),
             subtitle: None,
             state,
@@ -6831,6 +6850,7 @@ mod tests {
         state.spinner_tick = 8; // → dot_spinner_frames()[2] = `⸬`.
         let row = DashboardRow {
             id: DashboardRowId::TopLevel(crate::app::agent::AgentId(1)),
+            session_id: None,
             label: "who are you?".to_string(),
             subtitle: None,
             state: RowState::Working,
@@ -6915,6 +6935,7 @@ mod tests {
         let id = DashboardRowId::TopLevel(crate::app::agent::AgentId(7));
         let row = DashboardRow {
             id: id.clone(),
+            session_id: None,
             label: "investigate caching".to_string(),
             subtitle: None,
             state: RowState::Working,
@@ -6981,6 +7002,7 @@ mod tests {
         let theme = Theme::current();
         let make_row = || DashboardRow {
             id: DashboardRowId::TopLevel(crate::app::agent::AgentId(1)),
+            session_id: None,
             label: "ask me".to_string(),
             subtitle: None,
             state: RowState::NeedsInput,
@@ -7071,6 +7093,7 @@ mod tests {
         let mut state = DashboardState::new();
         let row = DashboardRow {
             id: DashboardRowId::TopLevel(crate::app::agent::AgentId(1)),
+            session_id: None,
             label: "New session #abc12345".to_string(),
             subtitle: None,
             state: RowState::Idle,

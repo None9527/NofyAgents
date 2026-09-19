@@ -1455,6 +1455,13 @@ pub fn load_for_send(img: &PastedImage) -> Option<(Vec<u8>, String)> {
 // ACP content block construction
 // -------------------------------------------------------------------------
 
+/// Wire blocks plus image display numbers whose bytes could not be loaded.
+#[derive(Debug, Default)]
+pub struct ContentBlocksBuild {
+    pub blocks: Vec<agent_client_protocol::ContentBlock>,
+    pub skipped_display_numbers: Vec<usize>,
+}
+
 /// Build ACP `ContentBlock` values from prompt text and attached images,
 /// with an optional fallback that re-loads orphan
 /// `[Image #N: <path>]` placeholders from disk.
@@ -1481,9 +1488,23 @@ pub fn build_content_blocks_with_workspace(
     images: Vec<PastedImage>,
     workspace_cwd: Option<&std::path::Path>,
 ) -> Vec<agent_client_protocol::ContentBlock> {
+    build_content_blocks_with_workspace_report(text, images, workspace_cwd).blocks
+}
+
+/// Build content blocks and report attached images omitted because their bytes were unreadable.
+pub fn build_content_blocks_with_workspace_report(
+    text: String,
+    images: Vec<PastedImage>,
+    workspace_cwd: Option<&std::path::Path>,
+) -> ContentBlocksBuild {
     let allowed: Option<Vec<std::path::PathBuf>> =
         workspace_cwd.map(nofy_shared::placeholder_images::default_allowed_prefixes);
-    build_content_blocks_with_prefixes(text, images, allowed.as_deref())
+    build_content_blocks_with_prefixes_and_caps_report(
+        text,
+        images,
+        allowed.as_deref(),
+        nofy_shared::placeholder_images::MAX_PLACEHOLDER_AGGREGATE_BYTES,
+    )
 }
 
 /// Test-injectable variant of [`build_content_blocks_with_workspace`].
@@ -1519,6 +1540,21 @@ pub fn build_content_blocks_with_prefixes_and_caps(
     allowed_prefixes: Option<&[std::path::PathBuf]>,
     aggregate_max: usize,
 ) -> Vec<agent_client_protocol::ContentBlock> {
+    build_content_blocks_with_prefixes_and_caps_report(
+        text,
+        images,
+        allowed_prefixes,
+        aggregate_max,
+    )
+    .blocks
+}
+
+fn build_content_blocks_with_prefixes_and_caps_report(
+    text: String,
+    images: Vec<PastedImage>,
+    allowed_prefixes: Option<&[std::path::PathBuf]>,
+    aggregate_max: usize,
+) -> ContentBlocksBuild {
     use agent_client_protocol::{ContentBlock, ImageContent, TextContent};
     use base64::Engine as _;
 
@@ -1536,11 +1572,15 @@ pub fn build_content_blocks_with_prefixes_and_caps(
 
     let mut blocks = Vec::with_capacity(1 + images.len() + orphan_images.len());
     blocks.push(ContentBlock::Text(TextContent::new(rewritten_text)));
+    let mut skipped_display_numbers = Vec::new();
 
     for img in &images {
         let (bytes, mime_type) = match load_for_send(img) {
             Some(loaded) => loaded,
-            None => continue,
+            None => {
+                skipped_display_numbers.push(img.display_number);
+                continue;
+            }
         };
 
         let data = base64::engine::general_purpose::STANDARD.encode(&bytes);
@@ -1560,9 +1600,9 @@ pub fn build_content_blocks_with_prefixes_and_caps(
                 .uri(uri)
                 // Record the `[Image #N]` display number so the server resolves
                 // the token by number, not list position. See `AttachedImages`.
-                .meta(Some(
-                    nofy_shared::placeholder_images::display_number_meta(img.display_number),
-                )),
+                .meta(Some(nofy_shared::placeholder_images::display_number_meta(
+                    img.display_number,
+                ))),
         ));
     }
 
@@ -1570,7 +1610,10 @@ pub fn build_content_blocks_with_prefixes_and_caps(
         blocks.push(ContentBlock::Image(orphan));
     }
 
-    blocks
+    ContentBlocksBuild {
+        blocks,
+        skipped_display_numbers,
+    }
 }
 
 /// Scan `text` for `[Image #N: <path>]` placeholders that lack a
@@ -1640,11 +1683,9 @@ fn resolve_orphan_placeholders(
                     ImageContent::new(data, loaded.mime_type)
                         .uri(uri)
                         // Same `[Image #N]` → number mapping as inline images.
-                        .meta(Some(
-                            nofy_shared::placeholder_images::display_number_meta(
-                                ph.display_number,
-                            ),
-                        )),
+                        .meta(Some(nofy_shared::placeholder_images::display_number_meta(
+                            ph.display_number,
+                        ))),
                 );
                 tracing::info!(
                     path = ?ph.path,
@@ -3975,6 +4016,21 @@ mod tests {
         images: Vec<PastedImage>,
     ) -> Vec<agent_client_protocol::ContentBlock> {
         build_content_blocks_with_workspace(text, images, None)
+    }
+
+    #[test]
+    fn build_blocks_report_lists_unreadable_attached_images() {
+        let readable = make_real_image(40, 40);
+        let unreadable = make_image(2, 2);
+
+        let build = build_content_blocks_with_workspace_report(
+            "see [Image #1] and [Image #2]".to_owned(),
+            vec![readable, unreadable],
+            None,
+        );
+
+        assert_eq!(build.skipped_display_numbers, vec![2]);
+        assert_eq!(build.blocks.len(), 2, "text plus the readable image");
     }
 
     #[test]

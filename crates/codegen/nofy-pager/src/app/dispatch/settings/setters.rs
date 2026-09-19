@@ -826,6 +826,32 @@ pub(in crate::app::dispatch) fn set_timeline(app: &mut AppView, new: bool) -> Ve
     }]
 }
 
+/// State-only mutation for `dashboard_preview`. The preview and any borrowed
+/// scrollback viewport are updated atomically so disabling it leaves no ghost
+/// panel or viewport lease behind.
+pub(super) fn set_dashboard_preview_inner(app: &mut AppView, new: bool) {
+    app.current_ui.dashboard_preview = Some(new);
+    if let Some(dashboard) = app.dashboard.as_mut() {
+        dashboard.set_preview_enabled(new, &mut app.agents);
+    }
+}
+
+pub(in crate::app::dispatch) fn set_dashboard_preview(app: &mut AppView, new: bool) -> Vec<Effect> {
+    let previous = app.current_ui.dashboard_preview_enabled();
+    if previous == new {
+        return vec![];
+    }
+    set_dashboard_preview_inner(app, new);
+    refresh_open_settings_modals(app);
+    tracing::info!(target: "settings", key = "dashboard_preview", value = new, "setting changed");
+    app.show_toast(&save_success_toast("Dashboard preview", new));
+    vec![Effect::PersistSetting {
+        key: "dashboard_preview",
+        value: crate::settings::SettingValue::Bool(new),
+        rollback_value: crate::settings::SettingValue::Bool(previous),
+    }]
+}
+
 pub(super) fn set_page_flip_on_send_inner(app: &mut AppView, new: bool) {
     app.current_ui.page_flip_on_send = Some(new);
     crate::appearance::cache::set_page_flip_on_send(new);

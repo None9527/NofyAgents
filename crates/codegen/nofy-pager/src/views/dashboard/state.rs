@@ -186,6 +186,13 @@ impl PersistedRowId {
 /// dashboard-overlay stop for its double-press close confirm.
 pub const CONFIRM_WINDOW: std::time::Duration = std::time::Duration::from_secs(2);
 
+/// How long after a send an empty Enter still counts as an echo of that send.
+const SEND_ECHO_WINDOW: std::time::Duration = std::time::Duration::from_secs(1);
+
+pub(crate) fn send_echo_window_open(since_send: std::time::Duration) -> bool {
+    since_send < SEND_ECHO_WINDOW
+}
+
 /// Coarse state used for the dashboard grouping.
 ///
 /// See [`super::row::classify_top_level`] / [`super::row::classify_subagent`]
@@ -460,6 +467,12 @@ pub struct DashboardState {
     /// A peek-reply send deferred the same way; per-surface slots so stashing
     /// one surface can never overwrite the other's pending send.
     pub(crate) deferred_peek_send: Option<DeferredPeekSend>,
+    /// When the dashboard dispatch input last sent non-empty text. A repeated
+    /// empty Enter inside the echo window is swallowed instead of creating or
+    /// attaching an empty session.
+    pub(crate) last_send_at: Option<Instant>,
+    /// Whether the selected session's preview/reply panel may consume layout.
+    pub(crate) preview_enabled: bool,
     /// Peek panel state (Space toggles).
     pub peek: Option<PeekPanelState>,
     /// Session-scoped guest viewport for the live-tail peek (capture once
@@ -1355,6 +1368,9 @@ impl DashboardState {
             paste_probe_in_flight: 0,
             deferred_dispatch_send: None,
             deferred_peek_send: None,
+            last_send_at: None,
+            preview_enabled: nofy_shell::agent::config::UiConfig::default()
+                .dashboard_preview_enabled(),
             peek: None,
             peek_viewport: None,
             peek_reply,
@@ -1918,6 +1934,23 @@ impl DashboardState {
             sb.set_selected(Some(idx));
             sb.scroll_to_entry_top(idx);
             sb.enable_follow_with_preserve();
+        }
+    }
+
+    /// Apply the live preview preference and release every preview-owned
+    /// resource when disabled. The next render can therefore use the normal
+    /// dispatch layout without retaining a ghost panel height.
+    pub(crate) fn set_preview_enabled(
+        &mut self,
+        enabled: bool,
+        agents: &mut indexmap::IndexMap<AgentId, crate::app::agent_view::AgentView>,
+    ) {
+        self.preview_enabled = enabled;
+        if !enabled {
+            self.set_peek(None);
+            self.set_peek_reply_target_cwd(None);
+            self.file_search_dropdown_items_area = None;
+            self.restore_peek_viewport(agents);
         }
     }
 
@@ -3060,7 +3093,7 @@ impl DashboardState {
     /// `[+ New Agent]` button. A `/command` always routes to the slash
     /// dispatcher (there's no session to "open"), so `attach` only
     /// affects the plain-dispatch path.
-    fn dispatch_send_action(&self, attach: bool) -> InputOutcome {
+    fn dispatch_send_action(&mut self, attach: bool) -> InputOutcome {
         let text = self.dispatch.text().to_string();
         let trimmed = text.trim();
         if trimmed.is_empty() {
@@ -3072,10 +3105,20 @@ impl DashboardState {
             }
             return InputOutcome::Unchanged;
         }
+        self.last_send_at = Some(Instant::now());
         if trimmed.starts_with('/') {
             return InputOutcome::Action(Action::DashboardDispatchSlash { text });
         }
         InputOutcome::Action(Action::DashboardDispatch { text, attach })
+    }
+
+    /// Whether an empty Enter now is an echo of the last successful dispatch
+    /// gesture. This catches key repeat/bounce without consuming real drafts.
+    fn empty_enter_echoes_send(&self) -> bool {
+        self.dispatch.text().trim().is_empty()
+            && self
+                .last_send_at
+                .is_some_and(|sent| send_echo_window_open(sent.elapsed()))
     }
 
     /// List-focused `y`/`n` confirm for an already-armed delete (arming is
@@ -3535,6 +3578,9 @@ impl DashboardState {
         if matches!(key.code, KeyCode::Enter) {
             // Overview focused: attach / create (or send if button + draft).
             if self.list_focused && key.modifiers.is_empty() {
+                if self.empty_enter_echoes_send() {
+                    return InputOutcome::Unchanged;
+                }
                 if let Some(id) = self.selected.clone() {
                     return InputOutcome::Action(Action::DashboardAttach(id));
                 }
@@ -3570,6 +3616,8 @@ impl DashboardState {
             }
             if enter_is_newline {
                 // fall through for newline
+            } else if self.empty_enter_echoes_send() {
+                return InputOutcome::Unchanged;
             } else {
                 return self.dispatch_send_action(false);
             }
@@ -5322,6 +5370,7 @@ mod tests {
         state.selected = Some(id1.clone());
         let rows = vec![super::super::row::DashboardRow {
             id: id1.clone(),
+            session_id: None,
             label: "r1".to_string(),
             subtitle: None,
             state: RowState::Idle,
@@ -5357,6 +5406,7 @@ mod tests {
         let id1 = DashboardRowId::TopLevel(AgentId(1));
         let rows = vec![super::super::row::DashboardRow {
             id: id1.clone(),
+            session_id: None,
             label: "r1".to_string(),
             subtitle: None,
             state: RowState::Idle,
@@ -7096,9 +7146,7 @@ mod tests {
         let rect = Rect::new(2, 1, 60, 1);
         state.dispatch_rect = Some(rect);
         let mut buf = Buffer::empty(Rect::new(0, 0, 80, 10));
-        let _ = state
-            .dispatch
-            .draw(&mut buf, rect, None, &style, None);
+        let _ = state.dispatch.draw(&mut buf, rect, None, &style, None);
         for (kind, column) in [
             (MouseEventKind::Down(MouseButton::Left), 4),
             (MouseEventKind::Drag(MouseButton::Left), 12),
@@ -7305,6 +7353,83 @@ mod tests {
                 "Enter on focused button with non-empty prompt must emit \
                  DashboardDispatch (NOT CreateNewAgentWithDetail), got: {other:?}",
             ),
+        }
+    }
+
+    /// An empty Enter within a second of a send is an echo of that send. It
+    /// must not click `+ New Agent` or open the selected row.
+    #[test]
+    fn empty_enter_right_after_send_is_swallowed() {
+        let mut state = DashboardState::new();
+        let reg = crate::actions::ActionRegistry::defaults();
+        let enter = Event::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        state.focus_new_agent_button();
+        state.list_focused = false;
+        state.dispatch.set_text("fix the bug");
+        assert!(matches!(
+            state.handle_input(&enter, &reg),
+            InputOutcome::Action(Action::DashboardDispatch { .. })
+        ));
+        state.dispatch.set_text("");
+        assert!(matches!(
+            state.handle_input(&enter, &reg),
+            InputOutcome::Unchanged
+        ));
+
+        state.focus_row(DashboardRowId::TopLevel(AgentId(0)));
+        state.list_focused = true;
+        assert!(matches!(
+            state.handle_input(&enter, &reg),
+            InputOutcome::Unchanged
+        ));
+
+        state.last_send_at = None;
+        assert!(matches!(
+            state.handle_input(&enter, &reg),
+            InputOutcome::Action(Action::DashboardAttach(_))
+        ));
+
+        state.focus_new_agent_button();
+        state.list_focused = false;
+        state.dispatch.set_text("again");
+        state.last_send_at = Some(Instant::now());
+        assert!(matches!(
+            state.handle_input(&enter, &reg),
+            InputOutcome::Action(Action::DashboardDispatch { .. })
+        ));
+    }
+
+    #[test]
+    fn send_echo_window_is_one_second() {
+        assert!(send_echo_window_open(std::time::Duration::from_millis(900)));
+        assert!(!send_echo_window_open(std::time::Duration::from_millis(
+            1000
+        )));
+    }
+
+    #[test]
+    fn newline_enter_right_after_send_still_inserts_newline() {
+        let mut state = DashboardState::new();
+        let reg = crate::actions::ActionRegistry::defaults();
+        state.focus_new_agent_button();
+        state.list_focused = false;
+
+        for (multiline, modifiers) in [
+            (false, KeyModifiers::SHIFT),
+            (false, KeyModifiers::ALT),
+            (true, KeyModifiers::NONE),
+        ] {
+            state.multiline_mode = multiline;
+            state.dispatch.set_text("");
+            state.last_send_at = Some(Instant::now());
+            let outcome =
+                state.handle_input(&Event::Key(KeyEvent::new(KeyCode::Enter, modifiers)), &reg);
+            assert!(
+                matches!(outcome, InputOutcome::Changed),
+                "multiline={multiline} {modifiers:?}: got {outcome:?}"
+            );
+            assert_eq!(state.dispatch.text(), "\n");
         }
     }
 
@@ -10036,6 +10161,7 @@ mod tests {
     fn reanchor_test_row(id: usize, state: RowState) -> super::super::row::DashboardRow {
         super::super::row::DashboardRow {
             id: DashboardRowId::TopLevel(AgentId(id)),
+            session_id: None,
             label: format!("r{id}"),
             subtitle: None,
             state,
@@ -10916,6 +11042,23 @@ mod tests {
         dash.set_peek(None);
         assert!(dash.peek_viewport.is_some());
         dash.restore_peek_viewport(&mut agents);
+        assert!(dash.peek_viewport.is_none());
+    }
+
+    #[test]
+    fn disabling_preview_releases_panel_dropdown_target_and_viewport() {
+        let (id, mut agents) = lease_fixture_agent();
+        let mut dash = state_with_open_peek();
+        dash.begin_peek_viewport(DashboardRowId::TopLevel(id), &mut agents);
+        dash.set_peek_reply_target_cwd(Some(PathBuf::from("/tmp/preview-target")));
+        dash.file_search_dropdown_items_area = Some(Rect::new(1, 2, 20, 4));
+
+        dash.set_preview_enabled(false, &mut agents);
+
+        assert!(!dash.preview_enabled);
+        assert!(dash.peek.is_none());
+        assert!(dash.peek_reply_target_cwd.is_none());
+        assert!(dash.file_search_dropdown_items_area.is_none());
         assert!(dash.peek_viewport.is_none());
     }
 

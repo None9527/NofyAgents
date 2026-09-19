@@ -907,6 +907,14 @@ pub(crate) async fn persist_setting(
                 .await
                 .map_err(|e| e.to_string())
         }
+        "dashboard_preview" => {
+            let SettingValue::Bool(enabled) = value else {
+                return Err(kind_mismatch("dashboard_preview", "Bool", &value));
+            };
+            nofy_shell::util::config::set_dashboard_preview(enabled)
+                .await
+                .map_err(|e| e.to_string())
+        }
         "simple_mode" => {
             let SettingValue::Bool(b) = value else {
                 return Err(kind_mismatch("simple_mode", "Bool", &value));

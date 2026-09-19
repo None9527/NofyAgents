@@ -535,6 +535,20 @@ async fn persist_setting_type_mismatch_errors_show_timeline() {
         );
 }
 #[tokio::test]
+async fn persist_setting_type_mismatch_errors_dashboard_preview() {
+    use crate::settings::SettingValue;
+    let r = persist_setting(
+        "dashboard_preview",
+        SettingValue::String("nope".into()),
+    )
+    .await;
+    let err = r.expect_err("dashboard_preview with String payload must return Err");
+    assert!(
+        err.contains("persist_setting(dashboard_preview) expected Bool"),
+        "got: {err}"
+    );
+}
+#[tokio::test]
 async fn persist_setting_type_mismatch_errors_page_flip_on_send() {
     use crate::settings::SettingValue;
     let r = persist_setting("page_flip_on_send", SettingValue::String("nope".into()))

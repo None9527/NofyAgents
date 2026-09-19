@@ -455,6 +455,7 @@ pub fn current_value_for(
         "compact_mode" => Some(SettingValue::Bool(ui.compact_mode)),
         "show_timestamps" => Some(SettingValue::Bool(ui.show_timestamps.unwrap_or(true))),
         "show_timeline" => Some(SettingValue::Bool(ui.show_timeline_enabled())),
+        "dashboard_preview" => Some(SettingValue::Bool(ui.dashboard_preview_enabled())),
         // Cache is the send-path source of truth (same pattern as group_tool_verbs).
         "page_flip_on_send" => Some(SettingValue::Bool(
             crate::appearance::cache::load_page_flip_on_send(),
@@ -751,6 +752,13 @@ mod tests {
                         *default,
                         ui.show_timeline_enabled(),
                         "show_timeline default drifts from UiConfig::default()"
+                    );
+                }
+                ("dashboard_preview", SettingKind::Bool { default }) => {
+                    assert_eq!(
+                        *default,
+                        ui.dashboard_preview_enabled(),
+                        "dashboard_preview default drifts from UiConfig::default()"
                     );
                 }
                 ("page_flip_on_send", SettingKind::Bool { default }) => {
