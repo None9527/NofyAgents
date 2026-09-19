@@ -1599,3 +1599,21 @@ markdown/pager-render **需先建基线**）→ 红绿双验（含「还原后�
 > **本方案里「已核实」与「待核实」的分界（如实登记）**：14.1A/14.1B/14.2/14.3 的上游形状与我们落点都做过
 > grep 或逐行读；**14.5–14.6 队列已全部写回结论**（已落地 ㉙–㉟ / 已对齐 / 跳过+理由），不再留「待核实」。
 > 1.0.33#1（macOS 粘贴错图）与 1.0.35#2（daemon 路径渲染）**不在 14.5–14.6 队列**，仍停在台账初判。
+> **14.8（2026-09-19，`b56c48be`）**：除 Memory v2 外，对照 `a28ee2b2` 的剩余内核缺口一次落地（㊱–㊸）。
+
+### 14.8 除 Memory 外一次吸收完全（2026-09-19，对照 a28ee2b2 实码，不信旧台账）
+
+用户裁定：跳过 Memory v2，其余内核一次吸收。方法仍是原生实现，禁止 git-merge / 整树拷贝。JSON 写回不变，不恢复 TOML 写。
+
+| # | 上游想法 | 落点 | 有意不做 |
+|---|---|---|---|
+| ㊱ | 截断文本 `stop_reason=Length` 自动续传（批26 头条） | `length_salvage.rs`；`NOFY_LENGTH_SALVAGE` 默认开、预算 2；sampler `salvage_partial_length` 把部分文本当完成 | ConversationRequest 不加 LengthPolicy 字段（避免 ~40 处字面量） |
+| ㊲ | 会话开始后台预开模型连接 | `nofy-sampler/src/prewarm.rs` + `PooledClient` idle 90s；`session_setup` new/load `tokio::spawn` | 不带凭证、15s 超时、每 origin 去重 |
+| ㊳ | `resolve_atomic_destination` 跟随符号链接再 tmp+rename | unix 跟随（linux 40 / 其它 32 hop）；windows 原路径；`write_atomically` 先 resolve | 不搬上游 Windows walker / bound dest inode 整段 |
+| ㊴ | resume picker 一次磁盘遍历 | `resolve_local_session_ids_any_cwd`；pager 一次 walk 再 remote→local 贴标 | — |
+| ㊵ | Adobe SVG 带 PNG 缩略图前缀不当图片嵌入 | `should_embed_as_conversation_image` + `extract_svg_text`；PNG 前缀剥掉后走文本 | — |
+| ㊶ | 每模型 `reasoning_summary`（Responses `reasoning.summary`） | 目录/覆盖/远程 JSON/`SamplerConfig`/`apply_response_defaults`；默认 Concise；`none` 省略字段 | — |
+| ㊷ | `Swift.sublime-syntax` last-wins | `build.rs` 在 two-face 后再 `add`；`patched_swift` 按 `.swift` 倒序找 | dump 比 runtime two-face **+1** |
+| ㊸ | 用户配置外链 referent 监视 + A→B retarget | `FollowDestWatch` 盯 `config.json`（无 json 时遗留 toml）的 live dest parent | 不搬 bound dest TOCTOU / inode 整段 |
+
+**本轮仍跳过（有意分歧，不是漏项）**：Memory v2 / v2_carryover；xAI 云/登录/GCS/`x.ai/*`；TOML 写回；MCP pin `V_2025_11_25`（拒绝 `V_2026_07_28`）；headless `--worktree`（`has_worktree: false`）；`grok-workspaced`；pager UX（A8）；1.0.33#1 粘贴错图、1.0.35#2 daemon MCP 渲染。

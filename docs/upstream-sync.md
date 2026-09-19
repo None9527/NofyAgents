@@ -12,7 +12,7 @@
 | 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb)。**自 1.0.11 起不再按版本整体同步**:批24 只做预检对账(对照 1.0.24@37949780),批25 改为「以 1.0.32@48271133 为参照、逐条原生实现」(①–㉕,见下方「批25 原生实现日志」) |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780,**2026-09-18 fetch 到 upstream/main=1.0.35@a28ee2b2**)。上游对照 worktree `/Users/mac/nofy-upstream` **已 detached 到 `a28ee2b2` 并重建索引(2026-09-18 16:31,134,329 nodes/327,031 edges/7,544 clusters)**;本仓库索引同步重建到 `79002da`(203,385 nodes/430,338 edges)。双索引对账法可用,查询纪律(必须传 `-r <绝对路径>`)见计划 §14.0 |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
-| 剩余缺口 | 上游 1.0.11 尾差 → **1.0.35** 未吸收。分段:1.0.11–1.0.24 见下方「缺口清单(批24 对账)」;1.0.25–1.0.32 见计划 §8;**1.0.33–1.0.35 见下方「增量摸底(1.0.33–1.0.35@a28ee2b2)」专节(2026-09-18)**。批次路线图与候选分层见 [upstream-absorb-plan.md](upstream-absorb-plan.md)(1.0.33–1.0.35 的候选在 §13) |
+| 剩余缺口 | **内核（除 Memory v2）已吸收到上游 1.0.35@a28ee2b2**（2026-09-19 14.8，㊱–㊸）。有意留下的：Memory v2、云/登录、TOML 写回、MCP `V_2026_07_28`、headless `--worktree`、`grok-workspaced`、pager UX、1.0.33#1 / 1.0.35#2。历史分段仍见批24 缺口清单、计划 §8、下方增量摸底。 |
 
 ## 标准流程(每批)
 
@@ -397,7 +397,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 
 | # | 上游想法(版本) | 原生实现 | 提交 | 验证 |
 |---|---|---|---|---|
-| ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**有意不做**:`resolve_atomic_destination` 整段(仍可后补)、watcher retarget | `ec617324` | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
+| ㉚ | 用户配置并发写互斥;TOML 无法结构化嵌套 models,写回走 JSON(用户拍板) | 读取:json 优先,仅无 json 时读遗留 toml,两者皆无默认 json。写入:`save_config_value_at`/`save_config_toml_text_at` 把 `config.toml` 改写到旁路 `config.json` 并 `retire_legacy_user_toml`。`ConfigWriteGuard` = 进程内 SAVE_LOCK + `<home>/.config-init.lock` flock,写回 `run_blocking` 持锁(取消不会在 async frame 放锁)。marketplace 去掉二次 flock(会死锁)。新建 json chmod 600。**后补**:符号链接原子写与 watcher retarget 见 14.8 ㊳/㊸ | `ec617324` | nofy-config `user_config_filename_prefers_json_when_present` + `save_user_config_writes_json_and_retires_legacy_toml`;nofy-shell persist 51 passed |
 
 ### 14.5 C6 原生实现日志(folder_trust GrantOutcome,2026-09-19)
 
@@ -415,6 +415,23 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 | ㉟ | 不得凭 username/handle/email/首字母臆造人名(非 changelog) | `prompt.md` 在 `</action_safety>` 后加一句；`<tool_calling>` 不跟删；重跑 `encrypt_templates.py` | `dcb9a807` | `test_encrypted_templates_not_stale` |
 
 **同轮核实、不新开原生号**：1.0.33#4 子代理 cancelled **已对齐**(`cancelled_orphan_finish` + pager `"cancelled"` → `SubagentBlock::cancelled` + `tests/subagents.rs`)。C5#1 headless connecting **跳过**(缠批15)。`managed_policy/tests.rs` **跳过 不跟**(测试重写、实现未动)。
+
+### 14.8 除 Memory 外一次吸收完全(2026-09-19)
+
+对照 grok-build `a28ee2b2` 与 nofy `f0f5e56f` **实码**，不信旧台账。用户裁定跳过 Memory v2，其余内核一次落地。JSON 写回不变。
+
+| # | 上游想法 | 原生实现 | 提交 | 验证 |
+|---|---|---|---|---|
+| ㊱ | 截断文本自动续传 | `length_salvage.rs`；`NOFY_LENGTH_SALVAGE` 默认开预算 2；sampler 部分文本当完成 | `b56c48be` | `default_on_with_two_continues` / `two_continues_then_exhaust` |
+| ㊲ | 会话开始预开模型连接 | `prewarm.rs` + 池 idle 90s；new/load session `spawn` | `b56c48be` | `endpoint_origin_extracts_scheme_host_port` |
+| ㊳ | 原子写跟随符号链接 | unix follow；windows 原路径；`write_atomically` 先 resolve | `b56c48be` | `resolve_atomic_destination_follows_leaf_symlink` |
+| ㊴ | picker 一次磁盘遍历 | `resolve_local_session_ids_any_cwd` | `b56c48be` | `resolve_local_session_ids_any_cwd_one_walk` |
+| ㊵ | Adobe SVG PNG 缩略图不当图 | `should_embed_as_conversation_image` + `extract_svg_text` | `b56c48be` | `adobe_svg_with_png_thumbnail_is_not_embedded` |
+| ㊶ | 每模型 `reasoning_summary` | 目录/覆盖/远程/sampler `apply_response_defaults` | `b56c48be` | sampler 4 靶 + `reasoning_summary_parses_and_reaches_the_resolved_model` |
+| ㊷ | Swift.sublime-syntax last-wins | build.rs 追加；`patched_swift` 倒序 `.swift` | `b56c48be` | `syntax_set_is_shared_and_survives_the_dump_round_trip`（dump = two-face + 1） |
+| ㊸ | 配置外链 referent 监视 + retarget | `FollowDestWatch` 盯 live `config.json` dest parent | `b56c48be` | linux 两靶；macOS 监视 flaky 未跑 |
+
+**有意跳过**：Memory v2；云/登录/GCS；TOML 写；MCP `V_2026_07_28`；`--worktree`；`grok-workspaced`；pager UX；1.0.33#1 / 1.0.35#2。GitNexus MCP 本轮不可用，索引陈旧；验证靠 cargo check + 靶子测试，不以 impact 空集当通过。
 
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
