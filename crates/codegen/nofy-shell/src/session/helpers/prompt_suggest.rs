@@ -16,7 +16,7 @@
 
 use crate::config::PromptSuggestModelPin;
 use crate::sampling::ConversationItem;
-use crate::session::helpers::chat::floor_char_boundary;
+use nofy_tools::util::truncate_str;
 
 /// Model used for suggestion calls when nothing pins one (no env /
 /// `[models] prompt_suggestion` / remote setting / client hint — see
@@ -65,6 +65,8 @@ const TRANSCRIPT_BUDGET_CHARS: usize = 24_000;
 /// logs, big diffs) carry little signal for next-prompt prediction.
 const MESSAGE_CAP_CHARS: usize = 1_500;
 
+const TRUNCATION_MARKER: &str = "\n…";
+
 /// Reject suggestions longer than this — a prompt suggestion should be a
 /// short, obvious next step, not an essay.
 const SUGGESTION_MAX_CHARS: usize = 120;
@@ -108,18 +110,38 @@ Once a request was handled, predict the step AFTER it, never the request again \
     Format: 2-12 words, matching the user's own style and casing.\n\
     Reply with ONLY the suggestion text (or NONE) — no quotes, no markdown, no explanation.";
 
+fn truncate_to(text: &str, max_len: usize) -> String {
+    if text.len() <= max_len {
+        return text.to_owned();
+    }
+    if max_len <= TRUNCATION_MARKER.len() {
+        return truncate_str(text, max_len).to_owned();
+    }
+
+    let prefix = truncate_str(text, max_len - TRUNCATION_MARKER.len());
+    let floor = prefix.len() / 2;
+    let cut = prefix
+        .rfind('\n')
+        .filter(|&index| index >= floor)
+        .or_else(|| {
+            prefix
+                .rfind(char::is_whitespace)
+                .filter(|&index| index >= floor)
+        })
+        .unwrap_or(prefix.len());
+    let Some(head) = prefix.get(..cut) else {
+        return truncate_str(text, max_len).to_owned();
+    };
+    format!("{}{TRUNCATION_MARKER}", head.trim_end())
+}
+
 /// One transcript line: role label + flattened text content.
-fn transcript_line(role: &str, text: &str) -> Option<String> {
+fn transcript_line(role: &str, text: &str, cap: usize) -> Option<String> {
     let text = text.trim();
     if text.is_empty() {
         return None;
     }
-    let mut text = text;
-    if text.len() > MESSAGE_CAP_CHARS {
-        let cut = floor_char_boundary(text, MESSAGE_CAP_CHARS);
-        text = &text[..cut];
-    }
-    Some(format!("{role}: {text}"))
+    Some(format!("{role}: {}", truncate_to(text, cap)))
 }
 
 /// Build the compact transcript from a conversation snapshot.
@@ -143,10 +165,17 @@ pub(crate) fn build_transcript(conversation: &[ConversationItem]) -> Option<Stri
                 if u.synthetic_reason.is_some() {
                     continue;
                 }
-                transcript_line("User", &item.text_content())
+                transcript_line("User", &item.text_content(), MESSAGE_CAP_CHARS)
             }
             ConversationItem::Assistant(_) => {
-                let line = transcript_line("Agent", &item.text_content());
+                let cap = if saw_assistant {
+                    MESSAGE_CAP_CHARS
+                } else {
+                    TRANSCRIPT_BUDGET_CHARS
+                        .saturating_sub(used)
+                        .saturating_sub("Agent: ".len())
+                };
+                let line = transcript_line("Agent", &item.text_content(), cap);
                 if line.is_some() {
                     saw_assistant = true;
                 }
@@ -565,6 +594,25 @@ mod tests {
             "long message must be truncated: {}",
             t.len()
         );
+    }
+
+    #[test]
+    fn transcript_does_not_cap_newest_agent() {
+        let long = "c".repeat(10_000);
+        let conv = vec![user("hi"), assistant(&long)];
+        let t = build_transcript(&conv).unwrap();
+        assert!(t.contains(&long));
+    }
+
+    #[test]
+    fn transcript_bounds_newest_agent_by_total_budget_at_a_natural_boundary() {
+        let long = format!("{}\nTAIL", "word ".repeat(TRANSCRIPT_BUDGET_CHARS));
+        let conv = vec![user("hi"), assistant(&long)];
+        let t = build_transcript(&conv).unwrap();
+        assert!(t.starts_with("Agent: "));
+        assert!(t.ends_with("\n…"));
+        assert!(t.len() <= TRANSCRIPT_BUDGET_CHARS);
+        assert!(!t.contains("TAIL"));
     }
 
     #[test]

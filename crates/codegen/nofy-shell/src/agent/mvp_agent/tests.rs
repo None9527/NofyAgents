@@ -464,6 +464,49 @@ fn resolve_agent_definition_agent_profile_with_model_override() {
     }
 }
 #[test]
+#[serial_test::serial]
+fn resolve_agent_definition_config_priority_is_definition_then_name_then_env() {
+    let previous = std::env::var("NOFY_AGENT").ok();
+    unsafe {
+        std::env::set_var("NOFY_AGENT", "browser-use");
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let agents_dir = tmp.path().join(".nofy").join("agents");
+    std::fs::create_dir_all(&agents_dir).unwrap();
+    let definition_path = tmp.path().join("definition.md");
+    std::fs::write(
+        &definition_path,
+        "---\nname: from-definition\ndescription: definition\n---\nDefinition body.\n",
+    )
+    .unwrap();
+    std::fs::write(
+        agents_dir.join("from-name.md"),
+        "---\nname: from-name\ndescription: named\n---\nNamed body.\n",
+    )
+    .unwrap();
+
+    let both = config::AgentSelectionConfig {
+        name: Some("from-name".to_string()),
+        definition: Some(definition_path),
+        system_prompt_label: None,
+    };
+    let resolved = MvpAgent::resolve_agent_definition(tmp.path(), None, &both, None, None);
+    assert_eq!(resolved.name, "from-definition");
+
+    let named = config::AgentSelectionConfig {
+        name: Some("from-name".to_string()),
+        definition: None,
+        system_prompt_label: None,
+    };
+    let resolved = MvpAgent::resolve_agent_definition(tmp.path(), None, &named, None, None);
+    assert_eq!(resolved.name, "from-name");
+
+    match previous {
+        Some(value) => unsafe { std::env::set_var("NOFY_AGENT", value) },
+        None => unsafe { std::env::remove_var("NOFY_AGENT") },
+    }
+}
+#[test]
 fn read_session_or_init_meta_str_prefers_session_meta() {
     let session = serde_json::json!({ "rules": "from-session" });
     let init = serde_json::json!({ "rules": "from-init" });

@@ -716,7 +716,7 @@ impl ReasoningSummary {
 }
 
 /// Reasoning effort level. `None`/`Minimal` are omitted on the Anthropic Messages API.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     None,
@@ -727,6 +727,16 @@ pub enum ReasoningEffort {
     High,
     Xhigh,
     Max,
+}
+
+impl<'de> serde::Deserialize<'de> for ReasoningEffort {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        raw.parse().map_err(serde::de::Error::custom)
+    }
 }
 
 impl ReasoningEffort {
@@ -1224,6 +1234,19 @@ mod tests {
             assert_eq!(back, v, "round-trip {v:?}");
         }
         assert!(serde_json::from_str::<ReasoningEffort>("\"BOGUS\"").is_err());
+    }
+
+    #[test]
+    fn reasoning_effort_deserializes_case_insensitively() {
+        for (raw, expected) in [
+            ("xHigh", ReasoningEffort::Xhigh),
+            ("XHIGH", ReasoningEffort::Xhigh),
+            ("Medium", ReasoningEffort::Medium),
+            ("mAx", ReasoningEffort::Max),
+        ] {
+            let value: ReasoningEffort = serde_json::from_value(json!(raw)).unwrap();
+            assert_eq!(value, expected, "deserialize {raw:?}");
+        }
     }
 
     #[test]

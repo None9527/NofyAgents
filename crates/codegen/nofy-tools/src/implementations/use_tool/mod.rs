@@ -1191,6 +1191,10 @@ mod tests {
     fn schema_allows_arbitrary_properties_for_tool_input() {
         let schema = schemars::schema_for!(UseToolInput);
         let schema_json = serde_json::to_value(&schema).unwrap();
+        assert!(
+            schema_json.get("oneOf").is_none() && schema_json.get("anyOf").is_none(),
+            "use_tool must expose the inline input object directly, got: {schema_json}"
+        );
         let tool_input_schema = &schema_json["properties"]["tool_input"];
         assert_eq!(
             tool_input_schema["type"], "object",

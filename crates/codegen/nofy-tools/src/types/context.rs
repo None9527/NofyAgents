@@ -3,13 +3,12 @@ use std::collections::HashMap;
 const MAX_LINES_READ_DEFAULT: usize = 1_000;
 
 /// Client-configurable truncation settings.
-/// All fields are optional — `None` means "use the tool's built-in default".
+/// Scalar fields are optional — `None` means "use the tool's built-in default".
 ///
 /// There is deliberately no per-line cap: clipping long lines silently
 /// corrupts single-line files (minified JSON, data dumps) with no way for
-/// the model to recover the clipped bytes. Non-skill reads are bounded by
-/// the whole-read `MAX_NUM_TOKENS` cap instead (skill files are exempt from
-/// all read limits by design). Other agent CLIs likewise apply no
+/// the model to recover the clipped bytes. Reads are bounded by the
+/// whole-read `MAX_NUM_TOKENS` cap instead. Other agent CLIs likewise apply no
 /// per-line cap. The wire field (`TruncationConfig.max_chars_per_line` in
 /// nofy-tools.proto) is deprecated and ignored.
 #[derive(Debug, Clone, Default)]
@@ -27,6 +26,24 @@ pub struct TruncationConfig {
     /// `[mcp] max_output_bytes`) never changes non-MCP readers like the
     /// opencode bash cap.
     pub mcp_max_output_bytes: Option<usize>,
+    pub whole_read: WholeReadPolicy,
+}
+
+/// Which files `read_file` returns whole under the token cap.
+/// A disabled class is read like a regular file and honors offset/limit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WholeReadPolicy {
+    pub skill_markdown: bool,
+    pub instruction_files: bool,
+}
+
+impl Default for WholeReadPolicy {
+    fn default() -> Self {
+        Self {
+            skill_markdown: true,
+            instruction_files: true,
+        }
+    }
 }
 
 impl TruncationConfig {
