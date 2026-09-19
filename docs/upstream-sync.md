@@ -871,3 +871,18 @@ message was sent as interject, queued, or steer」),按「UX 先跳过」需先�
 hooks/trust/permission/wrap 测试全绿。`cargo check --workspace --all-targets` exit 0，`git diff --check` 通过。
 GitNexus `detect-changes` = 24 文件 / 133 符号 / 1 执行流 / risk medium，唯一流程为
 `Spawn_session_actor → Managed_settings`。整树 `cargo fmt --all -- --check` 仍被历史格式差异阻断；本批触及文件已单独 rustfmt。
+
+### 批31 原生实现日志（1.0.37–1.0.38，2026-09-20）
+
+| 上游项 | 落地结论 | 提交 | 验证 |
+|---|---|---|---|
+| `/context` 百分比合计 100% | 新增 `window_tokens` 单一分区：used/system/messages 逐级封顶，overhead 取已用余量，free 从总窗口余量派生；图例标明 system 已计入上项，显示层不再把估算值当成互斥百分比直接相加 | `615c6019` | 超量 messages 红绿回归 + 分区性质测试；context 38/38 |
+| `/model` effort 默认推荐档 | `ModelState` 按 live current effort → catalog recommended → option default 的优先级解析；`SlashController` 仅在 model effort 新阶段且无用户过滤词时采用推荐，原有 carry selection 继续优先。因 `SlashCommand` trait impact 为 CRITICAL（66 个实现者），没有扩张公共 trait | `615c6019` | model state 16/16、slash 78/78；输入过滤词与已有选择均不抢焦点 |
+| 子代理 overlay 不再卡 `Cancelling` | durable `TurnCompleted` 与 legacy `prompt_complete` 汇入 `finalize_child_view_turn`；匹配 prompt 才收口，清 tracker/running rows/reconcile/cancel-resend，按 completed/cancelled/error 写唯一终止 marker；后到 `SubagentFinished` 不重复 marker，replay 被拒绝 | `615c6019` | cancel/error/end_turn/duplicate/replay + legacy 共 6 个新回归；turn completion 64/64 |
+
+批级验证：`nofy-pager` 全量 8,065 passed / 8 failed / 6 ignored；8 个失败与批前基线逐项相同
+（CTA fixture、TOML→JSON 迁移断言、macOS `/tmp` 路径别名、memory 前置条件、平台快捷键文案）。
+`nofy-pager-render` 为 1,052 passed / 1 failed / 2 ignored，唯一失败是既有 tmux 近截止时间竞态，
+同一测试立即单独重跑通过。`cargo check --workspace --all-targets` exit 0，`git diff --check` 通过。
+GitNexus `detect-changes` = 11 文件 / 51 符号 / 3 执行流 / risk medium；三条流程都从
+`handle_session_notification_with_origin` 到现有 agent 查找/活跃判定，未出现计划外子系统。

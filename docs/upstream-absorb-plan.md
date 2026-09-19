@@ -1692,6 +1692,12 @@ inline-only，则登记“已对齐”并关闭该项，不搬上游的文件输
 
 ### 15.4 批31：模型、上下文与子代理收口（P1，3 项）
 
+> ✅ **批31 已落地（2026-09-20）**：提交 `615c6019`。`/context` 先把 system/messages/overhead/free
+> 归一为同一窗口分区，超量估算被封顶且 free 由余量派生；`/model` 只在进入 effort 阶段且用户尚未输入过滤词时
+> 选中 live/catalog/default 推荐档，已有菜单选择继续优先；子会话 durable/legacy terminal 共用唯一收口函数，
+> cancel、error、正常完成和重复通知均幂等退出 `Cancelling`，replay 不会误杀活跃轮次。
+> 未修改 blast radius 为 CRITICAL 的 `SlashCommand` trait，而在 `SlashController` 内做 model-only 预选。
+
 | 项 | 原生落点 | 必须钉住的验收 |
 |---|---|---|
 | `/context` 百分比合计 100% | token 分类引入/复用 `window_tokens`，显示层按同一分母与余量核算 | 常规、压缩后、工具占比高三组 golden 的各项之和恒为 100%；“已计入上项”不重复入账 |
@@ -1699,6 +1705,11 @@ inline-only，则登记“已对齐”并关闭该项，不搬上游的文件输
 | 子代理 overlay 不再卡 `Cancelling` | child turn terminal signal统一走 `turn_completion` 唯一出口，清理 overlay/agent state | cancel→child completed、cancel→child errored、重复 terminal 通知三条路径均最终关闭；幂等且不提前显示成功 |
 
 验证：`nofy-pager` 单元/渲染测试、subagent ACP handler 测试、对应 PTY scenario；再跑 pager 全量。
+
+实测：context 38/38、model state 16/16、slash 78/78、turn completion 64/64；pager 全量
+8,065 passed / 8 failed / 6 ignored，失败清单与批前基线完全一致。pager-render 全量唯一一次近截止时间
+tmux probe 超时，单测重跑通过；workspace all-targets exit 0。当前 PTY harness 没有可注入 child-session
+durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口测试覆盖，没有伪造一个只测 UI 文案的 PTY 场景。
 
 ### 15.5 批32：Dashboard 与图片编辑状态（P1，4 项）
 
