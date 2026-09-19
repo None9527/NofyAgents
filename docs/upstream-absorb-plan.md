@@ -1410,7 +1410,7 @@ pager 家族 157 文件（A8，用户指示）、telemetry 7、shell `feedback*`
 `fast-worktree` grove/nfs 6 + `e2e_grove_worktree.rs`、`tool-types/web_search.rs`、
 1.0.33#15（Windows `grok clone`：无 clone 表面且不发 Windows 构建）、1.0.33#5/#11/#12/#14（dock/minimal/footer UX）、
 1.0.34#1（主题色渲染）、1.0.35#5/#6（minimal 复制粘贴、`/memory` 模态 UX）、
-1.0.35#2（疑 workspace-daemon 云面，**需确认后正式登记**，别默认跳过）。
+1.0.35#2（ACP `tool_call` 映射，**已落地**：`MCPTool`/`SearchTool` 带 query/results/args/output）。
 > `tool-protocol` 的 `frames.rs`/`lib.rs` 被上面的路径关键词一起算进了云面（27 个里的 2 个），
 > 它们是协议管线不是 BotRelay 生成物，**归云面这一步是关键词判的，需单独看**。
 

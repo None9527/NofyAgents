@@ -12,7 +12,7 @@
 | 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb)。**自 1.0.11 起不再按版本整体同步**:批24 只做预检对账(对照 1.0.24@37949780),批25 改为「以 1.0.32@48271133 为参照、逐条原生实现」(①–㉕,见下方「批25 原生实现日志」) |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780,**2026-09-18 fetch 到 upstream/main=1.0.35@a28ee2b2**)。上游对照 worktree `/Users/mac/nofy-upstream` **已 detached 到 `a28ee2b2` 并重建索引(2026-09-18 16:31,134,329 nodes/327,031 edges/7,544 clusters)**;本仓库索引同步重建到 `79002da`(203,385 nodes/430,338 edges)。双索引对账法可用,查询纪律(必须传 `-r <绝对路径>`)见计划 §14.0 |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
-| 剩余缺口 | **内核（除 Memory v2）已吸收到上游 1.0.35@a28ee2b2**（2026-09-19 14.8，㊱–㊸）。有意留下的：Memory v2、云/登录、TOML 写回、MCP `V_2026_07_28`、headless `--worktree`、`grok-workspaced`、pager UX、1.0.33#1 / 1.0.35#2。历史分段仍见批24 缺口清单、计划 §8、下方增量摸底。 |
+| 剩余缺口 | **内核（除 Memory v2）已吸收到上游 1.0.35@a28ee2b2**（2026-09-19 14.8，㊱–㊸；2026-09-20 补 1.0.33#3/#13 与 1.0.35#2）。有意留下的：Memory v2、云/登录、TOML 写回、MCP `V_2026_07_28`、headless `--worktree`、`grok-workspaced`、pager UX。历史分段仍见批24 缺口清单、计划 §8、下方增量摸底。 |
 
 ## 标准流程(每批)
 
@@ -431,7 +431,7 @@ B(登记分歧)仅用于想法对我们无价值或与我们架构冲突时,C(�
 | ㊷ | Swift.sublime-syntax last-wins | build.rs 追加；`patched_swift` 倒序 `.swift` | `b56c48be` | `syntax_set_is_shared_and_survives_the_dump_round_trip`（dump = two-face + 1） |
 | ㊸ | 配置外链 referent 监视 + retarget | `FollowDestWatch` 盯 live `config.json` dest parent | `b56c48be` | linux 两靶；macOS 监视 flaky 未跑 |
 
-**有意跳过**：Memory v2；云/登录/GCS；TOML 写；MCP `V_2026_07_28`；`--worktree`；`grok-workspaced`；pager UX；1.0.33#1 / 1.0.35#2。GitNexus MCP 本轮不可用，索引陈旧；验证靠 cargo check + 靶子测试，不以 impact 空集当通过。
+**有意跳过**：Memory v2；云/登录/GCS；TOML 写；MCP `V_2026_07_28`；`--worktree`；`grok-workspaced`；pager UX。1.0.33#1 粘贴错图**已对齐**（`ProbeDropped`+changeCount）。1.0.33#3/#13 与 1.0.35#2 **已落地**（权限卡空 `{}` + ACP `MCPTool`/`SearchTool` 映射）。GitNexus MCP 本轮不可用，索引陈旧；验证靠 cargo check + 靶子测试，不以 impact 空集当通过。
 
 > **㉗ 顺带推翻本台账上方 C3 行的一处判断(证据是依赖图,不是推断)**:C3② 的「fancy→onig」
 > **不需要拍板,因为我们本来就在 onig**。`cargo tree -p nofy-markdown` 实测:
@@ -508,7 +508,7 @@ computer-hub-core/shared/pager-diff/config/chat-state/agent 各 1。shell 那 30
 |---|---|---|---|
 | 1.0.33#1 | macOS 粘贴图片可能附错图 | 待核实 | 与 ⑨ 图像分类同区;需定位是 pager 剪贴板面还是内核 |
 | 1.0.33#2 | MCP 工具结果带 structured JSON | **候选(内核)** | C5 |
-| 1.0.33#3 | 直接列出的 MCP 工具调用显示名/参数/错误 | 待核实(偏渲染) | C5 |
+| 1.0.33#3 | 直接列出的 MCP 工具调用显示名/参数/错误 | **已落地** | `tool_call_to_block` 认 `MCPTool` 与 `UseTool` 同路；`directly_listed_mcp_tool_renders_like_a_use_tool_call` |
 | 1.0.33#4 | 父会话关闭时后台子代理任务正确显示 cancelled | **已对齐** | `cancelled_orphan_finish` 发 `status: "cancelled"`;pager `SubagentFinished` `"cancelled"` → `SubagentBlock::cancelled`;`tests/subagents.rs` 已钉。不跟 `isolated_spawn_e2e.rs` |
 | 1.0.33#5 | Subagents dock 不再显示不可点的 "Done N completed" | 跳过 | dock = UX(A8) |
 | 1.0.33#6 | 取消/超时的 MCP 调用通知 server 停止 | **候选(内核,协议正确性)** | C5 |
@@ -518,12 +518,12 @@ computer-hub-core/shared/pager-diff/config/chat-state/agent 各 1。shell 那 30
 | 1.0.33#10 | 计划任务/monitor/workflow 仍在跑时不再出现 auto "where was I" recap | **已落地 ㉜** | `cli_is_idle_for_recap` 抑制 monitor/scheduled/workflow/wake/active goal |
 | 1.0.33#11 | minimal 模式确认 /delete、/exit 立即开新空会话 | 跳过 | pager-minimal UX(A8) |
 | 1.0.33#12 | minimal 模式 /new 后 resume 正确重载历史 | 跳过 | 同上。`slash_exec.rs` +47/−198 **疑为**其落点(推测,未读实现) |
-| 1.0.33#13 | 无参 MCP 工具在权限卡里不再多出 `{}` 行 | 待核实(偏渲染) | C5;权限卡文案生成侧可能在内核 |
+| 1.0.33#13 | 无参 MCP 工具在权限卡里不再多出 `{}` 行 | **已落地** | `mcp_args_lines` 空 object/array 不渲染；`mcp_args_lines_empty_for_missing_null_or_empty_input` |
 | 1.0.33#14 | Composer footer 显示 Alt+Enter 换行提示 | 跳过 | UX(A8) |
 | 1.0.33#15 | Windows 上 `grok clone` 遇 git config 反斜杠/引号不再失败 | 跳过 | 无 clone 表面 + 不发 Windows 构建(批23 已定) |
 | 1.0.34#1 | Markdown 标题正确获得主题色 | 跳过 | 主题/渲染(A8)。注意 `nofy-markdown` 本轮确被改,但改的是 C3 的高亮后端,不是主题色 |
 | 1.0.35#1 | headless MCP 状态报告与 connecting 提示对齐真实握手状态 | **跳过** | C5#1;缠批15 托管连接器分歧,14.5 队列关闭 |
-| 1.0.35#2 | daemon 路径上 MCP 工具搜索/调用渲染 query/results/args/output | 待核实(疑云面) | 上游 "daemon path" 指 workspace-daemon(Computer Hub 文件夹暴露面,§9.1 已归云);我们有自有 `nofy-daemon`,**不可直接对号** |
+| 1.0.35#2 | daemon 路径上 MCP 工具搜索/调用渲染 query/results/args/output | **已落地**(ACP 映射,非 Computer Hub) | `MCPTool`→UseTool 带 args/error；失败 SearchTool 用 `raw_output.content` 当 error。`a_failed_tool_search_shows_its_output_text_as_the_error` |
 | 1.0.35#3 | Swift 字符串插值(嵌套括号)在 TUI 正确高亮 | 可选低成本 | 实体是新资产 `assets/Swift.sublime-syntax`(+417),随 C3① 的构建期 dump 一起进来才有意义 |
 | 1.0.35#4 | 语法高亮内存大降、大文件更快 | **候选(A5 性能)** | C3(① 零新依赖 / ② onig 需拍板) |
 | 1.0.35#5 | `--minimal` 复制粘贴不再插入多余空行/在折行处断长路径 | 跳过 | pager-minimal UX(A8) |
