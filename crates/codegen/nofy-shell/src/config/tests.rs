@@ -458,6 +458,130 @@ max_chunk_chars = 3200
         assert!(mem.pruning.enabled);
     });
 }
+
+#[test]
+fn unified_memory_config_defaults_keep_user_control_separate_from_rollout() {
+    without_nofy_memory(|| {
+        let config = toml::Value::Table(toml::map::Map::new());
+        let mem = MemoryConfig::resolve(false, false, &config);
+        assert!(mem.automatic_learning_enabled);
+        assert!(mem.personal_enabled);
+        assert!(mem.project_enabled);
+        assert_eq!(
+            mem.capture.rollout,
+            MemoryCaptureRollout::RecordOnly,
+            "internal rollout is not the user auto-learning switch"
+        );
+        assert!(!mem.automatic_learning_active());
+        assert!(
+            mem.automatic_excluded_sensitive_categories
+                .contains(&MemorySensitiveCategory::Credentials)
+        );
+    });
+}
+
+#[test]
+fn memory_master_switch_and_auto_learning_override_internal_rollout() {
+    without_nofy_memory(|| {
+        let disabled: toml::Value = toml::from_str(
+            r#"
+[memory]
+enabled = false
+automatic_learning_enabled = true
+
+[memory.capture]
+rollout = "active"
+"#,
+        )
+        .unwrap();
+        let mem = MemoryConfig::try_resolve(false, false, &disabled).unwrap();
+        assert!(!mem.automatic_learning_active());
+        assert!(!mem.automatic_consolidation_active());
+
+        let auto_off: toml::Value = toml::from_str(
+            r#"
+[memory]
+enabled = true
+automatic_learning_enabled = false
+
+[memory.capture]
+rollout = "active"
+"#,
+        )
+        .unwrap();
+        let mem = MemoryConfig::try_resolve(false, false, &auto_off).unwrap();
+        assert!(mem.enabled);
+        assert!(!mem.automatic_learning_active());
+        assert!(!mem.automatic_consolidation_active());
+        assert!(mem.personal_enabled);
+        assert!(mem.project_enabled);
+    });
+}
+
+#[test]
+fn unified_memory_config_parses_user_and_internal_settings() {
+    without_nofy_memory(|| {
+        let config: toml::Value = toml::from_str(
+            r#"
+[memory]
+enabled = true
+automatic_learning_enabled = true
+personal_enabled = true
+project_enabled = false
+automatic_excluded_sensitive_categories = ["credentials", "health"]
+
+[memory.capture]
+rollout = "shadow"
+lease_secs = 90
+max_retries = 4
+enqueue_timeout_ms = 40
+
+[memory.consolidation]
+enabled = true
+lease_secs = 600
+batch_size = 32
+
+[memory.retention]
+observation_archive_days = 120
+tombstone_days = 45
+legacy_backup_days = 5
+
+[memory.migration]
+backup_enabled = true
+require_credential_store = true
+"#,
+        )
+        .unwrap();
+        let mem = MemoryConfig::try_resolve(false, false, &config).unwrap();
+        assert_eq!(mem.capture.rollout, MemoryCaptureRollout::Shadow);
+        assert_eq!(mem.capture.lease_secs, 90);
+        assert!(!mem.project_enabled);
+        assert_eq!(mem.consolidation.batch_size, 32);
+        assert_eq!(mem.retention.legacy_backup_days, 5);
+        assert_eq!(mem.automatic_excluded_sensitive_categories.len(), 2);
+    });
+}
+
+#[test]
+fn invalid_unified_memory_config_is_explicitly_rejected() {
+    without_nofy_memory(|| {
+        let invalid_lease: toml::Value =
+            toml::from_str("[memory.capture]\nlease_secs = 0\n").unwrap();
+        assert!(MemoryConfig::try_resolve(false, false, &invalid_lease).is_err());
+
+        let invalid_retries: toml::Value =
+            toml::from_str("[memory.capture]\nmax_retries = 99\n").unwrap();
+        assert!(MemoryConfig::try_resolve(false, false, &invalid_retries).is_err());
+
+        let invalid_budget: toml::Value =
+            toml::from_str("[memory.budget]\nenabled = true\nuser_chars = 0\n").unwrap();
+        assert!(MemoryConfig::try_resolve(false, false, &invalid_budget).is_err());
+
+        let legacy_runtime_field: toml::Value =
+            toml::from_str("[memory]\nflat_memory_root = true\n").unwrap();
+        assert!(MemoryConfig::try_resolve(false, false, &legacy_runtime_field).is_err());
+    });
+}
 #[test]
 fn flush_semantic_dedup_threshold_defaults_to_none() {
     without_nofy_memory(|| {

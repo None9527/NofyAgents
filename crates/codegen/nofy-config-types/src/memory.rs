@@ -289,6 +289,154 @@ impl Default for MemoryBudgetConfig {
     }
 }
 
+/// Internal rollout stage for automatic memory capture.
+///
+/// This is deliberately separate from the user-facing automatic-learning
+/// switch: rollout controls implementation exposure, never user consent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MemoryCaptureRollout {
+    Off,
+    RecordOnly,
+    Shadow,
+    Active,
+}
+
+impl Default for MemoryCaptureRollout {
+    fn default() -> Self {
+        Self::RecordOnly
+    }
+}
+
+/// Categories excluded from automatic learning by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MemorySensitiveCategory {
+    Credentials,
+    Financial,
+    Health,
+    Identity,
+    Location,
+}
+
+/// Durable capture queue settings (`[memory.capture]`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MemoryCaptureConfig {
+    pub rollout: MemoryCaptureRollout,
+    pub lease_secs: u64,
+    pub max_retries: u32,
+    pub enqueue_timeout_ms: u64,
+}
+
+impl Default for MemoryCaptureConfig {
+    fn default() -> Self {
+        Self {
+            rollout: MemoryCaptureRollout::RecordOnly,
+            lease_secs: 60,
+            max_retries: 3,
+            enqueue_timeout_ms: 20,
+        }
+    }
+}
+
+impl MemoryCaptureConfig {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.lease_secs == 0 {
+            return Err("memory.capture.lease_secs must be greater than zero");
+        }
+        if self.max_retries > 10 {
+            return Err("memory.capture.max_retries must be at most 10");
+        }
+        if !(1..=5_000).contains(&self.enqueue_timeout_ms) {
+            return Err("memory.capture.enqueue_timeout_ms must be between 1 and 5000");
+        }
+        Ok(())
+    }
+}
+
+/// Background observation consolidation settings (`[memory.consolidation]`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MemoryConsolidationConfig {
+    pub enabled: bool,
+    pub lease_secs: u64,
+    pub batch_size: usize,
+}
+
+impl Default for MemoryConsolidationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            lease_secs: 300,
+            batch_size: 64,
+        }
+    }
+}
+
+impl MemoryConsolidationConfig {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.lease_secs == 0 {
+            return Err("memory.consolidation.lease_secs must be greater than zero");
+        }
+        if !(1..=1_000).contains(&self.batch_size) {
+            return Err("memory.consolidation.batch_size must be between 1 and 1000");
+        }
+        Ok(())
+    }
+}
+
+/// Retention windows for unified-memory records (`[memory.retention]`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MemoryRetentionConfig {
+    pub observation_archive_days: u32,
+    pub tombstone_days: u32,
+    pub legacy_backup_days: u32,
+}
+
+impl Default for MemoryRetentionConfig {
+    fn default() -> Self {
+        Self {
+            observation_archive_days: 90,
+            tombstone_days: 30,
+            legacy_backup_days: 7,
+        }
+    }
+}
+
+impl MemoryRetentionConfig {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.observation_archive_days == 0 {
+            return Err("memory.retention.observation_archive_days must be greater than zero");
+        }
+        if self.tombstone_days == 0 {
+            return Err("memory.retention.tombstone_days must be greater than zero");
+        }
+        if self.legacy_backup_days > 30 {
+            return Err("memory.retention.legacy_backup_days must be at most 30");
+        }
+        Ok(())
+    }
+}
+
+/// One-time migration safety settings (`[memory.migration]`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MemoryMigrationConfig {
+    pub backup_enabled: bool,
+    pub require_credential_store: bool,
+}
+
+impl Default for MemoryMigrationConfig {
+    fn default() -> Self {
+        Self {
+            backup_enabled: true,
+            require_credential_store: true,
+        }
+    }
+}
+
 /// autoDream consolidation configuration (`[memory.dream]`).
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(default)]

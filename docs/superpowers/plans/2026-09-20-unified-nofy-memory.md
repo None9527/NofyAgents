@@ -295,14 +295,14 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `crates/codegen/nofy-shell/src/config/tests.rs`
 - Modify: `crates/codegen/nofy-pager/docs/user-guide/13-memory.md`
 
-- [ ] 保留现有 search、embedding、budget、watcher、GC 配置并迁入统一 `MemoryConfig`。
-- [ ] 用户配置只暴露 `memory_enabled`、`automatic_learning_enabled`、允许写入的 Personal/Project 范围和 `automatic_excluded_sensitive_categories`；类别至少覆盖 credentials、financial、health、identity、location。
-- [ ] 新增内部 `capture`、`consolidation`、`retention`、`migration` 子配置；rollout 默认 `RecordOnly`，但不进入普通设置界面，也没有 implementation selector。
-- [ ] 强制优先级：`memory_enabled = false` 覆盖所有内部 rollout；`automatic_learning_enabled = false` 禁止 capture/consolidation 但不禁止显式 remember/revise/forget。
-- [ ] 删除 flush/pruning 的 serde 跳过字段和任何旧版根目录 override。
-- [ ] 配置解析测试覆盖默认值、非法 lease/retry、跨字段预算约束和旧字段的明确报错。
-- [ ] 运行：`cargo test -p nofy-config-types memory`、`cargo test -p nofy-shell config::tests`。
-- [ ] Commit: `重构(memory): 收敛单一配置入口`
+- [x] 保留现有 search、embedding、budget、watcher、GC 配置并迁入统一 `MemoryConfig`。
+- [x] 用户配置只暴露 `memory_enabled`、`automatic_learning_enabled`、允许写入的 Personal/Project 范围和 `automatic_excluded_sensitive_categories`；类别至少覆盖 credentials、financial、health、identity、location。
+- [x] 新增内部 `capture`、`consolidation`、`retention`、`migration` 子配置；rollout 默认 `RecordOnly`，但不进入普通设置界面，也没有 implementation selector。
+- [x] 强制优先级：`memory_enabled = false` 覆盖所有内部 rollout；`automatic_learning_enabled = false` 禁止 capture/consolidation 但不禁止显式 remember/revise/forget。
+- [ ] 删除 flush/pruning 的 serde 跳过字段和任何旧版根目录 override。（保留为过渡期运行时兼容垫片；在最终硬切换任务中随旧存储调用点一起删除，且配置文件已明确拒绝这些字段。）
+- [x] 配置解析测试覆盖默认值、非法 lease/retry、跨字段预算约束和旧字段的明确报错。
+- [x] 运行：`cargo test -p nofy-config-types memory`、`cargo test -p nofy-shell config::tests`。（记忆相关测试通过；4 个未改动的 plugin CTA 文件测试保持基线失败。）
+- [x] Commit: `重构(memory): 收敛单一配置入口`
 
 ### Task 3: 建立原子文件层与状态账本
 

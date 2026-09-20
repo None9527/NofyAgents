@@ -38,7 +38,29 @@ nofy
 # ~/.nofy/config.toml
 [memory]
 enabled = true
+automatic_learning_enabled = true
+personal_enabled = true
+project_enabled = true
+automatic_excluded_sensitive_categories = [
+  "credentials",
+  "financial",
+  "health",
+  "identity",
+  "location",
+]
 ```
+
+`enabled` is the master switch. `automatic_learning_enabled` controls only
+background learning; turning it off does not prevent an explicit request to
+remember, revise, or forget something. `personal_enabled` controls the
+cross-project **About me** scope, while `project_enabled` controls the
+**Current project** scope. Automatic learning excludes all five sensitive
+categories above by default.
+
+Capture rollout, consolidation leases, retention windows, and migration
+safety settings are internal operational controls. They are intentionally not
+user-selectable memory implementations and never override the master or
+automatic-learning switches.
 
 ### Force-Disable
 

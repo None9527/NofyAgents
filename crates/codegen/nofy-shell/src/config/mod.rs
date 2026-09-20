@@ -1,13 +1,15 @@
 pub mod reloader;
 pub mod watcher;
 use crate::bundle;
-use serde::Deserialize;
 pub use nofy_config_types::{
-    DEFAULT_RECENCY_DECAY, MemoryBudgetConfig, MemoryDreamConfig, MemoryEmbeddingConfig,
-    MemoryFlushConfig, MemoryGcConfig, MemoryIndexConfig, MemoryInitialInjectionConfig,
-    MemorySearchConfig, MemorySessionConfig, MemoryWatcherConfig, MmrConfig, PruningConfig,
-    TemporalDecayConfig,
+    DEFAULT_RECENCY_DECAY, MemoryBudgetConfig, MemoryCaptureConfig, MemoryCaptureRollout,
+    MemoryConsolidationConfig, MemoryDreamConfig, MemoryEmbeddingConfig, MemoryFlushConfig,
+    MemoryGcConfig, MemoryIndexConfig, MemoryInitialInjectionConfig, MemoryMigrationConfig,
+    MemoryRetentionConfig, MemorySearchConfig, MemorySensitiveCategory, MemorySessionConfig,
+    MemoryWatcherConfig, MmrConfig, PruningConfig, TemporalDecayConfig,
 };
+use serde::Deserialize;
+use std::collections::BTreeSet;
 /// Full configuration for the memory system.
 ///
 /// Parsed from the `[memory]` section of `~/.nofy/config.toml` or
@@ -18,11 +20,27 @@ pub use nofy_config_types::{
 /// All sub-configs are pre-populated with production-ready defaults so that
 /// later PRs (indexing, search, flush, pruning) can read them without any
 /// config migration.
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct MemoryConfig {
     /// Whether memory is enabled for this session.
     pub enabled: bool,
+    /// User consent switch for automatic learning.
+    pub automatic_learning_enabled: bool,
+    /// Whether the personal ("About me") scope is available.
+    pub personal_enabled: bool,
+    /// Whether the current-project scope is available.
+    pub project_enabled: bool,
+    /// Sensitive categories that automatic capture must never learn.
+    pub automatic_excluded_sensitive_categories: BTreeSet<MemorySensitiveCategory>,
+    /// Durable automatic-capture settings.
+    pub capture: MemoryCaptureConfig,
+    /// Observation consolidation settings.
+    pub consolidation: MemoryConsolidationConfig,
+    /// Retention windows for records and migration backups.
+    pub retention: MemoryRetentionConfig,
+    /// One-time migration safety settings.
+    pub migration: MemoryMigrationConfig,
     /// Index / chunking settings.
     pub index: MemoryIndexConfig,
     /// Embedding provider settings.
@@ -61,6 +79,44 @@ pub struct MemoryConfig {
     #[serde(skip)]
     pub flat_memory_root: bool,
 }
+
+impl Default for MemoryConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            automatic_learning_enabled: true,
+            personal_enabled: true,
+            project_enabled: true,
+            automatic_excluded_sensitive_categories: [
+                MemorySensitiveCategory::Credentials,
+                MemorySensitiveCategory::Financial,
+                MemorySensitiveCategory::Health,
+                MemorySensitiveCategory::Identity,
+                MemorySensitiveCategory::Location,
+            ]
+            .into_iter()
+            .collect(),
+            capture: MemoryCaptureConfig::default(),
+            consolidation: MemoryConsolidationConfig::default(),
+            retention: MemoryRetentionConfig::default(),
+            migration: MemoryMigrationConfig::default(),
+            index: MemoryIndexConfig::default(),
+            embedding: MemoryEmbeddingConfig::default(),
+            search: MemorySearchConfig::default(),
+            initial_injection: MemoryInitialInjectionConfig::default(),
+            session: MemorySessionConfig::default(),
+            budget: MemoryBudgetConfig::default(),
+            watcher: MemoryWatcherConfig::default(),
+            gc: MemoryGcConfig::default(),
+            dream: MemoryDreamConfig::default(),
+            flush: MemoryFlushConfig::default(),
+            pruning: PruningConfig::default(),
+            root_dir_override: None,
+            flat_memory_root: false,
+        }
+    }
+}
+
 impl MemoryConfig {
     /// Resolve the final memory config from all sources (in priority order):
     /// 1. CLI flag `--no-memory` (absolute highest — always disables, overrides all)
@@ -68,20 +124,48 @@ impl MemoryConfig {
     /// 3. `NOFY_MEMORY` env var: `1`/`true` enables, `0`/`false` force-disables
     /// 4. Config file `[memory]` / `[compaction]` sections
     pub fn resolve(experimental_memory: bool, no_memory: bool, config: &toml::Value) -> Self {
-        let mut result: Self = config
-            .get("memory")
-            .and_then(|v| v.clone().try_into().ok())
-            .unwrap_or_default();
-        if let Some(compaction) = config.get("compaction") {
-            if let Some(flush) = compaction.get("memory_flush")
-                && let Ok(f) = flush.clone().try_into()
-            {
-                result.flush = f;
+        match Self::try_resolve(experimental_memory, no_memory, config) {
+            Ok(result) => result,
+            Err(error) => {
+                tracing::warn!(%error, "invalid memory configuration; memory disabled");
+                Self::default()
             }
-            if let Some(pruning) = compaction.get("pruning")
-                && let Ok(p) = pruning.clone().try_into()
-            {
-                result.pruning = p;
+        }
+    }
+
+    /// Strict resolver used by settings validation and tests.
+    pub fn try_resolve(
+        experimental_memory: bool,
+        no_memory: bool,
+        config: &toml::Value,
+    ) -> Result<Self, String> {
+        if let Some(memory) = config.get("memory").and_then(toml::Value::as_table) {
+            for runtime_only in ["root_dir_override", "flat_memory_root", "flush", "pruning"] {
+                if memory.contains_key(runtime_only) {
+                    return Err(format!(
+                        "memory.{runtime_only} is runtime-only and cannot be set in config.toml"
+                    ));
+                }
+            }
+        }
+
+        let mut result: Self = match config.get("memory") {
+            Some(value) => value
+                .clone()
+                .try_into()
+                .map_err(|error| format!("invalid [memory] configuration: {error}"))?,
+            None => Self::default(),
+        };
+        if let Some(compaction) = config.get("compaction") {
+            if let Some(flush) = compaction.get("memory_flush") {
+                result.flush = flush.clone().try_into().map_err(|error| {
+                    format!("invalid [compaction.memory_flush] configuration: {error}")
+                })?;
+            }
+            if let Some(pruning) = compaction.get("pruning") {
+                result.pruning = pruning.clone().try_into().map_err(|error| {
+                    format!("invalid [compaction.pruning] configuration: {error}")
+                })?;
             }
         }
         let resolved = crate::agent::config::resolve_enabled(
@@ -99,7 +183,38 @@ impl MemoryConfig {
         if no_memory {
             result.enabled = false;
         }
-        result
+        result.validate()?;
+        Ok(result)
+    }
+
+    /// True only when both user consent and the internal rollout permit
+    /// automatic capture. Explicit user memory actions are handled separately.
+    pub fn automatic_learning_active(&self) -> bool {
+        self.enabled
+            && self.automatic_learning_enabled
+            && self.capture.rollout == MemoryCaptureRollout::Active
+    }
+
+    /// Consolidation follows the same consent and rollout gate as capture.
+    pub fn automatic_consolidation_active(&self) -> bool {
+        self.automatic_learning_active() && self.consolidation.enabled
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        self.capture.validate().map_err(str::to_owned)?;
+        self.consolidation.validate().map_err(str::to_owned)?;
+        self.retention.validate().map_err(str::to_owned)?;
+        if self.budget.enabled
+            && (self.budget.workspace_chars == 0
+                || self.budget.global_chars == 0
+                || self.budget.user_chars == 0)
+        {
+            return Err("enabled memory budgets must all be greater than zero".to_owned());
+        }
+        if self.automatic_learning_enabled && !self.personal_enabled && !self.project_enabled {
+            return Err("automatic learning requires at least one enabled memory scope".to_owned());
+        }
+        Ok(())
     }
 }
 /// Configuration for subagent (task tool) support.
