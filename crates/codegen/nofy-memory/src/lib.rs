@@ -24,6 +24,7 @@
 
 pub mod backend;
 pub mod atomic_file;
+pub mod access;
 pub mod chunker;
 pub mod dream;
 pub mod dream_lock;

@@ -60,6 +60,10 @@ impl ScopeLayout {
         self.root.join("state.sqlite")
     }
 
+    pub fn manifest_file(&self) -> PathBuf {
+        self.root.join("manifest.json")
+    }
+
     pub fn observations_directory(&self) -> PathBuf {
         self.root.join("observations")
     }

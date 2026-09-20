@@ -385,6 +385,141 @@ impl UnifiedState {
             .transpose()
     }
 
+    pub fn complete_topic_change(
+        &self,
+        operation_id: OperationId,
+        topic_path: &str,
+        previous_hash: Option<&str>,
+        next_hash: Option<&str>,
+        now: i64,
+    ) -> Result<(), StateError> {
+        let transaction = self.scope.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO topic_changes
+             (operation_id, topic_id, previous_hash, next_hash, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                operation_id.as_uuid().to_string(),
+                topic_path,
+                previous_hash,
+                next_hash,
+                now
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE operations SET phase = 'completed', updated_at = ?2 WHERE id = ?1",
+            params![operation_id.as_uuid().to_string(), now],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn complete_topic_rename(
+        &self,
+        operation_id: OperationId,
+        previous_path: &Path,
+        next_path: &Path,
+        content_hash: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        let previous = previous_path.to_string_lossy();
+        let next = next_path.to_string_lossy();
+        let transaction = self.scope.unchecked_transaction()?;
+        let changed = transaction.execute(
+            "UPDATE files SET path = ?2, updated_at = ?3 WHERE path = ?1",
+            params![previous.as_ref(), next.as_ref(), now],
+        )?;
+        if changed == 0 {
+            transaction.execute(
+                "INSERT INTO files
+                 (id, path, kind, content_hash, immutable, created_at, updated_at)
+                 VALUES (?1, ?2, 'topic', ?3, 0, ?4, ?4)",
+                params![
+                    operation_id.as_uuid().to_string(),
+                    next.as_ref(),
+                    content_hash,
+                    now
+                ],
+            )?;
+        }
+        transaction.execute(
+            "INSERT INTO topic_changes
+             (operation_id, topic_id, previous_hash, next_hash, created_at)
+             VALUES (?1, ?2, ?3, ?3, ?4)",
+            params![
+                operation_id.as_uuid().to_string(),
+                next.as_ref(),
+                content_hash,
+                now
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE operations SET phase = 'completed', updated_at = ?2 WHERE id = ?1",
+            params![operation_id.as_uuid().to_string(), now],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn complete_topic_delete(
+        &self,
+        operation_id: OperationId,
+        path: &Path,
+        previous_hash: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        let path = path.to_string_lossy();
+        let transaction = self.scope.unchecked_transaction()?;
+        transaction.execute("DELETE FROM files WHERE path = ?1", [path.as_ref()])?;
+        transaction.execute(
+            "INSERT INTO topic_changes
+             (operation_id, topic_id, previous_hash, next_hash, created_at)
+             VALUES (?1, ?2, ?3, NULL, ?4)",
+            params![
+                operation_id.as_uuid().to_string(),
+                path.as_ref(),
+                previous_hash,
+                now
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE operations SET phase = 'completed', updated_at = ?2 WHERE id = ?1",
+            params![operation_id.as_uuid().to_string(), now],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn mark_operation_failed(
+        &self,
+        operation_id: OperationId,
+        error: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.scope.execute(
+            "UPDATE operations SET phase = 'failed', error = ?2, updated_at = ?3 WHERE id = ?1",
+            params![operation_id.as_uuid().to_string(), error, now],
+        )?;
+        Ok(())
+    }
+
+    pub fn record_operation_phase(
+        &self,
+        operation_id: OperationId,
+        phase: OperationPhase,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.scope.execute(
+            "UPDATE operations SET phase = ?2, updated_at = ?3 WHERE id = ?1",
+            params![
+                operation_id.as_uuid().to_string(),
+                operation_phase_name(phase),
+                now
+            ],
+        )?;
+        Ok(())
+    }
+
     fn recover_interrupted_operations(&self) -> Result<(), StateError> {
         let candidates = {
             let mut statement = self.scope.prepare(

@@ -333,13 +333,13 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Create: `crates/codegen/nofy-memory/tests/access_policy.rs`
 - Modify: `crates/codegen/nofy-memory/src/storage.rs`
 
-- [ ] 所有路径先做 lexical normalize，再验证 canonical parent 位于 scope root 内。
-- [ ] 拒绝绝对路径、`..`、symlink escape、写 manifest 和修改 observation。
-- [ ] Topic update/rename/delete 要求先读得到的 `expected_hash`。
-- [ ] 多文件操作先登记 operation，再按 phase 推进；失败时恢复数据库与 manifest 可证明的一致状态。
-- [ ] 测试 traversal、symlink、stale hash、protected internals、immutable observation、manifest rollback。
-- [ ] 运行：`cargo test -p nofy-memory --test access_policy`。
-- [ ] Commit: `加固(memory): 统一文件访问与并发控制`
+- [x] 所有路径先做 lexical normalize，再验证 canonical parent 位于 scope root 内。
+- [x] 拒绝绝对路径、`..`、symlink escape、写 manifest 和修改 observation。
+- [x] Topic update/rename/delete 要求先读得到的 `expected_hash`。
+- [x] 多文件操作先登记 operation，再按 phase 推进；失败时恢复数据库与 manifest 可证明的一致状态。
+- [x] 测试 traversal、symlink、stale hash、protected internals、immutable observation、manifest rollback。
+- [x] 运行：`cargo test -p nofy-memory --test access_policy`。
+- [x] Commit: `加固(memory): 统一文件访问与并发控制`
 
 ### Task 5: 实现一次性、可恢复迁移
 

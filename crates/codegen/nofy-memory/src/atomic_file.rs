@@ -122,12 +122,12 @@ fn replace_path(source: &Path, destination: &Path) -> io::Result<()> {
 }
 
 #[cfg(unix)]
-fn sync_parent_directory(parent: &Path) -> io::Result<()> {
+pub(crate) fn sync_parent_directory(parent: &Path) -> io::Result<()> {
     File::open(parent)?.sync_all()
 }
 
 #[cfg(not(unix))]
-fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
+pub(crate) fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
     // MoveFileExW with MOVEFILE_WRITE_THROUGH provides the Windows durability
     // boundary; opening directories for sync is not supported by std.
     Ok(())
