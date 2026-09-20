@@ -38,26 +38,26 @@
 //! must reuse the **same** senders so the existing coordinator keeps
 //! receiving requests; we cannot mint a fresh channel without orphaning
 //! the running coordinator.
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
 use nofy_agent::config::AgentDefinition;
 use nofy_agent::error::AgentBuildError;
 use nofy_agent::prompt::context::PromptAudience;
 use nofy_agent::prompt::skills::SkillsConfig;
 use nofy_agent::{Agent, AgentBuilder, CompactionPolicy, ReminderPolicy};
 use nofy_tools::computer::types::{AsyncFileSystem, TerminalBackend};
+use nofy_tools::implementations::lsp::LspBackend;
 use nofy_tools::implementations::nofy_build::ask_user_question::types::UserQuestionRequest;
 use nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig;
 use nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer;
 use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, TaskModelValidator};
 use nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig;
-use nofy_tools::implementations::lsp::LspBackend;
 use nofy_tools::notification::ToolNotificationHandle;
 use nofy_tools::types::SharedApiKeyProvider;
 use nofy_tools::types::compat::CompatConfig;
 use nofy_tools::types::memory_backend::MemoryBackend;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
 /// Shell-resolved per-tool `ToolConfig.params` JSON maps, bundled into one
 /// named struct so the spawn telescopes carry a single argument instead of
 /// adjacent identically-typed positionals that a caller could transpose.
@@ -89,6 +89,7 @@ pub(crate) struct AgentRebuildSpec {
     pub memory_workspace_path: Option<String>,
     pub memory_backend: Option<Arc<dyn MemoryBackend>>,
     pub memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
+    pub memory_service: Option<Arc<dyn nofy_tools::types::memory_service::MemoryService>>,
     pub web_fetch_config: WebFetchConfig,
     pub app_builder_deployer_config: AppBuilderDeployerConfig,
     pub write_file_enabled: bool,
@@ -124,8 +125,7 @@ pub(crate) struct AgentRebuildSpec {
     /// which is what clients read — keep the two on one resolve.
     pub scheduler_background_loops: bool,
     pub mcp_state: Arc<tokio::sync::Mutex<crate::session::mcp_servers::McpState>>,
-    pub managed_gateway_tool_client:
-        Option<nofy_tools::types::resources::ManagedGatewayToolClient>,
+    pub managed_gateway_tool_client: Option<nofy_tools::types::resources::ManagedGatewayToolClient>,
     pub is_non_interactive: bool,
     pub system_prompt_label: String,
     pub owner_session_id: Option<String>,
@@ -188,6 +188,7 @@ impl AgentRebuildSpec {
             memory_workspace_path,
             memory_backend,
             memory_writer,
+            memory_service,
             web_fetch_config,
             app_builder_deployer_config,
             write_file_enabled,
@@ -278,6 +279,9 @@ impl AgentRebuildSpec {
         }
         if let Some(memory_writer) = memory_writer.clone() {
             builder = builder.with_memory_writer(memory_writer);
+        }
+        if let Some(memory_service) = memory_service.clone() {
+            builder = builder.with_memory_service(memory_service);
         }
         // Cross-session recall is always available (local index, no auth) so
         // the agent can autonomously bring in other conversations' context.
@@ -420,6 +424,7 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         memory_workspace_path: None,
         memory_backend: None,
         memory_writer: None,
+        memory_service: None,
         web_fetch_config: WebFetchConfig::Disabled,
         app_builder_deployer_config: AppBuilderDeployerConfig::default(),
         write_file_enabled: true,
@@ -537,6 +542,45 @@ mod tests {
                          - zeta-public"
                     )
                 );
+            })
+            .await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rebuild_preserves_unified_memory_service_resource() {
+        tokio::task::LocalSet::new()
+            .run_until(async {
+                let temp = tempfile::tempdir().expect("memory test directory");
+                let memory = nofy_memory::service::NofyMemoryService::new(
+                    nofy_memory::service::NofyMemoryServiceConfig {
+                        root: temp.path().join("memory"),
+                        workspace: temp.path().join("workspace"),
+                        ..nofy_memory::service::NofyMemoryServiceConfig::default_for_tests()
+                    },
+                )
+                .expect("memory service should initialize");
+                let mut spec = test_rebuild_spec_default();
+                Arc::get_mut(&mut spec)
+                    .expect("test rebuild spec should be uniquely owned")
+                    .memory_service = Some(Arc::new(memory));
+
+                for _ in 0..2 {
+                    let agent = spec
+                        .build_agent(AgentDefinition::default_nofy_build())
+                        .await
+                        .expect("agent build should succeed");
+                    assert!(
+                        agent
+                            .tool_bridge()
+                            .toolset()
+                            .get_resource_cloned::<Arc<
+                                dyn nofy_tools::types::memory_service::MemoryService,
+                            >>()
+                            .await
+                            .is_some(),
+                        "every rebuilt agent must retain the unified memory service"
+                    );
+                }
             })
             .await;
     }

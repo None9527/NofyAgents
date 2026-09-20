@@ -7,14 +7,14 @@ use crate::discovery::{SubagentEntry, SubagentSource};
 use crate::error::AgentBuildError;
 use crate::prompt::context::PromptContext;
 use crate::system_reminder::ReminderPolicy;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::Arc;
 use nofy_tools::bridge::ToolBridge;
 use nofy_tools::computer::types::{AsyncFileSystem, TerminalBackend};
 use nofy_tools::notification::ToolNotificationHandle;
 use nofy_tools::registry::types::SessionContext;
 use nofy_tools::types::tool::ToolKind;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
 /// The Nofy [`ToolKind`] a vendor-compat `tools:` allowlist entry resolves to, so
 /// a plugin's upstream allowlist still binds. Backed by the shared vendor-to-Nofy
 /// tool registry in `nofy-tools` (also used by the hook matcher).
@@ -87,6 +87,7 @@ pub struct AgentBuilder {
     state_path: Option<PathBuf>,
     memory_backend: Option<Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>>,
     memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
+    memory_service: Option<Arc<dyn nofy_tools::types::memory_service::MemoryService>>,
     session_recall_backend:
         Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
     forensics_backend: Option<Arc<dyn nofy_tools::types::forensics::ForensicsProvider>>,
@@ -228,6 +229,7 @@ impl AgentBuilder {
             state_path: None,
             memory_backend: None,
             memory_writer: None,
+            memory_service: None,
             session_recall_backend: None,
             forensics_backend: None,
             delegation_backend: None,
@@ -415,6 +417,14 @@ impl AgentBuilder {
         self.memory_writer = Some(writer);
         self
     }
+    /// Set the single user-facing memory service used by memory tools.
+    pub fn with_memory_service(
+        mut self,
+        service: Arc<dyn nofy_tools::types::memory_service::MemoryService>,
+    ) -> Self {
+        self.memory_service = Some(service);
+        self
+    }
     /// Set a cross-session recall backend so the agent can autonomously
     /// search the user's other sessions (`session_recall` tool).
     ///
@@ -568,10 +578,7 @@ impl AgentBuilder {
     /// Set the resolved vendor-compat config. Threaded into both startup
     /// discovery (`list_skills_with_plugins` / `read_agents_config_with_paths`)
     /// and the dynamic-discovery seeds (`SkillManager` / `AgentsMdTracker`).
-    pub fn with_compat_config(
-        mut self,
-        compat: nofy_tools::types::compat::CompatConfig,
-    ) -> Self {
+    pub fn with_compat_config(mut self, compat: nofy_tools::types::compat::CompatConfig) -> Self {
         self.compat = compat;
         self
     }
@@ -1044,6 +1051,7 @@ impl AgentBuilder {
                 state_path,
                 memory_backend: self.memory_backend,
                 memory_writer: self.memory_writer,
+                memory_service: self.memory_service,
                 session_recall: self.session_recall_backend.clone(),
                 forensics: self.forensics_backend.clone(),
                 delegation: self.delegation_backend.clone(),
@@ -1202,14 +1210,15 @@ impl AgentBuilder {
     }
 }
 /// CLI naming for the shared [`nofy_tool_types::build_task_description`] builder.
-const TASK_TOOL_NAMING: nofy_tool_types::TaskToolNaming<'static> = nofy_tool_types::TaskToolNaming {
-    task_tool: "${{ tools.by_kind.task }}",
-    subagent_type_param: "${{ params.task.subagent_type }}",
-    run_in_background_param: "${{ params.task.run_in_background }}",
-    resume_from_param: "${{ params.task.resume_from }}",
-    background_retrieval_tool: "${{ tools.by_kind.background_task_action }}",
-    isolation_param: "${{ params.task.isolation }}",
-};
+const TASK_TOOL_NAMING: nofy_tool_types::TaskToolNaming<'static> =
+    nofy_tool_types::TaskToolNaming {
+        task_tool: "${{ tools.by_kind.task }}",
+        subagent_type_param: "${{ params.task.subagent_type }}",
+        run_in_background_param: "${{ params.task.run_in_background }}",
+        resume_from_param: "${{ params.task.resume_from }}",
+        background_retrieval_tool: "${{ tools.by_kind.background_task_action }}",
+        isolation_param: "${{ params.task.isolation }}",
+    };
 /// Concise task-tool description for child sessions. Delegation from a child
 /// is possible but discouraged — prefer doing the work directly.
 ///

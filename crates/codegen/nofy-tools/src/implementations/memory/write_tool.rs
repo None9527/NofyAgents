@@ -1,31 +1,15 @@
-//! `memory_write` tool — active memory writes (add / replace / remove).
-//!
-//! Complements the read-only `memory_search` / `memory_get` surface: the
-//! agent can deliberately persist durable facts instead of relying on
-//! editing memory files through generic file tools. Writes are governed:
-//! the tool is not read-only, so it flows through the permission system
-//! and the runtime journal's tool-intent chain like any other mutation.
-//!
-//! Boundedness: each store has a character budget enforced on the final
-//! result of a (batch of) operation(s); an over-budget write is rejected
-//! with the current content shown so the agent can free room and retry in
-//! one batch.
-//!
-//! Frozen-snapshot semantics: a successful write lands on disk and in the
-//! search index immediately, but the current session's injected memory
-//! snapshot is not refreshed (injection happens once at session start to
-//! protect the prompt cache). The tool says so in its output.
+//! `memory_write` tool — remember, revise, and forget through one service.
 
 use std::sync::Arc;
 
 use super::types::{MemoryWriteAction, MemoryWriteInput, MemoryWriteScope};
-use crate::types::memory_writer::{MemoryOp, MemoryWriter};
+use crate::types::memory_service::{
+    ForgetRequest, MemoryArea, MemoryService, MemoryTarget, RememberRequest, ReviseTopicRequest,
+    UndoToken,
+};
 use crate::types::output::ToolOutput;
 use crate::types::tool::{ToolKind, ToolNamespace};
 
-/// Hard cap for a single entry payload (chars). Curated memory holds
-/// compact durable facts, not transcripts; oversized payloads are
-/// rejected at the tool boundary (store-level budgets apply on top).
 pub const MAX_WRITE_CHARS: usize = 1000;
 
 #[derive(Debug, Default)]
@@ -41,30 +25,11 @@ impl crate::types::tool_metadata::ToolMetadata for MemoryWriteImpl {
     }
 
     fn description_template(&self) -> &str {
-        "Write to cross-session memory. Save durable facts, decisions, and user preferences \
-         that future sessions should know.\n\n\
-         SCOPES (where + what):\n\
-         - user: WHO the user is — name, role, preferences, communication style, workflow \
-           habits. Preferences change: REPLACE the stale entry instead of appending a \
-           contradictory one.\n\
-         - workspace: this project — conventions, decisions, architecture, tool quirks.\n\
-         - global: cross-project facts that are not about the user.\n\n\
-         HOW: prefer ONE batch call via the `operations` array (each item: {action, \
-         content?, old_text?}). The batch applies atomically and the character budget is \
-         checked only on the FINAL result — so one call can remove/shorten stale entries \
-         to free room AND add new ones. Use the bare action/content/old_text fields only \
-         for a single lone change.\n\n\
-         IF FULL: an add is rejected with the current entries shown. Reissue as ONE batch \
-         that removes or shortens enough stale entries and adds the new one together.\n\n\
-         WHEN: save proactively when the user states a preference, correction, or personal \
-         detail, or you learn a stable fact about their environment or conventions. \
-         Priority: user preferences & corrections > environment facts > procedures. The \
-         best memory stops the user repeating themselves.\n\n\
-         SKIP: trivial or obvious info, easily re-discovered facts, raw data dumps, task \
-         progress, completed-work logs, temporary TODO state. Reusable procedures belong \
-         in skills, not memory.\n\n\
-         Writes are saved to disk and indexed immediately, but only injected into context \
-         at the start of the next session."
+        "Manage the user's single memory system. Use `remember` for a new durable fact, \
+         `revise` with target_id + expected_hash to correct one, and `forget` with the same \
+         stable target plus explicit confirmation to remove one. Use `undo` with the operation ID \
+         returned by a recent remember/revise. Choose `personal` for 关于我 or `project` for \
+         当前项目. Credentials and secrets are never stored."
     }
 }
 
@@ -102,128 +67,153 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
         use crate::types::tool_metadata::shared_resources;
         let tool_id = nofy_tool_protocol::ToolId::new("memory_write").expect("valid");
         let resources = shared_resources(&ctx)?;
-        let Some(writer) = resources
+        let Some(memory) = resources
             .lock()
             .await
-            .get::<Arc<dyn MemoryWriter>>()
+            .get::<Arc<dyn MemoryService>>()
             .cloned()
         else {
             return Ok(ToolOutput::Text(
-                "Memory is not enabled. Use --experimental-memory to enable.".into(),
+                "Memory is not enabled. Enable memory before using this tool.".into(),
             ));
         };
-
-        let scope = match input.scope {
-            MemoryWriteScope::Global => "global",
-            MemoryWriteScope::Workspace => "workspace",
-            MemoryWriteScope::User => "user",
-        };
-
-        // Assemble the operation list: explicit batch, or a single op from
-        // the bare fields.
-        let ops: Vec<MemoryOp> = if let Some(batch) = input.operations {
-            if batch.is_empty() {
-                return Err(nofy_tool_runtime::ToolError::execution(
-                    tool_id,
-                    "operations array must not be empty".to_string(),
-                ));
+        let output = match input.action {
+            MemoryWriteAction::Remember => {
+                let statement = require_statement(&tool_id, input.statement)?;
+                let area = match input.scope.ok_or_else(|| {
+                    nofy_tool_runtime::ToolError::execution(
+                        tool_id.clone(),
+                        "scope is required for remember".to_owned(),
+                    )
+                })? {
+                    MemoryWriteScope::Personal => MemoryArea::Personal,
+                    MemoryWriteScope::Project => MemoryArea::Project,
+                };
+                let receipt = memory
+                    .remember(RememberRequest {
+                        area,
+                        statement,
+                        title: None,
+                        confirm_sensitive: input.confirmed,
+                    })
+                    .await
+                    .map_err(|error| execution(&tool_id, error))?;
+                format!(
+                    "已记住到{}：{}\nTarget: {}\nHash: {}\n可撤销操作：{}",
+                    receipt.area_label,
+                    receipt.summary,
+                    receipt.target.id,
+                    receipt
+                        .target
+                        .expected_hash
+                        .as_deref()
+                        .unwrap_or("unavailable"),
+                    receipt.undo_token.operation_id,
+                )
             }
-            let mut ops = Vec::with_capacity(batch.len());
-            for (i, op) in batch.into_iter().enumerate() {
-                ops.push(build_op(tool_id.clone(), i + 1, op.action, op.content, op.old_text)?);
+            MemoryWriteAction::Revise => {
+                let statement = require_statement(&tool_id, input.statement)?;
+                let receipt = memory
+                    .revise(ReviseTopicRequest {
+                        target: require_target(&tool_id, input.target_id, input.expected_hash)?,
+                        replacement: statement,
+                    })
+                    .await
+                    .map_err(|error| execution(&tool_id, error))?;
+                format!(
+                    "已纠正：{}\nRevision: {}\nTarget: {}\nHash: {}\n可撤销操作：{}",
+                    receipt.summary,
+                    receipt.revision,
+                    receipt.target.id,
+                    receipt
+                        .target
+                        .expected_hash
+                        .as_deref()
+                        .unwrap_or("unavailable"),
+                    receipt.undo_token.operation_id,
+                )
             }
-            ops
-        } else {
-            let Some(action) = input.action else {
-                return Err(nofy_tool_runtime::ToolError::execution(
-                    tool_id,
-                    "provide either `action` (single op) or `operations` (batch)".to_string(),
-                ));
-            };
-            vec![build_op(tool_id.clone(), 1, action, input.content, input.old_text)?]
+            MemoryWriteAction::Forget => {
+                let receipt = memory
+                    .forget(ForgetRequest {
+                        target: require_target(&tool_id, input.target_id, input.expected_hash)?,
+                        confirmed: input.confirmed,
+                    })
+                    .await
+                    .map_err(|error| execution(&tool_id, error))?;
+                receipt.summary
+            }
+            MemoryWriteAction::Undo => {
+                let operation_id = input
+                    .undo_operation_id
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| {
+                        nofy_tool_runtime::ToolError::execution(
+                            tool_id.clone(),
+                            "undo_operation_id is required for undo".to_owned(),
+                        )
+                    })?;
+                let receipt = memory
+                    .undo(UndoToken {
+                        operation_id,
+                        generation: input.undo_generation.unwrap_or(1),
+                    })
+                    .await
+                    .map_err(|error| execution(&tool_id, error))?;
+                format!(
+                    "已撤销最近的记忆操作。Snapshot generation: {}",
+                    receipt.snapshot_generation
+                )
+            }
         };
-
-        tracing::info!(
-            target: crate::types::memory_backend::MEMORY_LOG_TARGET,
-            scope,
-            ops = ops.len(),
-            "MEMORY_WRITE: invoked"
-        );
-
-        let outcome = writer
-            .apply_batch(scope, &ops)
-            .await
-            .map_err(|e| nofy_tool_runtime::ToolError::execution(tool_id.clone(), e.to_string()))?;
-
-        let usage = writer.usage(scope).await.ok();
-        let budget_note = usage.map_or_else(String::new, |u| {
-            format!("\nStore usage: {}/{} chars.", u.used_chars, u.limit_chars)
-        });
-
-        Ok(ToolOutput::Text(
-            format!(
-                "{} ({}){}\nSaved to disk and indexed; it will be injected into context at the start of the next session.",
-                outcome.summary, outcome.path, budget_note
-            )
-            .into(),
-        ))
+        Ok(ToolOutput::Text(output.into()))
     }
 }
 
-/// Validate and convert one tool-level operation into the writer's `MemoryOp`.
-fn build_op(
-    tool_id: nofy_tool_protocol::ToolId,
-    nth: usize,
-    action: MemoryWriteAction,
-    content: Option<String>,
-    old_text: Option<String>,
-) -> Result<MemoryOp, nofy_tool_runtime::ToolError> {
-    let err = |msg: String| nofy_tool_runtime::ToolError::execution(tool_id, msg);
-    match action {
-        MemoryWriteAction::Add | MemoryWriteAction::Replace => {
-            let content = content.unwrap_or_default();
-            let trimmed = content.trim();
-            if trimmed.is_empty() {
-                return Err(err(format!(
-                    "operation {nth}: content must be a non-empty entry"
-                )));
-            }
-            if trimmed.chars().count() > MAX_WRITE_CHARS {
-                return Err(err(format!(
-                    "operation {nth}: content exceeds the {MAX_WRITE_CHARS}-char limit for one memory entry; split it into smaller facts"
-                )));
-            }
-            if matches!(action, MemoryWriteAction::Replace) {
-                require_old_text(&old_text, nth)?;
-            }
-            Ok(match action {
-                MemoryWriteAction::Add => MemoryOp::Add(trimmed.to_string()),
-                _ => MemoryOp::Replace {
-                    old: old_text.unwrap(),
-                    new: trimmed.to_string(),
-                },
-            })
-        }
-        MemoryWriteAction::Remove => {
-            require_old_text(&old_text, nth)?;
-            Ok(MemoryOp::Remove(old_text.unwrap()))
-        }
-    }
-}
-
-fn require_old_text(
-    old_text: &Option<String>,
-    nth: usize,
-) -> Result<(), nofy_tool_runtime::ToolError> {
-    if old_text
-        .as_deref()
-        .map(str::trim)
-        .map_or(true, str::is_empty)
-    {
+fn require_statement(
+    tool_id: &nofy_tool_protocol::ToolId,
+    statement: Option<String>,
+) -> Result<String, nofy_tool_runtime::ToolError> {
+    let statement = statement.unwrap_or_default();
+    let statement = statement.trim();
+    if statement.is_empty() {
         return Err(nofy_tool_runtime::ToolError::execution(
-            nofy_tool_protocol::ToolId::new("memory_write").expect("valid"),
-            format!("operation {nth}: old_text is required for replace/remove and must be a non-empty unique substring"),
+            tool_id.clone(),
+            "statement is required for remember/revise".to_owned(),
         ));
     }
-    Ok(())
+    if statement.chars().count() > MAX_WRITE_CHARS {
+        return Err(nofy_tool_runtime::ToolError::execution(
+            tool_id.clone(),
+            format!("statement exceeds the {MAX_WRITE_CHARS}-character limit"),
+        ));
+    }
+    Ok(statement.to_owned())
+}
+
+fn require_target(
+    tool_id: &nofy_tool_protocol::ToolId,
+    id: Option<String>,
+    expected_hash: Option<String>,
+) -> Result<MemoryTarget, nofy_tool_runtime::ToolError> {
+    let id = id.filter(|value| !value.trim().is_empty()).ok_or_else(|| {
+        nofy_tool_runtime::ToolError::execution(
+            tool_id.clone(),
+            "target_id is required for revise/forget".to_owned(),
+        )
+    })?;
+    if expected_hash.is_none() {
+        return Err(nofy_tool_runtime::ToolError::execution(
+            tool_id.clone(),
+            "expected_hash is required for revise/forget".to_owned(),
+        ));
+    }
+    Ok(MemoryTarget { id, expected_hash })
+}
+
+fn execution(
+    tool_id: &nofy_tool_protocol::ToolId,
+    error: impl std::fmt::Display,
+) -> nofy_tool_runtime::ToolError {
+    nofy_tool_runtime::ToolError::execution(tool_id.clone(), error.to_string())
 }

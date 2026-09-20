@@ -5,9 +5,13 @@ pub mod compat;
 pub mod config_source;
 pub mod context;
 pub mod definition;
+pub mod delegation;
 pub mod description;
 pub mod error;
+pub mod forensics;
+pub mod knowledge_base;
 pub mod memory_backend;
+pub mod memory_service;
 pub mod memory_writer;
 pub mod output;
 pub mod params_validation;
@@ -17,8 +21,6 @@ pub mod resources;
 pub mod schema;
 pub mod session_mode;
 pub mod session_recall;
-pub mod forensics;
-pub mod delegation;
 pub mod skill_discovery_tracker;
 pub mod template_renderer;
 pub mod tool;
@@ -26,7 +28,7 @@ pub mod tool_index;
 pub mod tool_io;
 pub mod tool_metadata;
 pub use api_key_provider::{ApiKeyProvider, SharedApiKeyProvider};
-pub use claude_alias::{claude_names_for, nofy_names, nofy_names_for, kind_for};
+pub use claude_alias::{claude_names_for, kind_for, nofy_names, nofy_names_for};
 pub use compat::{
     COMPAT_CELLS, CompatCell, CompatConfig, CompatConfigToml, CompatRemoteKey, CompatSurface,
     CompatVendor, VendorCompat, VendorCompatToml,

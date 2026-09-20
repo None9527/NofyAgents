@@ -1,8 +1,8 @@
-//! Memory tools for cross-session knowledge.
+//! Tools for the user's single memory system.
 //!
-//! - `memory_search` — search indexed memory for relevant chunks
-//! - `memory_get` — read a specific memory file by path
-//! - `memory_write` — add / replace / remove curated memory entries
+//! - `memory_search` — search durable personal and project memories
+//! - `memory_get` — read a memory through its stable target
+//! - `memory_write` — remember, revise, or forget a memory
 
 pub mod get_tool;
 pub mod search_tool;

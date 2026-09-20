@@ -81,6 +81,34 @@ impl MemoryAccess {
         Ok(target)
     }
 
+    pub fn create_topic(
+        &self,
+        operation_id: OperationId,
+        relative_topic: &Path,
+        content: &str,
+    ) -> Result<(), AccessError> {
+        let target = self.topic_target(relative_topic)?;
+        if target.exists() {
+            return Err(AccessError::DestinationExists(target.display().to_string()));
+        }
+        self.state
+            .replace_canonical_file(operation_id, &target, content.as_bytes(), None)?;
+        self.rebuild_manifest()?;
+        self.state.record_operation_phase(
+            operation_id,
+            OperationPhase::DerivativesRebuilt,
+            chrono::Utc::now().timestamp(),
+        )?;
+        self.state.complete_topic_change(
+            operation_id,
+            &scope_relative_string(self.scope.root(), &target)?,
+            None,
+            Some(&hash_bytes(content.as_bytes())),
+            chrono::Utc::now().timestamp(),
+        )?;
+        Ok(())
+    }
+
     pub fn update_topic(
         &self,
         operation_id: OperationId,

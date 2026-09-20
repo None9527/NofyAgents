@@ -470,17 +470,17 @@ pub trait MemoryService: Send + Sync {
 }
 ```
 
-- [ ] `remember` 先创建 immutable Explicit observation，再立即索引，并按请求 materialize 为 user-owned/pinned topic；返回前刷新当前 session snapshot，receipt 包含用户语言的 scope label、摘要和短期 undo token。
-- [ ] 显式 remember 命中自动排除的敏感类别时不静默保存，先返回 confirmation request，说明范围与风险；credentials/secret 永远拒绝持久化。
-- [ ] `revise` 创建 `UserCorrection`、关联 superseded IDs，并在返回前刷新当前 session snapshot；旧事实保留为审计证据但不再检索或注入。
-- [ ] `forget` 使用 ID/path + expected hash，并在返回前从活动 snapshot、规范文件、索引和可恢复灾备清除；删除 fuzzy `old_text` replace/remove API。
-- [ ] `list/explain` 提供“你记得我什么”和“你为什么知道”的稳定边界；解释结果包含人类可读来源、时间、范围及纠正/忘记 target，不暴露原始内部路径。
-- [ ] `undo` 只适用于最近的 remember/revise，校验 operation generation；forget 不可撤销，执行前展示范围确认，执行后不提供恢复入口。
-- [ ] 按“统一 scope”章节实现独立 `KnowledgeBaseProvider` trait 和数据类型；契约测试用 fake provider 验证 trait-object search/get，但不得把 provider 注入 `MemoryService`、Shell、agent builder 或 Pager。
-- [ ] 工具层只验证输入、调用 service、序列化 receipt；不直接接触文件或 SQLite。
-- [ ] 在 `user_experience_contract.rs` 实现 Task 0 的立即记住、立即纠正、解释来源和关闭自动学习场景；测试必须通过公开 `MemoryService`，不得读取内部 SQLite 作为主要断言。
-- [ ] 运行：`cargo test -p nofy-memory --test user_experience_contract`、`cargo test -p nofy-tools --test knowledge_base_contract`、`cargo test -p nofy-tools memory`、`cargo test -p nofy-shell memory`。
-- [ ] Commit: `重构(memory): 统一服务与工具接口`
+- [x] `remember` 先创建 immutable Explicit observation，再立即索引，并按请求 materialize 为 user-owned/pinned topic；返回前刷新当前 session snapshot，receipt 包含用户语言的 scope label、摘要和短期 undo token。
+- [x] 显式 remember 命中自动排除的敏感类别时不静默保存，先返回 confirmation request，说明范围与风险；credentials/secret 永远拒绝持久化。
+- [x] `revise` 创建 `UserCorrection`、关联 superseded IDs，并在返回前刷新当前 session snapshot；旧事实保留为审计证据但不再检索或注入。
+- [x] `forget` 使用 stable ID + expected hash，并在返回前从活动 snapshot、规范文件、当前证据和索引清除；删除 fuzzy `old_text` replace/remove API。迁移灾备密钥/包的完整清除顺序与 retention GC 仍由 Task 12 收口。
+- [x] `list/explain` 提供“你记得我什么”和“你为什么知道”的稳定边界；解释结果包含人类可读来源、时间、范围及纠正/忘记 target，不暴露原始内部路径。
+- [x] `undo` 只适用于最近的 remember/revise，校验 operation generation；forget 不可撤销，执行前展示范围确认，执行后不提供恢复入口。
+- [x] 按“统一 scope”章节实现独立 `KnowledgeBaseProvider` trait 和数据类型；契约测试用 fake provider 验证 trait-object search/get，但不得把 provider 注入 `MemoryService`、Shell、agent builder 或 Pager。
+- [x] 工具层只验证输入、调用 service、序列化 receipt；不直接接触文件或 SQLite。
+- [x] 在 `user_experience_contract.rs` 实现 Task 0 的立即记住、立即纠正、解释来源和关闭自动学习场景；测试必须通过公开 `MemoryService`，不得读取内部 SQLite 作为主要断言。
+- [x] 运行：`cargo test -p nofy-memory --test user_experience_contract`、`cargo test -p nofy-tools --test knowledge_base_contract`、`cargo test -p nofy-tools memory`、`cargo test -p nofy-shell memory`。
+- [x] Commit: `重构(memory): 统一服务与工具接口`
 
 ### Task 10: 实现可恢复的单一整理引擎
 

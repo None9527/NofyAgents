@@ -263,6 +263,10 @@ pub struct SessionContext {
     /// injected into `Resources` so the `memory_write` tool can persist
     /// curated entries. When `None`, the tool returns "not enabled".
     pub memory_writer: Option<Arc<dyn crate::types::memory_writer::MemoryWriter>>,
+    /// Unified memory capability used by all user-facing memory tools.
+    /// Legacy backend/writer resources remain temporarily for internal
+    /// injection and compaction callers while those paths migrate.
+    pub memory_service: Option<Arc<dyn crate::types::memory_service::MemoryService>>,
     /// Optional cross-session recall backend. When `Some`, injected into
     /// `Resources` so the `session_recall` tool can search the user's other
     /// sessions (global awareness). When `None`, the tool returns
@@ -1030,8 +1034,13 @@ impl ToolRegistryBuilder {
         if let Some(memory_writer) = ctx.memory_writer {
             resources.insert(memory_writer);
         }
+        if let Some(memory_service) = ctx.memory_service {
+            resources.insert(memory_service);
+        }
         if let Some(session_recall) = ctx.session_recall {
-            resources.insert(crate::types::session_recall::SessionRecallAccess(session_recall));
+            resources.insert(crate::types::session_recall::SessionRecallAccess(
+                session_recall,
+            ));
         }
         if let Some(forensics) = ctx.forensics {
             resources.insert(crate::types::forensics::ForensicsAccess(forensics));
@@ -2133,6 +2142,7 @@ mod tests {
             state_path: tmp.path().join("state.json"),
             memory_backend: None,
             memory_writer: None,
+            memory_service: None,
             session_recall: None,
             forensics: None,
             delegation: None,
@@ -3241,9 +3251,11 @@ mod tests {
             _input: serde_json::Value,
         ) -> nofy_tool_runtime::ToolStream<String> {
             Box::pin(futures::stream::iter(vec![
-                nofy_tool_runtime::ToolStreamItem::Progress(nofy_tool_runtime::ToolProgress::Text {
-                    text: "progress-1".into(),
-                }),
+                nofy_tool_runtime::ToolStreamItem::Progress(
+                    nofy_tool_runtime::ToolProgress::Text {
+                        text: "progress-1".into(),
+                    },
+                ),
                 nofy_tool_runtime::ToolStreamItem::Terminal(Ok("terminal-value".to_string())),
             ]))
         }

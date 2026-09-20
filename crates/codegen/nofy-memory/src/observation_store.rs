@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::atomic_file;
 use crate::layout::UnifiedMemoryLayout;
-use crate::model::{MemoryScope, Observation, ObservationStatus};
+use crate::model::{MemoryScope, Observation, ObservationId, ObservationStatus};
 use crate::state::{StateError, UnifiedState};
 
 #[derive(Debug, Error)]
@@ -63,6 +63,46 @@ impl ObservationStore {
         let scope = self.layout.scope(scope);
         let state = UnifiedState::open(self.layout.meta_database(), scope.state_database())?;
         state.quarantine_capture(record_id, reason, payload, now)?;
+        Ok(())
+    }
+
+    pub fn forget(
+        &self,
+        scope: &MemoryScope,
+        observation_id: ObservationId,
+        target_id: &str,
+        reason: &str,
+    ) -> Result<(), ObservationStoreError> {
+        let scope_layout = self.layout.scope(scope);
+        let path = scope_layout
+            .observations_directory()
+            .join(format!("{}.md", observation_id.as_uuid()));
+        let bytes = std::fs::read(&path)?;
+        let salt = uuid::Uuid::new_v4();
+        let salted_previous_hash = blake3::hash(
+            format!(
+                "{salt}:{}:{}",
+                observation_id.as_uuid(),
+                blake3::hash(&bytes).to_hex()
+            )
+            .as_bytes(),
+        )
+        .to_hex()
+        .to_string();
+        std::fs::remove_file(&path)?;
+        atomic_file::sync_parent_directory(
+            path.parent().expect("observation path always has a parent"),
+        )?;
+        let now = chrono::Utc::now().timestamp();
+        let state = UnifiedState::open(self.layout.meta_database(), scope_layout.state_database())?;
+        state.forget_observation(
+            observation_id,
+            target_id,
+            &salted_previous_hash,
+            reason,
+            now,
+            now.saturating_add(30 * 24 * 60 * 60),
+        )?;
         Ok(())
     }
 }

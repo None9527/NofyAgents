@@ -120,6 +120,7 @@ async fn test_agent_from_config(
         },
         memory_backend: None,
         memory_writer: None,
+        memory_service: None,
         session_recall: None,
         forensics: None,
         delegation: None,
@@ -194,9 +195,7 @@ pub(crate) async fn create_test_actor_with_terminal(
     tokio::sync::mpsc::UnboundedReceiver<SessionEvent>,
 ) {
     let cwd = nofy_paths::AbsPathBuf::new(std::path::PathBuf::from("/tmp")).unwrap();
-    let fs = Arc::new(nofy_workspace::file_system::MockFs::new(
-        cwd.to_path_buf(),
-    ));
+    let fs = Arc::new(nofy_workspace::file_system::MockFs::new(cwd.to_path_buf()));
     let (hunk_tx, _hunk_rx) = tokio::sync::mpsc::unbounded_channel();
     let hunk_tracker_handle = nofy_hunk_tracker::HunkTrackerActor::spawn(
         "test-actor".to_string(),
@@ -418,7 +417,8 @@ pub(crate) async fn create_test_actor_with_terminal(
         recap_epoch: std::cell::Cell::new(0),
         turn_summary_task: std::cell::RefCell::new(None),
         turn_summary_generation: std::cell::Cell::new(0),
-        turn_summary_enabled: false,        title_refresh_enabled: false,
+        turn_summary_enabled: false,
+        title_refresh_enabled: false,
         title_refresh_task: std::cell::RefCell::new(None),
         title_refresh_generation: std::cell::Cell::new(0),
         next_title_refresh_idx: std::cell::Cell::new(0),

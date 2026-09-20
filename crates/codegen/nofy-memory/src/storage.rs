@@ -629,9 +629,11 @@ fn is_ephemeral_cwd(cwd: &Path) -> bool {
     let temp_canonical = dunce::canonicalize(&temp).unwrap_or(temp);
 
     canonical.starts_with(&temp_canonical)
+        || matches!(raw_s.as_ref(), "/tmp" | "/var/tmp")
         || raw_s.starts_with("/tmp/")
         || raw_s.starts_with("/var/tmp/")
         || (raw_s.contains("/var/folders/") && raw_s.contains("/T/"))
+        || matches!(s.as_ref(), "/private/tmp" | "/private/var/tmp")
         || s.starts_with("/private/tmp/")
         || s.starts_with("/private/var/tmp/")
         || (s.contains("/private/var/folders/") && s.contains("/T/"))

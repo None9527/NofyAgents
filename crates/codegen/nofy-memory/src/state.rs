@@ -384,6 +384,41 @@ impl UnifiedState {
         Ok(())
     }
 
+    /// Remove a forgotten observation from canonical state while retaining
+    /// only an opaque, irreversible tombstone for retention/GC fencing.
+    pub fn forget_observation(
+        &self,
+        observation_id: ObservationId,
+        target_id: &str,
+        salted_previous_hash: &str,
+        reason: &str,
+        now: i64,
+        retention_deadline: i64,
+    ) -> Result<(), StateError> {
+        let observation_id = observation_id.as_uuid().to_string();
+        let transaction = self.scope.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO tombstones
+             (id, target_kind, target_id, previous_hash, reason, created_at, retention_deadline)
+             VALUES (?1, 'memory', ?2, ?3, ?4, ?5, ?6)",
+            params![
+                uuid::Uuid::new_v4().to_string(),
+                target_id,
+                salted_previous_hash,
+                reason,
+                now,
+                retention_deadline,
+            ],
+        )?;
+        transaction.execute(
+            "DELETE FROM observation_states WHERE observation_id = ?1",
+            [&observation_id],
+        )?;
+        transaction.execute("DELETE FROM files WHERE id = ?1", [&observation_id])?;
+        transaction.commit()?;
+        Ok(())
+    }
+
     pub fn observation_view(
         &self,
         observation: Observation,

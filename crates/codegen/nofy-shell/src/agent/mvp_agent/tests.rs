@@ -719,12 +719,14 @@ async fn file_toolset_override_e2e_to_finalized_toolset() {
         state_path: tmp.path().join("state.json"),
         memory_backend: None,
         memory_writer: None,
+        memory_service: None,
         session_recall: None,
         forensics: None,
         delegation: None,
         web_fetch_config: Default::default(),
         lsp: None,
-        app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig::default(),
+        app_builder_deployer_config:
+            nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig::default(),
         api_key_provider: None,
         auth_provider: None,
         system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
@@ -3984,7 +3986,10 @@ fn interactive_trust_prompt_dedups_same_workspace() {
         agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         let first = tokio::time::timeout(std::time::Duration::from_secs(2), gw_rx.recv()).await;
         assert!(
-            matches!(first, Ok(Some(nofy_acp_lib::AcpClientMessage::ExtMethod(_)))),
+            matches!(
+                first,
+                Ok(Some(nofy_acp_lib::AcpClientMessage::ExtMethod(_)))
+            ),
             "first prompt for an untrusted workspace must emit a request"
         );
         agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
@@ -4100,8 +4105,8 @@ fn interactive_trust_prompt_reloads_all_same_workspace_sessions() {
 #[test]
 #[serial_test::serial]
 fn interactive_trust_prompt_reprompts_after_untrust() {
-    use nofy_test_support::EnvGuard;
     use nofy_hooks_plugins_types::HooksAction;
+    use nofy_test_support::EnvGuard;
     let home = tempfile::tempdir().unwrap();
     let _env = EnvGuard::set("NOFY_HOME", home.path());
     let _sim = EnvGuard::set(nofy_version::TEST_VERSION_ENV, "0.0-sim");
@@ -4548,8 +4553,7 @@ mod settings_update_emit {
                 let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
                 let gateway = GatewaySender::new(tx);
                 let cfg = AgentConfig::default();
-                let _tags =
-                    EnvGuard::set("NOFY_SLASH_COMMAND_TAGS", r#"{"workflows":"new"}"#);
+                let _tags = EnvGuard::set("NOFY_SLASH_COMMAND_TAGS", r#"{"workflows":"new"}"#);
                 let agent =
                     MvpAgent::new(gateway, &cfg, auth_manager, None).expect("valid test config");
                 agent.emit_settings_update_notification();

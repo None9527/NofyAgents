@@ -369,11 +369,10 @@ pub(crate) async fn spawn_session_actor(
                     config.rules = merged;
                 }
                 None => {
-                    permission_config = Some(
-                        nofy_workspace::permission::types::PermissionConfig::new(
+                    permission_config =
+                        Some(nofy_workspace::permission::types::PermissionConfig::new(
                             cli_permission_rules,
-                        ),
-                    );
+                        ));
                 }
             }
         }
@@ -395,9 +394,7 @@ pub(crate) async fn spawn_session_actor(
                 })
                 .map(|t| {
                     std::sync::Arc::new(t)
-                        as std::sync::Arc<
-                            dyn nofy_workspace::permission::PermissionHookTransport,
-                        >
+                        as std::sync::Arc<dyn nofy_workspace::permission::PermissionHookTransport>
                 });
             if transport.is_none() {
                 tracing::debug!(
@@ -552,17 +549,17 @@ pub(crate) async fn spawn_session_actor(
         *tool_context.convergence_base_limit.lock().unwrap() = continuity.base_limit;
         *tool_context.convergence_extensions_used.lock().unwrap() = continuity.extensions_used;
     }
-    let chat_persistence: Box<dyn nofy_chat_state::ChatPersistence> =
-        if runtime_journal.is_active() {
-            Box::new(super::runtime_journal::JournalingChatPersistence::new(
-                super::chat_persistence::ChannelChatPersistence::new(persistence.tx.clone()),
-                runtime_journal.clone(),
-            ))
-        } else {
-            Box::new(super::chat_persistence::ChannelChatPersistence::new(
-                persistence.tx.clone(),
-            ))
-        };
+    let chat_persistence: Box<dyn nofy_chat_state::ChatPersistence> = if runtime_journal.is_active()
+    {
+        Box::new(super::runtime_journal::JournalingChatPersistence::new(
+            super::chat_persistence::ChannelChatPersistence::new(persistence.tx.clone()),
+            runtime_journal.clone(),
+        ))
+    } else {
+        Box::new(super::chat_persistence::ChannelChatPersistence::new(
+            persistence.tx.clone(),
+        ))
+    };
     let chat_state_handle = nofy_chat_state::ChatStateActor::spawn_with_pruning(
         conversation.clone(),
         chat_state_sampling_config,
@@ -791,6 +788,42 @@ pub(crate) async fn spawn_session_actor(
                 }
             }
         });
+    let memory_service_for_tools: Option<
+        std::sync::Arc<dyn nofy_tools::types::memory_service::MemoryService>,
+    > = if startup_hints.is_subagent {
+        None
+    } else {
+        memory_storage_for_session.as_ref().and_then(|storage| {
+            let project_id = match nofy_memory::model::ProjectId::resolve(
+                tool_context.cwd.as_path(),
+            ) {
+                Ok(project_id) => project_id,
+                Err(error) => {
+                    tracing::warn!(%error, "unified memory service disabled: project identity failed");
+                    return None;
+                }
+            };
+            let config = memory_config.as_ref()?;
+            match nofy_memory::service::NofyMemoryService::new(
+                nofy_memory::service::NofyMemoryServiceConfig {
+                    root: storage.global_dir().to_path_buf(),
+                    workspace: tool_context.cwd.as_path().to_path_buf(),
+                    project_id,
+                    memory_enabled: config.enabled,
+                    automatic_learning_enabled: config.automatic_learning_enabled,
+                    search: config.search.clone(),
+                    index: config.index.clone(),
+                    embedding_dimensions: config.embedding.dimensions,
+                },
+            ) {
+                Ok(service) => Some(std::sync::Arc::new(service) as _),
+                Err(error) => {
+                    tracing::warn!(%error, "unified memory service disabled: initialization failed");
+                    None
+                }
+            }
+        })
+    };
     let memory_initial_injection_config = memory_config
         .as_ref()
         .map_or_else(Default::default, |mc| mc.initial_injection.clone());
@@ -802,7 +835,8 @@ pub(crate) async fn spawn_session_actor(
     > = None;
     let memory_backend_for_spec: Option<
         std::sync::Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
-    > = if let Some(ref storage) = memory_storage_for_session {        if let Err(e) = storage.ensure_initialized() {
+    > = if let Some(ref storage) = memory_storage_for_session {
+        if let Err(e) = storage.ensure_initialized() {
             tracing::warn!(
                 target: nofy_telemetry::memory_log::TARGET,
                 error = %e,
@@ -977,6 +1011,7 @@ pub(crate) async fn spawn_session_actor(
             .map(|s| s.workspace_memory_file().to_string_lossy().into_owned()),
         memory_backend: memory_backend_for_spec,
         memory_writer: memory_writer_for_spec,
+        memory_service: memory_service_for_tools,
         web_fetch_config: web_fetch_config.clone(),
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
@@ -1083,13 +1118,10 @@ pub(crate) async fn spawn_session_actor(
         None
     };
     let resolved_task_output =
-        nofy_tools::reminders::task_completion::resolve_task_output_tool_name(
-            agent.tool_bridge(),
-        )
-        .await;
-    let resolved_read =
-        nofy_tools::reminders::task_completion::resolve_read_tool_name(agent.tool_bridge())
+        nofy_tools::reminders::task_completion::resolve_task_output_tool_name(agent.tool_bridge())
             .await;
+    let resolved_read =
+        nofy_tools::reminders::task_completion::resolve_read_tool_name(agent.tool_bridge()).await;
     let _ = task_output_tool_name.set(resolved_task_output.clone());
     let _ = read_tool_name.set(resolved_read);
     tool_context.task_output_tool_name = resolved_task_output.unwrap_or_else(|| {
@@ -1241,8 +1273,7 @@ pub(crate) async fn spawn_session_actor(
             Some(override_reg)
         } else {
             let cwd_path = std::path::Path::new(&session_info.cwd);
-            let project_trusted =
-                crate::agent::folder_trust::resolve_and_record(cwd_path, false);
+            let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd_path, false);
             let git_root = nofy_workspace::session::git::find_git_root_from_path(cwd_path).ok();
             let (registry, errors) = crate::util::hooks::discover_hooks(
                 git_root.as_deref(),
@@ -2267,9 +2298,8 @@ pub(crate) async fn spawn_session_on_thread(
     ),
     acp::Error,
 > {
-    let (init_tx, init_rx) = tokio::sync::oneshot::channel::<
-        Result<SessionInitResult, nofy_agent::AgentBuildError>,
-    >();
+    let (init_tx, init_rx) =
+        tokio::sync::oneshot::channel::<Result<SessionInitResult, nofy_agent::AgentBuildError>>();
     let sid = session_info.id.0.to_string();
     let thread_name = format!("ses-{}", &sid[..sid.len().min(8)]);
     const SESSION_THREAD_STACK_SIZE: usize = 8 * 1024 * 1024;

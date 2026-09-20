@@ -22,9 +22,9 @@
 //! `NOFY_MEMORY=1` environment variable. When disabled, this crate
 //! is not initialized by the host.
 
-pub mod backend;
-pub mod atomic_file;
 pub mod access;
+pub mod atomic_file;
+pub mod backend;
 pub mod capture;
 pub mod chunker;
 pub mod dream;
@@ -40,6 +40,7 @@ pub mod observation_store;
 pub mod query_expansion;
 pub mod schema;
 pub mod search;
+pub mod service;
 pub mod state;
 pub mod storage;
 pub mod text_utils;

@@ -9,13 +9,13 @@
 use crate::capability::{CapabilityMode, kind_allowed};
 use crate::config::SessionContextFactory;
 use crate::error::{WorkspaceError, WorkspaceResult};
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::Arc;
 use nofy_tools::registry::types::{
     FinalizedToolset, ToolConfig, ToolRegistryBuilder, ToolServerConfig,
 };
 use nofy_tools::types::tool::ToolKind;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
 /// Create-shaped entry of the resolution pipeline: run
 /// [`resolve_session_toolset_rebuild`] around a FRESH factory-built
 /// session-lifetime terminal backend, and return that backend so the caller
@@ -419,6 +419,7 @@ impl SessionContextFactory for WorkspaceSessionContextFactory {
             state_path: self.resolve_state_path(session_id),
             memory_backend: None,
             memory_writer: None,
+            memory_service: None,
             session_recall: None,
             forensics: None,
             delegation: None,
@@ -446,8 +447,7 @@ impl SessionContextFactory for WorkspaceSessionContextFactory {
 }
 /// Build web fetch config. Enabled with default params unless
 /// `NOFY_DISABLE_WEB_FETCH=1` is set.
-fn build_web_fetch_config() -> nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig
-{
+fn build_web_fetch_config() -> nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig {
     use nofy_tools::implementations::nofy_build::web_fetch::{WebFetchConfig, WebFetchParams};
     if std::env::var("NOFY_DISABLE_WEB_FETCH").is_ok_and(|v| v == "1" || v == "true") {
         return WebFetchConfig::Disabled;
@@ -464,16 +464,16 @@ fn build_web_fetch_config() -> nofy_tools::implementations::nofy_build::web_fetc
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support {
     use crate::config::SessionContextFactory;
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-    use std::sync::Arc;
-    use tempfile::TempDir;
     use nofy_tools::computer::local::{LocalFs, LocalTerminalBackend};
     use nofy_tools::notification::ToolNotificationHandle;
     use nofy_tools::registry::types::{
         SessionContext, ToolConfig, ToolRegistryBuilder, ToolServerConfig,
     };
     use nofy_tools::types::tool::ToolKind;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+    use tempfile::TempDir;
     /// Test factory: builds a `SessionContext` rooted at a per-test temp dir.
     pub struct TestSessionContextFactory {
         pub temp: TempDir,
@@ -517,9 +517,10 @@ pub mod test_support {
                 state_path: session_root.join("tool_state.json"),
                 memory_backend: None,
                 memory_writer: None,
+                memory_service: None,
                 session_recall: None,
-            forensics: None,
-            delegation: None,
+                forensics: None,
+                delegation: None,
                 web_fetch_config: Default::default(),
                 lsp: None,
                 app_builder_deployer_config: Default::default(),
@@ -564,10 +565,10 @@ pub mod test_support {
 mod tests {
     use super::*;
     use crate::config::SessionContextFactory;
+    use nofy_tools::types::tool::ToolKind;
     use std::collections::HashMap;
     use std::path::PathBuf;
     use std::sync::Arc;
-    use nofy_tools::types::tool::ToolKind;
     fn factory_for_test() -> Arc<dyn SessionContextFactory> {
         Arc::new(test_support::TestSessionContextFactory::new())
     }

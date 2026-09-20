@@ -677,8 +677,7 @@ impl SessionActor {
             .in_current_span(),
         );
         let _drainer_guard = crate::util::AbortOnDrop(drainer);
-        while let Some((idx, mut result, mut duration_ms, tool_call_id)) =
-            dispatch_rx.recv().await
+        while let Some((idx, mut result, mut duration_ms, tool_call_id)) = dispatch_rx.recv().await
         {
             let prepared = approved_slots[idx]
                 .take()
@@ -744,11 +743,7 @@ impl SessionActor {
                         "ok",
                         "success",
                     ),
-                    Ok(_) => (
-                        nofy_session_journal::EventKind::ToolFailed,
-                        "ok",
-                        "failed",
-                    ),
+                    Ok(_) => (nofy_session_journal::EventKind::ToolFailed, "ok", "failed"),
                     Err(_) => (
                         nofy_session_journal::EventKind::ToolFailed,
                         "error",
@@ -813,8 +808,7 @@ impl SessionActor {
                         )
                         .await;
                     deferred_followups.extend(err_followups);
-                    if self
-                        .hook_event_active(nofy_hooks::event::HookEventName::PostToolUseFailure)
+                    if self.hook_event_active(nofy_hooks::event::HookEventName::PostToolUseFailure)
                     {
                         let raw_input: serde_json::Value =
                             serde_json::from_str(&prepared.raw_arguments)
@@ -916,15 +910,13 @@ impl SessionActor {
             } else {
                 (None, None)
             };
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::ToolCallCompleted {
-                    tool_name: prepared.tool_name.clone(),
-                    outcome: tool_outcome,
-                    duration_ms,
-                    file_path: ext_file_path,
-                    parameters: ext_parameters,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::ToolCallCompleted {
+                tool_name: prepared.tool_name.clone(),
+                outcome: tool_outcome,
+                duration_ms,
+                file_path: ext_file_path,
+                parameters: ext_parameters,
+            });
             if let Some(artifact) = compaction_artifact_read(&prepared.parsed_args) {
                 tracing::info_span!(
                     "compaction.segment_read",
@@ -1153,8 +1145,7 @@ impl SessionActor {
             if let Some(registry) = hook_registry_snapshot {
                 let ctx = self.hook_run_ctx();
                 let pre_result =
-                    nofy_hooks::dispatcher::dispatch_pre_tool_use(&registry, &envelope, &ctx)
-                        .await;
+                    nofy_hooks::dispatcher::dispatch_pre_tool_use(&registry, &envelope, &ctx).await;
                 self.send_hook_execution(
                     "pre_tool_use",
                     Some(&resolved_tool_name),
@@ -1286,15 +1277,13 @@ impl SessionActor {
             } else {
                 nofy_telemetry::enums::PermissionMode::Ask
             };
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::PermissionPrompted {
-                    tool_name: call.function.name.clone(),
-                    access_kind: telemetry_access_kind,
-                    permission_mode: perm_mode,
-                    subagent_session_id: subagent_session_id.clone(),
-                    subagent_type: None,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PermissionPrompted {
+                tool_name: call.function.name.clone(),
+                access_kind: telemetry_access_kind,
+                permission_mode: perm_mode,
+                subagent_session_id: subagent_session_id.clone(),
+                subagent_type: None,
+            });
             let perm_start = self.events.permission_requested(&call.function.name);
             debug_assert!(
                 !self.session_info.id.0.is_empty(),
@@ -1896,13 +1885,11 @@ impl SessionActor {
                 vec![],
             ),
             ToolInput::Skill(skill) => {
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::SkillDispatched {
-                        skill_name: skill.skill.clone(),
-                        plugin_source: None,
-                        trigger: nofy_telemetry::events::SkillTrigger::SkillTool,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SkillDispatched {
+                    skill_name: skill.skill.clone(),
+                    plugin_source: None,
+                    trigger: nofy_telemetry::events::SkillTrigger::SkillTool,
+                });
                 tracing::info_span!(
                     "skill.activated",
                     skill_name = %skill.skill,
@@ -1929,21 +1916,28 @@ impl SessionActor {
                 vec![],
             ),
             ToolInput::MemorySearch(ms) => {
+                let query = ms.query.as_deref().unwrap_or_default();
                 let end = ms
                     .query
+                    .as_deref()
+                    .unwrap_or_default()
                     .char_indices()
                     .nth(60)
-                    .map_or(ms.query.len(), |(i, _)| i);
-                let display = &ms.query[..end];
+                    .map_or(query.len(), |(i, _)| i);
+                let display = &query[..end];
                 (
-                    format!("Memory search: \"{display}\""),
+                    if display.is_empty() {
+                        "Memory list".to_owned()
+                    } else {
+                        format!("Memory search: \"{display}\"")
+                    },
                     acp::ToolKind::Other,
                     vec![],
                     vec![],
                 )
             }
             ToolInput::MemoryGet(mg) => (
-                format!("Memory read: {}", mg.path),
+                format!("Memory read: {}", mg.target_id),
                 acp::ToolKind::Read,
                 vec![],
                 vec![],
@@ -2307,9 +2301,7 @@ impl SessionActor {
                 }
                 if ops.pr_merged {
                     self.signals_handle().record_pr_merged();
-                    nofy_telemetry::session_ctx::log_event(
-                        nofy_telemetry::events::PrMerged {},
-                    );
+                    nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PrMerged {});
                 }
             }
             nofy_tools::types::output::ToolOutput::MCP(m)
@@ -3385,8 +3377,8 @@ mod wait_interrupt_tests {
         BlockingWaitGuard, interrupted_wait_tool_result, is_interruptible_wait_tool,
         wait_for_pending_interjection,
     };
-    use nofy_tools::types::output::ToolOutput;
     use nofy_tool_types::TaskOutputOutput;
+    use nofy_tools::types::output::ToolOutput;
     /// The interruptible-wait select arms: a pending interjection aborts an
     /// in-flight wait, and `biased` prefers an already-completed wait result
     /// over the abort. (Unit-level: the full dispatch loop has no test seam.)
@@ -3736,9 +3728,8 @@ impl SessionActor {
         if !crate::session::runtime_journal::is_verification_gate_enabled() {
             return;
         }
-        let Some(nofy_session_journal::VerificationState::Unverified {
-            last_mutation_seq,
-        }) = self.runtime_journal.verification_state()
+        let Some(nofy_session_journal::VerificationState::Unverified { last_mutation_seq }) =
+            self.runtime_journal.verification_state()
         else {
             return;
         };
@@ -3815,10 +3806,18 @@ impl SessionActor {
             *slot.get_or_insert(limit as u64)
         };
         let governor = nofy_convergence::BudgetGovernor::from_configured_limit(base_limit);
-        let extensions_used = *self.tool_context.convergence_extensions_used.lock().unwrap();
+        let extensions_used = *self
+            .tool_context
+            .convergence_extensions_used
+            .lock()
+            .unwrap();
         let decision = governor.decide(&signals, extensions_used);
         if let nofy_convergence::BudgetDecision::Extend { .. } = decision {
-            *self.tool_context.convergence_extensions_used.lock().unwrap() += 1;
+            *self
+                .tool_context
+                .convergence_extensions_used
+                .lock()
+                .unwrap() += 1;
         }
         let (label, reason, new_soft_budget) = match decision {
             nofy_convergence::BudgetDecision::Continue => ("continue", None, None),
