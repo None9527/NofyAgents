@@ -110,6 +110,7 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 agent-client-protocol = { version = "0.10.4", features = ["unstable"] }
+age = "0.12.1"
 alacritty_terminal = "0.26.0"
 ansi-to-tui = "7.0.0"
 ansi-width = "0.1"
@@ -186,6 +187,7 @@ insta = "1"
 itertools = "0.14"
 jsonschema = "0.30.0"
 kamadak-exif = "0.5"
+keyring = "4.2.0"
 libc = "0.2"
 linkify = "0.10"
 lipsum = "0.9"

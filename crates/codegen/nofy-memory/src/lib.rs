@@ -31,6 +31,8 @@ pub mod dream_lock;
 pub mod embedding;
 pub mod index;
 pub mod layout;
+pub mod migration;
+pub mod migration_backup;
 pub mod mmr;
 pub mod model;
 pub mod query_expansion;

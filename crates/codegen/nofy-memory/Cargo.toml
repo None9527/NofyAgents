@@ -11,6 +11,7 @@ test-support = []
 
 [dependencies]
 nofy-env = { workspace = true }
+age = { workspace = true }
 arc-swap = { workspace = true }
 async-trait = { workspace = true }
 blake3 = { workspace = true }
@@ -19,6 +20,7 @@ dunce = { workspace = true }
 git2 = { version = "0.20", default-features = false, features = [
     "vendored-libgit2",
 ] }
+keyring = { workspace = true }
 notify = { workspace = true }
 reqwest = { workspace = true }
 reqwest-middleware = { workspace = true }
@@ -26,6 +28,7 @@ reqwest-middleware = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
+tar = { workspace = true }
 # sqlite-vec: vec0 virtual table for KNN vector search.
 sqlite-vec = "=0.1.7-alpha.2"
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "time"] }

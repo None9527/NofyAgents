@@ -354,19 +354,19 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `Cargo.toml`
 - Modify: `crates/codegen/nofy-memory/Cargo.toml`
 
-- [ ] 在同一父目录创建 `memory.next.<uuid>`，导入时绝不修改源目录。
-- [ ] `USER.md` 导入 pinned user-owned Personal topic；旧 global MEMORY 由确定性分类器归入 Personal 或对应 Project，无法归类的条目进入 migration review，不创建 Global scope。
-- [ ] 旧 workspace MEMORY 根据 ProjectId registry 导入 curator-owned Project topics 并记录 legacy provenance，使其之后仍可被整理；session logs 导入 immutable observations。
-- [ ] `roots.json` 不导入运行时数据库；只把原注册路径写入迁移报告的 `deferred_knowledge_sources` 数组，供未来知识库功能读取或由用户手工清理。
-- [ ] 每个导入对象写入 legacy provenance、源 hash 和幂等键；重跑不会重复。
-- [ ] staging 内生成索引和 manifest，并核对对象数、hash、引用完整性和检索 smoke query。
-- [ ] 验证通过后 fsync；将源目录打包为 `memory.legacy.<timestamp>.age`，使用 `age` 随机密钥加密并设置最长 7 天自动销毁，再将 staging rename 为 `memory`。
-- [ ] 灾备密钥只存入 OS credential store；不得进入 SQLite、日志、telemetry 或同目录 key file。credential store 不可用时暂停切换，让用户选择取消或明确继续且不创建灾备。
-- [ ] 中断恢复覆盖三种状态：切换前清理/续跑、第一次 rename 后完成激活、激活后只使用新目录。
-- [ ] 激活后禁止自动回退到 legacy backup；任何显式 forget 先删除 credential-store 密钥使灾备立即不可解密，再删除整个 legacy backup，最后才完成用户可见 receipt。
-- [ ] 迁移界面展示扫描、导入、校验、切换四阶段和对象数；原子切换前允许取消，切换后只提供新系统 export/recovery。
-- [ ] 运行：`cargo test -p nofy-memory --test migration_cutover`。
-- [ ] Commit: `迁移(memory): 原子切换到统一存储`
+- [x] 在同一父目录创建 `memory.next.<uuid>`，导入时绝不修改源目录。
+- [x] `USER.md` 导入 pinned user-owned Personal topic；旧 global MEMORY 由确定性分类器归入 Personal 或对应 Project，无法归类的条目进入 migration review，不创建 Global scope。
+- [x] 旧 workspace MEMORY 根据 ProjectId registry 导入 curator-owned Project topics 并记录 legacy provenance，使其之后仍可被整理；session logs 导入 immutable observations。
+- [x] `roots.json` 不导入运行时数据库；只把原注册路径写入迁移报告的 `deferred_knowledge_sources` 数组，供未来知识库功能读取或由用户手工清理。
+- [x] 每个导入对象写入 legacy provenance、源 hash、内容 hash 和幂等键；重跑不会重复。
+- [x] staging 内生成迁移索引和 manifest，并核对对象数、内容 hash、引用完整性和索引 smoke query；Task 8 再将迁移索引接入统一 FTS/向量派生索引。
+- [x] 验证通过后 fsync；将源目录流式打包为 `memory.legacy.<timestamp>.tar.age`，使用 `age` 随机密钥加密并记录最长 7 天保留截止时间，再将 staging rename 为 `memory`；到期调度随 Task 12 retention 接线。
+- [x] 灾备密钥只存入 OS credential store；不得进入 SQLite、日志、telemetry 或同目录 key file。credential store 不可用时暂停切换，让用户选择取消或明确继续且不创建灾备。
+- [x] 中断恢复覆盖三种状态：切换前清理/续跑、第一次 rename 后完成激活、激活后只使用新目录。
+- [x] 激活后禁止自动回退到 legacy backup；显式销毁接口先删除 credential-store 密钥使灾备立即不可解密，再删除整个 legacy backup；Task 12 将它接入完整 forget receipt。
+- [x] 迁移回调展示扫描、导入、校验、切换四阶段以及扫描/导入对象数；原子切换前的错误或取消保持 legacy 活跃，切换后恢复只完成新系统激活。
+- [x] 运行：`cargo test -p nofy-memory --test migration_cutover`（7 passed）。
+- [x] Commit: `迁移(memory): 原子切换到统一存储`
 
 ### Task 6: 实现耐久自动捕获队列
 
