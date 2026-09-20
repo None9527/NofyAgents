@@ -22,7 +22,7 @@ pub enum StateError {
     Sql(#[from] rusqlite::Error),
     #[error("observation {0} is immutable and its content hash changed")]
     ImmutableObservation(String),
-    #[error("capture lease is stale or already completed")]
+    #[error("capture lease is stale or already finished")]
     StaleCaptureLease,
     #[error("operation lease is stale or no longer owned by this worker")]
     StaleOperationLease,
@@ -94,13 +94,13 @@ impl UnifiedState {
         self.meta.execute(
             "INSERT OR IGNORE INTO capture_jobs
              (id, payload, state, generation, created_at, updated_at)
-             VALUES (?1, ?2, 'pending', 0, ?3, ?3)",
+             VALUES (?1, ?2, 'queued', 0, ?3, ?3)",
             params![job_id, payload, now],
         )?;
         Ok(())
     }
 
-    /// Claim one pending or expired job. The incremented generation fences
+    /// Claim one queued, retryable, or expired job. The incremented generation fences
     /// every older worker, even when it continues running after lease expiry.
     pub fn claim_capture_job(
         &self,
@@ -117,7 +117,7 @@ impl UnifiedState {
                      generation = generation + 1, lease_until = ?2, updated_at = ?3
                  WHERE id = (
                      SELECT id FROM capture_jobs
-                     WHERE state = 'pending'
+                     WHERE state IN ('queued', 'retryable')
                         OR (state = 'leased' AND lease_until <= ?3)
                      ORDER BY created_at, id LIMIT 1
                  )
@@ -139,12 +139,80 @@ impl UnifiedState {
         outcome: &str,
         now: i64,
     ) -> Result<(), StateError> {
+        self.finish_capture_claim(claim, "succeeded", outcome, now)
+    }
+
+    pub fn capture_outcome(&self, job_id: &str) -> Result<Option<String>, StateError> {
+        Ok(self
+            .meta
+            .query_row(
+                "SELECT outcome FROM capture_outcomes
+                 WHERE job_id = ?1 ORDER BY generation DESC LIMIT 1",
+                [job_id],
+                |row| row.get(0),
+            )
+            .optional()?)
+    }
+
+    pub fn capture_payload(&self, job_id: &str) -> Result<Option<String>, StateError> {
+        Ok(self
+            .meta
+            .query_row(
+                "SELECT payload FROM capture_jobs WHERE id = ?1",
+                [job_id],
+                |row| row.get(0),
+            )
+            .optional()?)
+    }
+
+    pub fn capture_job_state(&self, job_id: &str) -> Result<Option<String>, StateError> {
+        Ok(self
+            .meta
+            .query_row(
+                "SELECT state FROM capture_jobs WHERE id = ?1",
+                [job_id],
+                |row| row.get(0),
+            )
+            .optional()?)
+    }
+
+    pub fn succeed_capture_job(
+        &self,
+        claim: &CaptureJobClaim,
+        outcome: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.finish_capture_claim(claim, "succeeded", outcome, now)
+    }
+
+    pub fn retry_capture_job(
+        &self,
+        claim: &CaptureJobClaim,
+        outcome: &str,
+        terminal: bool,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.finish_capture_claim(
+            claim,
+            if terminal { "terminal" } else { "retryable" },
+            outcome,
+            now,
+        )
+    }
+
+    fn finish_capture_claim(
+        &self,
+        claim: &CaptureJobClaim,
+        state: &str,
+        outcome: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
         let transaction = self.meta.unchecked_transaction()?;
         let changed = transaction.execute(
             "UPDATE capture_jobs
-             SET state = 'completed', lease_until = NULL, updated_at = ?4
+             SET state = ?4, lease_until = NULL, updated_at = ?5
              WHERE id = ?1 AND state = 'leased' AND worker_id = ?2 AND generation = ?3",
-            params![claim.job_id, claim.worker_id, claim.generation, now],
+            params![claim.job_id, claim.worker_id, claim.generation, state, now],
         )?;
         if changed != 1 {
             return Err(StateError::StaleCaptureLease);
@@ -158,16 +226,29 @@ impl UnifiedState {
         Ok(())
     }
 
-    pub fn capture_outcome(&self, job_id: &str) -> Result<Option<String>, StateError> {
-        Ok(self
-            .meta
-            .query_row(
-                "SELECT outcome FROM capture_outcomes
-                 WHERE job_id = ?1 ORDER BY generation DESC LIMIT 1",
-                [job_id],
-                |row| row.get(0),
-            )
-            .optional()?)
+    /// Startup reconciliation makes every expired lease claimable again.
+    pub fn reconcile_capture_jobs(&self, now: i64) -> Result<usize, StateError> {
+        Ok(self.meta.execute(
+            "UPDATE capture_jobs
+             SET state = 'retryable', worker_id = NULL, lease_until = NULL, updated_at = ?1
+             WHERE state = 'leased' AND lease_until <= ?1",
+            [now],
+        )?)
+    }
+
+    pub fn quarantine_capture(
+        &self,
+        record_id: Option<&str>,
+        reason: &str,
+        payload: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.scope.execute(
+            "INSERT INTO quarantine(record_kind, record_id, reason, payload, created_at)
+             VALUES ('capture', ?1, ?2, ?3, ?4)",
+            params![record_id, reason, payload, now],
+        )?;
+        Ok(())
     }
 
     pub fn register_operation(

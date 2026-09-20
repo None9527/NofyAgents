@@ -25,6 +25,7 @@
 pub mod backend;
 pub mod atomic_file;
 pub mod access;
+pub mod capture;
 pub mod chunker;
 pub mod dream;
 pub mod dream_lock;
@@ -35,6 +36,7 @@ pub mod migration;
 pub mod migration_backup;
 pub mod mmr;
 pub mod model;
+pub mod observation_store;
 pub mod query_expansion;
 pub mod schema;
 pub mod search;

@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS metadata (
 CREATE TABLE IF NOT EXISTS capture_jobs (
     id TEXT PRIMARY KEY,
     payload TEXT NOT NULL,
-    state TEXT NOT NULL DEFAULT 'pending',
+    state TEXT NOT NULL DEFAULT 'queued',
     worker_id TEXT,
     generation INTEGER NOT NULL DEFAULT 0,
     lease_until INTEGER,

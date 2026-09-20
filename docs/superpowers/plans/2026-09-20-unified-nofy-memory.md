@@ -377,16 +377,16 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Create: `crates/codegen/nofy-memory/tests/capture_recovery.rs`
 - Modify: `crates/codegen/nofy-memory/src/threat_scan.rs`
 
-- [ ] 只接受“已持久化且成功完成的顶层 turn”产生的 durable capture job；subagent、工具内部采样和失败 turn 不入队。
-- [ ] job 使用 transcript hash + session id + turn id 幂等；支持 queued/leased/succeeded/retryable/terminal 状态。
-- [ ] 模型输出严格反序列化为结构化 ObservationDraft；拒绝未知字段、空 statement、非法 scope。
-- [ ] Host 最终裁决 scope：稳定偏好和个人事实进入 Personal，项目事实进入当前 Project；不存在 Global 写入分支。
-- [ ] 冲突检测将明确纠正输出为 `UserCorrection` 并写入 `supersedes`；不确定冲突标为 `Disputed`，不自动覆盖用户事实。
-- [ ] Observation 落盘前执行 credential/secret filter、瞬时任务状态过滤和现有 promptware scan；可疑内容进入 quarantine，不进入检索。
-- [ ] capture 在模型调用前后都应用 `automatic_excluded_sensitive_categories`；被排除内容只记录无正文 outcome code，不进入 prompt、quarantine、telemetry 或重试队列。
-- [ ] 实现 lease 到期重领、有限重试、幂等 outcome、启动 reconciliation 和 shutdown join/cancel。
-- [ ] 运行：`cargo test -p nofy-memory --test capture_recovery`。
-- [ ] Commit: `实现(memory): 耐久化自动记忆捕获`
+- [x] 只接受“已持久化且成功完成的顶层 turn”产生的 durable capture job；subagent、工具内部采样和失败 turn 不入队。
+- [x] job 使用 transcript hash + session id + turn id 幂等；支持 queued/leased/succeeded/retryable/terminal 状态。
+- [x] 模型输出严格反序列化为结构化 ObservationDraft；拒绝未知字段、空 statement、非法 scope。
+- [x] Host 最终裁决 scope：稳定偏好和个人事实进入 Personal，项目事实进入当前 Project；不存在 Global 写入分支。
+- [x] 提取器用 `Correction + supersedes` 显式表达冲突，Host 严格验证并保存为 `UserCorrection`；不确定非纠正事实标为 `Disputed`，不自动覆盖用户事实。
+- [x] Observation 落盘前执行 credential/secret filter、瞬时任务状态过滤和现有 promptware scan；可疑内容进入 quarantine，不进入检索。
+- [x] capture 在模型调用前后都应用 `automatic_excluded_sensitive_categories`；被排除内容只返回/记录无正文 outcome code，不进入 prompt、quarantine、telemetry 或重试队列。
+- [x] 实现 lease 到期重领、有限重试、幂等 outcome、启动 reconciliation 和 shutdown join/cancel。
+- [x] 运行：`cargo test -p nofy-memory --test capture_recovery`（8 passed）。
+- [x] Commit: `实现(memory): 耐久化自动记忆捕获`
 
 ### Task 7: 将捕获接入 Shell 的 transcript barrier
 
