@@ -491,14 +491,16 @@ pub trait MemoryService: Send + Sync {
 - Create: `crates/codegen/nofy-memory/tests/consolidation_recovery.rs`
 - Replace: `crates/codegen/nofy-memory/src/dream.rs`
 
-- [ ] 整理 plan 只包含 Create/Update/Rename/Merge/Split；Delete 不属于自动整理，只能由显式 forget 发起。
-- [ ] 每个 operation 固化输入 observation IDs、目标 hashes、plan hash、lease generation 和 phase。
-- [ ] Curator 只能改 `origin = Curator && !pinned` 的 topic；User 或 pinned topic 只能作为检索证据，不能自动修改；legacy provenance 不改变其导入后所有权。
-- [ ] Active：验证 plan → claim evidence → 原子提交 topic → 重建 manifest/index → archive observations → 完成 operation。
-- [ ] Shadow：保存并评估相同 plan，但不改 topic、不 archive evidence；RecordOnly 不生成 plan。
-- [ ] 崩溃测试覆盖每个 phase，确保重启后继续同一 operation，而不是重复生成不同 plan。
-- [ ] 运行：`cargo test -p nofy-memory --test consolidation_recovery`。
-- [ ] Commit: `实现(memory): 可恢复的统一记忆整理`
+- [x] 整理 plan 只包含 Create/Update/Rename/Merge/Split；Delete 不属于自动整理，只能由显式 forget 发起。
+- [x] 每个 operation 固化输入 observation IDs、目标 hashes、plan hash、lease generation 和 phase。
+- [x] Curator 只能改 `origin = Curator && !pinned` 的 topic；User 或 pinned topic 只能作为检索证据，不能自动修改；legacy provenance 不改变其导入后所有权。
+- [x] Active：验证 plan → claim evidence → 原子提交 topic → 重建 manifest/index → archive observations → 完成 operation。
+- [x] Shadow：保存并评估相同 plan，但不改 topic、不 archive evidence；RecordOnly 不生成 plan。
+- [x] 崩溃测试覆盖每个 phase，确保重启后继续同一 operation，而不是重复生成不同 plan。
+- [x] 运行：`cargo test -p nofy-memory --test consolidation_recovery`。
+- [x] Commit: `实现(memory): 可恢复的统一记忆整理`
+
+> 兼容性的 `dream.rs` 门面留到 Task 11 与 shell 调用方同批切换，避免出现半切换运行路径；整理引擎及恢复协议已由本任务替代。
 
 ### Task 11: 统一 flush、dream 和 compaction 生命周期
 
