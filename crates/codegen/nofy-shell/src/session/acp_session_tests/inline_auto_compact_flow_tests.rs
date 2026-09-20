@@ -130,6 +130,8 @@ async fn create_test_actor(
             cancel: Default::default(),
         },
         memory: crate::session::memory_state::SessionMemory {
+            capture: None,
+            last_capture_barrier: std::cell::RefCell::new(None),
             flush_config: crate::config::MemoryFlushConfig::default(),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
@@ -587,6 +589,8 @@ async fn create_test_actor_with_memory(
             cancel: Default::default(),
         },
         memory: crate::session::memory_state::SessionMemory {
+            capture: None,
+            last_capture_barrier: std::cell::RefCell::new(None),
             flush_config: memory_config
                 .as_ref()
                 .map_or_else(Default::default, |mc| mc.flush.clone()),
@@ -1389,6 +1393,8 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                     cancel: Default::default(),
                 },
                 memory: crate::session::memory_state::SessionMemory {
+                    capture: None,
+                    last_capture_barrier: std::cell::RefCell::new(None),
                     flush_config: crate::config::MemoryFlushConfig::default(),
                     is_flushing: std::sync::atomic::AtomicBool::new(false),
                     last_flush_compaction: std::sync::atomic::AtomicU64::new(0),

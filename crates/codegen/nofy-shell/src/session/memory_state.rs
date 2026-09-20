@@ -9,6 +9,12 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 
 /// Memory subsystem state for a session.
 pub(crate) struct SessionMemory {
+    /// Durable automatic-capture queue/worker for the top-level session.
+    /// Canonical memory facts are never cached here.
+    pub capture: Option<crate::session::memory_capture::SessionCapture>,
+    /// Most recent completed transcript/capture barrier, for diagnostics and
+    /// duplicate-hook verification only.
+    pub last_capture_barrier: RefCell<Option<crate::session::memory_capture::CaptureBarrier>>,
     /// Memory storage handle for writing flush output (None when memory disabled).
     /// Wrapped in `RefCell` to allow `/memory on|off` toggle from `&Arc<SessionActor>`.
     pub storage: RefCell<Option<crate::session::memory::MemoryStorage>>,
@@ -58,6 +64,22 @@ pub(crate) struct SessionMemory {
 }
 
 impl SessionMemory {
+    pub(crate) fn record_capture_barrier(
+        &self,
+        barrier: crate::session::memory_capture::CaptureBarrier,
+    ) {
+        *self.last_capture_barrier.borrow_mut() = Some(barrier);
+    }
+
+    pub(crate) fn shutdown_capture(&self) {
+        let Some(capture) = &self.capture else {
+            return;
+        };
+        if let Err(error) = capture.shutdown(nofy_memory::capture::CaptureShutdown::Cancel) {
+            tracing::warn!(%error, "memory capture worker shutdown failed");
+        }
+    }
+
     /// Whether memory is enabled for this session.
     pub(crate) fn is_enabled(&self) -> bool {
         self.storage.borrow().is_some()

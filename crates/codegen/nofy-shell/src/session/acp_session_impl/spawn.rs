@@ -771,6 +771,26 @@ pub(crate) async fn spawn_session_actor(
             mc.root_dir_override.as_deref(),
         )
     });
+    let memory_capture_for_session = memory_config
+        .as_ref()
+        .filter(|config| config.automatic_learning_active())
+        .and_then(|config| {
+            let storage = memory_storage_for_session.as_ref()?;
+            match crate::session::memory_capture::SessionCapture::start(
+                storage.global_dir().to_path_buf(),
+                tool_context.cwd.as_path(),
+                session_info.id.0.to_string(),
+                config.automatic_excluded_sensitive_categories.clone(),
+                config.capture,
+                sampling_config.clone(),
+            ) {
+                Ok(capture) => Some(capture),
+                Err(error) => {
+                    tracing::warn!(%error, "automatic memory capture disabled for this session");
+                    None
+                }
+            }
+        });
     let memory_initial_injection_config = memory_config
         .as_ref()
         .map_or_else(Default::default, |mc| mc.initial_injection.clone());
@@ -1581,6 +1601,8 @@ pub(crate) async fn spawn_session_actor(
             cancel: Default::default(),
         },
         memory: super::memory_state::SessionMemory {
+            capture: memory_capture_for_session,
+            last_capture_barrier: std::cell::RefCell::new(None),
             flush_config: memory_config.as_ref().map_or_else(
                 || crate::config::MemoryFlushConfig {
                     enabled: false,

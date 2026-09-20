@@ -406,16 +406,37 @@ impl SessionActor {
             extra.insert("cancellationCategory".to_string(), serde_json::json!(c));
         }
         let extra_meta = (!extra.is_empty()).then_some(extra);
-        self.send_xai_notification_with_extra_meta(
-            crate::session::turn_completion::build_turn_completed(
-                prompt_id,
-                stop_reason,
-                agent_result,
-                usage,
-            ),
-            extra_meta,
-        )
-        .await;
+        let update = crate::session::turn_completion::build_turn_completed(
+            prompt_id.clone(),
+            stop_reason,
+            agent_result,
+            usage,
+        );
+        if crate::session::turn_completion::is_capture_eligible(mapped)
+            && let Some(capture) = &self.memory.capture
+        {
+            match self
+                .send_xai_notification_with_barrier(update, extra_meta)
+                .await
+            {
+                Ok(receipt) => {
+                    let conversation = self.chat_state_handle.get_conversation().await;
+                    match capture.enqueue_after_barrier(receipt, prompt_id, &conversation) {
+                        Ok(Some(barrier)) => self.memory.record_capture_barrier(barrier),
+                        Ok(None) => {}
+                        Err(error) => {
+                            tracing::warn!(%error, "memory capture enqueue failed after barrier")
+                        }
+                    }
+                }
+                Err(error) => {
+                    tracing::warn!(%error, "turn terminal did not reach memory capture barrier")
+                }
+            }
+        } else {
+            self.send_xai_notification_with_extra_meta(update, extra_meta)
+                .await;
+        }
 
         // Cost, context occupancy and the turn timer all moved during the turn.
         self.emit_status_snapshot_detached();

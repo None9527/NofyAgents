@@ -94,13 +94,14 @@ pub struct SessionStateCopy {
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum PersistenceMsg {
+pub(crate) enum PersistenceMsg {
     /// A session update (ACP update or xAI extension update)
     Update(SessionUpdate),
     AppendUpdateDurablyAndAck {
         update: SessionUpdate,
-        respond_to:
-            tokio::sync::oneshot::Sender<Result<(), crate::session::storage::AppendUpdateError>>,
+        respond_to: tokio::sync::oneshot::Sender<
+            Result<DurableBarrierReceipt, crate::session::storage::AppendUpdateError>,
+        >,
     },
     ContentChunk(PersistenceContentChunk),
     Chat(ConversationItem),
@@ -215,6 +216,17 @@ pub enum PersistenceMsg {
     CopyFile {
         one_shot: tokio::sync::oneshot::Sender<anyhow::Result<SessionStateCopy>>,
     },
+}
+
+/// Proof that a session update crossed the storage commit boundary.
+///
+/// The sequence is allocated by the persistence actor after a successful
+/// commit, so receipt order is identical to durable append order. The hash is
+/// over the exact logical update passed to the storage adapter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DurableBarrierReceipt {
+    pub sequence: u64,
+    pub update_hash: String,
 }
 
 pub use nofy_shared::session::session_dir;
@@ -1473,7 +1485,7 @@ mod generated_title_tests {
 
 #[derive(Clone)]
 pub struct PersistenceHandle {
-    pub tx: mpsc::UnboundedSender<PersistenceMsg>,
+    pub(crate) tx: mpsc::UnboundedSender<PersistenceMsg>,
     noop: bool,
     disk_full_rx: watch::Receiver<bool>,
 }
@@ -1572,7 +1584,7 @@ impl PersistenceHandle {
     pub(crate) async fn append_update_durably(
         &self,
         update: SessionUpdate,
-    ) -> Result<(), DurableAppendError> {
+    ) -> Result<DurableBarrierReceipt, DurableAppendError> {
         if self.noop {
             return Err(DurableAppendError::NotCommitted(io::Error::new(
                 io::ErrorKind::Unsupported,
@@ -1622,6 +1634,7 @@ struct SessionPersistence {
     gateway: Option<GatewaySender>,
     disk_full_tx: watch::Sender<bool>,
     disk_full_notified: bool,
+    durable_sequence: u64,
 }
 
 impl SessionPersistence {
@@ -1845,14 +1858,27 @@ impl SessionPersistence {
     async fn handle_durable_append(
         &mut self,
         update: SessionUpdate,
-    ) -> Result<(), crate::session::storage::AppendUpdateError> {
+    ) -> Result<DurableBarrierReceipt, crate::session::storage::AppendUpdateError> {
         self.drain_pending().await?;
+        let update_hash = blake3::hash(&serde_json::to_vec(&update).map_err(|error| {
+            crate::session::storage::AppendUpdateError::NotCommitted(io::Error::new(
+                io::ErrorKind::InvalidData,
+                error,
+            ))
+        })?)
+        .to_hex()
+        .to_string();
         let result = self
             .storage
             .append_update_durable_commit_aware(&self.info, &update)
             .await;
         self.observe_append_update(&result);
-        result
+        result?;
+        self.durable_sequence = self.durable_sequence.saturating_add(1);
+        Ok(DurableBarrierReceipt {
+            sequence: self.durable_sequence,
+            update_hash,
+        })
     }
 
     /// Flush any pending merged ACP notification to disk.
@@ -2504,6 +2530,7 @@ pub(crate) async fn new(
             gateway,
             disk_full_tx,
             disk_full_notified: false,
+            durable_sequence: 0,
         };
         persistence.run().await;
     });
@@ -2566,6 +2593,7 @@ pub(crate) async fn new_with_explicit_dir(
             gateway: None,
             disk_full_tx,
             disk_full_notified: false,
+            durable_sequence: 0,
         };
         persistence.run().await;
     });
@@ -2654,6 +2682,7 @@ pub(crate) async fn load_light(
             gateway,
             disk_full_tx,
             disk_full_notified: false,
+            durable_sequence: 0,
         };
         persistence.run().await;
     });

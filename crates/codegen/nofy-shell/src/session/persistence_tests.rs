@@ -33,6 +33,7 @@ fn test_actor(info: Info, storage: Arc<dyn StorageAdapter>) -> ActorGuard {
             gateway: None,
             disk_full_tx,
             disk_full_notified: false,
+            durable_sequence: 0,
         }
         .run(),
     );
@@ -169,11 +170,13 @@ async fn durable_append_drains_pending_update_in_fifo_order() {
         .tx
         .send(PersistenceMsg::Update(neutral_update(&info, "before")))
         .unwrap();
-    actor
+    let receipt = actor
         .handle
         .append_update_durably(neutral_update(&info, "durable"))
         .await
         .unwrap();
+    assert_eq!(receipt.sequence, 1);
+    assert_eq!(receipt.update_hash.len(), 64);
     let summary = storage.load_summary(&info).await.unwrap();
     assert_eq!(summary.num_messages, 2);
 

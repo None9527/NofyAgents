@@ -51,7 +51,12 @@ fn drain_persistence_ok(mut rx: tokio::sync::mpsc::UnboundedReceiver<Persistence
         while let Some(msg) = rx.recv().await {
             match msg {
                 PersistenceMsg::AppendUpdateDurablyAndAck { respond_to, .. } => {
-                    let _ = respond_to.send(Ok(()));
+                    let _ = respond_to.send(Ok(
+                        crate::session::persistence::DurableBarrierReceipt {
+                            sequence: 1,
+                            update_hash: "test-receipt".into(),
+                        },
+                    ));
                 }
                 PersistenceMsg::AppendCwdSwitchAndAck { respond_to, .. } => {
                     let _ = respond_to

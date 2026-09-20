@@ -130,6 +130,8 @@ pub(super) async fn make_replay_send_update_fixture() -> ReplaySendUpdateFixture
             cancel: Default::default(),
         },
         memory: crate::session::memory_state::SessionMemory {
+            capture: None,
+            last_capture_barrier: std::cell::RefCell::new(None),
             flush_config: crate::config::MemoryFlushConfig::default(),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),

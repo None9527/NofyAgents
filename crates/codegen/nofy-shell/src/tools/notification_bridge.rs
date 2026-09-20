@@ -2,7 +2,9 @@
 //! into `nofy-shell`'s native systems (ACP gateway, hunk tracker, file state tracker).
 use crate::session::commands::SessionCommand;
 use crate::session::commands::{NotificationPriority, NotificationSource};
-use crate::session::persistence::{DurableAppendError, PersistenceHandle, PersistenceMsg};
+use crate::session::persistence::{
+    DurableAppendError, DurableBarrierReceipt, PersistenceHandle, PersistenceMsg,
+};
 use crate::tools::task_completed_frame;
 use agent_client_protocol::{self as acp, Client as _};
 use std::collections::HashMap;
@@ -107,9 +109,11 @@ fn stamp_scheduler_meta(
     meta.insert("nofy/schedulerGeneration".to_owned(), generation.into());
     meta.insert("nofy/schedulerRevision".to_owned(), revision.into());
 }
-fn durable_append_landed(result: Result<(), DurableAppendError>) -> Result<(), String> {
+fn durable_append_landed(
+    result: Result<DurableBarrierReceipt, DurableAppendError>,
+) -> Result<(), String> {
     match result {
-        Ok(()) => Ok(()),
+        Ok(_) => Ok(()),
         Err(DurableAppendError::Committed(error)) => {
             tracing::warn!(%error, "Scheduler tombstone committed with bookkeeping failure");
             Ok(())
@@ -1628,7 +1632,12 @@ mod tests {
                 receipt.try_recv(),
                 Err(tokio::sync::oneshot::error::TryRecvError::Empty)
             ));
-            respond_to.send(Ok(())).unwrap();
+            respond_to
+                .send(Ok(DurableBarrierReceipt {
+                    sequence: 1,
+                    update_hash: "test-receipt".into(),
+                }))
+                .unwrap();
             receipt.await.unwrap().unwrap();
         };
         let (result, ()) = tokio::join!(

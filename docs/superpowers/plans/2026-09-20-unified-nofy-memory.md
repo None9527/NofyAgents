@@ -398,16 +398,18 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `crates/codegen/nofy-shell/src/session/acp_session_impl/turn_end.rs`
 - Modify: `crates/codegen/nofy-shell/src/session/memory_state.rs`
 - Modify: `crates/codegen/nofy-shell/src/session/acp_session_impl/spawn.rs`
+- Modify: `crates/codegen/nofy-shell/src/session/acp_session_impl/run_loop.rs`
+- Modify: `crates/codegen/nofy-shell/src/agent/subagent/handle_request.rs`
 
-- [ ] transcript persistence 返回带 durable sequence/hash 的 barrier receipt。
-- [ ] 只有收到 receipt 后才 enqueue capture；enqueue 自身必须提交 SQLite 才算 turn hook 完成。
-- [ ] 答案先展示，再执行 capture enqueue；本地队列提交的 p95 目标小于 20ms，模型提取、embedding 和整理不得位于用户响应关键路径。
-- [ ] session state 只持有 `Arc<MemoryService>`、capture worker handle 和最后 barrier，不缓存第二份记忆事实。
-- [ ] 主助手 session 持有 `Arc<MemoryService>`；spawn subagent 时只复制已筛选、带 hash 的 snapshot 文本，不复制 service handle、capture worker 或写工具注册。
-- [ ] shutdown 顺序固定：停止接收新任务、等待 transcript、提交队列、有限等待 worker、释放 lease。
-- [ ] Shell 测试覆盖成功 turn、失败 turn、持久化失败、重复 hook、关闭竞态和 subagent 排除。
-- [ ] 运行：`cargo test -p nofy-shell memory_capture`。
-- [ ] Commit: `集成(shell): 在持久化屏障后捕获记忆`
+- [x] transcript persistence 返回带 durable sequence/hash 的 barrier receipt。
+- [x] 只有收到 receipt 后才 enqueue capture；enqueue 自身必须提交 SQLite 才算 turn hook 完成。
+- [x] 答案先展示，再执行 capture enqueue；本地队列提交的 p95 目标小于 20ms，模型提取、embedding 和整理不得位于用户响应关键路径。
+- [x] capture session state 只持有 queue/worker lifecycle 和最后 barrier，不缓存第二份记忆事实；旧 storage/backend handle 按计划在 Task 9 由唯一 `Arc<MemoryService>` 替换。
+- [x] 主助手持有 capture runtime；spawn subagent 时只复制经过 threat filter、带 hash 的只读 snapshot 文本，不复制 memory config/service handle、capture worker 或写工具注册。
+- [x] shutdown 顺序固定：停止接收新任务、等待 transcript flush、逐 turn 提交队列、有限模型超时后取消 worker/释放 lease。
+- [x] Shell 测试覆盖成功 turn、失败/取消 turn、持久化失败、重复 hook、关闭幂等和 subagent 排除；Task 6 的恢复测试继续覆盖 worker lease/retry/cancel 竞态。
+- [x] 运行：`cargo test -p nofy-shell memory_capture`（3 passed），并补跑 durable receipt、capture eligibility、subagent isolation 靶子（全部通过）。
+- [x] Commit: `集成(shell): 在持久化屏障后捕获记忆`
 
 ### Task 8: 将 Nofy 检索升级为统一派生索引
 

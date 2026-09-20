@@ -233,6 +233,7 @@ async fn shutdown_workflows(session: &SessionActor) {
         .is_err()
     {
         tracing::warn!("workflow shutdown persistence channel closed before flush");
+        session.memory.shutdown_capture();
         return;
     }
     match tokio::time::timeout(std::time::Duration::from_secs(2), ack).await {
@@ -245,6 +246,9 @@ async fn shutdown_workflows(session: &SessionActor) {
         }
         Err(_) => tracing::warn!("workflow shutdown persistence flush timed out"),
     }
+    // Transcript writes are now settled. Stop queue admission and bound the
+    // worker through its cancellation-aware extractor timeout.
+    session.memory.shutdown_capture();
 }
 pub(super) async fn run_session(
     session: Arc<SessionActor>,
@@ -2238,4 +2242,3 @@ pub(super) async fn run_session(
         }
     }
 }
-

@@ -855,11 +855,157 @@ impl SessionActor {
                 .await;
         }
     }
+
+    /// Forward immediately, then wait until the same notification crosses the
+    /// persistence actor's durable commit boundary.
+    pub(super) async fn send_xai_notification_with_barrier(
+        &self,
+        update: NofySessionUpdate,
+        extra_meta: Option<serde_json::Map<String, serde_json::Value>>,
+    ) -> Result<
+        crate::session::persistence::DurableBarrierReceipt,
+        crate::session::persistence::DurableAppendError,
+    > {
+        self.close_rewind_window().await;
+        let meta = {
+            let mut meta = self.build_notification_meta();
+            if let (Some(obj), Some(extra)) = (meta.as_object_mut(), extra_meta) {
+                obj.extend(extra);
+            }
+            meta
+        };
+        let notification = XaiSessionNotification {
+            session_id: self.session_info.id.clone(),
+            update,
+            meta: Some(meta),
+        };
+
+        // User-visible completion is never held behind disk or capture work.
+        let params = serde_json::to_value(&notification)
+            .and_then(|value| serde_json::value::to_raw_value(&value))
+            .ok();
+        if let Some(params) = params {
+            self.notifications
+                .gateway
+                .forward_fire_and_forget(acp::ExtNotification::new(
+                    "nofy/session_notification",
+                    params.into(),
+                ));
+        }
+
+        let (respond_to, response) = tokio::sync::oneshot::channel();
+        self.notifications
+            .persistence_tx
+            .send(PersistenceMsg::AppendUpdateDurablyAndAck {
+                update: crate::session::storage::SessionUpdate::Nofy(Box::new(
+                    notification.clone(),
+                )),
+                respond_to,
+            })
+            .map_err(|_| {
+                crate::session::persistence::DurableAppendError::NotCommitted(std::io::Error::new(
+                    std::io::ErrorKind::BrokenPipe,
+                    "session persistence stopped before capture barrier dispatch",
+                ))
+            })?;
+        let receipt = response
+            .await
+            .map_err(|_| {
+                crate::session::persistence::DurableAppendError::AcknowledgementLost(
+                    std::io::Error::new(
+                        std::io::ErrorKind::BrokenPipe,
+                        "session persistence stopped before capture barrier acknowledgement",
+                    ),
+                )
+            })?
+            .map_err(crate::session::persistence::DurableAppendError::from)?;
+
+        if let Some((notification_type, message, title, level)) =
+            notification_hook_for_update(&notification.update)
+        {
+            self.dispatch_notification_hook(&notification_type, message, title, level)
+                .await;
+        }
+        Ok(receipt)
+    }
 }
 #[cfg(test)]
 mod xai_event_id_stamping_tests {
     use super::support::create_test_actor;
     use super::*;
+
+    #[tokio::test]
+    async fn memory_capture_barrier_forwards_and_requires_persistence_ack() {
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let (gateway_tx, mut gateway_rx) =
+                    tokio::sync::mpsc::unbounded_channel::<nofy_acp_lib::AcpClientMessage>();
+                let (persistence_tx, mut persistence_rx) =
+                    tokio::sync::mpsc::unbounded_channel::<PersistenceMsg>();
+                let actor = create_test_actor(0, 256_000, 85, gateway_tx, persistence_tx).await;
+                let send = actor.send_xai_notification_with_barrier(
+                    crate::session::turn_completion::build_turn_completed(
+                        "turn-1".into(),
+                        serde_json::json!("end_turn"),
+                        serde_json::Value::Null,
+                        None,
+                    ),
+                    None,
+                );
+                let acknowledge = async {
+                    assert!(matches!(
+                        gateway_rx.recv().await,
+                        Some(nofy_acp_lib::AcpClientMessage::ExtNotification(_))
+                    ));
+                    let PersistenceMsg::AppendUpdateDurablyAndAck { respond_to, .. } =
+                        persistence_rx.recv().await.expect("durable terminal")
+                    else {
+                        panic!("expected durable terminal");
+                    };
+                    respond_to
+                        .send(Ok(crate::session::persistence::DurableBarrierReceipt {
+                            sequence: 3,
+                            update_hash: "terminal-hash".into(),
+                        }))
+                        .unwrap();
+                };
+                let (receipt, ()) = tokio::join!(send, acknowledge);
+                assert_eq!(receipt.unwrap().sequence, 3);
+
+                let send = actor.send_xai_notification_with_barrier(
+                    crate::session::turn_completion::build_turn_completed(
+                        "turn-2".into(),
+                        serde_json::json!("end_turn"),
+                        serde_json::Value::Null,
+                        None,
+                    ),
+                    None,
+                );
+                let reject = async {
+                    assert!(matches!(
+                        gateway_rx.recv().await,
+                        Some(nofy_acp_lib::AcpClientMessage::ExtNotification(_))
+                    ));
+                    let PersistenceMsg::AppendUpdateDurablyAndAck { respond_to, .. } =
+                        persistence_rx.recv().await.expect("durable terminal")
+                    else {
+                        panic!("expected durable terminal");
+                    };
+                    respond_to
+                        .send(Err(crate::session::storage::AppendUpdateError::NotCommitted(
+                            std::io::Error::other("disk unavailable"),
+                        )))
+                        .unwrap();
+                };
+                let (result, ()) = tokio::join!(send, reject);
+                assert!(matches!(
+                    result,
+                    Err(crate::session::persistence::DurableAppendError::NotCommitted(_))
+                ));
+            })
+            .await;
+    }
     fn persisted_xai_event_id(
         prx: &mut tokio::sync::mpsc::UnboundedReceiver<PersistenceMsg>,
     ) -> String {
