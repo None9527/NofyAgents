@@ -15,6 +15,8 @@ use std::sync::Arc;
 use nofy_tools::types::memory_backend::{MemoryBackend, MemorySearchResult};
 
 use super::embedding::EmbeddingProvider as _;
+use super::index::{UnifiedMemoryIndex, UnifiedSearchContext};
+use super::model::ProjectId;
 use super::storage::MemoryStorage;
 use super::watcher::MemoryFileWatcher;
 
@@ -279,6 +281,141 @@ impl MemoryBackendImpl {
         .await
     }
 
+    fn unified_project(&self) -> Option<ProjectId> {
+        self.storage
+            .global_dir()
+            .join(".unified-memory-v1")
+            .is_file()
+            .then(|| ProjectId::resolve(self.storage.workspace_path()).ok())
+            .flatten()
+    }
+
+    async fn search_unified(
+        &self,
+        project_id: ProjectId,
+        query: &str,
+        max_results: usize,
+        min_score: f64,
+    ) -> Result<Vec<MemorySearchResult>, Box<dyn std::error::Error + Send + Sync>> {
+        let dimensions = self.embed_config.as_ref().map_or(1024, |config| config.dimensions);
+        let mut index = UnifiedMemoryIndex::open(
+            self.storage.global_dir(),
+            project_id,
+            nofy_config_types::MemoryIndexConfig::default(),
+            dimensions,
+        )
+        .map_err(|error| std::io::Error::other(error.to_string()))?;
+        index
+            .refresh()
+            .map_err(|error| std::io::Error::other(error.to_string()))?;
+
+        let provider = self.make_embedding_provider().await;
+        if let Some(provider) = provider.as_ref() {
+            let missing = index.chunks_without_embeddings().unwrap_or_default();
+            for batch in missing.chunks(32) {
+                let texts: Vec<&str> = batch.iter().map(|(_, _, text)| text.as_str()).collect();
+                match provider.embed_batch(&texts).await {
+                    Ok(embeddings) => {
+                        for ((scope, chunk_id, _), embedding) in
+                            batch.iter().zip(embeddings.iter())
+                        {
+                            let _ = index.upsert_embedding(*scope, chunk_id, embedding);
+                        }
+                    }
+                    Err(error) => tracing::warn!(
+                        target: nofy_telemetry::memory_log::TARGET,
+                        error = %error,
+                        "embedding batch failed for unified memory index"
+                    ),
+                }
+            }
+        }
+
+        let mut config = self.search_config.clone();
+        config.max_results = max_results;
+        config.min_score = min_score as f32;
+        let context = current_git_context(self.storage.workspace_path());
+        let started = std::time::Instant::now();
+        let vec_available = index.vec_available() && provider.is_some();
+        let query_embedding = if vec_available {
+            if let Some(provider) = provider.as_ref() {
+                provider
+                    .embed_batch(&[query])
+                    .await
+                    .ok()
+                    .and_then(|mut embeddings| embeddings.drain(..).next())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let results = super::search::unified_search_with_embedding(
+            &index,
+            query_embedding.as_deref(),
+            query,
+            &context,
+            &config,
+        )
+        .map_err(|error| std::io::Error::other(error.to_string()))?;
+        for result in &results {
+            index.record_access(&result.chunk_id);
+        }
+
+        let duration_ms = started.elapsed().as_millis() as u64;
+        let search_mode = if vec_available {
+            "unified_hybrid"
+        } else {
+            "unified_fts_only"
+        };
+        let keyword_count = super::query_expansion::extract_keywords(query).len();
+        if results.is_empty() {
+            nofy_telemetry::session_ctx::log_event(
+                nofy_telemetry::memory_telemetry::MemorySearchEmpty {
+                    session_id: self.session_id.clone(),
+                    query_length: query.len(),
+                    keyword_count,
+                    min_score_threshold: min_score,
+                    search_mode: search_mode.to_owned(),
+                    duration_ms,
+                    vec_available,
+                    source: self.search_source.to_owned(),
+                },
+            );
+        } else {
+            nofy_telemetry::session_ctx::log_event(
+                nofy_telemetry::memory_telemetry::MemorySearch {
+                    session_id: self.session_id.clone(),
+                    query_length: query.len(),
+                    keyword_count,
+                    result_count: results.len(),
+                    top_score: results.first().map_or(0.0, |result| result.score),
+                    min_score_threshold: min_score,
+                    search_mode: search_mode.to_owned(),
+                    duration_ms,
+                    vec_available,
+                    source: self.search_source.to_owned(),
+                },
+            );
+        }
+        self.search_counter
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        Ok(results
+            .into_iter()
+            .map(|result| MemorySearchResult {
+                chunk_id: result.chunk_id,
+                path: result.path,
+                start_line: result.start_line,
+                end_line: result.end_line,
+                score: result.score,
+                snippet: result.snippet,
+                source: result.source,
+                created_at: Some(result.created_at),
+            })
+            .collect())
+    }
+
     /// Build a fully configured backend for a live session.
     ///
     /// Prefer this over calling `new()` + individual builder methods: it ensures
@@ -337,6 +474,11 @@ impl MemoryBackend for MemoryBackendImpl {
         max_results: usize,
         min_score: f64,
     ) -> Result<Vec<MemorySearchResult>, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(project_id) = self.unified_project() {
+            return self
+                .search_unified(project_id, query, max_results, min_score)
+                .await;
+        }
         // Open a MemoryIndex for this query (open-per-query, ~1ms).
         //
         // IMPORTANT: `MemoryIndex` is `Send` but `!Sync`, so `&MemoryIndex`
@@ -586,6 +728,19 @@ impl MemoryBackend for MemoryBackendImpl {
     /// Return the configured `min_score` from the stored search config.
     fn default_search_min_score(&self) -> f64 {
         self.search_config.min_score as f64
+    }
+}
+
+fn current_git_context(workspace: &Path) -> UnifiedSearchContext {
+    let Ok(repository) = git2::Repository::discover(workspace) else {
+        return UnifiedSearchContext::default();
+    };
+    let Ok(head) = repository.head() else {
+        return UnifiedSearchContext::default();
+    };
+    UnifiedSearchContext {
+        git_ref: head.name().map(str::to_owned),
+        anchor_commit: head.target().map(|commit| commit.to_string()),
     }
 }
 

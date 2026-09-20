@@ -10,14 +10,17 @@
 //! Call [`init_sqlite_vec()`] once before creating any `MemoryIndex`.
 //! This registers the sqlite-vec extension globally via `std::sync::Once`.
 
-use std::collections::HashMap;
-use std::path::Path;
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::Once;
 
-use rusqlite::params;
 use nofy_sqlite_journal::JournalMode;
+use rusqlite::{OptionalExtension, params};
+use thiserror::Error;
 
 use super::chunker::{chunk_hash, chunk_markdown};
+use super::layout::{ScopeLayout, UnifiedMemoryLayout};
+use super::model::{MemoryScope, Observation, ObservationKind, ProjectId, ProjectValidity};
 use super::schema;
 use super::storage::MemoryStorage;
 use nofy_config_types::MemoryIndexConfig;
@@ -79,6 +82,51 @@ pub struct ReindexResult {
     pub removed: usize,
 }
 
+/// Git validity used while searching the Personal + current Project indexes.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct UnifiedSearchContext {
+    pub git_ref: Option<String>,
+    pub anchor_commit: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct IndexedObjectMetadata {
+    pub object_kind: String,
+    pub object_hash: String,
+    pub canonical_path: String,
+    pub validity_kind: String,
+    pub git_ref: Option<String>,
+    pub anchor_commit: Option<String>,
+    pub observation_kind: Option<String>,
+    pub observation_status: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct UnifiedRebuildResult {
+    pub topics: usize,
+    pub observations: usize,
+    pub chunks: usize,
+}
+
+#[derive(Debug, Error)]
+pub enum UnifiedIndexError {
+    #[error("unified index database failed: {0}")]
+    Database(#[from] rusqlite::Error),
+    #[error("unified index I/O failed: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid canonical observation: {0}")]
+    Observation(#[from] serde_json::Error),
+}
+
+/// Pair of rebuildable per-scope indexes used by the single memory system.
+/// Canonical Markdown and the state ledgers remain the source of truth.
+pub struct UnifiedMemoryIndex {
+    layout: UnifiedMemoryLayout,
+    project_id: ProjectId,
+    personal: MemoryIndex,
+    project: MemoryIndex,
+}
+
 /// SQLite-backed memory index.
 pub struct MemoryIndex {
     db: rusqlite::Connection,
@@ -88,6 +136,149 @@ pub struct MemoryIndex {
     /// Whether sqlite-vec loaded successfully (FTS always available).
     vec_available: bool,
     embedding_dimensions: usize,
+}
+
+impl UnifiedMemoryIndex {
+    pub fn open(
+        root: &Path,
+        project_id: ProjectId,
+        config: MemoryIndexConfig,
+        dimensions: usize,
+    ) -> Result<Self, UnifiedIndexError> {
+        let layout = UnifiedMemoryLayout::new(root);
+        let personal_scope = layout.personal_scope();
+        let project_scope = layout.project_scope(project_id);
+        std::fs::create_dir_all(personal_scope.root())?;
+        std::fs::create_dir_all(project_scope.root())?;
+        let personal = MemoryIndex::open_or_create(
+            &personal_scope.root().join("index.sqlite"),
+            MemoryStorage::new_flat(personal_scope.root(), personal_scope.root()),
+            config.clone(),
+            dimensions,
+        )?;
+        let project = MemoryIndex::open_or_create(
+            &project_scope.root().join("index.sqlite"),
+            MemoryStorage::new_flat(project_scope.root(), project_scope.root()),
+            config,
+            dimensions,
+        )?;
+        Ok(Self {
+            layout,
+            project_id,
+            personal,
+            project,
+        })
+    }
+
+    pub fn rebuild(&mut self) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
+        let personal_scope = self.layout.personal_scope();
+        let project_scope = self.layout.project_scope(self.project_id);
+        let personal = self
+            .personal
+            .rebuild_unified_scope(&personal_scope, &MemoryScope::Personal)?;
+        let project = self.project.rebuild_unified_scope(
+            &project_scope,
+            &MemoryScope::Project(self.project_id),
+        )?;
+        Ok(UnifiedRebuildResult {
+            topics: personal.topics + project.topics,
+            observations: personal.observations + project.observations,
+            chunks: personal.chunks + project.chunks,
+        })
+    }
+
+    /// Rebuild only scopes whose canonical files or status ledger changed.
+    pub fn refresh(&mut self) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
+        let personal_scope = self.layout.personal_scope();
+        let project_scope = self.layout.project_scope(self.project_id);
+        let personal = if self.personal.needs_unified_rebuild(&personal_scope)? {
+            self.personal
+                .rebuild_unified_scope(&personal_scope, &MemoryScope::Personal)?
+        } else {
+            UnifiedRebuildResult::default()
+        };
+        let project = if self.project.needs_unified_rebuild(&project_scope)? {
+            self.project.rebuild_unified_scope(
+                &project_scope,
+                &MemoryScope::Project(self.project_id),
+            )?
+        } else {
+            UnifiedRebuildResult::default()
+        };
+        Ok(UnifiedRebuildResult {
+            topics: personal.topics + project.topics,
+            observations: personal.observations + project.observations,
+            chunks: personal.chunks + project.chunks,
+        })
+    }
+
+    pub fn repair_required(&self) -> bool {
+        self.personal.repair_required() || self.project.repair_required()
+    }
+
+    pub fn repair(&mut self) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
+        self.rebuild()
+    }
+
+    pub fn delete_derived_indexes(
+        root: &Path,
+        project_id: ProjectId,
+    ) -> Result<(), std::io::Error> {
+        let layout = UnifiedMemoryLayout::new(root);
+        for scope in [layout.personal_scope(), layout.project_scope(project_id)] {
+            let database = scope.root().join("index.sqlite");
+            for path in [
+                database.clone(),
+                PathBuf::from(format!("{}-wal", database.display())),
+                PathBuf::from(format!("{}-shm", database.display())),
+            ] {
+                match std::fs::remove_file(path) {
+                    Ok(()) => {}
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(error),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn indexes(&self) -> [&MemoryIndex; 2] {
+        [&self.personal, &self.project]
+    }
+
+    pub(crate) fn vec_available(&self) -> bool {
+        self.personal.vec_available() || self.project.vec_available()
+    }
+
+    pub(crate) fn chunks_without_embeddings(
+        &self,
+    ) -> Result<Vec<(usize, String, String)>, rusqlite::Error> {
+        let mut chunks = Vec::new();
+        for (scope, index) in self.indexes().into_iter().enumerate() {
+            chunks.extend(
+                index
+                    .chunks_without_embeddings()?
+                    .into_iter()
+                    .map(|(id, text)| (scope, id, text)),
+            );
+        }
+        Ok(chunks)
+    }
+
+    pub(crate) fn upsert_embedding(
+        &self,
+        scope: usize,
+        chunk_id: &str,
+        embedding: &[f32],
+    ) -> Result<(), rusqlite::Error> {
+        self.indexes()[scope].upsert_embedding(chunk_id, embedding)
+    }
+
+    pub(crate) fn record_access(&mut self, chunk_id: &str) {
+        for index in [&mut self.personal, &mut self.project] {
+            let _ = index.record_access(chunk_id);
+        }
+    }
 }
 
 impl MemoryIndex {
@@ -148,25 +339,29 @@ impl MemoryIndex {
         // Create schema
         db.execute_batch(&schema::schema_sql(dimensions, vec_available))?;
 
-        // Migration: databases created before the provenance column lack
-        // `chunks.origin`. Add it idempotently (CREATE TABLE IF NOT EXISTS
-        // never alters an existing table). Failure is non-fatal: the column
-        // is record-only, so a read-only or damaged file degrades to "no
-        // provenance", not "no index".
-        let has_origin: bool = db
-            .prepare("PRAGMA table_info(chunks)")
-            .and_then(|mut stmt| {
-                let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
-                Ok(rows.filter_map(|r| r.ok()).any(|name| name == "origin"))
-            })
-            .unwrap_or(false);
-        if !has_origin {
-            if let Err(e) = db.execute_batch(
-                "ALTER TABLE chunks ADD COLUMN origin TEXT NOT NULL DEFAULT 'agent'",
-            ) {
-                tracing::warn!(error = %e, "failed to add chunks.origin column; provenance disabled");
-            }
+        // Existing legacy indexes are upgraded in place. These columns are
+        // derivative metadata only; canonical objects remain in Markdown +
+        // the scope ledger and can always rebuild the database from scratch.
+        for (name, definition) in [
+            ("origin", "TEXT NOT NULL DEFAULT 'agent'"),
+            ("object_id", "TEXT NOT NULL DEFAULT ''"),
+            ("object_kind", "TEXT NOT NULL DEFAULT 'legacy'"),
+            ("scope_kind", "TEXT NOT NULL DEFAULT 'legacy'"),
+            ("project_id", "TEXT"),
+            ("validity_kind", "TEXT NOT NULL DEFAULT 'project_wide'"),
+            ("git_ref", "TEXT"),
+            ("anchor_commit", "TEXT"),
+            ("revision", "INTEGER NOT NULL DEFAULT 0"),
+            ("object_hash", "TEXT NOT NULL DEFAULT ''"),
+            ("observation_kind", "TEXT"),
+            ("observation_status", "TEXT NOT NULL DEFAULT 'active'"),
+        ] {
+            ensure_column(&db, "chunks", name, definition)?;
         }
+        db.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_chunks_object ON chunks(object_id, object_kind);
+             CREATE INDEX IF NOT EXISTS idx_chunks_scope ON chunks(scope_kind, project_id);",
+        )?;
 
         // Store/verify embedding dimensions in meta table
         let stored_dims: Option<String> = db
@@ -371,6 +566,316 @@ impl MemoryIndex {
 
         tx.commit()?;
         Ok(result)
+    }
+
+    fn rebuild_unified_scope(
+        &mut self,
+        scope_layout: &ScopeLayout,
+        scope: &MemoryScope,
+    ) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
+        let fingerprint = scope_fingerprint(scope_layout)?;
+        let mut topics = Vec::new();
+        collect_markdown_files(&scope_layout.topics_directory(), &mut topics)?;
+
+        let mut observation_files = Vec::new();
+        collect_markdown_files(
+            &scope_layout.observations_directory(),
+            &mut observation_files,
+        )?;
+        let statuses = read_observation_statuses(&scope_layout.state_database())?;
+        let mut observations = Vec::new();
+        for path in observation_files {
+            let bytes = std::fs::read(&path)?;
+            let observation: Observation = serde_json::from_str(&observation_json(&bytes)?)?;
+            if &observation.scope != scope {
+                tracing::warn!(path = %path.display(), "ignoring observation stored in the wrong scope");
+                continue;
+            }
+            let status = statuses
+                .get(&observation.id.as_uuid().to_string())
+                .cloned()
+                .unwrap_or_else(|| "active".to_owned());
+            observations.push((path, bytes, observation, status));
+        }
+
+        // Corrections are immutable evidence. Their supersedes edges are the
+        // authoritative projection even if an interrupted writer has not yet
+        // updated the older observation's mutable status row.
+        let superseded: HashSet<String> = observations
+            .iter()
+            .filter(|(_, _, observation, status)| {
+                *status == "active" && observation.kind == ObservationKind::UserCorrection
+            })
+            .flat_map(|(_, _, observation, _)| {
+                observation
+                    .supersedes
+                    .iter()
+                    .map(|id| id.as_uuid().to_string())
+            })
+            .collect();
+
+        self.clear_derived_index()?;
+        let mut result = UnifiedRebuildResult::default();
+        for path in topics {
+            let bytes = std::fs::read(&path)?;
+            let text = String::from_utf8_lossy(&bytes).into_owned();
+            let relative = path
+                .strip_prefix(scope_layout.topics_directory())
+                .unwrap_or(&path)
+                .to_string_lossy();
+            let metadata = parse_topic_metadata(&text);
+            let scope_key = scope_key(scope);
+            let validity = match scope {
+                MemoryScope::Personal => None,
+                MemoryScope::Project(_) => metadata.validity.as_ref(),
+            };
+            let object_id = metadata.id.unwrap_or_else(|| {
+                uuid::Uuid::new_v5(
+                    &uuid::Uuid::NAMESPACE_URL,
+                    format!("nofy-topic:{scope_key}:{relative}").as_bytes(),
+                )
+                .to_string()
+            });
+            result.chunks += self.index_unified_text(
+                &path,
+                &object_id,
+                "topic",
+                scope,
+                validity,
+                metadata.revision,
+                &hash_bytes(&bytes),
+                None,
+                "active",
+                &text,
+                file_created_at(&path),
+            )?;
+            result.topics += 1;
+        }
+        for (path, bytes, observation, mut status) in observations {
+            if superseded.contains(&observation.id.as_uuid().to_string()) {
+                status = "superseded".to_owned();
+            }
+            result.chunks += self.index_unified_text(
+                &path,
+                &observation.id.as_uuid().to_string(),
+                "observation",
+                scope,
+                observation.project_validity.as_ref(),
+                1,
+                &hash_bytes(&bytes),
+                Some(observation_kind_name(observation.kind)),
+                &status,
+                &observation.statement,
+                observation.created_at.timestamp(),
+            )?;
+            result.observations += 1;
+        }
+        self.db.execute(
+            schema::UPSERT_META_SQL,
+            params!["repair_required", "0"],
+        )?;
+        self.db.execute(
+            schema::UPSERT_META_SQL,
+            params!["canonical_fingerprint", fingerprint],
+        )?;
+        Ok(result)
+    }
+
+    fn needs_unified_rebuild(
+        &self,
+        scope_layout: &ScopeLayout,
+    ) -> Result<bool, UnifiedIndexError> {
+        if self.repair_required() {
+            return Ok(true);
+        }
+        let stored = self
+            .db
+            .query_row(
+                schema::GET_META_SQL,
+                ["canonical_fingerprint"],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        Ok(stored.as_deref() != Some(scope_fingerprint(scope_layout)?.as_str()))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn index_unified_text(
+        &mut self,
+        path: &Path,
+        object_id: &str,
+        object_kind: &str,
+        scope: &MemoryScope,
+        validity: Option<&ProjectValidity>,
+        revision: u64,
+        object_hash: &str,
+        observation_kind: Option<&str>,
+        observation_status: &str,
+        text: &str,
+        created_at: i64,
+    ) -> Result<usize, rusqlite::Error> {
+        let chunks = chunk_markdown(text, &self.chunk_config);
+        let path_text = path.to_string_lossy();
+        let (scope_kind, project_id) = match scope {
+            MemoryScope::Personal => ("personal", None),
+            MemoryScope::Project(project_id) => {
+                ("project", Some(project_id.as_uuid().to_string()))
+            }
+        };
+        let (validity_kind, git_ref, anchor_commit) = match validity {
+            None | Some(ProjectValidity::ProjectWide) => ("project_wide", None, None),
+            Some(ProjectValidity::BranchLocal {
+                git_ref,
+                anchor_commit,
+            }) => (
+                "branch_local",
+                Some(git_ref.as_str()),
+                Some(anchor_commit.as_str()),
+            ),
+        };
+        let source = format!("{scope_kind}_{object_kind}");
+        let now = chrono::Utc::now().timestamp();
+        let transaction = self.db.transaction()?;
+        for (position, chunk) in chunks.iter().enumerate() {
+            let chunk_id = format!("{object_kind}:{object_id}:{position}");
+            transaction.execute(
+                "INSERT INTO chunks
+                 (id, path, start_line, end_line, text, hash, source, origin,
+                  object_id, object_kind, scope_kind, project_id, validity_kind,
+                  git_ref, anchor_commit, revision, object_hash, observation_kind,
+                  observation_status, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'canonical', ?8, ?9,
+                         ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+                params![
+                    chunk_id,
+                    path_text.as_ref(),
+                    chunk.start_line as i64,
+                    chunk.end_line as i64,
+                    chunk.text,
+                    chunk_hash(&chunk.text),
+                    source,
+                    object_id,
+                    object_kind,
+                    scope_kind,
+                    project_id,
+                    validity_kind,
+                    git_ref,
+                    anchor_commit,
+                    revision as i64,
+                    object_hash,
+                    observation_kind,
+                    observation_status,
+                    created_at,
+                    now,
+                ],
+            )?;
+            let rowid = transaction.last_insert_rowid();
+            transaction.execute(
+                "INSERT INTO chunks_fts(rowid, text) VALUES (?1, ?2)",
+                params![rowid, chunk.text],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(chunks.len())
+    }
+
+    fn clear_derived_index(&mut self) -> Result<(), rusqlite::Error> {
+        let transaction = self.db.transaction()?;
+        transaction.execute(
+            schema::UPSERT_META_SQL,
+            params!["repair_required", "1"],
+        )?;
+        transaction.execute(
+            "INSERT INTO chunks_fts(chunks_fts) VALUES('delete-all')",
+            [],
+        )?;
+        if self.vec_available {
+            transaction.execute("DELETE FROM chunks_vec", [])?;
+        }
+        transaction.execute("DELETE FROM chunks", [])?;
+        transaction.commit()
+    }
+
+    pub(crate) fn chunk_is_eligible(
+        &self,
+        chunk_id: &str,
+        context: &UnifiedSearchContext,
+    ) -> bool {
+        let Some(metadata) = self.object_metadata(chunk_id).ok().flatten() else {
+            return false;
+        };
+        if metadata.object_kind == "legacy" {
+            return true;
+        }
+        if metadata.object_kind == "observation" && metadata.observation_status != "active" {
+            return false;
+        }
+        if metadata.validity_kind == "branch_local"
+            && (metadata.git_ref.as_ref() != context.git_ref.as_ref()
+                || metadata.anchor_commit.as_ref() != context.anchor_commit.as_ref())
+        {
+            return false;
+        }
+        let hash_matches = std::fs::read(&metadata.canonical_path)
+            .is_ok_and(|bytes| hash_bytes(&bytes) == metadata.object_hash);
+        if !hash_matches {
+            let _ = self.db.execute(
+                schema::UPSERT_META_SQL,
+                params!["repair_required", "1"],
+            );
+            return false;
+        }
+        true
+    }
+
+    pub(crate) fn object_priority(&self, chunk_id: &str) -> f64 {
+        match self
+            .object_metadata(chunk_id)
+            .ok()
+            .flatten()
+            .and_then(|metadata| metadata.observation_kind)
+            .as_deref()
+        {
+            Some("user_correction") => 1.35,
+            Some("explicit") => 1.20,
+            _ => 1.0,
+        }
+    }
+
+    fn object_metadata(
+        &self,
+        chunk_id: &str,
+    ) -> Result<Option<IndexedObjectMetadata>, rusqlite::Error> {
+        self.db
+            .query_row(
+                "SELECT object_kind, object_hash, path, validity_kind, git_ref,
+                        anchor_commit, observation_kind, observation_status
+                 FROM chunks WHERE id = ?1",
+                [chunk_id],
+                |row| {
+                    Ok(IndexedObjectMetadata {
+                        object_kind: row.get(0)?,
+                        object_hash: row.get(1)?,
+                        canonical_path: row.get(2)?,
+                        validity_kind: row.get(3)?,
+                        git_ref: row.get(4)?,
+                        anchor_commit: row.get(5)?,
+                        observation_kind: row.get(6)?,
+                        observation_status: row.get(7)?,
+                    })
+                },
+            )
+            .optional()
+    }
+
+    fn repair_required(&self) -> bool {
+        self.db
+            .query_row(
+                schema::GET_META_SQL,
+                ["repair_required"],
+                |row| row.get::<_, String>(0),
+            )
+            .is_ok_and(|value| value == "1")
     }
 
     // -----------------------------------------------------------------------
@@ -798,6 +1303,178 @@ impl MemoryIndex {
         )?;
         Ok(())
     }
+}
+
+#[derive(Default)]
+struct TopicIndexMetadata {
+    id: Option<String>,
+    revision: u64,
+    validity: Option<ProjectValidity>,
+}
+
+fn parse_topic_metadata(text: &str) -> TopicIndexMetadata {
+    let mut values = HashMap::new();
+    if let Some(line) = text.lines().next()
+        && let Some(metadata) = line
+            .strip_prefix("<!-- nofy-memory:")
+            .and_then(|value| value.strip_suffix(" -->"))
+    {
+        for pair in metadata.split(';') {
+            if let Some((key, value)) = pair.trim().split_once('=') {
+                values.insert(key.trim(), value.trim());
+            }
+        }
+    }
+    let validity = match values.get("validity").copied() {
+        Some("branch_local") => {
+            let git_ref = values.get("git_ref").copied().unwrap_or_default();
+            let anchor_commit = values.get("anchor_commit").copied().unwrap_or_default();
+            if git_ref.is_empty() || anchor_commit.is_empty() {
+                None
+            } else {
+                Some(ProjectValidity::BranchLocal {
+                    git_ref: git_ref.to_owned(),
+                    anchor_commit: anchor_commit.to_owned(),
+                })
+            }
+        }
+        _ => Some(ProjectValidity::ProjectWide),
+    };
+    TopicIndexMetadata {
+        id: values
+            .get("id")
+            .and_then(|value| uuid::Uuid::parse_str(value).ok())
+            .map(|id| id.to_string()),
+        revision: values
+            .get("revision")
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(1),
+        validity,
+    }
+}
+
+fn collect_markdown_files(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    if !directory.is_dir() {
+        return Ok(());
+    }
+    let mut entries = std::fs::read_dir(directory)?.collect::<Result<Vec<_>, _>>()?;
+    entries.sort_by_key(std::fs::DirEntry::file_name);
+    for entry in entries {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_markdown_files(&path, files)?;
+        } else if path.extension().is_some_and(|extension| extension == "md") {
+            files.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn read_observation_statuses(
+    database: &Path,
+) -> Result<HashMap<String, String>, rusqlite::Error> {
+    if !database.is_file() {
+        return Ok(HashMap::new());
+    }
+    let connection = rusqlite::Connection::open_with_flags(
+        database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    let mut statement =
+        connection.prepare("SELECT observation_id, status FROM observation_states")?;
+    statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect()
+}
+
+fn scope_fingerprint(scope: &ScopeLayout) -> Result<String, UnifiedIndexError> {
+    let mut paths = Vec::new();
+    collect_markdown_files(&scope.topics_directory(), &mut paths)?;
+    collect_markdown_files(&scope.observations_directory(), &mut paths)?;
+    paths.sort();
+    let mut hasher = blake3::Hasher::new();
+    for path in paths {
+        hasher.update(path.to_string_lossy().as_bytes());
+        hasher.update(&std::fs::read(path)?);
+    }
+    let mut statuses: Vec<_> = read_observation_statuses(&scope.state_database())?
+        .into_iter()
+        .collect();
+    statuses.sort();
+    for (id, status) in statuses {
+        hasher.update(id.as_bytes());
+        hasher.update(status.as_bytes());
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
+fn observation_json(bytes: &[u8]) -> Result<String, std::io::Error> {
+    let text = String::from_utf8_lossy(bytes);
+    let start = text.find("```json").ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "observation is missing a JSON fence",
+        )
+    })? + "```json".len();
+    let rest = &text[start..];
+    let end = rest.find("```").ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "observation JSON fence is not terminated",
+        )
+    })?;
+    Ok(rest[..end].trim().to_owned())
+}
+
+fn observation_kind_name(kind: ObservationKind) -> &'static str {
+    match kind {
+        ObservationKind::User => "user",
+        ObservationKind::UserCorrection => "user_correction",
+        ObservationKind::Feedback => "feedback",
+        ObservationKind::Project => "project",
+        ObservationKind::Reference => "reference",
+        ObservationKind::Explicit => "explicit",
+    }
+}
+
+fn scope_key(scope: &MemoryScope) -> String {
+    match scope {
+        MemoryScope::Personal => "personal".to_owned(),
+        MemoryScope::Project(project_id) => format!("project:{}", project_id.as_uuid()),
+    }
+}
+
+fn hash_bytes(bytes: &[u8]) -> String {
+    blake3::hash(bytes).to_hex().to_string()
+}
+
+fn file_created_at(path: &Path) -> i64 {
+    path.metadata()
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or_else(|| chrono::Utc::now().timestamp())
+}
+
+fn ensure_column(
+    database: &rusqlite::Connection,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> Result<(), rusqlite::Error> {
+    let mut statement = database.prepare(&format!("PRAGMA table_info({table})"))?;
+    let exists = statement
+        .query_map([], |row| row.get::<_, String>(1))?
+        .filter_map(Result::ok)
+        .any(|name| name == column);
+    drop(statement);
+    if !exists {
+        database.execute_batch(&format!(
+            "ALTER TABLE {table} ADD COLUMN {column} {definition}"
+        ))?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

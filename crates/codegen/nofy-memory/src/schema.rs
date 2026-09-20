@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS chunks (
     hash TEXT NOT NULL,
     source TEXT NOT NULL,
     origin TEXT NOT NULL DEFAULT 'agent',
+    object_id TEXT NOT NULL DEFAULT '',
+    object_kind TEXT NOT NULL DEFAULT 'legacy',
+    scope_kind TEXT NOT NULL DEFAULT 'legacy',
+    project_id TEXT,
+    validity_kind TEXT NOT NULL DEFAULT 'project_wide',
+    git_ref TEXT,
+    anchor_commit TEXT,
+    revision INTEGER NOT NULL DEFAULT 0,
+    object_hash TEXT NOT NULL DEFAULT '',
+    observation_kind TEXT,
+    observation_status TEXT NOT NULL DEFAULT 'active',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     access_count INTEGER DEFAULT 0,
@@ -46,7 +57,6 @@ CREATE TABLE IF NOT EXISTS chunks (
 
 CREATE INDEX IF NOT EXISTS idx_chunks_path ON chunks(path);
 CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(hash);
-
 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(text, content='');
 
 INSERT OR IGNORE INTO meta(key, value) VALUES ('reindex_claim', '');

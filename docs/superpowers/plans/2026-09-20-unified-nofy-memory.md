@@ -420,16 +420,18 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `crates/codegen/nofy-memory/src/backend.rs`
 - Modify: `crates/codegen/nofy-memory/src/mmr.rs`
 - Modify: `crates/codegen/nofy-memory/src/query_expansion.rs`
+- Modify: `crates/codegen/nofy-memory/src/schema.rs`
 - Create: `crates/codegen/nofy-memory/tests/unified_search.rs`
 
-- [ ] 索引 Topic 和允许召回的 inbox Observation；记录规范对象 ID、Personal/Project scope、ProjectWide/BranchLocal validity、revision/hash。本期索引不得接受知识库文档。
-- [ ] 保留现有 FTS5 + vector、CJK probe、时间衰减、source weight、access-frequency boost 与 MMR。
-- [ ] 查询 Personal/当前 Project 后统一 rerank；BranchLocal 结果必须与当前 git ref/commit 匹配。
-- [ ] 默认检索只返回 Active observations；UserCorrection 权重高于 Explicit 和自动捕获，Superseded 永不进入注入结果。
-- [ ] 搜索读取索引前校验对象 hash；脏记录跳过并触发 repair，不返回过时内容。
-- [ ] 删除索引后可从规范文件与账本全量重建，结果集合等价。
-- [ ] 运行：`cargo test -p nofy-memory --test unified_search`、`cargo test -p nofy-memory`。
-- [ ] Commit: `重构(memory): 统一多作用域混合检索`
+- [x] 索引 Topic 和允许召回的 inbox Observation；记录规范对象 ID、Personal/Project scope、ProjectWide/BranchLocal validity、revision/hash。本期索引不得接受知识库文档。
+- [x] 保留现有 FTS5 + vector、CJK probe、时间衰减、source weight、access-frequency boost 与 MMR。
+- [x] 查询 Personal/当前 Project 后统一 rerank；BranchLocal 结果必须与当前 git ref/commit 匹配。
+- [x] 默认检索只返回 Active observations；UserCorrection 权重高于 Explicit 和自动捕获，Superseded 永不进入注入结果。
+- [x] 搜索读取索引前校验对象 hash；脏记录跳过并触发 repair，不返回过时内容。
+- [x] 删除索引后可从规范文件与账本全量重建，结果集合等价。
+- [x] 迁移激活标记存在时，生产 `MemoryBackend` 自动切到统一索引；未激活目录继续保持本批次之前的行为，待 Task 9 删除 backend 旧接口。
+- [x] 运行：`cargo test -p nofy-memory --test unified_search`（5 passed）、`cargo test -p nofy-memory`（302 unit + 45 integration passed）。
+- [x] Commit: `重构(memory): 统一多作用域混合检索`
 
 ### Task 9: 用一个 MemoryService 取代 backend + writer
 

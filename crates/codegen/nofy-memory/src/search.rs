@@ -20,7 +20,7 @@
 use std::collections::HashMap;
 
 use super::embedding::EmbeddingProvider;
-use super::index::MemoryIndex;
+use super::index::{MemoryIndex, UnifiedMemoryIndex, UnifiedSearchContext};
 use nofy_config_types::MemorySearchConfig;
 
 /// A search result with merged scoring from FTS and vector search.
@@ -42,7 +42,22 @@ pub struct SearchResult {
 /// Evergreen: `"global"` (MEMORY.md), `"workspace"` (project MEMORY.md).
 /// Decaying: `"session"` (auto-generated session logs).
 fn is_evergreen_source(source: &str) -> bool {
-    matches!(source, "global" | "workspace")
+    matches!(source, "global" | "workspace") || source.ends_with("_topic")
+}
+
+fn source_weight(config: &MemorySearchConfig, source: &str) -> f64 {
+    let legacy_equivalent = match source {
+        "personal_topic" => "user",
+        "project_topic" => "workspace",
+        "personal_observation" | "project_observation" => "session",
+        _ => source,
+    };
+    config
+        .source_weights
+        .get(source)
+        .or_else(|| config.source_weights.get(legacy_equivalent))
+        .copied()
+        .unwrap_or(1.0) as f64
 }
 
 /// Returns `true` when a chunk is an empty/boilerplate template (e.g. the
@@ -190,6 +205,88 @@ pub async fn hybrid_search(
     hybrid_search_merge(index, fts_results, query_embedding.as_deref(), config)
 }
 
+/// Search Personal and the current Project as one ranked result set.
+/// Both SQLite databases are disposable projections of canonical memory.
+pub async fn unified_search(
+    index: &UnifiedMemoryIndex,
+    embedding_provider: Option<&dyn EmbeddingProvider>,
+    query: &str,
+    context: &UnifiedSearchContext,
+    config: &MemorySearchConfig,
+) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
+    let vec_available = index
+        .indexes()
+        .iter()
+        .any(|index| index.vec_available());
+    let query_embedding = if vec_available {
+        if let Some(provider) = embedding_provider {
+            provider
+                .embed_batch(&[query])
+                .await
+                .ok()
+                .and_then(|mut embeddings| embeddings.drain(..).next())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    unified_search_with_embedding(index, query_embedding.as_deref(), query, context, config)
+}
+
+/// Synchronous phase of unified search. Kept separate so a `!Sync` SQLite
+/// connection is never borrowed across an embedding-provider await.
+pub fn unified_search_with_embedding(
+    index: &UnifiedMemoryIndex,
+    query_embedding: Option<&[f32]>,
+    query: &str,
+    context: &UnifiedSearchContext,
+    config: &MemorySearchConfig,
+) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
+    let candidate_limit = config.max_results.saturating_mul(3).max(1);
+
+    let mut candidates = Vec::new();
+    let mut ranking = Vec::new();
+    for scope_index in index.indexes() {
+        let fts = scope_index
+            .search_fts(query, candidate_limit)
+            .unwrap_or_default();
+        let mut scope_config = config.clone();
+        scope_config.max_results = candidate_limit;
+        scope_config.mmr.enabled = false;
+        let scope_results = hybrid_search_merge_scoped(
+            scope_index,
+            fts,
+            query_embedding,
+            &scope_config,
+            Some(context),
+            false,
+        )?;
+        for result in scope_results {
+            ranking.push(result.score * scope_index.object_priority(&result.chunk_id));
+            candidates.push(result);
+        }
+    }
+
+    let mut order: Vec<usize> = (0..candidates.len()).collect();
+    order.sort_by(|left, right| {
+        ranking[*right]
+            .partial_cmp(&ranking[*left])
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| candidates[*left].chunk_id.cmp(&candidates[*right].chunk_id))
+    });
+    let mut sorted_results = Vec::with_capacity(candidates.len());
+    let mut sorted_relevance = Vec::with_capacity(candidates.len());
+    for position in order {
+        sorted_results.push(candidates[position].clone());
+        sorted_relevance.push(ranking[position]);
+    }
+    super::mmr::mmr_rerank(&mut sorted_results, &sorted_relevance, &config.mmr);
+    sorted_results.truncate(config.max_results);
+    Ok(sorted_results)
+}
+
 /// Synchronous merge phase: vector search (if embedding provided), score
 /// normalization, temporal decay, source weighting, MMR, and truncation.
 pub(super) fn hybrid_search_merge(
@@ -197,6 +294,17 @@ pub(super) fn hybrid_search_merge(
     fts_results: Vec<super::index::FtsResult>,
     query_embedding: Option<&[f32]>,
     config: &MemorySearchConfig,
+) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
+    hybrid_search_merge_scoped(index, fts_results, query_embedding, config, None, true)
+}
+
+fn hybrid_search_merge_scoped(
+    index: &MemoryIndex,
+    fts_results: Vec<super::index::FtsResult>,
+    query_embedding: Option<&[f32]>,
+    config: &MemorySearchConfig,
+    context: Option<&UnifiedSearchContext>,
+    apply_mmr: bool,
 ) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
     let candidate_limit = config.max_results * 3;
 
@@ -305,6 +413,9 @@ pub(super) fn hybrid_search_merge(
     let mut ranked: Vec<(f64, SearchResult)> = Vec::new();
 
     for (chunk_id, base_score) in &scores {
+        if context.is_some_and(|context| !index.chunk_is_eligible(chunk_id, context)) {
+            continue;
+        }
         let Some(chunk) = index.get_chunk(chunk_id).ok().flatten() else {
             continue;
         };
@@ -318,11 +429,7 @@ pub(super) fn hybrid_search_merge(
         let decay_multiplier =
             temporal_decay_multiplier(&chunk.source, chunk.created_at, now_secs, half_life);
 
-        let source_weight = config
-            .source_weights
-            .get(&chunk.source)
-            .copied()
-            .unwrap_or(1.0) as f64;
+        let source_weight = source_weight(config, &chunk.source);
 
         // Access-frequency boost: chunks retrieved before score slightly higher.
         //
@@ -341,7 +448,11 @@ pub(super) fn hybrid_search_merge(
         // 1.0), but store the clamped display_score so it reads as a [0,1]
         // similarity. Gating on display_score keeps the threshold and the
         // stored value in agreement.
-        let raw_score = base_score * decay_multiplier * source_weight * access_boost;
+        let raw_score = base_score
+            * decay_multiplier
+            * source_weight
+            * access_boost
+            * index.object_priority(chunk_id);
         let display_score = raw_score.clamp(0.0, 1.0);
 
         if display_score >= config.min_score as f64 {
@@ -381,7 +492,9 @@ pub(super) fn hybrid_search_merge(
     }
 
     // MMR diversity re-ranking (opt-in, applied before truncation)
-    super::mmr::mmr_rerank(&mut results, &relevance, &config.mmr);
+    if apply_mmr {
+        super::mmr::mmr_rerank(&mut results, &relevance, &config.mmr);
+    }
 
     results.truncate(config.max_results);
 
