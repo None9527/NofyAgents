@@ -70,6 +70,105 @@ pub const UPSERT_META_SQL: &str = "INSERT OR REPLACE INTO meta(key, value) VALUE
 /// SQL to query a meta value by key.
 pub const GET_META_SQL: &str = "SELECT value FROM meta WHERE key = ?1";
 
+/// Durable unified-memory ledger schema version.
+pub const UNIFIED_STATE_SCHEMA_VERSION: u32 = 1;
+
+/// Global capture queue and process-independent metadata (`meta.sqlite`).
+pub const UNIFIED_META_SCHEMA_SQL: &str = r#"
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS capture_jobs (
+    id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'pending',
+    worker_id TEXT,
+    generation INTEGER NOT NULL DEFAULT 0,
+    lease_until INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_capture_jobs_claimable
+    ON capture_jobs(state, lease_until, created_at);
+CREATE TABLE IF NOT EXISTS capture_outcomes (
+    job_id TEXT NOT NULL,
+    generation INTEGER NOT NULL,
+    outcome TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY(job_id, generation),
+    FOREIGN KEY(job_id) REFERENCES capture_jobs(id) ON DELETE CASCADE
+);
+"#;
+
+/// Per-scope canonical state ledger (`state.sqlite`).
+pub const UNIFIED_SCOPE_SCHEMA_SQL: &str = r#"
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS files (
+    id TEXT PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    immutable INTEGER NOT NULL CHECK(immutable IN (0, 1)),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS observation_states (
+    observation_id TEXT PRIMARY KEY,
+    file_id TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL CHECK(status IN ('active', 'superseded', 'disputed')),
+    resolved_by TEXT,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS operations (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    phase TEXT NOT NULL,
+    target_path TEXT,
+    expected_hash TEXT,
+    error TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS operation_claims (
+    operation_id TEXT PRIMARY KEY,
+    worker_id TEXT NOT NULL,
+    generation INTEGER NOT NULL,
+    lease_until INTEGER NOT NULL,
+    FOREIGN KEY(operation_id) REFERENCES operations(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS topic_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation_id TEXT NOT NULL,
+    topic_id TEXT NOT NULL,
+    previous_hash TEXT,
+    next_hash TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(operation_id) REFERENCES operations(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS tombstones (
+    id TEXT PRIMARY KEY,
+    target_kind TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    previous_hash TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    retention_deadline INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS quarantine (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_kind TEXT NOT NULL,
+    record_id TEXT,
+    reason TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;

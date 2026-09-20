@@ -44,7 +44,7 @@ nofy-sqlite-journal = { workspace = true }
 nix = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
-windows = { workspace = true }
+windows = { workspace = true, features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 filetime = { workspace = true }

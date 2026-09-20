@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 
 use nofy_tools::util::nofy_home::nofy_home;
 
+use crate::atomic_file;
+
 /// Scope for a memory write operation.
 /// Write-operation scope. Distinct from `nofy_agent::config::MemoryScope` (agent memory dir).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -191,12 +193,14 @@ impl MemoryStorage {
         std::fs::create_dir_all(&sessions_dir)?;
 
         if append && path.exists() {
-            use std::io::Write;
             let timestamp = chrono::Utc::now().format("%H:%M:%S UTC");
-            let mut file = std::fs::OpenOptions::new().append(true).open(&path)?;
-            write!(file, "\n\n---\n\n<!-- flush {timestamp} -->\n\n{content}")?;
+            let mut next = std::fs::read(&path)?;
+            next.extend_from_slice(
+                format!("\n\n---\n\n<!-- flush {timestamp} -->\n\n{content}").as_bytes(),
+            );
+            atomic_file::replace(&path, &next)?;
         } else {
-            std::fs::write(&path, content)?;
+            atomic_file::replace(&path, content.as_bytes())?;
         }
         tracing::debug!(path = %path.display(), append, "wrote daily session log");
 
@@ -223,7 +227,7 @@ impl MemoryStorage {
             }
         };
 
-        std::fs::write(&path, content)?;
+        atomic_file::replace(&path, content.as_bytes())?;
         tracing::debug!(path = %path.display(), scope = ?scope, "wrote long-term memory");
 
         Ok(())
@@ -258,17 +262,18 @@ impl MemoryStorage {
             }
         };
 
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)?;
-
-        use std::io::Write;
-        if file.metadata()?.len() > 0 {
-            write!(file, "\n\n{normalized}")?;
+        let mut next = match std::fs::read(&path) {
+            Ok(existing) => existing,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(error) => return Err(error),
+        };
+        if next.is_empty() {
+            next.extend_from_slice(normalized.as_bytes());
         } else {
-            write!(file, "{normalized}")?;
+            next.extend_from_slice(b"\n\n");
+            next.extend_from_slice(normalized.as_bytes());
         }
+        atomic_file::replace(&path, &next)?;
 
         tracing::debug!(path = %path.display(), scope = ?scope, "appended to memory");
         Ok(())
@@ -380,7 +385,7 @@ impl MemoryStorage {
 
         let global_file = self.global_memory_file();
         if !global_file.exists() {
-            std::fs::write(
+            atomic_file::replace(
                 &global_file,
                 "# Global Memory\n\
                  \n\
@@ -389,19 +394,21 @@ impl MemoryStorage {
                  \n\
                  ## Preferences\n\
                  \n\
-                 <!-- Add any cross-project preferences here -->\n",
+                 <!-- Add any cross-project preferences here -->\n"
+                    .as_bytes(),
             )?;
             tracing::info!(path = %global_file.display(), "created global MEMORY.md template");
         }
 
         let user_file = self.global_user_file();
         if !user_file.exists() {
-            std::fs::write(
+            atomic_file::replace(
                 &user_file,
                 "# User Profile\n\
                  \n\
                  > Who the user is: preferences, communication style, workflow habits.\n\
-                 > Preferences change — replace stale entries instead of appending duplicates.\n",
+                 > Preferences change — replace stale entries instead of appending duplicates.\n"
+                    .as_bytes(),
             )?;
             tracing::info!(path = %user_file.display(), "created global USER.md template");
         }
@@ -415,15 +422,13 @@ impl MemoryStorage {
 
         let workspace_file = self.workspace_memory_file();
         if !workspace_file.exists() {
-            std::fs::write(
-                &workspace_file,
-                format!(
-                    "# Project Memory — {}\n\
+            let template = format!(
+                "# Project Memory — {}\n\
                      \n\
                      > Auto-populated by dream consolidation. Edit freely.\n",
-                    self.workspace_path.display()
-                ),
-            )?;
+                self.workspace_path.display()
+            );
+            atomic_file::replace(&workspace_file, template.as_bytes())?;
             tracing::info!(
                 path = %workspace_file.display(),
                 workspace = %self.workspace_path.display(),
@@ -1140,10 +1145,7 @@ mod tests {
 
     #[test]
     fn test_normalize_trims_surrounding_whitespace() {
-        assert_eq!(
-            normalize_memory_content("  prefer tabs  "),
-            "- prefer tabs"
-        );
+        assert_eq!(normalize_memory_content("  prefer tabs  "), "- prefer tabs");
     }
 
     #[test]

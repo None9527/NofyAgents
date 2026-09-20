@@ -23,16 +23,19 @@
 //! is not initialized by the host.
 
 pub mod backend;
+pub mod atomic_file;
 pub mod chunker;
 pub mod dream;
 pub mod dream_lock;
 pub mod embedding;
 pub mod index;
+pub mod layout;
 pub mod mmr;
 pub mod model;
 pub mod query_expansion;
 pub mod schema;
 pub mod search;
+pub mod state;
 pub mod storage;
 pub mod text_utils;
 pub mod threat_scan;

@@ -316,14 +316,14 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `crates/codegen/nofy-memory/src/storage.rs`
 - Delete after callers migrate: `crates/codegen/nofy-memory/src/dream_lock.rs`
 
-- [ ] `meta.sqlite` 和 scope `state.sqlite` 使用 WAL、busy timeout、foreign keys 和显式 schema version。
-- [ ] 建表：`capture_jobs`、`capture_outcomes`、`files`、`observation_states`、`operations`、`operation_claims`、`topic_changes`、`tombstones`、`quarantine`、`metadata`；不创建 external roots 或 knowledge documents 表。
-- [ ] Observation 文件正文和 `supersedes` 永不修改；Active/Superseded/Disputed 是账本中的可重建状态投影，通过 `ObservationView` 对外读取。
-- [ ] 所有 Markdown 写入使用同目录 tempfile、flush、fsync、rename、父目录 fsync；不再直接 `std::fs::write` 覆盖规范文件。
-- [ ] lease 使用 generation fencing；旧 worker 即使继续运行也不能提交新 generation 的结果。
-- [ ] 测试 kill-point：临时文件写完、rename 前、数据库提交前、数据库提交后；重启后只能观察到旧版本或完整新版本。
-- [ ] 运行：`cargo test -p nofy-memory --test state_recovery`。
-- [ ] Commit: `重构(memory): 建立原子存储与持久账本`
+- [x] `meta.sqlite` 和 scope `state.sqlite` 使用 WAL、busy timeout、foreign keys 和显式 schema version。
+- [x] 建表：`capture_jobs`、`capture_outcomes`、`files`、`observation_states`、`operations`、`operation_claims`、`topic_changes`、`tombstones`、`quarantine`、`metadata`；不创建 external roots 或 knowledge documents 表。
+- [x] Observation 文件正文和 `supersedes` 永不修改；Active/Superseded/Disputed 是账本中的可重建状态投影，通过 `ObservationView` 对外读取。
+- [x] 所有 Markdown 写入使用同目录 tempfile、flush、fsync、rename、父目录 fsync；不再直接 `std::fs::write` 覆盖规范文件。
+- [x] lease 使用 generation fencing；旧 worker 即使继续运行也不能提交新 generation 的结果。
+- [x] 测试 kill-point：临时文件写完、rename 前、数据库提交前、数据库提交后；重启后只能观察到旧版本或完整新版本。
+- [x] 运行：`cargo test -p nofy-memory --test state_recovery`。
+- [x] Commit: `重构(memory): 建立原子存储与持久账本`
 
 ### Task 4: 实现统一访问策略
 
