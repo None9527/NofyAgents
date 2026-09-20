@@ -29,6 +29,7 @@ pub mod dream_lock;
 pub mod embedding;
 pub mod index;
 pub mod mmr;
+pub mod model;
 pub mod query_expansion;
 pub mod schema;
 pub mod search;

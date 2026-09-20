@@ -266,7 +266,7 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - [x] 写入六个可执行场景：立即记住、立即纠正、彻底忘记、解释来源、项目隔离、关闭自动学习。
 - [x] 单列“未来知识库”边界：本期只有 provider trait 契约，没有目录注册、索引、注入、设置页或用户命令。
 - [x] 为每个场景写 Given/When/Then 和用户可见文案，后续 Tasks 5、9、12、13、14 必须分别引用并实现这些场景。
-- [ ] Commit: `文档(memory): 固化统一记忆体验契约`
+- [x] Commit: `文档(memory): 固化统一记忆体验契约`
 
 ### Task 1: 建立统一领域模型和单系统守卫
 
@@ -277,14 +277,14 @@ pub enum CaptureRollout { Off, RecordOnly, Shadow, Active }
 - Modify: `crates/codegen/nofy-memory/src/lib.rs`
 - Create: `scripts/check-unified-memory.sh`
 
-- [ ] 为 `MemoryScope`、ID newtypes、hash、Observation、Topic、Tombstone、operation phase 和 rollout 定义 serde 稳定格式。
-- [ ] 测试 ID 非空、topic path 正规化、同仓库 worktree 共享 ProjectId、BranchLocal 匹配和非 Git 项目 identity 稳定；领域模型不得出现 External/Knowledge scope。
-- [ ] 校验 Personal 对象的 `project_validity` 必须为 None，Project 对象必须显式为 ProjectWide 或 BranchLocal。
-- [ ] 测试 `UserCorrection` 必须至少引用一个 superseded observation，且 superseded observation 不再参与默认检索。
-- [ ] 守卫脚本扫描最终禁止符号：`MemoryMode::Legacy`、`MemoryMode::V2`、`memory-v2`、`LegacyMemory`、`V2Memory`、`dual_write`。
-- [ ] 运行：`cargo test -p nofy-memory --test model_contract`。
-- [ ] 提交前运行 `gitnexus_detect_changes()`。
-- [ ] Commit: `重构(memory): 建立统一记忆领域模型`
+- [x] 为 `MemoryScope`、ID newtypes、hash、Observation、Topic、Tombstone、operation phase 和 rollout 定义 serde 稳定格式。
+- [x] 测试 ID 非空、topic path 正规化、同仓库 worktree 共享 ProjectId、BranchLocal 匹配和非 Git 项目 identity 稳定；领域模型不得出现 External/Knowledge scope。
+- [x] 校验 Personal 对象的 `project_validity` 必须为 None，Project 对象必须显式为 ProjectWide 或 BranchLocal。
+- [x] 测试 `UserCorrection` 必须至少引用一个 superseded observation，且 superseded observation 不再参与默认检索。
+- [x] 守卫脚本扫描最终禁止符号：`MemoryMode::Legacy`、`MemoryMode::V2`、`memory-v2`、`LegacyMemory`、`V2Memory`、`dual_write`。
+- [x] 运行：`cargo test -p nofy-memory --test model_contract`。
+- [x] 提交前运行 `gitnexus_detect_changes()`。
+- [x] Commit: `重构(memory): 建立统一记忆领域模型`
 
 ### Task 2: 收敛唯一配置模型
 
