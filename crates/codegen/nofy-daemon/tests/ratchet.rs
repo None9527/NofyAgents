@@ -66,7 +66,7 @@ fn workspace_loc_budget_only_shrinks() {
     //   half) joined the workspace.
     // - 1_534_026→1_535_478: new crate nofy-governance (batch G cores) +
     //   nofy-orchestra ledger_gov (G4).
-    // - 1_535_478→1_536_711: new crate nofy-memorycore (batch H cores).
+    // - 1_535_478→1_536_711: the former parallel memory policy core (removed after absorption).
     // - 1_536_711→1_538_240: new crate nofy-stewardcore (batch I
     //   execution-surface cores).
     // - 1_538_240→1_539_601: new crate nofy-agility (batch J agility
@@ -450,7 +450,7 @@ fn control_plane_loc_ratchet_only_shrinks() {
 /// Sealed-test protection (FR9.9 test half, HM-F30): invariant tests
 /// listed here are SEALED — deleting or renaming one turns this test
 /// red. Removing a seal is a deliberate reviewed edit (the policy half,
-/// unseal-with-reason, lives in `nofy-memorycore::seal`).
+/// unseal-with-reason policy was absorbed into the unified owning subsystem).
 #[test]
 fn sealed_tests_still_present() {
     let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
@@ -509,7 +509,6 @@ fn every_policy_core_src_file_is_wired() {
         "nofy-scheduler",
         "nofy-orchestra",
         "nofy-governance",
-        "nofy-memorycore",
         "nofy-stewardcore",
         "nofy-agility",
         "nofy-surfaces",

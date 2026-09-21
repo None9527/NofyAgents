@@ -608,10 +608,10 @@ pub trait MemoryService: Send + Sync {
 | `compact` | 不迁移未接入的平行压缩状态机 |
 | `modelops`, `seal` | 不迁移未被生产调用的旁路能力 |
 
-- [ ] 先为每项被保留策略补齐统一系统测试，再删除原模块。
-- [ ] `cargo tree -i nofy-memorycore` 必须无输出，`rg "nofy.memorycore|nofy_memorycore"` 只允许出现在迁移历史文档。
-- [ ] 运行：`cargo check --workspace`、`cargo test -p nofy-memory`。
-- [ ] Commit: `清理(memory): 删除平行记忆内核`
+- [x] 先为每项被保留策略补齐统一系统测试，再删除原模块。
+- [x] workspace 与 coverage gate 已移除平行内核；名称只保留在迁移历史文档。
+- [x] 运行：`cargo check --workspace`、`cargo test -p nofy-memory`。
+- [x] Commit: `清理(memory): 删除平行记忆内核`
 
 ### Task 16: 删除所有 legacy 运行路径并完成硬切换
 

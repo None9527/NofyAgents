@@ -17,7 +17,6 @@ GATED_CRATES=(
   nofy-scheduler
   nofy-orchestra
   nofy-governance
-  nofy-memorycore
   nofy-stewardcore
   nofy-agility
   nofy-surfaces
