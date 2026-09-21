@@ -918,3 +918,18 @@ GitNexus `detect-changes` = 11 文件 / 51 符号 / 3 执行流 / risk medium；
 没有剩余“待核实”。Memory v2 按用户决定继续后看，xAI 云/登录/GCS、TOML 写回、MCP 协议钉版等既有分歧未被带回。
 收口时重新 `git fetch upstream`，`upstream/main` 仍为 `4247f661`（2026-09-19）；两棵无 merge-base 历史的
 `608/2` 仅是提交拓扑计数，不代表还差 2 个功能提交。完整计划与最终回归数字见 `docs/upstream-absorb-plan.md` §15。
+
+### Unified Memory 单系统重构收口（2026-09-21）
+
+上游 Memory v2 不再作为独立体系“搬入”，而是与 Nofy 的检索、CJK、MMR、威胁扫描、Pager/Shell 体验合并为一个
+`MemoryService`、一个规范数据源和一套恢复账本。Tasks 1–16 已按 8 个独立提交完成，硬切换提交为 `ec37d93a`；
+Task 17 完成用户文档、架构文档、故障注入、10k/100k 性能基线和全矩阵验收。
+
+验收结果：`nofy-memory` 全量通过（203 unit + 其余集成套件，性能用例默认 ignored 并已单独执行）；
+`nofy-shell memory` 94/94、`nofy-agent` 575/575、`nofy-pager --lib memory` 52/52、
+`nofy-tools memory` 2/2、`nofy-telemetry memory` 1/1，`cargo check --workspace` 与统一记忆守卫均通过。
+10k/100k 的 top-10 FTS 实测为 14/161 ms，capture 入队为 109/104 µs，64-plan 整理调度为 558/545 ms。
+整仓 `cargo fmt --all -- --check` 仍被与本轮无关的历史格式差异阻断，未机械重排全树；新增 Rust 文件已 rustfmt，
+并以 `git diff --check` 作为本批改动的空白校验。
+最终 GitNexus 增量索引为 204,285 nodes / 432,873 edges / 300 flows；staged `detect-changes` 为 61 个变更符号、
+0 个受影响执行流、risk low。

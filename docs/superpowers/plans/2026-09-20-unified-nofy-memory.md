@@ -630,7 +630,7 @@ pub trait MemoryService: Send + Sync {
 - [x] 让守卫脚本额外拒绝生产代码中的 `std::fs::write`/`OpenOptions::append` 对 memory root 的调用。
 - [x] 用 `rg` 证明所有工具、Shell、Pager、agent builder 只依赖统一 `MemoryService`。
 - [x] 运行：`scripts/check-unified-memory.sh`、`cargo check --workspace`。
-- [ ] Commit: `重构(memory): 完成单系统硬切换`
+- [x] Commit: `重构(memory): 完成单系统硬切换`（`ec37d93a`）
 
 ### Task 17: 全量验证、文档和索引收尾
 
@@ -641,12 +641,12 @@ pub trait MemoryService: Send + Sync {
 - Modify: `docs/upstream-sync.md`
 - Create: `docs/architecture/unified-memory.md`
 
-- [ ] 文档只描述统一系统，不向用户暴露 v1/v2 术语或实现选择。
-- [ ] 用户文档以“关于我、当前项目”和四个动作组织；内部架构文档再记录数据模型、事务边界、捕获条件、整理所有权、forget、安全模型及未来 `KnowledgeBaseProvider` 扩展边界。
-- [ ] 运行迁移 fixture 的 end-to-end：legacy seed → migrate → explain → remember → correct → next-inference snapshot → capture → consolidate → restart → forget → destroy backup → rebuild index。
-- [ ] 运行故障注入：SQLite busy、worker crash、lease expiry、embedding failure、manifest rename failure、磁盘写失败。
-- [ ] 运行性能基线：10k/100k observations 下的启动、top-K search、capture enqueue、consolidation batch；将阈值固化为非波动过大的 benchmark 报告。
-- [ ] 运行完整验证：
+- [x] 文档只描述统一系统，不向用户暴露 v1/v2 术语或实现选择。
+- [x] 用户文档以“关于我、当前项目”和四个动作组织；内部架构文档再记录数据模型、事务边界、捕获条件、整理所有权、forget、安全模型及未来 `KnowledgeBaseProvider` 扩展边界。
+- [x] 运行迁移 fixture 的 end-to-end：legacy seed → migrate → explain → remember → correct → next-inference snapshot → capture → consolidate → restart → forget → destroy backup → rebuild index。
+- [x] 运行故障注入：SQLite busy、worker crash、lease expiry、embedding failure、manifest rename failure、磁盘写失败。
+- [x] 运行性能基线：10k/100k observations 下的启动、top-K search、capture enqueue、consolidation batch；阈值与实测结果见 `docs/architecture/unified-memory-validation.md`。
+- [x] 运行完整验证：
 
 ```bash
 cargo fmt --all -- --check
@@ -661,8 +661,8 @@ scripts/check-unified-memory.sh
 npx gitnexus analyze
 ```
 
-- [ ] 最后运行 `gitnexus_detect_changes()`，核对执行流变化与计划一致。
-- [ ] Commit: `文档(memory): 完成统一记忆架构验收`
+- [x] 最后运行 staged `gitnexus_detect_changes()`：61 个索引符号、0 个受影响执行流、risk low，与计划一致。
+- [x] Commit: `文档(memory): 完成统一记忆架构验收`（本提交）
 
 ## 5. 跨任务不变量测试
 

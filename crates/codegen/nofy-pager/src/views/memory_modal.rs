@@ -1150,7 +1150,7 @@ mod tests {
     }
 
     #[test]
-    fn build_entries_groups_by_source() {
+    fn build_entries_exposes_only_personal_and_project_areas() {
         use nofy_shell::extensions::notification::MemoryFileInfo;
 
         let files = vec![
@@ -1175,14 +1175,14 @@ mod tests {
         ];
 
         let entries = build_entries(files);
-        assert_eq!(entries.len(), 6);
+        assert_eq!(entries.len(), 4);
         assert!(entries[0].is_header);
-        assert_eq!(entries[0].label, "Global");
+        assert_eq!(entries[0].label, "关于我");
         assert!(!entries[1].is_header);
         assert!(entries[2].is_header);
-        assert_eq!(entries[2].label, "Workspace");
-        assert!(entries[4].is_header);
-        assert_eq!(entries[4].label, "Sessions");
+        assert_eq!(entries[2].label, "当前项目");
+        assert_eq!(entries[1].source, "global");
+        assert_eq!(entries[3].source, "workspace");
     }
 
     #[test]
@@ -1209,25 +1209,21 @@ mod tests {
     }
 
     #[test]
-    fn delete_only_allowed_for_session_entries() {
+    fn browse_never_deletes_canonical_entries_directly() {
         let entries = build_test_entries();
         let mut state = MemoryModalState::new(entries);
         // Select the global entry (index 1 in filtered, which is "MEMORY.md" source="global")
         state.selected = 1;
-        // Try to delete — should NOT enter confirming mode because source is "global".
         let key = crossterm::event::KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE);
         let outcome = handle_memory_key(&mut state, &key);
         assert!(matches!(outcome, InputOutcome::Unchanged));
         assert_eq!(state.mode, MemoryModalMode::Browse);
 
-        // Select the session entry (index 3 in filtered, which is "session-log.md" source="session")
+        // Legacy-looking rows cannot bypass the service's confirmed forget flow either.
         state.selected = 3;
         let outcome = handle_memory_key(&mut state, &key);
-        assert!(matches!(outcome, InputOutcome::Changed));
-        assert!(matches!(
-            state.mode,
-            MemoryModalMode::ConfirmingDelete { .. }
-        ));
+        assert!(matches!(outcome, InputOutcome::Unchanged));
+        assert_eq!(state.mode, MemoryModalMode::Browse);
     }
 
     /// `i` aliases `/` without modifiers: from Browse it enters FilterFocused

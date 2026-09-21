@@ -1774,3 +1774,32 @@ durable terminal 的 fixture，因此这一条由 ACP handler 真实通知入口
 既有近 deadline 竞态且空载单测重跑通过。批33 下 `mermaid-to-svg` 85/85、`nofy-mermaid` 66/66、
 pager Mermaid worker 36/36。批32 GitNexus 检测为 27 文件 / 127 符号 / 1 条预期 dispatch 流 / medium；
 批33 为 6 文件 / 1 个索引内测试符号 / 0 流 / low（第三方目录为明确索引盲区）。
+
+## 16. Unified Memory 完全整合（2026-09-21）
+
+### 16.1 结果
+
+原先排除的 Memory v2 已按后续用户决策完成能力级整合，但没有保留第二套记忆：运行时只有
+`Arc<dyn MemoryService>`，主助手独占服务与写工具，子代理没有检索、捕获或修改入口。规范对象只有 Personal/Project
+两种用户区域；SQLite 索引是可删除衍生物；未来知识来源只保留独立的 `KnowledgeBaseProvider` 接口边界，当前 composition
+root 不实例化它。
+
+Tasks 1–16 的落地提交依次为 `7a649055`、`430d4004`、`5ec36649`、`31768caa`、`71dea936`、
+`a196da15`、`e2e2a2a8`、`ec37d93a`。Task 17 的架构、用户体验和验收证据位于：
+
+- `crates/codegen/nofy-pager/docs/user-guide/13-memory.md`
+- `docs/architecture/unified-memory.md`
+- `docs/architecture/unified-memory-validation.md`
+
+### 16.2 最终验证
+
+- migration、公开服务体验、capture、consolidation、restart、forget/backup destruction、index rebuild 均由
+  `nofy-memory` 全量集成套件在一次运行中覆盖；新增 SQLite busy 与 embedding provider failure 注入。
+- 10k/100k observation-shaped index 的 release baseline 已执行并固化宽松阈值：startup <2 s、top-K <1 s、
+  capture enqueue <250 ms、64-plan consolidation scheduling <5 s；本机实测全部显著低于阈值。
+- `cargo check --workspace`、`nofy-memory`、`nofy-tools memory`、`nofy-shell memory`、`nofy-agent`、
+  `nofy-pager --lib memory`、`nofy-telemetry memory`、`scripts/check-unified-memory.sh` 全部通过。
+- `cargo fmt --all -- --check` 仍命中仓库既有的大量历史格式差异；不以本批名义机械重排全树。新增测试文件已
+  rustfmt，`git diff --check` 作为改动集的空白校验。
+- 最终 GitNexus 索引刷新成功（204,285 nodes / 432,873 edges / 300 flows）；staged 变更检测为 61 个索引符号、
+  0 个受影响执行流、risk low。

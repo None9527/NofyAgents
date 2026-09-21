@@ -242,3 +242,29 @@ fn canonical_replace_recovers_around_database_commit() {
         );
     }
 }
+
+#[test]
+fn sqlite_busy_is_bounded_and_never_partially_enqueues() {
+    let temp = tempfile::tempdir().unwrap();
+    let layout = UnifiedMemoryLayout::new(temp.path());
+    let scope = layout.personal_scope();
+    let state = UnifiedState::open(layout.meta_database(), scope.state_database()).unwrap();
+    let blocker = Connection::open(layout.meta_database()).unwrap();
+    blocker.busy_timeout(std::time::Duration::ZERO).unwrap();
+    blocker.execute_batch("BEGIN EXCLUSIVE").unwrap();
+
+    let started = std::time::Instant::now();
+    assert!(state.enqueue_capture_job("blocked-job", "{}", 1).is_err());
+    assert!(started.elapsed() < std::time::Duration::from_secs(7));
+    blocker.execute_batch("ROLLBACK").unwrap();
+
+    let verifier = Connection::open(layout.meta_database()).unwrap();
+    let count: i64 = verifier
+        .query_row(
+            "SELECT COUNT(*) FROM capture_jobs WHERE id = 'blocked-job'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 0);
+}

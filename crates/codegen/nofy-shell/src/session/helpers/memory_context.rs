@@ -34,6 +34,7 @@ pub fn is_greeting(text: &str) -> bool {
         "hello",
         "howdy",
         "continue",
+        "继续",
         "start",
         "begin",
         "go",

@@ -343,7 +343,7 @@ pub(crate) struct CommandAvailability {
     /// `memory_search`/`memory_get` get the commands hidden without the
     /// gating layer needing to know about agent_type.
     pub memory: bool,
-    /// Memory backend is configured (has `backend_params`) but not
+    /// Unified memory service is configured but not
     /// necessarily currently enabled. Gates `/memory` (browse + toggle)
     /// so the user can re-enable memory after toggling it off.
     pub memory_configured: bool,

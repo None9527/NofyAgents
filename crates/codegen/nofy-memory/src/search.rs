@@ -68,19 +68,48 @@ fn source_weight(config: &MemorySearchConfig, source: &str) -> f64 {
 /// scoped to evergreen sources, where scaffold templates live, so a session
 /// chunk that merely quotes a marker phrase is kept.
 fn is_content_free(text: &str, source: &str) -> bool {
-    is_structurally_empty(text)
-        || (is_evergreen_source(source) && is_legacy_scaffold(text))
+    is_structurally_empty(text) || (is_evergreen_source(source) && is_legacy_scaffold(text))
 }
 
 fn is_legacy_scaffold(text: &str) -> bool {
     let trimmed = text.trim();
-    trimmed.len() < 500
-        && [
-            "Add durable project knowledge here",
-            "Preferences change — replace stale entries",
-        ]
-        .iter()
-        .any(|marker| trimmed.contains(marker))
+    const MARKERS: &[&str] = &[
+        "Auto-populated by dream consolidation",
+        "Add project-specific knowledge here",
+        "Add any cross-project preferences here",
+        "Preferences change — replace stale entries",
+    ];
+    if trimmed.len() >= 500 || !MARKERS.iter().any(|marker| trimmed.contains(marker)) {
+        return false;
+    }
+
+    let mut rest = trimmed;
+    let mut without_comments = String::with_capacity(trimmed.len());
+    while let Some(start) = rest.find("<!--") {
+        without_comments.push_str(&rest[..start]);
+        match rest[start + "<!--".len()..].find("-->") {
+            Some(end) => {
+                let after = start + "<!--".len() + end + "-->".len();
+                rest = &rest[after..];
+            }
+            None => {
+                without_comments.push_str(rest);
+                rest = "";
+                break;
+            }
+        }
+    }
+    without_comments.push_str(rest);
+    without_comments.lines().all(|line| {
+        let line = line.trim();
+        line.is_empty()
+            || line.starts_with('>')
+            || matches!(
+                line,
+                "# Global Memory" | "## Preferences" | "## Project Context" | "# User Profile"
+            )
+            || line.starts_with("# Project Memory")
+    })
 }
 
 /// Returns `true` when `text` has no substantive content after stripping ATX

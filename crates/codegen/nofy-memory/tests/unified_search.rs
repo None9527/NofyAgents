@@ -9,8 +9,6 @@ use nofy_memory::model::{
 };
 use nofy_memory::observation_store::ObservationStore;
 use nofy_memory::search::unified_search;
-use nofy_memory::{MemoryBackendImpl, MemoryStorage};
-use nofy_tools::types::memory_backend::MemoryBackend;
 
 fn hash(text: &str) -> ContentHash {
     ContentHash::parse(blake3::hash(text.as_bytes()).to_hex().to_string()).unwrap()
@@ -328,31 +326,4 @@ async fn deleting_indexes_and_rebuilding_preserves_result_identity_and_ignores_k
     .unwrap();
     let after_ids: Vec<_> = after.iter().map(|result| result.chunk_id.clone()).collect();
     assert_eq!(after_ids, before_ids);
-}
-
-#[tokio::test]
-async fn production_backend_switches_to_the_unified_derived_indexes_after_cutover() {
-    let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join("memory");
-    let workspace = temp.path().join("workspace");
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::create_dir_all(&root).unwrap();
-    std::fs::write(root.join(".unified-memory-v1"), "active").unwrap();
-    write_topic(
-        &root.join("personal/topics/preferences.md"),
-        uuid::Uuid::new_v4(),
-        1,
-        "Rust commands should use cargo nextest.",
-    );
-
-    let storage = MemoryStorage::new(&workspace, Some(&root));
-    let backend = MemoryBackendImpl::new(storage.workspace_dir().join("index.sqlite"), storage);
-    let results = backend.search("Rust commands", 10, 0.0).await.unwrap();
-
-    assert!(
-        results
-            .iter()
-            .any(|result| result.snippet.contains("cargo nextest"))
-    );
-    assert!(root.join("personal/index.sqlite").is_file());
 }

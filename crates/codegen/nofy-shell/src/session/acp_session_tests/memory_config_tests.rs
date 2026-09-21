@@ -4,58 +4,6 @@ use tokio::sync::mpsc;
 use nofy_paths::AbsPathBuf;
 use nofy_workspace::file_system::MockFs;
 use nofy_workspace::permission::PermissionHandle;
-#[test]
-fn initial_injection_backend_params_use_override_min_score() {
-    let params = crate::session::memory::MemoryBackendParams {
-        session_id: "test-session".to_owned(),
-        embed_config: None,
-        embed_base_url: "http://localhost".to_owned(),
-        embed_api_key: None,
-        search_config: crate::config::MemorySearchConfig {
-            min_score: 0.35,
-            ..Default::default()
-        },
-        watcher: None,
-        stale_claim_secs: 60,
-        search_source: "tool",
-        embedding_credentials: crate::session::memory::EndpointScopedCredentials::none(),
-    };
-    let initial_injection = crate::config::MemoryInitialInjectionConfig {
-        enabled: true,
-        min_score: Some(0.72),
-    };
-    let (adjusted, effective_min_score) =
-        build_initial_injection_backend_params(&params, &initial_injection);
-    assert_eq!("injection", adjusted.search_source);
-    assert!((0.72 - adjusted.search_config.min_score).abs() < f32::EPSILON);
-    assert!((0.72 - effective_min_score as f32).abs() < f32::EPSILON);
-    assert!((0.35 - params.search_config.min_score).abs() < f32::EPSILON);
-    assert_eq!("tool", params.search_source);
-}
-#[test]
-fn initial_injection_backend_params_preserve_default_zero_min_score() {
-    let params = crate::session::memory::MemoryBackendParams {
-        session_id: "test-session".to_owned(),
-        embed_config: None,
-        embed_base_url: "http://localhost".to_owned(),
-        embed_api_key: None,
-        search_config: crate::config::MemorySearchConfig {
-            min_score: 0.41,
-            ..Default::default()
-        },
-        watcher: None,
-        stale_claim_secs: 60,
-        search_source: "tool",
-        embedding_credentials: crate::session::memory::EndpointScopedCredentials::none(),
-    };
-    let (adjusted, effective_min_score) = build_initial_injection_backend_params(
-        &params,
-        &crate::config::MemoryInitialInjectionConfig::default(),
-    );
-    assert_eq!("injection", adjusted.search_source);
-    assert!((0.41 - adjusted.search_config.min_score).abs() < f32::EPSILON);
-    assert!((0.0 - effective_min_score as f32).abs() < f32::EPSILON);
-}
 #[allow(clippy::field_reassign_with_default)]
 async fn create_test_actor_with_memory(
     total_tokens: u64,
@@ -515,40 +463,35 @@ async fn create_injection_ready_actor(
         create_test_actor_with_memory(1_000, 100_000, 85, gateway_tx, persistence_tx, Some(config))
             .await;
     let tmp = tempfile::TempDir::new().unwrap();
-    let global_dir = tmp.path().join("memory");
-    let workspace_dir = global_dir.join("test_ws");
-    std::fs::create_dir_all(&workspace_dir).unwrap();
-    let storage =
-        crate::session::memory::MemoryStorage::with_paths(global_dir, workspace_dir.clone());
-    crate::session::memory::index::init_sqlite_vec();
-    let note = tmp.path().join("note.md");
-    std::fs::write(
-        &note,
-        "# Conventions\n\nProject uses Rust for backend services.",
-    )
-    .unwrap();
-    let mut idx = crate::session::memory::index::MemoryIndex::open_or_create(
-        &workspace_dir.join("index.sqlite"),
-        storage.clone(),
-        crate::config::MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
-    idx.reindex_file(&note, "workspace", "agent").unwrap();
-    drop(idx);
+    let service: std::sync::Arc<dyn nofy_tools::types::memory_service::MemoryService> =
+        std::sync::Arc::new(
+            nofy_memory::service::NofyMemoryService::new(
+                nofy_memory::service::NofyMemoryServiceConfig {
+                    root: tmp.path().join("memory"),
+                    workspace: tmp.path().join("workspace"),
+                    project_id: nofy_memory::model::ProjectId::new(),
+                    ..nofy_memory::service::NofyMemoryServiceConfig::default_for_tests()
+                },
+            )
+            .unwrap(),
+        );
+    service
+        .remember(nofy_tools::types::memory_service::RememberRequest {
+            area: nofy_tools::types::memory_service::MemoryArea::Project,
+            statement: "Project uses Rust for backend services.".to_owned(),
+            title: None,
+            confirm_sensitive: false,
+        })
+        .await
+        .unwrap();
+    actor
+        .agent
+        .borrow()
+        .tool_bridge()
+        .update_resource(service)
+        .await;
     actor.memory.set_enabled(true);
     std::mem::forget(tmp);
-    actor.memory.backend_params = Some(crate::session::memory::MemoryBackendParams {
-        session_id: "test-memory".to_owned(),
-        embed_config: None,
-        embed_base_url: "http://localhost".to_owned(),
-        embed_api_key: None,
-        search_config: crate::config::MemorySearchConfig::default(),
-        watcher: None,
-        stale_claim_secs: 60,
-        search_source: "tool",
-        embedding_credentials: crate::session::memory::EndpointScopedCredentials::none(),
-    });
     actor
         .chat_state_handle
         .replace_conversation(initial_conversation);
@@ -592,19 +535,15 @@ async fn test_first_turn_reminder_skips_when_block_persisted() {
     let local = tokio::task::LocalSet::new();
     local
         .run_until(async {
+            let content = "## 当前项目\n\nProject uses Rust for backend services.".to_owned();
             let persisted_block =
-                crate::session::helpers::memory_context::format_memory_reminder(&[
-                    nofy_tools::types::memory_backend::MemorySearchResult {
-                        chunk_id: "prev:0".into(),
-                        path: "MEMORY.md".into(),
-                        start_line: 0,
-                        end_line: 5,
-                        score: 0.98,
-                        snippet: "Project uses Rust for backend services.".into(),
-                        source: "workspace".into(),
-                        created_at: None,
+                crate::session::helpers::memory_context::format_unified_memory_snapshot(
+                    &nofy_tools::types::memory_service::MemorySnapshot {
+                        generation: 1,
+                        content_hash: blake3::hash(content.as_bytes()).to_hex().to_string(),
+                        content,
                     },
-                ], None)
+                )
                 .unwrap();
             let actor = create_injection_ready_actor(vec![
                 nofy_sampling_types::ConversationItem::system(format!(

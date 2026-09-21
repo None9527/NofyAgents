@@ -586,20 +586,6 @@ async fn first_turn_memory_injection_disabled_does_not_persist_to_chat_history()
                 tokio_util::sync::CancellationToken::new(),
             );
             chat_state_handle.replace_conversation(initial_conversation);
-            let memory_storage =
-                crate::session::memory::MemoryStorage::new(session_dir.path(), None);
-            memory_storage.ensure_initialized().unwrap();
-            let memory_backend_params = crate::session::memory::MemoryBackendParams {
-                session_id: session_info.id.to_string(),
-                embed_config: None,
-                embed_base_url: "http://localhost".to_string(),
-                embed_api_key: None,
-                search_config: crate::config::MemorySearchConfig::default(),
-                watcher: None,
-                stale_claim_secs: 60,
-                search_source: "tool",
-                embedding_credentials: crate::session::memory::EndpointScopedCredentials::none(),
-            };
             let (event_tx, _event_rx) = tokio::sync::mpsc::unbounded_channel::<SessionEvent>();
             let actor = Arc::new(SessionActor {
                 pending_image_strip: parking_lot::Mutex::new(None),
