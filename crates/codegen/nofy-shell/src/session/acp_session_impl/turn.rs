@@ -1664,9 +1664,7 @@ impl SessionActor {
             );
             return None;
         }
-        let (Some(storage), Some(params)) =
-            (self.memory.storage(), self.memory.backend_params.as_ref())
-        else {
+        let Some(service) = self.unified_memory_service().await else {
             return None;
         };
         let conversation = self.chat_state_handle.get_conversation().await;
@@ -1677,13 +1675,6 @@ impl SessionActor {
             );
             return None;
         }
-        use nofy_tools::types::memory_backend::MemoryBackend as _;
-        let (injection_params, configured_min_score) =
-            build_initial_injection_backend_params(params, &self.memory.initial_injection_config);
-        let backend = crate::session::memory::MemoryBackendImpl::from_session_params(
-            storage,
-            &injection_params,
-        );
         let raw_query =
             crate::session::helpers::session_compact::extract_last_real_user_query(&conversation)
                 .unwrap_or_default();
@@ -1691,43 +1682,32 @@ impl SessionActor {
             || raw_query.len() < 20
             || crate::session::helpers::memory_context::is_greeting(&raw_query);
         let query = if was_greeting {
-            "project conventions preferences architecture".to_string()
+            None
         } else {
-            raw_query
+            Some(raw_query)
         };
         let inject_start = std::time::Instant::now();
-        let inject_results = backend.search(&query, 6, configured_min_score).await.ok();
-        let result_count = inject_results.as_ref().map_or(0, |r| r.len());
-        let top_score = inject_results
-            .as_ref()
-            .and_then(|r| r.first())
-            .map_or(0.0, |r| r.score);
-        let total_snippet_chars: usize = inject_results
-            .as_ref()
-            .map_or(0, |r| r.iter().map(|s| s.snippet.len()).sum());
-        tracing::info!(
-            target: nofy_telemetry::memory_log::TARGET,
-            configured_min_score,
-            "MEMORY_INJECT_SEARCH: results={result_count}"
-        );
+        let snapshot = service
+            .snapshot(nofy_tools::types::memory_service::SnapshotRequest {
+                query,
+                max_items: 6,
+            })
+            .await
+            .ok()?;
+        let result_count = snapshot.content.lines().filter(|line| line.starts_with("- [")).count();
+        let total_snippet_chars = snapshot.content.chars().count();
         nofy_telemetry::session_ctx::log_event(
             nofy_telemetry::memory_telemetry::MemoryInjection {
                 session_id: self.session_info.id.to_string(),
                 was_greeting_fallback: was_greeting,
                 result_count,
                 total_snippet_chars,
-                top_score,
-                configured_min_score,
+                top_score: 0.0,
+                configured_min_score: 0.0,
                 injection_duration_ms: inject_start.elapsed().as_millis() as u64,
             },
         );
-        // A failed search must not lose the user profile: inject whichever
-        // halves are available.
-        let results = inject_results.unwrap_or_default();
-        crate::session::helpers::memory_context::format_memory_reminder(
-            &results,
-            self.load_user_profile().as_deref(),
-        )
+        crate::session::helpers::memory_context::format_unified_memory_snapshot(&snapshot)
     }
 
     /// Load the global USER.md profile for first-turn injection.

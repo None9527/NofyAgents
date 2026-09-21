@@ -704,8 +704,14 @@ impl AgentBuilder {
                 definition.name
             )));
         }
+        let is_subagent = self.prompt_audience == crate::prompt::context::PromptAudience::Subagent;
+        if is_subagent {
+            self.memory_backend = None;
+            self.memory_writer = None;
+            self.memory_service = None;
+        }
         if definition.inject_default_tools {
-            if self.memory_backend.is_some() {
+            if self.memory_service.is_some() {
                 use nofy_tools::implementations::memory;
                 tool_config
                     .tools
@@ -714,7 +720,7 @@ impl AgentBuilder {
                     .tools
                     .push((&memory::get_tool::MemoryGetImpl).into());
             }
-            if self.memory_writer.is_some() {
+            if self.memory_service.is_some() {
                 tool_config.tools.push(
                     (&nofy_tools::implementations::memory::write_tool::MemoryWriteImpl).into(),
                 );
@@ -762,7 +768,7 @@ impl AgentBuilder {
                 .push((&nofy_tools::implementations::nofy_build::FileTrashDeleteTool).into());
             ensure_plan_mode_tools(&mut tool_config);
         }
-        if self.memory_backend.is_none() {
+        if self.memory_service.is_none() {
             let nofy_build_ns = nofy_tools::types::tool::ToolNamespace::NofyBuild.to_string();
             let mem_search_id = format!(
                 "{nofy_build_ns}:{}",
@@ -776,7 +782,7 @@ impl AgentBuilder {
                 .tools
                 .retain(|tc| tc.id != mem_search_id && tc.id != mem_get_id);
         }
-        if self.memory_writer.is_none() {
+        if self.memory_service.is_none() {
             let mem_write_id = format!(
                 "{}:{}",
                 nofy_tools::types::tool::ToolNamespace::NofyBuild,
@@ -1026,9 +1032,17 @@ impl AgentBuilder {
                 }
             }
         }
-        if self.prompt_audience == crate::prompt::context::PromptAudience::Subagent {
+        if is_subagent {
             tool_config.tools.retain(|tool| {
                 !nofy_tools::implementations::nofy_build::is_workflow_tool(tool.kind, &tool.id)
+                    && !matches!(
+                        tool.kind,
+                        Some(
+                            nofy_tools::types::tool::ToolKind::MemorySearch
+                                | nofy_tools::types::tool::ToolKind::MemoryGet
+                                | nofy_tools::types::tool::ToolKind::MemoryWrite
+                        )
+                    )
             });
         }
         let tool_bridge = ToolBridge::finalize_builder(

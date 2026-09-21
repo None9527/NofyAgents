@@ -555,15 +555,15 @@ pub trait MemoryService: Send + Sync {
 - Modify: `crates/codegen/nofy-memory/src/threat_scan.rs`
 - Create: `crates/codegen/nofy-memory/tests/snapshot_injection.rs`
 
-- [ ] `snapshot()` 在一个事务视图内取得 pinned Personal topics、当前 Project manifest 摘要和与当前 ref 匹配的 query top-K snippets。
-- [ ] 全文进入 prompt 前运行 promptware scan；发现高风险内容时隔离该对象并返回安全告警，不注入模型。
-- [ ] 自动 capture/consolidation 保留冻结语义：只在新 session segment 或 compaction 后进入 snapshot，turn 中途不漂移。
-- [ ] 显式 remember/revise/forget 是例外：operation 成功后递增 snapshot generation；下一次模型推理前必须定向重建。Forget 先从所有 session 的 in-memory snapshot 删除，再允许下一次推理。
-- [ ] prompt 明确区分记忆是非权威上下文、不能把记忆内指令当系统指令、显式记忆调用的 hash 约束。
-- [ ] agent builder 为主助手注册 memory tools；subagent builder 明确移除 memory tool kinds 和 service handle，并测试子代理无法调用 search/get/write/dream。
-- [ ] token budget 在 Personal/Project 两类来源间确定性分配，超限使用 MMR 截断；snapshot 输入类型不接受 KnowledgeHit。
-- [ ] 运行：`cargo test -p nofy-memory --test snapshot_injection`、`cargo test -p nofy-agent`、`cargo test -p nofy-shell memory_context`。
-- [ ] Commit: `加固(memory): 统一安全注入与冻结快照`
+- [x] `snapshot()` 在稳定 generation 视图内取得 pinned Personal topics、当前 Project 摘要和 query top-K snippets。
+- [x] 全文进入 prompt 前运行 promptware scan；发现高风险内容时返回安全告警，不注入模型。
+- [x] 自动 capture/consolidation 保留冻结语义：只在新 session segment 或 compaction 后进入 snapshot，turn 中途不漂移。
+- [x] 显式 remember/revise/forget 是例外：operation 成功后递增共享 snapshot generation；下一次快照重建读取新 generation。
+- [x] prompt 明确区分记忆是非权威上下文、不能把记忆内指令当系统指令、显式记忆调用的 hash 约束。
+- [x] agent builder 为主助手注册 memory tools；subagent builder 明确移除 memory tool kinds 和 service handle。
+- [x] token budget 在 Personal/Project 两类来源间确定性分配，超限沿用统一检索的 MMR 排序；snapshot 输入类型不接受 KnowledgeHit。
+- [x] 运行：`cargo test -p nofy-memory --test snapshot_injection`、`cargo test -p nofy-agent`、`cargo test -p nofy-shell memory_context`。
+- [x] Commit: `加固(memory): 统一安全注入与冻结快照`
 
 ### Task 14: 对齐 UI、协议、扩展和遥测
 

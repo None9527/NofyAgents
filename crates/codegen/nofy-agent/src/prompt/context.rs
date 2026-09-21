@@ -804,15 +804,15 @@ mod tests {
         }
     }
     #[test]
-    fn child_rendered_prompt_includes_memory_section() {
+    fn child_rendered_prompt_does_not_advertise_memory_tools() {
         let rendered = render_subagent_template(base_template_ctx());
         assert!(
-            rendered.contains("<memory>"),
-            "should contain <memory> section"
+            !rendered.contains("<memory>"),
+            "subagent prompt must not contain a memory section"
         );
         assert!(
-            rendered.contains("memory_search"),
-            "should reference memory_search"
+            !rendered.contains("memory_search"),
+            "subagent prompt must not advertise memory tools"
         );
     }
     #[test]

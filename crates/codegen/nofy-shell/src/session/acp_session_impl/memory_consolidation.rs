@@ -166,7 +166,7 @@ impl SessionActor {
         self.memory.reindex_and_embed(path, source).await;
     }
 
-    async fn unified_memory_service(
+    pub(super) async fn unified_memory_service(
         &self,
     ) -> Option<std::sync::Arc<dyn nofy_tools::types::memory_service::MemoryService>> {
         let bridge = self.agent.borrow().tool_bridge().clone();
