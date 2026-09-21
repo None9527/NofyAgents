@@ -118,8 +118,6 @@ async fn test_agent_from_config(
                 ))
                 .join("tool_state.json")
         },
-        memory_backend: None,
-        memory_writer: None,
         memory_service: None,
         session_recall: None,
         forensics: None,
@@ -308,9 +306,8 @@ pub(crate) async fn create_test_actor_with_terminal(
             flush_config: crate::config::MemoryFlushConfig::default(),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
-            storage: std::cell::RefCell::new(None),
+            enabled: std::sync::atomic::AtomicBool::new(false),
             save_on_end: true,
-            backend_params: None,
             initial_injection_config: Default::default(),
             context_injected: std::sync::atomic::AtomicBool::new(false),
             flush_count: std::sync::atomic::AtomicU64::new(0),

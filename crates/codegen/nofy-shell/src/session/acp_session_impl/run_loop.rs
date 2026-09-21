@@ -2003,6 +2003,13 @@ pub(super) async fn run_session(
                                 let _ = respond_to.send(result);
                             });
                         }
+                        SessionCommand::RememberMemoryNote { statement, area, respond_to } => {
+                            let s = session.clone();
+                            tokio::task::spawn_local(async move {
+                                let result = s.handle_remember_memory_note(statement, area).await;
+                                let _ = respond_to.send(result);
+                            });
+                        }
                         SessionCommand::Interject { text, id, images } => {
                             // Broadcast to every attached client so all panes
                             // viewing this session render the interjection block

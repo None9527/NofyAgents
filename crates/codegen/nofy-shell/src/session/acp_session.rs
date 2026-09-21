@@ -1318,7 +1318,7 @@ impl SessionActor {
         };
         slash_commands::CommandAvailability {
             memory: self.memory.is_enabled() && memory_read_registered,
-            memory_configured: self.memory.backend_params.is_some(),
+            memory_configured: self.memory.is_enabled(),
             scheduler: tool_names.iter().any(|n| {
                 n == nofy_tools::implementations::nofy_build::SCHEDULER_CREATE_TOOL_NAME
             }),

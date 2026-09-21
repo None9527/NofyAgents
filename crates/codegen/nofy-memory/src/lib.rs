@@ -24,12 +24,9 @@
 
 pub mod access;
 pub mod atomic_file;
-pub mod backend;
 pub mod capture;
 pub mod chunker;
 pub mod consolidation;
-pub mod dream;
-pub mod dream_lock;
 pub mod embedding;
 pub mod index;
 pub mod layout;
@@ -50,7 +47,6 @@ pub mod text_utils;
 pub mod threat_scan;
 pub mod watcher;
 
-pub use backend::{EndpointScopedCredentials, MemoryBackendImpl, MemoryBackendParams};
 pub use index::{MemoryIndex, init_sqlite_vec};
 pub use storage::{MemoryScope, MemoryStorage};
 

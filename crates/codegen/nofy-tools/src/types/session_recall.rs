@@ -5,8 +5,7 @@
 //! `nofy sessions search --all`. The trait is defined here (in nofy-tools)
 //! and implemented by the shell layer over the local session FTS index, so
 //! tools never depend on nofy-shell directly. Follows the same injection
-//! pattern as [`super::memory_backend::MemoryBackend`] and
-//! [`super::resources::McpResourceProvider`].
+//! pattern as [`super::resources::McpResourceProvider`].
 
 use std::sync::Arc;
 

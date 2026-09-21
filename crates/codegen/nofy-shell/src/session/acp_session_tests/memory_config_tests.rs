@@ -187,9 +187,8 @@ async fn create_test_actor_with_memory(
                 .map_or_else(Default::default, |mc| mc.flush.clone()),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
-            storage: std::cell::RefCell::new(memory_storage),
+            enabled: std::sync::atomic::AtomicBool::new(memory_storage.is_some()),
             save_on_end: true,
-            backend_params: None,
             initial_injection_config: memory_initial_injection_config,
             context_injected: std::sync::atomic::AtomicBool::new(false),
             flush_count: std::sync::atomic::AtomicU64::new(0),
@@ -537,7 +536,7 @@ async fn create_injection_ready_actor(
     .unwrap();
     idx.reindex_file(&note, "workspace", "agent").unwrap();
     drop(idx);
-    actor.memory.storage = std::cell::RefCell::new(Some(storage));
+    actor.memory.set_enabled(true);
     std::mem::forget(tmp);
     actor.memory.backend_params = Some(crate::session::memory::MemoryBackendParams {
         session_id: "test-memory".to_owned(),
@@ -711,7 +710,7 @@ async fn create_dream_ready_actor() -> SessionActor {
         )
         .unwrap();
     }
-    actor.memory.storage = std::cell::RefCell::new(Some(storage));
+    actor.memory.set_enabled(true);
     std::mem::forget(tmp);
     actor
 }

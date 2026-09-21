@@ -1837,11 +1837,11 @@ pub enum Effect {
     FetchBundleStatus,
     /// Fetch a bundled entry's raw content via `nofy/bundle/entry/get`.
     FetchCatalogEntry { kind: String, name: String },
-    /// Save a remember note to global MEMORY.md (async file write).
+    /// Save a remember note through the active session's unified memory service.
     SaveMemoryNote {
         agent_id: AgentId,
+        session_id: acp::SessionId,
         text: String,
-        cwd: std::path::PathBuf,
     },
     /// Send raw note to nofy/memory/rewrite for LLM-powered reformatting.
     /// On success, the rewritten text populates the prompt for inline review.
@@ -2478,7 +2478,7 @@ pub enum TaskResult {
         session_id: acp::SessionId,
         error: String,
     },
-    /// Memory note saved to global MEMORY.md.
+    /// Unified memory service completed a remember request.
     MemoryNoteSaved {
         agent_id: AgentId,
         result: Result<(), String>,

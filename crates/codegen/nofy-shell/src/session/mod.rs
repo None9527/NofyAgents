@@ -5,7 +5,6 @@ pub(crate) mod compaction_config;
 pub mod handle;
 pub(crate) mod memory_state;
 pub(crate) mod memory_capture;
-pub(crate) mod memory_writer;
 pub mod merge;
 pub mod notifications;
 pub mod pending_interaction;

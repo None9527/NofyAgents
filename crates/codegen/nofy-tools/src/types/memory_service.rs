@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+pub const MEMORY_LOG_TARGET: &str = "nofy_memory";
+
 #[derive(Debug, thiserror::Error)]
 pub enum MemoryServiceError {
     #[error("memory is disabled")]

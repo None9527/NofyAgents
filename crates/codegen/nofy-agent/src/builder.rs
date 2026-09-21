@@ -79,14 +79,10 @@ pub struct AgentBuilder {
     compaction_policy: CompactionPolicy,
     reminder_policy: ReminderPolicy,
     memory_enabled: bool,
-    memory_global_path: Option<String>,
-    memory_workspace_path: Option<String>,
     is_non_interactive: bool,
     system_prompt_label: String,
     session_env: Option<Arc<HashMap<String, String>>>,
     state_path: Option<PathBuf>,
-    memory_backend: Option<Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>>,
-    memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
     memory_service: Option<Arc<dyn nofy_tools::types::memory_service::MemoryService>>,
     session_recall_backend:
         Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
@@ -221,14 +217,10 @@ impl AgentBuilder {
             compaction_policy: CompactionPolicy::default(),
             reminder_policy: ReminderPolicy::default(),
             memory_enabled: false,
-            memory_global_path: None,
-            memory_workspace_path: None,
             is_non_interactive: false,
             system_prompt_label: crate::prompt::context::DEFAULT_SYSTEM_PROMPT_LABEL.to_string(),
             session_env: None,
             state_path: None,
-            memory_backend: None,
-            memory_writer: None,
             memory_service: None,
             session_recall_backend: None,
             forensics_backend: None,
@@ -348,15 +340,6 @@ impl AgentBuilder {
         self.memory_enabled = enabled;
         self
     }
-    pub fn with_memory_paths(
-        mut self,
-        global_path: Option<String>,
-        workspace_path: Option<String>,
-    ) -> Self {
-        self.memory_global_path = global_path;
-        self.memory_workspace_path = workspace_path;
-        self
-    }
     /// Mark this session as non-interactive (headless / SDK / stdio /
     /// generic-ACP). Suppresses prompt sections that only make sense when
     /// a human is typing into the TUI prompt input (e.g. the `! <command>`
@@ -389,32 +372,6 @@ impl AgentBuilder {
     }
     pub fn with_state_path(mut self, path: PathBuf) -> Self {
         self.state_path = Some(path);
-        self
-    }
-    /// Set the memory backend for cross-session knowledge retrieval.
-    ///
-    /// When set, the `memory_search` and `memory_get` tools can access
-    /// the indexed memory store. When `None` (default), those tools
-    /// return "Memory is not enabled".
-    pub fn with_memory_backend(
-        mut self,
-        backend: Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
-    ) -> Self {
-        self.memory_backend = Some(backend);
-        self
-    }
-
-    /// Set a memory writer so the agent can persist curated memory entries
-    /// (`memory_write` tool).
-    ///
-    /// When set, the `memory_write` tool is registered and can add, replace,
-    /// and remove entries. When `None` (default), the tool returns "Memory
-    /// is not enabled".
-    pub fn with_memory_writer(
-        mut self,
-        writer: Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>,
-    ) -> Self {
-        self.memory_writer = Some(writer);
         self
     }
     /// Set the single user-facing memory service used by memory tools.
@@ -706,8 +663,6 @@ impl AgentBuilder {
         }
         let is_subagent = self.prompt_audience == crate::prompt::context::PromptAudience::Subagent;
         if is_subagent {
-            self.memory_backend = None;
-            self.memory_writer = None;
             self.memory_service = None;
         }
         if definition.inject_default_tools {
@@ -1063,8 +1018,6 @@ impl AgentBuilder {
                 parent_scheduler_handle: self.parent_scheduler_handle.take(),
                 skills: skill_info.clone(),
                 state_path,
-                memory_backend: self.memory_backend,
-                memory_writer: self.memory_writer,
                 memory_service: self.memory_service,
                 session_recall: self.session_recall_backend.clone(),
                 forensics: self.forensics_backend.clone(),
@@ -1186,8 +1139,6 @@ impl AgentBuilder {
             persona_summaries: self.persona_summaries,
             build_timestamp_utc: now.to_rfc3339(),
             memory_enabled: self.memory_enabled,
-            memory_global_path: self.memory_global_path,
-            memory_workspace_path: self.memory_workspace_path,
             role_instructions: self.role_instructions,
             persona_instructions: self.persona_instructions,
             os_name: Some(std::env::consts::OS.to_string()),

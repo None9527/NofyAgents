@@ -1,5 +1,5 @@
 //! Rendering helpers for [`CompactionStateContext`] that depend on
-//! shell-specific types (`nofy_tools::MemoryBackend`, memory context).
+//! shell-specific memory context.
 //!
 //! The core [`CompactionStateContext`] struct and its builder live in
 //! `nofy_chat_state::compaction_utils`. This module adds system-reminder
@@ -61,7 +61,7 @@ pub fn to_system_reminder_sync(
         ctx,
         discovered_agents_md,
         skills,
-        &[],
+        None,
         subagent_tool_names,
         mcp_tool_names,
     )
@@ -69,35 +69,33 @@ pub fn to_system_reminder_sync(
 
 /// Format state info as system reminder for injection into chat.
 ///
-/// When a `memory_backend` is provided, searches memory for relevant
+/// When a `memory_service` is provided, builds a generation-fenced snapshot
 /// context from past sessions (post-compaction recovery).
 pub async fn to_system_reminder(
     ctx: &CompactionStateContext,
     discovered_agents_md: &[PathBuf],
     skills: &[nofy_tools::implementations::skills::types::SkillInfo],
-    memory_backend: Option<&dyn nofy_tools::types::memory_backend::MemoryBackend>,
+    memory_service: Option<&dyn nofy_tools::types::memory_service::MemoryService>,
     subagent_tool_names: Option<&SubagentToolNames>,
     mcp_tool_names: Option<&McpToolNames>,
 ) -> Option<String> {
-    // Fetch memory results first (async), then pass to sync inner method
-    let mut memory_results = Vec::new();
-    if let Some(memory) = memory_backend {
-        let query = ctx.last_user_query.as_deref().unwrap_or("project context");
-        if let Ok(results) = memory.search(query, 3, 0.0).await {
-            tracing::debug!(
-                target: nofy_telemetry::memory_log::TARGET,
-                results = results.len(),
-                "recovered memory context after compaction"
-            );
-            memory_results = results;
-        }
-    }
+    let memory_snapshot = if let Some(memory) = memory_service {
+        memory
+            .snapshot(nofy_tools::types::memory_service::SnapshotRequest {
+                query: ctx.last_user_query.clone(),
+                max_items: 6,
+            })
+            .await
+            .ok()
+    } else {
+        None
+    };
 
     to_system_reminder_inner(
         ctx,
         discovered_agents_md,
         skills,
-        &memory_results,
+        memory_snapshot.as_ref(),
         subagent_tool_names,
         mcp_tool_names,
     )
@@ -108,7 +106,7 @@ fn to_system_reminder_inner(
     ctx: &CompactionStateContext,
     discovered_agents_md: &[PathBuf],
     skills: &[nofy_tools::implementations::skills::types::SkillInfo],
-    memory_results: &[nofy_tools::types::memory_backend::MemorySearchResult],
+    memory_snapshot: Option<&nofy_tools::types::memory_service::MemorySnapshot>,
     subagent_tool_names: Option<&SubagentToolNames>,
     mcp_tool_names: Option<&McpToolNames>,
 ) -> Option<String> {
@@ -227,10 +225,9 @@ fn to_system_reminder_inner(
         ));
     }
 
-    // Relevant memory from past sessions (post-compaction recovery; shell-only)
-    if !memory_results.is_empty()
-        && let Some(reminder) =
-            super::memory_context::format_memory_reminder(memory_results, None)
+    // Relevant memory from the unified service (post-compaction recovery).
+    if let Some(reminder) = memory_snapshot
+        .and_then(super::memory_context::format_unified_memory_snapshot)
     {
         sections.push(reminder);
     }

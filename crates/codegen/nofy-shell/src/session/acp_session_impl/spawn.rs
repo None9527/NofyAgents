@@ -754,27 +754,22 @@ pub(crate) async fn spawn_session_actor(
     let (user_question_tx, user_question_rx) = tokio::sync::mpsc::unbounded_channel::<
         nofy_tools::implementations::nofy_build::ask_user_question::types::UserQuestionRequest,
     >();
-    let memory_storage_for_session = memory_config.as_ref().filter(|mc| mc.enabled).map(|mc| {
-        if mc.flat_memory_root
-            && let Some(ref root) = mc.root_dir_override
-        {
-            return crate::session::memory::MemoryStorage::new_flat(
-                tool_context.cwd.as_path(),
-                root,
-            );
-        }
-        crate::session::memory::MemoryStorage::new(
-            tool_context.cwd.as_path(),
-            mc.root_dir_override.as_deref(),
-        )
-    });
+    let memory_root_for_session = memory_config
+        .as_ref()
+        .filter(|config| config.enabled)
+        .map(|config| {
+            config
+                .root_dir_override
+                .clone()
+                .unwrap_or_else(|| nofy_tools::util::nofy_home::nofy_home().join("memory"))
+        });
     let memory_capture_for_session = memory_config
         .as_ref()
         .filter(|config| config.automatic_learning_active())
         .and_then(|config| {
-            let storage = memory_storage_for_session.as_ref()?;
+            let root = memory_root_for_session.as_ref()?;
             match crate::session::memory_capture::SessionCapture::start(
-                storage.global_dir().to_path_buf(),
+                root.clone(),
                 tool_context.cwd.as_path(),
                 session_info.id.0.to_string(),
                 config.automatic_excluded_sensitive_categories.clone(),
@@ -793,7 +788,7 @@ pub(crate) async fn spawn_session_actor(
     > = if startup_hints.is_subagent {
         None
     } else {
-        memory_storage_for_session.as_ref().and_then(|storage| {
+        memory_root_for_session.as_ref().and_then(|root| {
             let project_id = match nofy_memory::model::ProjectId::resolve(
                 tool_context.cwd.as_path(),
             ) {
@@ -806,7 +801,7 @@ pub(crate) async fn spawn_session_actor(
             let config = memory_config.as_ref()?;
             match nofy_memory::service::NofyMemoryService::new(
                 nofy_memory::service::NofyMemoryServiceConfig {
-                    root: storage.global_dir().to_path_buf(),
+                    root: root.clone(),
                     workspace: tool_context.cwd.as_path().to_path_buf(),
                     project_id,
                     memory_enabled: config.enabled,
@@ -830,135 +825,27 @@ pub(crate) async fn spawn_session_actor(
     let memory_initial_injection_config = memory_config
         .as_ref()
         .map_or_else(Default::default, |mc| mc.initial_injection.clone());
-    let mut memory_backend_params_for_session: Option<crate::session::memory::MemoryBackendParams> =
-        None;
-    let mut memory_search_counter: Option<std::sync::Arc<std::sync::atomic::AtomicU64>> = None;
-    let mut memory_writer_for_spec: Option<
-        std::sync::Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>,
-    > = None;
-    let memory_backend_for_spec: Option<
-        std::sync::Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
-    > = if let Some(ref storage) = memory_storage_for_session {
-        if let Err(e) = storage.ensure_initialized() {
-            tracing::warn!(
-                target: nofy_telemetry::memory_log::TARGET,
-                error = %e,
-                "MEMORY_INIT: ensure_initialized failed, continuing without template files"
-            );
-        }
-        {
-            let gc_storage = storage.clone();
-            let gc_max_age = memory_config.as_ref().map_or(30, |mc| mc.gc.max_age_days);
-            tokio::task::spawn_blocking(move || match gc_storage.gc(gc_max_age) {
-                Ok(removed) if removed > 0 => {
-                    tracing::info!(
-                        target: nofy_telemetry::memory_log::TARGET,
-                        removed,
-                        "MEMORY_GC: cleaned orphaned workspace directories"
-                    );
-                }
-                Err(e) => {
-                    tracing::debug!(
-                        target: nofy_telemetry::memory_log::TARGET,
-                        error = %e,
-                        "MEMORY_GC: failed"
-                    );
-                }
-                _ => {}
-            });
-        }
-        let watcher_config = memory_config
-            .as_ref()
-            .map(|mc| &mc.watcher)
-            .cloned()
-            .unwrap_or_default();
-        let watcher = if watcher_config.enabled {
-            crate::session::memory::watcher::MemoryFileWatcher::start(storage.global_dir())
-                .map(std::sync::Arc::new)
-        } else {
-            None
-        };
-        let embed_credentials = crate::auth::credential_provider::embedding_session_credentials(
-            &embed_base_url,
-            auth_manager.as_ref(),
-            api_key_provider.clone(),
-        );
-        let params = crate::session::memory::MemoryBackendParams {
-            session_id: session_info.id.to_string(),
-            embed_config: memory_config.as_ref().map(|mc| mc.embedding.clone()),
-            embed_base_url: embed_base_url.clone(),
-            embed_api_key: embed_api_key.clone(),
-            search_config: memory_config
-                .as_ref()
-                .map_or_else(Default::default, |mc| mc.search.clone()),
-            watcher,
-            stale_claim_secs: watcher_config.stale_claim_secs,
-            search_source: "tool",
-            embedding_credentials: embed_credentials,
-        };
-        let backend = crate::session::memory::MemoryBackendImpl::from_session_params(
-            storage.clone(),
-            &params,
-        );
-        memory_search_counter = Some(backend.search_counter.clone());
-        // Active memory writes: the memory_write tool persists curated
-        // entries through this writer (storage + index + embedding seam),
-        // bounded by the configured store budgets.
-        memory_writer_for_spec = Some(std::sync::Arc::new(
-            crate::session::memory_writer::ShellMemoryWriter::new(
-                storage.clone(),
-                Some(params.clone()),
-                memory_config
-                    .as_ref()
-                    .map_or_else(Default::default, |mc| mc.budget),
-            ),
-        ));
-        let watcher_started = params.watcher.is_some();
-        let backend: std::sync::Arc<dyn nofy_tools::types::memory_backend::MemoryBackend> =
-            std::sync::Arc::new(backend);
-        memory_backend_params_for_session = Some(params);
-        if watcher_config.enabled && !watcher_started {
-            tracing::warn!(
-                target: nofy_telemetry::memory_log::TARGET,
-                "MEMORY_INIT: watcher was configured but failed to start \
-                 (directory may not exist or OS watcher unavailable)"
-            );
-        }
-        tracing::info!(
-            target: nofy_telemetry::memory_log::TARGET,
-            workspace = %storage.workspace_dir().display(),
-            global = %storage.global_dir().display(),
-            watcher_config_enabled = watcher_config.enabled,
-            watcher_started,
-            "MEMORY_INIT: storage + backend created"
-        );
+    let memory_search_counter = None;
+    if memory_service_for_tools.is_some() {
         let mc = memory_config.as_ref();
-        let total_chunks = storage.total_chunk_count();
         nofy_telemetry::session_ctx::log_event(
             nofy_telemetry::memory_telemetry::MemorySessionInit {
                 session_id: session_info.id.to_string(),
                 memory_enabled: true,
-                watcher_config_enabled: watcher_config.enabled,
-                watcher_started,
+                watcher_config_enabled: false,
+                watcher_started: false,
                 temporal_decay_enabled: mc.is_none_or(|c| c.search.temporal_decay.enabled),
                 mmr_enabled: mc.is_some_and(|c| c.search.mmr.enabled),
                 mmr_lambda: mc.map_or(0.7, |c| c.search.mmr.lambda),
                 half_life_days: mc.map_or(30.0, |c| c.search.temporal_decay.half_life_days),
                 embedding_dimensions: mc.map_or(1024, |c| c.embedding.dimensions),
-                total_chunks,
-                total_files: storage.list_memory_files().map_or(0, |f| f.len()),
-                has_global_memory_md: storage.global_memory_file().exists(),
-                has_workspace_memory_md: storage.workspace_memory_file().exists(),
+                total_chunks: 0,
+                total_files: 0,
+                has_global_memory_md: false,
+                has_workspace_memory_md: false,
             },
         );
-        Some(backend)
-    } else {
-        tracing::debug!(
-            target: nofy_telemetry::memory_log::TARGET,
-            "MEMORY_INIT: memory disabled, no storage created"
-        );
-        None
-    };
+    }
     let context_window_tokens = context_window_override
         .map(|c| c.get())
         .unwrap_or(sampling_config.context_window);
@@ -1006,15 +893,7 @@ pub(crate) async fn spawn_session_actor(
         compaction_policy,
         reminder_policy,
         memory_enabled: memory_config.as_ref().is_some_and(|mc| mc.enabled),
-        memory_global_path: memory_storage_for_session
-            .as_ref()
-            .map(|s| s.global_memory_file().to_string_lossy().into_owned()),
-        memory_workspace_path: memory_storage_for_session
-            .as_ref()
-            .map(|s| s.workspace_memory_file().to_string_lossy().into_owned()),
-        memory_backend: memory_backend_for_spec,
-        memory_writer: memory_writer_for_spec,
-        memory_service: memory_service_for_tools,
+        memory_service: memory_service_for_tools.clone(),
         web_fetch_config: web_fetch_config.clone(),
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
@@ -1646,11 +1525,10 @@ pub(crate) async fn spawn_session_actor(
             ),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
-            storage: std::cell::RefCell::new(memory_storage_for_session),
+            enabled: std::sync::atomic::AtomicBool::new(memory_service_for_tools.is_some()),
             save_on_end: memory_config
                 .as_ref()
                 .is_none_or(|mc| mc.session.save_on_end),
-            backend_params: memory_backend_params_for_session,
             initial_injection_config: memory_initial_injection_config,
             context_injected: std::sync::atomic::AtomicBool::new(false),
             flush_count: std::sync::atomic::AtomicU64::new(0),
@@ -1916,76 +1794,6 @@ pub(crate) async fn spawn_session_actor(
             .tool_bridge()
             .set_display_cwd(std::path::PathBuf::from(display_cwd))
             .await;
-    }
-    if let Some(storage) = session.memory.storage() {
-        crate::session::memory::init_sqlite_vec();
-        let index_config = memory_config
-            .as_ref()
-            .map_or_else(Default::default, |mc| mc.index.clone());
-        let embed_config = memory_config
-            .as_ref()
-            .map(|mc| mc.embedding.clone())
-            .unwrap_or_default();
-        let embed_dims = embed_config.dimensions;
-        let sampling_base_url = embed_base_url.clone();
-        let sampling_api_key = embed_api_key.clone();
-        let session_id_for_reindex = session_info.id.to_string();
-        let chunks_added_counter = session.memory.chunks_added.clone();
-        tokio::task::spawn_local(async move {
-            let db_path = storage.workspace_dir().join("index.sqlite");
-            if let Ok(mut index) = crate::session::memory::MemoryIndex::open_or_create(
-                &db_path,
-                storage.clone(),
-                index_config,
-                embed_dims,
-            ) && let Ok(files) = storage.list_memory_files()
-            {
-                let reindex_start = std::time::Instant::now();
-                let (mut total_added, mut total_updated, mut total_removed) = (0, 0, 0);
-                for file in &files {
-                    let source = storage.classify_source(file);
-                    if let Ok(stats) = index.reindex_file(file, source, "owner") {
-                        total_added += stats.added;
-                        total_updated += stats.updated;
-                        total_removed += stats.removed;
-                    }
-                }
-                tracing::info!(
-                    target: nofy_telemetry::memory_log::TARGET,
-                    files = files.len(),
-                    "MEMORY_REINDEX: background reindex complete"
-                );
-                let embedded_count = if let Some(api_key) = sampling_api_key {
-                    if let Some(provider) =
-                        crate::session::memory::embedding::ApiEmbeddingProvider::from_session(
-                            &embed_config,
-                            sampling_base_url,
-                            api_key,
-                        )
-                    {
-                        crate::session::memory::embed_missing_chunks(&index, &provider).await
-                    } else {
-                        0
-                    }
-                } else {
-                    0
-                };
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::memory_telemetry::MemoryReindex {
-                        session_id: session_id_for_reindex.clone(),
-                        source: "init".to_owned(),
-                        added: total_added,
-                        updated: total_updated,
-                        removed: total_removed,
-                        embedded: embedded_count,
-                        duration_ms: reindex_start.elapsed().as_millis() as u64,
-                        trigger: "init".to_owned(),
-                    },
-                );
-                chunks_added_counter
-                    .fetch_add(total_added as u64, std::sync::atomic::Ordering::Relaxed);
-            }
-        });
     }
     {
         use agent_client_protocol::Client as _;

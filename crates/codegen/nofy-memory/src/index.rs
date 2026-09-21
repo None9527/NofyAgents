@@ -176,10 +176,9 @@ impl UnifiedMemoryIndex {
         let personal = self
             .personal
             .rebuild_unified_scope(&personal_scope, &MemoryScope::Personal)?;
-        let project = self.project.rebuild_unified_scope(
-            &project_scope,
-            &MemoryScope::Project(self.project_id),
-        )?;
+        let project = self
+            .project
+            .rebuild_unified_scope(&project_scope, &MemoryScope::Project(self.project_id))?;
         Ok(UnifiedRebuildResult {
             topics: personal.topics + project.topics,
             observations: personal.observations + project.observations,
@@ -198,10 +197,8 @@ impl UnifiedMemoryIndex {
             UnifiedRebuildResult::default()
         };
         let project = if self.project.needs_unified_rebuild(&project_scope)? {
-            self.project.rebuild_unified_scope(
-                &project_scope,
-                &MemoryScope::Project(self.project_id),
-            )?
+            self.project
+                .rebuild_unified_scope(&project_scope, &MemoryScope::Project(self.project_id))?
         } else {
             UnifiedRebuildResult::default()
         };
@@ -670,10 +667,8 @@ impl MemoryIndex {
             )?;
             result.observations += 1;
         }
-        self.db.execute(
-            schema::UPSERT_META_SQL,
-            params!["repair_required", "0"],
-        )?;
+        self.db
+            .execute(schema::UPSERT_META_SQL, params!["repair_required", "0"])?;
         self.db.execute(
             schema::UPSERT_META_SQL,
             params!["canonical_fingerprint", fingerprint],
@@ -681,20 +676,15 @@ impl MemoryIndex {
         Ok(result)
     }
 
-    fn needs_unified_rebuild(
-        &self,
-        scope_layout: &ScopeLayout,
-    ) -> Result<bool, UnifiedIndexError> {
+    fn needs_unified_rebuild(&self, scope_layout: &ScopeLayout) -> Result<bool, UnifiedIndexError> {
         if self.repair_required() {
             return Ok(true);
         }
         let stored = self
             .db
-            .query_row(
-                schema::GET_META_SQL,
-                ["canonical_fingerprint"],
-                |row| row.get::<_, String>(0),
-            )
+            .query_row(schema::GET_META_SQL, ["canonical_fingerprint"], |row| {
+                row.get::<_, String>(0)
+            })
             .optional()?;
         Ok(stored.as_deref() != Some(scope_fingerprint(scope_layout)?.as_str()))
     }
@@ -718,9 +708,7 @@ impl MemoryIndex {
         let path_text = path.to_string_lossy();
         let (scope_kind, project_id) = match scope {
             MemoryScope::Personal => ("personal", None),
-            MemoryScope::Project(project_id) => {
-                ("project", Some(project_id.as_uuid().to_string()))
-            }
+            MemoryScope::Project(project_id) => ("project", Some(project_id.as_uuid().to_string())),
         };
         let (validity_kind, git_ref, anchor_commit) = match validity {
             None | Some(ProjectValidity::ProjectWide) => ("project_wide", None, None),
@@ -781,10 +769,7 @@ impl MemoryIndex {
 
     fn clear_derived_index(&mut self) -> Result<(), rusqlite::Error> {
         let transaction = self.db.transaction()?;
-        transaction.execute(
-            schema::UPSERT_META_SQL,
-            params!["repair_required", "1"],
-        )?;
+        transaction.execute(schema::UPSERT_META_SQL, params!["repair_required", "1"])?;
         transaction.execute(
             "INSERT INTO chunks_fts(chunks_fts) VALUES('delete-all')",
             [],
@@ -796,11 +781,7 @@ impl MemoryIndex {
         transaction.commit()
     }
 
-    pub(crate) fn chunk_is_eligible(
-        &self,
-        chunk_id: &str,
-        context: &UnifiedSearchContext,
-    ) -> bool {
+    pub(crate) fn chunk_is_eligible(&self, chunk_id: &str, context: &UnifiedSearchContext) -> bool {
         let Some(metadata) = self.object_metadata(chunk_id).ok().flatten() else {
             return false;
         };
@@ -819,10 +800,9 @@ impl MemoryIndex {
         let hash_matches = std::fs::read(&metadata.canonical_path)
             .is_ok_and(|bytes| hash_bytes(&bytes) == metadata.object_hash);
         if !hash_matches {
-            let _ = self.db.execute(
-                schema::UPSERT_META_SQL,
-                params!["repair_required", "1"],
-            );
+            let _ = self
+                .db
+                .execute(schema::UPSERT_META_SQL, params!["repair_required", "1"]);
             return false;
         }
         true
@@ -870,11 +850,9 @@ impl MemoryIndex {
 
     fn repair_required(&self) -> bool {
         self.db
-            .query_row(
-                schema::GET_META_SQL,
-                ["repair_required"],
-                |row| row.get::<_, String>(0),
-            )
+            .query_row(schema::GET_META_SQL, ["repair_required"], |row| {
+                row.get::<_, String>(0)
+            })
             .is_ok_and(|value| value == "1")
     }
 
@@ -959,9 +937,9 @@ impl MemoryIndex {
         if !probes.is_empty() {
             let mut seen: std::collections::HashSet<i64> =
                 results.iter().map(|r| r.rowid).collect();
-            let mut stmt =
-                self.db
-                    .prepare("SELECT rowid FROM chunks WHERE instr(text, ?1) > 0 LIMIT ?2")?;
+            let mut stmt = self
+                .db
+                .prepare("SELECT rowid FROM chunks WHERE instr(text, ?1) > 0 LIMIT ?2")?;
             for probe in probes {
                 let rowids = stmt
                     .query_map(params![probe, limit], |row| row.get::<_, i64>(0))?
@@ -1370,9 +1348,7 @@ fn collect_markdown_files(directory: &Path, files: &mut Vec<PathBuf>) -> std::io
     Ok(())
 }
 
-fn read_observation_statuses(
-    database: &Path,
-) -> Result<HashMap<String, String>, rusqlite::Error> {
+fn read_observation_statuses(database: &Path) -> Result<HashMap<String, String>, rusqlite::Error> {
     if !database.is_file() {
         return Ok(HashMap::new());
     }
@@ -1681,7 +1657,10 @@ mod tests {
 
         // Single-char sub-run query.
         let results = idx.search_fts("茶", 10).unwrap();
-        assert!(!results.is_empty(), "single CJK char should match via fallback");
+        assert!(
+            !results.is_empty(),
+            "single CJK char should match via fallback"
+        );
 
         // Whole-run query.
         let results = idx.search_fts("碧螺春", 10).unwrap();
@@ -2140,7 +2119,6 @@ mod tests {
         // Re-opening is a no-op migration (idempotent).
         drop(idx);
         let storage = test_storage(&tmp);
-        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536)
-            .unwrap();
+        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536).unwrap();
     }
 }

@@ -788,6 +788,13 @@ pub enum SessionCommand {
         context_summary: String,
         respond_to: oneshot::Sender<Result<String, String>>,
     },
+    /// Persist an explicit user-authored note through the unified memory
+    /// service. The pager never writes memory files directly.
+    RememberMemoryNote {
+        statement: String,
+        area: nofy_tools::types::memory_service::MemoryArea,
+        respond_to: oneshot::Sender<Result<String, String>>,
+    },
     /// Inject a user message into the active turn without canceling it.
     /// The text is queued in `pending_interjections` and drained at the
     /// next safe point in `process_conversation_turn`.  Fire-and-forget:

@@ -3,30 +3,6 @@
 
 use super::*;
 
-/// Build first-turn injection backend params without mutating the shared
-/// session params.
-///
-/// This clones the session-wide backend params so tool-search and
-/// compaction-recovery backends keep their original `search_source` and search
-/// thresholds. The returned effective min score preserves the historical
-/// first-turn default of `0.0` unless the injection config explicitly
-/// overrides it.
-pub(super) fn build_initial_injection_backend_params(
-    params: &crate::session::memory::MemoryBackendParams,
-    initial_injection_config: &crate::config::MemoryInitialInjectionConfig,
-) -> (crate::session::memory::MemoryBackendParams, f64) {
-    let mut injection_params = params.clone();
-    injection_params.search_source = "injection";
-    let effective_min_score = initial_injection_config
-        .min_score
-        .map(|min_score| {
-            injection_params.search_config.min_score = min_score;
-            min_score as f64
-        })
-        .unwrap_or(0.0);
-    (injection_params, effective_min_score)
-}
-
 impl SessionActor {
     /// Re-register `memory_search`, `memory_get`, and `memory_write` tools
     /// on the tool bridge.
@@ -96,74 +72,20 @@ impl SessionActor {
         );
     }
 
-    /// Session-end memory save, empty-session-gated dream, and memory summary
-    /// telemetry. Shared by Shutdown and channel-closed so the dream gate cannot
-    /// drift between exit arms.
+    /// Session-end summary. Durable top-level turns have already crossed the
+    /// unified capture barrier; shutdown must never create a second writer.
     ///
     /// `log_suffix` is appended to the `MEMORY_SESSION_END:` log line so each
     /// arm keeps a distinct reason string in logs.
     pub(super) async fn run_session_end_memory_pipeline(&self, log_suffix: &str) {
-        let mut session_end_result = "disabled";
-        let mut total_chunks_at_end = 0usize;
-        // No dream here. Consolidation runs at the *next* launch and on the
-        // dream-check timer (see `spawn_dream_check` in `run_loop`): a dream is a
-        // model call with a 30-minute budget, and awaiting it inline made session
-        // close wait for it. Deferring loses nothing — this session's summary is
-        // written below, so the next launch's gate check finds it on disk.
-        if !self.startup_hints.is_subagent {
-            if let Some(storage) = self.memory.storage() {
-                let conversation = self.chat_state_handle.get_conversation().await;
-                let result = crate::session::memory::hooks::on_session_end(
-                    &storage,
-                    &conversation,
-                    &self.session_info.id.0,
-                    self.memory.save_on_end,
-                );
-                match &result {
-                    crate::session::memory::hooks::SessionEndResult::Written(path_str) => {
-                        session_end_result = "written";
-                        self.reindex_and_embed(std::path::Path::new(path_str), "session")
-                            .await;
-                        self.send_xai_notification(NofySessionUpdate::MemorySessionSaved {
-                            path: path_str.clone(),
-                        })
-                        .await;
-                    }
-                    crate::session::memory::hooks::SessionEndResult::Skipped => {
-                        session_end_result = "skipped";
-                    }
-                    crate::session::memory::hooks::SessionEndResult::Failed(_) => {
-                        session_end_result = "failed";
-                    }
-                }
-                total_chunks_at_end = storage.total_chunk_count();
-                let telem = self.memory.telemetry_snapshot();
-                let msg = format!("MEMORY_SESSION_END: {log_suffix}");
-                tracing::info!(
-                    target: nofy_telemetry::memory_log::TARGET,
-                    result = ?result,
-                    tool_searches = telem.tool_search_count,
-                    injection_searches = telem.injection_count,
-                    recovery_searches = telem.compaction_recovery_count,
-                    "{msg}"
-                );
-            }
+        let session_end_result = if self.startup_hints.is_subagent {
+            "subagent_skipped"
         } else {
-            tracing::debug!(
-                target: nofy_telemetry::memory_log::TARGET,
-                "MEMORY_SUBAGENT_SKIP: skipping on_session_end for subagent session"
-            );
-        }
+            "capture_barrier_owned"
+        };
+        tracing::info!(target: nofy_telemetry::memory_log::TARGET, %log_suffix, session_end_result, "MEMORY_SESSION_END");
         let telem = self.memory.telemetry_snapshot();
-        self.emit_memory_session_summary(&telem, total_chunks_at_end, session_end_result);
-    }
-
-    /// Reindex a single file and embed any new chunks.
-    ///
-    /// Used after flush writes and session-end writes to keep the index
-    /// and embeddings up to date immediately.
-    pub(super) async fn reindex_and_embed(&self, path: &std::path::Path, source: &str) {
-        self.memory.reindex_and_embed(path, source).await;
+        self.emit_memory_session_summary(&telem, 0, session_end_result);
     }
 
     pub(super) async fn unified_memory_service(
@@ -173,6 +95,29 @@ impl SessionActor {
         bridge
             .read_resource::<std::sync::Arc<dyn nofy_tools::types::memory_service::MemoryService>>()
             .await
+    }
+
+    pub(super) async fn handle_remember_memory_note(
+        &self,
+        statement: String,
+        area: nofy_tools::types::memory_service::MemoryArea,
+    ) -> Result<String, String> {
+        use nofy_tools::types::memory_service::RememberRequest;
+
+        let service = self
+            .unified_memory_service()
+            .await
+            .ok_or_else(|| "memory is not enabled".to_owned())?;
+        let receipt = service
+            .remember(RememberRequest {
+                area,
+                statement,
+                title: None,
+                confirm_sensitive: false,
+            })
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(format!("已记住到{}：{}", receipt.area_label, receipt.summary))
     }
 
     async fn consolidate_area(
@@ -359,7 +304,7 @@ impl SessionActor {
             .map_err(|e| format!("failed to prepare client: {e}"))?;
 
         let system = "You are a memory note formatter. Rewrite the user's note into \
-            well-structured markdown suitable for a persistent MEMORY.md file. The note should be:\n\
+            a concise, durable statement suitable for the unified memory system. The note should be:\n\
             - Concise but complete\n\
             - Start with a descriptive ## heading\n\
             - Include enough context to be useful months later\n\

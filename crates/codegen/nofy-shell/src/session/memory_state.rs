@@ -15,14 +15,11 @@ pub(crate) struct SessionMemory {
     /// Most recent completed transcript/capture barrier, for diagnostics and
     /// duplicate-hook verification only.
     pub last_capture_barrier: RefCell<Option<crate::session::memory_capture::CaptureBarrier>>,
-    /// Memory storage handle for writing flush output (None when memory disabled).
-    /// Wrapped in `RefCell` to allow `/memory on|off` toggle from `&Arc<SessionActor>`.
-    pub storage: RefCell<Option<crate::session::memory::MemoryStorage>>,
+    /// Runtime gate for the single unified memory service. The service itself
+    /// is owned by the tool bridge resources.
+    pub enabled: AtomicBool,
     /// Whether to write a session summary to memory on session end.
     pub save_on_end: bool,
-    /// Shared params for building a fully-configured memory backend.
-    /// `None` when memory is disabled.
-    pub backend_params: Option<crate::session::memory::MemoryBackendParams>,
     /// First-turn memory injection behavior resolved from local + remote config.
     pub initial_injection_config: crate::config::MemoryInitialInjectionConfig,
     /// Per-process latch: the first-turn injection decision already ran in
@@ -82,12 +79,12 @@ impl SessionMemory {
 
     /// Whether memory is enabled for this session.
     pub(crate) fn is_enabled(&self) -> bool {
-        self.storage.borrow().is_some()
+        self.enabled.load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    /// Clone the storage out of the `RefCell`, dropping the borrow immediately.
-    pub(crate) fn storage(&self) -> Option<crate::session::memory::MemoryStorage> {
-        self.storage.borrow().clone()
+    pub(crate) fn set_enabled(&self, enabled: bool) {
+        self.enabled
+            .store(enabled, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Attempt to acquire the flush lock. Returns `true` if acquired,
@@ -145,82 +142,6 @@ impl SessionMemory {
     pub(crate) fn record_dream_neutral(&self) {
         self.dream_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    /// Open (or create) the memory index for the current workspace.
-    ///
-    /// Shared helper that extracts embed dimensions from `backend_params`
-    /// and opens the index at `<workspace_dir>/index.sqlite`.
-    pub(crate) fn open_index(
-        &self,
-        storage: &crate::session::memory::MemoryStorage,
-    ) -> Option<crate::session::memory::MemoryIndex> {
-        let embed_dims = self
-            .backend_params
-            .as_ref()
-            .and_then(|p| p.embed_config.as_ref())
-            .map_or(1024, |c| c.dimensions);
-        let db_path = storage.workspace_dir().join("index.sqlite");
-        crate::session::memory::MemoryIndex::open_or_create(
-            &db_path,
-            storage.clone(),
-            Default::default(),
-            embed_dims,
-        )
-        .ok()
-    }
-
-    /// Reindex a file and embed new chunks when embedding is configured.
-    pub(crate) async fn reindex_and_embed(&self, path: &std::path::Path, source: &str) {
-        let Some(storage) = self.storage.borrow().clone() else {
-            return;
-        };
-        if let Some(mut index) = self.open_index(&storage) {
-            let _ = index.reindex_file(path, source, "agent");
-            if let Some(ref params) = self.backend_params
-                && let Some(provider) = params.make_embedding_provider().await
-            {
-                crate::session::memory::embed_missing_chunks(&index, &provider).await;
-            }
-        }
-    }
-
-    /// Remove chunks for the given file paths from the search index.
-    ///
-    /// Used after dream consolidation deletes processed session files so
-    /// that stale chunks don't linger in the index. Best-effort: errors
-    /// are logged but don't propagate.
-    pub(crate) fn delete_paths_from_index(&self, paths: &[std::path::PathBuf]) {
-        if paths.is_empty() {
-            return;
-        }
-        let Some(storage) = self.storage.borrow().clone() else {
-            return;
-        };
-        if let Some(mut index) = self.open_index(&storage) {
-            let mut total_removed = 0usize;
-            for path in paths {
-                match index.delete_path(path) {
-                    Ok(n) => total_removed += n,
-                    Err(e) => {
-                        tracing::warn!(
-                            target: nofy_telemetry::memory_log::TARGET,
-                            path = %path.display(),
-                            error = %e,
-                            "DREAM_CLEANUP: failed to remove chunks from index"
-                        );
-                    }
-                }
-            }
-            if total_removed > 0 {
-                tracing::info!(
-                    target: nofy_telemetry::memory_log::TARGET,
-                    chunks_removed = total_removed,
-                    files = paths.len(),
-                    "DREAM_CLEANUP: removed stale chunks from index"
-                );
-            }
-        }
     }
 
     /// Collect telemetry counters for session-end summary.

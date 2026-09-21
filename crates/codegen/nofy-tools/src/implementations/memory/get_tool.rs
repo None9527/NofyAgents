@@ -70,7 +70,7 @@ impl nofy_tool_runtime::Tool for MemoryGetImpl {
                 "Memory is not enabled. Use --experimental-memory to enable.".into(),
             ));
         };
-        tracing::info!(target: crate::types::memory_backend::MEMORY_LOG_TARGET,"MEMORY_GET: invoked");
+        tracing::info!(target: crate::types::memory_service::MEMORY_LOG_TARGET,"MEMORY_GET: invoked");
         let target = MemoryTarget {
             id: input.target_id,
             expected_hash: input.expected_hash,

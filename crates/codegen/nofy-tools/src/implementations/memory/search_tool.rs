@@ -107,7 +107,7 @@ impl nofy_tool_runtime::Tool for MemorySearchImpl {
             }
             return Ok(ToolOutput::Text(output.into()));
         }
-        tracing::info!(target: crate::types::memory_backend::MEMORY_LOG_TARGET, max_results, "MEMORY_SEARCH: invoked");
+        tracing::info!(target: crate::types::memory_service::MEMORY_LOG_TARGET, max_results, "MEMORY_SEARCH: invoked");
         let results = memory
             .search(SearchRequest {
                 query,
@@ -121,7 +121,7 @@ impl nofy_tool_runtime::Tool for MemorySearchImpl {
                     format!("memory search failed: {e}"),
                 )
             })?;
-        tracing::info!(target: crate::types::memory_backend::MEMORY_LOG_TARGET, results = results.hits.len(), "MEMORY_SEARCH: complete");
+        tracing::info!(target: crate::types::memory_service::MEMORY_LOG_TARGET, results = results.hits.len(), "MEMORY_SEARCH: complete");
         if results.hits.is_empty() {
             return Ok(ToolOutput::Text(
                 "No memory results found for query.".into(),

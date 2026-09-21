@@ -676,41 +676,25 @@ impl SessionActor {
                 ok_end_turn(0, None)
             }
             BuiltinAction::MemoryBrowse => {
-                let file_infos = if let Some(ref storage) = *self.memory.storage.borrow() {
-                    match storage.list_memory_files() {
-                        Ok(files) => files
+                let file_infos = if let Some(service) = self.unified_memory_service().await {
+                    match service
+                        .list(nofy_tools::types::memory_service::ListMemoryRequest { area: None })
+                        .await
+                    {
+                        Ok(list) => list
+                            .items
                             .into_iter()
-                            .map(|path| {
-                                let meta = match std::fs::metadata(&path) {
-                                    Ok(m) => Some(m),
-                                    Err(e) => {
-                                        tracing::debug!(
-                                            path = %path.display(),
-                                            error = %e,
-                                            "skipping memory file with unreadable metadata",
-                                        );
-                                        None
-                                    }
-                                };
-                                crate::extensions::notification::MemoryFileInfo {
-                                    source: storage.classify_source(&path).to_string(),
-                                    path: path.display().to_string(),
-                                    size_bytes: meta.as_ref().map(|m| m.len()).unwrap_or(0),
-                                    modified_epoch_secs: meta
-                                        .and_then(|m| m.modified().ok())
-                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                        .map(|d| d.as_secs()),
-                                }
+                            .map(|item| crate::extensions::notification::MemoryFileInfo {
+                                source: item.area.user_label().to_owned(),
+                                path: item.target.id,
+                                size_bytes: item.summary.len() as u64,
+                                modified_epoch_secs: u64::try_from(item.updated_at).ok(),
                             })
                             .collect(),
-                        Err(e) => {
-                            tracing::warn!(
-                                session_id = %self.session_info.id.0,
-                                error = %e,
-                                "failed to list memory files",
-                            );
+                        Err(error) => {
+                            tracing::warn!(%error, "failed to list unified memory");
                             self.send_host_turn_slash_command_output(&format!(
-                                "Failed to list memory files: {e}"
+                                "Failed to list memory: {error}"
                             ))
                             .await;
                             vec![]
@@ -739,45 +723,16 @@ impl SessionActor {
                     "memory toggle via /memory slash command",
                 );
                 let msg = if enabled && !self.memory.is_enabled() {
-                    if let Some(ref params) = self.memory.backend_params {
-                        let storage = crate::session::memory::MemoryStorage::new(
-                            std::path::Path::new(&self.session_info.cwd),
-                            None,
-                        );
-                        if let Err(e) = storage.ensure_initialized() {
-                            tracing::warn!(error = %e, "failed to initialize memory storage on re-enable");
-                            format!("Memory could not be enabled: {e}")
-                        } else {
-                            let backend =
-                                crate::session::memory::MemoryBackendImpl::from_session_params(
-                                    storage.clone(),
-                                    params,
-                                );
-                            *self.memory.search_counter.borrow_mut() =
-                                Some(backend.search_counter.clone());
-                            let backend: std::sync::Arc<
-                                dyn nofy_tools::types::memory_backend::MemoryBackend,
-                            > = std::sync::Arc::new(backend);
-                            let writer: std::sync::Arc<
-                                dyn nofy_tools::types::memory_writer::MemoryWriter,
-                            > = std::sync::Arc::new(
-                                crate::session::memory_writer::ShellMemoryWriter::new(
-                                    storage.clone(),
-                                    Some(params.clone()),
-                                    Default::default(),
-                                ),
-                            );
-                            let bridge = self.agent.borrow().tool_bridge().clone();
-                            bridge.update_resource(backend.clone()).await;
-                            bridge.update_resource(writer.clone()).await;
-                            if let Err(e) = self.register_memory_tools(&bridge).await {
-                                tracing::warn!(error = %e, "memory tool registration failed during toggle");
-                            }
-                            *self.memory.storage.borrow_mut() = Some(storage);
-                            "Memory enabled for this session.".to_owned()
+                    if self.unified_memory_service().await.is_some() {
+                        let bridge = self.agent.borrow().tool_bridge().clone();
+                        if let Err(e) = self.register_memory_tools(&bridge).await {
+                            tracing::warn!(error = %e, "memory tool registration failed during toggle");
                         }
+                        self.memory.set_enabled(true);
+                        "Memory enabled for this session.".to_owned()
                     } else {
-                        "Memory cannot be enabled (not configured for this session).".to_owned()
+                        "Memory cannot be enabled in this session; enable it in settings and start a new session."
+                            .to_owned()
                     }
                 } else if !enabled && self.memory.is_enabled() {
                     let bridge = self.agent.borrow().tool_bridge().clone();
@@ -796,7 +751,7 @@ impl SessionActor {
                     ) {
                         tracing::debug!("memory_write tool was not registered during unregister");
                     }
-                    *self.memory.storage.borrow_mut() = None;
+                    self.memory.set_enabled(false);
                     *self.memory.search_counter.borrow_mut() = None;
                     "Memory disabled for this session.".to_owned()
                 } else {

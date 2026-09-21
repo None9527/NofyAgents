@@ -255,17 +255,7 @@ pub struct SessionContext {
     /// after every tool execution. The file stores serialized `State<T>`
     /// values (e.g., `TodoState`).
     pub state_path: PathBuf,
-    /// Optional memory backend for cross-session knowledge retrieval.
-    /// When `Some`, injected into `Resources` so `memory_search` / `memory_get`
-    /// tools can access it. When `None`, the tools return "not enabled".
-    pub memory_backend: Option<Arc<dyn crate::types::memory_backend::MemoryBackend>>,
-    /// Optional memory writer for active memory writes. When `Some`,
-    /// injected into `Resources` so the `memory_write` tool can persist
-    /// curated entries. When `None`, the tool returns "not enabled".
-    pub memory_writer: Option<Arc<dyn crate::types::memory_writer::MemoryWriter>>,
     /// Unified memory capability used by all user-facing memory tools.
-    /// Legacy backend/writer resources remain temporarily for internal
-    /// injection and compaction callers while those paths migrate.
     pub memory_service: Option<Arc<dyn crate::types::memory_service::MemoryService>>,
     /// Optional cross-session recall backend. When `Some`, injected into
     /// `Resources` so the `session_recall` tool can search the user's other
@@ -1027,12 +1017,6 @@ impl ToolRegistryBuilder {
             mgr.seed(Some(cwd.clone()), None, startup_skills, None, None, None);
             let _ = mgr.take_pending();
             resources.insert(mgr);
-        }
-        if let Some(memory_backend) = ctx.memory_backend {
-            resources.insert(memory_backend);
-        }
-        if let Some(memory_writer) = ctx.memory_writer {
-            resources.insert(memory_writer);
         }
         if let Some(memory_service) = ctx.memory_service {
             resources.insert(memory_service);
@@ -2140,8 +2124,6 @@ mod tests {
             parent_scheduler_handle: None,
             skills: vec![],
             state_path: tmp.path().join("state.json"),
-            memory_backend: None,
-            memory_writer: None,
             memory_service: None,
             session_recall: None,
             forensics: None,

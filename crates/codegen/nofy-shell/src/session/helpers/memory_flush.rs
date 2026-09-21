@@ -17,7 +17,7 @@
 //! 2. Sending `FLUSH_SYSTEM_PROMPT` to the model (no tools offered)
 //! 3. Calling `process_flush_response()` on the result
 //! 4. Calling `is_semantically_duplicate()` to skip near-duplicate content
-//! 5. Writing to `MemoryStorage::write_daily_log()` if accepted and not duplicate
+//! 5. Recording the unified capture barrier; no session Markdown is written
 //! 6. Setting `is_flushing = false`
 
 use crate::config::MemoryFlushConfig;

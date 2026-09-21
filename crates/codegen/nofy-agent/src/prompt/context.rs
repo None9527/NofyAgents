@@ -116,10 +116,6 @@ pub struct PromptContext {
     /// the model it can use `memory_search` and `memory_get`.
     #[serde(default)]
     pub memory_enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub memory_global_path: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub memory_workspace_path: Option<String>,
     /// Role instructions to include in the system prompt.
     /// Moved from the user task prompt so they're part of durable identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -183,8 +179,6 @@ impl Default for PromptContext {
             persona_summaries: vec![],
             build_timestamp_utc: chrono::Utc::now().to_rfc3339(),
             memory_enabled: false,
-            memory_global_path: None,
-            memory_workspace_path: None,
             role_instructions: None,
             persona_instructions: None,
             os_name: None,
@@ -238,8 +232,6 @@ impl PromptContext {
     pub fn placeholders(&self) -> serde_json::Value {
         serde_json::json!({
             "memory_enabled": self.memory_enabled,
-            "memory_global_path": self.memory_global_path.as_deref().unwrap_or(""),
-            "memory_workspace_path": self.memory_workspace_path.as_deref().unwrap_or(""),
             "role_instructions": self.role_instructions.as_deref().unwrap_or(""),
             "persona_instructions": self.persona_instructions.as_deref().unwrap_or(""),
             "os_name": self.os_name.as_deref().unwrap_or(""),
@@ -316,8 +308,6 @@ mod tests {
             persona_summaries: vec![],
             build_timestamp_utc: TEST_TIMESTAMP.to_string(),
             memory_enabled: false,
-            memory_global_path: None,
-            memory_workspace_path: None,
             role_instructions: None,
             persona_instructions: None,
             os_name: None,
@@ -601,8 +591,6 @@ mod tests {
             ],
             build_timestamp_utc: TEST_TIMESTAMP.to_string(),
             memory_enabled: true,
-            memory_global_path: None,
-            memory_workspace_path: None,
             role_instructions: None,
             persona_instructions: None,
             os_name: None,

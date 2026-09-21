@@ -1,16 +1,11 @@
-//! Pure text-classification helpers shared by the memory flush
-//! (`session::helpers::memory_flush`) and dream (`session::memory::dream`)
-//! response-processing paths.
+//! Pure text-classification helpers retained for legacy migration fixtures and
+//! compatibility tests around the former flush response format.
 //!
-//! These live here, in the memory subsystem, so `dream` no longer reaches
-//! *up* into `session::helpers::memory_flush` for them — which removes the
-//! `dream` <-> `memory_flush` module dependency cycle and is a prerequisite
-//! for extracting the memory subsystem into its own crate.
+//! Runtime capture and consolidation use the unified service instead.
 
 /// Check if text contains at least one markdown header (`#` or `##`).
 ///
-/// Used by both flush and dream response processing to ensure the model
-/// produced structured output.
+/// Used by compatibility tests to validate structured model output.
 pub fn has_markdown_headers(text: &str) -> bool {
     text.contains("## ") || text.contains("# ")
 }

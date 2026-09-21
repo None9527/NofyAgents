@@ -717,8 +717,6 @@ async fn file_toolset_override_e2e_to_finalized_toolset() {
         parent_scheduler_handle: None,
         skills: vec![],
         state_path: tmp.path().join("state.json"),
-        memory_backend: None,
-        memory_writer: None,
         memory_service: None,
         session_recall: None,
         forensics: None,

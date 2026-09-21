@@ -24,7 +24,6 @@ pub mod input;
 pub mod input_log;
 pub mod lease_cmd;
 pub mod mcp_cmd;
-pub mod memory_cmd;
 pub mod memory_release;
 pub mod memory_trace;
 // ── Minimal (scrollback-native) mode seam ────────────────────────────────────

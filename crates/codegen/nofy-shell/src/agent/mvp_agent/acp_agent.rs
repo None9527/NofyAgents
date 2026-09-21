@@ -1124,7 +1124,7 @@ impl acp::Agent for MvpAgent {
             }
             "nofy/session/repair" => crate::extensions::repair::handle(self, &args).await,
             "nofy/session/usage" => crate::extensions::usage::handle(self, &args).await,
-            "nofy/memory/flush" | "nofy/memory/rewrite" => {
+            "nofy/memory/flush" | "nofy/memory/rewrite" | "nofy/memory/remember" => {
                 crate::extensions::memory::handle(self, &args).await
             }
             "nofy/skills/refresh-baseline" => {

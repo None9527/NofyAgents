@@ -10,9 +10,7 @@ pub mod description;
 pub mod error;
 pub mod forensics;
 pub mod knowledge_base;
-pub mod memory_backend;
 pub mod memory_service;
-pub mod memory_writer;
 pub mod output;
 pub mod params_validation;
 pub mod process_manager;
@@ -35,8 +33,6 @@ pub use compat::{
 };
 pub use context::TruncationConfig;
 pub use definition::{FunctionTool, ToolDefinition, ToolType};
-pub use memory_backend::MemoryBackend;
-pub use memory_writer::{MemoryWriteOutcome, MemoryWriter};
 pub use process_manager::{KillOutcome, TaskSnapshot, format_system_time_rfc3339};
 pub use schema::NofyIntegerSchema;
 pub use session_mode::SessionMode;

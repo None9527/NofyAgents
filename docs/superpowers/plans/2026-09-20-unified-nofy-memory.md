@@ -625,11 +625,11 @@ pub trait MemoryService: Send + Sync {
 - Modify: `scripts/check-unified-memory.sh`
 - Modify: all `Cargo.toml` files that carried legacy dependencies
 
-- [ ] 删除直接写 `USER.md`、`MEMORY.md`、session memory Markdown 的生产路径。
-- [ ] 删除 fuzzy batch replace/remove、PID dream lock、旧 roots registry、legacy session log writer。
-- [ ] 让守卫脚本额外拒绝生产代码中的 `std::fs::write`/`OpenOptions::append` 对 memory root 的调用。
-- [ ] 用 `rg` 证明所有工具、Shell、Pager、agent builder 只依赖统一 `MemoryService`。
-- [ ] 运行：`scripts/check-unified-memory.sh`、`cargo check --workspace`。
+- [x] 删除直接写 `USER.md`、`MEMORY.md`、session memory Markdown 的生产路径。
+- [x] 删除 fuzzy batch replace/remove、PID dream lock、旧 roots registry、legacy session log writer。
+- [x] 让守卫脚本额外拒绝生产代码中的 `std::fs::write`/`OpenOptions::append` 对 memory root 的调用。
+- [x] 用 `rg` 证明所有工具、Shell、Pager、agent builder 只依赖统一 `MemoryService`。
+- [x] 运行：`scripts/check-unified-memory.sh`、`cargo check --workspace`。
 - [ ] Commit: `重构(memory): 完成单系统硬切换`
 
 ### Task 17: 全量验证、文档和索引收尾

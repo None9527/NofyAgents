@@ -53,7 +53,6 @@ use nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig;
 use nofy_tools::notification::ToolNotificationHandle;
 use nofy_tools::types::SharedApiKeyProvider;
 use nofy_tools::types::compat::CompatConfig;
-use nofy_tools::types::memory_backend::MemoryBackend;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -85,10 +84,6 @@ pub(crate) struct AgentRebuildSpec {
     pub compaction_policy: CompactionPolicy,
     pub reminder_policy: ReminderPolicy,
     pub memory_enabled: bool,
-    pub memory_global_path: Option<String>,
-    pub memory_workspace_path: Option<String>,
-    pub memory_backend: Option<Arc<dyn MemoryBackend>>,
-    pub memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
     pub memory_service: Option<Arc<dyn nofy_tools::types::memory_service::MemoryService>>,
     pub web_fetch_config: WebFetchConfig,
     pub app_builder_deployer_config: AppBuilderDeployerConfig,
@@ -184,10 +179,6 @@ impl AgentRebuildSpec {
             compaction_policy,
             reminder_policy,
             memory_enabled,
-            memory_global_path,
-            memory_workspace_path,
-            memory_backend,
-            memory_writer,
             memory_service,
             web_fetch_config,
             app_builder_deployer_config,
@@ -238,7 +229,6 @@ impl AgentRebuildSpec {
         .with_compaction_policy(compaction_policy.clone())
         .with_reminder_policy(reminder_policy.clone())
         .with_memory_enabled(*memory_enabled)
-        .with_memory_paths(memory_global_path.clone(), memory_workspace_path.clone())
         .with_is_non_interactive(*is_non_interactive)
         .with_system_prompt_label(system_prompt_label.clone())
         .with_session_env(session_env.clone())
@@ -273,12 +263,6 @@ impl AgentRebuildSpec {
         }
         if let Some(handle) = parent_scheduler_handle.clone() {
             builder = builder.with_parent_scheduler_handle(handle);
-        }
-        if let Some(memory_backend) = memory_backend.clone() {
-            builder = builder.with_memory_backend(memory_backend);
-        }
-        if let Some(memory_writer) = memory_writer.clone() {
-            builder = builder.with_memory_writer(memory_writer);
         }
         if let Some(memory_service) = memory_service.clone() {
             builder = builder.with_memory_service(memory_service);
@@ -420,10 +404,6 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         compaction_policy: CompactionPolicy::default(),
         reminder_policy: ReminderPolicy::default(),
         memory_enabled: false,
-        memory_global_path: None,
-        memory_workspace_path: None,
-        memory_backend: None,
-        memory_writer: None,
         memory_service: None,
         web_fetch_config: WebFetchConfig::Disabled,
         app_builder_deployer_config: AppBuilderDeployerConfig::default(),

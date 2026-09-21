@@ -3060,23 +3060,24 @@ pub(crate) fn execute(
                     }
                 });
         }
-        Effect::SaveMemoryNote { agent_id, text, cwd } => {
+        Effect::SaveMemoryNote { agent_id, session_id, text } => {
+            let tx = acp_tx.clone();
             tasks
                 .spawn(async move {
-                    let result = tokio::task::spawn_blocking(move || {
-                            let storage = nofy_shell::session::memory::MemoryStorage::new(
-                                &cwd,
-                                None,
-                            );
-                            storage
-                                .append_to_memory(
-                                    nofy_shell::session::memory::MemoryScope::Global,
-                                    &text,
-                                )
-                        })
+                    let request = acp::ExtRequest::new(
+                        "nofy/memory/remember",
+                        serde_json::value::to_raw_value(&serde_json::json!({
+                            "sessionId": session_id.0.to_string(),
+                            "statement": text,
+                            "area": "personal",
+                        }))
+                        .expect("serialize memory/remember params")
+                        .into(),
+                    );
+                    let result = acp_send(request, &tx)
                         .await
-                        .map_err(|e| format!("task join error: {e}"))
-                        .and_then(|r| r.map_err(|e| format!("{e}")));
+                        .map(|_| ())
+                        .map_err(|error| error.to_string());
                     TaskResult::MemoryNoteSaved {
                         agent_id,
                         result,

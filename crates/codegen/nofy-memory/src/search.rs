@@ -64,12 +64,23 @@ fn source_weight(config: &MemorySearchConfig, source: &str) -> f64 {
 /// auto-generated `MEMORY.md` stub) and should be filtered out.
 ///
 /// True when the chunk is structurally empty, or matches a known scaffold
-/// template via [`super::dream::is_scaffold_template`]. The marker branch is
+/// template. The marker branch is
 /// scoped to evergreen sources, where scaffold templates live, so a session
 /// chunk that merely quotes a marker phrase is kept.
 fn is_content_free(text: &str, source: &str) -> bool {
     is_structurally_empty(text)
-        || (is_evergreen_source(source) && super::dream::is_scaffold_template(text))
+        || (is_evergreen_source(source) && is_legacy_scaffold(text))
+}
+
+fn is_legacy_scaffold(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.len() < 500
+        && [
+            "Add durable project knowledge here",
+            "Preferences change — replace stale entries",
+        ]
+        .iter()
+        .any(|marker| trimmed.contains(marker))
 }
 
 /// Returns `true` when `text` has no substantive content after stripping ATX
@@ -214,10 +225,7 @@ pub async fn unified_search(
     context: &UnifiedSearchContext,
     config: &MemorySearchConfig,
 ) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
-    let vec_available = index
-        .indexes()
-        .iter()
-        .any(|index| index.vec_available());
+    let vec_available = index.indexes().iter().any(|index| index.vec_available());
     let query_embedding = if vec_available {
         if let Some(provider) = embedding_provider {
             provider
@@ -507,8 +515,8 @@ mod tests {
     use crate::embedding::MockEmbeddingProvider;
     use crate::index::{MemoryIndex, init_sqlite_vec};
     use crate::storage::MemoryStorage;
-    use tempfile::TempDir;
     use nofy_config_types::{MemoryIndexConfig, MemorySearchConfig};
+    use tempfile::TempDir;
 
     fn test_index(tmp: &TempDir) -> MemoryIndex {
         init_sqlite_vec();
@@ -1299,8 +1307,7 @@ mod tests {
             "evergreen chunk with a real sentence quoting a marker must NOT be filtered"
         );
         // Pure template shape on an evergreen source is still filtered.
-        let pure_template =
-            "# Global Memory\n\n## Preferences\n\n<!-- Add any cross-project preferences here -->\n";
+        let pure_template = "# Global Memory\n\n## Preferences\n\n<!-- Add any cross-project preferences here -->\n";
         assert!(
             is_content_free(pure_template, "global"),
             "pure scaffold template on an evergreen source is filtered"

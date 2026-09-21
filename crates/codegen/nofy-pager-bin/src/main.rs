@@ -883,9 +883,6 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                     .map_err(|e| anyhow::anyhow!("Failed to create agent config: {e}"))?;
                 return nofy_pager::trace_cmd::run(trace_args, &agent_config).await;
             }
-            Command::Memory(memory_args) => {
-                return nofy_pager::memory_cmd::run(memory_args);
-            }
             Command::Wrap(ref wrap_args) => {
                 return nofy_pager::wrap_cmd::run(wrap_args);
             }

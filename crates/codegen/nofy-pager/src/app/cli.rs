@@ -27,8 +27,6 @@ pub enum Command {
     Mcp(crate::mcp_cmd::McpArgs),
     /// Manage plugins and marketplace sources
     Plugin(crate::plugin_cmd::PluginArgs),
-    /// Manage cross-session memory
-    Memory(crate::memory_cmd::MemoryArgs),
     /// List available models and exit
     Models,
     /// Manage the daemon's schedules (control socket; default-off until `enable`)

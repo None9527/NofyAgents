@@ -43,7 +43,7 @@ pub(super) fn dispatch_send_remember_note_from_command(
 
 /// Send a raw remember note for LLM-powered rewriting via `nofy/memory/rewrite`.
 /// Clears remember mode and prompts the LLM to reformat the note with session
-/// context. Falls back to direct `SaveMemoryNote` when no session is available.
+/// context. Without an active session the review remains local and cannot be saved.
 fn send_remember_note(app: &mut AppView, text: String, record_in_history: bool) -> Vec<Effect> {
     use crate::views::modal::ActiveModal;
 
@@ -127,11 +127,10 @@ pub(super) fn dispatch_save_remember_note_from_modal(app: &mut AppView) -> Vec<E
         return vec![];
     };
 
-    let (content, cwd) = if let Some(ActiveModal::RememberNoteReview {
+    let content = if let Some(ActiveModal::RememberNoteReview {
         ref raw_content,
         ref enhanced_content,
         showing_enhanced,
-        ref cwd,
         ..
     }) = agent.active_modal
     {
@@ -140,11 +139,15 @@ pub(super) fn dispatch_save_remember_note_from_modal(app: &mut AppView) -> Vec<E
         } else {
             raw_content
         };
-        (text.trim().to_string(), cwd.clone())
+        text.trim().to_string()
     } else {
         return vec![];
     };
 
+    let Some(session_id) = agent.session.session_id.clone() else {
+        agent.show_toast("No active session");
+        return vec![];
+    };
     agent.active_modal = None;
     agent
         .scrollback
@@ -152,8 +155,8 @@ pub(super) fn dispatch_save_remember_note_from_modal(app: &mut AppView) -> Vec<E
 
     vec![Effect::SaveMemoryNote {
         agent_id: id,
+        session_id,
         text: content,
-        cwd,
     }]
 }
 
@@ -412,8 +415,7 @@ pub(super) fn handle_memory_note_saved(
                 agent
                     .scrollback
                     .push_block(crate::scrollback::block::RenderBlock::system(format!(
-                        "Memory saved to {}",
-                        crate::util::display_user_nofy_path("memory/MEMORY.md")
+                        "Memory saved"
                     )));
             }
             Err(error) => {

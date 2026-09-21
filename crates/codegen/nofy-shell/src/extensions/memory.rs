@@ -1,4 +1,4 @@
-//! `nofy/memory/flush`, `nofy/memory/rewrite`, and `nofy/compact_conversation`
+//! `nofy/memory/flush`, `nofy/memory/rewrite`, `nofy/memory/remember`, and `nofy/compact_conversation`
 //! extension handlers.
 //!
 //! - `compact_conversation`: trigger an on-demand compaction for a session.
@@ -20,8 +20,37 @@ pub async fn handle(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
         m if m.starts_with("nofy/compact_conversation") => handle_compact(agent, args).await,
         "nofy/memory/flush" => handle_flush(agent, args).await,
         "nofy/memory/rewrite" => handle_rewrite(agent, args).await,
+        "nofy/memory/remember" => handle_remember(agent, args).await,
         _ => Err(acp::Error::method_not_found()),
     }
+}
+
+async fn handle_remember(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct RememberRequest {
+        session_id: String,
+        statement: String,
+        area: nofy_tools::types::memory_service::MemoryArea,
+    }
+
+    let req: RememberRequest = parse_params(args)?;
+    let not_found_err = format!("session not found: {}", req.session_id);
+    let sid: acp::SessionId = req.session_id.into();
+    let Some(session) = agent.resident_handle(&sid) else {
+        return Err(acp::Error::invalid_params().data(not_found_err));
+    };
+    let (tx, rx) = oneshot::channel();
+    let _ = session.cmd_tx.send(SessionCommand::RememberMemoryNote {
+        statement: req.statement,
+        area: req.area,
+        respond_to: tx,
+    });
+    let summary = rx
+        .await
+        .map_err(|_| acp::Error::internal_error().data("session failed to respond"))?
+        .map_err(|error| acp::Error::internal_error().data(error))?;
+    to_raw_response(&serde_json::json!({ "summary": summary }))
 }
 
 async fn handle_compact(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {

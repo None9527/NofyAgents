@@ -1504,29 +1504,7 @@ impl SessionActor {
                     _ => None,
                 }
             };
-        let memory_backend_impl = {
-            let g = self.memory.storage.borrow();
-            g.as_ref()
-                .zip(self.memory.backend_params.as_ref())
-                .map(|(storage, params)| {
-                    crate::session::memory::MemoryBackendImpl::from_session_params(
-                        storage.clone(),
-                        &crate::session::memory::MemoryBackendParams {
-                            search_source: "compaction_recovery",
-                            ..params.clone()
-                        },
-                    )
-                })
-        };
-        let memory_opt_out = false;
-        let memory_ref: Option<&dyn nofy_tools::types::memory_backend::MemoryBackend> =
-            if memory_opt_out {
-                None
-            } else {
-                memory_backend_impl
-                    .as_ref()
-                    .map(|b| b as &dyn nofy_tools::types::memory_backend::MemoryBackend)
-            };
+        let memory_service = self.unified_memory_service().await;
         let suppress_state_reminder = false;
         let system_reminder = if suppress_state_reminder {
             None
@@ -1535,7 +1513,7 @@ impl SessionActor {
                 &state_context,
                 &discovered_agents_md,
                 &all_skills_for_compaction,
-                memory_ref,
+                memory_service.as_deref(),
                 subagent_tool_names.as_ref(),
                 mcp_tool_names.as_ref(),
             )
@@ -1583,22 +1561,6 @@ impl SessionActor {
                 system_reminder
             }
         };
-        if let Some(ref recovery_backend) = memory_backend_impl {
-            let n = recovery_backend
-                .search_counter
-                .load(std::sync::atomic::Ordering::Relaxed);
-            if n > 0 {
-                self.memory
-                    .compaction_recovery_count
-                    .fetch_add(n, std::sync::atomic::Ordering::Relaxed);
-                tracing::debug!(
-                    target: nofy_telemetry::memory_log::TARGET,
-                    count = n,
-                    "MEMORY_COMPACTION_RECOVERY: {} search(es) performed",
-                    n,
-                );
-            }
-        }
         let agents_md_reminder = self.agent.borrow().agents_md_user_reminder();
         let compaction_context = state_context.for_compaction();
         let compaction_state_context: &CompactionStateContext = &compaction_context;
@@ -2411,9 +2373,8 @@ mod inline_auto_compact_flow_tests {
                 flush_config: crate::config::MemoryFlushConfig::default(),
                 is_flushing: std::sync::atomic::AtomicBool::new(false),
                 last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
-                storage: std::cell::RefCell::new(None),
+                enabled: std::sync::atomic::AtomicBool::new(false),
                 save_on_end: true,
-                backend_params: None,
                 initial_injection_config: Default::default(),
                 context_injected: std::sync::atomic::AtomicBool::new(false),
                 flush_count: std::sync::atomic::AtomicU64::new(0),
@@ -3576,9 +3537,8 @@ mod inline_auto_compact_flow_tests {
                 .map_or_else(Default::default, |mc| mc.flush.clone()),
             is_flushing: std::sync::atomic::AtomicBool::new(false),
             last_flush_compaction: std::sync::atomic::AtomicU64::new(0),
-            storage: std::cell::RefCell::new(memory_storage),
+            enabled: std::sync::atomic::AtomicBool::new(memory_storage.is_some()),
             save_on_end: true,
-            backend_params: None,
             initial_injection_config: memory_initial_injection_config,
             context_injected: std::sync::atomic::AtomicBool::new(false),
             flush_count: std::sync::atomic::AtomicU64::new(0),

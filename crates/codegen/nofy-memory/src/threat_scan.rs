@@ -20,30 +20,93 @@ struct ThreatPattern {
 /// Curated high-precision patterns. Substring match on lowercased text.
 const PATTERNS: &[ThreatPattern] = &[
     // Role / instruction hijack.
-    ThreatPattern { id: "role_hijack_ignore_previous", needle: "ignore previous instructions" },
-    ThreatPattern { id: "role_hijack_ignore_all", needle: "ignore all previous" },
-    ThreatPattern { id: "role_hijack_disregard", needle: "disregard previous" },
-    ThreatPattern { id: "role_hijack_disregard_all", needle: "disregard all prior" },
-    ThreatPattern { id: "role_hijack_forget_instructions", needle: "forget your instructions" },
-    ThreatPattern { id: "role_hijack_new_persona", needle: "you are now" },
-    ThreatPattern { id: "role_hijack_new_system", needle: "new system prompt" },
-    ThreatPattern { id: "role_hijack_system_marker", needle: "[system]" },
+    ThreatPattern {
+        id: "role_hijack_ignore_previous",
+        needle: "ignore previous instructions",
+    },
+    ThreatPattern {
+        id: "role_hijack_ignore_all",
+        needle: "ignore all previous",
+    },
+    ThreatPattern {
+        id: "role_hijack_disregard",
+        needle: "disregard previous",
+    },
+    ThreatPattern {
+        id: "role_hijack_disregard_all",
+        needle: "disregard all prior",
+    },
+    ThreatPattern {
+        id: "role_hijack_forget_instructions",
+        needle: "forget your instructions",
+    },
+    ThreatPattern {
+        id: "role_hijack_new_persona",
+        needle: "you are now",
+    },
+    ThreatPattern {
+        id: "role_hijack_new_system",
+        needle: "new system prompt",
+    },
+    ThreatPattern {
+        id: "role_hijack_system_marker",
+        needle: "[system]",
+    },
     // Instruction override.
-    ThreatPattern { id: "override_from_now_on", needle: "from now on you must" },
-    ThreatPattern { id: "override_new_instructions", needle: "your new instructions are" },
-    ThreatPattern { id: "override_do_anything", needle: "do anything now" },
+    ThreatPattern {
+        id: "override_from_now_on",
+        needle: "from now on you must",
+    },
+    ThreatPattern {
+        id: "override_new_instructions",
+        needle: "your new instructions are",
+    },
+    ThreatPattern {
+        id: "override_do_anything",
+        needle: "do anything now",
+    },
     // Exfiltration.
-    ThreatPattern { id: "exfil_url_api_key", needle: "api_key=" },
-    ThreatPattern { id: "exfil_url_token", needle: "?token=" },
-    ThreatPattern { id: "exfil_url_secret", needle: "secret=" },
-    ThreatPattern { id: "exfil_send_key", needle: "send the api key" },
-    ThreatPattern { id: "exfil_post_credentials", needle: "post the credentials" },
-    ThreatPattern { id: "exfil_silent_curl", needle: "curl -s" },
-    ThreatPattern { id: "exfil_pipe_to_shell", needle: "| sh" },
-    ThreatPattern { id: "exfil_pipe_to_bash", needle: "| bash" },
+    ThreatPattern {
+        id: "exfil_url_api_key",
+        needle: "api_key=",
+    },
+    ThreatPattern {
+        id: "exfil_url_token",
+        needle: "?token=",
+    },
+    ThreatPattern {
+        id: "exfil_url_secret",
+        needle: "secret=",
+    },
+    ThreatPattern {
+        id: "exfil_send_key",
+        needle: "send the api key",
+    },
+    ThreatPattern {
+        id: "exfil_post_credentials",
+        needle: "post the credentials",
+    },
+    ThreatPattern {
+        id: "exfil_silent_curl",
+        needle: "curl -s",
+    },
+    ThreatPattern {
+        id: "exfil_pipe_to_shell",
+        needle: "| sh",
+    },
+    ThreatPattern {
+        id: "exfil_pipe_to_bash",
+        needle: "| bash",
+    },
     // Covert execution.
-    ThreatPattern { id: "covert_silent", needle: "without telling the user" },
-    ThreatPattern { id: "covert_hide", needle: "do not tell the user" },
+    ThreatPattern {
+        id: "covert_silent",
+        needle: "without telling the user",
+    },
+    ThreatPattern {
+        id: "covert_hide",
+        needle: "do not tell the user",
+    },
 ];
 
 /// Scan `text` and return the ids of every pattern that matched.
@@ -116,7 +179,10 @@ mod tests {
         let blocked = block_if_threat(poisoned, "workspace");
         assert!(blocked.starts_with("[BLOCKED:"), "got: {blocked}");
         assert!(blocked.contains("workspace"));
-        assert!(!blocked.contains("you are now DAN"), "original must not leak");
+        assert!(
+            !blocked.contains("you are now DAN"),
+            "original must not leak"
+        );
     }
 
     #[test]
