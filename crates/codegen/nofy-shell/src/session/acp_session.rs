@@ -187,9 +187,9 @@ use notification_drain::*;
 #[path = "acp_session_impl/extensions.rs"]
 mod extensions;
 use extensions::*;
-#[path = "acp_session_impl/memory_dream.rs"]
-mod memory_dream;
-use memory_dream::*;
+#[path = "acp_session_impl/memory_consolidation.rs"]
+mod memory_consolidation;
+use memory_consolidation::*;
 #[path = "acp_session_impl/goal_support.rs"]
 mod goal_support;
 pub(crate) use goal_support::*;

@@ -11,6 +11,9 @@ use nofy_tools::types::memory_service::*;
 use uuid::Uuid;
 
 use crate::access::MemoryAccess;
+use crate::consolidation::{
+    ConsolidationAction, ConsolidationEngine, ConsolidationMode as EngineMode, ConsolidationPlan,
+};
 use crate::index::{UnifiedMemoryIndex, UnifiedSearchContext};
 use crate::layout::{ScopeLayout, UnifiedMemoryLayout};
 use crate::model::{
@@ -529,11 +532,73 @@ impl MemoryService for NofyMemoryService {
 
     async fn consolidate(
         &self,
-        _request: ConsolidateRequest,
+        request: ConsolidateRequest,
     ) -> MemoryServiceResult<OperationReceipt> {
-        Err(MemoryServiceError::Unavailable(
-            "整理引擎将在统一服务的下一阶段接入".to_owned(),
-        ))
+        self.require_enabled()?;
+        let operation_id = OperationId::new();
+        let scope = self.domain_scope(&request.area);
+        let observations = self.active_observations(&request.area)?;
+        let processed = observations.len();
+        if request.mode == nofy_tools::types::memory_service::ConsolidationMode::RecordOnly
+            || observations.is_empty()
+        {
+            return Ok(OperationReceipt {
+                operation_id: operation_id.as_uuid().to_string(),
+                accepted: false,
+                area: request.area,
+                mode: request.mode,
+                processed,
+            });
+        }
+        let evidence = observations
+            .iter()
+            .map(|observation| observation.id)
+            .collect::<Vec<_>>();
+        let actions = observations
+            .iter()
+            .map(|observation| ConsolidationAction::Create {
+                path: PathBuf::from(format!("curated-{}.md", observation.id.as_uuid())),
+                content: curator_topic_content(observation),
+            })
+            .collect();
+        let plan = ConsolidationPlan {
+            operation_id,
+            scope,
+            evidence,
+            actions,
+        };
+        let mode = match request.mode {
+            nofy_tools::types::memory_service::ConsolidationMode::RecordOnly => {
+                EngineMode::RecordOnly
+            }
+            nofy_tools::types::memory_service::ConsolidationMode::Shadow => EngineMode::Shadow,
+            nofy_tools::types::memory_service::ConsolidationMode::Active => EngineMode::Active,
+        };
+        let engine = ConsolidationEngine::new(
+            self.config.root.clone(),
+            self.config.project_id,
+            self.config.index.clone(),
+            self.config.embedding_dimensions,
+        );
+        let receipt = engine
+            .execute(
+                &plan,
+                mode,
+                &format!("memory-service-{}", std::process::id()),
+                Utc::now().timestamp(),
+                None,
+            )
+            .map_err(internal_error)?;
+        if receipt.phase == crate::model::OperationPhase::Completed {
+            self.next_generation();
+        }
+        Ok(OperationReceipt {
+            operation_id: receipt.operation_id.as_uuid().to_string(),
+            accepted: true,
+            area: request.area,
+            mode: request.mode,
+            processed,
+        })
     }
 
     async fn snapshot(&self, request: SnapshotRequest) -> MemoryServiceResult<MemorySnapshot> {
@@ -557,6 +622,43 @@ impl MemoryService for NofyMemoryService {
             content_hash: hash_bytes(content.as_bytes()),
             content,
         })
+    }
+}
+
+impl NofyMemoryService {
+    fn active_observations(&self, area: &MemoryArea) -> MemoryServiceResult<Vec<Observation>> {
+        let scope = self.scope_layout(area);
+        if !scope.observations_directory().is_dir() {
+            return Ok(Vec::new());
+        }
+        let state = UnifiedState::open(self.layout().meta_database(), scope.state_database())
+            .map_err(internal_error)?;
+        let mut files = Vec::new();
+        collect_markdown(&scope.observations_directory(), &mut files).map_err(internal_error)?;
+        let mut observations = Vec::new();
+        for path in files {
+            let content = std::fs::read_to_string(path).map_err(internal_error)?;
+            let json = content
+                .split_once("```json\n")
+                .and_then(|(_, tail)| tail.rsplit_once("\n```").map(|(json, _)| json))
+                .ok_or_else(|| {
+                    MemoryServiceError::Internal("invalid observation envelope".to_owned())
+                })?;
+            let observation: Observation = serde_json::from_str(json).map_err(internal_error)?;
+            let view = state
+                .observation_view(observation)
+                .map_err(internal_error)?;
+            if view.status == ObservationStatus::Active
+                && matches!(
+                    view.observation.kind,
+                    ObservationKind::User | ObservationKind::Project
+                )
+            {
+                observations.push(view.observation);
+            }
+        }
+        observations.sort_by_key(|observation| observation.created_at);
+        Ok(observations)
     }
 }
 
@@ -589,6 +691,16 @@ fn topic_content(
         evidence.as_uuid(),
         title.trim(),
         body.trim()
+    )
+}
+
+fn curator_topic_content(observation: &Observation) -> String {
+    format!(
+        "<!-- nofy-memory: id={}; revision=1; origin=curator; pinned=false; evidence={} -->\n# {}\n\n{}\n",
+        observation.id.as_uuid(),
+        observation.id.as_uuid(),
+        summarize(&observation.statement),
+        observation.statement.trim(),
     )
 }
 

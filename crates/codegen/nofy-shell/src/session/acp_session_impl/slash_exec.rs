@@ -70,7 +70,6 @@ impl SessionActor {
                 ok_end_turn(0, None)
             }
             BuiltinAction::Dream => {
-                // No user-visible output — intentional, matches /flush behaviour.
                 if self.memory.is_enabled() {
                     self.run_dream_slash_command().await;
                 } else {

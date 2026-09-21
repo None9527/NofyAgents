@@ -1,8 +1,10 @@
-//! Pre-compaction memory flush logic.
+//! Policy and compatibility helpers for the memory durability barrier.
 //!
-//! Before compacting the conversation, the session actor can optionally run
-//! a "flush turn" that asks the model to summarize important information
-//! for storage in memory files.
+//! Runtime `/flush` no longer invokes a summarizer or writes a session
+//! Markdown file. It verifies that the selected top-level turn crossed both
+//! transcript persistence and capture-queue commit before compaction proceeds.
+//! The response-processing helpers below remain temporarily for configuration
+//! compatibility tests; no active session path calls the legacy writer.
 //!
 //! This module provides:
 //! - `should_flush()` — threshold check for when to trigger the flush

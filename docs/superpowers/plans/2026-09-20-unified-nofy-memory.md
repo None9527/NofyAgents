@@ -513,12 +513,12 @@ pub trait MemoryService: Send + Sync {
 - Modify: `crates/codegen/nofy-shell/src/session/acp_session_impl/slash_exec.rs`
 - Delete: `crates/codegen/nofy-shell/src/session/acp_session_impl/memory_dream.rs`
 
-- [ ] `/flush` 定义为“等待指定 top-level turn 的 transcript + capture durable barrier”，不再写 session Markdown 或调用第二 writer。
-- [ ] `/dream` 定义为调用同一 service 的 consolidation；返回 operation ID、scope、模式和处理数量。
-- [ ] compaction 前只需要 flush barrier；compaction 后通过 service 建新 frozen snapshot。
-- [ ] 多 session 并发使用 SQLite lease generation，不使用 PID lock。
-- [ ] 运行：`cargo test -p nofy-shell memory_flush`、`cargo test -p nofy-shell memory_dream`、`cargo test -p nofy-shell compaction`。
-- [ ] Commit: `重构(shell): 统一记忆生命周期命令`
+- [x] `/flush` 定义为“等待指定 top-level turn 的 transcript + capture durable barrier”，不再写 session Markdown 或调用第二 writer。
+- [x] `/dream` 定义为调用同一 service 的 consolidation；返回 operation ID、scope、模式和处理数量。
+- [x] compaction 前只需要 flush barrier；compaction 后通过 service 建新 frozen snapshot。
+- [x] 多 session 并发使用 SQLite lease generation，不使用 PID lock。
+- [x] 运行：`cargo test -p nofy-shell memory_flush`、`cargo test -p nofy-shell memory_dream`、`cargo test -p nofy-shell compaction`。
+- [x] Commit: `重构(shell): 统一记忆生命周期命令`
 
 ### Task 12: 完成 forget、保留策略并移除旧外部根运行路径
 

@@ -20,6 +20,7 @@ const CAPTURE_SYSTEM_PROMPT: &str = r#"Extract only durable user preferences, pe
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CaptureBarrier {
+    pub turn_id: String,
     pub durable_sequence: u64,
     pub update_hash: String,
     pub transcript_hash: String,
@@ -78,7 +79,7 @@ impl SessionCapture {
         let outcome = self.queue.enqueue(
             &DurableTurn {
                 session_id: self.session_id.clone(),
-                turn_id,
+                turn_id: turn_id.clone(),
                 transcript_hash: transcript_hash.clone(),
                 transcript,
                 project_id: self.project_id,
@@ -97,6 +98,7 @@ impl SessionCapture {
             );
         }
         Ok(Some(CaptureBarrier {
+            turn_id,
             durable_sequence: receipt.sequence,
             update_hash: receipt.update_hash,
             transcript_hash,
@@ -255,6 +257,7 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(first.durable_sequence, 7);
+        assert_eq!(first.turn_id, "turn-1");
         assert!(matches!(first.outcome, EnqueueOutcome::Queued { .. }));
         let duplicate = capture
             .enqueue_after_barrier(receipt, "turn-1".into(), &conversation)

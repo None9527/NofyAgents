@@ -567,18 +567,11 @@ impl SessionActor {
             last_flush,
             compaction_count,
         ) {
-            let snapshot = self.snapshot_memory_flush_state().await;
-            tokio::task::spawn_local({
-                let session = self.clone();
-                async move {
-                    if session.run_memory_flush(trigger, Some(snapshot)).await {
-                        session
-                            .memory
-                            .last_flush_compaction
-                            .store(compaction_count, std::sync::atomic::Ordering::Relaxed);
-                    }
-                }
-            });
+            if self.run_memory_flush(trigger, None).await {
+                self.memory
+                    .last_flush_compaction
+                    .store(compaction_count, std::sync::atomic::Ordering::Relaxed);
+            }
         }
     }
     /// Tag the current `session.compact` span with `mode` (and `detail`, for
@@ -1759,6 +1752,7 @@ impl SessionActor {
             .store(false, std::sync::atomic::Ordering::Relaxed);
         if self.memory.is_enabled() {
             tracing::info!(target: nofy_telemetry::memory_log::TARGET, "MEMORY_COMPACT: post-compaction reset, next turn re-checks injection (search only if no block persisted)");
+            self.refresh_frozen_memory_snapshot().await;
         }
         let _ = self
             .notifications

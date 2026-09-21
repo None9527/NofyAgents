@@ -1,10 +1,15 @@
 use std::sync::Arc;
 
-use nofy_memory::model::ProjectId;
+use chrono::Utc;
+use nofy_memory::model::{
+    ContentHash, MemoryScope, Observation, ObservationId, ObservationKind, ObservationStatus,
+    ProjectId, Provenance,
+};
+use nofy_memory::observation_store::ObservationStore;
 use nofy_memory::service::{NofyMemoryService, NofyMemoryServiceConfig};
 use nofy_tools::types::memory_service::{
-    ForgetRequest, MemoryArea, MemoryService, MemoryServiceError, MemoryTarget, RememberRequest,
-    ReviseTopicRequest, SearchRequest,
+    ConsolidateRequest, ConsolidationMode, ForgetRequest, MemoryArea, MemoryService,
+    MemoryServiceError, MemoryTarget, RememberRequest, ReviseTopicRequest, SearchRequest,
 };
 
 fn service(enabled: bool, automatic_learning: bool) -> (tempfile::TempDir, Arc<dyn MemoryService>) {
@@ -189,4 +194,67 @@ async fn recent_remember_can_be_undone_once() {
         memory.undo(undo).await,
         Err(MemoryServiceError::NotFound)
     ));
+}
+
+#[tokio::test]
+async fn memory_dream_consolidates_captured_evidence_through_the_public_service() {
+    let (temp, memory) = service(true, true);
+    let statement = "Use deterministic recovery for background jobs.";
+    let content_hash =
+        ContentHash::parse(blake3::hash(statement.as_bytes()).to_hex().to_string()).unwrap();
+    let observation = Observation {
+        id: ObservationId::new(),
+        scope: MemoryScope::Personal,
+        kind: ObservationKind::User,
+        statement: statement.to_owned(),
+        keywords: vec!["recovery".to_owned()],
+        aliases: Vec::new(),
+        supersedes: Vec::new(),
+        project_validity: None,
+        provenance: Provenance {
+            session_id: "session".to_owned(),
+            turn_id: "turn".to_owned(),
+            model: "test".to_owned(),
+            prompt_version: "v1".to_owned(),
+            source_hash: content_hash.clone(),
+        },
+        content_hash,
+        created_at: Utc::now(),
+    };
+    ObservationStore::new(temp.path().join("memory"))
+        .persist(&observation, ObservationStatus::Active)
+        .unwrap();
+
+    let receipt = memory
+        .consolidate(ConsolidateRequest {
+            area: MemoryArea::Personal,
+            mode: ConsolidationMode::Active,
+        })
+        .await
+        .unwrap();
+
+    assert!(receipt.accepted);
+    assert_eq!(receipt.area, MemoryArea::Personal);
+    assert_eq!(receipt.mode, ConsolidationMode::Active);
+    assert_eq!(receipt.processed, 1);
+    assert!(
+        search(memory.as_ref(), "deterministic recovery")
+            .await
+            .iter()
+            .any(|summary| summary.contains("deterministic recovery"))
+    );
+}
+
+#[tokio::test]
+async fn memory_dream_on_an_empty_store_is_a_successful_noop() {
+    let (_temp, memory) = service(true, true);
+    let receipt = memory
+        .consolidate(ConsolidateRequest {
+            area: MemoryArea::Project,
+            mode: ConsolidationMode::Active,
+        })
+        .await
+        .unwrap();
+    assert!(!receipt.accepted);
+    assert_eq!(receipt.processed, 0);
 }

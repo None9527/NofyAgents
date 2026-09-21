@@ -175,12 +175,24 @@ pub struct CaptureReceipt {
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ConsolidateRequest {
     pub area: MemoryArea,
+    pub mode: ConsolidationMode,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConsolidationMode {
+    RecordOnly,
+    Shadow,
+    Active,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct OperationReceipt {
     pub operation_id: String,
     pub accepted: bool,
+    pub area: MemoryArea,
+    pub mode: ConsolidationMode,
+    pub processed: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
