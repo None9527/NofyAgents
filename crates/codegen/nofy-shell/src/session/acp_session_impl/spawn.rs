@@ -814,6 +814,9 @@ pub(crate) async fn spawn_session_actor(
                     search: config.search.clone(),
                     index: config.index.clone(),
                     embedding_dimensions: config.embedding.dimensions,
+                    migration_key_store: std::sync::Arc::new(
+                        nofy_memory::migration_backup::KeyringMigrationKeyStore,
+                    ),
                 },
             ) {
                 Ok(service) => Some(std::sync::Arc::new(service) as _),

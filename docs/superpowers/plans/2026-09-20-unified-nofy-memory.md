@@ -531,15 +531,15 @@ pub trait MemoryService: Send + Sync {
 - Modify: `crates/codegen/nofy-pager/src/memory_release.rs`
 - Modify: `crates/codegen/nofy-pager/src/memory_trace.rs`
 
-- [ ] forget 顺序固定：验证 expected hash → 提交无正文 tombstone → 删除灾备密钥 → 删除灾备包 → 删除/改写规范文件 → 使 session snapshots 失效 → 更新 manifest/index → 完成 operation。
-- [ ] tombstone 只保存 opaque target ID、不可逆 salted hash、reason code、时间与 retention deadline；不得保存原文、关键词、标题、路径正文或可逆 provenance。
-- [ ] forget 在提交用户可见成功前销毁迁移灾备密钥及灾备包，并使所有活动 session snapshot 中对应对象失效；任一步失败都返回“尚未完全忘记”，不得显示成功。
-- [ ] GC 只删除已过 retention 且没有未完成 operation 引用的 archive/tombstone。
-- [ ] 删除 `memory add-dir/dirs/remove-dir` 命令和 `roots.json` runtime registry；命令帮助不展示尚未实现的知识库入口。
-- [ ] 删除 watcher 对外部目录的扫描/索引路径；未来知识库只能通过 `KnowledgeBaseProvider` 接入，不能复用记忆文件 watcher。
-- [ ] 迁移报告完整保留旧注册路径及存在性检查结果，但活动记忆库不读取这些路径。
-- [ ] 运行：`cargo test -p nofy-memory --test forget_and_retention`、`cargo test -p nofy-pager memory_cmd`。
-- [ ] Commit: `实现(memory): 统一遗忘保留与外部数据源`
+- [x] forget 顺序固定：验证 expected hash → 提交无正文 tombstone → 删除灾备密钥 → 删除灾备包 → 删除/改写规范文件 → 使 session snapshots 失效 → 更新 manifest/index → 完成 operation。
+- [x] tombstone 只保存 opaque target ID、不可逆 salted hash、reason code、时间与 retention deadline；不得保存原文、关键词、标题、路径正文或可逆 provenance。
+- [x] forget 在提交用户可见成功前销毁迁移灾备密钥及灾备包，并使所有活动 session snapshot 中对应对象失效；任一步失败都返回“尚未完全忘记”，不得显示成功。
+- [x] GC 只删除已过 retention 且没有未完成 operation 引用的 archive/tombstone。
+- [x] 删除 `memory add-dir/dirs/remove-dir` 命令和 `roots.json` runtime registry；命令帮助不展示尚未实现的知识库入口。
+- [x] 删除 watcher 对外部目录的扫描/索引路径；未来知识库只能通过 `KnowledgeBaseProvider` 接入，不能复用记忆文件 watcher。
+- [x] 迁移报告完整保留旧注册路径及存在性检查结果，但活动记忆库不读取这些路径。
+- [x] 运行：`cargo test -p nofy-memory --test forget_and_retention`、`cargo test -p nofy-pager memory_cmd`。
+- [x] Commit: `实现(memory): 统一遗忘保留与外部数据源`
 
 ### Task 13: 统一注入、安全扫描和冻结快照
 

@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::atomic_file;
 use crate::layout::UnifiedMemoryLayout;
-use crate::model::{MemoryScope, Observation, ObservationId, ObservationStatus};
+use crate::model::{MemoryScope, Observation, ObservationId, ObservationStatus, OperationId};
 use crate::state::{StateError, UnifiedState};
 
 #[derive(Debug, Error)]
@@ -66,43 +66,51 @@ impl ObservationStore {
         Ok(())
     }
 
-    pub fn forget(
+    pub fn record_forget_tombstone(
         &self,
         scope: &MemoryScope,
-        observation_id: ObservationId,
+        operation_id: OperationId,
         target_id: &str,
+        previous_hash: &str,
         reason: &str,
     ) -> Result<(), ObservationStoreError> {
         let scope_layout = self.layout.scope(scope);
-        let path = scope_layout
-            .observations_directory()
-            .join(format!("{}.md", observation_id.as_uuid()));
-        let bytes = std::fs::read(&path)?;
         let salt = uuid::Uuid::new_v4();
-        let salted_previous_hash = blake3::hash(
-            format!(
-                "{salt}:{}:{}",
-                observation_id.as_uuid(),
-                blake3::hash(&bytes).to_hex()
-            )
-            .as_bytes(),
-        )
-        .to_hex()
-        .to_string();
-        std::fs::remove_file(&path)?;
-        atomic_file::sync_parent_directory(
-            path.parent().expect("observation path always has a parent"),
-        )?;
+        let salted_previous_hash =
+            blake3::hash(format!("{salt}:{target_id}:{previous_hash}").as_bytes())
+                .to_hex()
+                .to_string();
         let now = chrono::Utc::now().timestamp();
         let state = UnifiedState::open(self.layout.meta_database(), scope_layout.state_database())?;
-        state.forget_observation(
-            observation_id,
+        state.register_forget_operation(operation_id, target_id, previous_hash, now)?;
+        state.record_forget_tombstone(
             target_id,
             &salted_previous_hash,
             reason,
             now,
             now.saturating_add(30 * 24 * 60 * 60),
         )?;
+        Ok(())
+    }
+
+    pub fn delete_forgotten_observation(
+        &self,
+        scope: &MemoryScope,
+        observation_id: ObservationId,
+    ) -> Result<(), ObservationStoreError> {
+        let scope_layout = self.layout.scope(scope);
+        let path = scope_layout
+            .observations_directory()
+            .join(format!("{}.md", observation_id.as_uuid()));
+        match std::fs::remove_file(&path) {
+            Ok(()) => atomic_file::sync_parent_directory(
+                path.parent().expect("observation path always has a parent"),
+            )?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+        let state = UnifiedState::open(self.layout.meta_database(), scope_layout.state_database())?;
+        state.finalize_forgotten_observation(observation_id)?;
         Ok(())
     }
 }

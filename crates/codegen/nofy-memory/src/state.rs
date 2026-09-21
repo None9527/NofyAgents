@@ -1,5 +1,6 @@
 //! Durable state ledger for the unified memory model.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use nofy_sqlite_journal::JournalMode;
@@ -266,6 +267,27 @@ impl UnifiedState {
         Ok(())
     }
 
+    pub fn register_forget_operation(
+        &self,
+        operation_id: OperationId,
+        target_id: &str,
+        expected_hash: &str,
+        now: i64,
+    ) -> Result<(), StateError> {
+        self.scope.execute(
+            "INSERT OR IGNORE INTO operations
+             (id, kind, phase, target_path, expected_hash, created_at, updated_at)
+             VALUES (?1, 'forget', 'planned', ?2, ?3, ?4, ?4)",
+            params![
+                operation_id.as_uuid().to_string(),
+                target_id,
+                expected_hash,
+                now
+            ],
+        )?;
+        Ok(())
+    }
+
     pub fn claim_operation(
         &self,
         operation_id: OperationId,
@@ -384,25 +406,24 @@ impl UnifiedState {
         Ok(())
     }
 
-    /// Remove a forgotten observation from canonical state while retaining
-    /// only an opaque, irreversible tombstone for retention/GC fencing.
-    pub fn forget_observation(
+    /// Commit an opaque tombstone before any recoverable copy is destroyed.
+    pub fn record_forget_tombstone(
         &self,
-        observation_id: ObservationId,
         target_id: &str,
         salted_previous_hash: &str,
         reason: &str,
         now: i64,
         retention_deadline: i64,
     ) -> Result<(), StateError> {
-        let observation_id = observation_id.as_uuid().to_string();
-        let transaction = self.scope.unchecked_transaction()?;
-        transaction.execute(
-            "INSERT INTO tombstones
+        let tombstone_id = blake3::hash(format!("forget:{target_id}").as_bytes())
+            .to_hex()
+            .to_string();
+        self.scope.execute(
+            "INSERT OR IGNORE INTO tombstones
              (id, target_kind, target_id, previous_hash, reason, created_at, retention_deadline)
              VALUES (?1, 'memory', ?2, ?3, ?4, ?5, ?6)",
             params![
-                uuid::Uuid::new_v4().to_string(),
+                tombstone_id,
                 target_id,
                 salted_previous_hash,
                 reason,
@@ -410,6 +431,15 @@ impl UnifiedState {
                 retention_deadline,
             ],
         )?;
+        Ok(())
+    }
+
+    pub fn finalize_forgotten_observation(
+        &self,
+        observation_id: ObservationId,
+    ) -> Result<(), StateError> {
+        let observation_id = observation_id.as_uuid().to_string();
+        let transaction = self.scope.unchecked_transaction()?;
         transaction.execute(
             "DELETE FROM observation_states WHERE observation_id = ?1",
             [&observation_id],
@@ -417,6 +447,73 @@ impl UnifiedState {
         transaction.execute("DELETE FROM files WHERE id = ?1", [&observation_id])?;
         transaction.commit()?;
         Ok(())
+    }
+
+    pub fn complete_forget_operations(&self, target_id: &str, now: i64) -> Result<(), StateError> {
+        self.scope.execute(
+            "UPDATE operations SET phase = 'completed', updated_at = ?2
+             WHERE kind = 'forget' AND target_path = ?1 AND phase NOT IN ('completed', 'failed')",
+            params![target_id, now],
+        )?;
+        Ok(())
+    }
+
+    pub fn incomplete_operation_targets(&self) -> Result<HashSet<String>, StateError> {
+        let mut statement = self.scope.prepare(
+            "SELECT target_path FROM operations
+             WHERE phase NOT IN ('completed', 'failed') AND target_path IS NOT NULL",
+        )?;
+        Ok(statement
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<Result<HashSet<_>, _>>()?)
+    }
+
+    pub fn delete_expired_tombstones(
+        &self,
+        now: i64,
+        protected_targets: &HashSet<String>,
+    ) -> Result<usize, StateError> {
+        let mut statement = self
+            .scope
+            .prepare("SELECT id, target_id FROM tombstones WHERE retention_deadline <= ?1")?;
+        let candidates = statement
+            .query_map([now], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        let transaction = self.scope.unchecked_transaction()?;
+        let mut deleted = 0;
+        for (id, target_id) in candidates {
+            if !protected_targets.contains(&target_id) {
+                deleted += transaction.execute("DELETE FROM tombstones WHERE id = ?1", [id])?;
+            }
+        }
+        transaction.commit()?;
+        Ok(deleted)
+    }
+
+    pub fn snapshot_generation(&self) -> Result<u64, StateError> {
+        let value = self
+            .meta
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'snapshot_generation'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        Ok(value.and_then(|value| value.parse().ok()).unwrap_or(0))
+    }
+
+    pub fn bump_snapshot_generation(&self) -> Result<u64, StateError> {
+        let generation = self.meta.query_row(
+            "INSERT INTO metadata(key, value) VALUES ('snapshot_generation', '1')
+             ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(metadata.value AS INTEGER) + 1 AS TEXT)
+             RETURNING CAST(value AS INTEGER)",
+            [],
+            |row| row.get::<_, u64>(0),
+        )?;
+        Ok(generation)
     }
 
     pub fn observation_view(

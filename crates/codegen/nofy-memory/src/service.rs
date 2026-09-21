@@ -2,8 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use nofy_config_types::{MemoryIndexConfig, MemorySearchConfig};
@@ -16,14 +15,16 @@ use crate::consolidation::{
 };
 use crate::index::{UnifiedMemoryIndex, UnifiedSearchContext};
 use crate::layout::{ScopeLayout, UnifiedMemoryLayout};
+use crate::migration_backup::{KeyringMigrationKeyStore, MigrationKeyStore};
 use crate::model::{
     ContentHash, MemoryScope, Observation, ObservationId, ObservationKind, ObservationStatus,
     OperationId, ProjectId, ProjectValidity, Provenance,
 };
 use crate::observation_store::ObservationStore;
+use crate::retention::destroy_migration_backup;
 use crate::state::UnifiedState;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct NofyMemoryServiceConfig {
     pub root: PathBuf,
     pub workspace: PathBuf,
@@ -33,6 +34,7 @@ pub struct NofyMemoryServiceConfig {
     pub search: MemorySearchConfig,
     pub index: MemoryIndexConfig,
     pub embedding_dimensions: usize,
+    pub migration_key_store: Arc<dyn MigrationKeyStore>,
 }
 
 impl NofyMemoryServiceConfig {
@@ -49,6 +51,7 @@ impl NofyMemoryServiceConfig {
             },
             index: MemoryIndexConfig::default(),
             embedding_dimensions: 4,
+            migration_key_store: Arc::new(KeyringMigrationKeyStore),
         }
     }
 }
@@ -69,7 +72,6 @@ enum UndoEntry {
 
 pub struct NofyMemoryService {
     config: NofyMemoryServiceConfig,
-    generation: AtomicU64,
     undo: Mutex<HashMap<String, UndoEntry>>,
 }
 
@@ -81,7 +83,6 @@ impl NofyMemoryService {
             .map_err(|error| MemoryServiceError::Internal(error.to_string()))?;
         Ok(Self {
             config,
-            generation: AtomicU64::new(0),
             undo: Mutex::new(HashMap::new()),
         })
     }
@@ -126,8 +127,24 @@ impl NofyMemoryService {
         Ok(())
     }
 
-    fn next_generation(&self) -> u64 {
-        self.generation.fetch_add(1, Ordering::AcqRel) + 1
+    fn memory_state(&self, area: &MemoryArea) -> MemoryServiceResult<UnifiedState> {
+        UnifiedState::open(
+            self.layout().meta_database(),
+            self.scope_layout(area).state_database(),
+        )
+        .map_err(internal_error)
+    }
+
+    fn next_generation(&self) -> MemoryServiceResult<u64> {
+        self.memory_state(&MemoryArea::Personal)?
+            .bump_snapshot_generation()
+            .map_err(internal_error)
+    }
+
+    fn current_generation(&self) -> MemoryServiceResult<u64> {
+        self.memory_state(&MemoryArea::Personal)?
+            .snapshot_generation()
+            .map_err(internal_error)
     }
 
     fn observation(&self, request: &RememberRequest) -> MemoryServiceResult<Observation> {
@@ -349,7 +366,7 @@ impl MemoryService for NofyMemoryService {
             area_label: request.area.user_label().to_owned(),
             summary: observation.statement,
             undo_token,
-            snapshot_generation: self.next_generation(),
+            snapshot_generation: self.next_generation()?,
         })
     }
 
@@ -440,7 +457,7 @@ impl MemoryService for NofyMemoryService {
             revision: topic.metadata.revision + 1,
             summary: statement.to_owned(),
             undo_token,
-            snapshot_generation: self.next_generation(),
+            snapshot_generation: self.next_generation()?,
         })
     }
 
@@ -456,6 +473,20 @@ impl MemoryService for NofyMemoryService {
         let evidence = topic.metadata.evidence.ok_or_else(|| {
             MemoryServiceError::InvalidRequest("记忆缺少可清除的来源证据".to_owned())
         })?;
+        let operation_id = OperationId::new();
+        let scope = self.domain_scope(&topic.area);
+        let store = ObservationStore::new(self.config.root.clone());
+        store
+            .record_forget_tombstone(
+                &scope,
+                operation_id,
+                &request.target.id,
+                topic.content_hash.as_str(),
+                "user_request",
+            )
+            .map_err(incomplete_forget_error)?;
+        destroy_migration_backup(&self.config.root, self.config.migration_key_store.as_ref())
+            .map_err(incomplete_forget_error)?;
         self.access(&topic.area)?
             .delete_topic(
                 OperationId::new(),
@@ -463,20 +494,19 @@ impl MemoryService for NofyMemoryService {
                 &topic.content_hash,
                 None,
             )
-            .map_err(internal_error)?;
-        ObservationStore::new(self.config.root.clone())
-            .forget(
-                &self.domain_scope(&topic.area),
-                evidence,
-                &request.target.id,
-                "user_forget",
-            )
-            .map_err(internal_error)?;
-        self.refresh_index()?;
+            .map_err(incomplete_forget_error)?;
+        store
+            .delete_forgotten_observation(&scope, evidence)
+            .map_err(incomplete_forget_error)?;
+        let snapshot_generation = self.next_generation().map_err(incomplete_forget_error)?;
+        self.refresh_index().map_err(incomplete_forget_error)?;
+        self.memory_state(&topic.area)?
+            .complete_forget_operations(&request.target.id, Utc::now().timestamp())
+            .map_err(incomplete_forget_error)?;
         Ok(ForgetReceipt {
             forgotten: true,
             summary: "已从活动记忆中清除；该操作不可撤销".to_owned(),
-            snapshot_generation: self.next_generation(),
+            snapshot_generation,
         })
     }
 
@@ -519,7 +549,7 @@ impl MemoryService for NofyMemoryService {
         self.refresh_index()?;
         Ok(UndoReceipt {
             restored: true,
-            snapshot_generation: self.next_generation(),
+            snapshot_generation: self.next_generation()?,
         })
     }
 
@@ -590,7 +620,7 @@ impl MemoryService for NofyMemoryService {
             )
             .map_err(internal_error)?;
         if receipt.phase == crate::model::OperationPhase::Completed {
-            self.next_generation();
+            self.next_generation()?;
         }
         Ok(OperationReceipt {
             operation_id: receipt.operation_id.as_uuid().to_string(),
@@ -618,7 +648,7 @@ impl MemoryService for NofyMemoryService {
             .collect::<Vec<_>>()
             .join("\n");
         Ok(MemorySnapshot {
-            generation: self.generation.load(Ordering::Acquire),
+            generation: self.current_generation()?,
             content_hash: hash_bytes(content.as_bytes()),
             content,
         })
@@ -821,4 +851,8 @@ fn hash_bytes(bytes: &[u8]) -> String {
 
 fn internal_error(error: impl std::fmt::Display) -> MemoryServiceError {
     MemoryServiceError::Internal(error.to_string())
+}
+
+fn incomplete_forget_error(error: impl std::fmt::Display) -> MemoryServiceError {
+    MemoryServiceError::Internal(format!("尚未完全忘记：{error}"))
 }

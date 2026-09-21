@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 const KEYRING_SERVICE: &str = "com.nofy.memory-migration";
 
-pub trait MigrationKeyStore {
+pub trait MigrationKeyStore: Send + Sync {
     fn store(&self, key_id: &str, secret: &str) -> Result<(), String>;
     fn delete(&self, key_id: &str) -> Result<(), String>;
 }
@@ -28,9 +28,12 @@ impl MigrationKeyStore for KeyringMigrationKeyStore {
     }
 
     fn delete(&self, key_id: &str) -> Result<(), String> {
-        keyring::Entry::new(KEYRING_SERVICE, key_id)
+        match keyring::Entry::new(KEYRING_SERVICE, key_id)
             .and_then(|entry| entry.delete_credential())
-            .map_err(|error| error.to_string())
+        {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(error) => Err(error.to_string()),
+        }
     }
 }
 

@@ -19,6 +19,7 @@ use crate::model::{
     ContentHash, MemoryScope, Observation, ObservationId, ObservationKind, ProjectId,
     ProjectValidity, Provenance,
 };
+use crate::retention::{load_migration_backup_receipt, persist_migration_backup_receipt};
 use crate::state::UnifiedState;
 
 const MARKER: &str = ".unified-memory-v1";
@@ -635,6 +636,10 @@ fn finish_switch(
     )?;
     inject(request.kill_point, MigrationKillPoint::AfterActivate)?;
     let report = read_report(&request.legacy_memory_dir)?;
+    if let Some(backup) = &state.backup {
+        persist_migration_backup_receipt(&request.legacy_memory_dir, backup)
+            .map_err(|error| MigrationError::Validation(error.to_string()))?;
+    }
     if state.pending_legacy.exists() {
         std::fs::remove_dir_all(&state.pending_legacy)?;
         sync_parent(&request.legacy_memory_dir)?;
@@ -658,7 +663,8 @@ fn active_outcome(
     Ok(MigrationOutcome {
         status,
         report: read_report(root)?,
-        backup: None,
+        backup: load_migration_backup_receipt(root)
+            .map_err(|error| MigrationError::Validation(error.to_string()))?,
     })
 }
 
