@@ -1,10 +1,9 @@
 //! `/memory` browser modal -- view-state, rendering, and input handling.
 //!
 //! A centered popup with ModalWindow chrome, horizontally split into a
-//! searchable file list (left, ~40%) and a read-only content preview
-//! pane (right, ~60%). File list shows all memory files grouped by source
-//! (Global, Workspace, Sessions) with session logs in reverse chronological
-//! order. Selecting a file loads its content into the preview pane.
+//! searchable memory list (left, ~40%) and a read-only content preview
+//! pane (right, ~60%). The user-facing model has exactly two areas:
+//! “关于我” and “当前项目”. Storage paths and legacy session files stay hidden.
 //!
 //! Layout collapses to single-pane (list only) on narrow terminals (< 80 cols).
 //!
@@ -327,17 +326,19 @@ pub fn build_entries(
 
     let mut global = Vec::new();
     let mut workspace = Vec::new();
-    let mut session = Vec::new();
-
     for f in files {
-        let label = file_label(&f.path);
+        let label = match f.source.as_str() {
+            "global" => "关于我的记忆".to_owned(),
+            "workspace" => "项目记忆".to_owned(),
+            _ => continue,
+        };
         let size = crate::util::format_bytes(f.size_bytes);
         let modified = format_modified(f.modified_epoch_secs, now_secs);
         let meta_display = format!("{size} \u{00B7} {modified}");
         let bucket = match f.source.as_str() {
             "global" => &mut global,
             "workspace" => &mut workspace,
-            _ => &mut session,
+            _ => unreachable!("legacy session entries are filtered above"),
         };
         bucket.push(MemoryFileEntry {
             label,
@@ -347,9 +348,6 @@ pub fn build_entries(
             is_header: false,
         });
     }
-
-    // Session logs: reverse chronological (newest first).
-    session.reverse();
 
     let mut entries = Vec::new();
     let mut push_section = |label: &str, items: Vec<MemoryFileEntry>| {
@@ -364,9 +362,8 @@ pub fn build_entries(
             entries.extend(items);
         }
     };
-    push_section("Global", global);
-    push_section("Workspace", workspace);
-    push_section("Sessions", session);
+    push_section("关于我", global);
+    push_section("当前项目", workspace);
     entries
 }
 
@@ -974,27 +971,6 @@ fn handle_browse(state: &mut MemoryModalState, key: &KeyEvent) -> InputOutcome {
             }
             InputOutcome::Changed
         }
-        KeyCode::Char('x') if key.modifiers.is_empty() => {
-            if let Some(entry) = state.selected_entry()
-                && !entry.is_header
-                && entry.source == "session"
-            {
-                state.mode = MemoryModalMode::ConfirmingDelete {
-                    idx: state.selected,
-                };
-                return InputOutcome::Changed;
-            }
-            InputOutcome::Unchanged
-        }
-        KeyCode::Char('y') if key.modifiers.is_empty() => {
-            if let Some(entry) = state.selected_entry()
-                && !entry.is_header
-            {
-                let _ = crate::clipboard::copy_text(&entry.path.to_string_lossy());
-                return InputOutcome::Changed;
-            }
-            InputOutcome::Unchanged
-        }
         KeyCode::Char('t') if key.modifiers.is_empty() => {
             let cmd = if state.memory_enabled {
                 "/memory off"
@@ -1045,16 +1021,6 @@ fn build_shortcuts(
                 },
                 Shortcut {
                     label: "/ search",
-                    clickable: false,
-                    id: 0,
-                },
-                Shortcut {
-                    label: "y copy path",
-                    clickable: false,
-                    id: 0,
-                },
-                Shortcut {
-                    label: "x delete",
                     clickable: false,
                     id: 0,
                 },

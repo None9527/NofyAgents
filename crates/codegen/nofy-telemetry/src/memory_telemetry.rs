@@ -2,10 +2,19 @@
 //! `Enabled` mode only). No PII or user content -- only counts, scores,
 //! durations, and config values.
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+
+fn serialize_redacted_id<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let redacted = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, value.as_bytes());
+    serializer.serialize_str(&redacted.to_string())
+}
 
 #[derive(Serialize)]
 pub struct MemorySessionInit {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub memory_enabled: bool,
     pub watcher_config_enabled: bool,
@@ -23,6 +32,7 @@ pub struct MemorySessionInit {
 
 #[derive(Serialize)]
 pub struct MemorySearch {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub query_length: usize,
     pub keyword_count: usize,
@@ -37,6 +47,7 @@ pub struct MemorySearch {
 
 #[derive(Serialize)]
 pub struct MemorySearchEmpty {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub query_length: usize,
     pub keyword_count: usize,
@@ -49,6 +60,7 @@ pub struct MemorySearchEmpty {
 
 #[derive(Serialize)]
 pub struct MemoryFlushStart {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub trigger: String,
     pub conversation_len: usize,
@@ -57,6 +69,7 @@ pub struct MemoryFlushStart {
 
 #[derive(Serialize)]
 pub struct MemoryFlushComplete {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub trigger: String,
     pub outcome: String,
@@ -68,6 +81,7 @@ pub struct MemoryFlushComplete {
 
 #[derive(Serialize)]
 pub struct MemoryInjection {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub was_greeting_fallback: bool,
     pub result_count: usize,
@@ -79,6 +93,7 @@ pub struct MemoryInjection {
 
 #[derive(Serialize)]
 pub struct MemoryReindex {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub source: String,
     pub added: usize,
@@ -91,6 +106,7 @@ pub struct MemoryReindex {
 
 #[derive(Serialize)]
 pub struct MemoryWatcherSync {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub dirty_file_count: usize,
     pub claimed: bool,
@@ -101,6 +117,7 @@ pub struct MemoryWatcherSync {
 
 #[derive(Serialize)]
 pub struct MemorySessionSummary {
+    #[serde(serialize_with = "serialize_redacted_id")]
     pub session_id: String,
     pub session_duration_secs: u64,
     pub flush_count: u64,
@@ -115,4 +132,31 @@ pub struct MemorySessionSummary {
     pub dream_count: u64,
     pub dream_success_count: u64,
     pub dream_error_count: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn memory_telemetry_redacts_identifiers_and_has_no_content_fields() {
+        let value = serde_json::to_value(MemorySearch {
+            session_id: "session-containing-user-data".to_owned(),
+            query_length: 19,
+            keyword_count: 3,
+            result_count: 2,
+            top_score: 0.8,
+            min_score_threshold: 0.2,
+            search_mode: "hybrid".to_owned(),
+            duration_ms: 4,
+            vec_available: true,
+            source: "tool".to_owned(),
+        })
+        .unwrap();
+        let encoded = value.to_string();
+        assert!(!encoded.contains("session-containing-user-data"));
+        for forbidden in ["query", "statement", "body", "path", "keyword_text"] {
+            assert!(!value.as_object().unwrap().contains_key(forbidden));
+        }
+    }
 }

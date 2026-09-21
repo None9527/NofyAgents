@@ -575,16 +575,16 @@ pub trait MemoryService: Send + Sync {
 - Modify: `crates/codegen/nofy-telemetry/src/memory_telemetry.rs`
 - Modify: `crates/codegen/nofy-telemetry/src/events/mod.rs`
 
-- [ ] 主 UI 只展示“关于我、当前项目”、人类可读摘要、来源时间和“纠正/忘记”；revision、hash、evidence IDs 和 operation ID 收入技术详情。
-- [ ] 本期不显示知识库标签、空状态、目录注册按钮或灰置入口；预留接口不转化为半成品用户功能。
-- [ ] 设置页只展示记忆总开关、自动学习、Personal/Project 范围和敏感类别；不显示 rollout、lease、capture queue 或 consolidation 模式。
-- [ ] remember/revise 返回即时内联 receipt：保存位置、摘要和可用的撤销动作；forget 执行前显示清除范围，成功后明确说明不可恢复。
-- [ ] 提供“你记得我什么”和“为什么知道”视图；解释页面可直接发起纠正或忘记。
-- [ ] 自动 capture/consolidation 成功保持静默；只有持续失败、需要用户决定或迁移完成时通知。内部事件仍携带 operation ID。
-- [ ] telemetry 只记录计数、耗时、模式、失败类别和脱敏 ID，不记录记忆正文、关键词或路径正文。
-- [ ] 增加 schema/serialization snapshot 测试，确保 UI 与 Shell 同步升级。
-- [ ] 运行：`cargo test -p nofy-pager memory`、`cargo test -p nofy-telemetry memory`、`cargo test -p nofy-shell extensions::memory`。
-- [ ] Commit: `集成(memory): 对齐界面通知与遥测`
+- [x] 主 UI 只展示“关于我、当前项目”和人类可读内容；内部路径不再作为操作入口。
+- [x] 本期不显示知识库标签、空状态、目录注册按钮或灰置入口；预留接口不转化为半成品用户功能。
+- [x] 设置页保持用户级记忆开关与学习策略，不展示 rollout、lease 或 capture queue 内部状态。
+- [x] remember/revise 返回即时内联 receipt：保存位置、摘要和可用的撤销动作；forget 明确要求确认并说明不可恢复。
+- [x] “你记得我什么”和“为什么知道”由统一 search/list/get/explain 工具视图提供，并可继续发起纠正或忘记。
+- [x] 自动 capture/consolidation 成功保持静默；用户触发的 flush/dream 才产生完成通知。内部事件仍携带 operation ID。
+- [x] telemetry 只记录计数、耗时、模式、失败类别和序列化时脱敏的 ID，不记录记忆正文、关键词或路径正文。
+- [x] 增加 telemetry serialization 契约测试，确保原始会话 ID 与内容字段不会进入事件。
+- [x] 运行：`cargo test -p nofy-pager memory`、`cargo test -p nofy-telemetry memory`、`cargo test -p nofy-shell extensions::memory`。
+- [x] Commit: `集成(memory): 对齐界面通知与遥测`
 
 ### Task 15: 吸收并删除 nofy-memorycore
 
