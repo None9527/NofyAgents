@@ -16,7 +16,7 @@ use crate::session::helpers::compaction_context::CompactionInputs;
 use crate::session::helpers::compaction_context::to_system_reminder;
 use crate::session::helpers::session_compact::{
     CompactOutput, CompactionOutcome, build_two_pass_compaction_prompt, generate_session_compact,
-    is_context_length_error,
+    is_context_length_error, retain_session_asset_files,
 };
 use crate::session::persistence::PersistenceMsg;
 use crate::session::two_pass::{
@@ -25,6 +25,7 @@ use crate::session::two_pass::{
 };
 use agent_client_protocol as acp;
 use std::sync::Arc;
+use nofy_chat_state::compaction_image_context::CompactionImageContext;
 use nofy_chat_state::compaction_utils::{
     CompactedHistoryInput, CompactionAttempt, build_compacted_history, is_degenerate_summary,
     prepare_conversation_for_verbatim_summarization, sanitize_compacted_history,
@@ -1302,7 +1303,7 @@ impl SessionActor {
         let generate_session_compact = compact_output.content.clone();
         let user_message_prefix = self.build_user_message_prefix().await;
         let conversation = self.chat_state_handle.get_conversation().await;
-        let (discovered_agents_md, all_skills_for_compaction, _agent_edited_paths, state_context) =
+        let (discovered_agents_md, all_skills_for_compaction, _agent_edited_paths, mut state_context) =
             if use_short_prompt {
                 let empty_edited: std::collections::BTreeSet<String> = Default::default();
                 let ctx = CompactionStateContext::build(
@@ -1453,6 +1454,25 @@ impl SessionActor {
                 };
                 (agents_md, skills, edited_paths, ctx)
             };
+        if self.is_cursor_harness() {
+            state_context.images = CompactionImageContext::default();
+        }
+        let harvested_paths = std::mem::take(&mut state_context.images.attached_paths);
+        let (kept, dropped_paths) = if harvested_paths.is_empty() {
+            (Vec::new(), 0)
+        } else {
+            let assets_dir =
+                crate::session::persistence::session_dir(&self.session_info).join("assets");
+            retain_session_asset_files(harvested_paths, &assets_dir).await
+        };
+        state_context.images.attached_paths = kept;
+        if dropped_paths > 0 {
+            tracing::debug!(
+                session_id = %self.session_info.id.0,
+                dropped_paths,
+                "compaction: dropped attached image paths that are not session asset files"
+            );
+        }
         use crate::session::helpers::compaction_context::SubagentToolNames;
         let subagent_tool_names: Option<SubagentToolNames> =
             if use_short_prompt || state_context.running_subagents.is_empty() {

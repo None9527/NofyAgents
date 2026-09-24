@@ -1,5 +1,7 @@
 //! Compacts the current conversation and generates a summary of the conversation which
 //! gets passed to the next turn of the model
+use std::path::{Component, Path};
+
 use crate::sampling::{
     ApiBackend, ChatCompletionRequest, ChatRequestMessage, Client as OaiCompatClient,
     ConversationItem, ConversationRequest, ConversationToolChoice, SamplingError,
@@ -14,6 +16,42 @@ pub use nofy_chat_state::compaction_utils::{
     extract_messages_since_last_user, extract_real_user_queries, is_synthetic_extracted_query,
 };
 use nofy_sampler::SamplerConfig as SamplingConfig;
+
+pub(crate) const MAX_COMPACTION_IMAGE_PATHS: usize = 32;
+
+/// Retain only genuine direct children of this session's asset directory.
+pub(crate) async fn retain_session_asset_files(
+    paths: Vec<String>,
+    assets_dir: &Path,
+) -> (Vec<String>, usize) {
+    let total = paths.len();
+    let mut kept = Vec::with_capacity(total.min(MAX_COMPACTION_IMAGE_PATHS));
+    for path in paths.into_iter().rev() {
+        if kept.len() == MAX_COMPACTION_IMAGE_PATHS {
+            break;
+        }
+        let candidate = Path::new(&path);
+        let inside_assets = candidate.is_absolute()
+            && candidate
+                .components()
+                .all(|component| !matches!(component, Component::ParentDir | Component::CurDir))
+            && candidate.parent() == Some(assets_dir);
+        let regular_file = inside_assets
+            && tokio::fs::symlink_metadata(candidate)
+                .await
+                .is_ok_and(|metadata| metadata.is_file());
+        if regular_file {
+            kept.push(path);
+        }
+    }
+    kept.reverse();
+    let dropped = total - kept.len();
+    (kept, dropped)
+}
+
+#[cfg(test)]
+#[path = "session_compact_asset_tests.rs"]
+mod session_compact_asset_tests;
 /// Short, self-narrating compaction prompt used by the short-prompt harness only.
 /// Frames the call as "summarize for a successor assistant who only sees
 /// the user's original query plus this summary." Wrapped in
@@ -1455,6 +1493,7 @@ mod compacted_history_shape_tests {
             destination_project_instructions: None,
             recent_messages: vec![],
             last_user_query: Some("fix the bug".to_string()),
+            images: Default::default(),
             agent_edited_paths: vec!["src/main.rs".to_string()],
             running_tasks: vec![],
             running_subagents: vec![],
@@ -1667,6 +1706,7 @@ mod compacted_history_shape_tests {
             destination_project_instructions: None,
             recent_messages: vec![ConversationItem::assistant("working")],
             last_user_query: Some("fix the bug".to_string()),
+            images: Default::default(),
             agent_edited_paths: vec!["src/main.rs".to_string()],
             running_tasks: vec![BackgroundTaskSummary {
                 task_id: "t1".into(),
@@ -1696,6 +1736,7 @@ mod compacted_history_shape_tests {
             destination_project_instructions: original.destination_project_instructions.clone(),
             recent_messages: vec![],
             last_user_query: original.last_user_query.clone(),
+            images: original.images.clone(),
             agent_edited_paths: original.agent_edited_paths.clone(),
             running_tasks: vec![],
             running_subagents: original.running_subagents.clone(),

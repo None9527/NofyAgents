@@ -10,12 +10,20 @@
 
 use crate::extensions::notification::SessionUpdate;
 
-/// Automatic learning accepts only a normally completed top-level response.
-/// Cancellation, refusal, truncation and transport/model errors are excluded.
+/// Automatic learning accepts completed and explicitly cancelled top-level
+/// responses. A cancelled turn has durable partial work; the extractor is
+/// instructed not to promote unfinished work into a result. Transport/model
+/// failures remain excluded.
 pub(crate) fn is_capture_eligible(
     result: &Result<agent_client_protocol::StopReason, agent_client_protocol::Error>,
 ) -> bool {
-    matches!(result, Ok(agent_client_protocol::StopReason::EndTurn))
+    matches!(
+        result,
+        Ok(
+            agent_client_protocol::StopReason::EndTurn
+                | agent_client_protocol::StopReason::Cancelled
+        )
+    )
 }
 
 /// Build a `TurnCompleted` from a prompt id and the `(stop_reason, agent_result)`
@@ -132,11 +140,11 @@ mod tests {
     }
 
     #[test]
-    fn capture_eligibility_rejects_cancelled_and_failed_turns() {
+    fn capture_eligibility_accepts_cancelled_but_rejects_failed_turns() {
         assert!(is_capture_eligible(&Ok(
             agent_client_protocol::StopReason::EndTurn
         )));
-        assert!(!is_capture_eligible(&Ok(
+        assert!(is_capture_eligible(&Ok(
             agent_client_protocol::StopReason::Cancelled
         )));
         assert!(!is_capture_eligible(&Err(

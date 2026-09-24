@@ -25,6 +25,7 @@
 
 pub mod actor;
 pub mod commands;
+pub mod compaction_image_context;
 pub mod compaction_mode;
 pub mod compaction_transcript;
 pub mod compaction_utils;
