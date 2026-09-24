@@ -1282,6 +1282,7 @@ pub(super) fn dispatch_dashboard_dispatch_slash(app: &mut AppView, text: String)
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
     let ask_user_question_timeout_enabled_from_app = app.ask_user_question_timeout_enabled;
+    let subagent_model_inheritance_from_app = app.subagent_model_inheritance;
     // Dashboard commands run before any session exists, so the startup seed is
     // the only answer available here.
     let scheduler_background_loops_seed = app.scheduler_background_loops_seed;
@@ -1371,6 +1372,7 @@ pub(super) fn dispatch_dashboard_dispatch_slash(app: &mut AppView, text: String)
                 respect_manual_folds: respect_manual_folds_from_app,
                 auto_mode_gate: auto_mode_gate_from_app,
                 ask_user_question_timeout_enabled: ask_user_question_timeout_enabled_from_app,
+                subagent_model_inheritance: subagent_model_inheritance_from_app,
                 scheduler_background_loops: scheduler_background_loops_seed,
             },
         };

@@ -123,6 +123,7 @@ pub(crate) struct SubagentSpawnContext {
     pub yolo_mode: bool,
     pub subagent_event_tx: mpsc::UnboundedSender<SubagentEvent>,
     pub parent_depth: u32,
+    pub subagent_model_inheritance: bool,
     pub subagents_max_depth: u32,
     pub workflow_max_concurrent_agents: usize,
     /// Inference idle timeout (secs), resolved from the parent's model config at spawn-context creation time.

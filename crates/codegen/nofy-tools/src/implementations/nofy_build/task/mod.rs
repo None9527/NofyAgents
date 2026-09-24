@@ -17,6 +17,7 @@
 pub mod admission;
 pub mod backend;
 pub mod coordinator;
+pub mod model_policy;
 mod coordinator_state;
 pub use coordinator_state::{cap_completion_output, completion_summary};
 pub mod types;
@@ -228,6 +229,27 @@ impl crate::types::tool_metadata::ToolMetadata for TaskTool {
         &DESC
     }
 
+    fn versioned_definition(
+        &self,
+        _contract_version: Option<&str>,
+        client_name: &str,
+        description_override: Option<&str>,
+        renderer: &crate::types::template_renderer::TemplateRenderer,
+        param_map: &std::collections::HashMap<String, String>,
+        input_schema: &serde_json::Value,
+        effective_params: &serde_json::Value,
+    ) -> crate::types::definition::ToolDefinition {
+        model_policy::task_versioned_definition(
+            client_name,
+            description_override,
+            self.description_template(),
+            renderer,
+            param_map,
+            input_schema,
+            effective_params,
+        )
+    }
+
     fn requires_expr(&self) -> Expr<ToolRequirement> {
         // The task tool can only be used when both get_task_output
         // (BackgroundTaskAction) and kill_task (KillTaskAction) are present,
@@ -293,6 +315,7 @@ impl nofy_tool_runtime::Tool for TaskTool {
             max_depth,
             backend,
             model_validator,
+            model_selection,
             parent_session_id,
             parent_prompt_id,
             foreground_wait,
@@ -313,6 +336,10 @@ impl nofy_tool_runtime::Tool for TaskTool {
                 .clone();
 
             let model_validator = res.get::<TaskModelValidator>().cloned();
+            let model_selection = res
+                .get::<model_policy::TaskParams>()
+                .map(|params| params.model_selection)
+                .unwrap_or_default();
 
             let parent_session_id = res
                 .get::<SessionIdResource>()
@@ -330,6 +357,7 @@ impl nofy_tool_runtime::Tool for TaskTool {
                 max_depth,
                 backend,
                 model_validator,
+                model_selection,
                 parent_session_id,
                 parent_prompt_id,
                 foreground_wait,
@@ -454,6 +482,14 @@ impl nofy_tool_runtime::Tool for TaskTool {
             }
         }
 
+        if model.is_some() && model_selection == model_policy::TaskModelSelection::Inherited {
+            let param_names = crate::types::tool_metadata::invoking_param_names(&ctx);
+            let param_name = param_names.resolve(model_policy::MODEL_PARAM);
+            return Err(nofy_tool_runtime::ToolError::invalid_arguments(
+                model_policy::hidden_selection_message(param_name),
+            ));
+        }
+
         if let Some(ref requested) = model {
             let validator = model_validator.ok_or_else(|| {
                 nofy_tool_runtime::ToolError::custom(
@@ -495,7 +531,12 @@ impl nofy_tool_runtime::Tool for TaskTool {
             cwd,
             runtime_overrides: SubagentRuntimeOverrides {
                 model,
-                model_override_provenance: ModelOverrideProvenance::Tool,
+                model_override_provenance: match model_selection {
+                    model_policy::TaskModelSelection::Selectable => ModelOverrideProvenance::Tool,
+                    model_policy::TaskModelSelection::Inherited => {
+                        ModelOverrideProvenance::InheritedTool
+                    }
+                },
                 reasoning_effort: None,
                 persona: None,
                 capability_mode: input.capability_mode,

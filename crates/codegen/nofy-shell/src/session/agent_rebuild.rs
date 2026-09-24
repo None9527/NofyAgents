@@ -89,6 +89,8 @@ pub(crate) struct AgentRebuildSpec {
     pub app_builder_deployer_config: AppBuilderDeployerConfig,
     pub write_file_enabled: bool,
     pub subagents_enabled: bool,
+    pub task_model_selection:
+        nofy_tools::implementations::nofy_build::task::model_policy::TaskModelSelection,
     pub subagent_toggle: HashMap<String, bool>,
     pub background_workflows_enabled: bool,
     pub ask_user_question_enabled: bool,
@@ -184,6 +186,7 @@ impl AgentRebuildSpec {
             app_builder_deployer_config,
             write_file_enabled,
             subagents_enabled,
+            task_model_selection,
             subagent_toggle,
             background_workflows_enabled,
             ask_user_question_enabled,
@@ -238,6 +241,7 @@ impl AgentRebuildSpec {
         .with_write_file_enabled(*write_file_enabled)
         .with_fs(fs_backend.clone())
         .with_subagents_enabled(*subagents_enabled)
+        .with_task_model_selection(*task_model_selection)
         .with_subagent_toggle(subagent_toggle.clone())
         .with_background_workflows_enabled(*background_workflows_enabled)
         .with_task_model_slugs(
@@ -409,6 +413,8 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         app_builder_deployer_config: AppBuilderDeployerConfig::default(),
         write_file_enabled: true,
         subagents_enabled: false,
+        task_model_selection:
+            nofy_tools::implementations::nofy_build::task::model_policy::TaskModelSelection::Selectable,
         subagent_toggle: HashMap::new(),
         background_workflows_enabled: false,
         ask_user_question_enabled: true,

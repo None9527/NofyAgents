@@ -143,6 +143,7 @@ fn test_app() -> AppView {
         team_name: None,
         show_tips: None,
         ask_user_question_timeout_enabled: None,
+        subagent_model_inheritance: None,
         announcement_cta_impressions_logged: Default::default(),
         bundle_state: crate::app::bundle::BundleState::default(),
         scroll_debug_hud: crate::views::scroll_debug_hud::ScrollDebugHud::new(),
@@ -971,4 +972,3 @@ fn reset_mouse_capture_enabled(on: bool) {
 fn mouse_capture_is_enabled() -> bool {
     crate::app::MOUSE_CAPTURE_ENABLED.load(std::sync::atomic::Ordering::Acquire)
 }
-

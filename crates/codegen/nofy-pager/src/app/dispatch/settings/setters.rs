@@ -274,6 +274,28 @@ pub(in crate::app::dispatch) fn set_ask_user_question_timeout_enabled(
     }]
 }
 
+pub(in crate::app::dispatch) fn set_subagent_model_inheritance(
+    app: &mut AppView,
+    new: bool,
+) -> Vec<Effect> {
+    let prev_state = app.subagent_model_inheritance;
+    let prev_effective = prev_state.unwrap_or(false);
+    if prev_effective == new && prev_state.is_some() {
+        return vec![];
+    }
+    app.subagent_model_inheritance = Some(new);
+    refresh_open_settings_modals(app);
+    app.show_toast(&format!(
+        "{} (restart to apply)",
+        save_success_toast("Subagent model inheritance", new),
+    ));
+    vec![Effect::PersistSetting {
+        key: "subagent_model_inheritance",
+        value: crate::settings::SettingValue::Bool(new),
+        rollback_value: crate::settings::SettingValue::Bool(prev_effective),
+    }]
+}
+
 pub(super) fn set_show_thinking_blocks_inner(app: &mut AppView, new: bool) {
     crate::appearance::cache::set_show_thinking_blocks(new);
     // Thinking visibility reshapes verb-group runs (shown thoughts claim

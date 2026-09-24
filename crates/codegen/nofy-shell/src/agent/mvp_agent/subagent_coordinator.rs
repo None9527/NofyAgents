@@ -245,6 +245,7 @@ impl MvpAgent {
             parent_cwd,
             yolo_mode,
             parent_depth,
+            subagent_model_inheritance,
             hunk_tracker_handle,
             hunk_tracking_enabled,
             fs,
@@ -270,6 +271,9 @@ impl MvpAgent {
                 ps.as_ref()
                     .map(|h| h.tool_context.subagent_depth)
                     .unwrap_or(0),
+                ps.as_ref()
+                    .map(|h| h.tool_context.subagent_model_inheritance)
+                    .unwrap_or(false),
                 ps.as_ref()
                     .map(|h| h.tool_context.hunk_tracker_handle.clone())
                     .unwrap_or_else(nofy_hunk_tracker::HunkTrackerHandle::noop),
@@ -377,6 +381,7 @@ impl MvpAgent {
             yolo_mode,
             subagent_event_tx: self.subagent_event_tx.clone(),
             parent_depth,
+            subagent_model_inheritance,
             subagents_max_depth: self.cfg.borrow().subagents_max_depth,
             workflow_max_concurrent_agents: self.cfg.borrow().workflow_max_concurrent_agents,
             inference_idle_timeout_secs,

@@ -454,6 +454,7 @@ pub enum Action {
     /// Toggle the ask_user_question timeout. SHELL-owned; persisted to
     /// `[toolset.ask_user_question].timeout_enabled`. Applies to new sessions.
     SetAskUserQuestionTimeoutEnabled(bool),
+    SetSubagentModelInheritance(bool),
     /// SHELL-owned `keep_text_selection` (`flash` | `hold`); cache + persist.
     SetKeepTextSelection(crate::appearance::TextSelection),
     /// Set the mouse-wheel scroll speed multiplier (1-100). Pager-owned

@@ -158,6 +158,8 @@ pub enum ModelOverrideProvenance {
     Harness,
     /// A model-facing `Task.model` argument.
     Tool,
+    /// A stale model-facing argument emitted after model selection was hidden.
+    InheritedTool,
 }
 
 #[derive(Debug, Clone, Default)]

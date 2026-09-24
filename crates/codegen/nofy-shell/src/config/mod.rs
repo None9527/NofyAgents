@@ -1193,6 +1193,7 @@ fn apply_requirements_inner(
     pin_feature!(web_fetch);
     pin_feature!(ask_user_question);
     pin_feature!(write_file);
+    pin_feature!(subagent_model_inheritance);
     enforce_opt!("cli", "use_leader", config.cli.use_leader);
     enforce_opt!("cli", "show_tips", config.cli.show_tips);
     enforce_val!("memory", "enabled", config.memory.enabled);

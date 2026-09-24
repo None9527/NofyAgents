@@ -33,6 +33,7 @@ pub struct Config {
     pub models: crate::agent::config::ModelsConfig,
     pub ui: crate::agent::config::UiConfig,
     pub harness: crate::agent::config::HarnessConfig,
+    pub features: crate::agent::config::Features,
     pub skills: SkillsConfig,
     /// `[compat]` vendor-compatibility config, round-tripped so the
     /// pager preserves per-vendor toggles when persisting other settings.

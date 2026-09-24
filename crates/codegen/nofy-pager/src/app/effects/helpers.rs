@@ -1109,6 +1109,14 @@ pub(crate) async fn persist_setting(
                 .await
                 .map_err(|e| e.to_string())
         }
+        "subagent_model_inheritance" => {
+            let SettingValue::Bool(b) = value else {
+                return Err(kind_mismatch("subagent_model_inheritance", "Bool", &value));
+            };
+            nofy_shell::util::config::set_subagent_model_inheritance(b)
+                .await
+                .map_err(|e| e.to_string())
+        }
         "show_thinking_blocks" => {
             let SettingValue::Bool(b) = value else {
                 return Err(kind_mismatch("show_thinking_blocks", "Bool", &value));

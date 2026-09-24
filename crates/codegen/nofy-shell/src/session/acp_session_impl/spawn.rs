@@ -908,6 +908,11 @@ pub(crate) async fn spawn_session_actor(
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
         subagents_enabled,
+        task_model_selection: if tool_context.subagent_model_inheritance {
+            nofy_tools::implementations::nofy_build::task::model_policy::TaskModelSelection::Inherited
+        } else {
+            nofy_tools::implementations::nofy_build::task::model_policy::TaskModelSelection::Selectable
+        },
         subagent_toggle: subagent_toggle.clone(),
         background_workflows_enabled,
         ask_user_question_enabled,

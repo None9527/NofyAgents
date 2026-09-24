@@ -186,6 +186,7 @@ pub struct ToolContext {
     /// Current subagent nesting depth for this session.
     /// Top-level sessions start at 0; child sessions are parent_depth + 1.
     pub subagent_depth: u32,
+    pub subagent_model_inheritance: bool,
     /// Unified subagent event sender — carries spawn, query, cancel,
     /// list-active, completions, and outstanding messages to the coordinator.
     /// `None` if subagent support is not enabled.
@@ -289,6 +290,7 @@ impl ToolContext {
             verification_warned_at: std::sync::Arc::new(std::sync::Mutex::new(None)),
             prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
             subagent_depth: 0,
+            subagent_model_inheritance: false,
             subagent_event_tx: None,
             live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
             lsp: None,
@@ -334,6 +336,7 @@ impl ToolContext {
             verification_warned_at: std::sync::Arc::new(std::sync::Mutex::new(None)),
             prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
             subagent_depth: 0,
+            subagent_model_inheritance: false,
             subagent_event_tx: None,
             live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
             lsp: None,
@@ -428,6 +431,7 @@ mod tests {
             verification_warned_at: std::sync::Arc::new(std::sync::Mutex::new(None)),
                 prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
                 subagent_depth: 0,
+                subagent_model_inheritance: false,
                 subagent_event_tx: None,
                 live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
                 lsp: None,

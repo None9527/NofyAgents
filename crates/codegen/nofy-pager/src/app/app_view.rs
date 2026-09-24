@@ -892,6 +892,7 @@ pub struct AppView {
     /// from the effective TOML merge like `show_tips`. `None` = unset in TOML
     /// (default `true`); toggles write the user layer.
     pub ask_user_question_timeout_enabled: Option<bool>,
+    pub subagent_model_inheritance: Option<bool>,
     /// (hide-key, surface) pairs whose `AnnouncementCtaShown` impression was
     /// already logged — once per pager process, cleared on logout. Keyed by
     /// `announcement_hide_key` (stable even for id-less items, unlike the
@@ -1109,6 +1110,7 @@ impl AppView {
             team_name: None,
             show_tips: None,
             ask_user_question_timeout_enabled: None,
+            subagent_model_inheritance: None,
             announcement_cta_impressions_logged: Default::default(),
             reconnect_pending: false,
             startup_warnings: Vec::new(),
@@ -4808,6 +4810,7 @@ pub(crate) mod tests {
             team_name: None,
             show_tips: None,
             ask_user_question_timeout_enabled: None,
+            subagent_model_inheritance: None,
             announcement_cta_impressions_logged: Default::default(),
             bundle_state: BundleState::default(),
             scroll_debug_hud: crate::views::scroll_debug_hud::ScrollDebugHud::new(),

@@ -10,6 +10,9 @@ use crate::system_reminder::ReminderPolicy;
 use nofy_tools::bridge::ToolBridge;
 use nofy_tools::computer::types::{AsyncFileSystem, TerminalBackend};
 use nofy_tools::notification::ToolNotificationHandle;
+use nofy_tools::implementations::nofy_build::task::model_policy::{
+    TaskModelSelection, TaskParams,
+};
 use nofy_tools::registry::types::SessionContext;
 use nofy_tools::types::tool::ToolKind;
 use std::collections::HashMap;
@@ -98,6 +101,7 @@ pub struct AgentBuilder {
     ask_user_question_enabled: bool,
     subagent_toggle: HashMap<String, bool>,
     task_model_slugs: Vec<String>,
+    task_model_selection: TaskModelSelection,
     skills_config: crate::prompt::skills::SkillsConfig,
     /// Resolved vendor-compat config governing which vendor (`.claude`/`.cursor`)
     /// dirs are scanned for skills / rules / AGENTS.md. Defaults to all-on,
@@ -234,6 +238,7 @@ impl AgentBuilder {
             ask_user_question_enabled: true,
             subagent_toggle: HashMap::new(),
             task_model_slugs: Vec::new(),
+            task_model_selection: TaskModelSelection::default(),
             skills_config: Default::default(),
             compat: Default::default(),
             bash_params_json: None,
@@ -510,6 +515,10 @@ impl AgentBuilder {
         self.task_model_slugs = slugs;
         self
     }
+    pub fn with_task_model_selection(mut self, selection: TaskModelSelection) -> Self {
+        self.task_model_selection = selection;
+        self
+    }
     /// Enable or disable the `ask_user_question` tool.
     ///
     /// When disabled, `NofyBuild:ask_user_question` is stripped from the
@@ -784,9 +793,22 @@ impl AgentBuilder {
                 .iter_mut()
                 .find(|tc| tc.id == task_tool_id)
             {
-                task_tc.description_override =
-                    Some(build_task_description(&subagents, &self.task_model_slugs));
+                task_tc.description_override = Some(build_task_description_with_policy(
+                    &subagents,
+                    &self.task_model_slugs,
+                    self.task_model_selection,
+                ));
             }
+        }
+        let task_params = TaskParams {
+            model_selection: self.task_model_selection,
+        };
+        if let Ok(serde_json::Value::Object(params)) = serde_json::to_value(task_params) {
+            merge_tool_params(
+                &mut tool_config,
+                &["NofyBuild:task", "Cursor:Task"],
+                &params,
+            );
         }
         if task_stripped {
             use nofy_tools::types::tool::ToolNamespace;
@@ -1248,6 +1270,15 @@ fn task_model_guidance(model_slugs: &[String]) -> String {
          If the user does not explicitly request a model, omit `{TASK_MODEL_PARAM}` to inherit the parent model."
     )
 }
+fn task_model_guidance_for(
+    selection: TaskModelSelection,
+    model_slugs: &[String],
+) -> String {
+    match selection {
+        TaskModelSelection::Selectable => task_model_guidance(model_slugs),
+        TaskModelSelection::Inherited => String::new(),
+    }
+}
 /// Build the Task tool description with the effective subagent list.
 ///
 /// Maps each [`SubagentEntry`] to the shared
@@ -1256,9 +1287,17 @@ fn task_model_guidance(model_slugs: &[String]) -> String {
 /// stack share one builder. Built-in (unshadowed) entries carry the hardcoded
 /// tool-name fragment; user-defined entries carry `None` so their raw
 /// `description` is used verbatim (markdown is fine — it's model-facing text).
+#[cfg(test)]
 pub(crate) fn build_task_description(
     subagents: &[SubagentEntry],
     model_slugs: &[String],
+) -> String {
+    build_task_description_with_policy(subagents, model_slugs, TaskModelSelection::Selectable)
+}
+fn build_task_description_with_policy(
+    subagents: &[SubagentEntry],
+    model_slugs: &[String],
+    selection: TaskModelSelection,
 ) -> String {
     let descriptors: Vec<nofy_tool_types::SubagentDescriptor> = subagents
         .iter()
@@ -1275,7 +1314,7 @@ pub(crate) fn build_task_description(
         })
         .collect();
     let mut description = nofy_tool_types::build_task_description(&descriptors, &TASK_TOOL_NAMING);
-    description.push_str(&task_model_guidance(model_slugs));
+    description.push_str(&task_model_guidance_for(selection, model_slugs));
     description
 }
 /// Resolve the shell name for the system prompt.
@@ -1464,6 +1503,21 @@ mod tests {
         assert!(desc.contains("No explicit model slugs are currently available."));
         assert!(desc.contains("Omit `${{ params.task.model }}` to inherit the parent model."));
         assert!(!desc.contains(concat!("nofy", " models")));
+    }
+    #[test]
+    fn inherited_task_description_omits_model_selection_guidance() {
+        let subagents = vec![entry(
+            "explorer",
+            "Explore code",
+            SubagentSource::Builtin(BuiltinAgentName::Explore),
+        )];
+        let desc = build_task_description_with_policy(
+            &subagents,
+            &["model-a".into()],
+            TaskModelSelection::Inherited,
+        );
+        assert!(!desc.contains("model slugs"));
+        assert!(!desc.contains("params.task.model"));
     }
     #[test]
     fn task_model_guidance_resolves_model_param_override() {

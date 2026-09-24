@@ -1325,6 +1325,7 @@ pub(crate) async fn run(
     let config_session_bools = load_initial_config_session_bools();
     app.show_tips = config_session_bools.show_tips;
     app.ask_user_question_timeout_enabled = config_session_bools.ask_user_question_timeout_enabled;
+    app.subagent_model_inheritance = config_session_bools.subagent_model_inheritance;
     // Prime thread-local caches so first render doesn't hit disk.
     crate::appearance::cache::prime(&app.current_ui);
     // Re-derive the render-value compact flag from the hydrated `current_ui`:
@@ -2649,6 +2650,7 @@ pub(crate) fn load_initial_ui_config() -> nofy_shell::agent::config::UiConfig {
 struct InitialConfigSessionBools {
     show_tips: Option<bool>,
     ask_user_question_timeout_enabled: Option<bool>,
+    subagent_model_inheritance: Option<bool>,
 }
 
 fn load_initial_config_session_bools() -> InitialConfigSessionBools {
@@ -2662,6 +2664,10 @@ fn load_initial_config_session_bools() -> InitialConfigSessionBools {
             .get("toolset")
             .and_then(|t| t.get("ask_user_question"))
             .and_then(|a| a.get("timeout_enabled"))
+            .and_then(|v| v.as_bool()),
+        subagent_model_inheritance: root
+            .get("features")
+            .and_then(|f| f.get("subagent_model_inheritance"))
             .and_then(|v| v.as_bool()),
     }
 }

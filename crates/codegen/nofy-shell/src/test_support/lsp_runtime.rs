@@ -99,6 +99,7 @@ pub(crate) fn ctx_with_toggle(toggle: HashMap<String, bool>) -> SubagentSpawnCon
         agent_config: None,
         hook_registry: None,
         parent_depth: 0,
+        subagent_model_inheritance: false,
         subagents_max_depth: nofy_tools::implementations::nofy_build::task::MAX_SUBAGENT_DEPTH,
         workflow_max_concurrent_agents:
             crate::session::workflow::host_service::DEFAULT_WORKFLOW_MAX_CONCURRENT_AGENTS,

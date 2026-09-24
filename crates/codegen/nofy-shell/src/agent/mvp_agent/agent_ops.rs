@@ -2908,6 +2908,11 @@ impl MvpAgent {
         );
         tool_ctx.monitor_event_buffer = Some(self.monitor_event_buffer.clone());
         tool_ctx.subagent_depth = 0;
+        tool_ctx.subagent_model_inheritance = self
+            .cfg
+            .borrow()
+            .resolve_subagent_model_inheritance()
+            .value;
         tool_ctx.auto_wake_enabled = self.cfg.borrow().auto_wake_enabled;
         let support_permission = self.cfg.borrow().features.support_permission;
         let telemetry_enabled = self.cfg.borrow().is_telemetry_enabled();

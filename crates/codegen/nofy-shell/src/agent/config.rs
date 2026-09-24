@@ -499,6 +499,7 @@ pub struct Requirements {
     pub web_fetch: Constrained<bool>,
     pub ask_user_question: Constrained<bool>,
     pub write_file: Constrained<bool>,
+    pub subagent_model_inheritance: Constrained<bool>,
     pub sandbox_auto_allow_bash: Constrained<bool>,
     pub sandbox_profile: Constrained<String>,
     pub respect_gitignore: Constrained<bool>,
@@ -2168,6 +2169,14 @@ impl Config {
             .requirement(self.requirements.ask_user_question.pinned())
             .config(self.features.ask_user_question)
             .default(true)
+            .resolve()
+    }
+    /// Child-model selection policy, latched when a session is created.
+    pub(crate) fn resolve_subagent_model_inheritance(&self) -> Resolved<bool> {
+        BoolFlag::env("NOFY_SUBAGENT_MODEL_INHERITANCE")
+            .requirement(self.requirements.subagent_model_inheritance.pinned())
+            .config(self.features.subagent_model_inheritance)
+            .default(false)
             .resolve()
     }
     /// Session recap gate (the `/recap` command + automatic return-from-away
@@ -4152,6 +4161,9 @@ pub struct Features {
     /// `None` = default (false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subagent_worktree_snapshot: Option<bool>,
+    /// Force Task children to inherit the parent model. Session-latched.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subagent_model_inheritance: Option<bool>,
     /// Per-`Ready`-client transport-liveness pollers + the
     /// session-actor `StatusDispatcher`.
     ///
@@ -8585,6 +8597,33 @@ reasoning_effort = "low"
         let r = cfg.resolve_ask_user_question();
         assert_eq!(r.source, ConfigSource::Config);
         assert!(r.value);
+    }
+    #[test]
+    #[serial]
+    fn resolve_subagent_model_inheritance_obeys_all_layers() {
+        unsafe { std::env::remove_var("NOFY_SUBAGENT_MODEL_INHERITANCE") };
+        let mut cfg = Config::default();
+        let resolved = cfg.resolve_subagent_model_inheritance();
+        assert!(!resolved.value);
+        assert_eq!(resolved.source, ConfigSource::Default);
+        cfg.features.subagent_model_inheritance = Some(true);
+        let resolved = cfg.resolve_subagent_model_inheritance();
+        assert!(resolved.value);
+        assert_eq!(resolved.source, ConfigSource::Config);
+        unsafe { std::env::set_var("NOFY_SUBAGENT_MODEL_INHERITANCE", "0") };
+        let resolved = cfg.resolve_subagent_model_inheritance();
+        assert!(!resolved.value);
+        assert_eq!(resolved.source, ConfigSource::Env);
+        cfg.requirements.subagent_model_inheritance.pin(
+            true,
+            crate::config::RequirementSource::Requirements {
+                path: std::path::PathBuf::from("/test/requirements.toml"),
+            },
+        );
+        let resolved = cfg.resolve_subagent_model_inheritance();
+        assert!(resolved.value);
+        assert_eq!(resolved.source, ConfigSource::Requirement);
+        unsafe { std::env::remove_var("NOFY_SUBAGENT_MODEL_INHERITANCE") };
     }
     /// Clear every env var the goal/companion resolvers read so tests
     /// start from a known baseline regardless of run order.

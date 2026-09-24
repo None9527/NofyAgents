@@ -32,6 +32,7 @@ async fn save_config_locked(guard: ConfigWriteGuard, config: &Config) -> Result<
     merge_section(table, "models", &config.models);
     merge_section(table, "ui", &config.ui);
     merge_section(table, "harness", &config.harness);
+    merge_section(table, "features", &config.features);
     merge_section(table, "session", &config.session);
     merge_ask_user_question_section(table, &config.ask_user_question);
     if config.skills == SkillsConfig::default() {

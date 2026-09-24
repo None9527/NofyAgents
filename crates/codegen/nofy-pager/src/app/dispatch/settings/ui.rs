@@ -50,6 +50,7 @@ pub(crate) fn refresh_open_settings_modals(app: &mut AppView) {
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
     let ask_user_question_timeout_enabled_from_app = app.ask_user_question_timeout_enabled;
+    let subagent_model_inheritance_from_app = app.subagent_model_inheritance;
     let scheduler_background_loops_seed = app.scheduler_background_loops_seed;
     for agent in app.agents.values_mut() {
         // Walk both `Settings` and `ResetSettingsConfirm` — the
@@ -85,6 +86,7 @@ pub(crate) fn refresh_open_settings_modals(app: &mut AppView) {
                 respect_manual_folds: respect_manual_folds_from_app,
                 auto_mode_gate: auto_mode_gate_from_app,
                 ask_user_question_timeout_enabled: ask_user_question_timeout_enabled_from_app,
+                subagent_model_inheritance: subagent_model_inheritance_from_app,
                 scheduler_background_loops: agent
                     .scheduler_background_loops
                     .unwrap_or(scheduler_background_loops_seed),
@@ -179,6 +181,7 @@ pub(in crate::app::dispatch) fn dispatch_open_settings(app: &mut AppView) -> Vec
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
     let ask_user_question_timeout_enabled_from_app = app.ask_user_question_timeout_enabled;
+    let subagent_model_inheritance_from_app = app.subagent_model_inheritance;
     let scheduler_background_loops_seed = app.scheduler_background_loops_seed;
 
     let Some(agent) = app.agents.get_mut(&id) else {
@@ -220,6 +223,7 @@ pub(in crate::app::dispatch) fn dispatch_open_settings(app: &mut AppView) -> Vec
         respect_manual_folds: respect_manual_folds_from_app,
         auto_mode_gate: auto_mode_gate_from_app,
         ask_user_question_timeout_enabled: ask_user_question_timeout_enabled_from_app,
+        subagent_model_inheritance: subagent_model_inheritance_from_app,
         scheduler_background_loops: agent
             .scheduler_background_loops
             .unwrap_or(scheduler_background_loops_seed),
@@ -704,6 +708,7 @@ pub(crate) fn build_pager_snapshot(app: &AppView) -> crate::settings::PagerLocal
         respect_manual_folds: app.appearance.scrollback.scroll.respect_manual_folds,
         auto_mode_gate: app.auto_mode_gate,
         ask_user_question_timeout_enabled: app.ask_user_question_timeout_enabled,
+        subagent_model_inheritance: app.subagent_model_inheritance,
         scheduler_background_loops: agent_scheduler_background_loops(app),
     }
 }
@@ -762,6 +767,9 @@ pub(in crate::app::dispatch) fn action_for_reset(
         }
         ("toolset.ask_user_question.timeout_enabled", SettingValue::Bool(b)) => {
             Some(Action::SetAskUserQuestionTimeoutEnabled(*b))
+        }
+        ("subagent_model_inheritance", SettingValue::Bool(b)) => {
+            Some(Action::SetSubagentModelInheritance(*b))
         }
         ("keep_text_selection", SettingValue::Enum(s)) => {
             crate::appearance::TextSelection::from_canonical(s).map(Action::SetKeepTextSelection)
@@ -1101,6 +1109,9 @@ pub(in crate::app::dispatch) fn apply_setting_rollback(
             } else {
                 set_ask_user_question_timeout_enabled_inner(app, *b);
             }
+        }
+        ("subagent_model_inheritance", SettingValue::Bool(b)) => {
+            app.subagent_model_inheritance = Some(*b);
         }
         ("show_thinking_blocks", SettingValue::Bool(b)) => set_show_thinking_blocks_inner(app, *b),
         ("group_tool_verbs", SettingValue::Bool(b)) => set_group_tool_verbs_inner(app, *b),

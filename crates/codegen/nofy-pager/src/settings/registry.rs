@@ -266,6 +266,7 @@ pub struct PagerLocalSnapshot {
     /// `[toolset.ask_user_question].timeout_enabled` mirror (effective TOML
     /// merge, like `show_tips`). `None` = unset in TOML → default `true`.
     pub ask_user_question_timeout_enabled: Option<bool>,
+    pub subagent_model_inheritance: Option<bool>,
     /// Mirrors `AgentView::scheduler_background_loops` — the value the shell
     /// pinned for THIS session — falling back to
     /// `AppView::scheduler_background_loops_seed` before the session response
@@ -291,6 +292,7 @@ impl Default for PagerLocalSnapshot {
             respect_manual_folds: crate::appearance::ScrollConfig::default().respect_manual_folds,
             auto_mode_gate: false,
             ask_user_question_timeout_enabled: None,
+            subagent_model_inheritance: None,
             // Matches `resolve_scheduler_background_loops`'s default.
             scheduler_background_loops: true,
         }
@@ -595,6 +597,9 @@ pub fn current_value_for(
             pager
                 .ask_user_question_timeout_enabled
                 .unwrap_or(ask_user_question::DEFAULT_ASK_USER_QUESTION_TIMEOUT_ENABLED),
+        )),
+        "subagent_model_inheritance" => Some(SettingValue::Bool(
+            pager.subagent_model_inheritance.unwrap_or(false),
         )),
         // default_selected_permission: maps `[ui].default_selected_permission`
         // onto one of the four registry canonicals. `None` / unrecognised on
@@ -1024,6 +1029,9 @@ mod tests {
                         ui.display_refresh.auto_cadence_enabled.unwrap_or(false),
                         "display_refresh_auto_cadence default drifts from UiConfig::default()"
                     );
+                }
+                ("subagent_model_inheritance", SettingKind::Bool { default }) => {
+                    assert!(!default, "subagent model inheritance must default off");
                 }
                 // scroll_lines: Option<u8>; None → registry default 3 (the
                 // display value while the per-terminal profile is in charge).

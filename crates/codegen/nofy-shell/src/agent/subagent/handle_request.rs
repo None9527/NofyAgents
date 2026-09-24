@@ -52,11 +52,19 @@ pub(super) fn task_model_override_error(
     available: &indexmap::IndexMap<String, crate::agent::config::ModelEntry>,
     is_session_auth: bool,
 ) -> Option<String> {
-    if provenance != ModelOverrideProvenance::Tool || is_resume {
+    if is_resume {
         return None;
     }
-    let requested = requested?;
-    crate::agent::models::task_model_error_for_catalog(requested, available, is_session_auth)
+    match provenance {
+        ModelOverrideProvenance::Tool => {
+            let requested = requested?;
+            crate::agent::models::task_model_error_for_catalog(requested, available, is_session_auth)
+        }
+        ModelOverrideProvenance::InheritedTool if requested.is_some() => Some(
+            nofy_tools::implementations::nofy_build::task::model_policy::hidden_selection_message("model"),
+        ),
+        ModelOverrideProvenance::InheritedTool | ModelOverrideProvenance::Harness => None,
+    }
 }
 /// Runtime adapter for one shell child. Shared lifecycle state is owned by the
 /// `nofy-tools` coordinator actor and reached only through `reporter`.
@@ -675,6 +683,7 @@ pub(crate) async fn run_shell_child(
     tool_ctx.sampler_retry_only_before_output = task_output_budget.is_some();
     tool_ctx.monitor_event_buffer = Some(MonitorEventBuffer::default());
     tool_ctx.subagent_depth = child_depth;
+    tool_ctx.subagent_model_inheritance = ctx.subagent_model_inheritance;
     tool_ctx.lsp = ctx.lsp.clone();
     tool_ctx.process_scope = ctx.process_scope.clone();
     let parent_traceparent = nofy_file_utils::trace_context::current_traceparent();

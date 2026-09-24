@@ -1091,6 +1091,17 @@ pub fn default_settings() -> Vec<SettingMeta> {
             restart_required: true,
             hidden_in_minimal: false,
         },
+        SettingMeta {
+            key: "subagent_model_inheritance",
+            category: SettingCategory::Agent,
+            owner: SettingOwner::Shell,
+            label: "Inherit model for subagents",
+            description: "When on, Task children use the parent model and the model argument is hidden.",
+            keywords: &["subagent", "child", "task", "model", "inherit", "lock"],
+            kind: SettingKind::Bool { default: false },
+            restart_required: true,
+            hidden_in_minimal: false,
+        },
         // PAGER-owned, ACP-mediated. Reads from
         // `PagerLocalSnapshot.plan_mode_active`. Default "off" matches
         // `AgentView::new`'s `plan_mode_active = false`.

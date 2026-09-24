@@ -2039,6 +2039,27 @@ fn resumed_tool_model_override_is_ignored() {
         );
 }
 #[test]
+fn inherited_tool_model_override_is_rejected_for_stale_contexts() {
+    let empty = indexmap::IndexMap::new();
+    let error = super::handle_request::task_model_override_error(
+        Some("stale-explicit-model"),
+        ModelOverrideProvenance::InheritedTool,
+        false,
+        &empty,
+        false,
+    )
+    .expect("explicit model must be rejected under inheritance policy");
+    assert!(error.contains("disabled for this session"));
+    assert!(super::handle_request::task_model_override_error(
+        None,
+        ModelOverrideProvenance::InheritedTool,
+        false,
+        &empty,
+        false,
+    )
+    .is_none());
+}
+#[test]
 fn harness_model_override_keeps_internal_fallback_behavior() {
     let empty = indexmap::IndexMap::new();
     assert!(
