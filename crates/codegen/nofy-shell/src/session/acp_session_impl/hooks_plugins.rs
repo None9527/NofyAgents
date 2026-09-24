@@ -993,12 +993,16 @@ impl SessionActor {
                 _ => vec![],
             }
         };
-        let new_mcp_servers = crate::session::managed_mcp::merge_managed_mcp_servers(
-            self.initial_client_mcp_servers.clone(),
-            session_cwd,
-            &managed_configs,
-            new_registry_snapshot.as_deref(),
-            &self.rebuild_spec.compat,
+        let new_mcp_servers = crate::session::agent_mcp::rematerialize_with_agent_overlay(
+            crate::session::agent_mcp::RematerializeParams {
+                initial_client_mcp_servers: self.initial_client_mcp_servers.borrow().clone(),
+                cwd: session_cwd,
+                parent_cwd: None,
+                managed_configs: &managed_configs,
+                plugin_registry: new_registry_snapshot.as_deref(),
+                compat: &self.rebuild_spec.compat,
+                definition: self.agent.borrow().definition(),
+            },
         );
         let (mcp_diff, dispatch_event_tx) = {
             let mut mcp_state = self.mcp_state.lock().await;

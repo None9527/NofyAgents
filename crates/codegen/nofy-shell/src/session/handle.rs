@@ -77,15 +77,9 @@ pub struct SessionHandle {
     /// [`Self::set_status_line_wanted`] at every attach, and when a client
     /// disconnects from a session that stays resident.
     pub status_line_enabled: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    /// MCP server configs for this session (merged local + client-provided).
-    /// Stored on the handle so forked sessions can inherit the parent's
-    /// MCP servers without requiring a round-trip through the session actor.
-    ///
-    /// **Note:** This is a snapshot from `spawn_session_actor` time. If the
-    /// client later sends `UpdateMcpServers`, the handle's copy is NOT updated.
-    /// This is fine for forks that happen immediately after spawn, but callers
-    /// that need the latest MCP state should query the session actor via command.
-    pub mcp_servers: Vec<acp::McpServer>,
+    /// Admitted MCP servers, shared with the actor state. Forks snapshot the
+    /// current seat rather than a stale spawn-time list.
+    pub mcp_servers: super::mcp_servers::AdmittedMcpServers,
     /// Client-provided MCP servers after vendor `mcps` kill-switch admission
     /// (still pre-merge with disk/plugins/managed). Hot-reloads re-merge from
     /// this seed so disabled-vendor servers rejected at ingress cannot reappear

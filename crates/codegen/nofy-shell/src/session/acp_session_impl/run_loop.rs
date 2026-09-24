@@ -1427,7 +1427,10 @@ pub(super) async fn run_session(
                                 .notifications.persistence_tx
                                 .send(PersistenceMsg::FlushAndAck { respond_to });
                         }
-                        SessionCommand::UpdateMcpServers { mcp_servers, respond_to } => {
+                        SessionCommand::UpdateMcpServers { mcp_servers, client_seed, respond_to } => {
+                            if let Some(seed) = client_seed {
+                                *session.initial_client_mcp_servers.borrow_mut() = seed;
+                            }
                             if session.startup_hints.is_subagent {
                                 tracing::debug!(
                                     session_id = %session.session_info.id.0,
@@ -1436,6 +1439,12 @@ pub(super) async fn run_session(
                                 let _ = respond_to.send(Ok(()));
                                 continue;
                             }
+                            let mut mcp_servers = mcp_servers;
+                            crate::session::agent_mcp::apply_agent_mcp_overlay(
+                                &mut mcp_servers,
+                                session.agent.borrow().definition(),
+                                std::path::Path::new(&session.session_info.cwd),
+                            );
                             tracing::info!(
                                 "Updating MCP servers for session '{}' ({} servers)",
                                 session.session_info.id.0,

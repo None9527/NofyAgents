@@ -86,6 +86,46 @@ pub(crate) fn mcp_server_name(s: &acp::McpServer) -> &str {
     }
 }
 
+/// Keep unordered wire maps deterministic before comparing or publishing an
+/// agent-provided server definition.
+pub(crate) fn canonicalize_mcp_maps(server: &mut acp::McpServer) {
+    match server {
+        acp::McpServer::Stdio(server) => server.env.sort_by(|a, b| a.name.cmp(&b.name)),
+        acp::McpServer::Http(server) => server.headers.sort_by(|a, b| a.name.cmp(&b.name)),
+        acp::McpServer::Sse(server) => server.headers.sort_by(|a, b| a.name.cmp(&b.name)),
+        _ => {}
+    }
+}
+
+/// Apply the same local disable, folder-trust, and managed allow/deny gates to
+/// agent.md inline servers that the normal merge applies to disk/client input.
+pub(crate) fn filter_policy_blocked_agent_mcp(
+    servers: Vec<acp::McpServer>,
+    cwd: &std::path::Path,
+) -> Vec<acp::McpServer> {
+    let disabled = crate::util::config::disabled_mcp_server_names(cwd);
+    let trusted = crate::agent::folder_trust::filter_untrusted_project_mcp(cwd, servers);
+    let allowlist = &nofy_workspace::permission::resolution::managed_settings().mcp_allowlist;
+    trusted
+        .into_iter()
+        .filter(|server| {
+            if disabled.contains(mcp_server_name(server)) {
+                return false;
+            }
+            if !allowlist.is_server_allowed(server) {
+                let reason = McpDisabledReason::for_blocked_server(allowlist, server);
+                tracing::warn!(
+                    name = mcp_server_name(server),
+                    reason = %reason,
+                    "agent MCP server blocked by managed settings policy"
+                );
+                return false;
+            }
+            true
+        })
+        .collect()
+}
+
 pub(crate) fn merge_managed_mcp_servers(
     client_mcp_servers: Vec<acp::McpServer>,
     cwd: &std::path::Path,
@@ -132,6 +172,7 @@ pub(crate) fn merge_and_send_managed_mcp_update(
     cmd_tx
         .send(crate::session::SessionCommand::UpdateMcpServers {
             mcp_servers: merged,
+            client_seed: None,
             respond_to: tx,
         })
         .is_ok()

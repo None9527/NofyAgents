@@ -949,3 +949,11 @@ Task 17 完成用户文档、架构文档、故障注入、10k/100k 性能基线
 恢复并随 fork 复制，同名模型切换只更新模型与 effort，不擦除 profile。旧 `agent_name` JSON 完全兼容，异常
 `agent_profile` 降级为 named selection。`nofy-agent` 来源判定、8 项 summary round-trip、fork copy 与存储更新
 定向测试全部通过。
+
+批40已完成 agent MCP overlay：基础 disk/client/plugin/managed 合并保持不变，当前 agent 定义最后按名称覆盖；
+创建、恢复、配置/插件热重载、席位切换与子代理继承共用同一物化函数。actor 的 admitted MCP 列表通过共享快照
+同步到 handle，显式 client 更新同时刷新重载 seed，避免 fork 读取 spawn-time 陈旧配置。插件 agent、未信任项目、
+个人禁用与 managed allow/deny 均继续 fail-closed。定向验证为 overlay 6/6、MCP config update 15/15、插件继承
+2/2、managed sync 1/1、`nofy-mcp` 188/188；`cargo check --workspace --all-targets` 通过。该检查反查并补齐
+批37 的 4 个 sampler 测试构造器与批39 的 session-list benchmark JSON fixture；未引入上游遥测。剩余批次为
+41、42，之后做 1.0.39–1.0.41 全量反查。

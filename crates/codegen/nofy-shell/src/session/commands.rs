@@ -487,6 +487,9 @@ pub enum SessionCommand {
     /// completes (or immediately if configs are unchanged).
     UpdateMcpServers {
         mcp_servers: Vec<acp::McpServer>,
+        /// Explicit client updates replace the actor's admitted client seed;
+        /// disk/plugin refreshes leave it unchanged.
+        client_seed: Option<Vec<acp::McpServer>>,
         respond_to: oneshot::Sender<Result<(), acp::Error>>,
     },
     /// Toggle an MCP server on/off within the session actor's event loop.

@@ -889,6 +889,7 @@ impl MvpAgent {
                     .cmd_tx
                     .send(crate::session::SessionCommand::UpdateMcpServers {
                         mcp_servers,
+                        client_seed: Some(handle.initial_client_mcp_servers.clone()),
                         respond_to: tx,
                     });
             });

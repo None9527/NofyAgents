@@ -790,7 +790,7 @@ fn make_test_handle(
         signals_handle: crate::session::signals::SessionSignalsHandle::new(),
         gateway_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
         status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        mcp_servers: vec![],
+        mcp_servers: vec![].into(),
         initial_client_mcp_servers: vec![],
         display_cwd: None,
         tool_context: crate::tools::ToolContext::new_local_context(

@@ -783,66 +783,11 @@ pub(crate) async fn run_shell_child(
             }
         }
     }
-    let agent_mcp_servers: Vec<_> = if !agent_owned_mcp_servers_allowed(is_plugin_agent) {
-        if !definition.mcp_servers.is_empty() {
-            tracing::warn!(
-                agent = %definition.name,
-                plugin = ?definition.plugin_name,
-                "ignoring mcpServers on plugin agent (not supported for security)"
-            );
-        }
-        vec![]
-    } else {
-        definition
-                .mcp_servers
-                .iter()
-                .filter_map(|entry| match entry {
-                    nofy_agent::config::McpServerRef::Named(name) => {
-                        ctx.parent_mcp_configs
-                            .iter()
-                            .find(|s| {
-                                crate::session::mcp_servers::mcp_server_name(s) == name
-                            })
-                            .cloned()
-                            .or_else(|| {
-                                tracing::warn!(agent = %definition.name, server = name, "mcpServers: named ref not found in parent");
-                                None
-                            })
-                    }
-                    nofy_agent::config::McpServerRef::Inline { name, config } => {
-                        if let serde_json::Value::Object(obj) = config
-                            && obj.contains_key("type")
-                        {
-                            let mut flat = obj.clone();
-                            flat.insert(
-                                "name".to_string(),
-                                serde_json::Value::String(name.clone()),
-                            );
-                            if let Ok(server) = serde_json::from_value::<
-                                agent_client_protocol::McpServer,
-                            >(serde_json::Value::Object(flat)) {
-                                return Some(server);
-                            }
-                            tracing::debug!(agent = %definition.name, server = name, "ACP wire format parse failed, trying map-keyed");
-                        }
-                        if let Some(inner_obj) = config.as_object() {
-                            let mut flat = inner_obj.clone();
-                            flat.insert(
-                                "name".to_string(),
-                                serde_json::Value::String(name.clone()),
-                            );
-                            if let Ok(server) = serde_json::from_value::<
-                                agent_client_protocol::McpServer,
-                            >(serde_json::Value::Object(flat)) {
-                                return Some(server);
-                            }
-                        }
-                        tracing::warn!(agent = %definition.name, server = name, "mcpServers: inline config could not be parsed");
-                        None
-                    }
-                })
-                .collect()
-    };
+    let agent_mcp_servers = crate::session::agent_mcp::materialize_agent_mcp_servers(
+        &definition,
+        &ctx.parent_mcp_configs,
+        &ctx.parent_cwd,
+    );
     let parent_mcp_pool =
         resolve_inherited_mcp_pool(ctx.parent_mcp_pool.take(), &definition.mcp_inheritance);
     let mcp_inherited_count = parent_mcp_pool

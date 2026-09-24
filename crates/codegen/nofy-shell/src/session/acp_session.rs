@@ -973,9 +973,9 @@ pub(crate) struct SessionActor {
     pub(crate) managed_mcp_handle: crate::session::managed_mcp::ManagedMcpStateHandle,
     /// Earliest managed MCP token expiry; checked before tool dispatch.
     pub(crate) managed_mcp_expires_at: std::sync::Mutex<Option<chrono::DateTime<chrono::Utc>>>,
-    /// Original client-provided MCP servers from session creation.
-    /// Retained for re-merge during plugin reload.
-    pub(crate) initial_client_mcp_servers: Vec<acp::McpServer>,
+    /// Current admitted client MCP seed. The actor is single-threaded, so a
+    /// `RefCell` is sufficient for explicit client updates and later reloads.
+    pub(crate) initial_client_mcp_servers: std::cell::RefCell<Vec<acp::McpServer>>,
     /// Shared MCP tool metadata for the BM25 search index. Updated after MCP init.
     pub(crate) tool_metadata_snapshot:
         Arc<std::sync::Mutex<crate::session::tool_index::ToolMetadataSnapshot>>,

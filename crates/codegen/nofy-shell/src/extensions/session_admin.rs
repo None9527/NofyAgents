@@ -363,6 +363,7 @@ async fn handle_update_mcp_servers(agent: &MvpAgent, args: &acp::ExtRequest) -> 
         .cmd_tx
         .send(SessionCommand::UpdateMcpServers {
             mcp_servers: merged,
+            client_seed: Some(admitted.clone()),
             respond_to: tx,
         })
         .map_err(|_| acp::Error::internal_error().data("session closed"))?;
@@ -546,6 +547,7 @@ async fn handle_reload_project_mcp_servers(agent: &MvpAgent, args: &acp::ExtRequ
             .cmd_tx
             .send(SessionCommand::UpdateMcpServers {
                 mcp_servers: merged,
+                client_seed: None,
                 respond_to: tx,
             })
             .is_ok()

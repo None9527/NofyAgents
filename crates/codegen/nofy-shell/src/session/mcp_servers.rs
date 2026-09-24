@@ -1,7 +1,7 @@
 //! MCP server re-exports + shell-side wrappers for timeout override resolution.
 
 pub use nofy_mcp::servers::{
-    AcpServerEntry, HttpConfig, MCP_TOOL_NAME_DELIMITER, McpClient, McpClientTimeoutOverrides,
+    AcpServerEntry, AdmittedMcpServers, HttpConfig, MCP_TOOL_NAME_DELIMITER, McpClient, McpClientTimeoutOverrides,
     McpConfigDiff, McpError, McpInitStrategy, McpMetaConfigMap, McpServerMetaConfig, McpServerName,
     McpService, McpSpawnCtx, McpState, McpTool, McpToolRegistration, OauthInteractivity,
     SharedMcpPool, mcp_server_name, mcp_target_str, mcp_transport_str, parse_mcp_meta_config,

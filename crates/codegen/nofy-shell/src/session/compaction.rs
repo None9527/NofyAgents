@@ -2477,7 +2477,7 @@ mod inline_auto_compact_flow_tests {
             goal_classifier_in_flight: std::sync::atomic::AtomicBool::new(false),
             managed_mcp_handle: Default::default(),
             managed_mcp_expires_at: std::sync::Mutex::new(None),
-            initial_client_mcp_servers: vec![],
+            initial_client_mcp_servers: vec![].into(),
             tool_metadata_snapshot: Arc::new(std::sync::Mutex::new(Default::default())),
             mcp_announcements: parking_lot::Mutex::new(Default::default()),
             mcp_reminder_mode: McpReminderMode::Delta,

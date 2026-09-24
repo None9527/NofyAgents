@@ -152,6 +152,7 @@ impl SessionActor {
             }
         }
         let new_agent_name = definition.name.clone();
+        let previous_mcp_servers = self.agent.borrow().definition().mcp_servers.clone();
         tracing::info!(
             session_id = %self.session_info.id.0,
             new_agent_type = %new_agent_name,
@@ -240,6 +241,63 @@ impl SessionActor {
                 bridge.update_resource(gate).await;
             }
             self.inject_deny_read_globs().await;
+        }
+        let overlay_definition = self.agent.borrow().definition().clone();
+        let both_seats_empty =
+            previous_mcp_servers.is_empty() && overlay_definition.mcp_servers.is_empty();
+        if !both_seats_empty {
+            let managed_configs = {
+                let handle = self.managed_mcp_handle.lock().await;
+                match &handle.cache {
+                    crate::session::managed_mcp::ManagedMcpCache::Ready(configs) => configs.clone(),
+                    _ => vec![],
+                }
+            };
+            let plugin_registry = self.plugin_registry.borrow().clone();
+            let live = self.mcp_state.lock().await.configs.clone();
+            let desired = crate::session::agent_mcp::rematerialize_live_for_agent_seat(
+                &live,
+                &previous_mcp_servers,
+                crate::session::agent_mcp::RematerializeParams {
+                    initial_client_mcp_servers: self
+                        .initial_client_mcp_servers
+                        .borrow()
+                        .clone(),
+                    cwd: self.tool_context.cwd.as_path(),
+                    parent_cwd: None,
+                    managed_configs: &managed_configs,
+                    plugin_registry: plugin_registry.as_deref(),
+                    compat: &self.rebuild_spec.compat,
+                    definition: &overlay_definition,
+                },
+            );
+            let (diff, dispatch_event_tx) = {
+                let mut state = self.mcp_state.lock().await;
+                let diff = state.update_configs_diff(desired);
+                (diff, state.client_event_tx())
+            };
+            if let Some(diff) = diff {
+                if (!diff.added.is_empty() || !diff.removed.is_empty())
+                    && let Some(tx) = dispatch_event_tx
+                {
+                    let _ = tx.send(nofy_mcp::servers::McpClientEvent::ConfigDiff {
+                        added: diff.added.clone(),
+                        removed: diff.removed.clone(),
+                    });
+                }
+                for name in &diff.removed {
+                    let prefix = format!(
+                        "{}{}",
+                        name,
+                        crate::session::mcp_servers::MCP_TOOL_NAME_DELIMITER
+                    );
+                    self.agent
+                        .borrow()
+                        .tool_bridge()
+                        .unregister_tools_by_prefix(&prefix);
+                }
+                self.ensure_mcp_tools_initialized().await;
+            }
         }
         {
             let notified = self.mcp_handshakes_done.notified();

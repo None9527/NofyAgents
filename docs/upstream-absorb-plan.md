@@ -1822,6 +1822,8 @@ Tasks 1–16 的落地提交依次为 `7a649055`、`430d4004`、`5ec36649`、`31
 | 36 | 修复草稿撤销，兼容 MCP 参数形状 | `2bd2f17a` |
 | 37 | 对齐模型 effort 命名/别名与每模型请求体上限 | `cc167122` |
 | 38 | 阻塞子代理在取消父回合时转后台并写入真实工具结果；插话先回应用户，再继续未完成工作 | 本提交 |
+| 39 | inline agent 完整定义随会话恢复与 fork 持久化 | `9afe69a0` |
+| 40 | `agent.md` MCP 覆盖层统一接入创建、恢复、热重载、席位切换与子代理继承 | 本提交 |
 
 批38 不增加遥测。取消路径在修复悬空工具调用前快照原状态，避免 actor 队列先完成修复后误武装重复的
 `[Request interrupted]` 提醒。验证覆盖 coordinator handoff、cancel 21 项、chat-state 382 项、interjection 14 项。
@@ -1835,12 +1837,21 @@ Tasks 1–16 的落地提交依次为 `7a649055`、`430d4004`、`5ec36649`、`31
 
 ### 17.4 重新审计发现的剩余实质差距
 
+> ✅ **批40 已落地（2026-09-24）**：disk/client/plugin/managed 合并仍是基础层，当前 agent 的
+> `mcpServers` 最后按名称覆盖；named ref 从基础层解析，inline 同时兼容 ACP 与 Nofy map-keyed 配置。
+> `McpState` 向 handle 发布当前 admitted 快照，显式 client 更新同步刷新 actor seed，因而热重载、A→B 席位切换和
+> 后续子代理 fork 不再读 spawn-time 陈旧列表。插件 agent、未信任项目 agent、`enabled = false` 与 managed
+> allow/deny 继续在统一物化边界阻断。未引入上游遥测，也未移除 Nofy 的 managed connector 注入。
+> 定向验证为 overlay 6/6、MCP config update 15/15、插件继承 2/2、managed sync 1/1、`nofy-mcp`
+> 全库 188/188；`cargo check --workspace --all-targets` 通过。全量检查同时反查并补齐批37 的 4 个
+> `SamplerConfig::max_request_bytes` 测试构造器，以及批39 benchmark 对扁平 `agent_name` JSON 合约的兼容。
+
 | 批次 | 差距 | 完成定义 |
 |---|---|---|
-| 40 | `agent.md` 的 `mcpServers` 尚未覆盖 session MCP 配置 | 初始创建、恢复、切换、fork 均重新物化 overlay；移除/替换无残留；失败有明确诊断 |
+| 40 | `agent.md` 的 `mcpServers` 尚未覆盖 session MCP 配置 | **已完成**：初始创建、恢复、重载、切换、fork 均使用当前 overlay；移除/替换无残留；失败有明确诊断 |
 | 41 | 缺少 `subagent_model_inheritance` 用户设置 | 开启时子代理锁定父模型并禁止分叉；关闭时保留显式 model；配置分层、live UI 与重启一致 |
 | 42 | 冷启动未为未闭合 turn 写入 crash-interrupted 标记 | 仅 unmatched turn 生成一次中断记录并闭合；正常完成、重复加载、旧日志均幂等 |
 
-剩余执行顺序固定为 **40 → 41 → 42 → 全量反查**。每批继续遵守 symbol impact、定向/全量测试、
+剩余执行顺序固定为 **41 → 42 → 全量反查**。每批继续遵守 symbol impact、定向/全量测试、
 `gitnexus detect-changes` 和独立中文提交。最终反查必须把 1.0.39–1.0.41 changelog 每一项归为“原生落地”、
 “既有等价实现”或“明确有意分歧”，不得保留“待核实”。

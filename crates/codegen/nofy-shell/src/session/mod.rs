@@ -1,4 +1,5 @@
 pub mod acp_types;
+pub(crate) mod agent_mcp;
 pub mod announcement_state;
 pub mod commands;
 pub(crate) mod compaction_config;

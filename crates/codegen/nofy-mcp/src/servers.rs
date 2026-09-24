@@ -350,9 +350,41 @@ struct AcpMcpRegistry {
     invoker: Arc<dyn crate::acp_transport::AcpReverseInvoker>,
 }
 
+/// Admitted server list shared with the session handle. Config commits publish
+/// into this cell so forks snapshot the current seat instead of spawn-time data.
+#[derive(Clone)]
+pub struct AdmittedMcpServers(Arc<parking_lot::Mutex<Vec<acp::McpServer>>>);
+
+impl AdmittedMcpServers {
+    pub fn new(servers: Vec<acp::McpServer>) -> Self {
+        Self(Arc::new(parking_lot::Mutex::new(servers)))
+    }
+
+    pub fn snapshot(&self) -> Vec<acp::McpServer> {
+        self.0.lock().clone()
+    }
+
+    fn replace(&self, servers: Vec<acp::McpServer>) {
+        *self.0.lock() = servers;
+    }
+}
+
+impl Default for AdmittedMcpServers {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+impl From<Vec<acp::McpServer>> for AdmittedMcpServers {
+    fn from(servers: Vec<acp::McpServer>) -> Self {
+        Self::new(servers)
+    }
+}
+
 /// Consolidated MCP state behind a single lock. Generation counter detects stale inits.
 pub struct McpState {
     pub configs: Vec<acp::McpServer>,
+    admitted: AdmittedMcpServers,
     pub meta_config_map: McpMetaConfigMap,
     /// Clients owned by this session; cleared on config changes.
     pub owned_clients: HashMap<McpServerName, Arc<McpClient>>,
@@ -425,8 +457,10 @@ impl McpState {
     }
 
     pub fn new_with_meta(configs: Vec<acp::McpServer>, meta_config_map: McpMetaConfigMap) -> Self {
+        let admitted = AdmittedMcpServers::new(configs.clone());
         Self {
             configs,
+            admitted,
             meta_config_map,
             owned_clients: HashMap::new(),
             shared_clients: HashMap::new(),
@@ -587,10 +621,19 @@ impl McpState {
         self.mcp_tool_meta.clear();
         self.disabled_tool_registrations.clear();
         self.configs = new_configs;
+        self.publish_admitted();
         self.init_progress.cancel();
         self.auth_required.clear();
         self.generation = self.generation.wrapping_add(1);
         true
+    }
+
+    pub fn admitted_servers(&self) -> AdmittedMcpServers {
+        self.admitted.clone()
+    }
+
+    fn publish_admitted(&self) {
+        self.admitted.replace(self.configs.clone());
     }
 
     /// Diff-based config update: only tears down servers whose config changed
@@ -675,6 +718,7 @@ impl McpState {
         );
 
         self.configs = new_configs;
+        self.publish_admitted();
         self.init_progress.cancel();
         self.generation = self.generation.wrapping_add(1);
 

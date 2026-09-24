@@ -320,6 +320,14 @@ pub(crate) async fn spawn_session_actor(
         ));
     }
     let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+    let mut mcp_servers = mcp_servers;
+    if !startup_hints.is_subagent {
+        crate::session::agent_mcp::apply_agent_mcp_overlay(
+            &mut mcp_servers,
+            &agent_definition,
+            tool_context.cwd.as_path(),
+        );
+    }
     tracing::info!(
         "Session '{}' created with {} MCP servers",
         session_info.id.0,
@@ -859,8 +867,9 @@ pub(crate) async fn spawn_session_actor(
             },
         ))
     });
-    let mcp_state = {
+    let (mcp_state, admitted_mcp_servers) = {
         let mut state = McpState::new_with_meta(mcp_servers.clone(), mcp_meta_config_map);
+        let admitted_mcp_servers = state.admitted_servers();
         if let Some(ref pool) = parent_mcp_pool {
             state.import_shared_clients(pool);
             tracing::info!(
@@ -881,7 +890,7 @@ pub(crate) async fn spawn_session_actor(
                 "Registered in-process SDK MCP servers (nofy/mcp/sdk_call)"
             );
         }
-        Arc::new(TokioMutex::new(state))
+        (Arc::new(TokioMutex::new(state)), admitted_mcp_servers)
     };
     let rebuild_spec = std::sync::Arc::new(crate::session::agent_rebuild::AgentRebuildSpec {
         working_directory: tool_context.cwd.as_path().to_path_buf(),
@@ -1484,7 +1493,7 @@ pub(crate) async fn spawn_session_actor(
         deny_read_globs,
         mcp_state: mcp_state.clone(),
         mcp_strategy,
-        initial_client_mcp_servers: initial_client_mcp_servers.clone(),
+        initial_client_mcp_servers: std::cell::RefCell::new(initial_client_mcp_servers.clone()),
         chat_state_handle,
         runtime_journal,
         unattributed_background_usage: std::sync::atomic::AtomicBool::new(false),
@@ -1937,7 +1946,7 @@ pub(crate) async fn spawn_session_actor(
             signals_handle,
             gateway_enabled,
             status_line_enabled,
-            mcp_servers,
+            mcp_servers: admitted_mcp_servers,
             initial_client_mcp_servers,
             display_cwd: None,
             tool_context: tool_context_for_handle,
