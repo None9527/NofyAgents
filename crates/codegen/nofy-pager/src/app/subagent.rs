@@ -368,7 +368,7 @@ fn dedup_persona_role<'a, 'b>(
 }
 pub(crate) fn format_type_label(subagent_type: &str) -> &str {
     match subagent_type {
-        "general-purpose" => "general",
+        "general-purpose" => "Subagent",
         other => other,
     }
 }
@@ -799,8 +799,8 @@ mod tests {
         );
     }
     #[test]
-    fn type_label_abbreviates_general_purpose() {
-        assert_eq!(format_type_label("general-purpose"), "general");
+    fn type_label_names_general_purpose_as_subagent() {
+        assert_eq!(format_type_label("general-purpose"), "Subagent");
     }
     #[test]
     fn type_label_passes_through_known_types() {

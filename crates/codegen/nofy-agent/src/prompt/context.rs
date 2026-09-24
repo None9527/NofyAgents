@@ -154,6 +154,21 @@ fn default_system_prompt_label() -> String {
 fn is_template_override_none(t: &TemplateOverride) -> bool {
     matches!(t, TemplateOverride::None)
 }
+/// Trailing-separator temp directory for scratch artifacts. Keep the Unix
+/// path literal so the model never needs to expand an environment variable.
+fn scratch_dir() -> String {
+    if cfg!(windows) {
+        let path = std::env::temp_dir();
+        let text = path.display().to_string();
+        if text.ends_with(std::path::MAIN_SEPARATOR) {
+            text
+        } else {
+            format!("{text}{}", std::path::MAIN_SEPARATOR)
+        }
+    } else {
+        "/tmp/".to_owned()
+    }
+}
 impl PromptContext {
     /// Normalize this context for persistence based on audience.
     ///
@@ -240,6 +255,7 @@ impl PromptContext {
             "current_date": self.current_date.as_deref().unwrap_or(""),
             "is_non_interactive": self.is_non_interactive,
             "system_prompt_label": self.system_prompt_label.as_str(),
+            "scratch_dir": scratch_dir(),
         })
     }
     /// Render the full system prompt via `ToolBridge`.
@@ -449,6 +465,7 @@ mod tests {
         assert_eq!(p["memory_enabled"], true);
         assert_eq!(p["role_instructions"], "test role");
         assert_eq!(p["persona_instructions"], "test persona");
+        assert!(p["scratch_dir"].as_str().unwrap().ends_with(std::path::MAIN_SEPARATOR));
     }
     #[test]
     fn test_placeholders_user_info_defaults_to_empty() {

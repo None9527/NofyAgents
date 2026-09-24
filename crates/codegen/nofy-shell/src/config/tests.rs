@@ -3296,3 +3296,24 @@ fn allowlist_runtime_messages_split_on_provenance() {
         "an unreadable pin must not name the key the user cannot edit: {bad_msg}"
     );
 }
+#[test]
+fn subagents_models_only_table_keeps_default_enabled() {
+    let config: toml::Value = toml::from_str(
+        r#"[subagents.models]
+explore = "nofy-fast"
+"#,
+    )
+    .unwrap();
+    assert!(SubagentsConfig::resolve(false, &config).enabled);
+}
+
+#[test]
+fn subagents_cli_disable_overrides_enabled_config() {
+    let config: toml::Value = toml::from_str(
+        r#"[subagents]
+enabled = true
+"#,
+    )
+    .unwrap();
+    assert!(!SubagentsConfig::resolve_with_cli(Some(false), &config).enabled);
+}

@@ -1904,8 +1904,12 @@ impl Config {
     /// Must be called after `new_from_toml_cfg` on the **primary startup path**
     /// before the config is handed to `MvpAgent`. Project definitions are overlaid
     /// per cwd after that cwd's authoritative folder-trust resolve.
-    pub(crate) fn resolve_subagents(&mut self, cli_flag: bool, raw_config: &toml::Value) {
-        let sa = crate::config::SubagentsConfig::resolve(cli_flag, raw_config);
+    pub(crate) fn resolve_subagents(
+        &mut self,
+        cli_flag: Option<bool>,
+        raw_config: &toml::Value,
+    ) {
+        let sa = crate::config::SubagentsConfig::resolve_with_cli(cli_flag, raw_config);
         self.resolve_subagent_limits(&sa);
         self.subagents_enabled = sa.enabled;
         self.subagent_model_overrides = sa.models;
@@ -1953,8 +1957,7 @@ impl Config {
     pub fn resolve_runtime_fields(&mut self, ctx: &RuntimeResolutionContext<'_>) {
         self.cli_subagents = ctx.cli_subagents;
         self.session_summary_model_override = ctx.cli_session_summary_model.map(|s| s.to_owned());
-        let cli_flag = ctx.cli_subagents.unwrap_or(false);
-        self.resolve_subagents(cli_flag, ctx.raw_config);
+        self.resolve_subagents(ctx.cli_subagents, ctx.raw_config);
         let env = std::env::var(crate::config::SubagentsConfig::ENV_MAX_DEPTH).ok();
         let toml_max = ctx
             .raw_config

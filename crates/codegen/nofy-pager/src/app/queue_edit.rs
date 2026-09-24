@@ -510,7 +510,7 @@ impl AgentView {
         self.show_toast("Queued prompt is no longer in the queue");
     }
 
-    /// Exit editing mode: restore stashed text, clear mode, focus queue pane.
+    /// Exit editing mode: restore stashed text, clear mode, focus the composer.
     /// No-op unless `EditingQueued`. The default exit; releases the
     /// server-side combine hold (cancel, lost-row, interject, modal paths).
     ///
@@ -562,13 +562,9 @@ impl AgentView {
         if matches!(self.active_modal, Some(ActiveModal::EditConfirm { .. })) {
             self.active_modal = None;
         }
-        // Return focus to queue pane (if still visible).
-        // Force=true: we just cleared editing mode, no lock to check.
-        if self.queue.is_visible() {
-            self.set_active_pane(AgentPane::Queue, true);
-        } else {
-            self.set_active_pane(AgentPane::Scrollback, true);
-        }
+        // The next key belongs to the next message, not the row just saved.
+        // Pane-switch exits explicitly retarget their destination afterwards.
+        self.set_active_pane(AgentPane::Prompt, true);
     }
 }
 
@@ -614,6 +610,16 @@ mod tests {
             PromptMode::EditingQueued { .. }
         ));
         agent
+    }
+
+    /// Saving an edit focuses the composer: the next Enter sends instead of
+    /// reopening the row editor.
+    #[test]
+    fn save_returns_focus_to_the_composer() {
+        let mut agent = enter_edit_local_row();
+        agent.prompt.set_text("local one EDITED");
+        let _ = agent.handle_prompt_key_for_test(&enter_key());
+        assert_eq!(agent.active_pane, AgentPane::Prompt);
     }
 
     /// Shift/Alt+Enter → newline in edit mode (must not save).

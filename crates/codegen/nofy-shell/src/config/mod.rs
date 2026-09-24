@@ -223,7 +223,7 @@ impl MemoryConfig {
 /// `.nofy/config.toml`. Enabled by default; can be disabled via
 /// `NOFY_SUBAGENTS=0` env var or `[subagents] enabled = false`
 /// in config.toml.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct SubagentsConfig {
     /// Whether subagent support is enabled.
@@ -290,6 +290,22 @@ pub struct SubagentsConfig {
     /// ```
     #[serde(default)]
     pub personas: std::collections::HashMap<String, SubagentPersona>,
+}
+impl Default for SubagentsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            max_depth: None,
+            max_concurrent: None,
+            sampling_limit: None,
+            limit_behavior: None,
+            workflow_max_concurrent: None,
+            models: Default::default(),
+            toggle: Default::default(),
+            roles: Default::default(),
+            personas: Default::default(),
+        }
+    }
 }
 use nofy_subagent_resolution::config::{SubagentPersona, SubagentRole};
 impl SubagentsConfig {
@@ -603,8 +619,11 @@ impl SubagentsConfig {
     /// Project files are excluded from this trust-independent base; Task
     /// boundaries overlay them using the parent cwd's authoritative trust verdict.
     pub fn resolve(cli_flag: bool, config: &toml::Value) -> Self {
+        Self::resolve_with_cli(cli_flag.then_some(true), config)
+    }
+    pub fn resolve_with_cli(cli_flag: Option<bool>, config: &toml::Value) -> Self {
         let user_nofy_root = nofy_config::user_nofy_home();
-        Self::resolve_base_with_sources(
+        Self::resolve_base_with_sources_cli(
             cli_flag,
             config,
             user_nofy_root.as_deref(),
@@ -617,12 +636,25 @@ impl SubagentsConfig {
         user_nofy_root: Option<&std::path::Path>,
         bundled_root: &std::path::Path,
     ) -> Self {
+        Self::resolve_base_with_sources_cli(
+            cli_flag.then_some(true),
+            config,
+            user_nofy_root,
+            bundled_root,
+        )
+    }
+    fn resolve_base_with_sources_cli(
+        cli_flag: Option<bool>,
+        config: &toml::Value,
+        user_nofy_root: Option<&std::path::Path>,
+        bundled_root: &std::path::Path,
+    ) -> Self {
         let mut result: Self = config
             .get("subagents")
             .and_then(|v| v.clone().try_into().ok())
             .unwrap_or_default();
         let resolved = crate::agent::config::resolve_enabled(
-            if cli_flag { Some(true) } else { None },
+            cli_flag,
             "NOFY_SUBAGENTS",
             result.enabled,
             config.get("subagents").is_some(),

@@ -498,12 +498,11 @@ impl Default for EditBlockConfig {
 }
 
 impl EditBlockConfig {
-    /// Effective "Edit blocks start expanded" default. The single policy
-    /// point pairing the two owners: an explicit pager.toml value wins;
-    /// unset defers to the shell-owned `collapsed_edit_blocks` flag
-    /// (flag on = collapsed one-liner, off = legacy expanded diff).
+    /// Effective "Edit blocks start expanded" default. A true shell-owned
+    /// `collapsed_edit_blocks` setting always collapses; with the setting off,
+    /// an explicit appearance value can still request either shape.
     pub fn effective_expanded(&self, collapsed_edit_blocks: bool) -> bool {
-        self.expanded_by_default.unwrap_or(!collapsed_edit_blocks)
+        !collapsed_edit_blocks && self.expanded_by_default.unwrap_or(true)
     }
 
     /// Effective collapsed-header `+N/-M` diffstat toggle. Same pairing as
@@ -2364,12 +2363,10 @@ gutter_bg = true
         }
     }
 
-    /// The single policy point pairing the pager.toml shape keys with the
-    /// shell-owned `collapsed_edit_blocks` flag: unset keys follow the flag
-    /// (on = collapsed one-liner with diffstat, off = legacy expanded diff
-    /// without it); explicit values pin the shape in both directions.
+    /// A true shell-owned flag forces the collapsed shape. With it off, the
+    /// appearance setting can still pin expanded or collapsed behavior.
     #[test]
-    fn effective_edit_shape_follows_flag_unless_pinned() {
+    fn collapsed_flag_overrides_expanded_default() {
         let unset = EditBlockConfig::default();
         assert!(unset.effective_expanded(false), "flag off: expanded");
         assert!(
@@ -2385,9 +2382,10 @@ gutter_bg = true
             ..EditBlockConfig::default()
         };
         assert!(
-            pinned.effective_expanded(true),
-            "explicit expanded beats the flag"
+            !pinned.effective_expanded(true),
+            "collapsed flag beats explicit expanded default"
         );
+        assert!(pinned.effective_expanded(false));
         assert!(
             pinned.effective_line_summary(false),
             "explicit diffstat beats the flag"

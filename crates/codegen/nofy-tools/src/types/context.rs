@@ -100,6 +100,7 @@ impl TruncationConfig {
     ) -> String {
         description
             .replace("{max_lines_read}", &self.max_lines_read().to_string())
+            .replace("{whole_read_note}", &self.whole_read.description_note())
             .replace(
                 "{max_wait_ms}",
                 &nofy_tool_types::format_wait_cap_ms(max_wait_ms),
@@ -158,6 +159,18 @@ impl TruncationConfig {
     }
 }
 
+impl WholeReadPolicy {
+    fn description_note(self) -> String {
+        match (self.skill_markdown, self.instruction_files) {
+            (true, true) => " (SKILL.md and AGENTS.md/CLAUDE.md files are returned whole; offset and limit are ignored for them)",
+            (true, false) => " (SKILL.md files are returned whole; offset and limit are ignored for them)",
+            (false, true) => " (AGENTS.md/CLAUDE.md files are returned whole; offset and limit are ignored for them)",
+            (false, false) => "",
+        }
+        .to_owned()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,6 +206,41 @@ mod tests {
                 nofy_tool_types::MAX_WAIT_BLOCK_MS_DEFAULT,
             ),
             format!("capped at {default_cap}")
+        );
+    }
+
+    #[test]
+    fn interpolate_description_documents_whole_read_policy() {
+        let description = "Read normally{whole_read_note}";
+        let render = |whole_read| {
+            TruncationConfig {
+                whole_read,
+                ..Default::default()
+            }
+            .interpolate_description(description, "read_file", 40_000, 300_000)
+        };
+
+        assert!(render(WholeReadPolicy {
+            skill_markdown: true,
+            instruction_files: true,
+        })
+        .contains("SKILL.md and AGENTS.md/CLAUDE.md"));
+        assert!(render(WholeReadPolicy {
+            skill_markdown: true,
+            instruction_files: false,
+        })
+        .contains("SKILL.md files"));
+        assert!(render(WholeReadPolicy {
+            skill_markdown: false,
+            instruction_files: true,
+        })
+        .contains("AGENTS.md/CLAUDE.md files"));
+        assert_eq!(
+            render(WholeReadPolicy {
+                skill_markdown: false,
+                instruction_files: false,
+            }),
+            "Read normally"
         );
     }
 
