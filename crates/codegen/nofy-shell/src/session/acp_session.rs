@@ -140,6 +140,8 @@ mod prompt_queue;
 pub(super) use prompt_queue::QueueInputRequest;
 #[path = "acp_session_impl/hooks_plugins.rs"]
 mod hooks_plugins;
+#[path = "acp_session_impl/mcp_argument_coercion.rs"]
+mod mcp_argument_coercion;
 #[path = "acp_session_impl/mcp.rs"]
 mod mcp;
 #[path = "acp_session_impl/mcp_failed_reminder.rs"]
@@ -628,6 +630,9 @@ pub(crate) struct PreparedToolCall {
     model_id: String,
     /// Whether concatenated JSON recovery was used, and how many objects were found.
     concatenated_json_count: usize,
+    /// Model-facing correction appended to the result when MCP arguments were
+    /// repaired before execution.
+    coercion_note: Option<String>,
     /// Resolved target for meta-dispatch tools (`use_tool`, `CallMcpTool`);
     /// `None` for ordinary tools. See [`ToolInput::dispatch_target_name`].
     dispatch_target_name: Option<String>,

@@ -2,6 +2,14 @@
 //! the TodoGate, date/interrupt reminders, and between-turn completion
 //! reminders.
 use super::*;
+
+/// Escape both reminder-tag directions in untrusted schema and tool names so
+/// a provider-controlled label cannot break out of the corrective envelope.
+pub(super) fn escape_reminder_tags(content: &str, tag: &str) -> String {
+    content
+        .replace(&format!("</{tag}"), &format!("<\\/{tag}"))
+        .replace(&format!("<{tag}"), &format!("<\\{tag}"))
+}
 /// Owned snapshot returned by [`SessionActor::collect_todo_gate_input`].
 ///
 /// The borrowed `TodoGateInput<'_>` consumed by [`evaluate_todo_gate`]

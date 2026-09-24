@@ -2868,6 +2868,11 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
             if key!(F(3)).matches(key) {
                 return InputOutcome::Action(Action::FetchSessionList);
             }
+            if key!('p', CONTROL).matches(key) {
+                // Create/reveal the optimistic home session, then forward the
+                // same chord so the new agent opens its command palette.
+                return InputOutcome::ActionThenForward(Action::NewSession);
+            }
             if ctx.has_foreign_resume && key!('u', CONTROL).matches(key) {
                 return InputOutcome::Action(Action::ResumeForeignSession);
             }
@@ -8046,6 +8051,20 @@ pub(crate) mod tests {
             outcome,
             InputOutcome::ActionThenForward(Action::NewSession)
         ));
+    }
+    #[test]
+    fn welcome_done_ctrl_p_leaves_home() {
+        for focused in [true, false] {
+            let mut app = test_app();
+            app.auth_state = AuthState::Done;
+            app.welcome_prompt_focused = focused;
+            let outcome = app.handle_input(&key_event(KeyCode::Char('p'), KeyModifiers::CONTROL));
+            assert!(
+                matches!(outcome, InputOutcome::ActionThenForward(Action::NewSession)),
+                "focused={focused}: Ctrl+P must leave home for the command palette, got {outcome:?}"
+            );
+            assert!(app.welcome_prompt.text().is_empty());
+        }
     }
     #[test]
     fn welcome_done_ctrl_w_opens_new_worktree_dialog() {

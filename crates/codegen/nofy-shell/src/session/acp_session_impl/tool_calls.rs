@@ -783,6 +783,7 @@ impl SessionActor {
                             &effective_tool_name,
                             drained,
                             prepared.concatenated_json_count,
+                            prepared.coercion_note.as_deref(),
                             &prepared.model_id,
                             &prepared.parsed_args,
                         )
@@ -805,6 +806,7 @@ impl SessionActor {
                             prepared.dispatch_target_name.as_deref(),
                             &err,
                             &prepared.model_id,
+                            prepared.coercion_note.as_deref(),
                         )
                         .await;
                     deferred_followups.extend(err_followups);
@@ -1017,6 +1019,7 @@ impl SessionActor {
                             None,
                             &err,
                             &model_id_str,
+                            None,
                         )
                         .await;
                     deferred_followups.extend(followups);
@@ -1029,7 +1032,7 @@ impl SessionActor {
         );
         let parse_result = serde_json::from_str::<serde_json::Value>(args_str);
         let mut concatenated_json_count: usize = 0;
-        let raw_input = match &parse_result {
+        let mut raw_input = match &parse_result {
             Ok(value) => value.clone(),
             Err(e) => {
                 if let Some(objects) = crate::session::helpers::tool_input_parsing::try_extract_concatenated_json_objects(
@@ -1077,7 +1080,7 @@ impl SessionActor {
                 }
             }
         };
-        let tool_input = match self
+        let mut tool_input = match self
             .agent
             .borrow()
             .tool_bridge()
@@ -1098,6 +1101,25 @@ impl SessionActor {
                 return Ok(Err(ToolLoop::ToolParsingError));
             }
         };
+        let reminder_tag = self.reminder_wrapper_tag();
+        let coercion_note = mcp_argument_coercion::target_name(&call.function.name, &tool_input)
+            .and_then(|qualified_name| {
+                let schema = {
+                    let snapshot = self.tool_metadata_snapshot.lock().unwrap();
+                    mcp_argument_coercion::input_schema_for(&snapshot.tools, &qualified_name)
+                        .cloned()
+                }?;
+                let toolset = self.agent.borrow().tool_bridge().toolset();
+                mcp_argument_coercion::apply(mcp_argument_coercion::CoercionRequest {
+                    schema: &schema,
+                    wire_name: &call.function.name,
+                    qualified_name: &qualified_name,
+                    tool_input: &mut tool_input,
+                    raw_input: &mut raw_input,
+                    toolset: toolset.as_ref(),
+                    reminder_tag,
+                })
+            });
         let access_kind = AccessKind::from(&tool_input);
         let plan_gate = plan_mode_edit_gate(&self.plan_mode.lock(), &tool_input, &access_kind);
         if plan_gate != PlanEditGate::Allow {
@@ -1590,10 +1612,12 @@ impl SessionActor {
             call_id: call.id.clone(),
             tool_call_id,
             tool_name: call.function.name.clone(),
-            raw_arguments: call.function.arguments.clone(),
+            raw_arguments: serde_json::to_string(&raw_input)
+                .unwrap_or_else(|_| call.function.arguments.clone()),
             parsed_args: raw_input.clone(),
             model_id: model_id_str,
             concatenated_json_count,
+            coercion_note,
             dispatch_target_name,
             is_read_only,
         };
@@ -2342,6 +2366,7 @@ impl SessionActor {
         effective_tool_name: &str,
         drained: DrainedToolSuccess,
         concatenated_json_count: usize,
+        coercion_note: Option<&str>,
         model_id: &str,
         tool_parsed_args: &serde_json::Value,
     ) -> Result<Vec<ConversationItem>, acp::Error> {
@@ -2516,6 +2541,7 @@ impl SessionActor {
                 pdf.total_pages,
             );
         }
+        let prompt_text = mcp_argument_coercion::append(prompt_text, coercion_note);
         let tool_chat = if inline_images.is_empty() {
             ConversationItem::tool_result(call_id.to_string(), prompt_text)
         } else {
@@ -2584,6 +2610,7 @@ impl SessionActor {
         effective_tool_name: Option<&str>,
         err: &anyhow::Error,
         model_id: &str,
+        coercion_note: Option<&str>,
     ) -> Vec<ConversationItem> {
         tracing::error!(
             session_id = %self.session_info.id.0,
@@ -2607,6 +2634,7 @@ impl SessionActor {
             }
             _ => format!("Tool `{requested_tool_name}` failed: {err_str}"),
         };
+        let message = mcp_argument_coercion::append(message, coercion_note);
         self.send_update(
             acp::SessionUpdate::ToolCallUpdate(acp::ToolCallUpdate::new(
                 tool_call_id.clone(),

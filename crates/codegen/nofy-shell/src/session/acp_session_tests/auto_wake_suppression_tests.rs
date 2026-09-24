@@ -1323,6 +1323,7 @@ async fn handle_bridge_tool_success_runs_consumed_completion_sweep() {
                     "get_task_output",
                     DrainedToolSuccess::new(result),
                     0,
+                    None,
                     "test-model",
                     &parsed_args,
                 )

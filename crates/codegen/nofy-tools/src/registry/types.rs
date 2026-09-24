@@ -1414,6 +1414,27 @@ impl FinalizedToolset {
         };
         (parse_input)(canonical_params)
     }
+    /// Project canonical `use_tool` arguments back onto the wrapper's
+    /// model-facing parameter names after an MCP argument repair.
+    pub fn model_mcp_arguments(
+        &self,
+        tool_name: &str,
+        input: &crate::implementations::use_tool::UseToolInput,
+    ) -> Result<serde_json::Value, nofy_tool_runtime::ToolError> {
+        let canonical = serde_json::to_value(input)
+            .map_err(|e| nofy_tool_runtime::ToolError::invalid_arguments(e.to_string()))?;
+        let tools = self.tools.read();
+        let tool = tools
+            .iter()
+            .find(|tool| tool.client_name == tool_name)
+            .ok_or_else(|| Self::tool_not_found_error(tool_name))?;
+        let forward: HashMap<_, _> = tool
+            .reverse_params
+            .iter()
+            .map(|(client, canonical)| (canonical.clone(), client.clone()))
+            .collect();
+        Ok(crate::util::remap::remap_json_keys(canonical, &forward))
+    }
     /// Execute a tool, returning only its raw output.
     ///
     /// Unlike [`call()`], this skips reminders and persistence. Used by

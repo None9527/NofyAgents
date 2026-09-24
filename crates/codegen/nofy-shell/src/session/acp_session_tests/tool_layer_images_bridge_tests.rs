@@ -71,6 +71,7 @@ async fn handle_bridge_tool_success_multimodal_mcp_image_deferred_followup() {
                     "browser_screenshot",
                     DrainedToolSuccess::new(mcp_screenshot_result(&payload)),
                     0,
+                    None,
                     "test-model",
                     &parsed_args,
                 )
