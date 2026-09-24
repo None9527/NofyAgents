@@ -9,10 +9,10 @@
 | 项 | 值 |
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
-| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb)。**自 1.0.11 起不再按版本整体同步**:批24 只做预检对账(对照 1.0.24@37949780),批25 改为「以 1.0.32@48271133 为参照、逐条原生实现」(①–㉕,见下方「批25 原生实现日志」) |
+| 已同步到 | **上游 1.0.41@f0e3be11（2026-09-24）**。1.0.11 起不再整版照搬，改为 changelog 行项目逐条原生实现/等价验证/有意分歧分类；1.0.39–1.0.41 最终矩阵见计划 §17.5。 |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`;本仓库已另加 remote `upstream`,2026-09-13 fetch 到 upstream/main=1.0.24@37949780,**2026-09-18 fetch 到 upstream/main=1.0.35@a28ee2b2**)。上游对照 worktree `/Users/mac/nofy-upstream` **已 detached 到 `a28ee2b2` 并重建索引(2026-09-18 16:31,134,329 nodes/327,031 edges/7,544 clusters)**;本仓库索引同步重建到 `79002da`(203,385 nodes/430,338 edges)。双索引对账法可用,查询纪律(必须传 `-r <绝对路径>`)见计划 §14.0 |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
-| 剩余缺口 | **内核（除 Memory v2）已吸收到上游 1.0.35@a28ee2b2**（2026-09-19 14.8，㊱–㊸；2026-09-20 补 1.0.33#3/#13 与 1.0.35#2）。有意留下的：Memory v2、云/登录、TOML 写回、MCP `V_2026_07_28`、headless `--worktree`、`grok-workspaced`、pager UX。历史分段仍见批24 缺口清单、计划 §8、下方增量摸底。 |
+| 剩余缺口 | **截至上游 1.0.41 无未分类或待核实条目**。上游 Memory v2 已通过 Unified Memory 单系统重构吸收到 Nofy 能力中，不再作为第二套体系；继续有意排除 xAI 云/登录/GCS 与上游遥测。历史产品分歧（协议钉版、云工作区等）保留在下表，不计作吸收欠账。 |
 
 ## 标准流程(每批)
 
@@ -955,5 +955,19 @@ Task 17 完成用户文档、架构文档、故障注入、10k/100k 性能基线
 同步到 handle，显式 client 更新同时刷新重载 seed，避免 fork 读取 spawn-time 陈旧配置。插件 agent、未信任项目、
 个人禁用与 managed allow/deny 均继续 fail-closed。定向验证为 overlay 6/6、MCP config update 15/15、插件继承
 2/2、managed sync 1/1、`nofy-mcp` 188/188；`cargo check --workspace --all-targets` 通过。该检查反查并补齐
-批37 的 4 个 sampler 测试构造器与批39 的 session-list benchmark JSON fixture；未引入上游遥测。剩余批次为
-41、42，之后做 1.0.39–1.0.41 全量反查。
+批37 的 4 个 sampler 测试构造器与批39 的 session-list benchmark JSON fixture；未引入上游遥测。
+
+批41 `27565d17` 已完成子代理模型继承：requirements → 环境变量 → 用户配置的分层与设置 UI 共用一套策略；
+策略在会话创建时锁定并传给子会话，开启时工具 schema 不再暴露 model 且 shell 对陈旧上下文仍拒绝显式分叉，
+关闭时保持原有可选模型行为。定向测试覆盖 schema、提示词、配置分层、shell 防御与 pager 设置写回；
+`cargo check -p nofy-tools -p nofy-agent -p nofy-shell -p nofy-pager --all-targets` 通过。
+
+批42 `830a1f57` 已完成 crash-interrupted turn：冷恢复只读取 `events.jsonl` 尾部，summary 仍指向最后请求且最新
+`turn_started` 未闭合时，先写入 durable `TurnCompleted(interrupted)`，再补 `turn_ended(interrupted)` 作为幂等标记，
+actor 启动后只注入一次模型提醒。正常完成、重复加载、缺 request id、旧日志和截断尾部均不误报；4/4 新测试与
+`cargo check -p nofy-file-utils -p nofy-shell --all-targets` 通过。仅保留本地 `tracing`，没有引入上游统一遥测或
+GCS trace result 上传。GitNexus 检测为 8 个已知符号、0 条受影响执行流、risk low。
+
+最终逐项反查共覆盖 1.0.39 的 13 项、1.0.40 的 1 项和 1.0.41 的 14 项：原生落地 21、既有等价实现 7、
+明确有意分歧 0、待核实 0。完整逐行证据在 `docs/upstream-absorb-plan.md` §17.5。最后一次
+`git fetch upstream` 后 `upstream/main` 仍为 `f0e3be11`，没有 1.0.42 changelog，故批34–42 至此收口。
