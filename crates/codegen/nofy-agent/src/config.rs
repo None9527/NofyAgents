@@ -741,6 +741,9 @@ impl BuiltinAgentName {
 #[serde(rename_all = "camelCase")]
 pub struct AgentDefinition {
     pub name: String,
+    /// Typed provenance for native definitions; absent for inline, plugin, and disk profiles.
+    #[serde(skip)]
+    pub builtin_name: Option<BuiltinAgentName>,
     pub description: String,
     /// Plugin namespace for plugin-backed agents only.
     #[serde(skip)]
@@ -1463,12 +1466,16 @@ impl AgentDefinition {
     }
     /// Shared defaults for built-in constructors.
     fn base(name: BuiltinAgentName, description: &str) -> Self {
-        Self::builtin_defaults(name.as_ref(), description)
+        Self {
+            builtin_name: Some(name),
+            ..Self::builtin_defaults(name.as_ref(), description)
+        }
     }
     /// Shared defaults for out-of-tree built-in agent registrations.
     pub fn builtin_defaults(name: &str, description: &str) -> Self {
         Self {
             name: name.to_owned(),
+            builtin_name: None,
             description: description.to_string(),
             plugin_name: None,
             prompt_mode: PromptMode::Extend,
@@ -1676,6 +1683,14 @@ impl AgentDefinition {
             value["promptBody"] = serde_json::Value::String(body.clone());
         }
         value
+    }
+
+    /// True for a client-supplied inline profile with no durable provenance.
+    pub fn is_inline_profile(&self) -> bool {
+        self.builtin_name.is_none()
+            && self.plugin_name.is_none()
+            && self.source_path.is_none()
+            && self.scope == AgentScope::BuiltIn
     }
 }
 #[cfg(test)]
@@ -2429,6 +2444,25 @@ description: Test default tool config
         assert_eq!(recovered.permission_mode, PermissionMode::DontAsk);
         assert_eq!(recovered.tools, vec!["read_file", "grep"]);
         assert_eq!(recovered.disallowed_tools, vec!["web_fetch"]);
+    }
+
+    #[test]
+    fn is_inline_profile_only_for_client_supplied_definitions() {
+        let inline = AgentDefinition::from_json(&serde_json::json!({
+            "name": "custom-profile",
+            "description": "A custom profile",
+        }))
+        .unwrap();
+        assert!(inline.is_inline_profile());
+        assert!(!AgentDefinition::nofy_build_plan().is_inline_profile());
+
+        let mut project = inline.clone();
+        project.scope = AgentScope::Project;
+        assert!(!project.is_inline_profile());
+
+        let mut on_disk = inline;
+        on_disk.source_path = Some(std::path::PathBuf::from("/tmp/custom.md"));
+        assert!(!on_disk.is_inline_profile());
     }
     #[test]
     fn test_model_override_default_is_inherit() {

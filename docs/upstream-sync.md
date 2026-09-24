@@ -944,3 +944,8 @@ Task 17 完成用户文档、架构文档、故障注入、10k/100k 性能基线
 重新逐项反查后确认仍有四个实质缺口，已登记为批39–42：inline agent 完整持久化、agent MCP overlay、
 子代理模型继承设置、冷启动 crash-interrupted turn 标记。此前“已经完全吸收”的结论据此撤回；以
 `docs/upstream-absorb-plan.md` §17 的完成矩阵为准，四批完成并全量反查前不得宣告收口。
+
+批39已完成 inline agent 持久化：内建/插件/磁盘/inline 来源不再混淆；inline profile 的完整定义随 summary
+恢复并随 fork 复制，同名模型切换只更新模型与 effort，不擦除 profile。旧 `agent_name` JSON 完全兼容，异常
+`agent_profile` 降级为 named selection。`nofy-agent` 来源判定、8 项 summary round-trip、fork copy 与存储更新
+定向测试全部通过。

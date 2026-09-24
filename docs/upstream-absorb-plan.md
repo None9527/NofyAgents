@@ -1826,15 +1826,21 @@ Tasks 1–16 的落地提交依次为 `7a649055`、`430d4004`、`5ec36649`、`31
 批38 不增加遥测。取消路径在修复悬空工具调用前快照原状态，避免 actor 队列先完成修复后误武装重复的
 `[Request interrupted]` 提醒。验证覆盖 coordinator handoff、cancel 21 项、chat-state 382 项、interjection 14 项。
 
-### 17.3 重新审计发现的剩余实质差距
+### 17.3 批39：inline agent 完整持久化
+
+> ✅ **批39 已落地（2026-09-24）**：Nofy 为内建定义补充 typed provenance；会话摘要继续兼容旧
+> `agent_name`，仅对无内建、插件或磁盘来源的 client inline profile 同时持久化完整 `agent_profile`。
+> 冷恢复优先使用该定义，模型/effort 的同名刷新不会把它退化成名称，fork 原样继承。损坏、孤立或名称不匹配的
+> profile 安全降级为 named selection。验证覆盖 JSON 兼容、完整 prompt round-trip、同名刷新和真实 fork copy。
+
+### 17.4 重新审计发现的剩余实质差距
 
 | 批次 | 差距 | 完成定义 |
 |---|---|---|
-| 39 | inline 自定义 agent 目前只持久化名称，定义在恢复/重载后丢失 | 持久化选择来源与完整 inline 定义；旧会话兼容；恢复、重载、fork 回归 |
 | 40 | `agent.md` 的 `mcpServers` 尚未覆盖 session MCP 配置 | 初始创建、恢复、切换、fork 均重新物化 overlay；移除/替换无残留；失败有明确诊断 |
 | 41 | 缺少 `subagent_model_inheritance` 用户设置 | 开启时子代理锁定父模型并禁止分叉；关闭时保留显式 model；配置分层、live UI 与重启一致 |
 | 42 | 冷启动未为未闭合 turn 写入 crash-interrupted 标记 | 仅 unmatched turn 生成一次中断记录并闭合；正常完成、重复加载、旧日志均幂等 |
 
-执行顺序固定为 **39 → 40 → 41 → 42 → 全量反查**。每批继续遵守 symbol impact、定向/全量测试、
+剩余执行顺序固定为 **40 → 41 → 42 → 全量反查**。每批继续遵守 symbol impact、定向/全量测试、
 `gitnexus detect-changes` 和独立中文提交。最终反查必须把 1.0.39–1.0.41 changelog 每一项归为“原生落地”、
 “既有等价实现”或“明确有意分歧”，不得保留“待核实”。

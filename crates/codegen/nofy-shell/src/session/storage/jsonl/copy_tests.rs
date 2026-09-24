@@ -1,6 +1,8 @@
 use crate::sampling::ConversationItem;
 use crate::session::info::Info;
-use crate::session::persistence::{CHAT_FORMAT_VERSION, default_model_id};
+use crate::session::persistence::{
+    CHAT_FORMAT_VERSION, PersistedAgent, default_model_id,
+};
 use crate::session::storage::{
     CopySessionOptions, JsonlStorageAdapter, SessionUpdate, StorageAdapter,
 };
@@ -1146,6 +1148,13 @@ async fn copy_session_data_inherits_source_summary_fields() {
     // process-global configured profile.
     let mut src_summary = adapter.read_summary_sync(&source_info).unwrap();
     src_summary.sandbox_profile = Some("workspace".to_string());
+    let inline = nofy_agent::AgentDefinition::from_json(&serde_json::json!({
+        "name": "forked-inline",
+        "description": "Must survive a fork",
+        "promptBody": "Keep this exact prompt.",
+    }))
+    .unwrap();
+    src_summary.set_agent(PersistedAgent::from(&inline));
     adapter
         .write_summary_sync(&source_info, &src_summary)
         .unwrap();
@@ -1163,6 +1172,13 @@ async fn copy_session_data_inherits_source_summary_fields() {
     assert_eq!(loaded.head_commit.as_deref(), Some("abc123"));
     assert_eq!(loaded.head_branch.as_deref(), Some("feature-branch"));
     assert_eq!(loaded.sandbox_profile.as_deref(), Some("workspace"));
+    assert_eq!(loaded.agent_name(), Some("forked-inline"));
+    assert_eq!(
+        loaded
+            .agent_profile()
+            .and_then(|profile| profile.prompt_body.as_deref()),
+        Some("Keep this exact prompt.")
+    );
 }
 
 async fn assert_copy_clears_pending_relocation(fork_filter: bool) {

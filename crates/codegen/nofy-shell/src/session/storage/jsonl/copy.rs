@@ -533,7 +533,7 @@ fn fork_summary(
         // A fork keeps the parent's title, so its manual-ness rides along.
         title_is_manual: source.title_is_manual,
         worktree_label: source.worktree_label,
-        agent_name: source.agent_name,
+        agent: source.agent,
         sandbox_profile: source.sandbox_profile,
         reasoning_effort: source.reasoning_effort,
         // Full forks keep the parent's last turn. Partial forks

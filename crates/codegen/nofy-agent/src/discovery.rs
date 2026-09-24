@@ -1052,6 +1052,7 @@ mod tests {
     fn synthetic_agent(name: &str, desc: &str, scope: AgentScope) -> AgentDefinition {
         AgentDefinition {
             name: name.to_string(),
+            builtin_name: None,
             description: desc.to_string(),
             scope,
             agents_md: false,

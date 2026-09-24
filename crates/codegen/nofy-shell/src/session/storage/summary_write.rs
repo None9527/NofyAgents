@@ -21,7 +21,7 @@ use chrono::{DateTime, Utc};
 use fs2::FileExt;
 use nofy_sampling_types::ReasoningEffort;
 
-use crate::session::persistence::Summary;
+use crate::session::persistence::{PersistedAgent, Summary};
 
 /// How a counter field changes. `Increment` is applied to the in-lock fresh
 /// read (never precomputed by the caller, which would re-open the race); `Set`
@@ -46,7 +46,6 @@ impl CounterOp {
 #[derive(Debug, Clone)]
 pub(crate) struct ModelPatch {
     pub model_id: acp::ModelId,
-    pub agent_name: Option<String>,
     pub reasoning_effort: Option<Option<ReasoningEffort>>,
 }
 
@@ -105,6 +104,8 @@ pub(crate) struct SummaryPatch {
     /// session/new headless stamp; a kind already on disk (crash-recovered
     /// dir, concurrent writer) is never overwritten.
     pub session_kind_if_absent: Option<String>,
+    /// The selected agent, applied as one unit to preserve inline definitions.
+    pub agent: Option<PersistedAgent>,
 }
 
 impl Summary {
@@ -156,12 +157,12 @@ impl Summary {
         }
         if let Some(model) = &patch.model {
             self.current_model_id = model.model_id.clone();
-            if let Some(agent_name) = &model.agent_name {
-                self.agent_name = Some(agent_name.clone());
-            }
             if let Some(reasoning_effort) = &model.reasoning_effort {
                 self.reasoning_effort = *reasoning_effort;
             }
+        }
+        if let Some(agent) = &patch.agent {
+            self.set_agent(agent.clone());
         }
         if let Some(git_head) = &patch.git_head {
             self.head_commit = git_head.commit.clone();

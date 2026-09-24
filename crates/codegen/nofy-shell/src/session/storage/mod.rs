@@ -1164,7 +1164,7 @@ pub trait StorageAdapter: Send + Sync {
         &self,
         info: &Info,
         model_id: &acp::ModelId,
-        agent_name: Option<&str>,
+        agent: Option<&crate::session::persistence::PersistedAgent>,
         reasoning_effort: Option<Option<ReasoningEffort>>,
     ) -> io::Result<()>;
 

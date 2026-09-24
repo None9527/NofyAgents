@@ -479,6 +479,7 @@ impl MvpAgent {
                     persisted_workflow_runs: Vec::new(),
                     persisted_announcement_state: None,
                     session_meta: arguments.meta.as_ref(),
+                    persisted_agent_profile: None,
                     managed_mcp_expires_at,
                     model_agent_type: model_agent_type.as_deref(),
                     session_model_id,
@@ -820,11 +821,23 @@ impl MvpAgent {
                 crate::instrumentation_timer!("session.spawn_and_register_session");
             spawn_timer.with_field("session_id", session_id.0.as_ref());
             spawn_timer.with_subphase(nofy_telemetry::startup::Subphase::SessionSpawn);
-            let persisted_agent_name: Option<String> = summary.agent_name.clone().or_else(|| {
-                self.resolve_model_id(&summary.current_model_id)
-                    .ok()
-                    .map(|m| m.info().agent_type.clone())
-            });
+            let (persisted_agent_profile, persisted_agent_name): (
+                Option<nofy_agent::AgentDefinition>,
+                Option<String>,
+            ) = match summary.persisted_agent() {
+                Some(crate::session::persistence::PersistedAgent::Inline(_)) => {
+                    (summary.agent_profile().cloned(), None)
+                }
+                Some(crate::session::persistence::PersistedAgent::Named(name)) => {
+                    (None, Some(name.clone()))
+                }
+                None => (
+                    None,
+                    self.resolve_model_id(&summary.current_model_id)
+                        .ok()
+                        .map(|model| model.info().agent_type.clone()),
+                ),
+            };
             self.spawn_and_register_session(
                 init,
                 SessionSpawnOptions {
@@ -849,6 +862,7 @@ impl MvpAgent {
                     persisted_workflow_runs,
                     persisted_announcement_state,
                     session_meta: request_meta.as_ref(),
+                    persisted_agent_profile,
                     managed_mcp_expires_at,
                     model_agent_type: persisted_agent_name.as_deref(),
                     session_model_id: summary.current_model_id.clone(),

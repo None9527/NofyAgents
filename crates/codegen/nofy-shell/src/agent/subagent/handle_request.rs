@@ -913,7 +913,7 @@ pub(crate) async fn run_shell_child(
         .tx
         .send(crate::session::persistence::PersistenceMsg::CurrentModel {
             model_id: effective_model_id.clone(),
-            agent_name: Some(definition.name.clone()),
+            agent: crate::session::persistence::PersistedAgent::from(&definition),
             reasoning_effort: Some(effective_sampling_config.reasoning_effort),
         });
     let pins = ctx.compaction_pins_for_child(&definition.user_message_template);

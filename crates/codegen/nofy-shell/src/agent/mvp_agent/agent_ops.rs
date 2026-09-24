@@ -2694,6 +2694,7 @@ impl MvpAgent {
             persisted_workflow_runs,
             persisted_announcement_state,
             session_meta,
+            persisted_agent_profile,
             managed_mcp_expires_at,
             model_agent_type,
             session_model_id,
@@ -2953,7 +2954,8 @@ impl MvpAgent {
         let buffering_settings = self.buffering_settings.borrow().clone();
         let skills = self.cfg.borrow().skills.clone();
         let compat = self.cfg.borrow().compat_resolved;
-        let acp_agent_profile = parse_agent_profile_from_meta(session_meta);
+        let acp_agent_profile =
+            parse_agent_profile_from_meta(session_meta).or(persisted_agent_profile);
         let session_default_agent_profile = acp_agent_profile
             .as_ref()
             .map(|d| d.name.clone());
@@ -3255,7 +3257,7 @@ impl MvpAgent {
                 .tx
                 .send(crate::session::persistence::PersistenceMsg::CurrentModel {
                     model_id: session_model_id.clone(),
-                    agent_name: Some(agent_definition.name.clone()),
+                    agent: crate::session::persistence::PersistedAgent::from(&agent_definition),
                     reasoning_effort: initial_reasoning_effort,
                 });
             let acp_mcp_servers = crate::session::acp_mcp::parse_acp_mcp_servers(

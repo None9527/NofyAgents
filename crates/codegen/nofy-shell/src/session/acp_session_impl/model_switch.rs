@@ -117,7 +117,7 @@ impl SessionActor {
             .persistence_tx
             .send(PersistenceMsg::CurrentModel {
                 model_id: model_id.clone(),
-                agent_name: Some(agent_name),
+                agent: crate::session::persistence::PersistedAgent::Named(agent_name),
                 reasoning_effort: Some(sampling_config.reasoning_effort),
             });
         self.emit_status_snapshot_detached();

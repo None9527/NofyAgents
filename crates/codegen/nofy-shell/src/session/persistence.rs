@@ -121,10 +121,8 @@ pub(crate) enum PersistenceMsg {
     },
     CurrentModel {
         model_id: acp::ModelId,
-        /// The active agent definition name (e.g. `"nofy-build"`).
-        /// Persisted in `summary.agent_name` so session resume doesn't depend
-        /// on the mutable model catalog.
-        agent_name: Option<String>,
+        /// Persisted so resume does not depend on mutable external definitions.
+        agent: PersistedAgent,
         reasoning_effort: Option<Option<ReasoningEffort>>,
     },
     PlanState(TodoState),
@@ -778,6 +776,84 @@ pub struct PendingCwdSwitchReminder {
     pub destination_project_instructions: Option<String>,
 }
 
+/// The selected agent persisted with enough provenance to rebuild it exactly.
+#[derive(Debug, Clone)]
+pub enum PersistedAgent {
+    Named(String),
+    Inline(Box<nofy_agent::AgentDefinition>),
+}
+
+impl PersistedAgent {
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            Self::Named(name) => name,
+            Self::Inline(definition) => &definition.name,
+        }
+    }
+
+    pub(crate) fn inline_definition(&self) -> Option<&nofy_agent::AgentDefinition> {
+        match self {
+            Self::Named(_) => None,
+            Self::Inline(definition) => Some(definition),
+        }
+    }
+}
+
+impl From<&nofy_agent::AgentDefinition> for PersistedAgent {
+    fn from(definition: &nofy_agent::AgentDefinition) -> Self {
+        if definition.is_inline_profile() {
+            Self::Inline(Box::new(definition.clone()))
+        } else {
+            Self::Named(definition.name.clone())
+        }
+    }
+}
+
+/// Backward-compatible `agent_name`/`agent_profile` representation.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct PersistedAgentSelection {
+    selected: Option<PersistedAgent>,
+}
+
+impl serde::Serialize for PersistedAgentSelection {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(None)?;
+        match &self.selected {
+            None => {}
+            Some(PersistedAgent::Named(name)) => map.serialize_entry("agent_name", name)?,
+            Some(PersistedAgent::Inline(definition)) => {
+                map.serialize_entry("agent_name", &definition.name)?;
+                map.serialize_entry("agent_profile", &definition.to_json_value())?;
+            }
+        }
+        map.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for PersistedAgentSelection {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            #[serde(default)]
+            agent_name: Option<String>,
+            #[serde(default)]
+            agent_profile: Option<serde_json::Value>,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+        let selected = raw.agent_name.map(|name| {
+            raw.agent_profile
+                .and_then(|value| nofy_agent::AgentDefinition::from_json(&value).ok())
+                .filter(|definition| definition.name == name)
+                .map(|definition| PersistedAgent::Inline(Box::new(definition)))
+                .unwrap_or(PersistedAgent::Named(name))
+        });
+        Ok(Self { selected })
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Summary {
     pub info: Info,
@@ -881,12 +957,10 @@ pub struct Summary {
     /// Human-readable label for the worktree directory (e.g. "nuke-v-tables").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub worktree_label: Option<String>,
-    /// The agent definition name that was active when the session was last saved.
-    /// Used during session resume to avoid re-deriving from the (mutable) model
-    /// catalog — if the model is removed or its `agent_type` changes between
-    /// sessions, this persisted value ensures the correct harness is restored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent_name: Option<String>,
+    /// The active agent selection. Inline profiles retain their complete definition;
+    /// named profiles retain the legacy name-only representation.
+    #[serde(flatten)]
+    pub(crate) agent: PersistedAgentSelection,
     /// The OS sandbox profile this session ran under (e.g. "workspace",
     /// "strict", "off", or a custom name). Persisted so a resumed session is
     /// restored to the same profile instead of silently falling back to the
@@ -920,6 +994,30 @@ pub fn default_model_id() -> acp::ModelId {
 }
 
 impl Summary {
+    /// A same-name model or effort refresh must not erase an inline definition.
+    pub(crate) fn set_agent(&mut self, agent: PersistedAgent) {
+        let reasserts_current = matches!(&agent, PersistedAgent::Named(name)
+            if self.agent_name() == Some(name.as_str()));
+        if !reasserts_current {
+            self.agent.selected = Some(agent);
+        }
+    }
+
+    pub(crate) fn agent_name(&self) -> Option<&str> {
+        self.agent.selected.as_ref().map(PersistedAgent::name)
+    }
+
+    pub(crate) fn agent_profile(&self) -> Option<&nofy_agent::AgentDefinition> {
+        self.agent
+            .selected
+            .as_ref()
+            .and_then(PersistedAgent::inline_definition)
+    }
+
+    pub(crate) fn persisted_agent(&self) -> Option<&PersistedAgent> {
+        self.agent.selected.as_ref()
+    }
+
     pub(crate) fn new(info: &Info, model_id: acp::ModelId) -> std::io::Result<Self> {
         let git_metadata =
             nofy_workspace::session::git::resolve_persisted_session_git_metadata_sync(
@@ -959,7 +1057,7 @@ impl Summary {
             generated_title: None,
             title_is_manual: false,
             worktree_label: crate::session::worktree::lookup_worktree_label(&info.cwd),
-            agent_name: None,
+            agent: PersistedAgentSelection::default(),
             sandbox_profile: None,
             reasoning_effort: None,
             last_turn_summary: None,
@@ -2019,7 +2117,7 @@ impl SessionPersistence {
                 }
                 PersistenceMsg::CurrentModel {
                     model_id,
-                    agent_name,
+                    agent,
                     reasoning_effort,
                 } => {
                     if let Err(e) = self
@@ -2027,7 +2125,7 @@ impl SessionPersistence {
                         .update_current_model_and_agent(
                             &self.info,
                             &model_id,
-                            agent_name.as_deref(),
+                            Some(&agent),
                             reasoning_effort,
                         )
                         .await
@@ -3213,12 +3311,12 @@ mod agent_name_persistence_tests {
             default_model_id(),
         )
         .unwrap();
-        summary.agent_name = Some("cursor".into());
+        summary.set_agent(PersistedAgent::Named("cursor".into()));
 
         let json = serde_json::to_string(&summary).unwrap();
         let deserialized: Summary = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.agent_name.as_deref(), Some("cursor"));
+        assert_eq!(deserialized.agent_name(), Some("cursor"));
     }
 
     #[test]
@@ -3236,7 +3334,7 @@ mod agent_name_persistence_tests {
         }"#;
         let summary: Summary = serde_json::from_str(json).unwrap();
         assert!(
-            summary.agent_name.is_none(),
+            summary.agent_name().is_none(),
             "old summaries without agent_name should deserialize as None"
         );
     }
@@ -3268,7 +3366,7 @@ mod agent_name_persistence_tests {
             default_model_id(),
         )
         .unwrap();
-        summary.agent_name = Some("cursor".into());
+        summary.set_agent(PersistedAgent::Named("cursor".into()));
         let json = serde_json::to_string(&summary).unwrap();
         assert!(json.contains("agent_name"));
         assert!(json.contains("cursor"));
@@ -3291,12 +3389,12 @@ mod agent_name_persistence_tests {
                 default_model_id(),
             )
             .unwrap();
-            summary.agent_name = Some(name.into());
+            summary.set_agent(PersistedAgent::Named(name.into()));
 
             let json = serde_json::to_string(&summary).unwrap();
             let deserialized: Summary = serde_json::from_str(&json).unwrap();
             assert_eq!(
-                deserialized.agent_name.as_deref(),
+                deserialized.agent_name(),
                 Some(name),
                 "round-trip failed for agent_name={name}"
             );
@@ -3319,9 +3417,66 @@ mod agent_name_persistence_tests {
             "head_branch": "main"
         }"#;
         let summary: Summary = serde_json::from_str(json).unwrap();
-        assert_eq!(summary.agent_name.as_deref(), Some("cursor"));
+        assert_eq!(summary.agent_name(), Some("cursor"));
         assert_eq!(summary.current_model_id.0.as_ref(), "cursor-model");
         assert_eq!(summary.generated_title.as_deref(), Some("Fix editor mode"));
+    }
+
+    #[test]
+    fn inline_profile_survives_json_round_trip_and_same_name_refresh() {
+        let definition = nofy_agent::AgentDefinition::from_json(&serde_json::json!({
+            "name": "custom-profile",
+            "description": "A custom profile",
+            "promptBody": "Custom system instructions.",
+        }))
+        .unwrap();
+        let mut summary = Summary::new(
+            &Info {
+                id: acp::SessionId::new("test"),
+                cwd: "/tmp".into(),
+            },
+            default_model_id(),
+        )
+        .unwrap();
+        summary.set_agent(PersistedAgent::from(&definition));
+        summary.set_agent(PersistedAgent::Named("custom-profile".into()));
+
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("agent_profile"));
+        let restored: Summary = serde_json::from_str(&json).unwrap();
+        let profile = restored.agent_profile().expect("inline profile restored");
+        assert_eq!(profile.name, "custom-profile");
+        assert_eq!(
+            profile.prompt_body.as_deref(),
+            Some("Custom system instructions.")
+        );
+    }
+
+    #[test]
+    fn malformed_or_mismatched_inline_profile_falls_back_to_named() {
+        for profile in [
+            serde_json::json!({ "unexpected": "shape" }),
+            serde_json::json!({ "name": "B", "description": "wrong selection" }),
+        ] {
+            let mut value = serde_json::to_value(
+                Summary::new(
+                    &Info {
+                        id: acp::SessionId::new("test"),
+                        cwd: "/tmp".into(),
+                    },
+                    default_model_id(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let object = value.as_object_mut().unwrap();
+            object.insert("agent_name".into(), serde_json::json!("A"));
+            object.insert("agent_profile".into(), profile);
+
+            let restored: Summary = serde_json::from_value(value).unwrap();
+            assert_eq!(restored.agent_name(), Some("A"));
+            assert!(restored.agent_profile().is_none());
+        }
     }
 }
 
