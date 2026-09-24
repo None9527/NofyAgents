@@ -58,6 +58,7 @@ impl SessionActor {
                 query_params: sampling_config.query_params.clone(),
                 env_http_headers: sampling_config.env_http_headers.clone(),
                 context_window: new_context_window,
+                max_request_bytes: sampling_config.max_request_bytes,
                 reasoning_effort: sampling_config.reasoning_effort,
                 reasoning_summary: sampling_config.reasoning_summary,
                 stream_tool_calls: Some(sampling_config.stream_tool_calls),

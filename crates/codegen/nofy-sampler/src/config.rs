@@ -6,6 +6,8 @@
 //! avoids transitive dependencies on shell-specific types
 //! (`nofy-tools`, etc.).
 
+use std::num::NonZeroU64;
+
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use nofy_sampling_types::{
@@ -82,6 +84,9 @@ pub struct SamplerConfig {
     /// it; it is informational metadata used by the session for compaction
     /// decisions.
     pub context_window: u64,
+    /// Provider request-body cap; `None` preserves the historical 50 MiB budget.
+    #[serde(default)]
+    pub max_request_bytes: Option<NonZeroU64>,
     pub force_http1: bool,
     pub max_retries: Option<u32>,
     /// Total-attempt ceiling for rate-limited (429) requests on *this* request,
@@ -172,6 +177,7 @@ impl Default for SamplerConfig {
             query_params: IndexMap::new(),
             env_http_headers: IndexMap::new(),
             context_window: 0,
+            max_request_bytes: None,
             force_http1: false,
             max_retries: None,
             rate_limit_retry_threshold: None,

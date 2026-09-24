@@ -2848,6 +2848,8 @@ pub(crate) fn resolve_model_list(
     // donor's `responses` would clobber the user's explicit choice (1.0.22#18).
     let mut explicit_api_backend_keys: std::collections::HashSet<String> =
         std::collections::HashSet::new();
+    let mut explicit_supports_effort_false_keys = std::collections::HashSet::new();
+    let mut explicit_effort_menu_keys = std::collections::HashSet::new();
     for (key, model_override) in &cfg.config_models {
         let had_base = resolved.contains_key(key);
         let base = resolved.shift_remove(key);
@@ -2871,6 +2873,14 @@ pub(crate) fn resolve_model_list(
         let effective = with_provider.as_ref().unwrap_or(model_override);
         if effective.api_backend.is_some() {
             explicit_api_backend_keys.insert(key.clone());
+        }
+        if effective.supports_reasoning_effort == Some(false)
+            && effective.reasoning_efforts.is_empty()
+        {
+            explicit_supports_effort_false_keys.insert(key.clone());
+        }
+        if !effective.reasoning_efforts.is_empty() {
+            explicit_effort_menu_keys.insert(key.clone());
         }
         let mut entry = effective.apply(key, base, &cfg.endpoints);
         let session_bearer_unsafe = !crate::util::is_xai_api_bearer_url(&entry.info.base_url)
@@ -2927,6 +2937,25 @@ pub(crate) fn resolve_model_list(
                     )
                 })
                 .collect();
+        let mut effort_menu_donors: std::collections::HashMap<
+            String,
+            Vec<ReasoningEffortOption>,
+        > = std::collections::HashMap::new();
+        for (key, entry) in &resolved {
+            if entry.info.reasoning_efforts.is_empty() {
+                continue;
+            }
+            let canonical_key = key == &entry.info.model;
+            if canonical_key
+                || (!explicit_effort_menu_keys.contains(key)
+                    && !effort_menu_donors.contains_key(&entry.info.model))
+            {
+                effort_menu_donors.insert(
+                    entry.info.model.clone(),
+                    entry.info.reasoning_efforts.clone(),
+                );
+            }
+        }
         for (key, entry) in resolved.iter_mut() {
             if let Some((donor_cw, donor_backend)) = donors.get(&entry.info.model) {
                 if entry.info.context_window.get() == default_cw {
@@ -2945,6 +2974,16 @@ pub(crate) fn resolve_model_list(
                     entry.info.api_backend.clone_from(donor_backend);
                 }
             }
+            if entry.info.reasoning_efforts.is_empty()
+                && let Some(menu) = effort_menu_donors.get(&entry.info.model)
+            {
+                tracing::debug!(
+                    model_key = %key,
+                    model = %entry.info.model,
+                    "slug-match: inheriting reasoning_efforts from sibling catalog entry"
+                );
+                entry.info.reasoning_efforts.clone_from(menu);
+            }
         }
     }
     if let Some(ref global_agent_type) = cfg.models.agent_type {
@@ -2960,6 +2999,12 @@ pub(crate) fn resolve_model_list(
     }
     apply_global_extra_headers(&mut resolved, &cfg.models);
     apply_global_scalar_defaults(&mut resolved, &cfg.models);
+    for key in explicit_supports_effort_false_keys {
+        if let Some(entry) = resolved.get_mut(&key) {
+            entry.info.reasoning_efforts.clear();
+            entry.info.reasoning_effort = None;
+        }
+    }
     for entry in resolved.values_mut() {
         entry.info.derive_reasoning_effort_fields();
     }
@@ -3065,6 +3110,7 @@ struct DefaultModelJson {
     name: Option<String>,
     description: Option<String>,
     context_window: Option<NonZeroU64>,
+    max_request_bytes: Option<NonZeroU64>,
     temperature: Option<f32>,
     top_p: Option<f32>,
     max_completion_tokens: Option<u32>,
@@ -3127,6 +3173,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 name: m.name,
                 description: m.description,
                 context_window,
+                max_request_bytes: m.max_request_bytes,
                 auto_compact_threshold_percent: m.auto_compact_threshold_percent,
                 system_prompt_label: m.system_prompt_label,
                 temperature: m.temperature,
@@ -3215,6 +3262,9 @@ pub struct ModelEntryConfig {
     /// Used for auto-compact threshold calculations.
     /// Required — BYOK users must explicitly set this in config.toml.
     pub context_window: NonZeroU64,
+    /// Provider HTTP request-body cap; unset uses the protocol default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_request_bytes: Option<NonZeroU64>,
     /// Per-model auto-compact threshold (0-100). When the session's token
     /// usage exceeds this percentage of `context_window`, the conversation
     /// is summarized. Resolver precedence:
@@ -3347,6 +3397,7 @@ pub struct ConfigModelOverride {
     #[serde(default)]
     pub env_http_headers: IndexMap<String, String>,
     pub context_window: Option<u64>,
+    pub max_request_bytes: Option<NonZeroU64>,
     /// Per-model auto-compact threshold override (0-100) from `[model.<id>]`.
     /// Read directly by `resolve_auto_compact_threshold_percent`; intentionally
     /// NOT merged into `ModelInfo.auto_compact_threshold_percent` so the
@@ -3437,6 +3488,9 @@ impl ConfigModelOverride {
         }
         if let Some(cw) = self.context_window.and_then(NonZeroU64::new) {
             entry.info.context_window = cw;
+        }
+        if self.max_request_bytes.is_some() {
+            entry.info.max_request_bytes = self.max_request_bytes;
         }
         if let Some(v) = self.use_concise {
             entry.info.use_concise = v;
@@ -3556,6 +3610,8 @@ pub struct ModelInfo {
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub env_http_headers: IndexMap<String, String>,
     pub context_window: NonZeroU64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_request_bytes: Option<NonZeroU64>,
     /// Per-model auto-compact threshold (0-100). `None` defers to the
     /// global / default tiers in `resolve_auto_compact_threshold_percent`.
     pub auto_compact_threshold_percent: Option<u8>,
@@ -3640,6 +3696,7 @@ impl ModelInfo {
             query_params: IndexMap::new(),
             env_http_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
+            max_request_bytes: None,
             auto_compact_threshold_percent: None,
             system_prompt_label: None,
             use_concise: false,
@@ -3681,6 +3738,7 @@ impl ModelInfo {
             query_params: IndexMap::new(),
             env_http_headers: IndexMap::new(),
             context_window: entry.context_window,
+            max_request_bytes: entry.max_request_bytes,
             auto_compact_threshold_percent: entry.auto_compact_threshold_percent,
             system_prompt_label: entry.system_prompt_label.clone(),
             use_concise: entry.use_concise,
@@ -4416,6 +4474,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 query_params: IndexMap::new(),
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(200_000).unwrap(),
+                max_request_bytes: None,
                 auto_compact_threshold_percent: None,
                 system_prompt_label: None,
                 use_concise: false,
@@ -4564,6 +4623,10 @@ pub(crate) fn sampling_config_for_model(
         query_params: info.query_params.clone(),
         env_http_headers: info.env_http_headers.clone(),
         context_window: info.context_window.get(),
+        max_request_bytes: Some(
+            info.max_request_bytes
+                .unwrap_or_else(|| info.api_backend.default_max_request_bytes()),
+        ),
         client_version,
         reasoning_effort: info.reasoning_effort,
         reasoning_summary: info.reasoning_summary,
@@ -5674,6 +5737,7 @@ reasoning_effort = "low"
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(200_000).unwrap(),
                 auto_compact_threshold_percent: None,
+                max_request_bytes: None,
                 system_prompt_label: None,
                 use_concise: false,
                 agent_type: default_agent_type(),
@@ -6783,6 +6847,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
             use_concise: true,
@@ -6944,6 +7009,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
             use_concise: false,
@@ -7397,6 +7463,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
             use_concise: false,
@@ -10396,6 +10463,72 @@ default = "grok-4.5"
             "no donor exists, context_window should stay at parser default"
         );
     }
+    #[test]
+    fn slug_propagation_inherits_reasoning_effort_menu() {
+        let raw: toml::Value = toml::from_str(
+            r#"
+            [model.friendly-name]
+            model = "shared-wire-slug"
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
+        let mut prefetched = IndexMap::new();
+        let mut canonical = prefetch_model_entry(
+            "shared-wire-slug",
+            DEFAULT_CONTEXT_WINDOW,
+            ApiBackend::default(),
+        );
+        canonical.info.reasoning_efforts = vec![ReasoningEffortOption {
+            id: "deep".to_owned(),
+            value: ReasoningEffort::Xhigh,
+            label: "Deep".to_owned(),
+            description: None,
+            default: true,
+        }];
+        prefetched.insert("shared-wire-slug".to_owned(), canonical);
+
+        let resolved = resolve_model_list(&cfg, Some(prefetched));
+        let alias = resolved.get("friendly-name").expect("alias exists");
+        let canonical = resolved
+            .get("shared-wire-slug")
+            .expect("canonical entry exists");
+        assert_eq!(canonical.info.reasoning_efforts, alias.info.reasoning_efforts);
+        assert_eq!(canonical.info.reasoning_effort, Some(ReasoningEffort::Xhigh));
+    }
+
+    #[test]
+    fn explicit_effort_disable_beats_same_slug_menu() {
+        let raw: toml::Value = toml::from_str(
+            r#"
+            [model.disabled-alias]
+            model = "shared-wire-slug"
+            supports_reasoning_effort = false
+            "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
+        let mut canonical = prefetch_model_entry(
+            "shared-wire-slug",
+            DEFAULT_CONTEXT_WINDOW,
+            ApiBackend::default(),
+        );
+        canonical.info.reasoning_efforts = vec![ReasoningEffortOption {
+            id: "high".to_owned(),
+            value: ReasoningEffort::High,
+            label: "High".to_owned(),
+            description: None,
+            default: true,
+        }];
+        let mut prefetched = IndexMap::new();
+        prefetched.insert("shared-wire-slug".to_owned(), canonical);
+
+        let resolved = resolve_model_list(&cfg, Some(prefetched));
+        let disabled = resolved.get("disabled-alias").expect("alias exists");
+        assert!(!disabled.info.supports_reasoning_effort);
+        assert!(disabled.info.reasoning_efforts.is_empty());
+        assert!(disabled.info.reasoning_effort.is_none());
+    }
     /// Build a minimal `ModelEntry` for testing resolve_model_list.
     fn prefetch_model_entry(
         slug: &str,
@@ -10420,6 +10553,7 @@ default = "grok-4.5"
                 query_params: IndexMap::new(),
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(context_window).unwrap(),
+                max_request_bytes: None,
                 use_concise: false,
                 agent_type: default_agent_type(),
                 inference_idle_timeout_secs: None,

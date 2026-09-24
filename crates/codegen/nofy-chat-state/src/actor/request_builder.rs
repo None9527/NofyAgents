@@ -71,7 +71,14 @@ impl ChatStateActor {
         // base64 escape scan), so it runs inline on every turn. Eviction
         // rewrites earlier turns and busts the KV-cache prefix, so it only
         // fires when a 413 is actually near.
-        let budgeted = crate::image_budget::apply_image_budget(self.state.conversation.clone());
+        let (trigger_bytes, reclaim_target_bytes) = crate::image_budget::image_budget_limits(
+            self.state.sampling_config.max_request_bytes,
+        );
+        let budgeted = crate::image_budget::apply_image_budget_with_limits(
+            self.state.conversation.clone(),
+            trigger_bytes,
+            reclaim_target_bytes,
+        );
         let crate::image_budget::ImageBudgetOutcome {
             body_bytes,
             body_bytes_after,
@@ -88,8 +95,8 @@ impl ChatStateActor {
         if inline_images > 0 {
             self.send_event(ChatStateEvent::ImageBudget {
                 body_bytes,
-                trigger_bytes: crate::image_budget::IMAGE_COMPACT_TRIGGER_BYTES,
-                reclaim_target_bytes: crate::image_budget::IMAGE_COMPACT_RECLAIM_TARGET_BYTES,
+                trigger_bytes,
+                reclaim_target_bytes,
                 inline_images,
                 needs_image_compaction,
                 evicted,

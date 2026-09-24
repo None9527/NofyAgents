@@ -115,6 +115,7 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                     query_params: Default::default(),
                     env_http_headers: Default::default(),
                     context_window: std::num::NonZeroU64::new(200_000).unwrap(),
+                    max_request_bytes: None,
                     reasoning_effort: None,
                     reasoning_summary: None,
                     stream_tool_calls: None,

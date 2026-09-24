@@ -2193,6 +2193,7 @@ async fn retry_after_lost_ack_converges_memory_and_disk_to_authoritative_item() 
             query_params: Default::default(),
             env_http_headers: Default::default(),
             context_window: std::num::NonZeroU64::new(128_000).unwrap(),
+            max_request_bytes: None,
             reasoning_effort: None,
             reasoning_summary: None,
             stream_tool_calls: None,

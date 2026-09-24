@@ -58,6 +58,7 @@ async fn create_test_actor_with_memory(
             env_http_headers: Default::default(),
             context_window: std::num::NonZeroU64::new(context_window)
                 .expect("test context_window must be non-zero"),
+            max_request_bytes: None,
             reasoning_effort: None,
             reasoning_summary: None,
             stream_tool_calls: None,

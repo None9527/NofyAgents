@@ -804,6 +804,7 @@ async fn read_parent_sampling_config(
                 query_params: cfg.query_params.clone(),
                 env_http_headers: cfg.env_http_headers.clone(),
                 context_window: cfg.context_window.get(),
+                max_request_bytes: cfg.max_request_bytes,
                 client_version: creds.client_version,
                 reasoning_effort: cfg.reasoning_effort,
                 reasoning_summary: cfg.reasoning_summary,

@@ -1005,6 +1005,16 @@ impl ApiBackend {
     pub fn forwards_prompt_cache_key(&self) -> bool {
         matches!(self, Self::Responses)
     }
+
+    /// Default HTTP request-body cap for this protocol.
+    pub const fn default_max_request_bytes(&self) -> NonZeroU64 {
+        match self {
+            Self::ChatCompletions | Self::Responses => {
+                NonZeroU64::new(50 * 1024 * 1024).unwrap()
+            }
+            Self::Messages => NonZeroU64::new(30_000_000).unwrap(),
+        }
+    }
 }
 
 /// Sampling client configuration (API key excluded — that stays in the client).
@@ -1042,6 +1052,9 @@ pub struct SamplingConfig {
     pub env_http_headers: indexmap::IndexMap<String, String>,
     /// Total context window size in tokens. Used for auto-compact thresholds.
     pub context_window: NonZeroU64,
+    /// Provider request-body cap; model resolution normally fills the backend default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_request_bytes: Option<NonZeroU64>,
     /// Reasoning effort level for reasoning models.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<ReasoningEffort>,
@@ -1072,6 +1085,7 @@ impl Default for SamplingConfig {
             query_params: indexmap::IndexMap::new(),
             env_http_headers: indexmap::IndexMap::new(),
             context_window: NonZeroU64::MIN,
+            max_request_bytes: None,
             reasoning_effort: None,
             reasoning_summary: None,
             stream_tool_calls: None,

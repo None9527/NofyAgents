@@ -2322,6 +2322,7 @@ mod inline_auto_compact_flow_tests {
                 env_http_headers: Default::default(),
                 context_window: std::num::NonZeroU64::new(context_window)
                     .expect("test context_window must be non-zero"),
+                max_request_bytes: None,
                 reasoning_effort: None,
                 reasoning_summary: None,
                 stream_tool_calls: None,
