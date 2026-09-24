@@ -618,6 +618,8 @@ pub enum TurnOutcomeLabel {
     Completed,
     Cancelled,
     Error,
+    /// The process exited or restarted before the turn reached a terminal.
+    Interrupted,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]

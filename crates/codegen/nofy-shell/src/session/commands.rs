@@ -469,6 +469,12 @@ pub enum SessionCommand {
         next_trace_turn: u64,
         request_id: Option<String>,
     },
+    /// Tell the model once that the previous process left its last turn unfinished.
+    NoteInterruptedTurn {
+        trace_turn: u64,
+        prompt_id: String,
+        reminder: String,
+    },
     /// Flush pending writes and copy the current session directory contents to memory.
     /// The caller can then tar.gz + upload to GCS (or similar).
     CopyFile {

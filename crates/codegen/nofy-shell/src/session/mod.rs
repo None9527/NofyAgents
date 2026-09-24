@@ -4,6 +4,7 @@ pub mod announcement_state;
 pub mod commands;
 pub(crate) mod compaction_config;
 pub mod handle;
+pub(crate) mod interrupted_turn;
 pub(crate) mod memory_state;
 pub(crate) mod memory_capture;
 pub mod merge;

@@ -1234,7 +1234,7 @@ impl SessionActor {
         let kind = match outcome {
             TurnOutcomeLabel::Completed => EventKind::TurnCompleted,
             TurnOutcomeLabel::Cancelled => EventKind::TurnCancelled,
-            TurnOutcomeLabel::Error => EventKind::TurnFailed,
+            TurnOutcomeLabel::Error | TurnOutcomeLabel::Interrupted => EventKind::TurnFailed,
         };
         let mut payload = serde_json::Map::new();
         if let Some(category) = category {

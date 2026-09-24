@@ -1383,6 +1383,18 @@ pub(super) async fn run_session(
                                     request_id,
                                 });
                         }
+                        SessionCommand::NoteInterruptedTurn {
+                            trace_turn,
+                            prompt_id,
+                            reminder,
+                        } => {
+                            session.push_system_reminder(&reminder);
+                            tracing::info!(
+                                trace_turn,
+                                %prompt_id,
+                                "Injected interrupted-turn reminder for the model"
+                            );
+                        }
                         SessionCommand::CopyFile { respond_to } => {
                             // Flush the actor-owned replay buffer first so any
                             // buffered notifications (e.g. streamed reasoning
