@@ -565,6 +565,7 @@ impl HostService {
                     fork_context,
                     owner: SubagentOwner::workflow(&self.params.run_id),
                     cancel_token: cancel_token.clone(),
+                    tool_call_id: None,
                 }
             };
 

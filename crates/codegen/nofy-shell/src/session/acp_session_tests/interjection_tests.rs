@@ -174,10 +174,8 @@ mod interjection_format_tests {
         );
     }
 
-    /// The interjection is a real user message: no deferral instruction
-    /// telling the model to finish its current task first (the model weighs
-    /// the steering itself, like common mid-turn injection semantics). The
-    /// wrapped query must be the final content of the message.
+    /// The interjection is a real user message: it must not be deferred until
+    /// prior work finishes, and any requested reply must be visible first.
     #[test]
     fn interjection_has_no_deferral_instruction() {
         let wrapped = format_interjection("please also add tests".to_string());
@@ -185,10 +183,9 @@ mod interjection_format_tests {
             !wrapped.contains("After completing your current task"),
             "interjection must not defer the user's message, got: {wrapped}"
         );
-        assert!(
-            wrapped.trim_end().ends_with("</user_query>"),
-            "nothing may follow the wrapped user query, got: {wrapped}"
-        );
+        assert!(wrapped.ends_with(
+            "If the user is asking for a response, address the user first. After replying, complete any unfinished tasks from previous turns."
+        ));
     }
 }
 

@@ -13,9 +13,10 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 
 use super::types::{
-    SpawnedSubagentRef, SubagentCancelOutcome, SubagentCancelRequest, SubagentCancelTarget,
-    SubagentDescribeOutcome, SubagentDescribeRequest, SubagentEvent, SubagentInspectRequest,
-    SubagentInspection, SubagentListRunningRequest, SubagentQueryRequest, SubagentRegistryCounts,
+    HandedOffForegroundSubagent, SpawnedSubagentRef, SubagentCancelOutcome, SubagentCancelRequest,
+    SubagentCancelTarget, SubagentDescribeOutcome, SubagentDescribeRequest, SubagentEvent,
+    SubagentHandOffForegroundRequest, SubagentInspectRequest, SubagentInspection,
+    SubagentListRunningRequest, SubagentQueryRequest, SubagentRegistryCounts,
     SubagentRegistryCountsRequest, SubagentRequest, SubagentResult, SubagentSnapshot,
     SubagentSpawnRequest, SubagentSpawnedRefsRequest, SubagentValidateTypeOutcome,
     SubagentValidateTypeRequest,
@@ -247,6 +248,30 @@ impl ChannelBackend {
                 prompt_id: prompt_id.to_owned(),
                 respond_to,
             }))
+            .is_err()
+        {
+            return Vec::new();
+        }
+        response_rx.await.unwrap_or_default()
+    }
+
+    pub async fn hand_off_foreground_for_prompt(
+        &self,
+        prompt_id: &str,
+    ) -> Vec<HandedOffForegroundSubagent> {
+        let Some(parent_session_id) = self.parent_session_id() else {
+            return Vec::new();
+        };
+        let (respond_to, response_rx) = oneshot::channel();
+        if self
+            .tx
+            .send(SubagentEvent::HandOffForeground(
+                SubagentHandOffForegroundRequest {
+                    parent_session_id,
+                    prompt_id: prompt_id.to_owned(),
+                    respond_to,
+                },
+            ))
             .is_err()
         {
             return Vec::new();

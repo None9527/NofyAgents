@@ -329,6 +329,7 @@ fn auto_wake_test_request(id: &str) -> SubagentRequest {
         fork_context: false,
         owner: SubagentOwner::Task,
         cancel_token: CancellationToken::new(),
+        tool_call_id: None,
     }
 }
 /// Behavior-level: the action half of the subagent auto-wake.
@@ -1192,6 +1193,7 @@ fn bootstrap_test_request(fork_context: bool) -> SubagentRequest {
         fork_context,
         owner: SubagentOwner::Task,
         cancel_token: CancellationToken::new(),
+        tool_call_id: None,
     }
 }
 #[tokio::test]

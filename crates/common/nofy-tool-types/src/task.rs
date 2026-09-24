@@ -396,6 +396,85 @@ pub fn format_subagent_started_background(
     text
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForegroundSpawnInterrupt {
+    UserSentMessage,
+    UserStoppedTurn,
+}
+
+impl ForegroundSpawnInterrupt {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::UserSentMessage => "user_sent_message",
+            Self::UserStoppedTurn => "user_stopped_turn",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HandedOffSubagentState {
+    Running,
+    Queued,
+    Finished,
+    Cancelled,
+}
+
+impl HandedOffSubagentState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::Queued => "queued",
+            Self::Finished => "finished",
+            Self::Cancelled => "cancelled",
+        }
+    }
+}
+
+/// Explain an interrupted blocking spawn without pretending the child never ran.
+pub fn format_subagent_backgrounded_on_turn_end(
+    subagent_id: &str,
+    subagent_type: &str,
+    description: &str,
+    task_output_tool_name: &str,
+    interrupt: ForegroundSpawnInterrupt,
+    state: HandedOffSubagentState,
+    notified_on_completion: bool,
+) -> String {
+    let cause = match interrupt {
+        ForegroundSpawnInterrupt::UserSentMessage => "the user's message ended this turn",
+        ForegroundSpawnInterrupt::UserStoppedTurn => "the user stopped this turn",
+    };
+    let notify_clause = if notified_on_completion {
+        " — you will be notified when it completes"
+    } else {
+        ""
+    };
+    let headline = match state {
+        HandedOffSubagentState::Running => format!(
+            "Subagent was moved to the background because {cause}. It was not cancelled and \
+             is still running{notify_clause} — do not spawn it again."
+        ),
+        HandedOffSubagentState::Queued => format!(
+            "Subagent was moved to the background because {cause}. It was not cancelled and \
+             is queued to start when a subagent slot frees{notify_clause} — do not spawn it again."
+        ),
+        HandedOffSubagentState::Finished => format!(
+            "Subagent finished, but {cause} before its result was delivered here — do not \
+             spawn it again."
+        ),
+        HandedOffSubagentState::Cancelled => {
+            "Subagent was cancelled before its result was delivered here.".to_owned()
+        }
+    };
+    format!(
+        "{headline}\n\
+         subagent_id: {subagent_id}\n\
+         type: {subagent_type}\n\
+         description: {description}\n\n\
+         Use {task_output_tool_name} with task_ids=[\"{subagent_id}\"] and timeout_ms to wait for results."
+    )
+}
+
 /// Render the full model-facing completion block for a finished subagent:
 /// the answer text, a `<subagent_meta>` line carrying run stats, and the
 /// `<subagent_result>` resume footer.

@@ -2020,6 +2020,16 @@ pub fn repair_dangling_tool_calls(
     conversation: &mut Vec<ConversationItem>,
     reason: DanglingToolCallReason,
 ) -> usize {
+    repair_dangling_tool_calls_with(conversation, |_, name| {
+        synthetic_dangling_result_text(name, reason)
+    })
+}
+
+/// Repair unanswered tool calls with caller-provided result text.
+pub fn repair_dangling_tool_calls_with(
+    conversation: &mut Vec<ConversationItem>,
+    mut resolve: impl FnMut(&str, &str) -> String,
+) -> usize {
     // Phase 1: forward scan to find every assistant with unanswered tool calls.
     // We record (insert_position, synthetic_items) for each repair site.
     let mut repairs: Vec<(usize, Vec<ConversationItem>)> = Vec::new();
@@ -2052,12 +2062,7 @@ pub fn repair_dangling_tool_calls(
             let synthetic: Vec<ConversationItem> = tool_calls
                 .iter()
                 .filter(|(id, _)| !answered.contains(id.as_ref()))
-                .map(|(id, name)| {
-                    ConversationItem::tool_result(
-                        id.as_ref(),
-                        synthetic_dangling_result_text(name, reason),
-                    )
-                })
+                .map(|(id, name)| ConversationItem::tool_result(id.as_ref(), resolve(id, name)))
                 .collect();
 
             if !synthetic.is_empty() {
@@ -2117,7 +2122,7 @@ pub fn has_dangling_tool_calls(conversation: &[ConversationItem]) -> bool {
     false
 }
 
-fn synthetic_dangling_result_text(name: &str, reason: DanglingToolCallReason) -> String {
+pub fn synthetic_dangling_result_text(name: &str, reason: DanglingToolCallReason) -> String {
     // Exhaustive match — no `_ =>` guard — so adding a new variant is a
     // compile-time error at every call site that renders these messages.
     match reason {
@@ -5315,10 +5320,7 @@ mod tests {
         assert_eq!(r.id, "rs_00000000-0000-4000-8000-000000000001");
         assert_eq!(r.summary.len(), 1);
         let rs::SummaryPart::SummaryText(s) = &r.summary[0];
-        assert_eq!(
-            s.text,
-            "The results for cats and dogs are mostly about"
-        );
+        assert_eq!(s.text, "The results for cats and dogs are mostly about");
         assert_eq!(
             r.encrypted_content.as_deref(),
             Some("bIfXFNBiP8EI8F7pkKC1tgbYjvVuIctMAlCUGMii")

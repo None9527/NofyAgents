@@ -1,8 +1,10 @@
 //! Mutation handlers for the ChatStateActor.
 
+use std::collections::HashMap;
+
 use nofy_sampling_types::{
     ContentPart, ConversationItem, DanglingToolCallReason, dedup_duplicate_tool_results,
-    repair_dangling_tool_calls,
+    repair_dangling_tool_calls, repair_dangling_tool_calls_with, synthetic_dangling_result_text,
 };
 
 use super::ChatStateActor;
@@ -71,10 +73,23 @@ impl ChatStateActor {
     }
 
     /// Repair dangling tool calls after a harness-initiated halt.
-    pub(super) fn repair_dangling_after_harness_halt(&mut self, class: &'static str) {
-        self.ensure_conversation_integrity_with_reason(DanglingToolCallReason::HarnessHalted {
-            class,
+    pub(super) fn repair_dangling_after_harness_halt(
+        &mut self,
+        class: &'static str,
+        mut answers: HashMap<String, String>,
+    ) {
+        self.snapshot_turn_slice();
+        let deduped = dedup_duplicate_tool_results(&mut self.state.conversation);
+        let reason = DanglingToolCallReason::HarnessHalted { class };
+        let repaired = repair_dangling_tool_calls_with(&mut self.state.conversation, |id, name| {
+            answers
+                .remove(id)
+                .unwrap_or_else(|| synthetic_dangling_result_text(name, reason))
         });
+        if repaired > 0 || deduped > 0 {
+            self.persistence.replace_history(&self.state.conversation);
+        }
+        self.rebase_turn_capture_offset();
     }
 
     /// Out-of-band history repair (`nofy/session/repair`): run
@@ -118,8 +133,7 @@ impl ChatStateActor {
         &mut self,
         urls: &[std::sync::Arc<str>],
     ) -> Option<(usize, tokio::sync::oneshot::Receiver<std::io::Result<()>>)> {
-        let stripped =
-            nofy_sampling_types::strip_images_by_url(&mut self.state.conversation, urls);
+        let stripped = nofy_sampling_types::strip_images_by_url(&mut self.state.conversation, urls);
         if stripped == 0 {
             return None;
         }

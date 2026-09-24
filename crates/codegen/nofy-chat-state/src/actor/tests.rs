@@ -2865,7 +2865,8 @@ async fn turn_capture_survives_integrity_repair_prefix_shrink() {
     // conversation to len 5 while the un-rebased offset stays at 7 (offset 7 >
     // len 5). Without the fix the later take_turn_messages slice is out of range,
     // panics the actor, and the query comes back as None.
-    h.handle.repair_dangling_after_harness_halt("test-halt");
+    h.handle
+        .repair_dangling_after_harness_halt("test-halt", std::collections::HashMap::new());
 
     // Second turn item lands after the rebase — it must still be captured.
     h.handle
@@ -2901,7 +2902,8 @@ async fn integrity_repair_does_not_flag_compaction() {
 
     // An in-place integrity repair goes through `snapshot_turn_slice` like
     // compaction does, but it is NOT compaction — the flag must stay unset.
-    h.handle.repair_dangling_after_harness_halt("test-halt");
+    h.handle
+        .repair_dangling_after_harness_halt("test-halt", std::collections::HashMap::new());
 
     let capture = h
         .handle

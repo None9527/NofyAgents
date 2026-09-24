@@ -22,8 +22,8 @@ use crate::handle::ChatStateHandle;
 use crate::persistence::ChatPersistence;
 use crate::types::{PruningConfig, TurnCapture};
 
-use state::ChatState;
 use nofy_sampling_types::{ConversationItem, SamplingConfig};
+use state::ChatState;
 
 /// The actor that owns all chat state.
 /// Runs in a dedicated tokio task and processes commands sequentially.
@@ -297,8 +297,8 @@ impl ChatStateActor {
             ChatStateCommand::FlushHarnessTraceTurn => {
                 self.state.seal_harness_trace_turn();
             }
-            ChatStateCommand::RepairDanglingAfterHarnessHalt { class } => {
-                self.repair_dangling_after_harness_halt(class);
+            ChatStateCommand::RepairDanglingAfterHarnessHalt { class, answers } => {
+                self.repair_dangling_after_harness_halt(class, answers);
             }
 
             // ═══ Queries ═══

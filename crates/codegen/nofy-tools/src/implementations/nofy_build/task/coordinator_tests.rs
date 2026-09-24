@@ -183,7 +183,33 @@ fn request(id: &str, background: bool) -> SubagentRequest {
         fork_context: false,
         owner: SubagentOwner::Task,
         cancel_token: CancellationToken::new(),
+        tool_call_id: Some(format!("call-{id}")),
     }
+}
+
+#[tokio::test]
+async fn hand_off_takes_awaited_foreground_reply_before_caller_drops() {
+    let mut harness = harness(false, std::time::Duration::from_secs(600));
+    let backend = parent_backend(&harness);
+    let spawn = tokio::spawn({
+        let backend = backend.clone();
+        async move { backend.spawn(request("blocking", false)).await }
+    });
+    assert_eq!(harness.started.recv().await.as_deref(), Some("blocking"));
+
+    let handed_off = backend.hand_off_foreground_for_prompt("prompt").await;
+    assert_eq!(handed_off.len(), 1);
+    assert_eq!(handed_off[0].subagent_id, "blocking");
+    assert_eq!(handed_off[0].tool_call_id, "call-blocking");
+    assert_eq!(
+        handed_off[0].state,
+        nofy_tool_types::HandedOffSubagentState::Running
+    );
+    assert!(spawn.await.unwrap().is_err());
+
+    let _ = harness.finish.send(());
+    assert!(harness.completions.recv().await.unwrap().backgrounded);
+    harness.actor.abort();
 }
 
 struct Harness {

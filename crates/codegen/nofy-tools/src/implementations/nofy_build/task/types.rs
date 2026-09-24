@@ -21,9 +21,11 @@
 use std::sync::Arc;
 
 use educe::Educe;
+use nofy_tool_types::{
+    HandedOffSubagentState, SubagentCapabilityMode, SubagentIsolationMode, WaitMode,
+};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
-use nofy_tool_types::{SubagentCapabilityMode, SubagentIsolationMode, WaitMode};
 
 use crate::register_resource;
 
@@ -98,6 +100,8 @@ pub struct SubagentRequest {
     pub fork_context: bool,
     pub owner: SubagentOwner,
     pub cancel_token: CancellationToken,
+    /// Model tool call that issued this spawn; absent for harness-internal spawns.
+    pub tool_call_id: Option<String>,
 }
 
 impl SubagentRequest {
@@ -724,6 +728,24 @@ pub struct SubagentSpawnedRefsRequest {
     pub respond_to: oneshot::Sender<Vec<SpawnedSubagentRef>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HandedOffForegroundSubagent {
+    pub subagent_id: String,
+    pub tool_call_id: String,
+    pub subagent_type: String,
+    pub description: String,
+    pub state: HandedOffSubagentState,
+}
+
+#[derive(Educe)]
+#[educe(Debug)]
+pub struct SubagentHandOffForegroundRequest {
+    pub parent_session_id: String,
+    pub prompt_id: String,
+    #[educe(Debug(ignore))]
+    pub respond_to: oneshot::Sender<Vec<HandedOffForegroundSubagent>>,
+}
+
 /// In-memory source data used by a runtime adapter to resume a child.
 #[derive(Debug, Clone)]
 pub struct SubagentResumeSource {
@@ -869,6 +891,7 @@ pub enum SubagentEvent {
     RegistryCounts(SubagentRegistryCountsRequest),
     Inspect(SubagentInspectRequest),
     SpawnedRefs(SubagentSpawnedRefsRequest),
+    HandOffForeground(SubagentHandOffForegroundRequest),
     ValidateType(SubagentValidateTypeRequest),
     DescribeType(SubagentDescribeRequest),
     LoopUnitActive(SubagentLoopUnitActiveRequest),

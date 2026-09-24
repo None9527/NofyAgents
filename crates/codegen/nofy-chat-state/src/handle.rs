@@ -1,12 +1,12 @@
 //! Handle to communicate with ChatStateActor.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
-use tokio::sync::{mpsc, oneshot};
 use nofy_sampling_types::{
     ConversationItem, ConversationRequest, DanglingToolCallReason, SamplingConfig, TokenUsage,
     ToolSpec, TraceContext,
 };
+use tokio::sync::{mpsc, oneshot};
 
 use crate::commands::{ChatStateCommand, RepairHistoryBlocked, StrictAppendAck, StrictAppendError};
 use crate::types::{
@@ -312,10 +312,14 @@ impl ChatStateHandle {
     }
 
     /// Repair dangling tool calls after a harness-initiated halt.
-    pub fn repair_dangling_after_harness_halt(&self, class: &'static str) {
+    pub fn repair_dangling_after_harness_halt(
+        &self,
+        class: &'static str,
+        answers: HashMap<String, String>,
+    ) {
         let _ = self
             .cmd_tx
-            .send(ChatStateCommand::RepairDanglingAfterHarnessHalt { class });
+            .send(ChatStateCommand::RepairDanglingAfterHarnessHalt { class, answers });
     }
 
     // ═══ Async queries (via oneshot) ═══

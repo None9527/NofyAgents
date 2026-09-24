@@ -30,8 +30,8 @@ use crate::types::requirements::{Expr, ToolRequirement};
 #[allow(unused_imports)]
 use crate::types::resources::{SessionFolder, SharedResources};
 use crate::types::tool::{ToolKind, ToolNamespace};
-use regex::Regex;
 use nofy_tool_types::{SubagentCompletedOutput, SubagentIsolationMode, TaskToolInput};
+use regex::Regex;
 
 /// Default max nesting depth when [`MaxSubagentDepth`] is not injected.
 pub const MAX_SUBAGENT_DEPTH: u32 = 1;
@@ -517,6 +517,7 @@ impl nofy_tool_runtime::Tool for TaskTool {
             fork_context: false,
             owner: SubagentOwner::Task,
             cancel_token: child_cancellation,
+            tool_call_id: Some(ctx.call_id.as_str().to_owned()),
         };
 
         // 4. Background mode: fire-and-forget via backend.spawn().
@@ -659,9 +660,9 @@ mod tests {
     };
     use crate::types::resources::Resources;
     use crate::types::tool_metadata::test_ctx;
+    use nofy_tool_types::SubagentCapabilityMode;
     use std::sync::Arc;
     use tokio::sync::mpsc;
-    use nofy_tool_types::SubagentCapabilityMode;
 
     /// Pins every accepted subagent-spawn spelling: pager spinner copy keys
     /// off [`is_task_tool_id`], so a dropped spelling silently degrades the

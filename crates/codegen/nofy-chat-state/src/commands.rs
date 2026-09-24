@@ -1,12 +1,12 @@
 //! Commands sent to the ChatStateActor.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
-use tokio::sync::oneshot;
 use nofy_sampling_types::{
     ConversationItem, ConversationRequest, DanglingToolCallReason, SamplingConfig, TokenUsage,
     ToolSpec, TraceContext,
 };
+use tokio::sync::oneshot;
 
 use crate::types::{
     AutoCompactTrigger, ChatStateSnapshot, ConversationCounts, Credentials, NotificationMeta,
@@ -208,7 +208,10 @@ pub enum ChatStateCommand {
     FlushHarnessTraceTurn,
 
     /// Repair dangling tool calls after a harness-initiated halt.
-    RepairDanglingAfterHarnessHalt { class: &'static str },
+    RepairDanglingAfterHarnessHalt {
+        class: &'static str,
+        answers: HashMap<String, String>,
+    },
 
     // ═══ Queries (request/response via oneshot) ═══
     /// Build a ConversationRequest ready to send to the API.

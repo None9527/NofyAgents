@@ -53,15 +53,6 @@ use crate::terminal::TerminalRunRequest;
 use crate::tools::ToolContext;
 use agent_client_protocol as acp;
 use agent_client_protocol::ContentBlock;
-use parking_lot::Mutex;
-use serde_json::json;
-use std::collections::{HashMap, VecDeque};
-use std::path::Path;
-use std::sync::Arc;
-#[cfg(test)]
-use std::sync::OnceLock;
-use tokio::sync::{Mutex as TokioMutex, mpsc, oneshot};
-use tokio::time::{Duration, sleep};
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
 use nofy_agent::AgentDefinition;
 use nofy_agent::prompt::agents_md::LEGACY_AGENTS_MD_REMINDER_PREFIX;
@@ -81,6 +72,15 @@ use nofy_workspace::permission::{
     AccessKind, ClientType, Decision, PermissionEvent, PermissionHandle,
 };
 use nofy_workspace::session::file_state::{FileStateHandle, FileStateTracker};
+use parking_lot::Mutex;
+use serde_json::json;
+use std::collections::{HashMap, VecDeque};
+use std::path::Path;
+use std::sync::Arc;
+#[cfg(test)]
+use std::sync::OnceLock;
+use tokio::sync::{Mutex as TokioMutex, mpsc, oneshot};
+use tokio::time::{Duration, sleep};
 const SESSION_LOG: &str = "xai_session";
 #[path = "compaction.rs"]
 mod compaction;
@@ -92,30 +92,30 @@ pub(crate) use types::*;
 pub use types::{TodoGateDecision, TodoGateReason};
 #[path = "acp_session_impl/goal.rs"]
 mod goal;
+#[path = "acp_session_impl/named_workflow_args.rs"]
+mod named_workflow_args;
+#[path = "acp_session_impl/title_refresh.rs"]
+mod title_refresh;
 #[path = "acp_session_impl/tool_layer_images.rs"]
 mod tool_layer_images;
 #[path = "acp_session_impl/turn.rs"]
 mod turn;
 #[path = "acp_session_impl/workflow.rs"]
 mod workflow_run;
-#[path = "acp_session_impl/named_workflow_args.rs"]
-mod named_workflow_args;
-#[path = "acp_session_impl/title_refresh.rs"]
-mod title_refresh;
 use tool_layer_images::*;
 #[path = "acp_session_impl/auth_retry.rs"]
 mod auth_retry;
 pub(crate) use auth_retry::{
     AuthRetryDecision, AuthRetrySchedule, human_duration, pace_uncharged_resubmit,
 };
-#[path = "acp_session_impl/interjection.rs"]
-mod interjection;
-#[path = "acp_session_impl/tool_calls.rs"]
-mod tool_calls;
 #[path = "acp_session_impl/image_strip.rs"]
 mod image_strip;
+#[path = "acp_session_impl/interjection.rs"]
+mod interjection;
 #[path = "acp_session_impl/rate_limit_waits.rs"]
 mod rate_limit_waits;
+#[path = "acp_session_impl/tool_calls.rs"]
+mod tool_calls;
 pub(crate) use rate_limit_waits::{
     RateLimitWaitBudget, RateLimitWaitConfig, RateLimitWaitDecision,
 };
@@ -124,8 +124,8 @@ mod turn_report_slot;
 use turn_report_slot::{CommitOutcome, TurnEpoch, TurnReportClaim};
 #[path = "acp_session_impl/turn_end_hooks.rs"]
 mod turn_end_hooks;
-use turn_end_hooks::TurnEnd;
 pub(crate) use interjection::*;
+use turn_end_hooks::TurnEnd;
 #[path = "acp_session_impl/laziness.rs"]
 mod laziness;
 #[path = "acp_session_impl/length_salvage.rs"]
@@ -140,10 +140,10 @@ mod prompt_queue;
 pub(super) use prompt_queue::QueueInputRequest;
 #[path = "acp_session_impl/hooks_plugins.rs"]
 mod hooks_plugins;
-#[path = "acp_session_impl/mcp_argument_coercion.rs"]
-mod mcp_argument_coercion;
 #[path = "acp_session_impl/mcp.rs"]
 mod mcp;
+#[path = "acp_session_impl/mcp_argument_coercion.rs"]
+mod mcp_argument_coercion;
 #[path = "acp_session_impl/mcp_failed_reminder.rs"]
 mod mcp_failed_reminder;
 #[path = "acp_session_impl/model_switch.rs"]
@@ -153,10 +153,10 @@ mod slash_exec;
 use super::PromptOrigin;
 use super::acp_types;
 use super::chat_persistence;
-use super::runtime_journal;
 use super::compaction_config;
 use super::helpers;
 use super::memory_state;
+use super::runtime_journal;
 use super::telemetry;
 #[path = "acp_session_impl/prompt_build.rs"]
 mod prompt_build;
@@ -178,6 +178,8 @@ mod tasks_cancel;
 use tasks_cancel::*;
 #[path = "acp_session_impl/reminders.rs"]
 mod reminders;
+#[path = "acp_session_impl/subagent_handoff.rs"]
+mod subagent_handoff;
 use reminders::*;
 pub use reminders::{CollectedTodoGateInput, TodoGateInput, evaluate_todo_gate};
 #[path = "acp_session_impl/laziness_classifier.rs"]
@@ -504,8 +506,9 @@ fn managed_gateway_error_to_tool_error(
             } else if status == reqwest::StatusCode::FORBIDDEN {
                 nofy_tool_runtime::ToolError::permission_denied(detail)
             } else {
-                let tool_id = nofy_tool_protocol::ToolId::new(caller)
-                    .unwrap_or_else(|_| nofy_tool_protocol::ToolId::new("use_tool").expect("valid"));
+                let tool_id = nofy_tool_protocol::ToolId::new(caller).unwrap_or_else(|_| {
+                    nofy_tool_protocol::ToolId::new("use_tool").expect("valid")
+                });
                 nofy_tool_runtime::ToolError::execution(tool_id, detail)
             };
             match err.details.as_mut() {
@@ -1015,8 +1018,7 @@ pub(crate) struct SessionActor {
     /// `None` when no plugin registry was supplied at spawn time.
     /// Wrapped in `RefCell` for mid-session reload from `&self` methods.
     /// Safe: session actor is single-threaded (LocalSet), no concurrent access.
-    pub(crate) hook_registry:
-        std::cell::RefCell<Option<Arc<nofy_hooks::discovery::HookRegistry>>>,
+    pub(crate) hook_registry: std::cell::RefCell<Option<Arc<nofy_hooks::discovery::HookRegistry>>>,
     /// Client hooks from `session/new` `_meta["nofy/hooks"]`; gated in
     /// [`crate::session::acp_session::hooks`]. `RefCell` so `load_session` reconnect can
     /// replace the set on the live actor (see `SessionCommand::SetClientHooks`).
@@ -1274,7 +1276,10 @@ impl SessionActor {
     }
     /// Send an after-turn hook via the local workspace channel.
     /// Fire-and-forget — failures are logged but do not interrupt the turn.
-    async fn send_after_turn_event(&self, payload: nofy_tool_protocol::turn_hook::AfterTurnPayload) {
+    async fn send_after_turn_event(
+        &self,
+        payload: nofy_tool_protocol::turn_hook::AfterTurnPayload,
+    ) {
         self.workspace_ops
             .on_after_turn(&self.session_id_string(), &payload)
             .await;
@@ -1312,9 +1317,7 @@ impl SessionActor {
             MEMORY_GET_TOOL_NAME, MEMORY_SEARCH_TOOL_NAME, MEMORY_WRITE_TOOL_NAME,
         };
         let memory_read_registered = tool_names.iter().any(|n| {
-            n == MEMORY_SEARCH_TOOL_NAME
-                || n == MEMORY_GET_TOOL_NAME
-                || n == MEMORY_WRITE_TOOL_NAME
+            n == MEMORY_SEARCH_TOOL_NAME || n == MEMORY_GET_TOOL_NAME || n == MEMORY_WRITE_TOOL_NAME
         });
         let goal = if self.goal_runs_on_workflow_engine() {
             self.sync_goal_harness()
@@ -1324,9 +1327,9 @@ impl SessionActor {
         slash_commands::CommandAvailability {
             memory: self.memory.is_enabled() && memory_read_registered,
             memory_configured: self.memory.is_enabled(),
-            scheduler: tool_names.iter().any(|n| {
-                n == nofy_tools::implementations::nofy_build::SCHEDULER_CREATE_TOOL_NAME
-            }),
+            scheduler: tool_names
+                .iter()
+                .any(|n| n == nofy_tools::implementations::nofy_build::SCHEDULER_CREATE_TOOL_NAME),
             hooks: self.hook_registry.borrow().is_some(),
             plugins: self.plugin_registry.borrow().is_some(),
             goal,
@@ -1503,9 +1506,7 @@ fn load_system_prompt_from_dir(session_dir: &std::path::Path) -> Option<String> 
 ///
 /// Returns `None` for sessions without a persisted context.
 #[expect(dead_code, reason = "API for future viewers/debug tools")]
-pub(crate) fn load_prompt_context(
-    session_info: &SessionInfo,
-) -> Option<nofy_agent::PromptContext> {
+pub(crate) fn load_prompt_context(session_info: &SessionInfo) -> Option<nofy_agent::PromptContext> {
     let dir = crate::session::persistence::session_dir(session_info);
     load_prompt_context_from_dir(&dir)
 }
@@ -1799,10 +1800,10 @@ mod tool_meta_stamp_tests {
     use super::replay_buffer_send_update_tests::make_replay_send_update_fixture;
     use super::support::test_agent_with_tools;
     use super::*;
-    use tokio::sync::mpsc;
     use nofy_tools::registry::types::ToolConfig;
     use nofy_tools::tool_taxonomy::TOOL_META_KEY;
     use nofy_workspace::permission::PermissionCommand;
+    use tokio::sync::mpsc;
     fn read_file_call() -> crate::sampling::types::ToolCallResponse {
         crate::sampling::types::ToolCallResponse {
             id: "call-stamp-1".to_string(),
@@ -1896,12 +1897,11 @@ mod tool_meta_stamp_tests {
                         } = cmd
                         {
                             *captured_in_task.lock().await = Some(tool_call_update);
-                            let _ = respond_to.send(
-                                nofy_workspace::permission::PermissionResolution {
+                            let _ =
+                                respond_to.send(nofy_workspace::permission::PermissionResolution {
                                     decision: Decision::Allow,
                                     event: None,
-                                },
-                            );
+                                });
                         }
                     }
                 });
@@ -2000,6 +2000,9 @@ mod laziness_integration_tests;
 #[path = "acp_session_tests/load_user_prompts_tests.rs"]
 mod load_user_prompts_tests;
 #[cfg(test)]
+#[path = "acp_session_tests/mcp_failed_reminder_tests.rs"]
+mod mcp_failed_reminder_tests;
+#[cfg(test)]
 #[path = "acp_session_tests/memory_config_tests.rs"]
 mod memory_config_tests;
 #[cfg(test)]
@@ -2026,9 +2029,6 @@ mod turn_end_guard_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/wait_for_mcp_prefix_tests.rs"]
 mod wait_for_mcp_prefix_tests;
-#[cfg(test)]
-#[path = "acp_session_tests/mcp_failed_reminder_tests.rs"]
-mod mcp_failed_reminder_tests;
 #[cfg(test)]
 mod managed_gateway_tool_tests {
     use super::*;
@@ -2218,11 +2218,11 @@ mod managed_gateway_tool_tests {
     }
 }
 #[cfg(test)]
-#[path = "acp_session_tests/goal/goal_planner_e2e_tests.rs"]
-mod goal_planner_e2e_tests;
-#[cfg(test)]
 #[path = "acp_session_tests/goal/goal_compaction_reseed_tests.rs"]
 mod goal_compaction_reseed_tests;
+#[cfg(test)]
+#[path = "acp_session_tests/goal/goal_planner_e2e_tests.rs"]
+mod goal_planner_e2e_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/interjection_tests.rs"]
 mod interjection_tests;

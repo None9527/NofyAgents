@@ -571,6 +571,32 @@ impl SessionActor {
             .map(|t| t.prompt_id.clone())
             .or(pinned_prompt_id);
 
+        let had_dangling_tool_calls = if running_task.is_some() && rewound_input.is_none() {
+            self.chat_state_handle.has_dangling_tool_calls().await
+        } else {
+            false
+        };
+
+        if running_task.is_some() && rewound_input.is_none() {
+            let answers = if !cancel_subagents {
+                if let Some(prompt_id) = cancelled_prompt_id.as_deref() {
+                    let interrupt = if send_now {
+                        nofy_tool_types::ForegroundSpawnInterrupt::UserSentMessage
+                    } else {
+                        nofy_tool_types::ForegroundSpawnInterrupt::UserStoppedTurn
+                    };
+                    self.hand_off_foreground_subagents(prompt_id, interrupt)
+                        .await
+                } else {
+                    HashMap::new()
+                }
+            } else {
+                HashMap::new()
+            };
+            self.chat_state_handle
+                .repair_dangling_after_harness_halt("user_cancel", answers);
+        }
+
         if rewound_input.is_none()
             && let Some(prompt_id) = cancelled_prompt_id.as_deref()
             && let Some(reason) = cancel_reason
@@ -633,7 +659,7 @@ impl SessionActor {
             // skip the reminder to avoid a duplicate signal. Gating on the
             // actual dangling state (not `had_active_tool`) covers the
             // permission-prompt and partial-parallel-call cases too.
-            if !send_now && !self.chat_state_handle.has_dangling_tool_calls().await {
+            if !send_now && !had_dangling_tool_calls {
                 self.events.set_pending_interrupt_reminder();
             }
             // Shared `redirect_kind` for the data pipeline: the next user turn's
