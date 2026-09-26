@@ -310,7 +310,7 @@ mod tests {
         // No more jobs pending on this connection.
         assert!(provider.search_poll_once().unwrap().is_none());
         drop(provider);
-        handle.join().unwrap();
+        handle.join().unwrap().unwrap();
 
         // The blocked client received the answered hits + session identities.
         let out = client_thread.join().unwrap();

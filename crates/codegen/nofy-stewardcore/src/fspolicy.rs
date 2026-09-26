@@ -4,7 +4,7 @@
 //! strings — they are STRUCTURED events (code + reason + path + op), so
 //! the audit stream can answer "why was this refused" mechanically.
 
-use crate::roots::{RootTable, RootTier, StewardError};
+use crate::roots::{RootTable, StewardError};
 
 /// File operations the steward may attempt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +79,7 @@ pub fn is_denied(event: &FsPolicyEvent) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::roots::RootTier;
 
     fn table() -> RootTable {
         let mut roots = RootTable::new();

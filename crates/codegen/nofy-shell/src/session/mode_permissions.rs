@@ -13,28 +13,28 @@ use nofy_workspace::permission::AccessKind;
 
 /// Capability bits a mode grants (NG-F5 `ModePermissions`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ModeCaps(u8);
+pub(crate) struct ModeCaps(u8);
 
 impl ModeCaps {
     /// Write-class actions are denied unless the mode's own carve-out
     /// applies (plan file); the permission chain never sees them.
-    pub const FORCE_PLAN: Self = Self(0b0000_0001);
+    pub(crate) const FORCE_PLAN: Self = Self(0b0000_0001);
     /// The chain skips human review (yolo fast path / classifier).
-    pub const AUTO_APPROVE: Self = Self(0b0000_0010);
+    pub(crate) const AUTO_APPROVE: Self = Self(0b0000_0010);
     /// A reviewer pass runs over the decision (auto-mode classifier).
-    pub const SELF_REVIEW: Self = Self(0b0000_0100);
+    pub(crate) const SELF_REVIEW: Self = Self(0b0000_0100);
     /// The mode is a phase of a larger workflow (plan → build).
-    pub const PHASE_DETECT: Self = Self(0b0000_1000);
+    pub(crate) const PHASE_DETECT: Self = Self(0b0000_1000);
 
-    pub const fn empty() -> Self {
+    pub(crate) const fn empty() -> Self {
         Self(0)
     }
 
-    pub const fn contains(self, other: Self) -> bool {
+    pub(crate) const fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
 
-    pub const fn union(self, other: Self) -> Self {
+    pub(crate) const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 }
@@ -42,7 +42,7 @@ impl ModeCaps {
 /// The declarative matrix: every shell mode maps to its capability bits.
 /// This is the single source the dispatch seam consults — the exhaustive
 /// match is the review hook when a mode is added.
-pub fn caps_for_mode(mode: &PermissionMode) -> ModeCaps {
+pub(crate) fn caps_for_mode(mode: &PermissionMode) -> ModeCaps {
     match mode {
         PermissionMode::Plan => ModeCaps::FORCE_PLAN.union(ModeCaps::PHASE_DETECT),
         PermissionMode::BypassPermissions => ModeCaps::AUTO_APPROVE,
@@ -54,7 +54,7 @@ pub fn caps_for_mode(mode: &PermissionMode) -> ModeCaps {
 
 /// Coarse action classes the matrix decides over.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ActionClass {
+pub(crate) enum ActionClass {
     Read,
     Write,
     Execute,
@@ -62,7 +62,7 @@ pub enum ActionClass {
 
 /// Reduce a concrete access request to its matrix class. MCP tools are
 /// treated as Execute (arbitrary side effects are not knowable here).
-pub fn access_class(access: &AccessKind) -> ActionClass {
+pub(crate) fn access_class(access: &AccessKind) -> ActionClass {
     match access {
         AccessKind::Read(_)
         | AccessKind::Grep { .. }
@@ -76,7 +76,7 @@ pub fn access_class(access: &AccessKind) -> ActionClass {
 /// The matrix decision for one action under one mode. `Some(reason)` is a
 /// fail-closed denial; `None` means "not denied by the mode" and the
 /// action flows on to the normal permission chain unaffected.
-pub fn mode_denial(mode: &PermissionMode, access: &AccessKind) -> Option<String> {
+pub(crate) fn mode_denial(mode: &PermissionMode, access: &AccessKind) -> Option<String> {
     let caps = caps_for_mode(mode);
     let class = access_class(access);
     if caps.contains(ModeCaps::FORCE_PLAN) && class == ActionClass::Write {

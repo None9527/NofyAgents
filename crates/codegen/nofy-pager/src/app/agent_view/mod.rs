@@ -1405,7 +1405,7 @@ pub struct AgentView {
     pub subagent_sessions: HashMap<String, SubagentInfo>,
     /// Finishes that raced their spawn: held until the spawn arrives
     /// (TTL-bounded; see `subagent_lifecycle`).
-    pub deferred_subagent_finishes: HashMap<String, DeferredSubagentFinish>,
+    pub(crate) deferred_subagent_finishes: HashMap<String, DeferredSubagentFinish>,
     /// Child subagent views. Keyed by child_session_id.
     /// Created eagerly on SubagentSpawned so updates are tracked from the start.
     pub subagent_views: HashMap<String, Box<AgentView>>,

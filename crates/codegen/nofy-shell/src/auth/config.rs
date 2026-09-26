@@ -21,7 +21,7 @@ pub struct NofyComConfig {
 
 /// auth.json scope key for session credentials minted by an external auth
 /// provider. Plain API keys live under `API_KEY_SCOPE` instead.
-pub const NOFY_SESSION_SCOPE: &str = "nofy::session";
+pub(crate) const NOFY_SESSION_SCOPE: &str = "nofy::session";
 
 impl NofyComConfig {
     /// The auth.json scope key for this config's session credentials.

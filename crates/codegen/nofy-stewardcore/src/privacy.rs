@@ -9,7 +9,7 @@
 //! - **Redaction**: sensitive patterns are masked before text enters the
 //!   index.
 
-use crate::fsindex::{FsIndex, IndexEntry};
+use crate::fsindex::FsIndex;
 
 /// Redaction patterns (secrets shapes).
 const REDACTION_PATTERNS: &[(&str, &str)] = &[
@@ -46,6 +46,7 @@ pub fn forget(index: &mut FsIndex, path: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fsindex::IndexEntry;
 
     fn entry(path: &str, text: &str) -> IndexEntry {
         IndexEntry {

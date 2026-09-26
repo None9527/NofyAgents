@@ -1059,8 +1059,8 @@ fn subagents_config_models_without_enabled() {
             .unwrap();
         let sa = SubagentsConfig::resolve(false, &config);
         assert!(
-                !sa.enabled,
-                "explicit [subagents] section without enabled should be false"
+                sa.enabled,
+                "[subagents] section without enabled must keep the enabled default"
             );
         assert_eq!(sa.models.len(), 1);
         assert_eq!(sa.models.get("explore").unwrap(), "grok-3-fast");

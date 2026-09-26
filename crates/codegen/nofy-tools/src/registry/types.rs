@@ -685,7 +685,8 @@ impl ToolRegistryBuilder {
         b.register::<nofy_build::TaskOutputTool>();
         b.register::<nofy_build::GetTerminalCommandOutputTool>();
         b.register::<nofy_build::WaitTasksTool>();
-        b.register::<nofy_build::TaskTool>();
+        b.register_with_params::<nofy_build::TaskTool, nofy_build::task::model_policy::TaskParams>(
+        );
         b.register_with_params::<nofy_build::WebFetchTool, nofy_build::web_fetch::WebFetchParams>();
         b.register::<nofy_build::LspTool>();
         b.register::<nofy_build::EnterPlanModeTool>();

@@ -9,7 +9,7 @@
 //! so every `children.prev.jsonl` entry belongs to a dead run.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -118,10 +118,12 @@ impl ChildrenRegistry {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "linux")]
     fn spawn_sleeper() -> std::process::Child {
         std::process::Command::new("sleep").arg("30").spawn().unwrap()
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn proc_is_matches_live_and_rejects_wrong_starttime() {
         let mut child = spawn_sleeper();
@@ -151,6 +153,7 @@ mod tests {
         assert!(gone || not_ours);
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn sweep_kills_orphans_of_dead_run() {
         let dir = tempfile::tempdir().unwrap();
@@ -169,6 +172,7 @@ mod tests {
         assert!(!status.success(), "orphan terminated by sweep");
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn sweep_ignores_dead_entries() {
         let dir = tempfile::tempdir().unwrap();
@@ -204,6 +208,7 @@ mod tests {
         assert!(swept.is_empty(), "torn lines carry no sweepable entry");
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn sweep_escalates_to_kill_when_term_is_ignored() {
         // A child that traps SIGTERM survives the grace window and must be
@@ -225,6 +230,7 @@ mod tests {
         assert!(!status.success(), "TERM-ignoring orphan dies to the escalation");
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn sweep_skips_kill_when_term_already_reaped() {
         // An orphaned grandchild dies to TERM and is reaped by init within

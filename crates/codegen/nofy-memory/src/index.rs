@@ -242,40 +242,6 @@ impl UnifiedMemoryIndex {
     pub(crate) fn indexes(&self) -> [&MemoryIndex; 2] {
         [&self.personal, &self.project]
     }
-
-    pub(crate) fn vec_available(&self) -> bool {
-        self.personal.vec_available() || self.project.vec_available()
-    }
-
-    pub(crate) fn chunks_without_embeddings(
-        &self,
-    ) -> Result<Vec<(usize, String, String)>, rusqlite::Error> {
-        let mut chunks = Vec::new();
-        for (scope, index) in self.indexes().into_iter().enumerate() {
-            chunks.extend(
-                index
-                    .chunks_without_embeddings()?
-                    .into_iter()
-                    .map(|(id, text)| (scope, id, text)),
-            );
-        }
-        Ok(chunks)
-    }
-
-    pub(crate) fn upsert_embedding(
-        &self,
-        scope: usize,
-        chunk_id: &str,
-        embedding: &[f32],
-    ) -> Result<(), rusqlite::Error> {
-        self.indexes()[scope].upsert_embedding(chunk_id, embedding)
-    }
-
-    pub(crate) fn record_access(&mut self, chunk_id: &str) {
-        for index in [&mut self.personal, &mut self.project] {
-            let _ = index.record_access(chunk_id);
-        }
-    }
 }
 
 impl MemoryIndex {

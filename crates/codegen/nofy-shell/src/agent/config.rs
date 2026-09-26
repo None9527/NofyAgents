@@ -6753,14 +6753,15 @@ reasoning_effort = "low"
             "explicit supports_reasoning_effort=false in config must override the Messages auto-default",
         );
     }
-    /// Non-Messages backends keep their existing default (false) since adaptive
-    /// thinking is Anthropic-specific and other providers vary per upstream model.
+    /// Non-Messages backends keep their existing default (false). Use a wire id
+    /// with no catalog entry so this isolates the backend default from model-slug
+    /// capability inheritance.
     #[test]
     fn model_chat_completions_backend_does_not_auto_default_supports_reasoning_effort() {
         let raw_config: toml::Value = toml::from_str(
             r#"
             [model.my-openai]
-            model = "grok-4.5"
+            model = "upstream-model"
             base_url = "https://api.example.com/v1"
             context_window = 200000
             api_backend = "chat_completions"

@@ -1002,8 +1002,11 @@ impl ModelsManager {
     }
 
     async fn fetch_and_apply(&self) {
-        self.fetch_and_apply_inner(catalog_fetch_allowed(&self.inner.cfg.read().endpoints))
-            .await
+        let remote_fetch_enabled = {
+            let config = self.inner.cfg.read();
+            catalog_fetch_allowed(&config.endpoints)
+        };
+        self.fetch_and_apply_inner(remote_fetch_enabled).await
     }
 
     /// `remote_fetch_enabled` is a parameter so tests can drive the gate

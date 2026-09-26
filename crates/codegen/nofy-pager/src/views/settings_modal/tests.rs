@@ -566,6 +566,8 @@ fn rows_contain_categories_and_settings_through_pr_14() {
             // SHELL-owned ask_user_question timeout (Agent category,
             // registered directly above plan_mode).
             "toolset.ask_user_question.timeout_enabled",
+            // SHELL-owned subagent model inheritance (Agent category).
+            "subagent_model_inheritance",
             // PAGER-owned plan_mode (Agent category).
             "plan_mode",
             // SHELL-owned default_model (Models category).

@@ -1966,10 +1966,8 @@ goal = "risky"
         std::fs::write(dir.join("runtime_events.jsonl"), lines.join("\n")).unwrap();
         let registry = Registry::at(tmp.path());
         let bus = LiveBus::new();
-    let search = std::sync::Arc::new(SearchProxy::new());
-    let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
 
-        let (client, mut server) = UnixStream::pair().unwrap();
+        let (client, server) = UnixStream::pair().unwrap();
         let bus2 = bus.clone();
         let streamer = std::thread::spawn(move || {
             let mut w = &server;
@@ -2164,7 +2162,6 @@ goal = "risky"
             .map(|a| matches!(a, HelloAck::Accepted { .. }))
             .unwrap_or(false));
         drop(reader);
-        drop(writer);
         drop(client); // hangup: the next heartbeat write fails, stream ends
         streamer.join().unwrap().unwrap();
     }

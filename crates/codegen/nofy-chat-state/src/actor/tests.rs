@@ -795,7 +795,7 @@ async fn compaction_reseed_scales_overhead_down_with_deleted_content() {
 /// overhead the server still counts for the system prompt/tools after a rewind).
 #[tokio::test]
 async fn rewind_reseed_carries_provider_overhead_like_compaction() {
-    let mut h = TestHarness::new();
+    let h = TestHarness::new();
     // Two user turns of ~1000 estimated tokens each.
     h.handle
         .push_user_message(ConversationItem::user("x".repeat(4000)));

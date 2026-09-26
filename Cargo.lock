@@ -8078,6 +8078,7 @@ dependencies = [
 name = "nofy-stewardcore"
 version = "0.1.0"
 dependencies = [
+ "dunce",
  "nofy-orchestra",
  "serde",
  "serde_json",

@@ -167,48 +167,29 @@ fn is_json_path(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()) == Some("json")
 }
 
-/// 原子写回任意配置文件：用户 `config.toml` 一律改写为旁路 `config.json`。
+/// 原子写回指定配置文件：按目标扩展名选择格式（`.json` → JSON，否则 TOML）。
+///
+/// 该 API 必须尊重调用方给出的路径。用户全局配置迁移到 `config.json` 由
+/// [`save_user_config_value`] 负责；项目级 `.nofy/config.toml` 仍原位写回。
 pub fn save_config_value_at(path: &Path, value: &toml::Value) -> std::io::Result<()> {
-    let (dest, retire_home) = json_save_dest(path);
-    let text = if is_json_path(&dest) {
+    let text = if is_json_path(path) {
         serde_json::to_string_pretty(&toml_to_json(value))
             .map_err(|e| std::io::Error::other(e.to_string()))?
             + "\n"
     } else {
         toml::to_string_pretty(value).map_err(|e| std::io::Error::other(e.to_string()))?
     };
-    atomic_write_text(&dest, &text)?;
-    if let Some(home) = retire_home {
-        retire_legacy_user_toml(home);
-    }
-    Ok(())
+    atomic_write_text(path, &text)
 }
 
-/// 把一段 TOML 文本写到 `path`：用户 `config.toml` / `.json` 都落到 JSON。
+/// 把一段 TOML 文本写到指定 `path`：JSON 目标转换格式，其他目标原样写回。
 pub fn save_config_toml_text_at(path: &Path, text: &str) -> std::io::Result<()> {
-    let (dest, retire_home) = json_save_dest(path);
-    if is_json_path(&dest) {
+    if is_json_path(path) {
         let value: toml::Value =
             toml::from_str(text).map_err(|e| std::io::Error::other(e.to_string()))?;
-        save_config_value_at(&dest, &value)?;
+        save_config_value_at(path, &value)
     } else {
-        atomic_write_text(&dest, text)?;
-    }
-    if let Some(home) = retire_home {
-        retire_legacy_user_toml(home);
-    }
-    Ok(())
-}
-
-/// `config.toml` → sibling `config.json` plus a retire of the toml after write.
-fn json_save_dest(path: &Path) -> (std::path::PathBuf, Option<&Path>) {
-    if path.file_name().and_then(|n| n.to_str()) == Some(USER_CONFIG_FILENAME) {
-        (
-            path.with_file_name(USER_CONFIG_FILENAME_JSON),
-            path.parent(),
-        )
-    } else {
-        (path.to_path_buf(), None)
+        atomic_write_text(path, text)
     }
 }
 

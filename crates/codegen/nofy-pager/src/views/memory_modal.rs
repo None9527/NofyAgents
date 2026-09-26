@@ -1084,13 +1084,6 @@ fn truncate_to_width(s: &str, max_width: usize) -> &str {
     &s[..offset]
 }
 
-fn file_label(path: &str) -> String {
-    let p = std::path::Path::new(path);
-    p.file_name()
-        .map(|f| f.to_string_lossy().into_owned())
-        .unwrap_or_else(|| path.to_string())
-}
-
 fn format_modified(epoch_secs: Option<u64>, now_secs: u64) -> String {
     let Some(modified) = epoch_secs else {
         return "unknown".to_string();
@@ -1138,15 +1131,6 @@ mod tests {
         assert_eq!(format_modified(Some(now - 120), now), "2m ago");
         assert_eq!(format_modified(Some(now - 7200), now), "2h ago");
         assert_eq!(format_modified(Some(now - 172800), now), "2d ago");
-    }
-
-    #[test]
-    fn file_label_extracts_filename() {
-        assert_eq!(file_label("/home/user/.nofy/memory/MEMORY.md"), "MEMORY.md");
-        assert_eq!(
-            file_label("/workspace/.nofy/memory/sessions/2026-01-15-fix-bug.md"),
-            "2026-01-15-fix-bug.md"
-        );
     }
 
     #[test]

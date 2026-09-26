@@ -2337,14 +2337,15 @@ mod tests {
                 "flag off keeps the legacy expanded-diff default"
             );
 
-            // An explicit pager.toml shape beats the flag in both directions.
+            // The rollout flag is the global collapse gate: when it is on,
+            // even an explicit expanded shape remains collapsed.
             crate::appearance::cache::set_collapsed_edit_blocks(true);
             let mut state = edit_state(true);
             let id = state.push_block(edit_block(ok()));
             assert_eq!(
                 state.get_by_id(id).unwrap().display_mode,
-                DisplayMode::Expanded,
-                "explicit expanded_by_default = true must beat the flag"
+                DisplayMode::Collapsed,
+                "collapsed_edit_blocks must override expanded_by_default = true"
             );
         })
         .join()

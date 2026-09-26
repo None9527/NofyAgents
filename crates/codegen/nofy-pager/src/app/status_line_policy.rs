@@ -198,6 +198,7 @@ impl AppView {
         Some(agent.session.session_id.as_ref()?.0.to_string())
     }
 
+    #[cfg(test)]
     pub(crate) fn refresh_status_line_for(&mut self, agent_id: crate::app::agent::AgentId) {
         if self.active_view.agent_id() == Some(agent_id) {
             self.refresh_status_line_now();

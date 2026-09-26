@@ -108,7 +108,6 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     );
 
     crate::sd_notify::ready();
-    let registry = Registry::at(&cfg.state_dir);
     let broker = std::sync::Arc::new(ApprovalBroker::new());
     let bus = LiveBus::new();
     let search = std::sync::Arc::new(SearchProxy::new());
@@ -277,6 +276,7 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn preflight_sweeps_orphans_vouched_by_dead_predecessor() {
         // A live process vouched for in the previous run's children registry

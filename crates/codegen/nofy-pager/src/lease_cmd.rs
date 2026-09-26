@@ -148,7 +148,7 @@ pub fn run(args: &LeaseArgs, state_dir: &Path) -> Result<()> {
             let mut records = load(state_dir)?;
             records.retain(|r| is_live(r, now));
             for path in paths {
-                let abs = std::fs::canonicalize(path)
+                let abs = dunce::canonicalize(path)
                     .map_err(|e| anyhow::anyhow!("cannot lease {}: {e}", path.display()))?;
                 let key = abs.to_string_lossy().into_owned();
                 records.retain(|r| r.path != key);
@@ -177,7 +177,7 @@ pub fn run(args: &LeaseArgs, state_dir: &Path) -> Result<()> {
                 let Some(path) = path else {
                     bail!("give a path to release, or --all");
                 };
-                let abs = std::fs::canonicalize(path)
+                let abs = dunce::canonicalize(path)
                     .map_err(|e| anyhow::anyhow!("cannot resolve {}: {e}", path.display()))?;
                 let key = abs.to_string_lossy().into_owned();
                 records.retain(|r| r.path != key);
@@ -278,7 +278,10 @@ mod tests {
 
         let records = load(state).unwrap();
         assert_eq!(records.len(), 1);
-        assert_eq!(records[0].path, victim.to_string_lossy());
+        assert_eq!(
+            records[0].path,
+            dunce::canonicalize(&victim).unwrap().to_string_lossy()
+        );
     }
 
     #[test]

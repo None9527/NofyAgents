@@ -190,7 +190,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn drain_latched_without_anything_latched_is_empty() {
         let mut router = WakeRouter::default();
         assert!(router.drain_latched("tui").is_empty(), "nothing latched, nothing to drain");

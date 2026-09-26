@@ -25,7 +25,11 @@ impl ScheduleLock {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let file = OpenOptions::new().create(true).write(true).open(&path)?;
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(&path)?;
         match file.try_lock_exclusive() {
             Ok(()) => Ok(Some(Self { file, path })),
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => Ok(None),

@@ -164,9 +164,7 @@ impl TrashStore {
     pub fn add(&self, path: &Path, now: u64) -> io::Result<TrashEntry> {
         let meta = fs::symlink_metadata(path)?;
         let size = if meta.is_dir() { dir_size(path) } else { meta.len() };
-        let original = path
-            .canonicalize()
-            .unwrap_or_else(|_| path.to_path_buf());
+        let original = dunce::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         fs::create_dir_all(self.stage_dir())?;
         // Unique id: second + pid + a counter against existing entries.
         let existing: std::collections::BTreeSet<String> =
@@ -290,6 +288,7 @@ mod tests {
         let trash = TrashStore::at(dir.path().join("trash"));
         let victim = dir.path().join("notes.txt");
         fs::write(&victim, "keep me").unwrap();
+        let canonical_victim = dunce::canonicalize(&victim).unwrap();
 
         let entry = trash.add(&victim, 100).unwrap();
         assert!(!victim.exists(), "the path left its place");
@@ -297,7 +296,7 @@ mod tests {
         assert_eq!(trash.list().len(), 1);
 
         let restored = trash.restore(&entry.id).unwrap();
-        assert_eq!(restored, victim);
+        assert_eq!(restored, canonical_victim);
         assert_eq!(fs::read_to_string(&victim).unwrap(), "keep me");
         assert!(trash.list().is_empty(), "restored entries leave the list");
     }
@@ -415,6 +414,7 @@ mod tests {
         let trash = TrashStore::at(dir.path().join("trash"));
         let victim = dir.path().join("rel.txt");
         fs::write(&victim, "relative").unwrap();
+        let canonical_victim = dunce::canonicalize(&victim).unwrap();
         // Add via a relative path from inside the temp dir.
         let saved_cwd = std::env::current_dir().unwrap();
         std::env::set_current_dir(dir.path()).unwrap();
@@ -429,7 +429,7 @@ mod tests {
         );
         // Restore from ANY cwd lands at the true original location.
         let restored = trash.restore(&entry.id).unwrap();
-        assert_eq!(restored, victim);
+        assert_eq!(restored, canonical_victim);
         assert_eq!(fs::read_to_string(&victim).unwrap(), "relative");
     }
 }

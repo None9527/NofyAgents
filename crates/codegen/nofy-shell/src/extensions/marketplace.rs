@@ -1470,16 +1470,14 @@ mod official_source_tests {
     fn read_sources(
         config_path: &std::path::Path,
     ) -> Vec<nofy_plugin_marketplace::MarketplaceSource> {
-        let raw = std::fs::read_to_string(config_path).unwrap_or_default();
-        let parsed: toml::Value =
-            toml::from_str(&raw).unwrap_or_else(|_| toml::Value::Table(Default::default()));
+        let parsed = nofy_config::load_raw_config_file(config_path)
+            .unwrap_or_else(|_| toml::Value::Table(Default::default()));
         nofy_plugin_marketplace::load_sources(&parsed)
     }
 
     fn read_flag(config_path: &std::path::Path) -> bool {
-        let raw = std::fs::read_to_string(config_path).unwrap_or_default();
-        let parsed: toml::Value =
-            toml::from_str(&raw).unwrap_or_else(|_| toml::Value::Table(Default::default()));
+        let parsed = nofy_config::load_raw_config_file(config_path)
+            .unwrap_or_else(|_| toml::Value::Table(Default::default()));
         parsed
             .get("marketplace")
             .and_then(|m| m.get("official_marketplace_auto_installed"))
@@ -1567,8 +1565,8 @@ mod official_source_tests {
 
         ensure_official_marketplace_source(home);
 
-        let config_path = home.join("config.toml");
-        assert!(config_path.exists(), "config.toml should be created");
+        let config_path = nofy_config::user_config_save_path_at(home);
+        assert!(config_path.exists(), "user config should be created");
 
         let sources = read_sources(&config_path);
         assert_eq!(sources.len(), 1);
@@ -1590,10 +1588,11 @@ mod official_source_tests {
         let home = tmp.path();
 
         ensure_official_marketplace_source(home);
-        let after_first = std::fs::read_to_string(home.join("config.toml")).unwrap();
+        let config_path = nofy_config::user_config_save_path_at(home);
+        let after_first = std::fs::read_to_string(&config_path).unwrap();
 
         ensure_official_marketplace_source(home);
-        let after_second = std::fs::read_to_string(home.join("config.toml")).unwrap();
+        let after_second = std::fs::read_to_string(&config_path).unwrap();
 
         assert_eq!(
             after_first, after_second,
@@ -1605,13 +1604,13 @@ mod official_source_tests {
     fn removed_source_stays_removed_across_restarts() {
         let tmp = tempfile::tempdir().unwrap();
         let home = tmp.path();
-        let config_path = home.join("config.toml");
+        let config_path = nofy_config::user_config_save_path_at(home);
 
         ensure_official_marketplace_source(home);
         assert_eq!(read_sources(&config_path).len(), 1);
 
         // Simulate removal: drop the source block, keep the flag.
-        std::fs::write(
+        nofy_config::save_config_toml_text_at(
             &config_path,
             "[marketplace]\nofficial_marketplace_auto_installed = true\n",
         )
@@ -1667,10 +1666,10 @@ mod official_source_tests {
 
         ensure_official_marketplace_source(home);
 
-        let config_path = home.join("config.toml");
+        let config_path = nofy_config::user_config_save_path_at(home);
         assert!(
             read_sources(&config_path).is_empty(),
-            "must not append to config.toml when the source is already present in known_marketplaces.json"
+            "must not append to user config when the source is already present in known_marketplaces.json"
         );
         assert!(
             read_flag(&config_path),
@@ -1693,10 +1692,10 @@ mod official_source_tests {
 
         ensure_official_marketplace_source(home);
 
-        let config_path = home.join("config.toml");
+        let config_path = nofy_config::user_config_save_path_at(home);
         assert!(
             read_sources(&config_path).is_empty(),
-            "must not append to config.toml when source is in extraKnownMarketplaces"
+            "must not append to user config when source is in extraKnownMarketplaces"
         );
         assert!(read_flag(&config_path));
     }
@@ -1856,7 +1855,7 @@ mod default_skills_purge_tests {
         purge_default_skills_installs_impl(home, || {
             Ok(InstallRegistry::empty(install_dir.clone()))
         });
-        let config_path = home.join("config.toml");
+        let config_path = nofy_config::user_config_save_path_at(home);
         assert!(read_default_skills_installs_purged(&config_path));
 
         let after_first = std::fs::read_to_string(&config_path).unwrap();
@@ -1920,7 +1919,7 @@ mod default_skills_purge_tests {
         assert!(reloaded.get_repo("ds-aaaa").is_none());
         assert!(reloaded.get_repo("office-bbbb").is_some());
 
-        let config_path = home.join("config.toml");
+        let config_path = nofy_config::user_config_save_path_at(home);
         assert!(read_default_skills_installs_purged(&config_path));
 
         let after_first = std::fs::read_to_string(&config_path).unwrap();

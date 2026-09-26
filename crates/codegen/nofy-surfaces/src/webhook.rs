@@ -8,7 +8,7 @@
 //! approval path, anything else is refused (the webhook surface answers
 //! approvals; it does not execute).
 
-use nofy_governance::envelope::{FRAME_BEGIN, is_well_formed, unwrap};
+use nofy_governance::envelope::{is_well_formed, unwrap};
 
 /// A registered webhook endpoint.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,6 +102,7 @@ pub fn route_payload(payload: &str) -> RouteOutcome {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nofy_governance::envelope::FRAME_BEGIN;
 
     fn endpoint() -> WebhookEndpoint {
         WebhookEndpoint {

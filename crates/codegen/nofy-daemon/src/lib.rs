@@ -117,6 +117,7 @@ impl SingleInstanceLock {
                 .read(true)
                 .write(true)
                 .create(true)
+                .truncate(false)
                 .open(&path)?;
             if file.try_lock_exclusive().is_err() {
                 return Err(LockError::AlreadyRunning {
@@ -183,6 +184,7 @@ mod tests {
         let lock = SingleInstanceLock::acquire(dir.path()).expect("first lock");
         let payload = lock.payload().expect("payload written");
         assert_eq!(payload.pid, std::process::id());
+        #[cfg(target_os = "linux")]
         assert!(payload.starttime > 0, "starttime must be readable on Linux");
 
         let second = SingleInstanceLock::acquire(dir.path());
