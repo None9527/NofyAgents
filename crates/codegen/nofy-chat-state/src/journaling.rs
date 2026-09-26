@@ -16,9 +16,9 @@
 
 use std::path::PathBuf;
 
-use tokio::sync::oneshot;
 use nofy_sampling_types::ConversationItem;
 use nofy_session_journal::{EventKind, SessionJournal};
+use tokio::sync::oneshot;
 
 use crate::commands::{StrictAppendAck, StrictAppendError};
 use crate::persistence::ChatPersistence;
@@ -183,8 +183,8 @@ fn message_payload(item: &ConversationItem, cwd_switch: bool) -> serde_json::Val
 mod tests {
     use super::*;
     use crate::persistence::{MockChatPersistence, PersistenceRecord};
-    use std::io::Write as _;
     use nofy_session_journal::project;
+    use std::io::Write as _;
 
     fn temp_journal_path(dir: &tempfile::TempDir) -> PathBuf {
         dir.path().join("runtime_events.jsonl")
@@ -234,10 +234,7 @@ mod tests {
         let snapshot = project(journal.events());
         assert_eq!(snapshot.history_appends, 2);
         assert_eq!(snapshot.history_replaces, 1);
-        assert_eq!(
-            snapshot.lifecycle,
-            nofy_session_journal::Lifecycle::Ended
-        );
+        assert_eq!(snapshot.lifecycle, nofy_session_journal::Lifecycle::Ended);
     }
 
     #[test]
@@ -258,9 +255,14 @@ mod tests {
             .collect();
         assert_eq!(appended.len(), 2);
         let user_payload = &appended[0].payload;
-        assert_eq!(user_payload.get("role").and_then(|v| v.as_str()), Some("user"));
         assert_eq!(
-            user_payload.get("synthetic_reason").and_then(|v| v.as_str()),
+            user_payload.get("role").and_then(|v| v.as_str()),
+            Some("user")
+        );
+        assert_eq!(
+            user_payload
+                .get("synthetic_reason")
+                .and_then(|v| v.as_str()),
             Some("system_reminder")
         );
         // Content must never leak into the journal.

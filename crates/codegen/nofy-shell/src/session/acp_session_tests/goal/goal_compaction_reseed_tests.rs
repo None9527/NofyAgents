@@ -192,4 +192,3 @@ async fn compact_reseed_skips_turn_end_drain_and_round_count() {
         })
         .await;
 }
-

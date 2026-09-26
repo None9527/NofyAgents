@@ -68,7 +68,11 @@ pub fn audit_events(ledger: &DeliveryLedger) -> Vec<LedgerEvent> {
 /// Dead-letter policy: obligations redelivered more than `max_attempts`
 /// times without an ack are dead letters — surfaced for an operator,
 /// never silently dropped.
-pub fn dead_letters(ledger: &DeliveryLedger, attempts: &BTreeMap<u64, u64>, max_attempts: u64) -> Vec<u64> {
+pub fn dead_letters(
+    ledger: &DeliveryLedger,
+    attempts: &BTreeMap<u64, u64>,
+    max_attempts: u64,
+) -> Vec<u64> {
     ledger
         .outstanding()
         .into_iter()
@@ -100,9 +104,15 @@ mod tests {
     #[test]
     fn replay_is_deterministic() {
         let events = vec![
-            LedgerEvent::Dispatched { id: 0, payload: "x".into() },
+            LedgerEvent::Dispatched {
+                id: 0,
+                payload: "x".into(),
+            },
             LedgerEvent::Claimed { id: 0 },
-            LedgerEvent::Dispatched { id: 1, payload: "y".into() },
+            LedgerEvent::Dispatched {
+                id: 1,
+                payload: "y".into(),
+            },
             LedgerEvent::Acked { id: 0 },
         ];
         assert_eq!(fold_ledger(&events), fold_ledger(&events));
@@ -113,7 +123,10 @@ mod tests {
         let events = vec![
             LedgerEvent::Claimed { id: 99 },
             LedgerEvent::Acked { id: 99 },
-            LedgerEvent::Dispatched { id: 0, payload: "x".into() },
+            LedgerEvent::Dispatched {
+                id: 0,
+                payload: "x".into(),
+            },
         ];
         let ledger = fold_ledger(&events);
         assert_eq!(ledger.health().total, 1);

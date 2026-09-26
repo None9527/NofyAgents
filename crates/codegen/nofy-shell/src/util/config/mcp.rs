@@ -1,12 +1,12 @@
 use agent_client_protocol as acp;
 use anyhow::Result;
 use indexmap::IndexMap;
+use nofy_agent::prompt::skills::SkillsConfig;
+use nofy_tools::types::compat::{CompatConfig, CompatConfigToml};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use toml::Value as TomlValue;
 use toml::map::Map as TomlMap;
-use nofy_agent::prompt::skills::SkillsConfig;
-use nofy_tools::types::compat::{CompatConfig, CompatConfigToml};
 
 pub use nofy_mcp::oauth_config::{McpOAuthConfig, McpOAuthConfigMap};
 // MCP server config value types extracted to `nofy-config-types` (config

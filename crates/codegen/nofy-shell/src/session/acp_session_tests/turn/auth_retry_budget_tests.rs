@@ -7,10 +7,10 @@
 use super::support::*;
 use super::*;
 use crate::auth::{AuthManager, AuthMode, NofyAuth, NofyComConfig};
+use nofy_test_support::{MockInferenceServer, MockModelEntry};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
-use nofy_test_support::{MockInferenceServer, MockModelEntry};
 
 /// The token the mock server accepts and the refresher mints on success.
 const FRESH_TOKEN: &str = "refreshed-test-token";
@@ -248,53 +248,53 @@ fn fail_closed_401_is_uncharged_and_turn_survives() {
                 .expect("test runtime");
             let local = tokio::task::LocalSet::new();
             local.block_on(&rt, async {
-            let server = MockInferenceServer::start_with_required_auth(
-                vec![MockModelEntry::new("test")],
-                FRESH_TOKEN,
-            )
-            .await
-            .expect("mock inference server");
+                let server = MockInferenceServer::start_with_required_auth(
+                    vec![MockModelEntry::new("test")],
+                    FRESH_TOKEN,
+                )
+                .await
+                .expect("mock inference server");
 
-            let calls = Arc::new(AtomicU32::new(0));
-            // Pre-send refreshes fail like a post-wake network gap, so the
-            // first send goes out fail-closed; the 401-recovery refresh
-            // succeeds.
-            let refresher = Arc::new(WakeGapRefresher {
-                calls: calls.clone(),
-                fail_pre_request: true,
-            });
-            let (_dir, am) = expired_auth_manager(refresher);
-            let (actor, _updates) = session_token_actor(&server, am).await;
+                let calls = Arc::new(AtomicU32::new(0));
+                // Pre-send refreshes fail like a post-wake network gap, so the
+                // first send goes out fail-closed; the 401-recovery refresh
+                // succeeds.
+                let refresher = Arc::new(WakeGapRefresher {
+                    calls: calls.clone(),
+                    fail_pre_request: true,
+                });
+                let (_dir, am) = expired_auth_manager(refresher);
+                let (actor, _updates) = session_token_actor(&server, am).await;
 
-            let outcome = run_prompt(&actor, "auth-retry-budget-fail-closed").await;
-            assert!(
-                outcome.is_ok(),
-                "fail-closed 401 must not fail the turn: {outcome:?}"
-            );
+                let outcome = run_prompt(&actor, "auth-retry-budget-fail-closed").await;
+                assert!(
+                    outcome.is_ok(),
+                    "fail-closed 401 must not fail the turn: {outcome:?}"
+                );
 
-            let inference: Vec<_> = server
-                .requests()
-                .into_iter()
-                .filter(|r| r.path.contains("/responses"))
-                .collect();
-            assert!(
-                inference.len() >= 2,
-                "expected the fail-closed send plus the resubmit; got {}",
-                inference.len()
-            );
-            assert_eq!(
-                inference[0].authorization, None,
-                "first send must carry no Authorization header"
-            );
-            assert_eq!(
-                inference.last().unwrap().authorization.as_deref(),
-                Some(&format!("Bearer {FRESH_TOKEN}") as &str),
-                "resubmit must carry the freshly refreshed bearer"
-            );
-            assert!(
-                calls.load(Ordering::SeqCst) >= 2,
-                "both the failing pre-flight and the recovery refresh must run"
-            );
+                let inference: Vec<_> = server
+                    .requests()
+                    .into_iter()
+                    .filter(|r| r.path.contains("/responses"))
+                    .collect();
+                assert!(
+                    inference.len() >= 2,
+                    "expected the fail-closed send plus the resubmit; got {}",
+                    inference.len()
+                );
+                assert_eq!(
+                    inference[0].authorization, None,
+                    "first send must carry no Authorization header"
+                );
+                assert_eq!(
+                    inference.last().unwrap().authorization.as_deref(),
+                    Some(&format!("Bearer {FRESH_TOKEN}") as &str),
+                    "resubmit must carry the freshly refreshed bearer"
+                );
+                assert!(
+                    calls.load(Ordering::SeqCst) >= 2,
+                    "both the failing pre-flight and the recovery refresh must run"
+                );
             });
         })
         .expect("spawn large-stack test thread")
@@ -322,55 +322,57 @@ fn authenticated_401s_still_exhaust_after_three_retries() {
                 .expect("test runtime");
             let local = tokio::task::LocalSet::new();
             local.block_on(&rt, async {
-            // The server only accepts a token the refresher never mints, so
-            // every authenticated send is rejected.
-            let server = MockInferenceServer::start_with_required_auth(
-                vec![MockModelEntry::new("test")],
-                "never-issued-token",
-            )
-            .await
-            .expect("mock inference server");
+                // The server only accepts a token the refresher never mints, so
+                // every authenticated send is rejected.
+                let server = MockInferenceServer::start_with_required_auth(
+                    vec![MockModelEntry::new("test")],
+                    "never-issued-token",
+                )
+                .await
+                .expect("mock inference server");
 
-            let refresher = Arc::new(WakeGapRefresher {
-                calls: Arc::new(AtomicU32::new(0)),
-                fail_pre_request: false,
-            });
-            let (_dir, am) = expired_auth_manager(refresher);
-            let (actor, updates) = session_token_actor(&server, am).await;
+                let refresher = Arc::new(WakeGapRefresher {
+                    calls: Arc::new(AtomicU32::new(0)),
+                    fail_pre_request: false,
+                });
+                let (_dir, am) = expired_auth_manager(refresher);
+                let (actor, updates) = session_token_actor(&server, am).await;
 
-            let outcome = run_prompt(&actor, "auth-retry-budget-exhaust").await;
-            let err = outcome.expect_err("authenticated 401s must exhaust and fail the turn");
-            let rendered = serde_json::to_string(&err.data).unwrap_or_default();
-            assert!(
-                rendered.contains("authenticated inference requests were still rejected"),
-                "exhaustion must name authenticated rejections, got: {rendered}"
-            );
+                let outcome = run_prompt(&actor, "auth-retry-budget-exhaust").await;
+                let err = outcome.expect_err("authenticated 401s must exhaust and fail the turn");
+                let rendered = serde_json::to_string(&err.data).unwrap_or_default();
+                assert!(
+                    rendered.contains("authenticated inference requests were still rejected"),
+                    "exhaustion must name authenticated rejections, got: {rendered}"
+                );
 
-            let authenticated = server
-                .requests()
-                .into_iter()
-                .filter(|r| r.path.contains("/responses"))
-                .filter(|r| r.authorization.as_deref() == Some(&format!("Bearer {FRESH_TOKEN}")))
-                .count();
-            assert_eq!(
-                authenticated, 4,
-                "initial send plus MAX_RETRIES resubmits, all authenticated"
-            );
+                let authenticated = server
+                    .requests()
+                    .into_iter()
+                    .filter(|r| r.path.contains("/responses"))
+                    .filter(|r| {
+                        r.authorization.as_deref() == Some(&format!("Bearer {FRESH_TOKEN}"))
+                    })
+                    .count();
+                assert_eq!(
+                    authenticated, 4,
+                    "initial send plus MAX_RETRIES resubmits, all authenticated"
+                );
 
-            // The budget is the one terminal path that lives outside
-            // `handle_sampling_failure`, and it used to return its error with
-            // no notification at all — leaving the pager with no re-auth
-            // prompt and no turn-failed block for a turn that died on 401s.
-            let (error_type, message) = terminal_failure(&updates)
-                .expect("an exhausted turn must report a terminal retryState");
-            assert_eq!(
-                error_type, "auth",
-                "the client keys its re-auth prompt off this: {message}"
-            );
-            assert!(
-                message.contains("authenticated inference requests were still rejected"),
-                "the notification must carry the same story as the error: {message}"
-            );
+                // The budget is the one terminal path that lives outside
+                // `handle_sampling_failure`, and it used to return its error with
+                // no notification at all — leaving the pager with no re-auth
+                // prompt and no turn-failed block for a turn that died on 401s.
+                let (error_type, message) = terminal_failure(&updates)
+                    .expect("an exhausted turn must report a terminal retryState");
+                assert_eq!(
+                    error_type, "auth",
+                    "the client keys its re-auth prompt off this: {message}"
+                );
+                assert!(
+                    message.contains("authenticated inference requests were still rejected"),
+                    "the notification must carry the same story as the error: {message}"
+                );
             });
         })
         .expect("spawn large-stack test thread")

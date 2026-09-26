@@ -113,7 +113,6 @@ fn scrub_error_for_toast_unit() {
     );
 }
 
-
 #[test]
 fn dispatch_rename_session_updates_display_name_locally() {
     let mut app = test_app_with_agent();

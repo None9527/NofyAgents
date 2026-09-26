@@ -3,8 +3,8 @@
 //! The small data types plus the settle rule behind the `CancellationCompleted`
 //! telemetry event. All consumers live in `agent_view` (arm/settle) and
 //! `dispatch` (the cancel call sites); nothing in `agent.rs` uses them.
-use std::time::Instant;
 use nofy_telemetry::events::CancellationScope;
+use std::time::Instant;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum CancelOrigin {
     UserGesture,

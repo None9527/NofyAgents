@@ -153,9 +153,7 @@ impl NextStep {
     fn text(self) -> &'static str {
         match self {
             Self::Retry => "Start Nofy again.",
-            Self::CheckNetworkThenRetry => {
-                "Check your network connection, then start Nofy again."
-            }
+            Self::CheckNetworkThenRetry => "Check your network connection, then start Nofy again.",
             Self::RestartSharedLeader => {
                 "Stop it with the command below, which also stops any other Nofy \
                  session using it, then start Nofy again."

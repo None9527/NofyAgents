@@ -1398,8 +1398,8 @@ fn unavailable_campaign_default_falls_back_to_config_default() {
 
 // ── ModelFetchAuth::resolve priority tests ──────────────────────
 
-use serial_test::serial;
 use nofy_test_support::EnvGuard;
+use serial_test::serial;
 
 #[test]
 #[serial]
@@ -1781,7 +1781,10 @@ fn resolve_catalog_key_maps_per_effort_variant_id_to_config_key() {
     // The base slug keeps resolving exactly as before.
     let base = acp::ModelId::new("gateway-model");
     assert_eq!(
-        resolve_catalog_key(&models, &base).expect("slug must resolve").0.as_ref(),
+        resolve_catalog_key(&models, &base)
+            .expect("slug must resolve")
+            .0
+            .as_ref(),
         "routed"
     );
 }

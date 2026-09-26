@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use serde::Serialize;
 use agent_client_protocol as acp;
 use nofy_tools::types::config_source::ConfigSource;
+use serde::Serialize;
 
 use crate::session::managed_mcp;
 use crate::session::mcp_servers;
@@ -869,7 +869,6 @@ mod tests {
         );
     }
 
-
     /// An unknown name is the caller's error to report, not this gate's — so the
     /// gate stays silent rather than competing with "No MCP server named 'x'".
     /// (The blocked/allowed legs share `policy_refusal` + `is_server_allowed`
@@ -892,5 +891,4 @@ mod tests {
             "an unknown server must not produce a policy refusal"
         );
     }
-
 }

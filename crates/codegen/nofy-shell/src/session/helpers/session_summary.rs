@@ -84,7 +84,6 @@ pub(crate) fn save_title_refresh_watermark(session_dir: &std::path::Path, idx: u
     }
 }
 
-
 #[derive(serde::Deserialize)]
 struct SessionTitle {
     session_title: String,
@@ -121,9 +120,8 @@ fn title_source_text(user_message: &str) -> String {
     } else {
         &without_reminders
     };
-    let mut display =
-        nofy_tools::implementations::skills::skill::extract_skill_display_text(base)
-            .unwrap_or_else(|| base.to_string());
+    let mut display = nofy_tools::implementations::skills::skill::extract_skill_display_text(base)
+        .unwrap_or_else(|| base.to_string());
     display.truncate(floor_char_boundary(&display, TITLE_SOURCE_MAX_BYTES));
     display
 }

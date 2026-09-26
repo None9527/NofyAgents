@@ -12,10 +12,10 @@ use agent_client_protocol as acp;
 use criterion::{
     BenchmarkId, Criterion, SamplingMode, Throughput, criterion_group, criterion_main,
 };
-use tempfile::TempDir;
 use nofy_shell::session::info::Info;
 use nofy_shell::session::storage::{CopySessionOptions, JsonlStorageAdapter, StorageAdapter};
 use nofy_shell::session::testkit::synth::synthesize_to_target_bytes;
+use tempfile::TempDir;
 
 fn bench_fork_copy(c: &mut Criterion) {
     let target_mb: u64 = std::env::var("FORK_BENCH_MB")

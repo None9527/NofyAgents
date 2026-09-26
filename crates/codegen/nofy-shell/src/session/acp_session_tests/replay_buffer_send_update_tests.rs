@@ -2,10 +2,10 @@ use super::support::*;
 use super::*;
 use crate::terminal::AsyncTerminalRunner;
 use crate::terminal::runner::{TerminalError, TerminalRunRequest, TerminalRunResult};
-use tokio::sync::mpsc;
 use nofy_paths::AbsPathBuf;
 use nofy_workspace::file_system::MockFs;
 use nofy_workspace::permission::PermissionHandle;
+use tokio::sync::mpsc;
 #[derive(Debug)]
 struct DummyTerminal;
 #[async_trait::async_trait]
@@ -247,7 +247,8 @@ pub(super) async fn make_replay_send_update_fixture() -> ReplaySendUpdateFixture
         recap_epoch: std::cell::Cell::new(0),
         turn_summary_task: std::cell::RefCell::new(None),
         turn_summary_generation: std::cell::Cell::new(0),
-        turn_summary_enabled: false,        title_refresh_enabled: false,
+        turn_summary_enabled: false,
+        title_refresh_enabled: false,
         title_refresh_task: std::cell::RefCell::new(None),
         title_refresh_generation: std::cell::Cell::new(0),
         next_title_refresh_idx: std::cell::Cell::new(0),
@@ -859,11 +860,10 @@ async fn observe_only_confident_completion_stays_warn_only() {
     local
         .run_until(async {
             let mut fixture = make_replay_send_update_fixture().await;
-            fixture.actor.doom_loop_recovery =
-                Some(nofy_sampling_types::DoomLoopRecoveryPolicy {
-                    max_threshold: 8,
-                    max_retries: 0,
-                });
+            fixture.actor.doom_loop_recovery = Some(nofy_sampling_types::DoomLoopRecoveryPolicy {
+                max_threshold: 8,
+                max_retries: 0,
+            });
             let actor = Arc::new(fixture.actor);
             *actor
                 .current_prompt_id

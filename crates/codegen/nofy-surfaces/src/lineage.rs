@@ -48,7 +48,11 @@ pub enum LineageError {
     /// Parent does not exist.
     MissingParent { session: String, parent: String },
     /// Generation must be parent + 1.
-    GenerationMismatch { session: String, expected: u64, got: u64 },
+    GenerationMismatch {
+        session: String,
+        expected: u64,
+        got: u64,
+    },
     /// Roots must be generation 0.
     RootNotZero(String),
 }
@@ -135,13 +139,22 @@ mod tests {
     use super::*;
 
     fn entry(id: &str, generation: u64, origin: SessionOrigin) -> LineageEntry {
-        LineageEntry { session_id: id.into(), generation, origin, at: 0 }
+        LineageEntry {
+            session_id: id.into(),
+            generation,
+            origin,
+            at: 0,
+        }
     }
 
     #[test]
     fn roots_register_at_generation_zero() {
         let mut table = LineageTable::default();
-        assert!(table.register(entry("root", 0, SessionOrigin::Root)).is_ok());
+        assert!(
+            table
+                .register(entry("root", 0, SessionOrigin::Root))
+                .is_ok()
+        );
         assert!(matches!(
             table.register(entry("bad-root", 3, SessionOrigin::Root)),
             Err(LineageError::RootNotZero(_))
@@ -151,14 +164,31 @@ mod tests {
     #[test]
     fn children_chain_to_parents() {
         let mut table = LineageTable::default();
-        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
         table
-            .register(entry("fork-1", 1, SessionOrigin::Fork { parent: "root".into() }))
+            .register(entry("root", 0, SessionOrigin::Root))
             .unwrap();
         table
-            .register(entry("sub-1", 2, SessionOrigin::Subagent { parent: "fork-1".into() }))
+            .register(entry(
+                "fork-1",
+                1,
+                SessionOrigin::Fork {
+                    parent: "root".into(),
+                },
+            ))
             .unwrap();
-        assert_eq!(table.chain("sub-1"), vec!["sub-1".to_string(), "fork-1".into(), "root".into()]);
+        table
+            .register(entry(
+                "sub-1",
+                2,
+                SessionOrigin::Subagent {
+                    parent: "fork-1".into(),
+                },
+            ))
+            .unwrap();
+        assert_eq!(
+            table.chain("sub-1"),
+            vec!["sub-1".to_string(), "fork-1".into(), "root".into()]
+        );
         assert!(table.is_descendant("sub-1", "root"));
         assert!(!table.is_descendant("root", "sub-1"));
     }
@@ -167,7 +197,13 @@ mod tests {
     fn missing_parent_refused() {
         let mut table = LineageTable::default();
         assert!(matches!(
-            table.register(entry("orphan", 1, SessionOrigin::Fork { parent: "ghost".into() })),
+            table.register(entry(
+                "orphan",
+                1,
+                SessionOrigin::Fork {
+                    parent: "ghost".into()
+                }
+            )),
             Err(LineageError::MissingParent { .. })
         ));
     }
@@ -175,17 +211,31 @@ mod tests {
     #[test]
     fn generation_mismatch_refused() {
         let mut table = LineageTable::default();
-        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        table
+            .register(entry("root", 0, SessionOrigin::Root))
+            .unwrap();
         assert!(matches!(
-            table.register(entry("skip", 5, SessionOrigin::Fork { parent: "root".into() })),
-            Err(LineageError::GenerationMismatch { expected: 1, got: 5, .. })
+            table.register(entry(
+                "skip",
+                5,
+                SessionOrigin::Fork {
+                    parent: "root".into()
+                }
+            )),
+            Err(LineageError::GenerationMismatch {
+                expected: 1,
+                got: 5,
+                ..
+            })
         ));
     }
 
     #[test]
     fn duplicate_refused() {
         let mut table = LineageTable::default();
-        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        table
+            .register(entry("root", 0, SessionOrigin::Root))
+            .unwrap();
         assert!(matches!(
             table.register(entry("root", 0, SessionOrigin::Root)),
             Err(LineageError::Duplicate(_))
@@ -197,15 +247,26 @@ mod tests {
         let mut table = LineageTable::default();
         table.register(entry("s1", 0, SessionOrigin::Root)).unwrap();
         table
-            .register(entry("s1-compacted", 1, SessionOrigin::Compact { parent: "s1".into() }))
+            .register(entry(
+                "s1-compacted",
+                1,
+                SessionOrigin::Compact {
+                    parent: "s1".into(),
+                },
+            ))
             .unwrap();
-        assert_eq!(table.chain("s1-compacted"), vec!["s1-compacted".to_string(), "s1".into()]);
+        assert_eq!(
+            table.chain("s1-compacted"),
+            vec!["s1-compacted".to_string(), "s1".into()]
+        );
     }
 
     #[test]
     fn get_returns_registered_entries_only() {
         let mut table = LineageTable::default();
-        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        table
+            .register(entry("root", 0, SessionOrigin::Root))
+            .unwrap();
         assert_eq!(table.get("root").unwrap().generation, 0);
         assert!(table.get("ghost").is_none());
     }
@@ -215,8 +276,14 @@ mod tests {
         // register() refuses cycles (parents must exist first), so force
         // one through the private map to prove the guard itself holds.
         let mut table = LineageTable::default();
-        table.entries.insert("a".into(), entry("a", 1, SessionOrigin::Fork { parent: "b".into() }));
-        table.entries.insert("b".into(), entry("b", 1, SessionOrigin::Fork { parent: "a".into() }));
+        table.entries.insert(
+            "a".into(),
+            entry("a", 1, SessionOrigin::Fork { parent: "b".into() }),
+        );
+        table.entries.insert(
+            "b".into(),
+            entry("b", 1, SessionOrigin::Fork { parent: "a".into() }),
+        );
         assert_eq!(table.chain("a"), vec!["a".to_string(), "b".into()]);
     }
 
@@ -225,7 +292,9 @@ mod tests {
         let mut table = LineageTable::default();
         assert!(table.is_empty());
         assert_eq!(table.len(), 0);
-        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        table
+            .register(entry("root", 0, SessionOrigin::Root))
+            .unwrap();
         assert!(!table.is_empty());
         assert_eq!(table.len(), 1);
     }

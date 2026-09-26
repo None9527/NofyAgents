@@ -140,7 +140,9 @@ pub(crate) fn parse_model_providers(
                                         id,
                                         Some(&format!("models.{mid}")),
                                         ConfigWarningKind::InvalidValue,
-                                        format!("failed to parse nested model ({error}); model ignored"),
+                                        format!(
+                                            "failed to parse nested model ({error}); model ignored"
+                                        ),
                                     )),
                                 }
                             }

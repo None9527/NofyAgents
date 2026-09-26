@@ -163,9 +163,18 @@ mod tests {
     #[test]
     fn fan_in_fires_exactly_once_on_last_settle() {
         let mut barrier = Barrier::arm(["a", "b", "c"].map(str::to_string));
-        assert_eq!(barrier.settle("a", true), BarrierOutcome::Waiting { remaining: 2 });
-        assert_eq!(barrier.settle("c", true), BarrierOutcome::Waiting { remaining: 1 });
-        assert_eq!(barrier.settle("b", true), BarrierOutcome::Fired { all_ok: true });
+        assert_eq!(
+            barrier.settle("a", true),
+            BarrierOutcome::Waiting { remaining: 2 }
+        );
+        assert_eq!(
+            barrier.settle("c", true),
+            BarrierOutcome::Waiting { remaining: 1 }
+        );
+        assert_eq!(
+            barrier.settle("b", true),
+            BarrierOutcome::Fired { all_ok: true }
+        );
         // Double-settle never re-fires.
         assert_eq!(barrier.settle("b", true), BarrierOutcome::AlreadySettled);
         assert_eq!(barrier.settle("a", false), BarrierOutcome::AlreadySettled);
@@ -177,7 +186,10 @@ mod tests {
     fn fan_in_reports_mixed_outcomes() {
         let mut barrier = Barrier::arm(["a", "b"].map(str::to_string));
         barrier.settle("a", true);
-        assert_eq!(barrier.settle("b", false), BarrierOutcome::Fired { all_ok: false });
+        assert_eq!(
+            barrier.settle("b", false),
+            BarrierOutcome::Fired { all_ok: false }
+        );
     }
 
     #[test]
@@ -196,7 +208,11 @@ mod tests {
 
         ledger.claim(id1);
         ledger.ack(id1);
-        assert_eq!(ledger.outstanding(), vec![id2], "acked obligation leaves outstanding");
+        assert_eq!(
+            ledger.outstanding(),
+            vec![id2],
+            "acked obligation leaves outstanding"
+        );
 
         let health = ledger.health();
         assert_eq!(health.total, 2);
@@ -215,7 +231,11 @@ mod tests {
         ledger.claim(id);
         ledger.ack(id);
         assert!(ledger.outstanding().is_empty());
-        assert_eq!(ledger.entries().len(), 1, "redelivery reuses the obligation");
+        assert_eq!(
+            ledger.entries().len(),
+            1,
+            "redelivery reuses the obligation"
+        );
     }
 
     #[test]

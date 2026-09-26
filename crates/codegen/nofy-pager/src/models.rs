@@ -1,9 +1,9 @@
 //! `nofy models` subcommand.
 
 use anyhow::Result;
-use tokio_util::sync::CancellationToken;
 use nofy_shell::agent::config::Config as AgentConfig;
 use nofy_shell::cli_models::{AuthStatus, list_models};
+use tokio_util::sync::CancellationToken;
 
 use crate::client_identity::{PAGER_CLIENT_TYPE, PAGER_CLIENT_VERSION};
 

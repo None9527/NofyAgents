@@ -36,11 +36,10 @@ impl AuthStatus {
             return Self::LoggedIn(host.to_owned());
         }
         let models = crate::agent::config::resolve_model_list(agent_config, None);
-        if crate::agent::auth_method::should_advertise_xai_api_key(
-            models.values(),
-        ) && let Some(name) = models
-            .iter()
-            .find_map(|(name, entry)| entry.has_own_credentials().then(|| name.clone()))
+        if crate::agent::auth_method::should_advertise_xai_api_key(models.values())
+            && let Some(name) = models
+                .iter()
+                .find_map(|(name, entry)| entry.has_own_credentials().then(|| name.clone()))
         {
             return Self::ModelCredentials(name);
         }
@@ -91,8 +90,8 @@ mod tests {
     use super::*;
     use crate::agent::auth_method::NOFY_API_KEY_ENV_VAR;
     use crate::agent::config::Config;
-    use serial_test::serial;
     use nofy_test_support::EnvGuard;
+    use serial_test::serial;
 
     /// Isolate process-global auth sources that `AuthStatus::resolve` consults.
     ///

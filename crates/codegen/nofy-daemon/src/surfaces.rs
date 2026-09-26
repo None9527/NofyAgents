@@ -133,7 +133,9 @@ impl SurfaceGateway {
                     };
                 };
                 if broker.respond(intent_id, decision_to_broker(decision)) {
-                    GatewayOutcome::Answered { intent_id: intent_id.clone() }
+                    GatewayOutcome::Answered {
+                        intent_id: intent_id.clone(),
+                    }
                 } else {
                     GatewayOutcome::Rejected {
                         reason: format!("unknown or settled intent {intent_id}"),
@@ -175,7 +177,12 @@ mod tests {
         let mut gw = SurfaceGateway::new();
         gw.register_endpoint("ep1", "shhh");
         let outcome = gw.receive_webhook("ep1", &delivery("shhh", "d1", "approve i1"), &broker);
-        assert_eq!(outcome, GatewayOutcome::Answered { intent_id: "i1".into() });
+        assert_eq!(
+            outcome,
+            GatewayOutcome::Answered {
+                intent_id: "i1".into()
+            }
+        );
         // The waiter sees the allow.
         let got = broker.wait("i1", std::time::Duration::from_millis(50));
         assert_eq!(got, Some(ApprovalDecision::AllowOnce));
@@ -192,17 +199,23 @@ mod tests {
         bad.signature = "forged".into();
         assert_eq!(
             gw.receive_webhook("ep1", &bad, &broker),
-            GatewayOutcome::Rejected { reason: "bad signature".into() }
+            GatewayOutcome::Rejected {
+                reason: "bad signature".into()
+            }
         );
         // Duplicate (same delivery id after an accepted one).
         let ok = delivery("shhh", "d2", "deny i1");
         assert_eq!(
             gw.receive_webhook("ep1", &ok, &broker),
-            GatewayOutcome::Answered { intent_id: "i1".into() }
+            GatewayOutcome::Answered {
+                intent_id: "i1".into()
+            }
         );
         assert_eq!(
             gw.receive_webhook("ep1", &ok, &broker),
-            GatewayOutcome::Rejected { reason: "duplicate delivery".into() }
+            GatewayOutcome::Rejected {
+                reason: "duplicate delivery".into()
+            }
         );
         // Unknown endpoint.
         assert_eq!(
@@ -237,9 +250,19 @@ mod tests {
         assert!(broker.register("del-1", "y"));
         let mut gw = SurfaceGateway::new();
         let pending = vec!["mv-1".to_string(), "del-1".to_string()];
-        let outcome =
-            gw.im_reply(ImKind::Feishu, "chat", "@nofy-bot approve 2", &pending, &broker);
-        assert_eq!(outcome, GatewayOutcome::Answered { intent_id: "del-1".into() });
+        let outcome = gw.im_reply(
+            ImKind::Feishu,
+            "chat",
+            "@nofy-bot approve 2",
+            &pending,
+            &broker,
+        );
+        assert_eq!(
+            outcome,
+            GatewayOutcome::Answered {
+                intent_id: "del-1".into()
+            }
+        );
         assert_eq!(
             broker.wait("del-1", std::time::Duration::from_millis(50)),
             Some(ApprovalDecision::AllowOnce)
@@ -269,7 +292,9 @@ mod tests {
         );
         assert_eq!(
             gw.im_reply(ImKind::Feishu, "chat", "approve 9", &pending, &broker),
-            GatewayOutcome::Rejected { reason: "card has no item 9".into() }
+            GatewayOutcome::Rejected {
+                reason: "card has no item 9".into()
+            }
         );
         assert_eq!(broker.pending_count(), 1, "nothing was decided");
     }
@@ -281,7 +306,12 @@ mod tests {
         let mut gw = SurfaceGateway::new();
         let pending = vec!["a".to_string()];
         let outcome = gw.im_reply(ImKind::Telegram, "chat", "deny 1", &pending, &broker);
-        assert_eq!(outcome, GatewayOutcome::Answered { intent_id: "a".into() });
+        assert_eq!(
+            outcome,
+            GatewayOutcome::Answered {
+                intent_id: "a".into()
+            }
+        );
         assert_eq!(
             broker.wait("a", std::time::Duration::from_millis(50)),
             Some(ApprovalDecision::Deny)
@@ -291,7 +321,10 @@ mod tests {
     #[test]
     fn pending_is_mapped_to_deny_defensively() {
         // The parser never yields Pending; the mapping is fail-closed anyway.
-        assert_eq!(decision_to_broker(ItemDecision::Pending), ApprovalDecision::Deny);
+        assert_eq!(
+            decision_to_broker(ItemDecision::Pending),
+            ApprovalDecision::Deny
+        );
     }
 
     #[test]
@@ -299,8 +332,7 @@ mod tests {
         let broker = ApprovalBroker::new();
         let mut gw = SurfaceGateway::new();
         gw.register_endpoint("ep1", "shhh");
-        let outcome =
-            gw.receive_webhook("ep1", &delivery("shhh", "d1", "approve ghost"), &broker);
+        let outcome = gw.receive_webhook("ep1", &delivery("shhh", "d1", "approve ghost"), &broker);
         assert_eq!(
             outcome,
             GatewayOutcome::Rejected {
@@ -324,7 +356,9 @@ mod tests {
         };
         assert_eq!(
             gw.receive_webhook("ep1", &delivery, &broker),
-            GatewayOutcome::Rejected { reason: "malformed envelope".into() }
+            GatewayOutcome::Rejected {
+                reason: "malformed envelope".into()
+            }
         );
     }
 

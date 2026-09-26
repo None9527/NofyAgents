@@ -537,7 +537,8 @@ pub fn is_claude_import_marked() -> bool {
     if std::env::var("_NOFY_CLAUDE_MARKER_OVERRIDE").as_deref() == Ok("1") {
         return true;
     }
-    let Some(config_path) = nofy_config::user_nofy_home().map(|g| nofy_config::user_config_path_at(&g))
+    let Some(config_path) =
+        nofy_config::user_nofy_home().map(|g| nofy_config::user_config_path_at(&g))
     else {
         return false;
     };

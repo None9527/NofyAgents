@@ -35,10 +35,7 @@ fn remove_managed_config_files(home: &std::path::Path) {
     // its rename fails and self-heals).
     let atomic_write_tmp_prefixes = [
         format!("{}.", nofy_config::MANAGED_CONFIG_CACHE_FILE),
-        format!(
-            "{}.",
-            nofy_config::signed_policy::SIGNATURE_SIDECAR_FILE
-        ),
+        format!("{}.", nofy_config::signed_policy::SIGNATURE_SIDECAR_FILE),
         format!(
             "{}.",
             nofy_config::signed_policy::MANAGED_IDENTITY_SIDECAR_FILE
@@ -204,12 +201,8 @@ pub fn resolve_deployment_key() -> Option<String> {
                 .as_str()
                 .map(|s| s.to_owned())
         });
-    crate::agent::config::resolve_string_flag(
-        None,
-        "NOFY_DEPLOYMENT_KEY",
-        config_val.as_deref(),
-    )
-    .map(|r| r.value)
+    crate::agent::config::resolve_string_flag(None, "NOFY_DEPLOYMENT_KEY", config_val.as_deref())
+        .map(|r| r.value)
 }
 
 /// One-way blake3 fingerprint of a deployment key — the deploy-key identity (see [`crate::config::ServingIdentity`]).

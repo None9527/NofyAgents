@@ -72,15 +72,28 @@ mod tests {
     fn state() -> ReloadableState {
         ReloadableState {
             generation: 5,
-            versions: ArtifactVersions { packs: 2, skills: 3, hooks: 1, scripts: 4 },
+            versions: ArtifactVersions {
+                packs: 2,
+                skills: 3,
+                hooks: 1,
+                scripts: 4,
+            },
         }
     }
 
     #[test]
     fn valid_reload_swaps_without_restart() {
         let current = state();
-        let new = ArtifactVersions { packs: 3, skills: 3, hooks: 1, scripts: 5 };
-        assert_eq!(reload(&current, new.clone()), ReloadOutcome::Swapped { new_generation: 6 });
+        let new = ArtifactVersions {
+            packs: 3,
+            skills: 3,
+            hooks: 1,
+            scripts: 5,
+        };
+        assert_eq!(
+            reload(&current, new.clone()),
+            ReloadOutcome::Swapped { new_generation: 6 }
+        );
         let mut applied = current;
         apply_reload(&mut applied, new);
         assert_eq!(applied.generation, 6);
@@ -90,7 +103,12 @@ mod tests {
     #[test]
     fn regressing_version_rejected_old_stands() {
         let current = state();
-        let stale = ArtifactVersions { packs: 1, skills: 3, hooks: 1, scripts: 4 };
+        let stale = ArtifactVersions {
+            packs: 1,
+            skills: 3,
+            hooks: 1,
+            scripts: 4,
+        };
         assert!(matches!(
             reload(&current, stale),
             ReloadOutcome::Rejected { reason } if reason.contains("packs")

@@ -92,13 +92,7 @@ fn ensure_local_nofy_binary(binary: &Path) {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(&cargo);
     cmd.current_dir(workspace_root())
-        .args([
-            "build",
-            "-p",
-            "nofy-pager-bin",
-            "--bin",
-            "nofy",
-        ])
+        .args(["build", "-p", "nofy-pager-bin", "--bin", "nofy"])
         .stdin(std::process::Stdio::null())
         .envs(nofy_tty_utils::pager_env());
     nofy_tty_utils::detach_std_command(&mut cmd);

@@ -7,8 +7,8 @@ use crate::compaction_image_context::{
     CompactionImageContext, collect_attached_image_paths, image_context_from_item, last_query_item,
     parse_image_files_paths, render_attached_image_paths_note, tag_block_range,
 };
-use std::collections::BTreeSet;
 use nofy_sampling_types::{ContentPart, ConversationItem, ToolResultItem};
+use std::collections::BTreeSet;
 /// Drops tool results and flattens assistant `tool_calls` into
 /// `[Called tools: ...]` text annotations.
 ///
@@ -1733,8 +1733,9 @@ actual user question";
     }
     #[tokio::test]
     async fn build_ignores_blank_goal_objective() {
-        let conversation =
-            vec![ConversationItem::user("<user_query>\nplease review the PR\n</user_query>")];
+        let conversation = vec![ConversationItem::user(
+            "<user_query>\nplease review the PR\n</user_query>",
+        )];
         let ctx = CompactionStateContext::build(
             &conversation,
             CompactionInputs {

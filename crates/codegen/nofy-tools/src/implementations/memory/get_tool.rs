@@ -75,15 +75,12 @@ impl nofy_tool_runtime::Tool for MemoryGetImpl {
             id: input.target_id,
             expected_hash: input.expected_hash,
         };
-        let document = memory
-            .get(target.clone())
-            .await
-            .map_err(|e| {
-                nofy_tool_runtime::ToolError::execution(
-                    nofy_tool_protocol::ToolId::new("memory_get").expect("valid"),
-                    format!("memory get failed: {e}"),
-                )
-            })?;
+        let document = memory.get(target.clone()).await.map_err(|e| {
+            nofy_tool_runtime::ToolError::execution(
+                nofy_tool_protocol::ToolId::new("memory_get").expect("valid"),
+                format!("memory get failed: {e}"),
+            )
+        })?;
         let explanation = memory.explain(target).await.map_err(|e| {
             nofy_tool_runtime::ToolError::execution(
                 nofy_tool_protocol::ToolId::new("memory_get").expect("valid"),

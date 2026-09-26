@@ -152,7 +152,7 @@ impl BudgetGovernor {
         {
             let new_soft_budget = (self.soft_budget
                 + self.extension_step * (extensions_used as u64 + 1))
-            .min(self.hard_cap);
+                .min(self.hard_cap);
             if new_soft_budget > self.soft_budget {
                 return BudgetDecision::Extend { new_soft_budget };
             }

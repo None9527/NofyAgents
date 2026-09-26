@@ -1,5 +1,5 @@
-use toml::Value as TomlValue;
 use nofy_tools::implementations::nofy_build::ask_user_question;
+use toml::Value as TomlValue;
 
 /// Resolve whether the bash-harness `find`→`bfs` / `grep`→`ugrep` shadows are
 /// enabled. Precedence (highest first): `requirements.toml` (org policy, wins
@@ -254,7 +254,9 @@ mod scheduler_background_loops_tests {
     #[test]
     fn defaults_on() {
         let _g = guard();
-        assert!(resolve_scheduler_background_loops_tiers(None, None, None, None));
+        assert!(resolve_scheduler_background_loops_tiers(
+            None, None, None, None
+        ));
     }
 
     #[test]
@@ -365,14 +367,9 @@ fn resolve_ask_user_question_timeout_secs_from_tiers(
     config: Option<u64>,
     managed: Option<u64>,
 ) -> u64 {
-    requirement
-        .or(env)
-        .or(config)
-        .or(managed)
-        .unwrap_or(
-            nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
-                .as_secs(),
-        )
+    requirement.or(env).or(config).or(managed).unwrap_or(
+        nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT.as_secs(),
+    )
 }
 
 /// Resolve `[toolset.ask_user_question] timeout_secs` (positive seconds).
@@ -404,8 +401,8 @@ fn resolve_ask_user_question_timeout_secs(
 /// below env in the precedence). Both fields resolve to concrete values, so
 /// the tool's legacy env fallback only runs for consumers that skip this
 /// resolver.
-pub(crate) fn resolve_ask_user_question_params_from_disk(
-) -> nofy_tools::implementations::nofy_build::ask_user_question::AskUserQuestionParams {
+pub(crate) fn resolve_ask_user_question_params_from_disk()
+-> nofy_tools::implementations::nofy_build::ask_user_question::AskUserQuestionParams {
     let requirements = crate::config::load_merged_requirements();
     let layers = match crate::config::ConfigLayers::load() {
         Ok(l) => Some(l),
@@ -488,8 +485,8 @@ mod ask_user_question_timeout_tests {
 
     #[test]
     fn timeout_secs_tier_precedence() {
-        let d = nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
-            .as_secs();
+        let d =
+            nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT.as_secs();
         let r = resolve_ask_user_question_timeout_secs_from_tiers;
         assert_eq!(r(None, None, None, None), d);
         assert_eq!(r(Some(1), Some(2), Some(3), Some(4)), 1); // requirements highest
@@ -501,8 +498,8 @@ mod ask_user_question_timeout_tests {
     #[test]
     fn timeout_secs_rejects_non_positive_layers() {
         let _g = guard();
-        let d = nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
-            .as_secs();
+        let d =
+            nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT.as_secs();
         // user 0 and managed negative are dropped → default.
         let zero = toml_ask("timeout_secs = 0");
         let negative = toml_ask("timeout_secs = -5");

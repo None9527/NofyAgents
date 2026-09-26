@@ -486,9 +486,7 @@ fn current_dir_or_exit() -> PathBuf {
 fn scope_target(scope: McpScope) -> PathBuf {
     match scope {
         McpScope::User => nofy_shell::util::config::user_config_path(),
-        McpScope::Project => {
-            nofy_shell::util::config::project_config_path(&current_dir_or_exit())
-        }
+        McpScope::Project => nofy_shell::util::config::project_config_path(&current_dir_or_exit()),
     }
 }
 
@@ -551,12 +549,7 @@ fn surviving_definition(
     project_site
         .map(|path| (McpScope::Project, path))
         .or_else(|| {
-            user_defined.then(|| {
-                (
-                    McpScope::User,
-                    nofy_shell::util::config::user_config_path(),
-                )
-            })
+            user_defined.then(|| (McpScope::User, nofy_shell::util::config::user_config_path()))
         })
 }
 
@@ -603,9 +596,7 @@ async fn run_set_enabled(name: &str, enabled: bool) -> Result<()> {
 
     // Policy gate BEFORE the write, and only when enabling: disabling a blocked
     // server is always fine, and refusing it would strand the entry.
-    if enabled
-        && let Some(refusal) = nofy_shell::mcp_doctor::policy_enable_refusal(&cwd, name)
-    {
+    if enabled && let Some(refusal) = nofy_shell::mcp_doctor::policy_enable_refusal(&cwd, name) {
         eprintln!("Cannot enable MCP server '{name}': {refusal}");
         std::process::exit(1);
     }

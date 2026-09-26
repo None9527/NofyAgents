@@ -13,7 +13,9 @@ use std::path::PathBuf;
 #[derive(Debug, PartialEq, Eq)]
 pub enum CasError {
     /// Expected version did not match: someone else wrote first.
-    Stale { current_version: u64 },
+    Stale {
+        current_version: u64,
+    },
     Io(String),
 }
 
@@ -83,7 +85,8 @@ impl CasStore {
         }
         let next = current_version + 1;
         let tmp = self.path.with_extension("tmp");
-        fs::write(&tmp, format!("v{next}\n{new_value}")).map_err(|e| CasError::Io(e.to_string()))?;
+        fs::write(&tmp, format!("v{next}\n{new_value}"))
+            .map_err(|e| CasError::Io(e.to_string()))?;
         fs::rename(&tmp, &self.path).map_err(|e| CasError::Io(e.to_string()))?;
         Ok(next)
     }
@@ -115,7 +118,13 @@ mod tests {
         // Empty store starts at version 0.
         assert_eq!(store.read().unwrap(), None);
         assert_eq!(store.write(0, "first"), Ok(1));
-        assert_eq!(store.read().unwrap(), Some(CasCell { version: 1, value: "first".into() }));
+        assert_eq!(
+            store.read().unwrap(),
+            Some(CasCell {
+                version: 1,
+                value: "first".into()
+            })
+        );
         // Stale write refused.
         assert_eq!(store.write(1, "second"), Ok(2));
         assert_eq!(
@@ -132,7 +141,11 @@ mod tests {
         store.write(0, "data").unwrap();
         // Corrupt the version anchor.
         fs::write(dir.path().join("config"), "vXXX\ndata").unwrap();
-        assert_eq!(store.read().unwrap(), None, "corrupt anchor = no trustworthy state");
+        assert_eq!(
+            store.read().unwrap(),
+            None,
+            "corrupt anchor = no trustworthy state"
+        );
         // Recovery: the next writer starts fresh from version 0.
         assert_eq!(store.write(0, "recovered"), Ok(1));
     }

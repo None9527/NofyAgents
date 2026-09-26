@@ -10,9 +10,9 @@ use crate::session::normalize_cache::{
 use agent_client_protocol::ImageContent;
 use base64::Engine as _;
 use bytes::Bytes;
-use std::borrow::Cow;
 use nofy_tools::util::format_bytes;
 use nofy_tools::util::image_compress::{FilterType, ReEncodeParams, re_encode_under_limit};
+use std::borrow::Cow;
 /// Decoded attachment bytes above this are re-encoded to fit this cap.
 ///
 /// Kept low so many images fit under the inference proxy's ~50 MB request-body
@@ -321,8 +321,7 @@ pub(crate) fn inline_attach_verdict(data_b64: &str) -> InlineAttachVerdict {
     let Ok(raw) = base64::engine::general_purpose::STANDARD.decode(data_b64) else {
         return InlineAttachVerdict::Unreadable;
     };
-    let Ok((w, h, _)) =
-        nofy_tools::util::image_validate::validate_image_bytes_with(&raw, false)
+    let Ok((w, h, _)) = nofy_tools::util::image_validate::validate_image_bytes_with(&raw, false)
     else {
         return InlineAttachVerdict::Unreadable;
     };

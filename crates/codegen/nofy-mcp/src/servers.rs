@@ -1615,10 +1615,12 @@ pub(crate) fn mcp_output_from_call_result(
             _ => None,
         })
         .collect();
-    parts.extend(nofy_tools::util::mcp_structured_content::render_structured_content(
-        call_result.structured_content.as_ref(),
-        parts.iter().map(String::as_str),
-    ));
+    parts.extend(
+        nofy_tools::util::mcp_structured_content::render_structured_content(
+            call_result.structured_content.as_ref(),
+            parts.iter().map(String::as_str),
+        ),
+    );
 
     let text = parts.join("\n");
     if is_error {
@@ -4074,8 +4076,7 @@ impl McpClient {
         &self,
         mcp_state: Arc<Mutex<McpState>>,
     ) -> Result<Vec<McpToolRegistration>, McpError> {
-        let _ensure_init_timer =
-            nofy_telemetry::instrumentation::timer("mcp_ensure_initialized");
+        let _ensure_init_timer = nofy_telemetry::instrumentation::timer("mcp_ensure_initialized");
         let mcp_service = self.ensure_initialized().await?;
 
         let mut all_tools = Vec::new();
@@ -4443,14 +4444,12 @@ pub async fn start_mcp_server(
             )
             .map_err(|e| {
                 tracing::error!("Failed to spawn MCP server '{}': {}", name, e);
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::McpServerFailed {
-                        server_name: name.clone(),
-                        error_type: nofy_telemetry::events::McpErrorType::SpawnFailed,
-                        duration_ms: spawn_start.elapsed().as_millis() as u64,
-                        timeout_sec: startup_timeout,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::McpServerFailed {
+                    server_name: name.clone(),
+                    error_type: nofy_telemetry::events::McpErrorType::SpawnFailed,
+                    duration_ms: spawn_start.elapsed().as_millis() as u64,
+                    timeout_sec: startup_timeout,
+                });
                 McpError::SpawnFailed {
                     server: name.clone(),
                     source: e,
@@ -7296,7 +7295,10 @@ mod tests {
             "successful retry must not be flagged as timeout"
         );
         // reset_transport + re-handshake replaced the dead service with a live one.
-        assert!(matches!(&*client.state.lock().await, ClientState::Ready { .. }));
+        assert!(matches!(
+            &*client.state.lock().await,
+            ClientState::Ready { .. }
+        ));
     }
 
     #[test]
@@ -8144,12 +8146,8 @@ mod tests {
     #[test]
     fn agent_id_headers_strip_caller_supplied_value() {
         let writer = nofy_file_utils::events::EventWriter::noop();
-        let ctx = McpSpawnCtx::for_session(
-            "sess-1",
-            &writer,
-            OauthInteractivity::Interactive,
-            None,
-        );
+        let ctx =
+            McpSpawnCtx::for_session("sess-1", &writer, OauthInteractivity::Interactive, None);
         let headers = vec![(NOFY_AGENT_ID_HEADER.to_owned(), "spoofed".to_string())];
         let out = apply_nofy_agent_id_headers(headers, &ctx).unwrap();
         assert!(out.is_empty());
@@ -8158,13 +8156,9 @@ mod tests {
     #[test]
     fn agent_id_headers_injected_only_from_spawn_context() {
         let writer = nofy_file_utils::events::EventWriter::noop();
-        let ctx = McpSpawnCtx::for_session(
-            "sess-1",
-            &writer,
-            OauthInteractivity::Interactive,
-            None,
-        )
-        .with_nofy_agent_id_header();
+        let ctx =
+            McpSpawnCtx::for_session("sess-1", &writer, OauthInteractivity::Interactive, None)
+                .with_nofy_agent_id_header();
         let out = apply_nofy_agent_id_headers(Vec::new(), &ctx).unwrap();
         assert_eq!(
             out,
@@ -8274,10 +8268,7 @@ mod tests {
     /// `reply` is set.
     async fn recording_service(
         reply: bool,
-    ) -> (
-        McpService,
-        Arc<parking_lot::Mutex<Vec<serde_json::Value>>>,
-    ) {
+    ) -> (McpService, Arc<parking_lot::Mutex<Vec<serde_json::Value>>>) {
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
         let received: Arc<parking_lot::Mutex<Vec<serde_json::Value>>> = Arc::default();

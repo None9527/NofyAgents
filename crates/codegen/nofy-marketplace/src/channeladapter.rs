@@ -89,7 +89,10 @@ mod tests {
         let mut registry = AdapterRegistry::default();
         registry.register(contract("slack")).unwrap();
         assert_eq!(registry.len(), 1);
-        assert_eq!(registry.get("slack").unwrap().ack_semantics, AckSemantics::AtLeastOnce);
+        assert_eq!(
+            registry.get("slack").unwrap().ack_semantics,
+            AckSemantics::AtLeastOnce
+        );
     }
 
     #[test]
@@ -101,7 +104,10 @@ mod tests {
             formats_outbound: false,
             ack_semantics: AckSemantics::AtMostOnce,
         };
-        assert_eq!(registry.register(noop), Err(ContractError::IncompleteContract));
+        assert_eq!(
+            registry.register(noop),
+            Err(ContractError::IncompleteContract)
+        );
         assert!(registry.is_empty());
     }
 
@@ -121,7 +127,10 @@ mod tests {
     fn duplicates_and_empty_refused() {
         let mut registry = AdapterRegistry::default();
         registry.register(contract("x")).unwrap();
-        assert_eq!(registry.register(contract("x")), Err(ContractError::DuplicateChannel("x".into())));
+        assert_eq!(
+            registry.register(contract("x")),
+            Err(ContractError::DuplicateChannel("x".into()))
+        );
         assert_eq!(
             registry.register(contract("  ")),
             Err(ContractError::EmptyChannelId)
@@ -137,6 +146,10 @@ mod tests {
         for id in ["feishu", "telegram", "matrix"] {
             registry.register(contract(id)).unwrap();
         }
-        assert_eq!(registry.len(), 3, "contracts registered, channels not built");
+        assert_eq!(
+            registry.len(),
+            3,
+            "contracts registered, channels not built"
+        );
     }
 }

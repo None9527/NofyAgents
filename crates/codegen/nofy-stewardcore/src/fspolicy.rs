@@ -27,7 +27,10 @@ pub enum FsDenyCode {
 /// One structured policy event (allow or deny — both are auditable).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FsPolicyEvent {
-    Allowed { op: FsOp, path: String },
+    Allowed {
+        op: FsOp,
+        path: String,
+    },
     Denied {
         code: FsDenyCode,
         op: FsOp,
@@ -107,7 +110,10 @@ mod tests {
         let event = check(FsOp::Read, "/nope/x", &table());
         assert!(matches!(
             event,
-            FsPolicyEvent::Denied { code: FsDenyCode::OutsideRoot, .. }
+            FsPolicyEvent::Denied {
+                code: FsDenyCode::OutsideRoot,
+                ..
+            }
         ));
     }
 
@@ -116,7 +122,10 @@ mod tests {
         let event = check(FsOp::Read, "/proj/../etc/passwd", &table());
         assert!(matches!(
             event,
-            FsPolicyEvent::Denied { code: FsDenyCode::ConfinementBreach, .. }
+            FsPolicyEvent::Denied {
+                code: FsDenyCode::ConfinementBreach,
+                ..
+            }
         ));
     }
 
@@ -125,7 +134,10 @@ mod tests {
         let event = check(FsOp::Write, "/proj/f.txt", &table());
         assert_eq!(
             event,
-            FsPolicyEvent::Allowed { op: FsOp::Write, path: "/proj/f.txt".into() }
+            FsPolicyEvent::Allowed {
+                op: FsOp::Write,
+                path: "/proj/f.txt".into()
+            }
         );
         assert!(!is_denied(&event));
         let read_docs = check(FsOp::Read, "/docs/a.md", &table());

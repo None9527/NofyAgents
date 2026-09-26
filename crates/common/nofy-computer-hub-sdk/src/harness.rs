@@ -30,10 +30,6 @@ use futures::FutureExt;
 use futures::Stream;
 use futures::future::{BoxFuture, Shared};
 use indexmap::IndexMap;
-use parking_lot::RwLock;
-use serde_json::Value;
-use tokio::sync::{mpsc, oneshot};
-use url::Url;
 use nofy_computer_hub_core::{
     ErasedTool, ToolHandle, decode_call_result, error_from_envelope, progress_from_frame,
     tool_error_from_wire,
@@ -51,6 +47,10 @@ use nofy_tool_runtime::{
     ToolStreamItem, TypedToolOutput, terminal_only,
 };
 use nofy_tool_types::ToolDescription;
+use parking_lot::RwLock;
+use serde_json::Value;
+use tokio::sync::{mpsc, oneshot};
+use url::Url;
 
 use crate::auth::{AuthCredential, AuthProvider};
 use crate::connection::{HubConnection, ReconnectCallback, ReconnectEvent};
@@ -2316,9 +2316,9 @@ fn client_error_to_tool_error(err: ClientError) -> ToolError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nofy_tool_types::ToolDescription;
     use schemars::JsonSchema;
     use serde::{Deserialize, Serialize};
-    use nofy_tool_types::ToolDescription;
 
     #[derive(Debug)]
     struct EchoTool {

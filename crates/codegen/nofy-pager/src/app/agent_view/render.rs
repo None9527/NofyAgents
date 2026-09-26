@@ -1053,26 +1053,26 @@ impl AgentView {
         let rewind_view_h =
             if permission_view_h == 0 && question_view_h == 0 && elicitation_view_h == 0 {
                 if let Some(ref rw) = self.rewind_state {
-                crate::views::rewind::rewind_overlay_height(&rw.phase, area.height)
-            } else {
-                0
-            }
-        } else {
-            0
-        };
-        let cancel_turn_view_h = if permission_view_h == 0
-            && question_view_h == 0
-            && elicitation_view_h == 0
-            && rewind_view_h == 0
-        {
-            if self.cancel_turn_view.is_some() {
-                    modal::cancel_turn_panel_height(area.height)
+                    crate::views::rewind::rewind_overlay_height(&rw.phase, area.height)
                 } else {
                     0
                 }
             } else {
                 0
             };
+        let cancel_turn_view_h = if permission_view_h == 0
+            && question_view_h == 0
+            && elicitation_view_h == 0
+            && rewind_view_h == 0
+        {
+            if self.cancel_turn_view.is_some() {
+                modal::cancel_turn_panel_height(area.height)
+            } else {
+                0
+            }
+        } else {
+            0
+        };
         let jump_view_h = if !self.jump_slot_taken() {
             if let Some(ref js) = self.jump_state {
                 crate::views::jump::jump_overlay_height(js, area.height)
@@ -2457,13 +2457,9 @@ impl AgentView {
                         width: iarea.text_w,
                         height: prompt_h,
                     };
-                    let prompt_result_inner = self.prompt.draw(
-                        buf,
-                        prompt_draw_area,
-                        None,
-                        &perm_followup_style,
-                        None,
-                    );
+                    let prompt_result_inner =
+                        self.prompt
+                            .draw(buf, prompt_draw_area, None, &perm_followup_style, None);
                     if let Some(pos) = prompt_result_inner.cursor_pos {
                         prompt_cursor_pos = Some(pos);
                     }

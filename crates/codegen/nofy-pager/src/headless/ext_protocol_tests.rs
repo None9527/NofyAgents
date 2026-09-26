@@ -287,7 +287,12 @@ fn headless_retry_state_retrying_decodes_to_lifecycle() {
     };
     // W-10 regression: the user-visible line names the reason and progress.
     let msg = l.plain_message();
-    let Lifecycle::Retrying { attempt, max_retries, reason } = l else {
+    let Lifecycle::Retrying {
+        attempt,
+        max_retries,
+        reason,
+    } = l
+    else {
         panic!("expected Retrying");
     };
     assert_eq!(attempt, 2);
@@ -312,7 +317,12 @@ fn headless_retry_state_exhausted_decodes_to_lifecycle() {
     let ExtEvent::Lifecycle(l) = handle_ext_notification(&notif) else {
         panic!("expected Lifecycle event");
     };
-    let Lifecycle::RetryExhausted { attempts, reason, is_rate_limited } = l else {
+    let Lifecycle::RetryExhausted {
+        attempts,
+        reason,
+        is_rate_limited,
+    } = l
+    else {
         panic!("expected RetryExhausted");
     };
     assert_eq!(attempts, 15);

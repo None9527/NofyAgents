@@ -220,7 +220,10 @@ mod tests {
             Err(DagError::Cycle(_))
         ));
         assert!(matches!(
-            Dag::build(vec![task("a", &[], OnFailPolicy::Skip), task("a", &[], OnFailPolicy::Skip)]),
+            Dag::build(vec![
+                task("a", &[], OnFailPolicy::Skip),
+                task("a", &[], OnFailPolicy::Skip)
+            ]),
             Err(DagError::DuplicateTask(_))
         ));
     }
@@ -268,7 +271,10 @@ mod tests {
             Some(FailOutcome::Skipped("docs".into()))
         );
         let skips = dag.transitive_skips(&run.succeeded, &run.dead);
-        assert!(skips.contains(&"ship".to_string()), "ship depends on skipped docs");
+        assert!(
+            skips.contains(&"ship".to_string()),
+            "ship depends on skipped docs"
+        );
     }
 
     #[test]

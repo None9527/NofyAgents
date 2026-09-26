@@ -32,9 +32,13 @@ pub enum CheckResult {
 pub enum BootVerdict {
     Go,
     /// Boot proceeds with warnings listed.
-    GoDegraded { degraded: Vec<CheckItem> },
+    GoDegraded {
+        degraded: Vec<CheckItem>,
+    },
     /// Boot is blocked; failed items drive the diagnosis session.
-    Blocked { failed: Vec<CheckItem> },
+    Blocked {
+        failed: Vec<CheckItem>,
+    },
 }
 
 /// Evaluate the checklist. Deterministic: items report in enum order.
@@ -85,7 +89,9 @@ mod tests {
         checks[2] = (CheckItem::EnvSnapshotPresent, CheckResult::Degraded);
         assert_eq!(
             verdict(&checks),
-            BootVerdict::GoDegraded { degraded: vec![CheckItem::EnvSnapshotPresent] }
+            BootVerdict::GoDegraded {
+                degraded: vec![CheckItem::EnvSnapshotPresent]
+            }
         );
     }
 

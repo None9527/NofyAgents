@@ -113,4 +113,3 @@ async fn test_refusal_turn_completes_with_single_messages_request() {
     })
     .await;
 }
-

@@ -80,7 +80,9 @@ mod tests {
         let findings = audit_extension_points(&points);
         assert_eq!(
             findings,
-            vec![AuditFinding::InProcPlugin { name: "legacy-plugin".into() }]
+            vec![AuditFinding::InProcPlugin {
+                name: "legacy-plugin".into()
+            }]
         );
     }
 
@@ -92,7 +94,11 @@ mod tests {
         ];
         let findings = audit_extension_points(&points);
         assert_eq!(findings.len(), 2);
-        assert!(findings.iter().all(|f| matches!(f, AuditFinding::MissingSchema { .. })));
+        assert!(
+            findings
+                .iter()
+                .all(|f| matches!(f, AuditFinding::MissingSchema { .. }))
+        );
     }
 
     #[test]

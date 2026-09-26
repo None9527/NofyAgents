@@ -30,8 +30,8 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use agent_client_protocol as acp;
-use parking_lot::Mutex;
 use nofy_workspace::trust::{TrustStore, is_unsafe_trust_root, workspace_key};
+use parking_lot::Mutex;
 
 // Decision-side (scan/decide/prompt/store) relocated to `nofy-workspace`
 // (client crate). `grant_folder_trust` is the ONLY moved item referenced from
@@ -41,12 +41,12 @@ use nofy_workspace::trust::{TrustStore, is_unsafe_trust_root, workspace_key};
 // re-export is deliberately avoided: it would silently re-publish the
 // cache-SKIPPING `revoke_folder_trust_store` next to the real
 // `revoke_folder_trust` wrapper, inviting a stale-untrust security bug.
-pub use nofy_workspace::folder_trust::{grant_folder_trust, report_cli_trust_grant};
 use nofy_workspace::folder_trust::{
     DecideInputs, TrustOutcome, claude_project_mcp_names, decide, decide_inputs,
     decide_inputs_with_interactive, feature_enabled, folder_trust_inert, persist_trust,
     prompt_for_trust,
 };
+pub use nofy_workspace::folder_trust::{grant_folder_trust, report_cli_trust_grant};
 
 use crate::session::managed_mcp::mcp_server_name;
 use crate::util::config::MCP_SCOPE_PROJECT;
@@ -484,8 +484,7 @@ pub(crate) fn filter_untrusted_project_lsp(
             nofy_tools::types::config_source::ConfigSource,
         ),
     >,
-) -> std::collections::BTreeMap<String, nofy_tools::implementations::lsp::config::LspServerConfig>
-{
+) -> std::collections::BTreeMap<String, nofy_tools::implementations::lsp::config::LspServerConfig> {
     nofy_tools::implementations::lsp::config::filter_project_lsp_when_untrusted(
         sourced,
         project_scope_allowed(cwd),
@@ -728,8 +727,7 @@ mod tests {
             "subdir .claude/settings.json must be detected"
         );
         assert!(!resolve_and_record(&subdir, false));
-        let untrusted =
-            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
+        let untrusted = load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
         assert!(
             !untrusted.contains_key("SUBDIR_REPO_ENV_GATED"),
             "untrusted subdir folder must drop its repo-tree .claude env"
@@ -739,8 +737,7 @@ mod tests {
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(&subdir)).unwrap();
         assert!(resolve_and_record(&subdir, false));
-        let trusted =
-            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
+        let trusted = load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
         assert_eq!(
             trusted.get("SUBDIR_REPO_ENV_GATED"),
             Some(&"1".to_string()),
@@ -968,12 +965,8 @@ mod tests {
 
         // Untrusted: the verdict is false => the plugin is still discovered but
         // not trusted, so it is absent from `active_plugins()`.
-        let untrusted = handle.build_for_cwd(
-            tmp.path(),
-            &cfg,
-            &[],
-            resolve_and_record(tmp.path(), false),
-        );
+        let untrusted =
+            handle.build_for_cwd(tmp.path(), &cfg, &[], resolve_and_record(tmp.path(), false));
         assert!(
             !active_has(untrusted),
             "untrusted folder: enabled project plugin must be gated out of active_plugins()"
@@ -981,12 +974,8 @@ mod tests {
 
         // Grant trust, recompute the same expression => the plugin becomes active.
         grant_folder_trust(tmp.path());
-        let trusted = handle.build_for_cwd(
-            tmp.path(),
-            &cfg,
-            &[],
-            resolve_and_record(tmp.path(), false),
-        );
+        let trusted =
+            handle.build_for_cwd(tmp.path(), &cfg, &[], resolve_and_record(tmp.path(), false));
         assert!(
             active_has(trusted),
             "granted folder: enabled project plugin must appear in active_plugins()"
@@ -1056,9 +1045,9 @@ mod tests {
 
     #[test]
     fn filter_untrusted_project_lsp_drops_only_project() {
-        use std::collections::BTreeMap;
         use nofy_tools::implementations::lsp::config::LspServerConfig;
         use nofy_tools::types::config_source::ConfigSource;
+        use std::collections::BTreeMap;
 
         fn sourced() -> BTreeMap<String, (LspServerConfig, ConfigSource)> {
             let mut m = BTreeMap::new();

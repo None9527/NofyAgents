@@ -493,9 +493,9 @@ mod permission_analytics_tests {
     /// surface cannot be silently dropped from adoption analytics.
     #[test]
     fn prompt_outcome_detail_matches_manager_vocabulary() {
-        use std::collections::BTreeSet;
         use nofy_telemetry::events::PermissionPromptOutcomeDetail;
         use nofy_workspace::permission::PromptOutcomeKind;
+        use std::collections::BTreeSet;
         let manager: BTreeSet<&str> = PromptOutcomeKind::ALL
             .iter()
             .map(|k| k.wire_str())
@@ -523,8 +523,8 @@ mod permission_analytics_tests {
     /// list). A new owner kind not mirrored by the telemetry enum fails here.
     #[test]
     fn classifier_source_enum_matches_manager_vocabulary() {
-        use std::collections::BTreeSet;
         use nofy_workspace::permission::ClassifierSourceKind;
+        use std::collections::BTreeSet;
         let manager: BTreeSet<&str> = ClassifierSourceKind::ALL
             .iter()
             .map(|k| k.wire_str())
@@ -550,8 +550,8 @@ mod permission_analytics_tests {
     /// owner projection `ClassifierVerdict::ALL` (generated from one list).
     #[test]
     fn classifier_verdict_enum_matches_manager_vocabulary() {
-        use std::collections::BTreeSet;
         use nofy_workspace::permission::ClassifierVerdict;
+        use std::collections::BTreeSet;
         let manager: BTreeSet<&str> = ClassifierVerdict::ALL
             .iter()
             .map(|v| v.wire_str())

@@ -324,7 +324,10 @@ pub fn select_flush_window(
         // Recall-loop prevention: content injected from memory (the
         // <memory-context> block) is never re-extracted as new memory —
         // a fact recalled one hundred times stays one fact.
-        .filter(|m| !m.text_content().contains(nofy_chat_state::MEMORY_CONTEXT_OPEN_TAG))
+        .filter(|m| {
+            !m.text_content()
+                .contains(nofy_chat_state::MEMORY_CONTEXT_OPEN_TAG)
+        })
         .collect();
 
     let total = messages.len();
@@ -580,9 +583,11 @@ mod tests {
         let window = select_flush_window(messages, 20);
 
         assert_eq!(window.len(), 2, "injected memory block must be dropped");
-        assert!(window
-            .iter()
-            .all(|m| !m.text_content().contains("<memory-context>")));
+        assert!(
+            window
+                .iter()
+                .all(|m| !m.text_content().contains("<memory-context>"))
+        );
     }
 
     // -----------------------------------------------------------------------

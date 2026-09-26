@@ -859,10 +859,7 @@ impl SessionActor {
                     self.set_goal_loop_active_resource(goal_loop_active).await;
                 }
                 let round = self
-                    .process_conversation_turn_with_recovery(
-                        prompt_id,
-                        json_schema.clone(),
-                    )
+                    .process_conversation_turn_with_recovery(prompt_id, json_schema.clone())
                     .await;
                 if !matches!(round, Ok(TurnOutcome::Completed { .. })) {
                     break round;
@@ -1005,16 +1002,14 @@ impl SessionActor {
                     cancellation_context: None,
                 })
                 .await;
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::TurnCompleted {
-                        outcome: nofy_telemetry::events::Outcome::Completed,
-                        duration_ms: turn_duration_ms,
-                        tool_call_count: turn_tool_count,
-                        model_id: turn_model_id,
-                        cancellation_category: None,
-                        error_category: None,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::TurnCompleted {
+                    outcome: nofy_telemetry::events::Outcome::Completed,
+                    duration_ms: turn_duration_ms,
+                    tool_call_count: turn_tool_count,
+                    model_id: turn_model_id,
+                    cancellation_category: None,
+                    error_category: None,
+                });
             }
             Ok(TurnOutcome::StationarityEnded { .. }) => {
                 self.emit_turn_ended(
@@ -1033,16 +1028,14 @@ impl SessionActor {
                     cancellation_context: None,
                 })
                 .await;
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::TurnCompleted {
-                        outcome: nofy_telemetry::events::Outcome::Completed,
-                        duration_ms: turn_duration_ms,
-                        tool_call_count: turn_tool_count,
-                        model_id: turn_model_id,
-                        cancellation_category: Some("action_stationarity".to_string()),
-                        error_category: None,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::TurnCompleted {
+                    outcome: nofy_telemetry::events::Outcome::Completed,
+                    duration_ms: turn_duration_ms,
+                    tool_call_count: turn_tool_count,
+                    model_id: turn_model_id,
+                    cancellation_category: Some("action_stationarity".to_string()),
+                    error_category: None,
+                });
             }
             Ok(TurnOutcome::Cancelled { category, context }) => {
                 self.emit_turn_ended(
@@ -1064,16 +1057,14 @@ impl SessionActor {
                     cancellation_context: context.clone(),
                 })
                 .await;
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::TurnCompleted {
-                        outcome: nofy_telemetry::events::Outcome::Cancelled,
-                        duration_ms: turn_duration_ms,
-                        tool_call_count: turn_tool_count,
-                        model_id: turn_model_id,
-                        cancellation_category: category.map(|c| format!("{c:?}")),
-                        error_category: None,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::TurnCompleted {
+                    outcome: nofy_telemetry::events::Outcome::Cancelled,
+                    duration_ms: turn_duration_ms,
+                    tool_call_count: turn_tool_count,
+                    model_id: turn_model_id,
+                    cancellation_category: category.map(|c| format!("{c:?}")),
+                    error_category: None,
+                });
             }
             Ok(TurnOutcome::MaxTurnsReached { limit }) => {
                 tracing::info!(limit, "turn ended: max_turns reached");
@@ -1101,16 +1092,14 @@ impl SessionActor {
                     })),
                 })
                 .await;
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::TurnCompleted {
-                        outcome: nofy_telemetry::events::Outcome::Cancelled,
-                        duration_ms: turn_duration_ms,
-                        tool_call_count: turn_tool_count,
-                        model_id: turn_model_id,
-                        cancellation_category: Some("max_turns_reached".to_string()),
-                        error_category: None,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::TurnCompleted {
+                    outcome: nofy_telemetry::events::Outcome::Cancelled,
+                    duration_ms: turn_duration_ms,
+                    tool_call_count: turn_tool_count,
+                    model_id: turn_model_id,
+                    cancellation_category: Some("max_turns_reached".to_string()),
+                    error_category: None,
+                });
             }
             Err(err) => {
                 self.emit_turn_ended(crate::session::events::TurnOutcomeLabel::Error, None, None);
@@ -1126,24 +1115,20 @@ impl SessionActor {
                 })
                 .await;
                 let error_category = Self::classify_turn_error(err);
-                nofy_telemetry::session_ctx::log_session_event(
-                    nofy_telemetry::events::ApiError {
-                        error_category: error_category.clone(),
-                        model_id: turn_model_id.clone(),
-                        status_code: None,
-                        duration_ms: Some(turn_duration_ms),
-                    },
-                );
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::TurnCompleted {
-                        outcome: nofy_telemetry::events::Outcome::Error,
-                        duration_ms: turn_duration_ms,
-                        tool_call_count: turn_tool_count,
-                        model_id: turn_model_id,
-                        cancellation_category: None,
-                        error_category: Some(error_category),
-                    },
-                );
+                nofy_telemetry::session_ctx::log_session_event(nofy_telemetry::events::ApiError {
+                    error_category: error_category.clone(),
+                    model_id: turn_model_id.clone(),
+                    status_code: None,
+                    duration_ms: Some(turn_duration_ms),
+                });
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::TurnCompleted {
+                    outcome: nofy_telemetry::events::Outcome::Error,
+                    duration_ms: turn_duration_ms,
+                    tool_call_count: turn_tool_count,
+                    model_id: turn_model_id,
+                    cancellation_category: None,
+                    error_category: Some(error_category),
+                });
                 self.report_turn_end(
                     prompt_id,
                     TurnEnd::Failed {
@@ -1681,11 +1666,7 @@ impl SessionActor {
         let was_greeting = raw_query.is_empty()
             || raw_query.len() < 20
             || crate::session::helpers::memory_context::is_greeting(&raw_query);
-        let query = if was_greeting {
-            None
-        } else {
-            Some(raw_query)
-        };
+        let query = if was_greeting { None } else { Some(raw_query) };
         let inject_start = std::time::Instant::now();
         let snapshot = service
             .snapshot(nofy_tools::types::memory_service::SnapshotRequest {
@@ -1694,19 +1675,21 @@ impl SessionActor {
             })
             .await
             .ok()?;
-        let result_count = snapshot.content.lines().filter(|line| line.starts_with("- [")).count();
+        let result_count = snapshot
+            .content
+            .lines()
+            .filter(|line| line.starts_with("- ["))
+            .count();
         let total_snippet_chars = snapshot.content.chars().count();
-        nofy_telemetry::session_ctx::log_event(
-            nofy_telemetry::memory_telemetry::MemoryInjection {
-                session_id: self.session_info.id.to_string(),
-                was_greeting_fallback: was_greeting,
-                result_count,
-                total_snippet_chars,
-                top_score: 0.0,
-                configured_min_score: 0.0,
-                injection_duration_ms: inject_start.elapsed().as_millis() as u64,
-            },
-        );
+        nofy_telemetry::session_ctx::log_event(nofy_telemetry::memory_telemetry::MemoryInjection {
+            session_id: self.session_info.id.to_string(),
+            was_greeting_fallback: was_greeting,
+            result_count,
+            total_snippet_chars,
+            top_score: 0.0,
+            configured_min_score: 0.0,
+            injection_duration_ms: inject_start.elapsed().as_millis() as u64,
+        });
         crate::session::helpers::memory_context::format_unified_memory_snapshot(&snapshot)
     }
 
@@ -1900,8 +1883,7 @@ impl SessionActor {
         let mut tool_turn_count: usize = 1;
         // RTAgent B1: budget extensions earned from the convergence governor
         // raise the effective max-turns limit for this prompt run.
-        let convergence_extended_limit: std::cell::Cell<Option<usize>> =
-            std::cell::Cell::new(None);
+        let convergence_extended_limit: std::cell::Cell<Option<usize>> = std::cell::Cell::new(None);
         // RTAgent B2: streak of tool iterations that produced no new
         // mutations, feeding the governor's no-progress early-finish.
         let mut no_new_info_streak: u64 = 0;
@@ -1978,9 +1960,7 @@ impl SessionActor {
                         tool_name: tool_name.clone(),
                     },
                 );
-                let snapshot = self
-                    .finalize_turn_bookkeeping(&turn_span_totals)
-                    .await;
+                let snapshot = self.finalize_turn_bookkeeping(&turn_span_totals).await;
                 return Ok(TurnOutcome::StationarityEnded {
                     snapshot: Box::new(snapshot),
                 });
@@ -2380,8 +2360,7 @@ impl SessionActor {
             let fallback_text = response.fallback_text();
             let stop_reason = response.stop_reason;
             let response_is_empty = response.is_empty();
-            let turn_refused =
-                stop_reason == Some(nofy_sampling_types::StopReason::ContentFilter);
+            let turn_refused = stop_reason == Some(nofy_sampling_types::StopReason::ContentFilter);
             let refusal_explanation = response.stop_message.clone();
             let final_answer_text = json_schema.is_some().then(|| response.assistant_text());
             for item in response.items {
@@ -2428,8 +2407,7 @@ impl SessionActor {
                 .await;
             }
             self.send_buffered_xai_update(response_completed).await;
-            if stop_reason == Some(nofy_sampling_types::StopReason::Length)
-                && tool_calls.is_empty()
+            if stop_reason == Some(nofy_sampling_types::StopReason::Length) && tool_calls.is_empty()
             {
                 match length_salvage.on_length_stop() {
                     super::length_salvage::SalvageStep::Continue { inject_reminder } => {
@@ -2515,9 +2493,7 @@ impl SessionActor {
                     tracing::info!("Drained interjection(s) before turn completion — continuing");
                     continue;
                 }
-                let snapshot = self
-                    .finalize_turn_bookkeeping(&turn_span_totals)
-                    .await;
+                let snapshot = self.finalize_turn_bookkeeping(&turn_span_totals).await;
                 if self.drain_pending_interjections().await {
                     tracing::info!(
                         "Drained late interjection(s) during turn-end bookkeeping — continuing"
@@ -2552,9 +2528,7 @@ impl SessionActor {
                 {
                     StructuredOutputStep::Complete(validated) => {
                         turn_tools_called.push(STRUCTURED_OUTPUT_TOOL.to_string());
-                        let snapshot = self
-                            .finalize_turn_bookkeeping(&turn_span_totals)
-                            .await;
+                        let snapshot = self.finalize_turn_bookkeeping(&turn_span_totals).await;
                         return Ok(TurnOutcome::Completed {
                             snapshot: Box::new(snapshot),
                             tools_called: turn_tools_called,
@@ -2596,11 +2570,9 @@ impl SessionActor {
                 is_true_noop,
             );
             if is_true_noop {
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::ShellTrueNoop {
-                        tool_name: step_tool_name.clone(),
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::ShellTrueNoop {
+                    tool_name: step_tool_name.clone(),
+                });
             }
             let tool_call_responses: Vec<ToolCallResponse> = tool_calls
                 .into_iter()
@@ -2899,8 +2871,7 @@ impl IdenticalToolCallRun {
     /// `true` keepalive runs are exempt: they end the turn silently at
     /// [`MAX_CONSECUTIVE_TRUE_NOOPS`] rather than being told to stop polling.
     fn take_nudge(&mut self) -> bool {
-        let fire =
-            !self.is_true_noop_run && self.run_len >= self.nudge_threshold() && !self.nudged;
+        let fire = !self.is_true_noop_run && self.run_len >= self.nudge_threshold() && !self.nudged;
         self.nudged |= fire;
         fire
     }

@@ -36,6 +36,10 @@ use futures::stream::SplitStream;
 use futures::{SinkExt, Stream, StreamExt};
 use http::HeaderName;
 use http::header::HeaderValue;
+use nofy_tool_protocol::{
+    ConnectionId, ConnectionKind, JsonRpcId, JsonRpcRequest, JsonRpcResponse, JsonRpcVersion,
+    Method, PingFrame, PongFrame, ResponseOutcome, SessionId,
+};
 use serde_json::Value;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Weak};
@@ -49,10 +53,6 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 use url::Url;
-use nofy_tool_protocol::{
-    ConnectionId, ConnectionKind, JsonRpcId, JsonRpcRequest, JsonRpcResponse, JsonRpcVersion,
-    Method, PingFrame, PongFrame, ResponseOutcome, SessionId,
-};
 /// Outbound mpsc bound. Picked to match the server's per-actor outbound
 /// buffer so a single-process roundtrip never dead-blocks on sender
 /// capacity.

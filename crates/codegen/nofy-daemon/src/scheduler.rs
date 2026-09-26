@@ -62,7 +62,13 @@ impl SchedulerService {
         let events = store.read_events()?;
         let state = nofy_scheduler::fold(&events);
         let enabled = !events.is_empty();
-        Ok(Self { enabled, events, state, fence: SessionFence::default(), store: Some(store) })
+        Ok(Self {
+            enabled,
+            events,
+            state,
+            fence: SessionFence::default(),
+            store: Some(store),
+        })
     }
 
     pub fn enabled(&self) -> bool {
@@ -132,7 +138,10 @@ impl SchedulerService {
         if !self.enabled {
             return Err("scheduler disabled (default-off)".into());
         }
-        self.apply_and_record(ScheduleEvent::Armed { id: id.to_string(), due });
+        self.apply_and_record(ScheduleEvent::Armed {
+            id: id.to_string(),
+            due,
+        });
         Ok(())
     }
 
@@ -143,7 +152,10 @@ impl SchedulerService {
         if !self.enabled {
             return Err("scheduler disabled (default-off)".into());
         }
-        self.apply_and_record(ScheduleEvent::RunFailed { id: id.to_string(), run_id });
+        self.apply_and_record(ScheduleEvent::RunFailed {
+            id: id.to_string(),
+            run_id,
+        });
         for event in self.watchdog(SELF_DISABLE_THRESHOLD) {
             let _ = event; // watchdog persists + applies internally
         }
@@ -162,7 +174,10 @@ impl SchedulerService {
             .get(id)
             .map(|entry| entry.once)
             .unwrap_or(false);
-        self.apply_and_record(ScheduleEvent::RunSucceeded { id: id.to_string(), run_id });
+        self.apply_and_record(ScheduleEvent::RunSucceeded {
+            id: id.to_string(),
+            run_id,
+        });
         if once {
             self.apply_and_record(ScheduleEvent::Disabled {
                 id: id.to_string(),
@@ -305,7 +320,11 @@ impl SchedulerService {
 
     /// Consecutive failures for a schedule (W-5 strike accounting).
     pub fn consecutive_failures(&self, id: &str) -> u64 {
-        self.state.consecutive_failures.get(id).copied().unwrap_or(0)
+        self.state
+            .consecutive_failures
+            .get(id)
+            .copied()
+            .unwrap_or(0)
     }
 
     /// Discharge a due obligation and start its run (W-5): journals
@@ -318,7 +337,10 @@ impl SchedulerService {
         if !self.state.is_live(id) {
             return Err(format!("schedule '{id}' is not live"));
         }
-        self.apply_and_record(ScheduleEvent::Fired { id: id.to_string(), due });
+        self.apply_and_record(ScheduleEvent::Fired {
+            id: id.to_string(),
+            due,
+        });
         self.apply_and_record(ScheduleEvent::RunStarted {
             id: id.to_string(),
             run_id: due,
@@ -331,7 +353,14 @@ impl SchedulerService {
     /// (id, spec, goal, cwd, pending dues, has in-flight run).
     pub fn live_with_payload(
         &self,
-    ) -> Vec<(String, String, Option<String>, Option<String>, Vec<u64>, bool)> {
+    ) -> Vec<(
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        Vec<u64>,
+        bool,
+    )> {
         self.state
             .schedules
             .iter()
@@ -362,13 +391,20 @@ mod tests {
     fn default_off_refuses_everything_until_enabled() {
         let mut svc = SchedulerService::new();
         assert!(!svc.enabled());
-        assert!(svc.add_schedule("j1", "* * * * *", None, None, false).is_err());
+        assert!(
+            svc.add_schedule("j1", "* * * * *", None, None, false)
+                .is_err()
+        );
         assert!(svc.arm("j1", 10).is_err());
-        assert!(svc.catch_up(100, 4).is_empty(), "disabled service produces nothing");
+        assert!(
+            svc.catch_up(100, 4).is_empty(),
+            "disabled service produces nothing"
+        );
         assert!(svc.watchdog(3).is_empty());
         assert_eq!(svc.event_count(), 0, "nothing entered the log while off");
         svc.enable();
-        svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+        svc.add_schedule("j1", "* * * * *", None, None, false)
+            .unwrap();
         assert!(svc.is_live("j1"));
     }
 
@@ -376,8 +412,15 @@ mod tests {
     fn grammar_gate_refuses_bad_specs_before_the_log() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        assert!(svc.add_schedule("bad", "not a cron", None, None, false).is_err());
-        assert_eq!(svc.event_count(), 0, "unparseable specs never enter the log");
+        assert!(
+            svc.add_schedule("bad", "not a cron", None, None, false)
+                .is_err()
+        );
+        assert_eq!(
+            svc.event_count(),
+            0,
+            "unparseable specs never enter the log"
+        );
         assert!(!svc.is_live("bad"));
     }
 
@@ -385,27 +428,36 @@ mod tests {
     fn catch_up_fires_overdue_through_core_policy() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+        svc.add_schedule("j1", "* * * * *", None, None, false)
+            .unwrap();
         svc.arm("j1", 10).unwrap();
         svc.arm("j1", 20).unwrap();
         assert_eq!(svc.pending_count(), 2);
         let events = svc.catch_up(100, 4);
         assert!(!events.is_empty(), "overdue dues fire via the core fold");
-        assert_eq!(svc.pending_count(), 0, "catch-up discharged the obligations");
+        assert_eq!(
+            svc.pending_count(),
+            0,
+            "catch-up discharged the obligations"
+        );
     }
 
     #[test]
     fn watchdog_self_disables_repeated_failures() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("flaky", "* * * * *", None, None, false).unwrap();
+        svc.add_schedule("flaky", "* * * * *", None, None, false)
+            .unwrap();
         for run in 1..=3 {
             svc.run_failed("flaky", run).unwrap();
         }
         // W-5: run_failed runs the watchdog itself — the third failure
         // crosses the threshold and self-disables immediately.
         assert!(!svc.is_live("flaky"), "self-disabled schedule is not live");
-        assert!(svc.watchdog(3).is_empty(), "already disabled: nothing left to do");
+        assert!(
+            svc.watchdog(3).is_empty(),
+            "already disabled: nothing left to do"
+        );
     }
 
     #[test]
@@ -413,14 +465,26 @@ mod tests {
         let mut svc = SchedulerService::new();
         svc.enable();
         svc.session_active("sess-1");
-        let held = svc.submit_delivery(Delivery { job_id: 1, session: "sess-1".into() });
+        let held = svc.submit_delivery(Delivery {
+            job_id: 1,
+            session: "sess-1".into(),
+        });
         assert_eq!(held, SubmitOutcome::Held);
-        let direct = svc.submit_delivery(Delivery { job_id: 2, session: "sess-2".into() });
+        let direct = svc.submit_delivery(Delivery {
+            job_id: 2,
+            session: "sess-2".into(),
+        });
         assert_eq!(direct, SubmitOutcome::Delivered);
         // Idle alone does not release; the controller gate does.
         svc.session_idle("sess-1");
         let released = svc.release("sess-1");
-        assert_eq!(released, vec![Delivery { job_id: 1, session: "sess-1".into() }]);
+        assert_eq!(
+            released,
+            vec![Delivery {
+                job_id: 1,
+                session: "sess-1".into()
+            }]
+        );
     }
 
     #[test]
@@ -432,14 +496,18 @@ mod tests {
         {
             let mut svc = SchedulerService::new();
             svc.enable();
-            svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+            svc.add_schedule("j1", "* * * * *", None, None, false)
+                .unwrap();
             svc.arm("j1", 10).unwrap();
             svc.attach_store(LogStore::open(&path)).unwrap();
             svc.arm("j1", 20).unwrap();
         }
         // "Crash": everything in memory is gone. Recover from disk.
         let recovered = SchedulerService::recover(LogStore::open(&path)).unwrap();
-        assert!(recovered.enabled(), "a non-empty log proves prior enablement");
+        assert!(
+            recovered.enabled(),
+            "a non-empty log proves prior enablement"
+        );
         assert!(recovered.is_live("j1"));
         assert_eq!(recovered.pending_count(), 2, "both armed dues survived");
         assert_eq!(recovered.event_count(), 3);
@@ -448,7 +516,8 @@ mod tests {
     #[test]
     fn recovery_from_empty_log_is_default_off() {
         let dir = tempfile::tempdir().unwrap();
-        let svc = SchedulerService::recover(LogStore::open(dir.path().join("missing.jsonl"))).unwrap();
+        let svc =
+            SchedulerService::recover(LogStore::open(dir.path().join("missing.jsonl"))).unwrap();
         assert!(!svc.enabled(), "no history = default-off");
         assert_eq!(svc.event_count(), 0);
     }
@@ -478,7 +547,8 @@ mod tests {
         svc.attach_store(LogStore::open(dir.path().join("schedule.jsonl")))
             .unwrap();
         svc.enable();
-        svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+        svc.add_schedule("j1", "* * * * *", None, None, false)
+            .unwrap();
         assert_eq!(svc.event_count(), 1, "the event stays in memory");
         assert!(svc.is_live("j1"));
     }
@@ -489,8 +559,14 @@ mod tests {
         // out through live_with_payload for the trigger bridge.
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("daily", "0 9 * * *", Some("water the plants"), Some("/home/a"), true)
-            .unwrap();
+        svc.add_schedule(
+            "daily",
+            "0 9 * * *",
+            Some("water the plants"),
+            Some("/home/a"),
+            true,
+        )
+        .unwrap();
         let rows = svc.live_with_payload();
         assert_eq!(rows.len(), 1);
         let (id, spec, goal, cwd, dues, inflight) = &rows[0];
@@ -506,7 +582,8 @@ mod tests {
     fn fire_discharges_a_due_and_starts_the_run() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("j1", "* * * * *", Some("goal"), None, false).unwrap();
+        svc.add_schedule("j1", "* * * * *", Some("goal"), None, false)
+            .unwrap();
         svc.arm("j1", 100).unwrap();
         let run_id = svc.fire("j1", 100, 101).unwrap();
         assert_eq!(run_id, 100, "the due timestamp doubles as the run id");
@@ -520,8 +597,12 @@ mod tests {
     fn fire_refuses_dead_schedules() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        assert!(svc.fire("ghost", 1, 1).is_err(), "never-defined id fails loud");
-        svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+        assert!(
+            svc.fire("ghost", 1, 1).is_err(),
+            "never-defined id fails loud"
+        );
+        svc.add_schedule("j1", "* * * * *", None, None, false)
+            .unwrap();
         svc.remove_schedule("j1").unwrap();
         assert!(svc.fire("j1", 1, 1).is_err(), "removed id fails loud");
     }
@@ -530,7 +611,8 @@ mod tests {
     fn one_shot_self_disables_after_first_success() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("once", "* * * * *", Some("single goal"), None, true).unwrap();
+        svc.add_schedule("once", "* * * * *", Some("single goal"), None, true)
+            .unwrap();
         svc.arm("once", 50).unwrap();
         let run_id = svc.fire("once", 50, 51).unwrap();
         svc.run_succeeded("once", run_id).unwrap();
@@ -543,13 +625,20 @@ mod tests {
     fn success_resets_failures_below_the_threshold() {
         let mut svc = SchedulerService::new();
         svc.enable();
-        svc.add_schedule("j1", "* * * * *", None, None, false).unwrap();
+        svc.add_schedule("j1", "* * * * *", None, None, false)
+            .unwrap();
         svc.run_failed("j1", 1).unwrap();
         svc.run_failed("j1", 2).unwrap();
         svc.run_succeeded("j1", 3).unwrap();
-        assert!(svc.is_live("j1"), "a success resets the streak before the threshold");
+        assert!(
+            svc.is_live("j1"),
+            "a success resets the streak before the threshold"
+        );
         svc.run_failed("j1", 4).unwrap();
         svc.run_failed("j1", 5).unwrap();
-        assert!(svc.is_live("j1"), "the reset streak needs three fresh failures");
+        assert!(
+            svc.is_live("j1"),
+            "the reset streak needs three fresh failures"
+        );
     }
 }

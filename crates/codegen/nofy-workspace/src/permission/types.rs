@@ -761,9 +761,9 @@ mod tests {
     }
     #[test]
     fn write_scoped_and_dynamic_inputs_map_to_edit_not_read() {
+        use nofy_tool_types::TaskToolInput;
         use nofy_tools::implementations::opencode::edit::EditInput;
         use nofy_tools::types::ToolInput;
-        use nofy_tool_types::TaskToolInput;
         let edit = ToolInput::from(EditInput {
             file_path: "/tmp/denied.txt".into(),
             old_string: "ORIGINAL".into(),

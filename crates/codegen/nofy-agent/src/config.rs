@@ -2,19 +2,19 @@
 use crate::error::AgentBuildError;
 use crate::prompt::context::TemplateOverride;
 use crate::prompt::user_message::UserMessageTemplate;
+use nofy_tools::implementations::codex;
+use nofy_tools::implementations::memory;
+use nofy_tools::implementations::nofy_build;
+use nofy_tools::implementations::nofy_build_concise;
+use nofy_tools::implementations::opencode;
+use nofy_tools::implementations::search_tool;
+use nofy_tools::implementations::use_tool;
+use nofy_tools::registry::types::{ToolConfig, ToolServerConfig};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoStaticStr};
-use nofy_tools::implementations::codex;
-use nofy_tools::implementations::nofy_build;
-use nofy_tools::implementations::nofy_build_concise;
-use nofy_tools::implementations::memory;
-use nofy_tools::implementations::opencode;
-use nofy_tools::implementations::search_tool;
-use nofy_tools::implementations::use_tool;
-use nofy_tools::registry::types::{ToolConfig, ToolServerConfig};
 /// Process-global registry of externally-provided toolset presets.
 ///
 /// # Visibility

@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use nofy_status_line::{ResolvedStatusLine, StatusLineConfig, StatusLineItem, StatusLineType};
 
-
 use super::draws_a_row;
 
 /// Process-wide counters, since a run records from a detached task and both
@@ -60,16 +59,14 @@ impl StatusLineMetrics {
             return;
         }
         self.draws_a_row.store(draws_a_row(cfg), Ordering::Relaxed);
-        nofy_telemetry::session_ctx::log_event(
-            nofy_telemetry::events::StatusLineConfigured {
-                kind,
-                // The row's question, not the section's: a rejected value in a
-                // section already switched off reserves nothing.
-                row_shows_a_problem: cfg.problem_to_paint().is_some(),
-                items: items_label(cfg),
-                custom_items: cfg.has_custom_items(),
-            },
-        );
+        nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::StatusLineConfigured {
+            kind,
+            // The row's question, not the section's: a rejected value in a
+            // section already switched off reserves nothing.
+            row_shows_a_problem: cfg.problem_to_paint().is_some(),
+            items: items_label(cfg),
+            custom_items: cfg.has_custom_items(),
+        });
     }
 
     pub(crate) fn record_ok(&self, duration_ms: u64) {

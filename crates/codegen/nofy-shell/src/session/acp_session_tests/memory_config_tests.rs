@@ -1,9 +1,9 @@
 use super::support::*;
 use super::*;
-use tokio::sync::mpsc;
 use nofy_paths::AbsPathBuf;
 use nofy_workspace::file_system::MockFs;
 use nofy_workspace::permission::PermissionHandle;
+use tokio::sync::mpsc;
 #[allow(clippy::field_reassign_with_default)]
 async fn create_test_actor_with_memory(
     total_tokens: u64,
@@ -252,7 +252,8 @@ async fn create_test_actor_with_memory(
         recap_epoch: std::cell::Cell::new(0),
         turn_summary_task: std::cell::RefCell::new(None),
         turn_summary_generation: std::cell::Cell::new(0),
-        turn_summary_enabled: false,        title_refresh_enabled: false,
+        turn_summary_enabled: false,
+        title_refresh_enabled: false,
         title_refresh_task: std::cell::RefCell::new(None),
         title_refresh_generation: std::cell::Cell::new(0),
         next_title_refresh_idx: std::cell::Cell::new(0),
@@ -631,9 +632,15 @@ async fn create_dream_ready_actor() -> SessionActor {
     let (persistence_tx, _persistence_rx) = mpsc::unbounded_channel();
     let mut config = crate::config::MemoryConfig::default();
     config.enabled = true;
-    let mut actor =
-        create_test_actor_with_memory(50_000, 100_000, 85, gateway_tx, persistence_tx, Some(config))
-            .await;
+    let mut actor = create_test_actor_with_memory(
+        50_000,
+        100_000,
+        85,
+        gateway_tx,
+        persistence_tx,
+        Some(config),
+    )
+    .await;
     let tmp = tempfile::TempDir::new().unwrap();
     let global_dir = tmp.path().join("memory");
     let workspace_dir = global_dir.join("test_ws");

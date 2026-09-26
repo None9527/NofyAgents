@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 
@@ -140,7 +140,11 @@ pub fn run(args: &LeaseArgs, state_dir: &Path) -> Result<()> {
                 );
             }
         }
-        LeaseCommand::Declare { session, ttl, paths } => {
+        LeaseCommand::Declare {
+            session,
+            ttl,
+            paths,
+        } => {
             if session.trim().is_empty() {
                 bail!("--session must not be empty");
             }
@@ -258,7 +262,10 @@ mod tests {
         // Release of an already-expired lease finds nothing.
         run(
             &LeaseArgs {
-                command: LeaseCommand::Release { path: Some(victim), all: false },
+                command: LeaseCommand::Release {
+                    path: Some(victim),
+                    all: false,
+                },
             },
             state,
         )
@@ -295,7 +302,10 @@ mod tests {
         }
         run(
             &LeaseArgs {
-                command: LeaseCommand::Release { path: None, all: true },
+                command: LeaseCommand::Release {
+                    path: None,
+                    all: true,
+                },
             },
             state,
         )

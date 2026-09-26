@@ -418,8 +418,8 @@ mod tests {
 
     #[test]
     fn main_turn_count_counts_real_users_only() {
-        use std::sync::Arc;
         use nofy_sampling_types::{ContentPart, SyntheticReason, ToolCall, UserItem};
+        use std::sync::Arc;
 
         let conv = vec![
             ConversationItem::system("sys".to_string()),

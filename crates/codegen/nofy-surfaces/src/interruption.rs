@@ -34,7 +34,10 @@ impl TurnTranscript {
     /// Append the next segment (dense seq enforced).
     pub fn append(&mut self, body: &str) -> Result<(), TranscriptError> {
         let next = self.segments.len() as u64;
-        self.segments.push(Segment { seq: next, body: body.to_string() });
+        self.segments.push(Segment {
+            seq: next,
+            body: body.to_string(),
+        });
         Ok(())
     }
 
@@ -53,11 +56,19 @@ impl TurnTranscript {
         if boundary as usize > self.segments.len() {
             return Err(TranscriptError::BadCheckpoint(boundary));
         }
-        let prefix: Vec<Segment> = self.segments.iter().take(boundary as usize).cloned().collect();
+        let prefix: Vec<Segment> = self
+            .segments
+            .iter()
+            .take(boundary as usize)
+            .cloned()
+            .collect();
         // Contiguity check: the recovered prefix must be dense from 0.
         for (i, segment) in prefix.iter().enumerate() {
             if segment.seq != i as u64 {
-                return Err(TranscriptError::Gap { expected: i as u64, got: segment.seq });
+                return Err(TranscriptError::Gap {
+                    expected: i as u64,
+                    got: segment.seq,
+                });
             }
         }
         Ok(prefix)
@@ -91,7 +102,10 @@ mod tests {
     #[test]
     fn no_checkpoint_recovers_nothing() {
         let t = transcript(3);
-        assert!(t.recover().unwrap().is_empty(), "never interrupted → nothing to recover");
+        assert!(
+            t.recover().unwrap().is_empty(),
+            "never interrupted → nothing to recover"
+        );
     }
 
     #[test]
@@ -117,12 +131,24 @@ mod tests {
         // of silently healing the gap.
         let t = TurnTranscript {
             segments: vec![
-                Segment { seq: 0, body: "a".into() },
-                Segment { seq: 2, body: "b".into() },
+                Segment {
+                    seq: 0,
+                    body: "a".into(),
+                },
+                Segment {
+                    seq: 2,
+                    body: "b".into(),
+                },
             ],
             checkpoint: Some(2),
         };
-        assert_eq!(t.recover(), Err(TranscriptError::Gap { expected: 1, got: 2 }));
+        assert_eq!(
+            t.recover(),
+            Err(TranscriptError::Gap {
+                expected: 1,
+                got: 2
+            })
+        );
     }
 
     #[test]

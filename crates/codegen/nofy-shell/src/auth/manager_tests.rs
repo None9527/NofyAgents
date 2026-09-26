@@ -3187,12 +3187,6 @@ async fn enrich_auth_inline_unreachable_server_leaves_auth_unchanged() {
 /// `jsonwebtoken` needs a process-level CryptoProvider; tests that encode
 /// JWTs can't rely on another test having installed it first.
 
-
-
-
-
-
-
 // -- force_reload_from_disk: transient disk anomaly vs real logout ----------
 
 /// A real incident in miniature: a live in-memory OIDC session (RT
@@ -3335,7 +3329,6 @@ fn force_reload_adopts_fresh_disk_token() {
 
     assert_eq!(mgr.current().unwrap().key, "fresh-from-disk");
 }
-
 
 /// A cached `AuthMode::ApiKey` session is rejected under the kill switch (here
 /// implied by a team pin), and honored when it's off.
@@ -4347,9 +4340,7 @@ async fn manual_auth_emits_only_for_user_facing_source() {
         AuthError::Refresh(RefreshTokenError::Permanent(_))
     ));
     // Assert the emitted payload, not just that something fired.
-    use nofy_telemetry::events::{
-        AuthTokenKind, ManualAuth, ManualAuthReason, ManualAuthSurface,
-    };
+    use nofy_telemetry::events::{AuthTokenKind, ManualAuth, ManualAuthReason, ManualAuthSurface};
     assert_eq!(
         turn.manual_auth_last_emit(),
         Some(ManualAuth {

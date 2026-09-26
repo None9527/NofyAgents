@@ -69,7 +69,10 @@ pub fn normalize_message(channel: ImKind, chat_id: &str, raw: &str) -> ImMessage
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ImDecision {
     /// Decide one item by its card number (1-based).
-    Item { index: usize, decision: ItemDecision },
+    Item {
+        index: usize,
+        decision: ItemDecision,
+    },
     /// Decide every item.
     All { decision: ItemDecision },
     /// Not a decision the surface understands.
@@ -112,7 +115,10 @@ mod tests {
     fn card_renders_numbered_lines_and_hint() {
         let card = format_approval_card(ImKind::Feishu, &ask());
         assert_eq!(card.channel, ImKind::Feishu);
-        assert_eq!(card.lines, vec!["1. [mv-1] move logs", "2. [del-1] trash dupes"]);
+        assert_eq!(
+            card.lines,
+            vec!["1. [mv-1] move logs", "2. [del-1] trash dupes"]
+        );
         assert!(card.hint.contains("1 high-risk"));
         // Same Ask, different channel: identical content, different carrier.
         let tg = format_approval_card(ImKind::Telegram, &ask());
@@ -122,11 +128,28 @@ mod tests {
     #[test]
     fn replies_parse_to_decisions() {
         let msg = normalize_message(ImKind::Feishu, "chat-1", "@nofy-bot approve 2");
-        assert_eq!(parse_reply(&msg), ImDecision::Item { index: 2, decision: ItemDecision::Approved });
+        assert_eq!(
+            parse_reply(&msg),
+            ImDecision::Item {
+                index: 2,
+                decision: ItemDecision::Approved
+            }
+        );
         let deny = normalize_message(ImKind::Telegram, "chat-2", "deny 1");
-        assert_eq!(parse_reply(&deny), ImDecision::Item { index: 1, decision: ItemDecision::Denied });
+        assert_eq!(
+            parse_reply(&deny),
+            ImDecision::Item {
+                index: 1,
+                decision: ItemDecision::Denied
+            }
+        );
         let all = normalize_message(ImKind::Feishu, "chat-1", "approve all");
-        assert_eq!(parse_reply(&all), ImDecision::All { decision: ItemDecision::Approved });
+        assert_eq!(
+            parse_reply(&all),
+            ImDecision::All {
+                decision: ItemDecision::Approved
+            }
+        );
     }
 
     #[test]
@@ -139,7 +162,11 @@ mod tests {
     fn non_decisions_are_flagged() {
         for text in ["hello", "approve", "approve zero", "approve 0", "maybe 2"] {
             let msg = normalize_message(ImKind::Feishu, "c", text);
-            assert_eq!(parse_reply(&msg), ImDecision::NotADecision, "must not parse: {text}");
+            assert_eq!(
+                parse_reply(&msg),
+                ImDecision::NotADecision,
+                "must not parse: {text}"
+            );
         }
     }
 
@@ -148,7 +175,13 @@ mod tests {
         // The same reply grammar works on every channel kind.
         for kind in [ImKind::Feishu, ImKind::Telegram] {
             let msg = normalize_message(kind, "c", "approve 1");
-            assert_eq!(parse_reply(&msg), ImDecision::Item { index: 1, decision: ItemDecision::Approved });
+            assert_eq!(
+                parse_reply(&msg),
+                ImDecision::Item {
+                    index: 1,
+                    decision: ItemDecision::Approved
+                }
+            );
         }
     }
 }

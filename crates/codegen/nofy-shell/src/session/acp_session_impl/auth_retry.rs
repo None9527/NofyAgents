@@ -1,8 +1,8 @@
 //! Per-turn retry policy for 401s that follow a *successful* auth recovery
 //! (fresh token minted, request to be re-sent).
 
-use tokio_retry::strategy::ExponentialBackoff;
 use nofy_sampling_types::SentCredential;
+use tokio_retry::strategy::ExponentialBackoff;
 
 use super::RecoveredStore;
 use crate::auth::AuthManager;

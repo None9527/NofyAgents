@@ -54,7 +54,10 @@ pub fn check(headers: &RequestHeaders, allowed_hosts: &[String]) -> FenceVerdict
         };
     };
     let host = normalize_host(raw_host);
-    if !allowed_hosts.iter().any(|allowed| normalize_host(allowed) == host) {
+    if !allowed_hosts
+        .iter()
+        .any(|allowed| normalize_host(allowed) == host)
+    {
         return FenceVerdict::Refused {
             layer: 1,
             reason: format!("host '{host}' not allowlisted (DNS-rebinding defense)"),
@@ -117,8 +120,14 @@ mod tests {
 
     #[test]
     fn same_origin_request_passes_all_layers() {
-        assert_eq!(check(&same_origin("localhost"), &allowed()), FenceVerdict::Allowed);
-        assert_eq!(check(&same_origin("localhost:8080"), &allowed()), FenceVerdict::Allowed);
+        assert_eq!(
+            check(&same_origin("localhost"), &allowed()),
+            FenceVerdict::Allowed
+        );
+        assert_eq!(
+            check(&same_origin("localhost:8080"), &allowed()),
+            FenceVerdict::Allowed
+        );
     }
 
     #[test]

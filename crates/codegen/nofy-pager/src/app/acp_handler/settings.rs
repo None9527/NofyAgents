@@ -328,4 +328,3 @@ pub(super) struct PagerSettingsUpdate {
     #[serde(default)]
     auto_permission_mode_enabled: bool,
 }
-

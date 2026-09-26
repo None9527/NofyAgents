@@ -24,7 +24,12 @@ pub enum Admission {
 
 /// Admission gate: release age + trust verdict. Fail-closed: anything not
 /// explicitly trusted AND aged is refused.
-pub fn admission(released_at: u64, now: u64, min_age_secs: u64, verdict: TrustVerdict) -> Admission {
+pub fn admission(
+    released_at: u64,
+    now: u64,
+    min_age_secs: u64,
+    verdict: TrustVerdict,
+) -> Admission {
     match verdict {
         TrustVerdict::Malicious => Admission::Refused {
             reason: "malicious verdict".into(),
@@ -152,7 +157,10 @@ mod tests {
             Admission::Refused { .. }
         ));
         // Trusted and aged: admit.
-        assert_eq!(admission(0, 10_000, 3600, TrustVerdict::Trusted), Admission::Admitted);
+        assert_eq!(
+            admission(0, 10_000, 3600, TrustVerdict::Trusted),
+            Admission::Admitted
+        );
     }
 
     #[test]
@@ -166,7 +174,10 @@ mod tests {
     #[test]
     fn override_requires_safety_gate() {
         let mut registry = ToolRegistry::new();
-        assert!(!registry.install_override("dangerous-tool", false), "implicit override refused");
+        assert!(
+            !registry.install_override("dangerous-tool", false),
+            "implicit override refused"
+        );
         assert!(registry.overrides.is_empty());
         assert!(registry.install_override("vetted-tool", true));
         assert_eq!(registry.overrides, vec!["vetted-tool".to_string()]);

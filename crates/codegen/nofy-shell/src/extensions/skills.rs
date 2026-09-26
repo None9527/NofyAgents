@@ -2,9 +2,7 @@ use agent_client_protocol as acp;
 use serde::{Deserialize, Serialize};
 
 use crate::util::config as cli_config;
-use nofy_agent::prompt::skills::{
-    CompatConfig, SkillInfo, SkillsConfig, list_skills_with_plugins,
-};
+use nofy_agent::prompt::skills::{CompatConfig, SkillInfo, SkillsConfig, list_skills_with_plugins};
 
 use super::ExtResult;
 
@@ -307,13 +305,11 @@ pub async fn handle(
             })
             .await
             {
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::SkillAdded {
-                        added_count: 0,
-                        total_skills: 0,
-                        success: false,
-                    },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SkillAdded {
+                    added_count: 0,
+                    total_skills: 0,
+                    success: false,
+                });
                 return super::to_ext_response(Err::<SkillsAddResponse, _>(anyhow::anyhow!(
                     "Failed to save config: {e}"
                 )));
@@ -360,9 +356,9 @@ pub async fn handle(
             })
             .await
             {
-                nofy_telemetry::session_ctx::log_event(
-                    nofy_telemetry::events::SkillRemoved { success: false },
-                );
+                nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SkillRemoved {
+                    success: false,
+                });
                 return super::to_ext_response(Err::<SkillsRemoveResponse, _>(anyhow::anyhow!(
                     "Failed to save config: {e}"
                 )));

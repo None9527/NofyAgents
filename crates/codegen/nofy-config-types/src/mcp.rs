@@ -3,10 +3,10 @@
 
 use agent_client_protocol as acp;
 use indexmap::IndexMap;
+use nofy_mcp::oauth_config::McpOAuthConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use nofy_mcp::oauth_config::McpOAuthConfig;
 
 /// serde default helper. Kept module-local rather than shared — the `pool`
 /// module keeps its own copy for `PoolConfig`.

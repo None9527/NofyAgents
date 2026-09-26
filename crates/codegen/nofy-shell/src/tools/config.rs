@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use nofy_tools::implementations::nofy_build;
 use nofy_tools::registry::types::ToolConfig;
+use serde::{Deserialize, Serialize};
 
 /// Production nofy-build foreground command-timeout ceiling (seconds). The
 /// tool-server binary defaults to a 5-minute foreground ceiling

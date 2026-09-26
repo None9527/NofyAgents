@@ -289,10 +289,7 @@ mod tests {
     #[test]
     fn event_value_strips_shell_prefix() {
         assert_eq!(event_value("nofy-shell-turn"), "turn");
-        assert_eq!(
-            event_value("nofy-shell-session_started"),
-            "session_started"
-        );
+        assert_eq!(event_value("nofy-shell-session_started"), "session_started");
     }
 
     /// Workspace events strip their own prefix to the same bare suffix.

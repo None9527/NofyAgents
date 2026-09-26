@@ -145,11 +145,8 @@ fn spawn_prefetch_thread(env: PrefetchEnv) -> EarlyPrefetchHandle {
         let mut timer = crate::instrumentation_timer!("startup.early_prefetch");
         let proxy_endpoint = env.endpoints.proxy_url();
         timer.with_field("endpoint", proxy_endpoint.as_str());
-        let models = prefetch_models_blocking(
-            &env.endpoints,
-            env.auth.as_ref(),
-            env.model_fetch_auth,
-        );
+        let models =
+            prefetch_models_blocking(&env.endpoints, env.auth.as_ref(), env.model_fetch_auth);
         EarlyPrefetchResult { models }
     })
 }

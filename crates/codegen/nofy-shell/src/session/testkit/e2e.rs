@@ -7,11 +7,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use agent_client_protocol::{self as acp};
-use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use nofy_acp_lib::{
     AcpAgentGatewayReceiver as GatewayReceiver, AcpAgentGatewaySender as GatewaySender,
     LineBufferedRead,
 };
+use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 use crate::agent::config::Config as AgentConfig;
 use crate::agent::mvp_agent::MvpAgent;
@@ -96,11 +96,7 @@ pub async fn load_session_via_agent<C: acp::Client + 'static>(
 
     // Best-effort auth: the mock backend accepts anything and `load` does not
     // require a prior success, so ignore any failure here.
-    if let Some(method) = init
-        .auth_methods
-        .iter()
-        .find(|m| &*m.id().0 == "api_key")
-    {
+    if let Some(method) = init.auth_methods.iter().find(|m| &*m.id().0 == "api_key") {
         let _ = client_conn
             .authenticate(
                 acp::AuthenticateRequest::new(method.id().clone())

@@ -1,10 +1,10 @@
 #![allow(dead_code)] // Phase 1 internal helpers
 
 use crate::permission::types::EditPolicy;
-use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use nofy_paths::AbsPathBuf;
 use nofy_tools::util::nofy_home::nofy_home;
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 const VALIDATED_MCP_SERVER_GRANTS_VERSION: i64 = 1;
 

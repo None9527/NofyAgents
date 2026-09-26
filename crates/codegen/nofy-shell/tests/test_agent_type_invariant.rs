@@ -17,8 +17,8 @@
 //! ```bash
 //! cargo test -p nofy-shell --test test_agent_type_invariant -- --ignored
 //! ```
-use std::future::Future;
 use nofy_test_support::*;
+use std::future::Future;
 async fn with_local_set<F, Fut>(f: F)
 where
     F: FnOnce() -> Fut,

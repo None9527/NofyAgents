@@ -761,7 +761,10 @@ mod tests {
             .inspect(|t| assert_eq!(t.display, "/acme:compact"))
             .map(|t| t.match_text.as_str())
             .collect();
-        assert_eq!(skill_match_texts, HashSet::from(["compact", "acme:compact"]));
+        assert_eq!(
+            skill_match_texts,
+            HashSet::from(["compact", "acme:compact"])
+        );
     }
 
     #[test]

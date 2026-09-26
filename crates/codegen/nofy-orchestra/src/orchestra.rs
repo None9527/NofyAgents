@@ -194,10 +194,7 @@ impl ProjectManifest {
                 break;
             }
         }
-        let mut out: Vec<String> = dead
-            .difference(failed_or_skipped)
-            .cloned()
-            .collect();
+        let mut out: Vec<String> = dead.difference(failed_or_skipped).cloned().collect();
         out.sort_unstable();
         out
     }
@@ -472,7 +469,11 @@ needs = ["x"]
         let mut f = BTreeSet::new();
         f.insert("review".to_string());
         let skips = m.transitive_skips(&s, &f);
-        assert_eq!(skips, vec!["sec".to_string()], "sec depends on failed review");
+        assert_eq!(
+            skips,
+            vec!["sec".to_string()],
+            "sec depends on failed review"
+        );
         let b = m.next_batch(&s, &f, &BTreeSet::new());
         assert!(!b.contains(&"sec".to_string()));
     }
@@ -501,7 +502,10 @@ needs = ["flaky"]
         let t1 = run.dispatch_next().expect("flaky ready");
         assert_eq!(t1.id, "flaky");
         // First failure: retry budget 1 → Retry.
-        assert_eq!(run.settle("flaky", false), SettleOutcome::Retry("flaky".into()));
+        assert_eq!(
+            run.settle("flaky", false),
+            SettleOutcome::Retry("flaky".into())
+        );
         let t2 = run.dispatch_next().expect("re-dispatch");
         assert_eq!(t2.id, "flaky");
         // Second failure: budget exhausted, on_fail=escalate.
@@ -526,7 +530,10 @@ needs = ["flaky"]
         run.settle("flaky", false); // escalate
         run.resolve_escalation("flaky", false);
         assert!(run.aborted);
-        assert!(run.dispatch_next().is_none(), "aborted run dispatches nothing");
+        assert!(
+            run.dispatch_next().is_none(),
+            "aborted run dispatches nothing"
+        );
     }
 
     #[test]
@@ -562,7 +569,10 @@ needs = ["flaky"]
         let mut run = OrchRun::new(m);
         let t = run.dispatch_next().expect("first batch is ready");
         assert_eq!(run.settle(&t.id, false), SettleOutcome::Done);
-        assert!(run.dead.contains(&t.id), "skip policy = dead, never escalated");
+        assert!(
+            run.dead.contains(&t.id),
+            "skip policy = dead, never escalated"
+        );
     }
 
     #[test]

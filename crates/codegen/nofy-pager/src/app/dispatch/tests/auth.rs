@@ -224,4 +224,3 @@ fn bash_while_running_is_server_authoritative() {
     assert_eq!(q[0].kind, "bash");
     assert_eq!(q[0].text, "ls -la");
 }
-

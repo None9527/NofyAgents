@@ -66,10 +66,7 @@ pub fn plan(
                 .iter()
                 .find(|(id, _)| s.needs.iter().any(|n| n == id))
             {
-                excluded.push((
-                    s.id.clone(),
-                    format!("depends on excluded {dep_id}"),
-                ));
+                excluded.push((s.id.clone(), format!("depends on excluded {dep_id}")));
                 grew = true;
             }
         }
@@ -109,7 +106,11 @@ pub fn plan(
             .collect(),
     };
 
-    Ok(CleanupPlan { dag, batch, excluded })
+    Ok(CleanupPlan {
+        dag,
+        batch,
+        excluded,
+    })
 }
 
 #[cfg(test)]
@@ -155,7 +156,10 @@ mod tests {
         // empty-dir only after mv-logs succeeds.
         let empty: BTreeSet<String> = BTreeSet::new();
         let first = p.dag.dispatch_batch(&empty, &empty, &empty, 8);
-        assert_eq!(first, vec!["mv-logs".to_string(), "trash-dupes".to_string()]);
+        assert_eq!(
+            first,
+            vec!["mv-logs".to_string(), "trash-dupes".to_string()]
+        );
         let mut done = BTreeSet::new();
         done.insert("mv-logs".to_string());
         done.insert("trash-dupes".to_string());
@@ -171,7 +175,9 @@ mod tests {
     fn forbidden_suggestions_never_enter_dag_or_batch() {
         let verdict = |id: &str| {
             if id == "trash-dupes" {
-                CleanupVerdict::Forbidden { reason: "leased".into() }
+                CleanupVerdict::Forbidden {
+                    reason: "leased".into(),
+                }
             } else {
                 CleanupVerdict::Cleanable
             }
@@ -180,14 +186,19 @@ mod tests {
         let ids: Vec<&str> = p.dag.tasks.iter().map(|t| t.id.as_str()).collect();
         assert!(!ids.contains(&"trash-dupes"));
         assert!(p.batch.items.iter().all(|i| i.id != "trash-dupes"));
-        assert_eq!(p.excluded, vec![("trash-dupes".to_string(), "leased".to_string())]);
+        assert_eq!(
+            p.excluded,
+            vec![("trash-dupes".to_string(), "leased".to_string())]
+        );
     }
 
     #[test]
     fn exclusion_is_transitive() {
         let verdict = |id: &str| {
             if id == "mv-logs" {
-                CleanupVerdict::Forbidden { reason: "gitignored".into() }
+                CleanupVerdict::Forbidden {
+                    reason: "gitignored".into(),
+                }
             } else {
                 CleanupVerdict::Cleanable
             }
@@ -195,7 +206,11 @@ mod tests {
         let p = plan("cleanup-3", &suggestions(), &verdict).unwrap();
         // empty-dir depends on mv-logs → excluded transitively.
         assert_eq!(p.excluded.len(), 2);
-        assert!(p.excluded.iter().any(|(id, r)| id == "empty-dir" && r.contains("mv-logs")));
+        assert!(
+            p.excluded
+                .iter()
+                .any(|(id, r)| id == "empty-dir" && r.contains("mv-logs"))
+        );
         assert_eq!(p.dag.tasks.len(), 1, "only trash-dupes survives");
     }
 
@@ -204,7 +219,9 @@ mod tests {
         // Ask = must be presented; the batch approval IS the presentation.
         let verdict = |id: &str| {
             if id == "trash-dupes" {
-                CleanupVerdict::Ask { reason: "touch history unknown".into() }
+                CleanupVerdict::Ask {
+                    reason: "touch history unknown".into(),
+                }
             } else {
                 CleanupVerdict::Cleanable
             }
@@ -219,10 +236,17 @@ mod tests {
         let p = plan("cleanup-5", &suggestions(), &all_clean).unwrap();
         let mut ledger = init_ledger(&p.batch);
         assert!(decide_item(&mut ledger, "mv-logs", ItemDecision::Approved));
-        assert!(decide_item(&mut ledger, "trash-dupes", ItemDecision::Denied));
+        assert!(decide_item(
+            &mut ledger,
+            "trash-dupes",
+            ItemDecision::Denied
+        ));
         // Deadline: empty-dir never decided → denied, never allowed.
         assert_eq!(expire_undecided(&mut ledger), 1);
-        assert!(matches!(batch_outcome(&ledger), nofy_orchestra::batchapproval::BatchOutcome::AnyDenied));
+        assert!(matches!(
+            batch_outcome(&ledger),
+            nofy_orchestra::batchapproval::BatchOutcome::AnyDenied
+        ));
     }
 
     #[test]
@@ -233,6 +257,9 @@ mod tests {
             needs: vec!["ghost".into()],
             high_risk: false,
         }];
-        assert!(matches!(plan("b", &bad, &all_clean), Err(DagError::DanglingNeed { .. })));
+        assert!(matches!(
+            plan("b", &bad, &all_clean),
+            Err(DagError::DanglingNeed { .. })
+        ));
     }
 }

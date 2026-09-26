@@ -13,7 +13,9 @@ pub enum MountOutcome {
     /// Same scope, same set: idempotent no-op.
     AlreadyMounted,
     /// Same scope, different set: fail loud.
-    Conflict { existing: Vec<String> },
+    Conflict {
+        existing: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,7 +118,10 @@ mod tests {
     #[test]
     fn mount_once_then_idempotent() {
         let mut table = MountTable::default();
-        assert_eq!(table.mount("proj", &packs(&["a", "b"])), MountOutcome::Mounted);
+        assert_eq!(
+            table.mount("proj", &packs(&["a", "b"])),
+            MountOutcome::Mounted
+        );
         assert_eq!(
             table.mount("proj", &packs(&["b", "a"])),
             MountOutcome::AlreadyMounted,
@@ -136,7 +141,10 @@ mod tests {
             }
         );
         // The original mount stands.
-        assert_eq!(table.packs_for("s-joined-later-after-join").map(|_| ()), None);
+        assert_eq!(
+            table.packs_for("s-joined-later-after-join").map(|_| ()),
+            None
+        );
     }
 
     #[test]
@@ -155,16 +163,25 @@ mod tests {
         table.mount("proj", &packs(&["steward", "reviewer"]));
         table.join("parent-session", "proj");
         // Subagent joins under its parent — no mount of its own.
-        assert_eq!(table.join_under("subagent-1", "parent-session"), JoinOutcome::Joined);
+        assert_eq!(
+            table.join_under("subagent-1", "parent-session"),
+            JoinOutcome::Joined
+        );
         assert_eq!(
             table.packs_for("subagent-1"),
             Some(packs(&["reviewer", "steward"]))
         );
         // Grandchild lineage walks up.
-        assert_eq!(table.join_under("subagent-1-1", "subagent-1"), JoinOutcome::Joined);
+        assert_eq!(
+            table.join_under("subagent-1-1", "subagent-1"),
+            JoinOutcome::Joined
+        );
         assert_eq!(table.packs_for("subagent-1-1").map(|p| p.len()), Some(2));
         // Unknown parent fails closed.
-        assert_eq!(table.join_under("orphan", "ghost"), JoinOutcome::UnknownScope);
+        assert_eq!(
+            table.join_under("orphan", "ghost"),
+            JoinOutcome::UnknownScope
+        );
     }
 
     #[test]
@@ -172,7 +189,10 @@ mod tests {
         let mut table = MountTable::default();
         table.mount("proj", &packs(&["a"]));
         table.join("parent-session", "proj");
-        assert_eq!(table.join_under("subagent-1", "parent-session"), JoinOutcome::Joined);
+        assert_eq!(
+            table.join_under("subagent-1", "parent-session"),
+            JoinOutcome::Joined
+        );
         // Re-joining the same child is an idempotent no-op.
         assert_eq!(
             table.join_under("subagent-1", "parent-session"),
@@ -194,6 +214,10 @@ mod tests {
             joins: BTreeMap::new(),
             parents,
         };
-        assert_eq!(table.scope_of("a"), None, "cycle fuse blows instead of looping");
+        assert_eq!(
+            table.scope_of("a"),
+            None,
+            "cycle fuse blows instead of looping"
+        );
     }
 }

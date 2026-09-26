@@ -4,14 +4,14 @@
 //! server, exposes workspace tools, and refreshes tokens
 //! automatically.
 use clap::Parser;
-use std::path::PathBuf;
-use std::time::Duration;
-use url::Url;
 use nofy_workspace::config::WorkspaceServerMetadata;
 use nofy_workspace::daemonize;
 use nofy_workspace::diag_server::{self, DiagHandle, ErrorClass};
 use nofy_workspace::error::WorkspaceError;
 use nofy_workspace::preview_supervisor::{self, PreviewArgs, PreviewVisibility};
+use std::path::PathBuf;
+use std::time::Duration;
+use url::Url;
 /// OTLP `service.name` for this binary's exported traces/logs/metrics and
 /// direct-OTLP fastrace export. Single source so the call sites can't drift.
 const SERVICE_NAME: &str = "prod_nofy_workspace";
@@ -474,10 +474,7 @@ async fn run(args: Args, cwd: PathBuf) -> anyhow::Result<()> {
     let tracker = ws_handle.activity_tracker().clone();
     let grace_budget = nofy_workspace::handle::termination_grace_from_env();
     ws_handle
-        .two_phase_drain(
-            grace_budget,
-            nofy_workspace::handle::DrainReason::Sigterm,
-        )
+        .two_phase_drain(grace_budget, nofy_workspace::handle::DrainReason::Sigterm)
         .await;
     tracker.set_shutting_down();
     tracing::info!("Shutting down...");
@@ -760,8 +757,8 @@ mod tests {
     }
     #[test]
     fn ready_file_is_accepted_as_a_deprecated_no_op() {
-        let args =
-            Args::try_parse_from(["nofy-workspace-server", "--ready-file", "/tmp/x.ready"]).unwrap();
+        let args = Args::try_parse_from(["nofy-workspace-server", "--ready-file", "/tmp/x.ready"])
+            .unwrap();
         assert_eq!(args.ready_file, Some(PathBuf::from("/tmp/x.ready")));
     }
     #[test]

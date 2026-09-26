@@ -259,10 +259,7 @@ impl SessionActor {
                 &live,
                 &previous_mcp_servers,
                 crate::session::agent_mcp::RematerializeParams {
-                    initial_client_mcp_servers: self
-                        .initial_client_mcp_servers
-                        .borrow()
-                        .clone(),
+                    initial_client_mcp_servers: self.initial_client_mcp_servers.borrow().clone(),
                     cwd: self.tool_context.cwd.as_path(),
                     parent_cwd: None,
                     managed_configs: &managed_configs,

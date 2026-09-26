@@ -155,7 +155,8 @@ mod tests {
         assert_eq!(still_latched.cycles, 0);
 
         // Only an explicit Rearm releases it.
-        let rearmed = fold_maintenance(&[IdleReached, Start, Wake, IdleReached, Rearm, Start, Finish]);
+        let rearmed =
+            fold_maintenance(&[IdleReached, Start, Wake, IdleReached, Rearm, Start, Finish]);
         assert_eq!(rearmed.cycles, 1);
         assert!(!rearmed.wake_latch);
     }
@@ -181,8 +182,19 @@ mod tests {
     #[test]
     fn replay_is_deterministic_at_every_prefix() {
         let log = vec![
-            IdleReached, Start, Wake, IdleReached, Start, Activity, IdleReached, Rearm, Start,
-            Finish, IdleReached, Start, Finish,
+            IdleReached,
+            Start,
+            Wake,
+            IdleReached,
+            Start,
+            Activity,
+            IdleReached,
+            Rearm,
+            Start,
+            Finish,
+            IdleReached,
+            Start,
+            Finish,
         ];
         let whole = fold_maintenance(&log);
         for k in 0..=log.len() {

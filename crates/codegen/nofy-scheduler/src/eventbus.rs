@@ -35,7 +35,10 @@ pub struct EventBus {
 
 impl EventBus {
     pub fn subscribe(&mut self, topic: Topic, subscriber: &str) {
-        self.subscribers.entry(topic).or_default().insert(subscriber.to_string());
+        self.subscribers
+            .entry(topic)
+            .or_default()
+            .insert(subscriber.to_string());
     }
 
     pub fn unsubscribe(&mut self, topic: &Topic, subscriber: &str) {
@@ -149,7 +152,11 @@ mod tests {
         bus.subscribe(Topic::TaskFired, "daemon");
         bus.subscribe(Topic::TaskFired, "tui");
         bus.subscribe(Topic::ApprovalNeeded, "tui");
-        let event = SystemEvent { topic: Topic::TaskFired, payload: "nightly".into(), at: 10 };
+        let event = SystemEvent {
+            topic: Topic::TaskFired,
+            payload: "nightly".into(),
+            at: 10,
+        };
         let fanout = bus.publish(&event);
         assert_eq!(fanout, vec!["daemon".to_string(), "tui".to_string()]);
         assert_eq!(bus.deliveries.len(), 2);
@@ -161,7 +168,11 @@ mod tests {
         let mut bus = EventBus::default();
         bus.subscribe(Topic::MaintenanceNeeded, "cleaner");
         bus.unsubscribe(&Topic::MaintenanceNeeded, "cleaner");
-        let event = SystemEvent { topic: Topic::MaintenanceNeeded, payload: "".into(), at: 1 };
+        let event = SystemEvent {
+            topic: Topic::MaintenanceNeeded,
+            payload: "".into(),
+            at: 1,
+        };
         assert!(bus.publish(&event).is_empty());
     }
 
@@ -184,22 +195,36 @@ mod tests {
         let mut presence = PresenceTable::default();
         presence.surface_online("web", &mut bus, 1);
         let mut router = WakeRouter::default();
-        let event = SystemEvent { topic: Topic::TaskFired, payload: "x".into(), at: 2 };
-        assert_eq!(router.route(&presence, event), WakeOutcome::Delivered("web".into()));
+        let event = SystemEvent {
+            topic: Topic::TaskFired,
+            payload: "x".into(),
+            at: 2,
+        };
+        assert_eq!(
+            router.route(&presence, event),
+            WakeOutcome::Delivered("web".into())
+        );
         assert_eq!(router.latched_count(), 0);
     }
 
     #[test]
     fn drain_latched_without_anything_latched_is_empty() {
         let mut router = WakeRouter::default();
-        assert!(router.drain_latched("tui").is_empty(), "nothing latched, nothing to drain");
+        assert!(
+            router.drain_latched("tui").is_empty(),
+            "nothing latched, nothing to drain"
+        );
     }
 
     #[test]
     fn wake_latches_when_no_surface_online() {
         let presence = PresenceTable::default();
         let mut router = WakeRouter::default();
-        let event = SystemEvent { topic: Topic::ApprovalNeeded, payload: "y".into(), at: 3 };
+        let event = SystemEvent {
+            topic: Topic::ApprovalNeeded,
+            payload: "y".into(),
+            at: 3,
+        };
         assert_eq!(router.route(&presence, event), WakeOutcome::Latched);
         assert_eq!(router.latched_count(), 1);
         // Surface arrives: latched wakes drain, never dropped.

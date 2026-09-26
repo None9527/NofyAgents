@@ -55,10 +55,7 @@ mod tests {
         let out = format_interjection(s);
         assert!(out.contains("... [truncated]"));
         let wrapper_len = format_interjection(String::new()).len();
-        assert!(
-            out.len()
-                <= LARGE_PROMPT_THRESHOLD + wrapper_len + "... [truncated]".len()
-        );
+        assert!(out.len() <= LARGE_PROMPT_THRESHOLD + wrapper_len + "... [truncated]".len());
     }
 
     #[test]

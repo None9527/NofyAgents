@@ -28,8 +28,8 @@ use std::fmt;
 use std::io::{self, IsTerminal, Write as _};
 use std::path::{Path, PathBuf};
 
-use toml::Value as TomlValue;
 use nofy_config_types::BoolFlag;
+use toml::Value as TomlValue;
 
 use crate::trust::{TrustStore, workspace_key};
 
@@ -210,7 +210,9 @@ impl fmt::Display for GrantRefuse {
 pub enum PersistStatus {
     Durable,
     /// Read succeeded; persist failed. Gate is not dismissed.
-    ProcessLocalOnly { error: std::io::Error },
+    ProcessLocalOnly {
+        error: std::io::Error,
+    },
 }
 
 /// Result of an explicit `--trust` / Trust-project grant.

@@ -71,7 +71,8 @@ impl LiveBus {
     /// gap between the disk replay tail and the live ring head).
     pub fn latest_seq(&self, session_id: &str) -> Option<u64> {
         let map = self.sessions.lock().unwrap();
-        map.get(session_id).and_then(|h| h.ring.back().map(|e| e.seq))
+        map.get(session_id)
+            .and_then(|h| h.ring.back().map(|e| e.seq))
     }
 }
 

@@ -21,7 +21,6 @@ pub async fn handle(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
     }
 }
 
-
 async fn handle_get_bearer_token(agent: &MvpAgent) -> ExtResult {
     // Fail closed for session tokens: desktop resume treats non-null as success.
     // Never return a hard-expired AT. Still surface wire-valid session ATs and
@@ -73,8 +72,6 @@ fn handle_set_api_key(args: &acp::ExtRequest) -> ExtResult {
         .to_ext_response()
         .map_err(|e| acp::Error::internal_error().data(e.to_string()))
 }
-
-
 
 /// Returns current auth method ID, user profile fields, and team/principal
 /// metadata.

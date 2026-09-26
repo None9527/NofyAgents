@@ -19,7 +19,10 @@ pub struct Lease {
 pub enum AcquireOutcome {
     Acquired,
     /// Another surface holds the lease; try again after it expires.
-    HeldBy { surface: String, expires_at: u64 },
+    HeldBy {
+        surface: String,
+        expires_at: u64,
+    },
     Expired,
 }
 
@@ -33,7 +36,13 @@ pub struct TurnLeaseTable {
 impl TurnLeaseTable {
     /// Try to take the turn for `surface`. Serialized against all other
     /// surfaces for the same session.
-    pub fn acquire(&mut self, session: &str, surface: &str, now: u64, ttl_secs: u64) -> AcquireOutcome {
+    pub fn acquire(
+        &mut self,
+        session: &str,
+        surface: &str,
+        now: u64,
+        ttl_secs: u64,
+    ) -> AcquireOutcome {
         if let Some(existing) = self.leases.get(session) {
             let expires_at = existing.acquired_at + existing.ttl_secs;
             if now < expires_at {
@@ -99,7 +108,10 @@ mod tests {
     #[test]
     fn second_surface_is_serialized_out() {
         let mut table = TurnLeaseTable::default();
-        assert_eq!(table.acquire("s1", "tui", 100, 60), AcquireOutcome::Acquired);
+        assert_eq!(
+            table.acquire("s1", "tui", 100, 60),
+            AcquireOutcome::Acquired
+        );
         assert_eq!(
             table.acquire("s1", "web", 110, 60),
             AcquireOutcome::HeldBy {
@@ -109,14 +121,20 @@ mod tests {
         );
         assert_eq!(table.refusals, 1, "refusal is the audit trail");
         // Different session is unaffected.
-        assert_eq!(table.acquire("s2", "web", 110, 60), AcquireOutcome::Acquired);
+        assert_eq!(
+            table.acquire("s2", "web", 110, 60),
+            AcquireOutcome::Acquired
+        );
     }
 
     #[test]
     fn holder_refreshes_own_lease() {
         let mut table = TurnLeaseTable::default();
         table.acquire("s1", "tui", 100, 60);
-        assert_eq!(table.acquire("s1", "tui", 130, 60), AcquireOutcome::Acquired);
+        assert_eq!(
+            table.acquire("s1", "tui", 130, 60),
+            AcquireOutcome::Acquired
+        );
         assert_eq!(table.holder("s1").unwrap().acquired_at, 130);
     }
 
@@ -125,7 +143,10 @@ mod tests {
         let mut table = TurnLeaseTable::default();
         table.acquire("s1", "tui", 100, 60);
         // Past the TTL the dead surface no longer blocks.
-        assert_eq!(table.acquire("s1", "web", 200, 60), AcquireOutcome::Acquired);
+        assert_eq!(
+            table.acquire("s1", "web", 200, 60),
+            AcquireOutcome::Acquired
+        );
         assert_eq!(table.holder("s1").unwrap().surface, "web");
     }
 
@@ -135,7 +156,10 @@ mod tests {
         table.acquire("s1", "tui", 100, 60);
         assert!(!table.release("s1", "web"), "non-holder cannot release");
         assert!(table.release("s1", "tui"));
-        assert_eq!(table.acquire("s1", "web", 110, 60), AcquireOutcome::Acquired);
+        assert_eq!(
+            table.acquire("s1", "web", 110, 60),
+            AcquireOutcome::Acquired
+        );
     }
 
     #[test]

@@ -47,7 +47,10 @@ pub struct MigrationTable {
 
 impl MigrationTable {
     pub fn state_of(&self, surface_id: &str) -> MigrationState {
-        self.states.get(surface_id).copied().unwrap_or(MigrationState::Legacy)
+        self.states
+            .get(surface_id)
+            .copied()
+            .unwrap_or(MigrationState::Legacy)
     }
 
     /// Advance a surface one step: Legacy → Migrating → Migrated.
@@ -95,7 +98,11 @@ mod tests {
         assert_eq!(table.state_of("tui"), MigrationState::Legacy);
         assert_eq!(table.advance("tui"), MigrationState::Migrating);
         assert_eq!(table.advance("tui"), MigrationState::Migrated);
-        assert_eq!(table.advance("tui"), MigrationState::Migrated, "idempotent at the end");
+        assert_eq!(
+            table.advance("tui"),
+            MigrationState::Migrated,
+            "idempotent at the end"
+        );
         assert_eq!(table.migrated_count(), 1);
     }
 
@@ -115,23 +122,61 @@ mod tests {
     #[test]
     fn one_truth_across_surfaces() {
         let consistent = vec![
-            SurfaceClient { surface_id: "tui".into(), kind: SurfaceKind::Tui, session_ref: "s1".into(), observed_version: 5 },
-            SurfaceClient { surface_id: "web".into(), kind: SurfaceKind::Web, session_ref: "s1".into(), observed_version: 5 },
-            SurfaceClient { surface_id: "im".into(), kind: SurfaceKind::Im, session_ref: "s2".into(), observed_version: 9 },
+            SurfaceClient {
+                surface_id: "tui".into(),
+                kind: SurfaceKind::Tui,
+                session_ref: "s1".into(),
+                observed_version: 5,
+            },
+            SurfaceClient {
+                surface_id: "web".into(),
+                kind: SurfaceKind::Web,
+                session_ref: "s1".into(),
+                observed_version: 5,
+            },
+            SurfaceClient {
+                surface_id: "im".into(),
+                kind: SurfaceKind::Im,
+                session_ref: "s2".into(),
+                observed_version: 9,
+            },
         ];
         assert!(truth_consistent(&consistent));
         let split = vec![
-            SurfaceClient { surface_id: "tui".into(), kind: SurfaceKind::Tui, session_ref: "s1".into(), observed_version: 5 },
-            SurfaceClient { surface_id: "web".into(), kind: SurfaceKind::Web, session_ref: "s1".into(), observed_version: 6 },
+            SurfaceClient {
+                surface_id: "tui".into(),
+                kind: SurfaceKind::Tui,
+                session_ref: "s1".into(),
+                observed_version: 5,
+            },
+            SurfaceClient {
+                surface_id: "web".into(),
+                kind: SurfaceKind::Web,
+                session_ref: "s1".into(),
+                observed_version: 6,
+            },
         ];
-        assert!(!truth_consistent(&split), "two surfaces, one session, two versions = broken truth");
+        assert!(
+            !truth_consistent(&split),
+            "two surfaces, one session, two versions = broken truth"
+        );
     }
 
     #[test]
     fn different_sessions_may_differ() {
         let clients = vec![
-            SurfaceClient { surface_id: "a".into(), kind: SurfaceKind::Tui, session_ref: "s1".into(), observed_version: 1 },
-            SurfaceClient { surface_id: "b".into(), kind: SurfaceKind::Web, session_ref: "s2".into(), observed_version: 2 },
+            SurfaceClient {
+                surface_id: "a".into(),
+                kind: SurfaceKind::Tui,
+                session_ref: "s1".into(),
+                observed_version: 1,
+            },
+            SurfaceClient {
+                surface_id: "b".into(),
+                kind: SurfaceKind::Web,
+                session_ref: "s2".into(),
+                observed_version: 2,
+            },
         ];
         assert!(truth_consistent(&clients));
     }

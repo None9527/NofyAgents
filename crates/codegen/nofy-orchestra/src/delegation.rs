@@ -99,7 +99,12 @@ mod tests {
 
     #[test]
     fn delegation_line_resolves_to_summons() {
-        let spec = resolve_delegation(&line("sec-expert", "acp://sec"), "audit the diff", &summoner()).unwrap();
+        let spec = resolve_delegation(
+            &line("sec-expert", "acp://sec"),
+            "audit the diff",
+            &summoner(),
+        )
+        .unwrap();
         assert_eq!(spec.expert_id, "sec-expert");
         assert_eq!(spec.provider, "acp://sec");
         assert_eq!(spec.goal, "audit the diff");
@@ -123,11 +128,15 @@ mod tests {
     fn self_summons_is_rejected() {
         assert_eq!(
             resolve_delegation(&line("mirror", "coordinator"), "g", &summoner()),
-            Err(DelegationError::SelfSummons { pack: "coordinator".into() })
+            Err(DelegationError::SelfSummons {
+                pack: "coordinator".into()
+            })
         );
         assert_eq!(
             resolve_delegation(&line("coordinator", "acp://other"), "g", &summoner()),
-            Err(DelegationError::SelfSummons { pack: "coordinator".into() })
+            Err(DelegationError::SelfSummons {
+                pack: "coordinator".into()
+            })
         );
     }
 
@@ -139,6 +148,9 @@ mod tests {
             Err(DelegationError::EmptyProvider { .. })
         ));
         let ok_roster = vec![line("a", "acp://a"), line("c", "acp://c")];
-        assert_eq!(resolve_roster(&ok_roster, "g", &summoner()).unwrap().len(), 2);
+        assert_eq!(
+            resolve_roster(&ok_roster, "g", &summoner()).unwrap().len(),
+            2
+        );
     }
 }

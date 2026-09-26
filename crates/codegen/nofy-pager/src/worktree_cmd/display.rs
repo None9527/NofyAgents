@@ -1,8 +1,8 @@
 use std::io::Write;
 use std::path::Path;
 
-use unicode_width::UnicodeWidthStr;
 use nofy_fast_worktree::WorktreeRecord;
+use unicode_width::UnicodeWidthStr;
 
 use super::{DbStats, GcReport, RebuildReport};
 use crate::fs_size::{Volume, physical_dir_size};

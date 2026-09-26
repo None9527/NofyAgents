@@ -30,11 +30,19 @@ pub enum ProjectError {
     Io(String),
     Manifest(ManifestError),
     /// A pack listed in the manifest has no `.nofy/packs/<id>.toml`.
-    MissingPack { id: String },
+    MissingPack {
+        id: String,
+    },
     /// A pack file failed the boundary validator.
-    Pack { id: String, error: PackError },
+    Pack {
+        id: String,
+        error: PackError,
+    },
     /// Pack file's own id does not match its filename/listing.
-    IdMismatch { listed: String, declared: String },
+    IdMismatch {
+        listed: String,
+        declared: String,
+    },
 }
 
 /// A loaded project: validated manifest + resolved pack manifests.
@@ -73,13 +81,12 @@ pub fn load_project(root: &Path) -> Result<Project, ProjectError> {
                 ProjectError::Io(err.to_string())
             }
         })?;
-        let value: toml::Value = toml::from_str(&pack_text)
-            .map_err(|_| ProjectError::Pack {
-                id: id.clone(),
-                error: PackError::HostPlaneLeak {
-                    key: "<malformed pack toml>".into(),
-                },
-            })?;
+        let value: toml::Value = toml::from_str(&pack_text).map_err(|_| ProjectError::Pack {
+            id: id.clone(),
+            error: PackError::HostPlaneLeak {
+                key: "<malformed pack toml>".into(),
+            },
+        })?;
         let json = serde_json::to_value(&value).expect("toml→json conversion");
         let pack = parse_pack(&json).map_err(|error| ProjectError::Pack {
             id: id.clone(),
@@ -150,7 +157,10 @@ persona = "You write reports."
         assert_eq!(project.manifest.task.len(), 2);
         assert_eq!(project.packs.len(), 2);
         assert_eq!(project.pack("reviewer").unwrap().skills, vec!["diff-read"]);
-        assert_eq!(project.pack("writer").unwrap().persona, "You write reports.");
+        assert_eq!(
+            project.pack("writer").unwrap().persona,
+            "You write reports."
+        );
         assert!(project.pack("ghost").is_none());
     }
 
@@ -167,7 +177,9 @@ persona = "You write reports."
         fs::remove_file(packs_dir(dir.path()).join("writer.toml")).unwrap();
         assert_eq!(
             load_project(dir.path()),
-            Err(ProjectError::MissingPack { id: "writer".into() })
+            Err(ProjectError::MissingPack {
+                id: "writer".into()
+            })
         );
     }
 
@@ -185,7 +197,9 @@ persona = "You write reports."
             load_project(dir.path()),
             Err(ProjectError::Pack {
                 id: "writer".into(),
-                error: PackError::HostPlaneLeak { key: "sandbox_policy".into() },
+                error: PackError::HostPlaneLeak {
+                    key: "sandbox_policy".into()
+                },
             })
         );
     }
@@ -254,7 +268,9 @@ persona = "You write reports."
             load_project(dir.path()),
             Err(ProjectError::Pack {
                 id: "writer".into(),
-                error: PackError::HostPlaneLeak { key: "<malformed pack toml>".into() },
+                error: PackError::HostPlaneLeak {
+                    key: "<malformed pack toml>".into()
+                },
             })
         );
     }

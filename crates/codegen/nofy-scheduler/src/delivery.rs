@@ -79,8 +79,14 @@ mod tests {
     fn delivery_ids_are_sanitized() {
         let home = tempfile::tempdir().unwrap();
         let path = deliver(home.path(), "../evil", 1, "{}").unwrap();
-        assert!(path.starts_with(delivery_dir(home.path())), "must not escape");
-        assert_eq!(path.file_name().unwrap().to_string_lossy(), "___evil-1.json");
+        assert!(
+            path.starts_with(delivery_dir(home.path())),
+            "must not escape"
+        );
+        assert_eq!(
+            path.file_name().unwrap().to_string_lossy(),
+            "___evil-1.json"
+        );
     }
 
     #[test]

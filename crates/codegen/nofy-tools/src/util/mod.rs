@@ -4,12 +4,12 @@ pub mod command_display;
 pub mod env;
 pub mod fs;
 pub mod git_detect;
-pub mod nofy_home;
 pub mod hash;
 pub mod image_compress;
 pub mod image_validate;
 pub mod mcp_structured_content;
 pub mod mcp_truncate;
+pub mod nofy_home;
 pub mod path_suggestions;
 pub(crate) mod query_tools;
 pub mod remap;
@@ -26,6 +26,7 @@ pub use env::substitute_plugin_tokens;
 pub use env::{NOFY_AGENT_ENV, NOFY_AGENT_ENV_VALUE, apply_nofy_agent_marker, pager_env};
 pub use fs::{UnicodePathMatch, canonicalize_with_timeout, try_resolve_unicode_filename};
 pub use nofy_home::{nofy_application, nofy_home};
+pub use nofy_tty_utils::detach_std_command;
 pub use path_suggestions::format_not_found_error;
 pub use remap::{remap_json_keys, remap_schema_properties, reverse_map};
 pub use shell_env_policy::{
@@ -41,4 +42,3 @@ pub use truncate::{
     format_bytes, soft_wrap_line, soft_wrap_lines, truncate_line, truncate_str,
     truncate_str_with_marker,
 };
-pub use nofy_tty_utils::detach_std_command;

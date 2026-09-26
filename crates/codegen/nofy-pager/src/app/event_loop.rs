@@ -21,9 +21,7 @@ use agent_client_protocol as acp;
 use nofy_acp_lib::acp_send;
 
 use super::actions::{Action, Effect, TaskResult};
-use super::app_view::{
-    ActiveView, AppView, AuthState, InputOutcome, PasteProvenance, TrustState,
-};
+use super::app_view::{ActiveView, AppView, AuthState, InputOutcome, PasteProvenance, TrustState};
 use super::{PagerArgs, PagerTerminal, acp_handler, dispatch, effects};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -190,11 +188,11 @@ fn reconnect_restore_outcome(
 /// `TrustState::Done`. The feature-off fast path (opt-out / local build)
 /// short-circuits before any I/O.
 fn seed_trust_state(app: &mut AppView) {
-    use std::io::IsTerminal;
     use nofy_workspace::folder_trust::{
         TrustOutcome, decide, decide_inputs_with_interactive, feature_enabled,
     };
     use nofy_workspace::trust::workspace_key;
+    use std::io::IsTerminal;
 
     let feature = feature_enabled();
     if !feature {
@@ -1016,9 +1014,7 @@ pub(crate) async fn run(
     if connection.auth_methods.is_empty() {
         app.welcome_prompt_focused = false;
         app.auth_state = super::app_view::AuthState::Pending {
-            error: Some(
-                nofy_shell::agent::auth_method::PREFERRED_API_KEY_UNAVAILABLE.to_string(),
-            ),
+            error: Some(nofy_shell::agent::auth_method::PREFERRED_API_KEY_UNAVAILABLE.to_string()),
         };
     }
     if let Some(meta) = connection.auth_meta.as_ref() {
@@ -1028,9 +1024,10 @@ pub(crate) async fn run(
         }
     } else {
         // No cached session — check if the API key is the active credential.
-        app.is_api_key_auth = app.auth_methods.iter().any(|m| {
-            m.id().0.as_ref() == nofy_shell::agent::auth_method::NOFY_API_KEY_METHOD_ID
-        });
+        app.is_api_key_auth = app
+            .auth_methods
+            .iter()
+            .any(|m| m.id().0.as_ref() == nofy_shell::agent::auth_method::NOFY_API_KEY_METHOD_ID);
     }
 
     // Load persisted per-ID hidden state
@@ -1052,12 +1049,11 @@ pub(crate) async fn run(
     let compat = nofy_shell::agent::config::resolve_compat_sessions_from_raw(
         effective_config.as_ref().ok_or(()),
     );
-    app.foreign_session_compat =
-        nofy_workspace::foreign_sessions::EnabledForeignSessionSources {
-            claude: compat.claude.sessions,
-            codex: compat.codex.sessions,
-            cursor: compat.cursor.sessions,
-        };
+    app.foreign_session_compat = nofy_workspace::foreign_sessions::EnabledForeignSessionSources {
+        claude: compat.claude.sessions,
+        codex: compat.codex.sessions,
+        cursor: compat.cursor.sessions,
+    };
 
     // Load notification config from [ui.notifications] in config.toml.
     if let Some(ref raw) = effective_config {
@@ -1491,10 +1487,7 @@ pub(crate) async fn run(
     // chokepoints self-gate when auth + folder trust is closed.
     use crate::app::session_startup::MaterializedStartup;
     let startup_action = match &materialized {
-        MaterializedStartup::Resume {
-            session_id,
-            ..
-        } if args.worktree.is_some() => {
+        MaterializedStartup::Resume { session_id, .. } if args.worktree.is_some() => {
             tracing::info!(
                 session_id,
                 restore_code = ?app.restore_code,
@@ -1506,10 +1499,7 @@ pub(crate) async fn run(
                 git_ref: args.worktree_ref.clone(),
             })
         }
-        MaterializedStartup::Resume {
-            session_id,
-            ..
-        } => {
+        MaterializedStartup::Resume { session_id, .. } => {
             // CLI resume has no roster entry: `chat_kind` on LoadSession is the
             // conversation-entry bit only (false here). Process-wide `--chat`
             // still stamps kind=chat via SessionFlags.chat_mode in the load
@@ -1539,13 +1529,11 @@ pub(crate) async fn run(
             parent_cwd,
             new_session_id,
             ..
-        } => {
-            Some(Action::StartupForkSession {
-                parent_session_id: parent_session_id.clone(),
-                parent_cwd: parent_cwd.clone().or(session_cwd.clone()),
-                new_session_id: new_session_id.clone(),
-            })
-        }
+        } => Some(Action::StartupForkSession {
+            parent_session_id: parent_session_id.clone(),
+            parent_cwd: parent_cwd.clone().or(session_cwd.clone()),
+            new_session_id: new_session_id.clone(),
+        }),
         MaterializedStartup::NewAuto if args.worktree.is_some() => {
             Some(Action::NewWorktreeSession {
                 load_session_id: None,
@@ -2745,9 +2733,7 @@ fn sync_appearance_watcher(watcher: &mut Option<SystemAppearanceWatcher>) {
 }
 
 fn emit_event_loop_stall(window: super::event_loop_stall::StallWindow) {
-    nofy_telemetry::session_ctx::log_event(super::event_loop_stall::event_loop_stall_event(
-        window,
-    ));
+    nofy_telemetry::session_ctx::log_event(super::event_loop_stall::event_loop_stall_event(window));
 }
 
 fn flush_pending_stall(stall_rollup: &mut super::event_loop_stall::StallRollup) {
@@ -3277,9 +3263,7 @@ fn coalesce_rapid_keys(events: Vec<TimedInputEvent>) -> Vec<TimedInputEvent> {
     // detection.
     let events: Vec<TimedInputEvent> = events
         .into_iter()
-        .filter(|ev| {
-            !matches!(&ev.event, Event::Key(ke) if ke.kind == KeyEventKind::Release)
-        })
+        .filter(|ev| !matches!(&ev.event, Event::Key(ke) if ke.kind == KeyEventKind::Release))
         .collect();
 
     let mut result = Vec::with_capacity(events.len());

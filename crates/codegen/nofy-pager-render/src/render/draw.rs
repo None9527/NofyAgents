@@ -43,13 +43,13 @@
 //! flicker and is critical for multiplexers like zellij and tmux.
 use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use crossterm::{QueueableCommand, cursor};
+use nofy_ratatui_inline::LinkSpan;
 use ratatui::Frame;
 use ratatui::backend::CrosstermBackend;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
-use nofy_ratatui_inline::LinkSpan;
 /// Terminal type for the pager. Defined here (beside [`TermWriter`]) so the
 /// `render` module does not depend on `app`. Re-exported from `app` as
 /// `crate::app::PagerTerminal` for existing call sites.

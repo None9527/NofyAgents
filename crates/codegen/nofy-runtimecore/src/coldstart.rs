@@ -60,8 +60,14 @@ mod tests {
     fn help_and_version_take_the_fast_path() {
         for arg in ["--help", "-h", "help", "--version", "-V", "version"] {
             let plan = classify(Some(arg));
-            assert!(matches!(plan, BootPlan::FastPath { .. }), "{arg} must not boot the runtime");
-            assert!(components_loaded(&plan).is_empty(), "{arg} loads zero components");
+            assert!(
+                matches!(plan, BootPlan::FastPath { .. }),
+                "{arg} must not boot the runtime"
+            );
+            assert!(
+                components_loaded(&plan).is_empty(),
+                "{arg} loads zero components"
+            );
         }
     }
 

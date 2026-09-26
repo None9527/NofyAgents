@@ -15,7 +15,8 @@ use super::*;
 pub(crate) use nofy_interjection_core::{InterjectionBuffer, drain_formatted, format_interjection};
 
 /// Shell instantiation of the shared entry type: images are ACP content.
-pub(crate) type PendingInterjection = nofy_interjection_core::PendingInterjection<acp::ImageContent>;
+pub(crate) type PendingInterjection =
+    nofy_interjection_core::PendingInterjection<acp::ImageContent>;
 
 /// Prompt-id prefix for interjections that missed their turn and were
 /// converted into standalone prompt turns (arrived while idle, or after the
@@ -253,19 +254,15 @@ impl SessionActor {
         // turn, which this skill did not start. `SkillDispatched` still
         // carries `plugin_source`, so dispatch counts stay complete.
         for sk in &parsed {
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::SlashCommandUsed {
-                    command: sk.name.clone(),
-                    args_provided: !sk.args.is_empty(),
-                },
-            );
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::SkillDispatched {
-                    skill_name: sk.name.clone(),
-                    plugin_source: sk.plugin_name.clone(),
-                    trigger: nofy_telemetry::events::SkillTrigger::SlashCommand,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SlashCommandUsed {
+                command: sk.name.clone(),
+                args_provided: !sk.args.is_empty(),
+            });
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SkillDispatched {
+                skill_name: sk.name.clone(),
+                plugin_source: sk.plugin_name.clone(),
+                trigger: nofy_telemetry::events::SkillTrigger::SlashCommand,
+            });
         }
         slash_commands::build_skill_information_for_refs(
             &parsed,

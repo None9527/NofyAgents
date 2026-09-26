@@ -41,14 +41,13 @@ pub enum DumpError {
 }
 
 fn key_ok(key: &str) -> bool {
-    !key.is_empty()
-        && key
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 fn value_safe(value: &str) -> bool {
-    !value.chars().any(|c| c == '\n' || c == '\r' || c.is_control())
+    !value
+        .chars()
+        .any(|c| c == '\n' || c == '\r' || c.is_control())
 }
 
 /// Dump to `KEY=VALUE` lines (deterministic key order). Injection-safe:
@@ -96,7 +95,10 @@ mod tests {
         staged.set("HOME", "/home/u");
         let snap = staged.publish();
         let dumped = dump(&snap).unwrap();
-        assert_eq!(dumped, "HOME=/home/u\nPATH=/bin", "keys sort deterministically");
+        assert_eq!(
+            dumped, "HOME=/home/u\nPATH=/bin",
+            "keys sort deterministically"
+        );
     }
 
     #[test]
@@ -104,7 +106,10 @@ mod tests {
         let mut staged = StagedSnapshot::default();
         staged.set("EVIL", "line1\nFAKE_KEY=injected");
         let snap = staged.publish();
-        assert_eq!(dump(&snap), Err(DumpError::UnsafeValue { key: "EVIL".into() }));
+        assert_eq!(
+            dump(&snap),
+            Err(DumpError::UnsafeValue { key: "EVIL".into() })
+        );
     }
 
     #[test]
@@ -113,7 +118,9 @@ mod tests {
         staged.set("WEIRD", "a\u{0000}b");
         assert_eq!(
             dump(&staged.publish()),
-            Err(DumpError::UnsafeValue { key: "WEIRD".into() })
+            Err(DumpError::UnsafeValue {
+                key: "WEIRD".into()
+            })
         );
     }
 
@@ -145,6 +152,9 @@ mod tests {
         // A line without '=' fails loud at the split point.
         assert!(matches!(parse_dump("NOEQUALS"), Err(DumpError::BadKey(_))));
         // A key with spaces is no identifier.
-        assert_eq!(parse_dump("NOT A KEY=1"), Err(DumpError::BadKey("NOT A KEY".into())));
+        assert_eq!(
+            parse_dump("NOT A KEY=1"),
+            Err(DumpError::BadKey("NOT A KEY".into()))
+        );
     }
 }

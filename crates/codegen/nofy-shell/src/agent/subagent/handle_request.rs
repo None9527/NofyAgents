@@ -58,10 +58,16 @@ pub(super) fn task_model_override_error(
     match provenance {
         ModelOverrideProvenance::Tool => {
             let requested = requested?;
-            crate::agent::models::task_model_error_for_catalog(requested, available, is_session_auth)
+            crate::agent::models::task_model_error_for_catalog(
+                requested,
+                available,
+                is_session_auth,
+            )
         }
         ModelOverrideProvenance::InheritedTool if requested.is_some() => Some(
-            nofy_tools::implementations::nofy_build::task::model_policy::hidden_selection_message("model"),
+            nofy_tools::implementations::nofy_build::task::model_policy::hidden_selection_message(
+                "model",
+            ),
         ),
         ModelOverrideProvenance::InheritedTool | ModelOverrideProvenance::Harness => None,
     }
@@ -622,13 +628,8 @@ pub(crate) async fn run_shell_child(
         Ok(c) => c,
         Err(e) => {
             let msg = format!("Sampling client error: {e}");
-            let result = fail_subagent(
-                &msg,
-                &subagent_id,
-                &child_session_id,
-                &subagent_meta_dir,
-                0,
-            );
+            let result =
+                fail_subagent(&msg, &subagent_id, &child_session_id, &subagent_meta_dir, 0);
             return child_run_output(result, completion_data, None);
         }
     };
@@ -644,13 +645,8 @@ pub(crate) async fn run_shell_child(
         Ok(p) => p,
         Err(e) => {
             let msg = format!("Persistence error: {e}");
-            let result = fail_subagent(
-                &msg,
-                &subagent_id,
-                &child_session_id,
-                &subagent_meta_dir,
-                0,
-            );
+            let result =
+                fail_subagent(&msg, &subagent_id, &child_session_id, &subagent_meta_dir, 0);
             return child_run_output(result, completion_data, None);
         }
     };

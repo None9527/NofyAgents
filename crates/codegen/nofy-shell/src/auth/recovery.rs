@@ -694,7 +694,6 @@ mod tests {
         assert_eq!(calls, 0);
     }
 
-
     #[tokio::test]
     async fn dispatch_api_key_returns_server_rejected_no_recovery() {
         let (_d, m) = mgr();
@@ -795,7 +794,6 @@ mod tests {
         m.set_refresher(Arc::new(OkRefresher {
             calls: Arc::new(AtomicU32::new(0)),
         }));
-
 
         let mut rec = m.unauthorized_recovery(rejected_cred(), RecoverySource::Background);
         let _ = rec.next().await.unwrap();
@@ -967,5 +965,4 @@ mod tests {
             "concurrent records on one rejected credential must emit exactly once",
         );
     }
-
 }

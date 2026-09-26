@@ -116,7 +116,6 @@ mod tests {
         assert!(parse_output(&output).is_err());
     }
 
-
     #[test]
     fn parse_output_json_shaped_but_invalid_is_err() {
         let output = std::process::Output {

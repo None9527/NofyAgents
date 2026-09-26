@@ -848,7 +848,10 @@ mod tests {
     #[test]
     fn resolve_rate_limit_threshold_prefers_the_request_override() {
         let mut policy = crate::config::RetryPolicy::default();
-        assert_eq!(policy.rate_limit_retry_threshold, RATE_LIMIT_RETRY_THRESHOLD);
+        assert_eq!(
+            policy.rate_limit_retry_threshold,
+            RATE_LIMIT_RETRY_THRESHOLD
+        );
 
         assert_eq!(resolve_rate_limit_threshold(Some(7), &policy), 7);
         assert_eq!(

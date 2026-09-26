@@ -1009,9 +1009,7 @@ impl ApiBackend {
     /// Default HTTP request-body cap for this protocol.
     pub const fn default_max_request_bytes(&self) -> NonZeroU64 {
         match self {
-            Self::ChatCompletions | Self::Responses => {
-                NonZeroU64::new(50 * 1024 * 1024).unwrap()
-            }
+            Self::ChatCompletions | Self::Responses => NonZeroU64::new(50 * 1024 * 1024).unwrap(),
             Self::Messages => NonZeroU64::new(30_000_000).unwrap(),
         }
     }

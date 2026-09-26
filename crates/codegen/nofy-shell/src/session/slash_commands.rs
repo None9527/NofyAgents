@@ -1,10 +1,10 @@
 //! ACP slash command advertising and resolution.
 use agent_client_protocol as acp;
-use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use nofy_tools::implementations::nofy_build::LoopFireMode;
 use nofy_tools::implementations::skills::skill::format_skill_name;
 use nofy_tools::implementations::skills::types::SkillInfo;
+use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 /// A built-in slash command.
 pub(crate) struct BuiltinCommand {
     pub name: &'static str,
@@ -1496,9 +1496,7 @@ fn parse_slash_prefix(prompt_blocks: &[acp::ContentBlock]) -> Option<(&str, &str
 /// default: the model derives the cadence from the request and asks when none
 /// is given.
 fn build_loop_prompt_blocks(args: &str, mode: LoopFireMode) -> Vec<acp::ContentBlock> {
-    use nofy_tools::implementations::nofy_build::{
-        loop_schedule_instruction, loop_usage_message,
-    };
+    use nofy_tools::implementations::nofy_build::{loop_schedule_instruction, loop_usage_message};
     let text = if args.trim().is_empty() {
         loop_usage_message().to_string()
     } else {
@@ -2313,7 +2311,10 @@ mod tests {
             .expect("plugin skill stays reachable as /acme:tutorial");
         let meta = cmd.meta.as_ref().expect("skill meta");
         assert_eq!(meta.get("scope").and_then(|v| v.as_str()), Some("plugin"));
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("tutorial"));
+        assert_eq!(
+            meta.get("bareName").and_then(|v| v.as_str()),
+            Some("tutorial")
+        );
         assert_eq!(
             meta.get("pluginName").and_then(|v| v.as_str()),
             Some("acme")
@@ -2618,7 +2619,10 @@ mod tests {
             .find(|c| c.name == "local:tutorial")
             .expect("pager folds ACP names; advertised form must be lowercase qualified");
         let meta = cmd.meta.as_ref().expect("skill meta");
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("Tutorial"));
+        assert_eq!(
+            meta.get("bareName").and_then(|v| v.as_str()),
+            Some("Tutorial")
+        );
         assert_eq!(
             meta.get("qualifiedName").and_then(|v| v.as_str()),
             Some("local:tutorial")

@@ -5,10 +5,10 @@
 //! - `AppearanceConfig`: Runtime types with ratatui::Color, BlockBackground, etc.
 
 use documented::{Documented, DocumentedFields};
+use nofy_shared::ui_config::UiConfig;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 use toml_edit::{DocumentMut, Item, RawString};
-use nofy_shared::ui_config::UiConfig;
 
 // ============================================================================
 // Runtime Config (used by render code)

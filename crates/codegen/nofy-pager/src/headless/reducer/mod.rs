@@ -94,16 +94,34 @@ pub(crate) struct ToolCallUpdateEvent {
 }
 
 pub(crate) enum Lifecycle {
-    CompactStarted { percentage: u8 },
-    CompactCompleted { pre_tokens: u64 },
-    CompactFailed { error: String },
+    CompactStarted {
+        percentage: u8,
+    },
+    CompactCompleted {
+        pre_tokens: u64,
+    },
+    CompactFailed {
+        error: String,
+    },
     CompactCancelled,
-    AutoContinue { total_tokens: u64 },
-    ImageCompressed { message: String },
+    AutoContinue {
+        total_tokens: u64,
+    },
+    ImageCompressed {
+        message: String,
+    },
     /// Sampler retry in progress (W-10: retries were silent in headless).
-    Retrying { attempt: u32, max_retries: u32, reason: String },
+    Retrying {
+        attempt: u32,
+        max_retries: u32,
+        reason: String,
+    },
     /// Retry budget exhausted; the final error surfaces separately.
-    RetryExhausted { attempts: u32, reason: String, is_rate_limited: bool },
+    RetryExhausted {
+        attempts: u32,
+        reason: String,
+        is_rate_limited: bool,
+    },
 }
 
 impl Lifecycle {
@@ -121,13 +139,25 @@ impl Lifecycle {
             Lifecycle::CompactCancelled => "Auto-compact cancelled.".to_string(),
             Lifecycle::AutoContinue { .. } => "Resumed after compaction.".to_string(),
             Lifecycle::ImageCompressed { message } => message.clone(),
-            Lifecycle::Retrying { attempt, max_retries, reason } => {
+            Lifecycle::Retrying {
+                attempt,
+                max_retries,
+                reason,
+            } => {
                 format!("Request failed ({reason}); retrying — attempt {attempt}/{max_retries}...")
             }
-            Lifecycle::RetryExhausted { attempts, reason, is_rate_limited: true } => {
+            Lifecycle::RetryExhausted {
+                attempts,
+                reason,
+                is_rate_limited: true,
+            } => {
                 format!("Rate limited after {attempts} attempts: {reason}")
             }
-            Lifecycle::RetryExhausted { attempts, reason, is_rate_limited: false } => {
+            Lifecycle::RetryExhausted {
+                attempts,
+                reason,
+                is_rate_limited: false,
+            } => {
                 format!("Request failed after {attempts} attempts: {reason}")
             }
         }

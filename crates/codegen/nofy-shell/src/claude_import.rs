@@ -2092,12 +2092,11 @@ extra_rule_dirs = ["/c/rules"]
         // Instead, assert on rule *provenance*: no rule should originate from
         // our tempdir's `.claude/settings.json`. The dev's real ~/.nofy
         // config rules (if any) are out of scope for this test.
-        let resolved =
-            nofy_workspace::permission::resolution::resolve_permissions_with_provenance(
-                dir.path(),
-                true,
-            )
-            .await;
+        let resolved = nofy_workspace::permission::resolution::resolve_permissions_with_provenance(
+            dir.path(),
+            true,
+        )
+        .await;
         if let Some(r) = resolved {
             let tempdir_claude = claude_dir.join("settings.json");
             use nofy_workspace::permission::types::RequirementSource;

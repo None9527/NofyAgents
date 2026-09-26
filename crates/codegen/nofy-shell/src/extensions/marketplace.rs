@@ -33,9 +33,7 @@ async fn handle_list() -> ExtResult {
         .map(|s| {
             let url = match &s.kind {
                 nofy_plugin_marketplace::SourceKind::Git { url, .. } => url.as_str(),
-                nofy_plugin_marketplace::SourceKind::Local { path } => {
-                    path.to_str().unwrap_or("?")
-                }
+                nofy_plugin_marketplace::SourceKind::Local { path } => path.to_str().unwrap_or("?"),
             };
             format!("{}={}", s.name, url)
         })
@@ -159,9 +157,7 @@ fn refresh_sources(
     for source in sources {
         if let Some(filter) = source_url_or_path {
             let identity = match &source.kind {
-                nofy_plugin_marketplace::SourceKind::Local { path } => {
-                    path.display().to_string()
-                }
+                nofy_plugin_marketplace::SourceKind::Local { path } => path.display().to_string(),
                 nofy_plugin_marketplace::SourceKind::Git { url, .. } => url.clone(),
             };
             if identity != filter {
@@ -204,8 +200,8 @@ async fn handle_update(
     source_url_or_path: &str,
     plugin_relative_path: &str,
 ) -> nofy_hooks_plugins_types::ActionOutcome {
-    use nofy_plugin_marketplace::installer;
     use nofy_hooks_plugins_types::{ActionOutcome, OutcomeStatus};
+    use nofy_plugin_marketplace::installer;
 
     let sources = load_filtered_marketplace_sources();
 
@@ -358,8 +354,8 @@ async fn handle_install(
     source_url_or_path: &str,
     plugin_relative_path: &str,
 ) -> nofy_hooks_plugins_types::ActionOutcome {
-    use nofy_plugin_marketplace::installer;
     use nofy_hooks_plugins_types::{ActionOutcome, OutcomeStatus};
+    use nofy_plugin_marketplace::installer;
 
     let sources = load_filtered_marketplace_sources();
 
@@ -492,8 +488,7 @@ async fn handle_install(
         };
 
         let plugin_path =
-            match nofy_plugin_marketplace::MarketplaceRelativePath::parse(plugin_relative_path)
-            {
+            match nofy_plugin_marketplace::MarketplaceRelativePath::parse(plugin_relative_path) {
                 Ok(path) => path,
                 Err(e) => {
                     return ActionOutcome {
@@ -585,8 +580,8 @@ async fn handle_uninstall(
     source_url_or_path: &str,
     plugin_relative_path: &str,
 ) -> nofy_hooks_plugins_types::ActionOutcome {
-    use nofy_plugin_marketplace::installer;
     use nofy_hooks_plugins_types::{ActionOutcome, OutcomeStatus};
+    use nofy_plugin_marketplace::installer;
 
     let mut registry = nofy_agent::plugins::install_registry::InstallRegistry::load();
 

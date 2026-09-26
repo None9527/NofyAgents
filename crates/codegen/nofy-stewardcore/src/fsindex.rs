@@ -172,7 +172,10 @@ mod tests {
         assert!(index.is_empty());
         assert_eq!(pending.len(), 1);
         // Maintenance: applies and drains.
-        assert_eq!(idle_rebuild(&mut index, &mut pending, Phase::Maintenance), 1);
+        assert_eq!(
+            idle_rebuild(&mut index, &mut pending, Phase::Maintenance),
+            1
+        );
         assert_eq!(index.len(), 1);
         assert!(pending.is_empty());
     }
@@ -181,7 +184,10 @@ mod tests {
     fn deletion_events_remove_entries() {
         let mut index = FsIndex::default();
         index.upsert(entry("/a", "x"));
-        let mut pending = vec![WatchEvent { path: "/a".into(), entry: None }];
+        let mut pending = vec![WatchEvent {
+            path: "/a".into(),
+            entry: None,
+        }];
         idle_rebuild(&mut index, &mut pending, Phase::Maintenance);
         assert!(index.is_empty());
     }

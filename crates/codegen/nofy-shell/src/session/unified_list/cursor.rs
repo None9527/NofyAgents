@@ -262,11 +262,7 @@ mod tests {
             local("l1", "2026-06-10T00:00:00Z"),
             local("l2", "2026-06-08T00:00:00Z"),
         ];
-        let result = merge_and_paginate(
-            local_window.clone(),
-            &CompositeCursor::default(),
-            10,
-        );
+        let result = merge_and_paginate(local_window.clone(), &CompositeCursor::default(), 10);
         assert_eq!(result.emit_count, 2);
         assert!(result.next_cursor.is_none());
     }

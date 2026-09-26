@@ -40,7 +40,10 @@ pub struct BridgeProperties {
 pub enum BridgeVerdict {
     /// May join as a provider — still default-off until opted in.
     Adopt { bridge: OsBridge },
-    Reject { bridge: OsBridge, reasons: Vec<String> },
+    Reject {
+        bridge: OsBridge,
+        reasons: Vec<String>,
+    },
 }
 
 /// Evaluate one candidate. Every property is non-negotiable.
@@ -83,7 +86,10 @@ pub struct BridgeProvider {
 /// the provider starts OFF.
 pub fn adopt(bridge: OsBridge, props: &BridgeProperties) -> Result<BridgeProvider, BridgeVerdict> {
     match evaluate_candidate(bridge, props) {
-        BridgeVerdict::Adopt { bridge } => Ok(BridgeProvider { bridge, state: BridgeState::Off }),
+        BridgeVerdict::Adopt { bridge } => Ok(BridgeProvider {
+            bridge,
+            state: BridgeState::Off,
+        }),
         reject => Err(reject),
     }
 }
@@ -106,13 +112,20 @@ mod tests {
         for bridge in [OsBridge::Spotlight, OsBridge::Everything] {
             let provider = adopt(bridge, &compliant()).unwrap();
             assert_eq!(provider.bridge, bridge);
-            assert_eq!(provider.state, BridgeState::Off, "adoption never self-enables");
+            assert_eq!(
+                provider.state,
+                BridgeState::Off,
+                "adoption never self-enables"
+            );
         }
     }
 
     #[test]
     fn write_capable_bridges_are_rejected() {
-        let props = BridgeProperties { read_only: false, ..compliant() };
+        let props = BridgeProperties {
+            read_only: false,
+            ..compliant()
+        };
         assert_eq!(
             evaluate_candidate(OsBridge::Spotlight, &props),
             BridgeVerdict::Reject {
@@ -125,26 +138,33 @@ mod tests {
 
     #[test]
     fn hint_skipping_bridges_are_rejected() {
-        let props = BridgeProperties { results_are_hints: false, ..compliant() };
+        let props = BridgeProperties {
+            results_are_hints: false,
+            ..compliant()
+        };
         assert_eq!(
             evaluate_candidate(OsBridge::Everything, &props),
             BridgeVerdict::Reject {
                 bridge: OsBridge::Everything,
-                reasons: vec![
-                    "bridge hits would skip disk revalidation (FR12.9)".to_string()
-                ],
+                reasons: vec!["bridge hits would skip disk revalidation (FR12.9)".to_string()],
             }
         );
     }
 
     #[test]
     fn self_enabling_or_outbound_bridges_are_rejected() {
-        let self_enabling = BridgeProperties { requires_opt_in: false, ..compliant() };
+        let self_enabling = BridgeProperties {
+            requires_opt_in: false,
+            ..compliant()
+        };
         assert!(matches!(
             evaluate_candidate(OsBridge::Spotlight, &self_enabling),
             BridgeVerdict::Reject { .. }
         ));
-        let outbound = BridgeProperties { local_ipc_only: false, ..compliant() };
+        let outbound = BridgeProperties {
+            local_ipc_only: false,
+            ..compliant()
+        };
         assert!(matches!(
             evaluate_candidate(OsBridge::Everything, &outbound),
             BridgeVerdict::Reject { .. }

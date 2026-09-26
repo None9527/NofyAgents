@@ -345,9 +345,7 @@ async fn snapshot_ors_ledger_incomplete_even_when_reply_complete() {
 /// Scripted coordinator stub: answers each `Outstanding` query with the next
 /// queued reply, repeating the last one; other events are ignored.
 fn scripted_outstanding_responder(
-    replies: Vec<
-        nofy_tools::implementations::nofy_build::task::types::SubagentOutstandingReply,
-    >,
+    replies: Vec<nofy_tools::implementations::nofy_build::task::types::SubagentOutstandingReply>,
 ) -> tokio::sync::mpsc::UnboundedSender<
     nofy_tools::implementations::nofy_build::task::types::SubagentEvent,
 > {

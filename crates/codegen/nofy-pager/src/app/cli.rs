@@ -930,10 +930,7 @@ impl PagerArgs {
         }
         match self.resume_target() {
             ResumeTarget::SessionId(id) => {
-                nofy_shell::session::persistence::resumed_session_sandbox_profile(
-                    Some(&id),
-                    cwd,
-                )
+                nofy_shell::session::persistence::resumed_session_sandbox_profile(Some(&id), cwd)
             }
             ResumeTarget::MostRecentForCwd => {
                 nofy_shell::session::persistence::resolve_recent_session_sandbox_profile(

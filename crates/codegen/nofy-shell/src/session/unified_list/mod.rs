@@ -246,10 +246,7 @@ pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
         let cwd = req.cwd.as_deref();
         if can_relax {
             let lanes = crate::session::merge::fetch_lanes(cwd, cwd_scope, None, headless).await;
-            let rows = to_rows(
-                crate::session::merge::merge(lanes.local, None, over),
-                reg,
-            );
+            let rows = to_rows(crate::session::merge::merge(lanes.local, None, over), reg);
             LocalLane {
                 rows,
                 relax: Some(RelaxInputs {

@@ -97,7 +97,9 @@ impl nofy_tool_runtime::Tool for DelegateTaskTool {
             ));
         };
         if input.goal.trim().is_empty() {
-            return Ok(ToolOutput::Text("Refusing to delegate an empty goal.".into()));
+            return Ok(ToolOutput::Text(
+                "Refusing to delegate an empty goal.".into(),
+            ));
         }
         let task_id = input.task_id.clone().unwrap_or_else(generate_task_id);
         let total = access
@@ -197,7 +199,10 @@ impl nofy_tool_runtime::Tool for DelegationStatusTool {
         }
         let mut out = String::from("TASK                     STATE            RUN\n");
         for task in &tasks {
-            out.push_str(&format!("{:<24} {:<16} {}\n", task.id, task.state, task.run));
+            out.push_str(&format!(
+                "{:<24} {:<16} {}\n",
+                task.id, task.state, task.run
+            ));
         }
         Ok(ToolOutput::Text(out.into()))
     }

@@ -6,10 +6,10 @@
 use super::commands::SessionCommand;
 use super::persistence::PersistenceMsg;
 use agent_client_protocol as acp;
+use nofy_hunk_tracker::HunkTrackerHandle;
+use nofy_sampling_types::ReasoningEffort;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, oneshot};
-use nofy_sampling_types::ReasoningEffort;
-use nofy_hunk_tracker::HunkTrackerHandle;
 /// Coarse lifecycle state of a session as known to the leader/agent.
 ///
 /// A nofy session has no
@@ -152,13 +152,11 @@ pub struct SessionHandle {
     pub workspace_ops: nofy_workspace::WorkspaceOps,
     /// Terminal backend for this session. Subagents inherit the parent's
     /// backend so background tasks and monitors survive the subagent's exit.
-    pub terminal_backend:
-        Option<std::sync::Arc<dyn nofy_tools::computer::types::TerminalBackend>>,
+    pub terminal_backend: Option<std::sync::Arc<dyn nofy_tools::computer::types::TerminalBackend>>,
     /// Notification handle for this session's tool bridge. Subagents use
     /// this to reparent surviving tasks' notification handles on exit so
     /// events route to the parent's notification bridge.
-    pub tools_notification_handle:
-        Option<nofy_tools::notification::types::ToolNotificationHandle>,
+    pub tools_notification_handle: Option<nofy_tools::notification::types::ToolNotificationHandle>,
     /// Scheduler handle for this session. Subagents inherit the parent's
     /// handle so scheduled tasks survive the subagent's exit.
     pub scheduler_handle:

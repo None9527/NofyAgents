@@ -28,10 +28,10 @@
 
 use std::path::Path;
 
-use tokio::sync::{mpsc, oneshot};
 use nofy_chat_state::{ChatPersistence, StrictAppendAck, StrictAppendError};
 use nofy_sampling_types::ConversationItem;
 use nofy_session_journal::{EventKind, SessionJournal};
+use tokio::sync::{mpsc, oneshot};
 
 /// The journal file name inside a session directory, sibling to
 /// `chat_history.jsonl` / `updates.jsonl`.
@@ -67,9 +67,7 @@ pub(crate) fn is_verification_gate_enabled() -> bool {
 /// passes; an active journal whose prefix cannot be made durable BLOCKS the
 /// request (observably — the caller surfaces the reason and never opens
 /// the stream).
-pub(crate) async fn request_initiation_gate(
-    handle: &RuntimeJournalHandle,
-) -> Result<(), String> {
+pub(crate) async fn request_initiation_gate(handle: &RuntimeJournalHandle) -> Result<(), String> {
     if !handle.is_active() {
         return Ok(());
     }
@@ -100,9 +98,9 @@ pub(crate) fn classify_tool(tool: &str) -> nofy_session_journal::IntentClass {
     use nofy_session_journal::IntentClass;
     match tool {
         "read_file" | "hashline_read" | "grep" | "hashline_grep" | "list_dir" | "glob"
-        | "search_tool" | "web_fetch" | "get_task_output" | "task_output"
-        | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode" | "todo_write" | "todo"
-        | "update_goal" | "lsp" | "skills" | "read" => IntentClass::ReadOnly,
+        | "search_tool" | "web_fetch" | "get_task_output" | "task_output" | "ask_user_question"
+        | "enter_plan_mode" | "exit_plan_mode" | "todo_write" | "todo" | "update_goal" | "lsp"
+        | "skills" | "read" => IntentClass::ReadOnly,
         // Execute-kind tools across naming schemes: `run_terminal_command`
         // is the canonical wire name (claude_alias Bash), `run_terminal_cmd`
         // the nofy_build registry id, `bash` the opencode id.
@@ -120,10 +118,7 @@ pub(crate) fn classify_tool(tool: &str) -> nofy_session_journal::IntentClass {
 /// Execute-kind run (tests/build) after the last edit is the
 /// verification signal; Edit/Write-kind tools are the mutations.
 pub(crate) fn is_mutation_tool(tool: &str) -> bool {
-    matches!(
-        tool,
-        "search_replace" | "hashline_edit" | "write" | "edit"
-    )
+    matches!(tool, "search_replace" | "hashline_edit" | "write" | "edit")
 }
 
 pub(crate) fn is_verification_tool(tool: &str) -> bool {
@@ -184,9 +179,7 @@ impl RuntimeJournalHandle {
             budget_continuity: None,
             open_intents: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             last_mutation_seq: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(NO_SEQ)),
-            last_verification_seq: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(
-                NO_SEQ,
-            )),
+            last_verification_seq: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(NO_SEQ)),
         }
     }
 
@@ -275,8 +268,7 @@ impl RuntimeJournalHandle {
             EventKind::SessionResumed
         };
         let mut journal = journal;
-        if let Err(error) = journal.append(open_kind, session_id.clone(), serde_json::Value::Null)
-        {
+        if let Err(error) = journal.append(open_kind, session_id.clone(), serde_json::Value::Null) {
             tracing::warn!(
                 %error,
                 session_id = %session_id,
@@ -290,8 +282,7 @@ impl RuntimeJournalHandle {
         // assuming the last known state.
         let reconciliation = if open_kind == EventKind::SessionResumed {
             let snapshot = nofy_session_journal::project(journal.events());
-            let report =
-                nofy_session_journal::reconcile_open_intents(&snapshot, classify_tool);
+            let report = nofy_session_journal::reconcile_open_intents(&snapshot, classify_tool);
             if report.needs_attention() {
                 tracing::info!(
                     session_id = %session_id,
@@ -352,10 +343,7 @@ impl RuntimeJournalHandle {
         };
         let open_intents = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(
             // Intents left open by the previous segment are still open.
-            reconciliation
-                .as_ref()
-                .map(|r| r.open_total)
-                .unwrap_or(0),
+            reconciliation.as_ref().map(|r| r.open_total).unwrap_or(0),
         ));
         // Verification evidence (RTAgent Phase D1): seed the mutation /
         // verification watermarks from the previous segment, so an
@@ -372,9 +360,7 @@ impl RuntimeJournalHandle {
                     last_mutation_seq,
                     verification_seq,
                 } => (last_mutation_seq, verification_seq),
-                VerificationState::Unverified { last_mutation_seq } => {
-                    (last_mutation_seq, NO_SEQ)
-                }
+                VerificationState::Unverified { last_mutation_seq } => (last_mutation_seq, NO_SEQ),
             }
         } else {
             (NO_SEQ, NO_SEQ)
@@ -429,20 +415,14 @@ impl RuntimeJournalHandle {
                                     EventKind::ToolInvoked
                                         if event.tool_name().is_some_and(is_mutation_tool) =>
                                     {
-                                        writer_mutation.store(
-                                            event.seq,
-                                            std::sync::atomic::Ordering::Relaxed,
-                                        );
+                                        writer_mutation
+                                            .store(event.seq, std::sync::atomic::Ordering::Relaxed);
                                     }
                                     EventKind::ToolSucceeded
-                                        if event
-                                            .tool_name()
-                                            .is_some_and(is_verification_tool) =>
+                                        if event.tool_name().is_some_and(is_verification_tool) =>
                                     {
-                                        writer_verification.store(
-                                            event.seq,
-                                            std::sync::atomic::Ordering::Relaxed,
-                                        );
+                                        writer_verification
+                                            .store(event.seq, std::sync::atomic::Ordering::Relaxed);
                                     }
                                     _ => {}
                                 }
@@ -596,8 +576,10 @@ fn message_payload(item: &ConversationItem, cwd_switch: bool) -> serde_json::Val
 impl<P: ChatPersistence> ChatPersistence for JournalingChatPersistence<P> {
     fn persist_message(&mut self, item: &ConversationItem) {
         self.inner.persist_message(item);
-        self.journal
-            .emit(EventKind::HistoryMessageAppended, message_payload(item, false));
+        self.journal.emit(
+            EventKind::HistoryMessageAppended,
+            message_payload(item, false),
+        );
     }
 
     fn persist_working_directory_switch_and_ack(
@@ -605,8 +587,10 @@ impl<P: ChatPersistence> ChatPersistence for JournalingChatPersistence<P> {
         item: &ConversationItem,
     ) -> oneshot::Receiver<Result<StrictAppendAck, StrictAppendError>> {
         let receiver = self.inner.persist_working_directory_switch_and_ack(item);
-        self.journal
-            .emit(EventKind::HistoryMessageAppended, message_payload(item, true));
+        self.journal.emit(
+            EventKind::HistoryMessageAppended,
+            message_payload(item, true),
+        );
         receiver
     }
 
@@ -739,8 +723,12 @@ mod tests {
         // Inner persistence saw every call, unmodified.
         let records = records.lock().unwrap();
         assert_eq!(records.len(), 4);
-        assert!(matches!(&records[0], PersistenceRecord::Message(item) if matches!(item, ConversationItem::Assistant(_))));
-        assert!(matches!(&records[2], PersistenceRecord::ReplaceHistory(items) if items.len() == 1));
+        assert!(
+            matches!(&records[0], PersistenceRecord::Message(item) if matches!(item, ConversationItem::Assistant(_)))
+        );
+        assert!(
+            matches!(&records[2], PersistenceRecord::ReplaceHistory(items) if items.len() == 1)
+        );
         assert!(matches!(&records[3], PersistenceRecord::Flush));
         drop(records);
 
@@ -763,10 +751,12 @@ mod tests {
             ]
         );
         // Every event belongs to the same session.
-        assert!(journal
-            .events()
-            .iter()
-            .all(|event| event.session_id == "sess-1"));
+        assert!(
+            journal
+                .events()
+                .iter()
+                .all(|event| event.session_id == "sess-1")
+        );
         // Payloads are structural: role metadata, never message content.
         let appended: Vec<_> = journal
             .events()
@@ -868,10 +858,7 @@ mod tests {
         // end() adds session.ended as the fifth event.
         wait_for_events(&path, 5).await;
         let journal = SessionJournal::load(path).unwrap();
-        assert_eq!(
-            journal.events()[3].kind,
-            EventKind::ReconciliationCompleted
-        );
+        assert_eq!(journal.events()[3].kind, EventKind::ReconciliationCompleted);
     }
 
     #[tokio::test]
@@ -1061,10 +1048,7 @@ mod tests {
         assert_eq!(handle.open_intent_count(), Some(1));
 
         // Orphan outcomes must not push the counter below zero.
-        handle.emit(
-            EventKind::ToolFailed,
-            serde_json::json!({"intent_id": "b"}),
-        );
+        handle.emit(EventKind::ToolFailed, serde_json::json!({"intent_id": "b"}));
         handle.emit(
             EventKind::ToolFailed,
             serde_json::json!({"intent_id": "never-invoked"}),

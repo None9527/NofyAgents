@@ -61,7 +61,11 @@ pub async fn run(args: SessionsArgs) -> Result<()> {
 
             let req = SessionSearchRequest {
                 query,
-                cwd: if all { None } else { Some(cwd.to_string_lossy().to_string()) },
+                cwd: if all {
+                    None
+                } else {
+                    Some(cwd.to_string_lossy().to_string())
+                },
                 limit,
                 offset: 0,
                 include_content: true,

@@ -415,10 +415,10 @@ pub async fn persist_models_default(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serial_test::serial;
-    use tempfile::tempdir;
     use nofy_config::ConfigLayers;
     use nofy_test_support::EnvGuard;
+    use serial_test::serial;
+    use tempfile::tempdir;
 
     fn models_default_patch(default: &str) -> toml::Table {
         let mut models = toml::map::Map::new();
@@ -488,9 +488,12 @@ mod tests {
         let _kill = EnvGuard::unset("NOFY_CAMPAIGNS");
 
         let mut layers = ConfigLayers {
-            user: toml::from_str("[models]
+            user: toml::from_str(
+                "[models]
 default = \"config-model\"
-").unwrap(),
+",
+            )
+            .unwrap(),
             ..Default::default()
         };
         layers.campaigns.user = vec![CampaignEntry {
@@ -514,10 +517,14 @@ default = \"config-model\"
         // A campaign that loses to a requirements pin never reports
         // campaign-driven.
         let mut pinned = layers.clone();
-        pinned.user_requirements =
-            Some(toml::from_str("[models]
+        pinned.user_requirements = Some(
+            toml::from_str(
+                "[models]
 default = \"config-model\"
-").unwrap());
+",
+            )
+            .unwrap(),
+        );
         assert!(
             campaign_driven_models_default_from(&pinned, &HashSet::new()).is_none(),
             "a requirements-pinned default must not report campaign-driven"

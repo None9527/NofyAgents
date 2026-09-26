@@ -300,13 +300,22 @@ mod tests {
         assert_eq!(writing_tool_kind("edit"), Some(ToolKind::Edit));
         assert_eq!(writing_tool_kind("hashline_edit"), Some(ToolKind::Edit));
         assert_eq!(writing_tool_kind("apply_patch"), Some(ToolKind::Edit));
-        assert_eq!(writing_tool_kind("run_terminal_command"), Some(ToolKind::Execute));
-        assert_eq!(writing_tool_kind("run_terminal_cmd"), Some(ToolKind::Execute));
+        assert_eq!(
+            writing_tool_kind("run_terminal_command"),
+            Some(ToolKind::Execute)
+        );
+        assert_eq!(
+            writing_tool_kind("run_terminal_cmd"),
+            Some(ToolKind::Execute)
+        );
         assert_eq!(writing_tool_kind("bash"), Some(ToolKind::Execute));
         assert_eq!(writing_tool_kind("todo_write"), Some(ToolKind::Plan));
         assert_eq!(writing_tool_kind("todowrite"), Some(ToolKind::Plan));
         assert_eq!(writing_tool_kind("workflow"), Some(ToolKind::Workflow));
-        assert_eq!(writing_tool_kind("ask_user_question"), Some(ToolKind::AskUser));
+        assert_eq!(
+            writing_tool_kind("ask_user_question"),
+            Some(ToolKind::AskUser)
+        );
         // Read-style and unknown names fall back to None.
         assert_eq!(writing_tool_kind("read_file"), None);
         assert_eq!(writing_tool_kind("grep"), None);

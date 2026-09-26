@@ -66,9 +66,7 @@ impl RootTable {
     pub fn classify(&self, path: &str) -> PathClass {
         let mut best: Option<&RootConfig> = None;
         for root in &self.roots {
-            if path.starts_with(&root.path)
-                && best.is_none_or(|b| root.path.len() > b.path.len())
-            {
+            if path.starts_with(&root.path) && best.is_none_or(|b| root.path.len() > b.path.len()) {
                 best = Some(root);
             }
         }
@@ -85,10 +83,14 @@ impl RootTable {
     /// outside paths escalate.
     pub fn validate_write(&self, path: &str) -> Result<(), StewardError> {
         match self.classify(path) {
-            PathClass::Inside { tier: RootTier::Manage, .. } => Ok(()),
-            PathClass::Inside { root, tier: RootTier::IndexOnly } => {
-                Err(StewardError::IndexOnlyRoot { root })
-            }
+            PathClass::Inside {
+                tier: RootTier::Manage,
+                ..
+            } => Ok(()),
+            PathClass::Inside {
+                root,
+                tier: RootTier::IndexOnly,
+            } => Err(StewardError::IndexOnlyRoot { root }),
             PathClass::Outside => Err(StewardError::OutsideRoot {
                 path: path.to_string(),
             }),
@@ -130,7 +132,9 @@ mod tests {
         // Writes structurally impossible.
         assert_eq!(
             table.validate_write("/docs/a.md"),
-            Err(StewardError::IndexOnlyRoot { root: "/docs".into() })
+            Err(StewardError::IndexOnlyRoot {
+                root: "/docs".into()
+            })
         );
     }
 
@@ -141,7 +145,9 @@ mod tests {
         assert!(table.validate_write("/proj/file").is_ok());
         assert_eq!(
             table.validate_write("/elsewhere/file"),
-            Err(StewardError::OutsideRoot { path: "/elsewhere/file".into() })
+            Err(StewardError::OutsideRoot {
+                path: "/elsewhere/file".into()
+            })
         );
     }
 
@@ -152,11 +158,17 @@ mod tests {
         table.add_root("/data/archive", RootTier::IndexOnly);
         assert_eq!(
             table.classify("/data/archive/old.log"),
-            PathClass::Inside { root: "/data/archive".into(), tier: RootTier::IndexOnly }
+            PathClass::Inside {
+                root: "/data/archive".into(),
+                tier: RootTier::IndexOnly
+            }
         );
         assert_eq!(
             table.classify("/data/live/x"),
-            PathClass::Inside { root: "/data".into(), tier: RootTier::Manage }
+            PathClass::Inside {
+                root: "/data".into(),
+                tier: RootTier::Manage
+            }
         );
     }
 

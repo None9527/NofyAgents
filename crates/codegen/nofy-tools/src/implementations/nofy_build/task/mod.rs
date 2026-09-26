@@ -17,8 +17,8 @@
 pub mod admission;
 pub mod backend;
 pub mod coordinator;
-pub mod model_policy;
 mod coordinator_state;
+pub mod model_policy;
 pub use coordinator_state::{cap_completion_output, completion_summary};
 pub mod types;
 

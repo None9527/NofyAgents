@@ -25,6 +25,6 @@ pub mod governor;
 
 pub use failure::{FailureClass, classify_tool_failure, is_run_terminal};
 pub use governor::{
-    BudgetDecision, BudgetGovernor, DEFAULT_NO_PROGRESS_LIMIT, FinishReason, ProgressSignals,
-    GOVERNOR_ENV, is_governor_enabled,
+    BudgetDecision, BudgetGovernor, DEFAULT_NO_PROGRESS_LIMIT, FinishReason, GOVERNOR_ENV,
+    ProgressSignals, is_governor_enabled,
 };

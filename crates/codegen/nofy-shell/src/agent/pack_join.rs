@@ -79,7 +79,10 @@ mod tests {
             j.persona_instructions.as_deref(),
             Some("You are the file steward.")
         );
-        assert_eq!(j.skill_names, vec!["find".to_string(), "cleanup".to_string()]);
+        assert_eq!(
+            j.skill_names,
+            vec!["find".to_string(), "cleanup".to_string()]
+        );
         assert!(join_from_dispatch(&ControlResponse::Pong).is_none());
         assert!(join_from_dispatch(&ControlResponse::NoPending).is_none());
     }

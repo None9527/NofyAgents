@@ -61,7 +61,11 @@ pub fn classify(policy: ClassifierPolicy, signals: &Signals) -> SafetyVerdict {
     // Uncertainty is fail-closed under EVERY policy.
     if signals.uncertain {
         reasons.push("uncertain signal: fail-closed".into());
-        return SafetyVerdict { risk: RiskLevel::High, action: ClassAction::Ask, reasons };
+        return SafetyVerdict {
+            risk: RiskLevel::High,
+            action: ClassAction::Ask,
+            reasons,
+        };
     }
 
     let risk = if signals.destructive {
@@ -95,7 +99,11 @@ pub fn classify(policy: ClassifierPolicy, signals: &Signals) -> SafetyVerdict {
         (_, RiskLevel::Low) => ClassAction::Allow,
     };
 
-    SafetyVerdict { risk, action, reasons }
+    SafetyVerdict {
+        risk,
+        action,
+        reasons,
+    }
 }
 
 #[cfg(test)]
@@ -110,47 +118,111 @@ mod tests {
 
     #[test]
     fn high_risk_never_auto_allows_under_any_policy() {
-        let destructive = Signals { destructive: true, outbound: false, uncertain: false, known_safe: false };
+        let destructive = Signals {
+            destructive: true,
+            outbound: false,
+            uncertain: false,
+            known_safe: false,
+        };
         for policy in POLICIES {
             let v = classify(policy, &destructive);
             assert_eq!(v.risk, RiskLevel::High);
-            assert_eq!(v.action, ClassAction::Ask, "{policy:?} must prompt, never auto-allow high risk");
+            assert_eq!(
+                v.action,
+                ClassAction::Ask,
+                "{policy:?} must prompt, never auto-allow high risk"
+            );
         }
     }
 
     #[test]
     fn uncertainty_is_fail_closed_under_every_policy() {
-        let uncertain = Signals { destructive: false, outbound: false, uncertain: true, known_safe: true };
+        let uncertain = Signals {
+            destructive: false,
+            outbound: false,
+            uncertain: true,
+            known_safe: true,
+        };
         for policy in POLICIES {
             let v = classify(policy, &uncertain);
-            assert_eq!(v.action, ClassAction::Ask, "{policy:?}: uncertain must Ask even if known-safe");
+            assert_eq!(
+                v.action,
+                ClassAction::Ask,
+                "{policy:?}: uncertain must Ask even if known-safe"
+            );
         }
     }
 
     #[test]
     fn policies_differ_only_on_medium_and_low() {
-        let outbound = Signals { destructive: false, outbound: true, uncertain: false, known_safe: false };
-        assert_eq!(classify(ClassifierPolicy::Conservative, &outbound).action, ClassAction::Ask);
-        assert_eq!(classify(ClassifierPolicy::Balanced, &outbound).action, ClassAction::Ask);
-        assert_eq!(classify(ClassifierPolicy::Permissive, &outbound).action, ClassAction::Allow);
+        let outbound = Signals {
+            destructive: false,
+            outbound: true,
+            uncertain: false,
+            known_safe: false,
+        };
+        assert_eq!(
+            classify(ClassifierPolicy::Conservative, &outbound).action,
+            ClassAction::Ask
+        );
+        assert_eq!(
+            classify(ClassifierPolicy::Balanced, &outbound).action,
+            ClassAction::Ask
+        );
+        assert_eq!(
+            classify(ClassifierPolicy::Permissive, &outbound).action,
+            ClassAction::Allow
+        );
     }
 
     #[test]
     fn conservative_asks_unclassified_low() {
-        let plain = Signals { destructive: false, outbound: false, uncertain: false, known_safe: false };
-        assert_eq!(classify(ClassifierPolicy::Conservative, &plain).action, ClassAction::Ask);
-        assert_eq!(classify(ClassifierPolicy::Balanced, &plain).action, ClassAction::Allow);
-        let safe = Signals { known_safe: true, ..plain };
-        assert_eq!(classify(ClassifierPolicy::Conservative, &safe).action, ClassAction::Allow);
+        let plain = Signals {
+            destructive: false,
+            outbound: false,
+            uncertain: false,
+            known_safe: false,
+        };
+        assert_eq!(
+            classify(ClassifierPolicy::Conservative, &plain).action,
+            ClassAction::Ask
+        );
+        assert_eq!(
+            classify(ClassifierPolicy::Balanced, &plain).action,
+            ClassAction::Allow
+        );
+        let safe = Signals {
+            known_safe: true,
+            ..plain
+        };
+        assert_eq!(
+            classify(ClassifierPolicy::Conservative, &safe).action,
+            ClassAction::Allow
+        );
     }
 
     #[test]
     fn every_verdict_is_structured_with_reasons() {
         for policy in POLICIES {
             for signals in [
-                Signals { destructive: true, outbound: true, uncertain: false, known_safe: false },
-                Signals { destructive: false, outbound: true, uncertain: false, known_safe: false },
-                Signals { destructive: false, outbound: false, uncertain: false, known_safe: true },
+                Signals {
+                    destructive: true,
+                    outbound: true,
+                    uncertain: false,
+                    known_safe: false,
+                },
+                Signals {
+                    destructive: false,
+                    outbound: true,
+                    uncertain: false,
+                    known_safe: false,
+                },
+                Signals {
+                    destructive: false,
+                    outbound: false,
+                    uncertain: false,
+                    known_safe: true,
+                },
             ] {
                 let v = classify(policy, &signals);
                 assert!(!v.reasons.is_empty(), "verdicts must explain themselves");

@@ -21,14 +21,14 @@ use std::time::Duration;
 
 use nofy_session_registry::Registry;
 
+use crate::SingleInstanceLock;
 use crate::approval::ApprovalBroker;
 use crate::exit_codes;
-use crate::live::LiveBus;
-use crate::search_proxy::SearchProxy;
 use crate::forensics::ForensicsLedger;
-use crate::health::{spawn_watchdog, EventLoopHealth, WatchdogConfig};
-use crate::recovery::{decide, RecoveryDecision};
-use crate::SingleInstanceLock;
+use crate::health::{EventLoopHealth, WatchdogConfig, spawn_watchdog};
+use crate::live::LiveBus;
+use crate::recovery::{RecoveryDecision, decide};
+use crate::search_proxy::SearchProxy;
 
 pub const CONTROL_SOCKET_NAME: &str = "control.sock";
 
@@ -37,7 +37,7 @@ pub const DEFAULT_APPROVAL_TIMEOUT: Duration = Duration::from_secs(300);
 
 // Run lifecycle (batch T): DaemonRun/DaemonStores/submit_run/resume_run
 // live in `runlife.rs`; re-exported so every existing path keeps working.
-pub use crate::runlife::{resume_run, submit_run, DaemonRun, DaemonStores};
+pub use crate::runlife::{DaemonRun, DaemonStores, resume_run, submit_run};
 
 pub struct DaemonConfig {
     pub state_dir: PathBuf,
@@ -71,7 +71,6 @@ pub fn preflight(cfg: &DaemonConfig) -> Result<(SingleInstanceLock, ForensicsLed
     Ok((lock, ledger))
 }
 
-
 // Wire protocol (batch T): serve_connection/stream_session live in
 // `wire.rs`; re-exported so every existing path keeps working.
 pub use crate::wire::serve_connection;
@@ -98,14 +97,10 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     let health = EventLoopHealth::new();
     let wedge = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let wedge2 = wedge.clone();
-    let _watchdog = spawn_watchdog(
-        health.clone(),
-        WatchdogConfig::default(),
-        move |_lag| {
-            wedge2.store(true, std::sync::atomic::Ordering::SeqCst);
-            true
-        },
-    );
+    let _watchdog = spawn_watchdog(health.clone(), WatchdogConfig::default(), move |_lag| {
+        wedge2.store(true, std::sync::atomic::Ordering::SeqCst);
+        true
+    });
 
     crate::sd_notify::ready();
     let broker = std::sync::Arc::new(ApprovalBroker::new());
@@ -176,10 +171,7 @@ pub fn run(cfg: DaemonConfig) -> i32 {
                 let peer = peer_pid(&stream)
                     .map(|pid| format!("pid:{pid}"))
                     .unwrap_or_else(|| "unknown".into());
-                let verdict = preauth
-                    .lock()
-                    .unwrap()
-                    .accept_connect(&peer, secs_now());
+                let verdict = preauth.lock().unwrap().accept_connect(&peer, secs_now());
                 if verdict != nofy_governance::preauth::PreAuthOutcome::Accepted {
                     tracing::warn!(peer = %peer, ?verdict, "control connection refused by pre-auth guard");
                     drop(stream);
@@ -232,7 +224,6 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,7 +275,10 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let daemon_dir = tmp.path().join("daemon");
         std::fs::create_dir_all(&daemon_dir).unwrap();
-        let mut orphan = std::process::Command::new("sleep").arg("30").spawn().unwrap();
+        let mut orphan = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .unwrap();
         let pid = orphan.id();
         let entry = serde_json::json!({
             "pid": pid,

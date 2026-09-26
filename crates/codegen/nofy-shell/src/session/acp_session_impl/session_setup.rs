@@ -447,14 +447,14 @@ impl SessionActor {
                 return;
             }
         };
-        let (response, stamp) =
-            match nofy_auth::execute_with_stamp(&middleware_client, built).await {
-                Ok(r) => r,
-                Err(e) => {
-                    tracing::warn!(error = %e, "Failed to fetch models for idle refresh");
-                    return;
-                }
-            };
+        let (response, stamp) = match nofy_auth::execute_with_stamp(&middleware_client, built).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(error = %e, "Failed to fetch models for idle refresh");
+                return;
+            }
+        };
         if response.status() == reqwest::StatusCode::UNAUTHORIZED {
             crate::auth::attribution::record_consumer_401(
                 am,

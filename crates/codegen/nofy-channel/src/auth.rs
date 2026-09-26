@@ -138,11 +138,13 @@ mod tests {
     fn loopback_trusts_local_peers_only() {
         let auth = LoopbackAuth;
         assert!(auth.verify(&Handshake::Loopback).is_ok());
-        assert!(auth.verify(&Handshake::UnixSocketPeer { uid: 1000 }).is_ok());
-        assert!(auth
-            .verify(&Handshake::Bearer {
-                token: "x".into()
-            })
-            .is_err());
+        assert!(
+            auth.verify(&Handshake::UnixSocketPeer { uid: 1000 })
+                .is_ok()
+        );
+        assert!(
+            auth.verify(&Handshake::Bearer { token: "x".into() })
+                .is_err()
+        );
     }
 }

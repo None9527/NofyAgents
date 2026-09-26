@@ -237,10 +237,10 @@ pub(crate) fn session_token_auth_gate(
         }
 }
 
-pub const AUTH_ERROR_SESSION_EXPIRED: &str =
-    "Session expired. Check your API key configuration.";
+pub const AUTH_ERROR_SESSION_EXPIRED: &str = "Session expired. Check your API key configuration.";
 
-pub const AUTH_ERROR_API_KEY: &str = "Authentication failed. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml.";
+pub const AUTH_ERROR_API_KEY: &str =
+    "Authentication failed. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml.";
 
 /// Next ACP method id when `cached_token` cannot proceed (missing / expired),
 /// or `None` when no API-key credentials are advertiseable.
@@ -251,7 +251,8 @@ pub(crate) fn method_id_after_cached_token_unavailable(
 }
 
 /// Error when no API key credentials are available.
-pub const PREFERRED_API_KEY_UNAVAILABLE: &str = "No API key is configured (set NOFY_API_KEY or model api_key/env_key in config.toml).";
+pub const PREFERRED_API_KEY_UNAVAILABLE: &str =
+    "No API key is configured (set NOFY_API_KEY or model api_key/env_key in config.toml).";
 
 pub const NOFY_API_KEY_METHOD_ID: &str = "api_key";
 pub(crate) fn xai_api_key_auth_method() -> acp::AuthMethod {
@@ -351,7 +352,10 @@ mod tests {
             has_external_api_key: true,
             has_cached_token: true,
         });
-        assert_eq!(method_ids(&built), [NOFY_API_KEY_METHOD_ID, CACHED_TOKEN_AUTH_METHOD_ID]);
+        assert_eq!(
+            method_ids(&built),
+            [NOFY_API_KEY_METHOD_ID, CACHED_TOKEN_AUTH_METHOD_ID]
+        );
         assert_eq!(first_kind(&built.methods), Some(AuthMethodKind::XaiApiKey));
         // default prefers the cached session token.
         assert_eq!(default_id(&built), Some(CACHED_TOKEN_AUTH_METHOD_ID));

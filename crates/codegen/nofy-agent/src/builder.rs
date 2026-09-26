@@ -9,10 +9,8 @@ use crate::prompt::context::PromptContext;
 use crate::system_reminder::ReminderPolicy;
 use nofy_tools::bridge::ToolBridge;
 use nofy_tools::computer::types::{AsyncFileSystem, TerminalBackend};
+use nofy_tools::implementations::nofy_build::task::model_policy::{TaskModelSelection, TaskParams};
 use nofy_tools::notification::ToolNotificationHandle;
-use nofy_tools::implementations::nofy_build::task::model_policy::{
-    TaskModelSelection, TaskParams,
-};
 use nofy_tools::registry::types::SessionContext;
 use nofy_tools::types::tool::ToolKind;
 use std::collections::HashMap;
@@ -1270,10 +1268,7 @@ fn task_model_guidance(model_slugs: &[String]) -> String {
          If the user does not explicitly request a model, omit `{TASK_MODEL_PARAM}` to inherit the parent model."
     )
 }
-fn task_model_guidance_for(
-    selection: TaskModelSelection,
-    model_slugs: &[String],
-) -> String {
+fn task_model_guidance_for(selection: TaskModelSelection, model_slugs: &[String]) -> String {
     match selection {
         TaskModelSelection::Selectable => task_model_guidance(model_slugs),
         TaskModelSelection::Inherited => String::new(),

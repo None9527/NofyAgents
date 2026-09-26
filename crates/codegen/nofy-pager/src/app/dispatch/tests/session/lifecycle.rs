@@ -1615,9 +1615,7 @@ fn dispatch_new_worktree_session_repoints_dashboard_attached_agent() {
 #[test]
 fn translate_local_submit_always_returns_persist_always_for_new_session() {
     use crate::views::question_view::{LocalQuestionKind, QuestionViewState};
-    use nofy_tools::implementations::nofy_build::ask_user_question::{
-        Question, QuestionOption,
-    };
+    use nofy_tools::implementations::nofy_build::ask_user_question::{Question, QuestionOption};
     let q = Question {
         question: "?".into(),
         options: (0..4)
@@ -1657,9 +1655,7 @@ fn translate_local_submit_always_returns_persist_always_for_new_session() {
 #[test]
 fn translate_local_submit_never_returns_persist_never_for_new_session() {
     use crate::views::question_view::{LocalQuestionKind, QuestionViewState};
-    use nofy_tools::implementations::nofy_build::ask_user_question::{
-        Question, QuestionOption,
-    };
+    use nofy_tools::implementations::nofy_build::ask_user_question::{Question, QuestionOption};
     let q = Question {
         question: "?".into(),
         options: (0..4)
@@ -2554,8 +2550,7 @@ mod welcome_workspace_mode {
             crate::app::session_startup::NOFY_CHAT_LOCAL_WORKSPACE_ACK_ENV,
         );
         let home = tempfile::tempdir().unwrap();
-        let _home =
-            nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
+        let _home = nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
         set_active_local_workspace(None).unwrap();
         let tmp = tempfile::tempdir().unwrap();
         let mut app = test_app();
@@ -2667,8 +2662,7 @@ mod welcome_workspace_mode {
             crate::app::session_startup::NOFY_CHAT_LOCAL_WORKSPACE_ACK_ENV,
         );
         let home = tempfile::tempdir().unwrap();
-        let _home =
-            nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
+        let _home = nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
         set_active_local_workspace(None).unwrap();
         let tmp = tempfile::tempdir().unwrap();
         let mut app = test_app();

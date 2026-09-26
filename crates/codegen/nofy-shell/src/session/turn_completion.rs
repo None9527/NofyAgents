@@ -19,10 +19,8 @@ pub(crate) fn is_capture_eligible(
 ) -> bool {
     matches!(
         result,
-        Ok(
-            agent_client_protocol::StopReason::EndTurn
-                | agent_client_protocol::StopReason::Cancelled
-        )
+        Ok(agent_client_protocol::StopReason::EndTurn
+            | agent_client_protocol::StopReason::Cancelled)
     )
 }
 

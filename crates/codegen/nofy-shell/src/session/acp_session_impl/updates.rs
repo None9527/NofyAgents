@@ -993,9 +993,11 @@ mod xai_event_id_stamping_tests {
                         panic!("expected durable terminal");
                     };
                     respond_to
-                        .send(Err(crate::session::storage::AppendUpdateError::NotCommitted(
-                            std::io::Error::other("disk unavailable"),
-                        )))
+                        .send(Err(
+                            crate::session::storage::AppendUpdateError::NotCommitted(
+                                std::io::Error::other("disk unavailable"),
+                            ),
+                        ))
                         .unwrap();
                 };
                 let (result, ()) = tokio::join!(send, reject);

@@ -104,8 +104,8 @@ pub fn parse_pack(raw: &serde_json::Value) -> Result<PackManifest, PackError> {
             }
         }
     }
-    let manifest: PackManifest = serde_json::from_value(raw.clone())
-        .map_err(|_| PackError::HostPlaneLeak {
+    let manifest: PackManifest =
+        serde_json::from_value(raw.clone()).map_err(|_| PackError::HostPlaneLeak {
             key: "<malformed manifest>".into(),
         })?;
     for svc in &manifest.services {

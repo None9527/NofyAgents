@@ -44,11 +44,7 @@ impl PeriodicBridge {
 
     /// A schedule fired. Returns the outcome; starts a run only when the
     /// schedule is idle and its manifest exists.
-    pub fn on_fire(
-        &mut self,
-        schedule_id: &str,
-        manifest_exists: bool,
-    ) -> Option<PeriodicOutcome> {
+    pub fn on_fire(&mut self, schedule_id: &str, manifest_exists: bool) -> Option<PeriodicOutcome> {
         let binding = self
             .bindings
             .iter()
@@ -111,7 +107,9 @@ mod tests {
         // Second fire while the first run is active: skipped, never queued.
         assert_eq!(
             bridge.on_fire("nightly", true),
-            Some(PeriodicOutcome::SkippedPreviousActive { schedule_id: "nightly".into() })
+            Some(PeriodicOutcome::SkippedPreviousActive {
+                schedule_id: "nightly".into()
+            })
         );
         assert_eq!(bridge.skipped_pileups, 1);
         // Settle, then the next fire starts again.
@@ -127,7 +125,9 @@ mod tests {
         let mut bridge = bridge();
         assert_eq!(
             bridge.on_fire("nightly", false),
-            Some(PeriodicOutcome::NoManifest { schedule_id: "nightly".into() })
+            Some(PeriodicOutcome::NoManifest {
+                schedule_id: "nightly".into()
+            })
         );
         assert!(bridge.active_run("nightly").is_none());
     }

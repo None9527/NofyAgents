@@ -36,9 +36,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+use nofy_fast_worktree::{WorktreeBuilder, WorktreeSync};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
-use nofy_fast_worktree::{WorktreeBuilder, WorktreeSync};
 
 const WORKTREE_POOL_LOG: &str = "xai_worktree_pool";
 use crate::util::config::PoolConfig;

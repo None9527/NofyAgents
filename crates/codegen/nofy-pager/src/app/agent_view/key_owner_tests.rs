@@ -7,8 +7,8 @@ use crate::views::prompt_widget::StashedPrompt;
 use crate::views::question_view::QuestionViewState;
 use agent_client_protocol as acp;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::sync::Arc;
 use nofy_tools::implementations::nofy_build::ask_user_question::{Question, QuestionOption};
+use std::sync::Arc;
 
 const SHIFT_TAB: [(KeyCode, KeyModifiers); 3] = [
     (KeyCode::BackTab, KeyModifiers::NONE),
@@ -1038,7 +1038,6 @@ fn open_elicitation(agent: &mut AgentView) {
     ));
 }
 
-
 #[test]
 fn elicitation_keys_win_over_rewind() {
     use crate::views::elicitation_view::ElicitationFocus;
@@ -1159,7 +1158,6 @@ fn elicitation_draft_stops_at_named_cap() {
     assert_eq!(draft.chars().count(), MAX_ELICIT_DRAFT_CHARS);
 }
 
-
 fn open_url_elicitation(
     agent: &mut AgentView,
     response_tx: Option<crate::views::elicitation_view::ElicitResponseTx>,
@@ -1181,7 +1179,6 @@ fn open_url_elicitation(
         response_tx,
     ));
 }
-
 
 #[test]
 fn url_accept_on_dead_request_dismisses_without_waiting() {

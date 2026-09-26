@@ -6,14 +6,14 @@
 //! are written to `.nofy/config.toml`.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use nofy_shell::claude_import::{ImportPlan, ImportableItem, PathKind, find_project_root};
+use nofy_workspace::permission::types::RuleAction;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Paragraph, Widget};
 use std::path::PathBuf;
-use nofy_shell::claude_import::{ImportPlan, ImportableItem, PathKind, find_project_root};
-use nofy_workspace::permission::types::RuleAction;
 
 use crate::theme::Theme;
 use crate::views::modal_window::{

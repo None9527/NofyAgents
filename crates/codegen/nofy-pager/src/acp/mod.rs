@@ -20,9 +20,7 @@ pub(crate) fn is_session_update_ext_method(method: &str) -> bool {
 }
 
 use nofy_telemetry::startup;
-pub use nofy_telemetry::startup::{
-    AgentKind, Owner, StartupOutcome, StartupPhase, StartupTimer,
-};
+pub use nofy_telemetry::startup::{AgentKind, Owner, StartupOutcome, StartupPhase, StartupTimer};
 
 use anyhow::Result;
 use tokio_util::sync::CancellationToken;
@@ -358,7 +356,6 @@ pub fn parse_session_recap_available(meta: Option<&acp::Meta>) -> bool {
         .unwrap_or(false)
 }
 
-
 /// Attempt eager (non-interactive) auth with an advertised method.
 ///
 /// Errors from `authenticate` are caught so the connection still succeeds;
@@ -523,7 +520,6 @@ mod tests {
         let meta = serde_json::json!({ "sessionRecap": "yes" });
         assert!(!parse_session_recap_available(meta.as_object()));
     }
-
 
     #[test]
     fn build_initialize_meta_includes_rules_when_set() {

@@ -1448,9 +1448,7 @@ impl nofy_tools::types::resources::McpResourceProvider for McpStateResourceProvi
                 name: None,
                 description: None,
                 mime_type,
-                content: Some(nofy_tools::types::resources::McpResourceContent::Text(
-                    text,
-                )),
+                content: Some(nofy_tools::types::resources::McpResourceContent::Text(text)),
             }),
             rmcp::model::ResourceContents::BlobResourceContents {
                 uri: content_uri,

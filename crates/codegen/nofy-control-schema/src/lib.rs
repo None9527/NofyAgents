@@ -112,7 +112,11 @@ mod drift_gates {
         let m: methods::ControlMethod = serde_json::from_str(legacy_add).unwrap();
         assert!(matches!(
             m,
-            methods::ControlMethod::ScheduleAdd { goal: None, once: false, .. }
+            methods::ControlMethod::ScheduleAdd {
+                goal: None,
+                once: false,
+                ..
+            }
         ));
     }
 }

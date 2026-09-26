@@ -4,7 +4,7 @@
 //! render. Scheduling is DEFAULT-OFF end to end — `enable` is a
 //! deliberate act.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Subcommand;
 use nofy_control_schema::methods::ControlMethod;
 
@@ -91,7 +91,10 @@ pub fn run(args: &ScheduleArgs, state_dir: &std::path::Path) -> Result<()> {
 /// Render a `schedule_listed` response as a table or JSON.
 fn render_list(response: &serde_json::Value, json: bool) {
     if json {
-        println!("{}", serde_json::to_string_pretty(response).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(response).unwrap_or_default()
+        );
         return;
     }
     let entries = response["entries"].as_array();

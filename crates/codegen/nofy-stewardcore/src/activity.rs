@@ -49,7 +49,10 @@ pub struct Confluence {
 
 impl ActivityGraph {
     pub fn record(&mut self, event: ActivityEvent) {
-        self.by_path.entry(event.path.clone()).or_default().push(event);
+        self.by_path
+            .entry(event.path.clone())
+            .or_default()
+            .push(event);
     }
 
     pub fn history(&self, path: &str) -> &[ActivityEvent] {
@@ -71,8 +74,10 @@ impl ActivityGraph {
             .max_by_key(|e| e.at)?;
         let last_steward_write = history
             .iter()
-            .filter(|e| e.actor == FileActor::Steward
-                && (e.kind == ActivityKind::Write || e.kind == ActivityKind::Delete))
+            .filter(|e| {
+                e.actor == FileActor::Steward
+                    && (e.kind == ActivityKind::Write || e.kind == ActivityKind::Delete)
+            })
             .max_by_key(|e| e.at)
             .map(|e| e.at);
         Some(Confluence {
@@ -89,7 +94,12 @@ mod tests {
     use super::*;
 
     fn write(path: &str, actor: FileActor, at: u64) -> ActivityEvent {
-        ActivityEvent { path: path.into(), actor, kind: ActivityKind::Write, at }
+        ActivityEvent {
+            path: path.into(),
+            actor,
+            kind: ActivityKind::Write,
+            at,
+        }
     }
 
     #[test]
@@ -135,7 +145,11 @@ mod tests {
             at: 20,
         });
         let conf = graph.confluence("/f").unwrap();
-        assert_eq!(conf.last_writer, FileActor::Steward, "reads don't change authorship");
+        assert_eq!(
+            conf.last_writer,
+            FileActor::Steward,
+            "reads don't change authorship"
+        );
         assert!(!conf.external_since_steward);
     }
 

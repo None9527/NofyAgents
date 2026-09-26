@@ -13,7 +13,10 @@ pub enum HubMessage {
     /// Ordinary tool transport: forwards freely.
     ToolCall { tool: String },
     /// A workspace.* call: needs a daemon grant.
-    WorkspaceCall { method: String, grant: Option<GrantToken> },
+    WorkspaceCall {
+        method: String,
+        grant: Option<GrantToken>,
+    },
 }
 
 /// A daemon-issued authorization grant (single-use).
@@ -29,11 +32,18 @@ pub struct GrantToken {
 pub enum ForwardDecision {
     Forwarded,
     /// Workspace call without a grant.
-    RefusedNoGrant { method: String },
+    RefusedNoGrant {
+        method: String,
+    },
     /// Grant does not cover the called method.
-    RefusedMismatch { method: String, grant_method: String },
+    RefusedMismatch {
+        method: String,
+        grant_method: String,
+    },
     /// Grant already spent.
-    RefusedReplay { grant_id: String },
+    RefusedReplay {
+        grant_id: String,
+    },
 }
 
 /// The forwarding gate with the spent-grant ledger.
@@ -51,7 +61,9 @@ impl HubGate {
             HubMessage::ToolCall { .. } => ForwardDecision::Forwarded,
             HubMessage::WorkspaceCall { method, grant } => {
                 let Some(grant) = grant else {
-                    return ForwardDecision::RefusedNoGrant { method: method.clone() };
+                    return ForwardDecision::RefusedNoGrant {
+                        method: method.clone(),
+                    };
                 };
                 if grant.method != *method {
                     return ForwardDecision::RefusedMismatch {
@@ -60,7 +72,9 @@ impl HubGate {
                     };
                 }
                 if self.spent.iter().any(|id| *id == grant.grant_id) {
-                    return ForwardDecision::RefusedReplay { grant_id: grant.grant_id.clone() };
+                    return ForwardDecision::RefusedReplay {
+                        grant_id: grant.grant_id.clone(),
+                    };
                 }
                 self.spent.push(grant.grant_id.clone());
                 self.forwarded.push(method.clone());
@@ -75,24 +89,37 @@ mod tests {
     use super::*;
 
     fn grant(id: &str, method: &str) -> GrantToken {
-        GrantToken { grant_id: id.into(), method: method.into() }
+        GrantToken {
+            grant_id: id.into(),
+            method: method.into(),
+        }
     }
 
     #[test]
     fn tool_transport_forwards_freely() {
         let mut gate = HubGate::default();
-        let msg = HubMessage::ToolCall { tool: "read_file".into() };
+        let msg = HubMessage::ToolCall {
+            tool: "read_file".into(),
+        };
         assert_eq!(gate.forward(&msg), ForwardDecision::Forwarded);
-        assert!(gate.forwarded.is_empty(), "tool calls leave no workspace audit trail");
+        assert!(
+            gate.forwarded.is_empty(),
+            "tool calls leave no workspace audit trail"
+        );
     }
 
     #[test]
     fn workspace_call_without_grant_is_refused() {
         let mut gate = HubGate::default();
-        let msg = HubMessage::WorkspaceCall { method: "workspace.write".into(), grant: None };
+        let msg = HubMessage::WorkspaceCall {
+            method: "workspace.write".into(),
+            grant: None,
+        };
         assert_eq!(
             gate.forward(&msg),
-            ForwardDecision::RefusedNoGrant { method: "workspace.write".into() }
+            ForwardDecision::RefusedNoGrant {
+                method: "workspace.write".into()
+            }
         );
         assert!(gate.forwarded.is_empty());
     }
@@ -118,7 +145,9 @@ mod tests {
         gate.forward(&msg);
         assert_eq!(
             gate.forward(&msg),
-            ForwardDecision::RefusedReplay { grant_id: "g1".into() },
+            ForwardDecision::RefusedReplay {
+                grant_id: "g1".into()
+            },
             "a spent grant never forwards twice"
         );
     }

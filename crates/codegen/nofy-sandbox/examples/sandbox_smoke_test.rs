@@ -14,8 +14,8 @@
 //! cargo run -p nofy-sandbox --example sandbox_smoke_test -- read-only
 //! ```
 
-use std::path::Path;
 use nofy_sandbox::{ProfileName, SandboxManager};
+use std::path::Path;
 
 fn main() {
     // Parse profile from args (default: workspace).

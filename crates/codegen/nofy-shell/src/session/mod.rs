@@ -5,8 +5,8 @@ pub mod commands;
 pub(crate) mod compaction_config;
 pub mod handle;
 pub(crate) mod interrupted_turn;
-pub(crate) mod memory_state;
 pub(crate) mod memory_capture;
+pub(crate) mod memory_state;
 pub mod merge;
 pub mod notifications;
 pub mod pending_interaction;
@@ -23,7 +23,9 @@ pub use self::persistence::{
     resolve_local_session_ids_any_cwd, session_exists_for_cwd,
 };
 pub use self::result::{Empty, ExtMethodResult};
-pub use nofy_fsnotify::{FsConfig, FsEvent, FsEventKind, FsEventSource, FsNotifyError, GitMetaKind};
+pub use nofy_fsnotify::{
+    FsConfig, FsEvent, FsEventKind, FsEventSource, FsNotifyError, GitMetaKind,
+};
 /// `false` twin: this template is not compiled into this build, so no
 /// template matches. Keeps ungated call sites compiling in both
 /// configurations.
@@ -374,11 +376,11 @@ pub(crate) struct ClientFsConfig {
     pub mode: ClientFsMode,
 }
 pub mod acp_conversion;
-pub mod env_capture;
 pub(crate) mod acp_mcp;
 pub(crate) mod acp_session;
 pub(crate) mod agent_rebuild;
 pub(crate) mod chat_persistence;
+pub mod env_capture;
 pub(crate) mod events;
 pub mod file_system;
 pub mod fork;
@@ -411,8 +413,8 @@ pub(crate) mod normalize_cache;
 pub mod persistence;
 pub mod recall;
 pub use nofy_shared::placeholder_images;
-pub mod plan_mode;
 pub(crate) mod mode_permissions;
+pub mod plan_mode;
 pub mod prompt_history;
 pub mod prompt_parser;
 pub(crate) mod prompt_timing;

@@ -8,11 +8,6 @@
 //! message / running tool) so output is visible as it generates; finished blocks
 //! scroll up into native scrollback via [`super::commit`]. When idle the tail is
 //! empty and only status + prompt (+ optional panels) show.
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Clear, Widget};
 use nofy_pager::app::PagerTerminal;
 use nofy_pager::app::app_view::{ActiveView, AppView};
 use nofy_pager::minimal_api;
@@ -22,6 +17,11 @@ use nofy_pager::scrollback::wrappers::EntryRenderer;
 use nofy_pager::theme::Theme;
 use nofy_pager::views::prompt_widget::{PromptBg, PromptStyle};
 use nofy_pager::views::turn_status;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Clear, Widget};
 /// Left inset (columns) for every auxiliary live-region row: the status row,
 /// the info bar, the exit hint, and the todo panel — and the prompt's
 /// `chrome_pad_left`.
@@ -264,10 +264,7 @@ pub fn draw_live(app: &mut AppView, terminal: &mut PagerTerminal) {
             .max(1);
         let rest = avail.saturating_sub(prompt_h);
         let raw_btw = if minimal_api::minimal_btw_surface_available(agent) {
-            nofy_pager::views::btw_overlay::btw_panel_height(
-                agent.btw_state.as_ref(),
-                area.width,
-            )
+            nofy_pager::views::btw_overlay::btw_panel_height(agent.btw_state.as_ref(), area.width)
         } else {
             0
         };
@@ -634,9 +631,8 @@ fn render_config_status_line(
         });
     }
     if let Some(display) = frame.display() {
-        let _ = nofy_pager::views::status_line::render_status_line(
-            buf, area, display, padding, theme,
-        );
+        let _ =
+            nofy_pager::views::status_line::render_status_line(buf, area, display, padding, theme);
     }
 }
 /// Idle status: `minimal · [/fullscreen to go back ·] /help` (+ auto-set note).

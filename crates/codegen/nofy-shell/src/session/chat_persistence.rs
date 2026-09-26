@@ -5,9 +5,9 @@
 
 use std::io;
 
-use tokio::sync::{mpsc, oneshot};
 use nofy_chat_state::{ChatPersistence, StrictAppendAck, StrictAppendError};
 use nofy_sampling_types::ConversationItem;
+use tokio::sync::{mpsc, oneshot};
 
 use super::persistence::PersistenceMsg;
 

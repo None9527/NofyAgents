@@ -124,7 +124,9 @@ fn hook_group_sort_key<'a>(source_dir: &'a str, meta: &HookSourceMeta) -> HookGr
     }
 }
 
-fn is_official_marketplace_source(source: &nofy_hooks_plugins_types::MarketplaceScanResult) -> bool {
+fn is_official_marketplace_source(
+    source: &nofy_hooks_plugins_types::MarketplaceScanResult,
+) -> bool {
     source.source_name == nofy_plugin_marketplace::OFFICIAL_SOURCE_NAME
         || nofy_plugin_marketplace::is_official_source_url(&source.source_url_or_path)
 }
@@ -4736,10 +4738,7 @@ mod tests {
 
     // ── Skills search: substring-only, title-first ordering ─────────
 
-    fn make_skill(
-        name: &str,
-        desc: &str,
-    ) -> nofy_tools::implementations::skills::types::SkillInfo {
+    fn make_skill(name: &str, desc: &str) -> nofy_tools::implementations::skills::types::SkillInfo {
         nofy_tools::implementations::skills::types::SkillInfo {
             name: name.to_string(),
             display_name: None,
@@ -7069,20 +7068,16 @@ mod tests {
     fn skills_groups_then_az_by_label() {
         let mut project_z = make_skill("zzz-proj", "project skill");
         project_z.scope = nofy_tools::implementations::skills::types::SkillScope::Local;
-        project_z.config_source = Some(
-            nofy_tools::types::config_source::ConfigSource::Project {
-                path: std::path::PathBuf::from("/repo/.nofy/skills/zzz"),
-            },
-        );
+        project_z.config_source = Some(nofy_tools::types::config_source::ConfigSource::Project {
+            path: std::path::PathBuf::from("/repo/.nofy/skills/zzz"),
+        });
         project_z.display_name = Some("zeta-proj".into());
 
         let mut project_a = make_skill("aaa-proj", "other project");
         project_a.scope = nofy_tools::implementations::skills::types::SkillScope::Repo;
-        project_a.config_source = Some(
-            nofy_tools::types::config_source::ConfigSource::Project {
-                path: std::path::PathBuf::from("/repo/.nofy/skills/aaa"),
-            },
-        );
+        project_a.config_source = Some(nofy_tools::types::config_source::ConfigSource::Project {
+            path: std::path::PathBuf::from("/repo/.nofy/skills/aaa"),
+        });
         project_a.display_name = Some("alpha-proj".into());
 
         let mut user_a = make_skill("user-alpha", "user a");

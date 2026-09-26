@@ -460,9 +460,7 @@ impl SessionActor {
     /// The `StopFailure` hook input's classified `error`. Structured markers win
     /// over the JSON-RPC code because they are more specific; anything the
     /// runtime cannot distinguish stays `Unknown`.
-    pub(super) fn stop_failure_error_type(
-        err: &acp::Error,
-    ) -> nofy_hooks::event::StopFailureKind {
+    pub(super) fn stop_failure_error_type(err: &acp::Error) -> nofy_hooks::event::StopFailureKind {
         use nofy_hooks::event::StopFailureKind as K;
         if crate::sampling::error::stop_reason_for_turn_error(err) == "MaxTokens" {
             return K::MaxOutputTokens;

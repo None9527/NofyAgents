@@ -83,7 +83,10 @@ mod tests {
 
     #[test]
     fn intent_then_apply_changes_the_set() {
-        let events = vec![intent("auto-approve-reads", true), applied("auto-approve-reads", true)];
+        let events = vec![
+            intent("auto-approve-reads", true),
+            applied("auto-approve-reads", true),
+        ];
         let active = fold_presets(&events);
         assert!(active.contains("auto-approve-reads"));
         assert!(!has_interrupted_change(&events));
@@ -107,7 +110,10 @@ mod tests {
     fn interrupted_change_is_detectable() {
         let events = vec![intent("risky", true)];
         assert!(has_interrupted_change(&events));
-        assert!(fold_presets(&events).is_empty(), "intent alone changes nothing");
+        assert!(
+            fold_presets(&events).is_empty(),
+            "intent alone changes nothing"
+        );
     }
 
     #[test]

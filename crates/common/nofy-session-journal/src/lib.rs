@@ -41,16 +41,16 @@
 //! This crate is Layer 1: no dependencies on shell/agent/tool crates.
 
 pub mod continuity;
-pub mod evidence;
 pub mod event;
+pub mod evidence;
 pub mod journal;
 pub mod reconcile;
 pub mod reducer;
 pub mod world_state;
 
 pub use continuity::{BudgetContinuity, restore_budget_continuity};
-pub use evidence::{VerificationState, verification_state};
 pub use event::{Event, EventKind, new_intent_id, now_ms};
+pub use evidence::{VerificationState, verification_state};
 pub use journal::{JournalError, MAX_JOURNAL_BYTES, SessionJournal};
 pub use reconcile::{IntentClass, ReconciledIntent, ReconciliationReport, reconcile_open_intents};
 pub use reducer::{Lifecycle, OpenIntent, SessionEventReducer, SessionRuntimeSnapshot, project};

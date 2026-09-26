@@ -10,12 +10,12 @@
 use std::io::BufRead;
 
 use agent_client_protocol as acp;
-use tempfile::TempDir;
 use nofy_shell::session::info::Info;
 use nofy_shell::session::storage::{CopySessionOptions, JsonlStorageAdapter, StorageAdapter};
 use nofy_shell::session::testkit::synth::synthesize_to_target_bytes;
 use nofy_test_support::env::env_parse;
 use nofy_test_support::resources::RssSampler;
+use tempfile::TempDir;
 
 const BYTES_PER_MB: f64 = 1024.0 * 1024.0;
 

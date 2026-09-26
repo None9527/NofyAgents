@@ -18,14 +18,14 @@ use crate::session::goal_planner::{
     RoleSpawnOverride, SpawnError, spawn_with_fail_open_retry,
 };
 use crate::session::goal_role_tools::RoleToolNames;
-use std::path::Path;
-use std::sync::Arc;
 use nofy_file_utils::events::EventWriter;
+use nofy_tool_types::SubagentCapabilityMode;
 use nofy_tools::implementations::nofy_build::task::backend::{ChannelBackend, SubagentBackend};
 use nofy_tools::implementations::nofy_build::task::types::{
     SubagentOwner, SubagentRequest, SubagentRuntimeOverrides,
 };
-use nofy_tool_types::SubagentCapabilityMode;
+use std::path::Path;
+use std::sync::Arc;
 
 // Constants
 
@@ -644,10 +644,8 @@ mod tests {
 
     #[tokio::test]
     async fn channel_spawner_request_is_harness_internal_and_read_only() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
         use nofy_tool_types::SubagentCapabilityMode;
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let spawner = ChannelSpawner {

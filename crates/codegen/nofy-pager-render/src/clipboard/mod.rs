@@ -7,11 +7,11 @@
 
 mod trust;
 
+pub use nofy_ratatui_textarea::{ClipboardProvider, InternalClipboard};
 pub use trust::{
     ClipboardDelivery, ClipboardEnvironment, NativeClipboardPreflight, Osc52Capability,
     expected_delivery, native_clipboard_preflight,
 };
-pub use nofy_ratatui_textarea::{ClipboardProvider, InternalClipboard};
 
 use std::sync::OnceLock;
 
@@ -803,12 +803,10 @@ pub fn log_paste_key_empty_host_clipboard(surface: &str) {
     if !nofy_telemetry::client::is_enabled() {
         return;
     }
-    nofy_telemetry::session_ctx::log_event(
-        nofy_telemetry::events::PasteKeyEmptyHostClipboard {
-            terminal,
-            surface: surface.to_owned(),
-        },
-    );
+    nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PasteKeyEmptyHostClipboard {
+        terminal,
+        surface: surface.to_owned(),
+    });
 }
 
 fn lone_http_url_trimmed(t: &str) -> bool {

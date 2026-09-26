@@ -13,8 +13,8 @@ use crate::fsindex::FsIndex;
 
 /// Redaction patterns (secrets shapes).
 const REDACTION_PATTERNS: &[(&str, &str)] = &[
-    ("sk-", "[REDACTED:api-key]"),      // API key shapes
-    ("Bearer ", "[REDACTED:bearer]"),   // auth headers
+    ("sk-", "[REDACTED:api-key]"),    // API key shapes
+    ("Bearer ", "[REDACTED:bearer]"), // auth headers
     ("password=", "[REDACTED:password]"),
 ];
 
@@ -61,7 +61,10 @@ mod tests {
     fn forget_makes_search_miss() {
         let mut index = FsIndex::default();
         index.upsert(entry("/secret/notes.md", "private planning"));
-        assert_eq!(index.search("private"), vec!["/secret/notes.md".to_string()]);
+        assert_eq!(
+            index.search("private"),
+            vec!["/secret/notes.md".to_string()]
+        );
         forget(&mut index, "/secret/notes.md");
         assert!(
             index.search("private").is_empty(),
@@ -77,7 +80,10 @@ mod tests {
         assert!(!redacted.contains("eyJhbGciOi"));
         assert!(redacted.contains("[REDACTED:api-key]"));
         assert!(redacted.contains("[REDACTED:bearer]"));
-        assert!(redacted.contains("plain line"), "non-sensitive lines untouched");
+        assert!(
+            redacted.contains("plain line"),
+            "non-sensitive lines untouched"
+        );
     }
 
     #[test]

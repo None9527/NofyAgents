@@ -120,7 +120,9 @@ impl CronExpr {
     /// must match; both wild → every day.
     fn day_matches(&self, date: NaiveDate) -> bool {
         let dom_ok = self.dom.contains(&(date.day() as u8));
-        let dow_ok = self.dow.contains(&(date.weekday().num_days_from_sunday() as u8));
+        let dow_ok = self
+            .dow
+            .contains(&(date.weekday().num_days_from_sunday() as u8));
         match (self.dom_wild, self.dow_wild) {
             (true, true) => true,
             (true, false) => dow_ok,
@@ -133,10 +135,8 @@ impl CronExpr {
     /// Deterministic: pure function of the expression and `from`.
     pub fn next_after(&self, from: NaiveDateTime) -> Option<NaiveDateTime> {
         // Start at the next whole minute.
-        let mut cursor = from
-            .with_second(0)
-            .and_then(|t| t.with_nanosecond(0))?
-            + Duration::minutes(1);
+        let mut cursor =
+            from.with_second(0).and_then(|t| t.with_nanosecond(0))? + Duration::minutes(1);
         let mut days_scanned = 0u32;
         while days_scanned < MAX_SCAN_DAYS {
             let date = cursor.date();
@@ -240,25 +240,40 @@ mod tests {
     #[test]
     fn next_fire_quarter_hourly() {
         let expr = parse("*/15 * * * *").unwrap();
-        assert_eq!(expr.next_after(dt(2026, 8, 17, 10, 7)), Some(dt(2026, 8, 17, 10, 15)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 17, 10, 7)),
+            Some(dt(2026, 8, 17, 10, 15))
+        );
         // Exactly on a fire minute: the NEXT fire is strictly later.
-        assert_eq!(expr.next_after(dt(2026, 8, 17, 10, 15)), Some(dt(2026, 8, 17, 10, 30)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 17, 10, 15)),
+            Some(dt(2026, 8, 17, 10, 30))
+        );
     }
 
     #[test]
     fn next_fire_weekday_wrap() {
         // 2026-08-14 is a Friday; weekdays-only 09:00 wraps to Monday.
         let expr = parse("0 9 * * 1-5").unwrap();
-        assert_eq!(expr.next_after(dt(2026, 8, 14, 10, 0)), Some(dt(2026, 8, 17, 9, 0)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 14, 10, 0)),
+            Some(dt(2026, 8, 17, 9, 0))
+        );
         // Mid-week: next day.
-        assert_eq!(expr.next_after(dt(2026, 8, 12, 10, 0)), Some(dt(2026, 8, 13, 9, 0)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 12, 10, 0)),
+            Some(dt(2026, 8, 13, 9, 0))
+        );
     }
 
     #[test]
     fn next_fire_leap_day() {
         let expr = parse("0 0 29 2 *").unwrap();
         // 2026 and 2027 have no Feb 29; 2028 does.
-        assert_eq!(expr.next_after(dt(2026, 1, 1, 0, 0)), Some(dt(2028, 2, 29, 0, 0)));
+        assert_eq!(
+            expr.next_after(dt(2026, 1, 1, 0, 0)),
+            Some(dt(2028, 2, 29, 0, 0))
+        );
     }
 
     #[test]
@@ -266,9 +281,15 @@ mod tests {
         // The 13th OR a Friday.
         let expr = parse("0 0 13 * 5").unwrap();
         // 2026-08-17 is a Monday; next Friday is the 21st (before the 13th of Sept... wait: Aug 21 < Sept 13).
-        assert_eq!(expr.next_after(dt(2026, 8, 17, 1, 0)), Some(dt(2026, 8, 21, 0, 0)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 17, 1, 0)),
+            Some(dt(2026, 8, 21, 0, 0))
+        );
         // From Aug 22, the Friday is the 28th.
-        assert_eq!(expr.next_after(dt(2026, 8, 22, 0, 0)), Some(dt(2026, 8, 28, 0, 0)));
+        assert_eq!(
+            expr.next_after(dt(2026, 8, 22, 0, 0)),
+            Some(dt(2026, 8, 28, 0, 0))
+        );
     }
 
     #[test]

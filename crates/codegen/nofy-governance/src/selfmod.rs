@@ -38,7 +38,10 @@ pub enum SelfModError {
 pub fn group_by_package(requests: &[SelfModRequest]) -> BTreeMap<String, Vec<&SelfModRequest>> {
     let mut groups: BTreeMap<String, Vec<&SelfModRequest>> = BTreeMap::new();
     for request in requests {
-        groups.entry(request.package.clone()).or_default().push(request);
+        groups
+            .entry(request.package.clone())
+            .or_default()
+            .push(request);
     }
     groups
 }
@@ -101,9 +104,21 @@ mod tests {
 
     fn requests() -> Vec<SelfModRequest> {
         vec![
-            SelfModRequest { id: "r1".into(), package: "skill-writer".into(), summary: "edit SKILL.md".into() },
-            SelfModRequest { id: "r2".into(), package: "hook-installer".into(), summary: "add PostToolUse hook".into() },
-            SelfModRequest { id: "r3".into(), package: "skill-writer".into(), summary: "edit runner".into() },
+            SelfModRequest {
+                id: "r1".into(),
+                package: "skill-writer".into(),
+                summary: "edit SKILL.md".into(),
+            },
+            SelfModRequest {
+                id: "r2".into(),
+                package: "hook-installer".into(),
+                summary: "add PostToolUse hook".into(),
+            },
+            SelfModRequest {
+                id: "r3".into(),
+                package: "skill-writer".into(),
+                summary: "edit runner".into(),
+            },
         ]
     }
 
@@ -119,31 +134,59 @@ mod tests {
     #[test]
     fn blanket_approvals_are_refused() {
         for blanket in ["*", "all", "ALL"] {
-            let approvals = vec![PackageApproval { package: blanket.into(), approved: true }];
-            assert_eq!(validate_approvals(&approvals), Err(SelfModError::BlanketApproval));
+            let approvals = vec![PackageApproval {
+                package: blanket.into(),
+                approved: true,
+            }];
+            assert_eq!(
+                validate_approvals(&approvals),
+                Err(SelfModError::BlanketApproval)
+            );
         }
         assert_eq!(
-            validate_approvals(&[PackageApproval { package: "  ".into(), approved: true }]),
+            validate_approvals(&[PackageApproval {
+                package: "  ".into(),
+                approved: true
+            }]),
             Err(SelfModError::EmptyPackage)
         );
     }
 
     #[test]
     fn approval_of_one_package_never_authorizes_another() {
-        let approvals = vec![PackageApproval { package: "skill-writer".into(), approved: true }];
+        let approvals = vec![PackageApproval {
+            package: "skill-writer".into(),
+            approved: true,
+        }];
         let outcomes = authorize(&requests(), &approvals).unwrap();
         let by_id: BTreeMap<_, _> = outcomes.into_iter().collect();
         assert_eq!(by_id["r1"], AuthOutcome::Authorized);
         assert_eq!(by_id["r3"], AuthOutcome::Authorized);
-        assert_eq!(by_id["r2"], AuthOutcome::Undecided, "hook-installer was never decided");
-        assert_eq!(authorized_ids(&[("r1".into(), AuthOutcome::Authorized), ("r2".into(), AuthOutcome::Undecided)]), vec!["r1".to_string()]);
+        assert_eq!(
+            by_id["r2"],
+            AuthOutcome::Undecided,
+            "hook-installer was never decided"
+        );
+        assert_eq!(
+            authorized_ids(&[
+                ("r1".into(), AuthOutcome::Authorized),
+                ("r2".into(), AuthOutcome::Undecided)
+            ]),
+            vec!["r1".to_string()]
+        );
     }
 
     #[test]
     fn explicit_denial_beats_silence() {
         let approvals = vec![
-            PackageApproval { package: "skill-writer".into(), approved: false },
-            PackageApproval { package: "hook-installer".into(), approved: true },
+            PackageApproval {
+                package: "skill-writer".into(),
+                approved: false,
+            },
+            PackageApproval {
+                package: "hook-installer".into(),
+                approved: true,
+            },
         ];
         let outcomes = authorize(&requests(), &approvals).unwrap();
         let by_id: BTreeMap<_, _> = outcomes.into_iter().collect();
@@ -155,6 +198,9 @@ mod tests {
     fn undecided_never_defaults_to_allowed() {
         let outcomes = authorize(&requests(), &[]).unwrap();
         assert!(outcomes.iter().all(|(_, o)| *o == AuthOutcome::Undecided));
-        assert!(authorized_ids(&outcomes).is_empty(), "no approval → nothing proceeds");
+        assert!(
+            authorized_ids(&outcomes).is_empty(),
+            "no approval → nothing proceeds"
+        );
     }
 }

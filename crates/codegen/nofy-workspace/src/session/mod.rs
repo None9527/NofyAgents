@@ -10,17 +10,17 @@ use crate::config::{MemoryConfig, SessionContextFactory};
 use crate::file_system::{AsyncFsWrapper, LocalFs};
 use crate::hub::{HubConfig, HubHandle};
 use crate::session::file_state::FileStateTracker;
+use nofy_computer_hub_mcp_adapter::McpBridgeHandle;
+use nofy_hunk_tracker::HunkTrackerHandle;
+use nofy_mcp::servers::McpState;
+use nofy_tool_protocol::ToolId;
+use nofy_tool_runtime::WorkspaceViewerContext;
+use nofy_tools::notification::types::{ToolNotification, ToolNotificationHandle};
+use nofy_tools::registry::types::{FinalizedToolset, ToolConfig, ToolServerConfig};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use nofy_computer_hub_mcp_adapter::McpBridgeHandle;
-use nofy_mcp::servers::McpState;
-use nofy_tools::notification::types::{ToolNotification, ToolNotificationHandle};
-use nofy_tools::registry::types::{FinalizedToolset, ToolConfig, ToolServerConfig};
-use nofy_hunk_tracker::HunkTrackerHandle;
-use nofy_tool_protocol::ToolId;
-use nofy_tool_runtime::WorkspaceViewerContext;
 /// Minimal result types for git error reporting (duplicated from shell session/result).
 pub mod result {
     use serde::Serialize;
@@ -858,11 +858,11 @@ impl WorkspaceShared {
                         &sid,
                         SwapAction::Applied,
                     );
-                    let _ =
-                        self.events
-                            .send(nofy_workspace_types::WorkspaceEvent::ToolsChanged {
-                                session_id: sid,
-                            });
+                    let _ = self
+                        .events
+                        .send(nofy_workspace_types::WorkspaceEvent::ToolsChanged {
+                            session_id: sid,
+                        });
                     rebuilt += 1;
                 }
                 Err(e) => {

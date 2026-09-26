@@ -64,11 +64,7 @@ async fn client_hooks_fire_without_file_registry() {
                 actor.hook_registry.borrow().is_none(),
                 "fixture must have no file registry for this invariant"
             );
-            install_client_hook(
-                &actor,
-                nofy_hooks::event::HookEventName::Stop,
-                &["cb_0"],
-            );
+            install_client_hook(&actor, nofy_hooks::event::HookEventName::Stop, &["cb_0"]);
 
             actor.fire_hook(
                 nofy_hooks::event::HookEventName::Stop,
@@ -112,12 +108,11 @@ async fn pre_tool_use_resolves_meta_dispatch_tool_name_end_to_end() {
                 tokio::sync::mpsc::unbounded_channel::<PersistenceMsg>();
             let actor = create_test_actor(0, 256_000, 85, gateway_tx, persistence_tx).await;
             // The toolset must know `use_tool` so it parses to `ToolInput::UseTool`.
-            *actor.agent.borrow_mut() = test_agent_with_tools(vec![
-                nofy_tools::registry::types::ToolConfig::for_tool::<
+            *actor.agent.borrow_mut() =
+                test_agent_with_tools(vec![nofy_tools::registry::types::ToolConfig::for_tool::<
                     nofy_tools::implementations::use_tool::UseTool,
-                >(),
-            ])
-            .await;
+                >()])
+                .await;
 
             let mut client_hooks = crate::extensions::hooks::ClientHooks::new();
             client_hooks.insert(
@@ -656,11 +651,7 @@ async fn run_stop_gate_keep_working_and_cap() {
             let decision = actor.run_stop_gate("prompt-1", 0).await;
             assert!(matches!(decision, StopGateDecision::AllowStop));
 
-            install_client_hook(
-                &actor,
-                nofy_hooks::event::HookEventName::Stop,
-                &["cb_0"],
-            );
+            install_client_hook(&actor, nofy_hooks::event::HookEventName::Stop, &["cb_0"]);
 
             spawn_deny_responder(gateway_rx, "keep working");
 

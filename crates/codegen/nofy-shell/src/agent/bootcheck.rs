@@ -12,7 +12,7 @@
 //! A checklist that checked nothing would prove nothing, and padding it
 //! would be theater.
 
-use nofy_runtimecore::bootcheck::{verdict, BootVerdict, CheckItem, CheckResult};
+use nofy_runtimecore::bootcheck::{BootVerdict, CheckItem, CheckResult, verdict};
 use std::path::Path;
 
 /// PersistenceWritable: a probe file must write and delete under the home.
@@ -67,9 +67,18 @@ fn check_clock_monotonic() -> CheckResult {
 /// path (tests drive tempdirs; production passes `nofy_home()`).
 pub fn run_checks(home: &Path) -> Vec<(CheckItem, CheckResult)> {
     vec![
-        (CheckItem::PersistenceWritable, check_persistence_writable(home)),
-        (CheckItem::SessionStoreReadable, check_session_store_readable(home)),
-        (CheckItem::EnvSnapshotPresent, check_env_snapshot_present(home)),
+        (
+            CheckItem::PersistenceWritable,
+            check_persistence_writable(home),
+        ),
+        (
+            CheckItem::SessionStoreReadable,
+            check_session_store_readable(home),
+        ),
+        (
+            CheckItem::EnvSnapshotPresent,
+            check_env_snapshot_present(home),
+        ),
         (CheckItem::ClockMonotonic, check_clock_monotonic()),
     ]
 }
@@ -102,7 +111,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         assert_eq!(
             boot_gate(dir.path()),
-            BootVerdict::GoDegraded { degraded: vec![CheckItem::EnvSnapshotPresent] },
+            BootVerdict::GoDegraded {
+                degraded: vec![CheckItem::EnvSnapshotPresent]
+            },
             "a fresh boot warns, never blocks"
         );
     }
@@ -114,7 +125,9 @@ mod tests {
         let verdict = boot_gate(dir.path());
         assert_eq!(
             verdict,
-            BootVerdict::Blocked { failed: vec![CheckItem::EnvSnapshotPresent] },
+            BootVerdict::Blocked {
+                failed: vec![CheckItem::EnvSnapshotPresent]
+            },
             "a snapshot that fails the core parse is an integrity violation"
         );
     }
@@ -128,7 +141,9 @@ mod tests {
         let verdict = boot_gate(dir.path());
         assert_eq!(
             verdict,
-            BootVerdict::Blocked { failed: vec![CheckItem::PersistenceWritable] },
+            BootVerdict::Blocked {
+                failed: vec![CheckItem::PersistenceWritable]
+            },
             "an unwritable state dir must block boot, never limp on"
         );
     }
@@ -138,17 +153,25 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let sessions = dir.path().join("sessions");
         std::fs::create_dir_all(&sessions).unwrap();
-        std::fs::set_permissions(&sessions, std::os::unix::fs::PermissionsExt::from_mode(0o000))
-            .unwrap();
+        std::fs::set_permissions(
+            &sessions,
+            std::os::unix::fs::PermissionsExt::from_mode(0o000),
+        )
+        .unwrap();
         let verdict = boot_gate(dir.path());
         assert_eq!(
             verdict,
-            BootVerdict::Blocked { failed: vec![CheckItem::SessionStoreReadable] },
+            BootVerdict::Blocked {
+                failed: vec![CheckItem::SessionStoreReadable]
+            },
             "a present-but-unreadable store must block boot"
         );
         // restore so tempdir cleanup succeeds
-        std::fs::set_permissions(&sessions, std::os::unix::fs::PermissionsExt::from_mode(0o755))
-            .unwrap();
+        std::fs::set_permissions(
+            &sessions,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
     }
 
     #[test]

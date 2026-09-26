@@ -3,14 +3,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::Duration;
 
-use tokio::sync::{mpsc, oneshot};
-use tokio_util::sync::CancellationToken;
 use nofy_tools::implementations::nofy_build::task::backend::{ChannelBackend, SubagentBackend};
 use nofy_tools::implementations::nofy_build::task::types::{
     ModelOverrideProvenance, SubagentCancelRequest, SubagentCancelTarget, SubagentEvent,
     SubagentOwner, SubagentRequest, SubagentRuntimeOverrides,
 };
 use nofy_workflow::{AgentOpts, AgentResult, BudgetState, HostError, WorkflowHostRequest};
+use tokio::sync::{mpsc, oneshot};
+use tokio_util::sync::CancellationToken;
 
 use super::notify::WorkflowNotifySender;
 use super::schema_contract::{
@@ -80,9 +80,8 @@ pub(crate) struct WorkflowHostParams {
     pub tracker: Arc<parking_lot::Mutex<WorkflowTracker>>,
     pub store: super::store::WorkflowRunStore,
     pub notify: WorkflowNotifySender,
-    pub subagent_event_tx: mpsc::UnboundedSender<
-        nofy_tools::implementations::nofy_build::task::types::SubagentEvent,
-    >,
+    pub subagent_event_tx:
+        mpsc::UnboundedSender<nofy_tools::implementations::nofy_build::task::types::SubagentEvent>,
     pub parent_session_id: String,
     pub allow_fork_context: bool,
     pub effort: Option<nofy_sampling_types::ReasoningEffort>,
@@ -1177,19 +1176,20 @@ mod tests {
                 .unwrap();
             reply_rx
         };
-        let succeed = |spawn: nofy_tools::implementations::nofy_build::task::types::SubagentSpawnRequest| {
-            spawn
-                .respond_with(|request| {
-                    nofy_tools::implementations::nofy_build::task::types::SubagentResult {
-                        success: true,
-                        output: Arc::from("done"),
-                        subagent_id: request.id.clone(),
-                        child_session_id: request.id.clone(),
-                        ..Default::default()
-                    }
-                })
-                .expect("agent result delivered");
-        };
+        let succeed =
+            |spawn: nofy_tools::implementations::nofy_build::task::types::SubagentSpawnRequest| {
+                spawn
+                    .respond_with(|request| {
+                        nofy_tools::implementations::nofy_build::task::types::SubagentResult {
+                            success: true,
+                            output: Arc::from("done"),
+                            subagent_id: request.id.clone(),
+                            child_session_id: request.id.clone(),
+                            ..Default::default()
+                        }
+                    })
+                    .expect("agent result delivered");
+            };
 
         let first = spawn_agent("first");
         let second = spawn_agent("second");

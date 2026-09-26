@@ -1,7 +1,7 @@
+use nofy_paths::ToAbsPath;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
-use nofy_paths::ToAbsPath;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FsError {

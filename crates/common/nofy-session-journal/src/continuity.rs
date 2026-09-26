@@ -87,7 +87,10 @@ mod tests {
 
     #[test]
     fn empty_history_restores_nothing() {
-        assert_eq!(restore_budget_continuity(std::iter::empty::<&Event>()), None);
+        assert_eq!(
+            restore_budget_continuity(std::iter::empty::<&Event>()),
+            None
+        );
     }
 
     #[test]

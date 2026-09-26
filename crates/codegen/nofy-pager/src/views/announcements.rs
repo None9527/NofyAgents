@@ -166,10 +166,7 @@ pub fn is_dismissible(a: &nofy_announcements::RemoteAnnouncement) -> bool {
 /// dismissible items: an explicit `dismissible: false` stays selectable even
 /// with its hide key stored, so flipping the flag server-side resurrects a
 /// previously-hidden banner (the remote config stays source of truth).
-fn is_hidden(
-    a: &nofy_announcements::RemoteAnnouncement,
-    hidden_ids: &BTreeSet<String>,
-) -> bool {
+fn is_hidden(a: &nofy_announcements::RemoteAnnouncement, hidden_ids: &BTreeSet<String>) -> bool {
     is_dismissible(a) && hidden_ids.contains(&nofy_announcements::announcement_hide_key(a))
 }
 
@@ -297,11 +294,7 @@ pub fn first_session_announcement_at<'a>(
 pub(crate) fn promo_cta<'a>(
     announcements: &'a [nofy_announcements::RemoteAnnouncement],
     hidden_ids: &BTreeSet<String>,
-) -> Option<(
-    &'a nofy_announcements::RemoteAnnouncement,
-    &'a str,
-    &'a str,
-)> {
+) -> Option<(&'a nofy_announcements::RemoteAnnouncement, &'a str, &'a str)> {
     let owner = first_session_announcement(announcements, hidden_ids).filter(|a| is_promo(a))?;
     let (label, url) = usable_cta(owner)?;
     Some((owner, label, url))
@@ -343,9 +336,7 @@ pub fn session_announcement_hide_keys_at(
 /// promo) exists, deliberately IGNORING the hidden set (unlike the banner
 /// selection above) so `/announcements show` stays reachable while
 /// everything is hidden.
-pub fn has_session_announcements(
-    announcements: &[nofy_announcements::RemoteAnnouncement],
-) -> bool {
+pub fn has_session_announcements(announcements: &[nofy_announcements::RemoteAnnouncement]) -> bool {
     let now = chrono::Utc::now();
     visible_announcements(announcements)
         .into_iter()

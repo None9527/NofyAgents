@@ -5,9 +5,7 @@ use super::{
 use crate::session::persistence::PersistenceMsg;
 use nofy_agent::AgentDefinition;
 use nofy_agent::prompt::context::{PromptAudience, TemplateOverride};
-use nofy_agent::system_reminder::{
-    DEFAULT_TODO_GATE_MAX_FIRES, ReminderPolicy, TodoGateConfig,
-};
+use nofy_agent::system_reminder::{DEFAULT_TODO_GATE_MAX_FIRES, ReminderPolicy, TodoGateConfig};
 #[test]
 fn todo_gate_off_preserves_built_in_defaults() {
     let policy = resolve_reminder_policy(false);

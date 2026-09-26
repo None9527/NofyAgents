@@ -72,7 +72,9 @@ pub fn process_answer(ledger: &[ApprovalRequest], answer: &WebhookAnswer) -> Gat
     if !known {
         return GatewayOutcome::UnknownIntent;
     }
-    GatewayOutcome::Routed { allow: answer.allow }
+    GatewayOutcome::Routed {
+        allow: answer.allow,
+    }
 }
 
 /// Process an answer when the ledger text may be corrupt: corruption is a
@@ -141,7 +143,8 @@ mod tests {
         let ledger = vec![request("deploy", true)];
         broker.register("deploy", "deploy to prod");
         let waiter_broker = broker.clone();
-        let waiter = std::thread::spawn(move || waiter_broker.wait("deploy", Duration::from_secs(5)));
+        let waiter =
+            std::thread::spawn(move || waiter_broker.wait("deploy", Duration::from_secs(5)));
 
         let webhook = answer("deploy", true);
         assert_eq!(

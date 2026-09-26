@@ -77,7 +77,9 @@ fn execute_hook(
 
 /// `None` when the child could not be enrolled, which includes the scope
 /// having already closed and killed it.
-fn attach_to_global_scope(child: &std::process::Child) -> Option<Arc<nofy_tty_utils::ProcessGroup>> {
+fn attach_to_global_scope(
+    child: &std::process::Child,
+) -> Option<Arc<nofy_tty_utils::ProcessGroup>> {
     let mut group = nofy_tty_utils::ProcessGroup::new()
         .inspect_err(|e| tracing::debug!(error = %e, "hook process group failed"))
         .ok()?;

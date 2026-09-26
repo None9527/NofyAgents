@@ -14,7 +14,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const FILE_NAME: &str = "forensics.jsonl";
 
@@ -177,8 +177,7 @@ mod tests {
         let mut perms = std::fs::metadata(&ro).unwrap().permissions();
         perms.set_readonly(true);
         std::fs::set_permissions(&ro, perms).unwrap();
-        std::os::unix::fs::symlink(ro.join("missing.jsonl"), dir.path().join(FILE_NAME))
-            .unwrap();
+        std::os::unix::fs::symlink(ro.join("missing.jsonl"), dir.path().join(FILE_NAME)).unwrap();
         let ledger = ForensicsLedger::open(dir.path()).unwrap();
         assert!(ledger.record_startup().is_err());
     }

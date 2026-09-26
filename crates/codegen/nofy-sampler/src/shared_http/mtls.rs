@@ -41,7 +41,8 @@ const MAX_MTLS_CLIENTS: usize = 16;
 /// Certificate/key filenames, in preference order. `client.*` is the explicit
 /// convention; `tls.*` is what a Kubernetes Secret projects by default, which
 /// is how most self-hosted gateys mount an identity into a pod.
-const IDENTITY_FILENAMES: [(&str, &str); 2] = [("client.crt", "client.key"), ("tls.crt", "tls.key")];
+const IDENTITY_FILENAMES: [(&str, &str); 2] =
+    [("client.crt", "client.key"), ("tls.crt", "tls.key")];
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct MtlsClientCacheKey {
@@ -343,7 +344,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let limit = MAX_MTLS_IDENTITY_FILE_BYTES as usize;
         write(dir.path(), "exact.pem", &vec![b'a'; limit]);
-        assert_eq!(read_identity_file(&dir.path().join("exact.pem")).unwrap().len(), limit);
+        assert_eq!(
+            read_identity_file(&dir.path().join("exact.pem"))
+                .unwrap()
+                .len(),
+            limit
+        );
         write(dir.path(), "over.pem", &vec![b'a'; limit + 1]);
         let err = read_identity_file(&dir.path().join("over.pem")).unwrap_err();
         assert!(
@@ -357,7 +363,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let err = mtls_client(dir.path(), false).unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("tls.crt"), "must name the file it tried: {msg}");
+        assert!(
+            msg.contains("tls.crt"),
+            "must name the file it tried: {msg}"
+        );
         assert!(
             matches!(err, SamplingError::MtlsConfiguration(_)),
             "must be the deterministic configuration variant, got {err:?}"
@@ -370,7 +379,10 @@ mod tests {
     fn cache_key_tracks_credential_content_so_rotation_takes_effect() {
         let a = client_cache_key(b"cert-1", b"key", false);
         let b = client_cache_key(b"cert-2", b"key", false);
-        assert_ne!(a.identity_digest, b.identity_digest, "a rotated certificate must not reuse the old client");
+        assert_ne!(
+            a.identity_digest, b.identity_digest,
+            "a rotated certificate must not reuse the old client"
+        );
         // Rotating only the private key must also miss: a cache key derived
         // from the certificate alone would keep presenting the old identity
         // after the key was replaced. (A red-green mutation that dropped the
@@ -386,7 +398,11 @@ mod tests {
             a.identity_digest,
             "unchanged content must hit"
         );
-        assert_ne!(a, client_cache_key(b"cert-1", b"key", true), "force_http1 is part of the key");
+        assert_ne!(
+            a,
+            client_cache_key(b"cert-1", b"key", true),
+            "force_http1 is part of the key"
+        );
     }
 
     /// Without the length prefixes, `("ab", "c")` and `("a", "bc")` would hash
@@ -404,7 +420,10 @@ mod tests {
     // ---- cache behavior (on a private instance, not the process global) ----
 
     fn key(tag: u8) -> MtlsClientCacheKey {
-        MtlsClientCacheKey { identity_digest: [tag; 32], force_http1: false }
+        MtlsClientCacheKey {
+            identity_digest: [tag; 32],
+            force_http1: false,
+        }
     }
 
     fn plain_client() -> reqwest::Client {
@@ -423,7 +442,11 @@ mod tests {
                 })
                 .unwrap();
         }
-        assert_eq!(builds.get(), 1, "one identity must build exactly one client");
+        assert_eq!(
+            builds.get(),
+            1,
+            "one identity must build exactly one client"
+        );
         assert_eq!(cache.entries.len(), 1);
     }
 
@@ -438,7 +461,11 @@ mod tests {
             });
             assert!(r.is_err());
         }
-        assert_eq!(attempts.get(), 2, "a failed build must be retried, not remembered");
+        assert_eq!(
+            attempts.get(),
+            2,
+            "a failed build must be retried, not remembered"
+        );
         assert!(cache.entries.is_empty());
     }
 
@@ -446,15 +473,31 @@ mod tests {
     fn the_cap_evicts_the_least_recently_used_identity() {
         let mut cache = MtlsClientCache::default();
         for tag in 0..MAX_MTLS_CLIENTS as u8 {
-            cache.get_or_insert::<()>(key(tag), || Ok(plain_client())).unwrap();
+            cache
+                .get_or_insert::<()>(key(tag), || Ok(plain_client()))
+                .unwrap();
         }
         assert_eq!(cache.entries.len(), MAX_MTLS_CLIENTS);
         // Touch tag 0 so tag 1 becomes the least recently used.
-        cache.get_or_insert::<()>(key(0), || Ok(plain_client())).unwrap();
-        cache.get_or_insert::<()>(key(200), || Ok(plain_client())).unwrap();
-        assert_eq!(cache.entries.len(), MAX_MTLS_CLIENTS, "the cap is a bound, not a trigger to grow");
-        assert!(cache.entries.contains_key(&key(0)), "the just-used entry survives");
-        assert!(!cache.entries.contains_key(&key(1)), "the least recently used entry is evicted");
+        cache
+            .get_or_insert::<()>(key(0), || Ok(plain_client()))
+            .unwrap();
+        cache
+            .get_or_insert::<()>(key(200), || Ok(plain_client()))
+            .unwrap();
+        assert_eq!(
+            cache.entries.len(),
+            MAX_MTLS_CLIENTS,
+            "the cap is a bound, not a trigger to grow"
+        );
+        assert!(
+            cache.entries.contains_key(&key(0)),
+            "the just-used entry survives"
+        );
+        assert!(
+            !cache.entries.contains_key(&key(1)),
+            "the least recently used entry is evicted"
+        );
         assert!(cache.entries.contains_key(&key(200)));
     }
 
@@ -520,7 +563,10 @@ mod tests {
         let err = mtls_client(dir.path(), false).unwrap_err();
         let msg = err.to_string();
         assert!(matches!(err, SamplingError::MtlsConfiguration(_)));
-        assert!(msg.contains("client.crt") && msg.contains("client.key"), "must name both paths: {msg}");
+        assert!(
+            msg.contains("client.crt") && msg.contains("client.key"),
+            "must name both paths: {msg}"
+        );
     }
 
     /// A certificate whose key is missing must fail, not fall back to whatever
@@ -529,7 +575,11 @@ mod tests {
     fn a_half_present_client_pair_does_not_fall_back_to_tls() {
         let dir = tempfile::tempdir().unwrap();
         real_identity(dir.path(), ("tls.crt", "tls.key"));
-        write(dir.path(), "client.crt", b"-----BEGIN CERTIFICATE-----\nAAAA\n");
+        write(
+            dir.path(),
+            "client.crt",
+            b"-----BEGIN CERTIFICATE-----\nAAAA\n",
+        );
         let err = mtls_client(dir.path(), false).unwrap_err();
         let msg = err.to_string();
         assert!(
@@ -544,7 +594,10 @@ mod tests {
     fn an_mtls_failure_is_deterministic_and_not_retryable() {
         let dir = tempfile::tempdir().unwrap();
         let err = mtls_client(dir.path(), false).unwrap_err();
-        assert!(!err.is_retryable(), "a missing certificate is not transient");
+        assert!(
+            !err.is_retryable(),
+            "a missing certificate is not transient"
+        );
         assert!(!err.is_context_length_error());
         assert!(!err.is_overloaded());
         assert!(err.is_retry_vetoed() || !err.is_retryable());

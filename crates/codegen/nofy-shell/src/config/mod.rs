@@ -575,10 +575,7 @@ impl SubagentsConfig {
         }
         resolved.min(max)
     }
-    pub(crate) fn resolve_workflow_max_concurrent(
-        env: Option<&str>,
-        config: Option<i64>,
-    ) -> usize {
+    pub(crate) fn resolve_workflow_max_concurrent(env: Option<&str>, config: Option<i64>) -> usize {
         Self::resolve_count(
             Self::ENV_WORKFLOW_MAX_CONCURRENT,
             env,
@@ -812,10 +809,7 @@ impl ModelOverrideConfig {
     /// `prompt_suggestion` resolves to a [`PromptSuggestModelPin`] instead of
     /// a model string (no CLI flag; the default and the catalog guard live at
     /// the consumer, `handle_suggest_prompt`).
-    pub(crate) fn resolve(
-        cli_session_summary_model: Option<&str>,
-        config: &toml::Value,
-    ) -> Self {
+    pub(crate) fn resolve(cli_session_summary_model: Option<&str>, config: &toml::Value) -> Self {
         let models_table = config.get("models");
         let parsed_models: crate::agent::config::ModelsConfig = models_table
             .and_then(|v| v.clone().try_into().ok())
@@ -1370,11 +1364,10 @@ pub fn apply_sandbox(
         .and_then(|v| v.get("sandbox")?.get("auto_allow_bash")?.as_bool());
     let resolved = config.resolve_profile(cli_profile, profile_req);
     nofy_sandbox::set_auto_allow_bash(config.resolve_auto_allow_bash(auto_allow_req).value);
-    let sandbox_profile: nofy_sandbox::ProfileName =
-        resolved.value.parse().unwrap_or_else(|e| {
-            eprintln!("warning: {e}, defaulting to no sandbox");
-            nofy_sandbox::ProfileName::Off
-        });
+    let sandbox_profile: nofy_sandbox::ProfileName = resolved.value.parse().unwrap_or_else(|e| {
+        eprintln!("warning: {e}, defaulting to no sandbox");
+        nofy_sandbox::ProfileName::Off
+    });
     nofy_sandbox::set_configured_profile(&resolved.value);
     let workspace = cwd
         .and_then(|p| dunce::canonicalize(p).ok())
@@ -1438,8 +1431,7 @@ pub fn apply_sandbox(
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         let requires_protection = {
             let is_custom = matches!(sandbox_profile, nofy_sandbox::ProfileName::Custom(_));
-            let needs_hooks =
-                nofy_sandbox::requires_hook_write_deny(&sandbox_profile, &workspace);
+            let needs_hooks = nofy_sandbox::requires_hook_write_deny(&sandbox_profile, &workspace);
             is_custom || needs_hooks
         };
         let mut sandbox = nofy_sandbox::SandboxManager::new(sandbox_profile, &workspace);
@@ -1451,9 +1443,8 @@ pub fn apply_sandbox(
             #[cfg(target_os = "macos")]
             let unappliable = requires_protection && !sandbox.is_applied();
             #[cfg(target_os = "linux")]
-            let unappliable = requires_protection
-                && !sandbox.is_applied()
-                && !nofy_sandbox::is_inside_bwrap();
+            let unappliable =
+                requires_protection && !sandbox.is_applied() && !nofy_sandbox::is_inside_bwrap();
             if unappliable {
                 eprintln!(
                     "error: could not apply the '{}' sandbox profile; see the \

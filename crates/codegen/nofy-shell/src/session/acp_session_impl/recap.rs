@@ -542,13 +542,8 @@ impl SessionActor {
                     .conversation_stream_responses(request)
                     .await
                     .ok()?;
-                let events = nofy_sampler::stream_responses(
-                    raw,
-                    meta,
-                    request_id,
-                    idle_timeout,
-                    doom_loop,
-                );
+                let events =
+                    nofy_sampler::stream_responses(raw, meta, request_id, idle_timeout, doom_loop);
                 nofy_sampler::collect_response(events).await
             }
             crate::sampling::ApiBackend::Messages => {

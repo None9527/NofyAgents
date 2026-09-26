@@ -4369,11 +4369,9 @@ mod session_exists_for_cwd_tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("summary.json"), b"{}").unwrap();
 
-        let found = resolve_local_session_ids_any_cwd_in_root(
-            &["batch-session", "missing-session"],
-            &root,
-        )
-        .unwrap();
+        let found =
+            resolve_local_session_ids_any_cwd_in_root(&["batch-session", "missing-session"], &root)
+                .unwrap();
         assert!(found.contains("batch-session"));
         assert!(!found.contains("missing-session"));
         assert_eq!(found.len(), 1);

@@ -220,21 +220,27 @@ mod tests {
             .interpolate_description(description, "read_file", 40_000, 300_000)
         };
 
-        assert!(render(WholeReadPolicy {
-            skill_markdown: true,
-            instruction_files: true,
-        })
-        .contains("SKILL.md and AGENTS.md/CLAUDE.md"));
-        assert!(render(WholeReadPolicy {
-            skill_markdown: true,
-            instruction_files: false,
-        })
-        .contains("SKILL.md files"));
-        assert!(render(WholeReadPolicy {
-            skill_markdown: false,
-            instruction_files: true,
-        })
-        .contains("AGENTS.md/CLAUDE.md files"));
+        assert!(
+            render(WholeReadPolicy {
+                skill_markdown: true,
+                instruction_files: true,
+            })
+            .contains("SKILL.md and AGENTS.md/CLAUDE.md")
+        );
+        assert!(
+            render(WholeReadPolicy {
+                skill_markdown: true,
+                instruction_files: false,
+            })
+            .contains("SKILL.md files")
+        );
+        assert!(
+            render(WholeReadPolicy {
+                skill_markdown: false,
+                instruction_files: true,
+            })
+            .contains("AGENTS.md/CLAUDE.md files")
+        );
         assert_eq!(
             render(WholeReadPolicy {
                 skill_markdown: false,

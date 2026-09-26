@@ -26,10 +26,7 @@ pub enum ControlMethod {
     /// Cross-project text search (CJK-aware index, batch C-1).
     SessionSearch { query: String },
     /// Approval round-trip (FR5.1 cross-surface approval).
-    ApprovalRequest {
-        intent_id: String,
-        summary: String,
-    },
+    ApprovalRequest { intent_id: String, summary: String },
     ApprovalRespond {
         intent_id: String,
         decision: ApprovalDecision,
@@ -181,7 +178,9 @@ pub enum ControlResponse {
     /// Provider-side ack: registration accepted.
     ProviderNoted,
     /// Client-side ack: manifest accepted; `total` tasks in the plan.
-    ProjectAccepted { total: u32 },
+    ProjectAccepted {
+        total: u32,
+    },
     /// Provider-side: a dispatched task (pack join + goal). `persona` and
     /// `skills` come from the validated pack manifest so the provider joins
     /// the exact composition the plan was validated against.
@@ -203,23 +202,38 @@ pub enum ControlResponse {
     /// Provider-side: no search job pending.
     NoPending,
     /// Provider-side: a dispatched search job.
-    SearchDispatch { request_id: String, query: String },
+    SearchDispatch {
+        request_id: String,
+        query: String,
+    },
     /// One live/replayed journal event on an attached stream.
-    SessionEvent { event: crate::Event },
+    SessionEvent {
+        event: crate::Event,
+    },
     /// Provider-side outcome: a surface decided (or the broker timed out —
     /// in which case the method frame is a ControlError instead).
-    ApprovalResolved { decision: ApprovalDecision },
+    ApprovalResolved {
+        decision: ApprovalDecision,
+    },
     /// Approval projection (W-4): every pending intent with its enveloped
     /// summary — the discovery half of the batch-approval entry.
-    ApprovalsListed { pending: Vec<PendingApproval> },
+    ApprovalsListed {
+        pending: Vec<PendingApproval>,
+    },
     /// Scheduling ack (batch U): enable/add/remove recorded.
     ScheduleNoted,
     /// Scheduling projection (batch U): the live schedule table.
-    ScheduleListed { entries: Vec<ScheduleEntryInfo> },
+    ScheduleListed {
+        entries: Vec<ScheduleEntryInfo>,
+    },
     /// Task journal projection (W-7): every journaled task + state.
-    TaskListed { tasks: Vec<TaskInfo> },
+    TaskListed {
+        tasks: Vec<TaskInfo>,
+    },
     /// Task cancel ack (W-7).
-    TaskCancelled { task_id: String },
+    TaskCancelled {
+        task_id: String,
+    },
 }
 
 #[cfg(test)]

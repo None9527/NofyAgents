@@ -10,9 +10,9 @@ use std::sync::Once;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
-use support::{send_one, test_config};
 use nofy_sampler::SamplingClient;
 use nofy_test_support::spawn_counting_server;
+use support::{send_one, test_config};
 
 /// Pin the env these assertions depend on before any client is built, so
 /// ambient shell exports (`NOFY_SAMPLER_SHARED_CLIENT=0`,

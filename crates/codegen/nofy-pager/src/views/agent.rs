@@ -257,8 +257,7 @@ impl AgentViewLayout {
             })
             .fold(0u16, u16::saturating_add);
         let reserved = pushed.saturating_add(shortcuts_height);
-        let status_line_height =
-            status_line_height.min(inner_area.height.saturating_sub(reserved));
+        let status_line_height = status_line_height.min(inner_area.height.saturating_sub(reserved));
         let shortcuts_gap = u16::from(bottom_vpad > 0 && status_line_height == 0);
         if shortcuts_gap > 0 {
             constraints.push(Constraint::Length(shortcuts_gap));

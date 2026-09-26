@@ -114,7 +114,8 @@ impl VerbGroupKind {
     pub fn verb(self, running: bool) -> &'static str {
         let (past, present) = match self {
             VerbGroupKind::File | VerbGroupKind::Skill => ("Read", "Reading"),
-            VerbGroupKind::Search | VerbGroupKind::MemorySearch
+            VerbGroupKind::Search
+            | VerbGroupKind::MemorySearch
             | VerbGroupKind::IntegrationSearch => ("Searched", "Searching"),
             VerbGroupKind::Dir => ("Listed", "Listing"),
             VerbGroupKind::WebFetch => ("Fetched", "Fetching"),

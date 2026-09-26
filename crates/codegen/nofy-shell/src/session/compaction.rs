@@ -24,7 +24,6 @@ use crate::session::two_pass::{
     note_for_two_pass_pass2, split_conversation_for_two_pass,
 };
 use agent_client_protocol as acp;
-use std::sync::Arc;
 use nofy_chat_state::compaction_image_context::CompactionImageContext;
 use nofy_chat_state::compaction_utils::{
     CompactedHistoryInput, CompactionAttempt, build_compacted_history, is_degenerate_summary,
@@ -32,6 +31,7 @@ use nofy_chat_state::compaction_utils::{
     validate_compacted_history,
 };
 use nofy_sampling_types::{ApiBackend, ConversationItem};
+use std::sync::Arc;
 /// Default percentage points below the auto-compact threshold at which prefire
 /// (background pass-1) starts, giving pass-1 runway to finish before the limit.
 /// Override with `NOFY_PREFIRE_LEAD_PERCENT`.
@@ -682,13 +682,11 @@ impl SessionActor {
                 context_window,
                 "auto-compaction suppressed after deterministic compaction failure"
             );
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::AutoCompactSuppressed {
-                    reason: reason.as_str(),
-                    estimated_tokens,
-                    context_window,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::AutoCompactSuppressed {
+                reason: reason.as_str(),
+                estimated_tokens,
+                context_window,
+            });
             let message = match reason {
                 SuppressReason::Auth => {
                     "authentication problem — restore your credentials                      (set NOFY_API_KEY or re-run your auth provider) and retry."
@@ -1090,11 +1088,10 @@ impl SessionActor {
         // front of the LLM summary (hard-include: last user query, last
         // assistant response, recent tool outcomes, tool failures).
         // Opt-in via NOFY_FACT_COMPACTION; disabled = pure pass-through.
-        let sampler =
-            crate::session::helpers::full_replace_compaction::FactProjectingSampler::new(
-                sampler,
-                nofy_compaction::fact_projection::is_enabled(),
-            );
+        let sampler = crate::session::helpers::full_replace_compaction::FactProjectingSampler::new(
+            sampler,
+            nofy_compaction::fact_projection::is_enabled(),
+        );
         let observer =
             crate::session::helpers::full_replace_compaction::ShellFullReplaceObserver::new(
                 trigger,
@@ -1303,157 +1300,162 @@ impl SessionActor {
         let generate_session_compact = compact_output.content.clone();
         let user_message_prefix = self.build_user_message_prefix().await;
         let conversation = self.chat_state_handle.get_conversation().await;
-        let (discovered_agents_md, all_skills_for_compaction, _agent_edited_paths, mut state_context) =
-            if use_short_prompt {
-                let empty_edited: std::collections::BTreeSet<String> = Default::default();
-                let ctx = CompactionStateContext::build(
+        let (
+            discovered_agents_md,
+            all_skills_for_compaction,
+            _agent_edited_paths,
+            mut state_context,
+        ) = if use_short_prompt {
+            let empty_edited: std::collections::BTreeSet<String> = Default::default();
+            let ctx = CompactionStateContext::build(
+                &conversation,
+                CompactionInputs {
+                    goal_objective: self.goal_objective_for_compaction(),
+                    ..Default::default()
+                },
+            )
+            .await;
+            (Vec::<std::path::PathBuf>::new(), vec![], empty_edited, ctx)
+        } else {
+            let agents_md: Vec<std::path::PathBuf> = self
+                .agent
+                .borrow()
+                .tool_bridge()
+                .agents_md_reminded_paths()
+                .await
+                .into_iter()
+                .collect();
+            let skills = self.slash_skills_for_resolve().await;
+            let edited_paths = self.chat_state_handle.get_agent_edited_paths().await;
+            let ctx = {
+                let bridge_tasks = self
+                    .agent
+                    .borrow()
+                    .tool_bridge()
+                    .list_background_tasks()
+                    .await;
+                let pending_tasks: Vec<_> =
+                    bridge_tasks.into_iter().filter(|t| !t.completed).collect();
+                let (execute_tool_name, monitor_tool_name) = if pending_tasks.is_empty() {
+                    (None, None)
+                } else {
+                    let agent_ref = self.agent.borrow();
+                    let bridge = agent_ref.tool_bridge();
+                    let empty = serde_json::json!({});
+                    let execute = bridge
+                        .render_prompt("${{ tools.by_kind.execute }}", &empty)
+                        .await
+                        .filter(|s| !s.is_empty() && !s.contains("by_kind"));
+                    let monitor = bridge
+                        .render_prompt("${{ tools.by_kind.monitor }}", &empty)
+                        .await
+                        .filter(|s| !s.is_empty() && !s.contains("by_kind"));
+                    (execute, monitor)
+                };
+                let running_tasks: Vec<_> = pending_tasks
+                    .into_iter()
+                    .map(|t| {
+                        let tool_name = match t.kind {
+                            nofy_tools::computer::types::TaskKind::Monitor => {
+                                monitor_tool_name.clone()
+                            }
+                            nofy_tools::computer::types::TaskKind::Bash => {
+                                execute_tool_name.clone()
+                            }
+                        };
+                        CompactionStateContext::task_summary(
+                            t.task_id, t.command, "running", tool_name,
+                        )
+                    })
+                    .collect();
+                let running_subagents = if let Some(ref event_tx) =
+                    self.tool_context.subagent_event_tx
+                {
+                    let (tx, rx) = tokio::sync::oneshot::channel();
+                    use nofy_tools::implementations::nofy_build::task::types::{
+                        SubagentEvent, SubagentListActiveRequest,
+                    };
+                    let _ = event_tx.send(SubagentEvent::ListActive(SubagentListActiveRequest {
+                        parent_session_id: self.session_id_string(),
+                        respond_to: tx,
+                    }));
+                    rx.await
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|s| {
+                            crate::session::helpers::compaction_context::RunningSubagentSummary {
+                                subagent_id: s.subagent_id,
+                                subagent_type: s.subagent_type,
+                                description: s.description,
+                                elapsed_ms: s.elapsed_ms,
+                            }
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                };
+                let connected_mcp_servers = {
+                    use crate::session::helpers::compaction_context::CompactionServerSummary;
+                    use nofy_tools::implementations::search_tool::{
+                        sanitize_description, truncate_description,
+                    };
+                    self.connected_server_summaries()
+                        .into_iter()
+                        .map(|s| {
+                            let desc = s
+                                .description
+                                .map(|d| truncate_description(&sanitize_description(&d)))
+                                .filter(|d| !d.is_empty());
+                            CompactionServerSummary {
+                                name: s.name,
+                                tool_count: s.tool_count,
+                                description: desc,
+                            }
+                        })
+                        .collect()
+                };
+                let todos = {
+                    use crate::session::helpers::compaction_context::{
+                        TodoSummary, TodoSummaryStatus,
+                    };
+                    use crate::tools::todo::{TodoState, TodoStatus};
+                    use nofy_tools::types::resources::State;
+                    let bridge = self.agent.borrow().tool_bridge().clone();
+                    bridge
+                        .read_resource::<State<TodoState>>()
+                        .await
+                        .map(|s| {
+                            s.0.todo_items_with_ids()
+                                .map(|(id, item)| TodoSummary {
+                                    id: id.clone(),
+                                    content: item.content.clone(),
+                                    status: match item.status {
+                                        TodoStatus::Pending => TodoSummaryStatus::Pending,
+                                        TodoStatus::InProgress => TodoSummaryStatus::InProgress,
+                                        TodoStatus::Completed => TodoSummaryStatus::Completed,
+                                        TodoStatus::Cancelled => TodoSummaryStatus::Cancelled,
+                                    },
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                };
+                CompactionStateContext::build(
                     &conversation,
                     CompactionInputs {
+                        running_tasks,
+                        running_subagents,
+                        agent_edited_paths: edited_paths.clone(),
+                        connected_mcp_servers,
+                        todos,
                         goal_objective: self.goal_objective_for_compaction(),
                         ..Default::default()
                     },
                 )
-                .await;
-                (Vec::<std::path::PathBuf>::new(), vec![], empty_edited, ctx)
-            } else {
-                let agents_md: Vec<std::path::PathBuf> = self
-                    .agent
-                    .borrow()
-                    .tool_bridge()
-                    .agents_md_reminded_paths()
-                    .await
-                    .into_iter()
-                    .collect();
-                let skills = self.slash_skills_for_resolve().await;
-                let edited_paths = self.chat_state_handle.get_agent_edited_paths().await;
-                let ctx = {
-                    let bridge_tasks = self
-                        .agent
-                        .borrow()
-                        .tool_bridge()
-                        .list_background_tasks()
-                        .await;
-                    let pending_tasks: Vec<_> =
-                        bridge_tasks.into_iter().filter(|t| !t.completed).collect();
-                    let (execute_tool_name, monitor_tool_name) = if pending_tasks.is_empty() {
-                        (None, None)
-                    } else {
-                        let agent_ref = self.agent.borrow();
-                        let bridge = agent_ref.tool_bridge();
-                        let empty = serde_json::json!({});
-                        let execute = bridge
-                            .render_prompt("${{ tools.by_kind.execute }}", &empty)
-                            .await
-                            .filter(|s| !s.is_empty() && !s.contains("by_kind"));
-                        let monitor = bridge
-                            .render_prompt("${{ tools.by_kind.monitor }}", &empty)
-                            .await
-                            .filter(|s| !s.is_empty() && !s.contains("by_kind"));
-                        (execute, monitor)
-                    };
-                    let running_tasks: Vec<_> = pending_tasks
-                        .into_iter()
-                        .map(|t| {
-                            let tool_name = match t.kind {
-                                nofy_tools::computer::types::TaskKind::Monitor => {
-                                    monitor_tool_name.clone()
-                                }
-                                nofy_tools::computer::types::TaskKind::Bash => {
-                                    execute_tool_name.clone()
-                                }
-                            };
-                            CompactionStateContext::task_summary(
-                                t.task_id, t.command, "running", tool_name,
-                            )
-                        })
-                        .collect();
-                    let running_subagents = if let Some(ref event_tx) =
-                        self.tool_context.subagent_event_tx
-                    {
-                        let (tx, rx) = tokio::sync::oneshot::channel();
-                        use nofy_tools::implementations::nofy_build::task::types::{
-                            SubagentEvent, SubagentListActiveRequest,
-                        };
-                        let _ =
-                            event_tx.send(SubagentEvent::ListActive(SubagentListActiveRequest {
-                                parent_session_id: self.session_id_string(),
-                                respond_to: tx,
-                            }));
-                        rx.await
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|s| crate::session::helpers::compaction_context::RunningSubagentSummary {
-                            subagent_id: s.subagent_id,
-                            subagent_type: s.subagent_type,
-                            description: s.description,
-                            elapsed_ms: s.elapsed_ms,
-                        })
-                        .collect()
-                    } else {
-                        vec![]
-                    };
-                    let connected_mcp_servers = {
-                        use crate::session::helpers::compaction_context::CompactionServerSummary;
-                        use nofy_tools::implementations::search_tool::{
-                            sanitize_description, truncate_description,
-                        };
-                        self.connected_server_summaries()
-                            .into_iter()
-                            .map(|s| {
-                                let desc = s
-                                    .description
-                                    .map(|d| truncate_description(&sanitize_description(&d)))
-                                    .filter(|d| !d.is_empty());
-                                CompactionServerSummary {
-                                    name: s.name,
-                                    tool_count: s.tool_count,
-                                    description: desc,
-                                }
-                            })
-                            .collect()
-                    };
-                    let todos = {
-                        use crate::session::helpers::compaction_context::{
-                            TodoSummary, TodoSummaryStatus,
-                        };
-                        use crate::tools::todo::{TodoState, TodoStatus};
-                        use nofy_tools::types::resources::State;
-                        let bridge = self.agent.borrow().tool_bridge().clone();
-                        bridge
-                            .read_resource::<State<TodoState>>()
-                            .await
-                            .map(|s| {
-                                s.0.todo_items_with_ids()
-                                    .map(|(id, item)| TodoSummary {
-                                        id: id.clone(),
-                                        content: item.content.clone(),
-                                        status: match item.status {
-                                            TodoStatus::Pending => TodoSummaryStatus::Pending,
-                                            TodoStatus::InProgress => TodoSummaryStatus::InProgress,
-                                            TodoStatus::Completed => TodoSummaryStatus::Completed,
-                                            TodoStatus::Cancelled => TodoSummaryStatus::Cancelled,
-                                        },
-                                    })
-                                    .collect()
-                            })
-                            .unwrap_or_default()
-                    };
-                    CompactionStateContext::build(
-                        &conversation,
-                        CompactionInputs {
-                            running_tasks,
-                            running_subagents,
-                            agent_edited_paths: edited_paths.clone(),
-                            connected_mcp_servers,
-                            todos,
-                            goal_objective: self.goal_objective_for_compaction(),
-                            ..Default::default()
-                        },
-                    )
-                    .await
-                };
-                (agents_md, skills, edited_paths, ctx)
+                .await
             };
+            (agents_md, skills, edited_paths, ctx)
+        };
         if self.is_cursor_harness() {
             state_context.images = CompactionImageContext::default();
         }
@@ -2061,11 +2063,7 @@ impl SessionActor {
         .await;
         let compact_start = std::time::Instant::now();
         let result = self
-            .run_compact_inner(
-                None,
-                None,
-                nofy_telemetry::events::CompactionTrigger::Auto,
-            )
+            .run_compact_inner(None, None, nofy_telemetry::events::CompactionTrigger::Auto)
             .await;
         let elapsed_ms = compact_start.elapsed().as_millis() as i64;
         match result {
@@ -2241,11 +2239,11 @@ mod inline_auto_compact_flow_tests {
     use crate::session::acp_session::McpReminderMode;
     use crate::terminal::AsyncTerminalRunner;
     use crate::terminal::runner::{TerminalError, TerminalRunRequest, TerminalRunResult};
-    use std::sync::OnceLock;
-    use tokio::sync::mpsc;
     use nofy_paths::AbsPathBuf;
     use nofy_workspace::file_system::MockFs;
     use nofy_workspace::permission::PermissionHandle;
+    use std::sync::OnceLock;
+    use tokio::sync::mpsc;
     /// The lossy rung is the last step of the input ladder, reached only after a
     /// deterministic context overflow already rejected the bigger payloads. It
     /// must leave room for the summary the model has to produce, and must round
@@ -2507,7 +2505,8 @@ mod inline_auto_compact_flow_tests {
             recap_epoch: std::cell::Cell::new(0),
             turn_summary_task: std::cell::RefCell::new(None),
             turn_summary_generation: std::cell::Cell::new(0),
-            turn_summary_enabled: false,            title_refresh_enabled: false,
+            turn_summary_enabled: false,
+            title_refresh_enabled: false,
             title_refresh_task: std::cell::RefCell::new(None),
             title_refresh_generation: std::cell::Cell::new(0),
             next_title_refresh_idx: std::cell::Cell::new(0),
@@ -2999,7 +2998,8 @@ mod inline_auto_compact_flow_tests {
                             }
                             NofySessionUpdate::AutoCompactFailed { error } => {
                                 assert!(
-                                    error.contains("authentication") || error.contains("credentials"),
+                                    error.contains("authentication")
+                                        || error.contains("credentials"),
                                     "auto-failed={error}"
                                 );
                                 saw_auto_failed = true;
@@ -3244,8 +3244,8 @@ mod inline_auto_compact_flow_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn forked_prefix_released_under_pressure_and_stays_released() {
         use crate::session::compaction_config::SUPPRESS_NONE;
-        use std::sync::atomic::Ordering::Relaxed;
         use nofy_test_support::MockInferenceServer;
+        use std::sync::atomic::Ordering::Relaxed;
         let local = tokio::task::LocalSet::new();
         local
             .run_until(async {
@@ -3319,8 +3319,8 @@ mod inline_auto_compact_flow_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn forked_release_still_over_threshold_suppresses_auto() {
         use crate::session::compaction_config::SUPPRESS_STICKY;
-        use std::sync::atomic::Ordering::Relaxed;
         use nofy_test_support::MockInferenceServer;
+        use std::sync::atomic::Ordering::Relaxed;
         let local = tokio::task::LocalSet::new();
         local
             .run_until(async {

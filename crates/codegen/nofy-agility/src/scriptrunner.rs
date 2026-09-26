@@ -153,7 +153,9 @@ mod tests {
     fn ts_pack_plans_with_npm_deps() {
         let pack = ScriptPack {
             id: "hello-ts".into(),
-            runtime: Runtime::Ts { packages: vec!["left-pad".into()] },
+            runtime: Runtime::Ts {
+                packages: vec!["left-pad".into()],
+            },
             entry: "run.ts".into(),
         };
         let plan = plan_run(&pack, "/packs/hello-ts", Some(&profile())).unwrap();
@@ -166,7 +168,10 @@ mod tests {
     fn entry_escape_rejected() {
         let mut evil = pack();
         evil.entry = "../escape.py".into();
-        assert_eq!(plan_run(&evil, "/p", Some(&profile())), Err(PackError::EntryEscape));
+        assert_eq!(
+            plan_run(&evil, "/p", Some(&profile())),
+            Err(PackError::EntryEscape)
+        );
     }
 
     #[test]
@@ -189,9 +194,19 @@ mod tests {
 
     #[test]
     fn structured_result_semantics() {
-        let ok = RunResult { exit_code: 0, stdout: "42".into(), stderr: "".into(), truncated: false };
+        let ok = RunResult {
+            exit_code: 0,
+            stdout: "42".into(),
+            stderr: "".into(),
+            truncated: false,
+        };
         assert!(ok.succeeded());
-        let failed = RunResult { exit_code: 1, stdout: "".into(), stderr: "boom".into(), truncated: false };
+        let failed = RunResult {
+            exit_code: 1,
+            stdout: "".into(),
+            stderr: "boom".into(),
+            truncated: false,
+        };
         assert!(!failed.succeeded());
     }
 }

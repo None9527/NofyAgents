@@ -3,10 +3,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tokio::sync::{mpsc, oneshot};
-use tokio_util::sync::CancellationToken;
 use nofy_sampling_types::ReasoningEffort;
 use nofy_workflow::{Journal, WorkflowOutcome, WorkflowRunParams};
+use tokio::sync::{mpsc, oneshot};
+use tokio_util::sync::CancellationToken;
 
 use super::host_service::{
     HostDrainOutcome, TelemetryHook, WorkflowHostParams, spawn_workflow_host_service,
@@ -61,9 +61,8 @@ pub(crate) struct WorkflowManager {
     tracker: Arc<parking_lot::Mutex<WorkflowTracker>>,
     store: WorkflowRunStore,
     notify: WorkflowNotifySender,
-    subagent_event_tx: mpsc::UnboundedSender<
-        nofy_tools::implementations::nofy_build::task::types::SubagentEvent,
-    >,
+    subagent_event_tx:
+        mpsc::UnboundedSender<nofy_tools::implementations::nofy_build::task::types::SubagentEvent>,
     telemetry: TelemetryHook,
     session_cmd_tx: mpsc::UnboundedSender<crate::session::commands::SessionCommand>,
     templates: HashMap<String, String>,
@@ -1114,9 +1113,7 @@ mod tests {
 
     #[tokio::test]
     async fn resume_reconciles_agents_used_from_journal_no_double_charge() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1395,9 +1392,7 @@ mod tests {
 
     #[tokio::test]
     async fn completed_and_interrupted_runs_are_not_resumable() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1502,9 +1497,7 @@ mod tests {
 
     #[tokio::test]
     async fn workflow_spawns_await_to_completion() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1634,9 +1627,7 @@ mod tests {
 
     #[tokio::test]
     async fn output_schema_stays_host_side_with_one_corrective_retry() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1716,9 +1707,7 @@ mod tests {
 
     #[tokio::test]
     async fn explicit_max_output_tokens_is_ignored_and_run_charges_totals() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1763,9 +1752,7 @@ mod tests {
 
     #[tokio::test]
     async fn children_spawn_without_output_clamp() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));
@@ -1836,9 +1823,7 @@ mod tests {
 
     #[tokio::test]
     async fn backgrounded_stub_fails_loudly() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let dir = tempfile::tempdir().unwrap();
         let (mut manager, mut subagent_rx) = test_manager(Some(dir.path().to_path_buf()));

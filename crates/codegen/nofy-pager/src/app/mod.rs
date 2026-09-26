@@ -50,8 +50,8 @@ pub(crate) mod mode_switch;
 mod mouse;
 mod queue_edit;
 pub(crate) mod screen_mode_relaunch;
-pub mod signal_handler;
 mod session_load_barrier;
+pub mod signal_handler;
 mod startup_failure;
 mod turn_completion;
 mod xt_filter;
@@ -60,7 +60,6 @@ pub use cli::{
     AgentArgs, AgentCmd, Command, HeadlessArgs, LeaderArgs, LeaderMgmtArgs, LeaderMgmtCommand,
     LeaderTargetArgs, OutputFormat, PagerArgs, ServeArgs, WrapArgs,
 };
-pub use startup_failure::StartupFailure;
 pub use cli::{WorkspaceMgmtArgs, WorkspaceMgmtCommand, WorkspaceStartArgs};
 use crossterm::cursor::{self, SetCursorStyle};
 use crossterm::event;
@@ -72,12 +71,13 @@ pub use foreign_sessions::ForeignScanCoordinator;
 pub(crate) use foreign_sessions::{
     badge_for_picker_source, foreign_tool_display_label, is_foreign_picker_source,
 };
+use nofy_shell::util::config;
 use ratatui::backend::CrosstermBackend;
+pub use startup_failure::StartupFailure;
 use std::io::{self, Write};
 use std::panic;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio_util::sync::CancellationToken;
-use nofy_shell::util::config;
 /// Tracks the extra Kitty keyboard layer pushed while the `/gboom` game is
 /// open (see [`push_gboom_keyboard_flags`]). Kept separate from the base layer
 /// (`terminal::kitty_keyboard`) so teardown pops both, in LIFO order.
@@ -526,9 +526,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     let startup_start = std::time::Instant::now();
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
-    let nofy_com_config = match nofy_shell::agent::config::Config::new_from_toml_cfg(
-        &raw_config,
-    ) {
+    let nofy_com_config = match nofy_shell::agent::config::Config::new_from_toml_cfg(&raw_config) {
         Ok(c) => c.nofy_com_config,
         Err(e) => {
             tracing::warn!(error = %e, "failed to parse config for auth refresh, using defaults");
@@ -811,15 +809,13 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     } else {
         crate::acp::AgentKind::Embedded
     };
-    nofy_telemetry::external::init(
-        nofy_shell::agent::config::resolve_external_otel_config(
-            nofy_telemetry::external::config::ExternalClientInfo {
-                service_version: env!("VERSION_WITH_COMMIT").to_owned(),
-                client_version: nofy_version::VERSION.to_owned(),
-                app_entrypoint: "tui".to_owned(),
-            },
-        ),
-    );
+    nofy_telemetry::external::init(nofy_shell::agent::config::resolve_external_otel_config(
+        nofy_telemetry::external::config::ExternalClientInfo {
+            service_version: env!("VERSION_WITH_COMMIT").to_owned(),
+            client_version: nofy_version::VERSION.to_owned(),
+            app_entrypoint: "tui".to_owned(),
+        },
+    ));
     let timer = nofy_telemetry::startup::begin(crate::acp::Owner::Client);
     let primary_started = std::time::Instant::now();
     let connect_result = bounded_connect(
@@ -1295,9 +1291,7 @@ fn init_terminal(
             })?;
         }
         if mode.is_fullscreen() {
-            nofy_shell::util::with_locked_stderr(|stderr| {
-                execute!(stderr, EnterAlternateScreen)
-            })?;
+            nofy_shell::util::with_locked_stderr(|stderr| execute!(stderr, EnterAlternateScreen))?;
         }
         #[cfg(windows)]
         if want_minimal {
@@ -1780,8 +1774,7 @@ mod tests {
     }
     #[test]
     fn leader_flag_enables() {
-        let (use_leader, reason) =
-            resolve_use_leader(true, false, &empty_config(), true, None);
+        let (use_leader, reason) = resolve_use_leader(true, false, &empty_config(), true, None);
         assert!(use_leader);
         assert_eq!(reason, None);
     }
@@ -1808,8 +1801,7 @@ mod tests {
     }
     #[test]
     fn default_is_false() {
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), true, None);
+        let (use_leader, reason) = resolve_use_leader(false, false, &empty_config(), true, None);
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
@@ -1823,8 +1815,7 @@ mod tests {
     #[test]
     fn sandbox_confinement_refuses_leader_even_with_leader_flag_and_config_on() {
         let cfg = config_with_leader(true);
-        let (use_leader, reason) =
-            resolve_use_leader(true, false, &cfg, true, Some("strict"));
+        let (use_leader, reason) = resolve_use_leader(true, false, &cfg, true, Some("strict"));
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
@@ -1859,8 +1850,7 @@ mod tests {
             ("default", false, false, &empty_config(), true),
             ("ineligible mode with config on", false, false, &on, false),
         ] {
-            let resolved =
-                resolve_leader_mode(leader_flag, no_leader_flag, cfg, eligible, sandbox);
+            let resolved = resolve_leader_mode(leader_flag, no_leader_flag, cfg, eligible, sandbox);
             assert!(!resolved.use_leader, "{label}");
             assert_eq!(
                 resolved.disabled_by_confinement, None,
@@ -1891,8 +1881,7 @@ mod tests {
     #[test]
     fn sandbox_confinement_preserves_config_off_reclaim_reason() {
         let cfg = config_with_leader(false);
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &cfg, true, Some("strict"));
+        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, true, Some("strict"));
         assert!(!use_leader);
         assert_eq!(reason, Some("config"));
     }

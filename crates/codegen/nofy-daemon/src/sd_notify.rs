@@ -78,7 +78,10 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         // SAFETY: serialized with the other NOTIFY_SOCKET tests via ENV_LOCK.
         unsafe { std::env::set_var("NOTIFY_SOCKET", "") };
-        assert!(!sd_notify("READY=1"), "an empty socket path is treated as absent");
+        assert!(
+            !sd_notify("READY=1"),
+            "an empty socket path is treated as absent"
+        );
         unsafe { std::env::remove_var("NOTIFY_SOCKET") };
     }
 

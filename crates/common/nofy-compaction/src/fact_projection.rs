@@ -93,14 +93,15 @@ pub fn extract_facts<T: CompactionItem>(turns: &[T]) -> Vec<Fact> {
     let mut facts: Vec<Fact> = Vec::new();
 
     // Last user query (newest first scan).
-    if let Some((idx, text)) = turns
-        .iter()
-        .enumerate()
-        .rev()
-        .find_map(|(idx, item)| match item.role() {
-            crate::item::CompactionRole::User => item.text().map(|text| (idx, text)),
-            _ => None,
-        })
+    if let Some((idx, text)) =
+        turns
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(idx, item)| match item.role() {
+                crate::item::CompactionRole::User => item.text().map(|text| (idx, text)),
+                _ => None,
+            })
     {
         facts.push(Fact {
             kind: FactKind::LastUserQuery,
@@ -110,14 +111,15 @@ pub fn extract_facts<T: CompactionItem>(turns: &[T]) -> Vec<Fact> {
     }
 
     // Last assistant response.
-    if let Some((idx, text)) = turns
-        .iter()
-        .enumerate()
-        .rev()
-        .find_map(|(idx, item)| match item.role() {
-            crate::item::CompactionRole::Assistant => item.text().map(|text| (idx, text)),
-            _ => None,
-        })
+    if let Some((idx, text)) =
+        turns
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(idx, item)| match item.role() {
+                crate::item::CompactionRole::Assistant => item.text().map(|text| (idx, text)),
+                _ => None,
+            })
     {
         facts.push(Fact {
             kind: FactKind::LastAssistantResponse,
@@ -136,9 +138,7 @@ pub fn extract_facts<T: CompactionItem>(turns: &[T]) -> Vec<Fact> {
         }
         let Some(text) = item.text() else { continue };
         let lower = text.to_lowercase();
-        let is_failure = FAILURE_MARKERS
-            .iter()
-            .any(|marker| lower.contains(marker));
+        let is_failure = FAILURE_MARKERS.iter().any(|marker| lower.contains(marker));
         if !last_tool_seen {
             facts.push(Fact {
                 kind: FactKind::LastToolOutcome,

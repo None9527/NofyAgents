@@ -160,7 +160,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod show_thinking_blocks_tests {
     use super::*;

@@ -5,9 +5,7 @@ use tokio::io::AsyncReadExt;
 use tokio::process::Command;
 use tokio::time;
 
-use crate::runner::{
-    AsyncTerminalRunner, TerminalError, TerminalRunRequest, TerminalRunResult,
-};
+use crate::runner::{AsyncTerminalRunner, TerminalError, TerminalRunRequest, TerminalRunResult};
 use nofy_tty_utils::KILL_REAP_TIMEOUT;
 
 pub struct LocalTerminalRunner;
@@ -222,8 +220,8 @@ mod tests {
     use super::*;
     use crate::DEFAULT_OUTPUT_BYTE_LIMIT;
     use crate::runner::TerminalRunRequest;
-    use std::collections::HashMap;
     use nofy_paths::AbsPathBuf;
+    use std::collections::HashMap;
 
     fn make_request(command: &str) -> TerminalRunRequest {
         TerminalRunRequest {

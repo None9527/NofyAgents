@@ -2760,9 +2760,7 @@ fn submit_question_answers_cancel_clears_local_modal_and_restores_prompt() {
     // exercising the prompt.restore + cleanup_question_state contract
     // that lives in `submit_question_answers` itself.
     use crate::views::question_view::{LocalQuestionKind, QuestionViewState};
-    use nofy_tools::implementations::nofy_build::ask_user_question::{
-        Question, QuestionOption,
-    };
+    use nofy_tools::implementations::nofy_build::ask_user_question::{Question, QuestionOption};
 
     let mut app = fork_test_app();
     let id = AgentId(0);

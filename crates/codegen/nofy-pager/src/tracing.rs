@@ -407,10 +407,10 @@ pub struct TracingHandle {
 /// }
 /// ```
 pub fn init_tracing() -> TracingHandle {
+    use nofy_telemetry::debug_log::RMCP_SSE_NOISE_TARGET;
     use tracing_subscriber::{
         EnvFilter, Layer as _, filter::LevelFilter, fmt, layer::SubscriberExt as _,
     };
-    use nofy_telemetry::debug_log::RMCP_SSE_NOISE_TARGET;
     let (make_writer, rx) = TracingChannelMakeWriter::new();
     let payload_level = "off";
     let directives = format!(
@@ -444,15 +444,13 @@ pub fn init_tracing() -> TracingHandle {
         .with(memory_log_layer)
         .with(otel_layer);
     nofy_telemetry::debug_log::install_firehose(registry, "tui");
-    nofy_telemetry::external::init(
-        nofy_shell::agent::config::resolve_external_otel_config(
-            nofy_telemetry::external::config::ExternalClientInfo {
-                service_version: env!("VERSION_WITH_COMMIT").to_owned(),
-                client_version: nofy_version::VERSION.to_owned(),
-                app_entrypoint: "tui".to_owned(),
-            },
-        ),
-    );
+    nofy_telemetry::external::init(nofy_shell::agent::config::resolve_external_otel_config(
+        nofy_telemetry::external::config::ExternalClientInfo {
+            service_version: env!("VERSION_WITH_COMMIT").to_owned(),
+            client_version: nofy_version::VERSION.to_owned(),
+            app_entrypoint: "tui".to_owned(),
+        },
+    ));
     TracingHandle { rx }
 }
 #[cfg(test)]

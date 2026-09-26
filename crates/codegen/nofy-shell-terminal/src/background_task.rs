@@ -637,5 +637,4 @@ mod tests {
             nofy_tools::computer::types::TaskKind::Monitor
         );
     }
-
 }

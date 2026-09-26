@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use url::Url;
 use nofy_computer_hub_sdk::{AuthCredential, AuthIdentity, AuthProvider};
+use url::Url;
 
 /// Plain bearer provider that also carries the owner identity parsed from the
 /// same auth.json entry, so the workspace can derive `WorkspaceIdentity` from

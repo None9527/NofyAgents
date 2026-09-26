@@ -172,11 +172,7 @@ pub(crate) fn resolved_mcp_startup_timeout_secs() -> u64 {
         .ok()
         .as_ref()
         .and_then(extract);
-    resolve_mcp_startup_timeout_precedence(
-        requirements,
-        mcp_startup_timeout_from_env(),
-        config,
-    )
+    resolve_mcp_startup_timeout_precedence(requirements, mcp_startup_timeout_from_env(), config)
 }
 
 /// `MCP_TIMEOUT` (ms, rounded up so a sub-second value never becomes 0s) >

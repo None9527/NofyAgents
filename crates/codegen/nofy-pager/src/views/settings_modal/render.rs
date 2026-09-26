@@ -13,8 +13,8 @@ use super::state::{
 };
 use crate::render::line_utils::truncate_str;
 use crate::settings::{
-    OwnedEnumChoice, SettingKey, SettingKind, SettingMeta, SettingValue,
-    StringValidator, dynamic_enum_choices,
+    OwnedEnumChoice, SettingKey, SettingKind, SettingMeta, SettingValue, StringValidator,
+    dynamic_enum_choices,
 };
 use crate::theme::Theme;
 use crate::views::modal_window::{
@@ -722,8 +722,7 @@ pub(super) fn render_rows(
                     render_expanded_description(buf, desc_rect, meta, theme);
                     // Re-measure how many lines the wrapped description
                     // actually consumed, so y_cursor advances precisely.
-                    let consumed =
-                        wrapped_description_height(meta, area.width, desc_rect.height);
+                    let consumed = wrapped_description_height(meta, area.width, desc_rect.height);
                     y_cursor = y_cursor.saturating_add(consumed);
                 }
             }
@@ -2773,7 +2772,8 @@ pub(super) fn build_shortcuts(state: &SettingsModalState) -> Vec<Shortcut<'stati
             },
         ],
         SettingsMode::PickingEnum {
-            supports_preview: sp, ..
+            supports_preview: sp,
+            ..
         } => {
             // Labels depend on whether the Enum supports live preview.
             let nav_label = if *sp {

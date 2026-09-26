@@ -23,9 +23,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Wrap};
 
-use nofy_markdown::{
-    MarkdownBuffers, MarkdownStyle, render_markdown_ratatui_with_buffers_width,
-};
+use nofy_markdown::{MarkdownBuffers, MarkdownStyle, render_markdown_ratatui_with_buffers_width};
 use nofy_ratatui_textarea::{TextArea, TextAreaState};
 
 #[path = "playground_common.rs"]

@@ -175,9 +175,7 @@ pub(crate) async fn fetch_lanes(
             return Vec::new();
         }
         cwd.map(|c| {
-            nofy_workspace::session::git::resolve_normalized_remote_urls(std::path::Path::new(
-                c,
-            ))
+            nofy_workspace::session::git::resolve_normalized_remote_urls(std::path::Path::new(c))
         })
         .unwrap_or_default()
     };

@@ -31,8 +31,18 @@ async fn remember(service: &NofyMemoryService, area: MemoryArea, statement: &str
 #[tokio::test]
 async fn snapshot_is_stable_partitioned_and_content_addressed() {
     let (_temp, memory) = service();
-    remember(&memory, MemoryArea::Personal, "I prefer concise Chinese replies.").await;
-    remember(&memory, MemoryArea::Project, "The project uses Rust workspaces.").await;
+    remember(
+        &memory,
+        MemoryArea::Personal,
+        "I prefer concise Chinese replies.",
+    )
+    .await;
+    remember(
+        &memory,
+        MemoryArea::Project,
+        "The project uses Rust workspaces.",
+    )
+    .await;
 
     let first = memory
         .snapshot(SnapshotRequest {

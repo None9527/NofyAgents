@@ -92,13 +92,20 @@ mod tests {
         frozen_auto.freeze();
         assert!(!frozen_auto.transition(RiskMode::Yolo));
         assert_eq!(frozen_auto.refused_upgrades, 1);
-        assert_eq!(frozen_auto.mode, RiskMode::Auto, "refused upgrade changes nothing");
+        assert_eq!(
+            frozen_auto.mode,
+            RiskMode::Auto,
+            "refused upgrade changes nothing"
+        );
     }
 
     #[test]
     fn frozen_session_can_still_downgrade() {
         let mut freeze = ModeFreeze::new(RiskMode::Yolo);
-        assert!(freeze.transition(RiskMode::Default), "de-escalation never blocked");
+        assert!(
+            freeze.transition(RiskMode::Default),
+            "de-escalation never blocked"
+        );
         assert_eq!(freeze.mode, RiskMode::Default);
     }
 

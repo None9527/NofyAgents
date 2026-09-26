@@ -249,9 +249,7 @@ impl ModelState {
         let options = self.reasoning_effort_options_for(id);
         if let Some(option) = options
             .iter()
-            .find(|opt| {
-                opt.id.eq_ignore_ascii_case(token) || opt.label.eq_ignore_ascii_case(token)
-            })
+            .find(|opt| opt.id.eq_ignore_ascii_case(token) || opt.label.eq_ignore_ascii_case(token))
         {
             return Some(option.value);
         }

@@ -1309,7 +1309,7 @@ mod tests {
             );
         }
     }
-        /// Explicit-id resume under `--chat` passes the id through untouched:
+    /// Explicit-id resume under `--chat` passes the id through untouched:
     /// no disk resolution, no GCS restore (the cwd does not even exist).
     #[tokio::test]
     async fn materialize_chat_resume_id_is_conversation_direct() {
@@ -1725,8 +1725,7 @@ mod tests {
             NOFY_CHAT_LOCAL_WORKSPACE_ADVERTISED_TOOLS_ENV,
             "workspace.fs_list",
         );
-        let _allow =
-            nofy_test_support::EnvGuard::unset(NOFY_CHAT_LOCAL_WORKSPACE_ALLOW_HOME_ENV);
+        let _allow = nofy_test_support::EnvGuard::unset(NOFY_CHAT_LOCAL_WORKSPACE_ALLOW_HOME_ENV);
         let home = tempfile::tempdir().unwrap();
         let home_str = home.path().to_str().unwrap();
         let _home = nofy_test_support::EnvGuard::set("HOME", home_str);
@@ -1780,8 +1779,7 @@ mod tests {
     fn local_workspace_non_tty_requires_ack() {
         let _ack = nofy_test_support::EnvGuard::unset(NOFY_CHAT_LOCAL_WORKSPACE_ACK_ENV);
         let home = tempfile::tempdir().unwrap();
-        let _home =
-            nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
+        let _home = nofy_test_support::EnvGuard::set("NOFY_HOME", home.path().to_str().unwrap());
         let cfg = LocalWorkspaceConfig {
             mode: LocalWorkspaceMode::Attach,
             cwd: Some(std::path::PathBuf::from("/tmp/repo")),
@@ -1797,8 +1795,7 @@ mod tests {
     #[serial_test::serial(NOFY_CHAT_LOCAL_WORKSPACE_ALLOW_HOME)]
     #[test]
     fn validate_local_workspace_cwd_denies_root() {
-        let _allow =
-            nofy_test_support::EnvGuard::unset(NOFY_CHAT_LOCAL_WORKSPACE_ALLOW_HOME_ENV);
+        let _allow = nofy_test_support::EnvGuard::unset(NOFY_CHAT_LOCAL_WORKSPACE_ALLOW_HOME_ENV);
         let err = validate_local_workspace_cwd(std::path::Path::new("/")).unwrap_err();
         assert!(err.to_string().contains("ALLOW_HOME"), "{err}");
     }

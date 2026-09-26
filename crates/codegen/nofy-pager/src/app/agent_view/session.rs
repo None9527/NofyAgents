@@ -16,10 +16,10 @@ use crate::views::queue_pane::QueuePane;
 use crate::views::subagent_catalog_pane::SubagentCatalogPane;
 use crate::views::tasks_pane::TasksPane;
 use crate::views::todo_pane::TodoPane;
+use nofy_telemetry::events::{CancellationCompleted, CancellationScope};
 use ratatui::layout::Rect;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::Instant;
-use nofy_telemetry::events::{CancellationCompleted, CancellationScope};
 impl AgentView {
     /// Live mutation of the turn-summary display field. Always bumps
     /// [`Self::last_turn_summary_gen`] so a concurrent disk hydrate that

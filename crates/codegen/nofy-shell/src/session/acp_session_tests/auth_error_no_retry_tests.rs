@@ -544,7 +544,6 @@ fn model_not_found_error() -> nofy_sampler::SamplingErrorInfo {
         }
 }
 
-
 /// Build a 401-shaped error that bypasses step 4b's auth recovery.
 ///
 /// In production, 401s arrive as `SamplingErrorKind::Auth` with
@@ -571,7 +570,6 @@ fn unauthorized_401_error() -> nofy_sampler::SamplingErrorInfo {
             credential: nofy_sampling_types::SentCredential::Unknown,
         }
 }
-
 
 /// 401 with session auth must NOT append a deprecation hint.
 #[tokio::test(flavor = "current_thread")]
@@ -632,7 +630,9 @@ async fn no_deprecation_hint_for_session_auth() {
             });
 
             let (actor, _rx) = make_actor_with_auth_manager(Some(am)).await;
-            let result = actor.handle_sampling_failure(model_not_found_error(), 0).await;
+            let result = actor
+                .handle_sampling_failure(model_not_found_error(), 0)
+                .await;
             let err = match result {
                 Err(e) => e,
                 Ok(_) => panic!("expected Err from handle_sampling_failure"),
@@ -1080,9 +1080,12 @@ async fn switch_to_first_party_model_drops_minted_provider_token() {
             let token = provider.ensure_fresh_token(None).await.rotated().unwrap();
             assert_eq!(token, "tok-1");
 
-            let (actor, _rx) =
-                make_actor_with_auth_and_credentials(None, nofy_chat_state::AuthType::ApiKey, token)
-                    .await;
+            let (actor, _rx) = make_actor_with_auth_and_credentials(
+                None,
+                nofy_chat_state::AuthType::ApiKey,
+                token,
+            )
+            .await;
             seed_provider_memo(&actor, provider).await;
 
             let model = actor
@@ -1152,9 +1155,12 @@ async fn sampler_401_on_provider_model_remints_and_resubmits() {
             let token = provider.ensure_fresh_token(None).await.rotated().unwrap();
             assert_eq!(token, "tok-1");
 
-            let (actor, _rx) =
-                make_actor_with_auth_and_credentials(None, nofy_chat_state::AuthType::ApiKey, token)
-                    .await;
+            let (actor, _rx) = make_actor_with_auth_and_credentials(
+                None,
+                nofy_chat_state::AuthType::ApiKey,
+                token,
+            )
+            .await;
             seed_provider_memo(&actor, provider).await;
             crate::auth::test_backdate_provider_mint(
                 "test-4c-recover",
@@ -1192,9 +1198,12 @@ async fn sampler_non_auth_kind_401_on_provider_model_still_recovers() {
             let provider = counting_provider("test-4c-non-auth-kind", dir.path());
             let token = provider.ensure_fresh_token(None).await.rotated().unwrap();
 
-            let (actor, _rx) =
-                make_actor_with_auth_and_credentials(None, nofy_chat_state::AuthType::ApiKey, token)
-                    .await;
+            let (actor, _rx) = make_actor_with_auth_and_credentials(
+                None,
+                nofy_chat_state::AuthType::ApiKey,
+                token,
+            )
+            .await;
             seed_provider_memo(&actor, provider).await;
             crate::auth::test_backdate_provider_mint(
                 "test-4c-non-auth-kind",

@@ -31,7 +31,9 @@ pub enum Route {
 /// the handoff regardless of which zone the path sits in.
 pub fn route(path: &str, leases: &LeaseTable, zone: Zone, now: u64) -> Route {
     if let Some(holder) = leases.lease_holder(path, now) {
-        return Route::Handoff { to_session: holder.to_string() };
+        return Route::Handoff {
+            to_session: holder.to_string(),
+        };
     }
     match zone {
         Zone::StewardSovereign => Route::StewardExecutes,
@@ -75,9 +77,20 @@ mod tests {
 
     #[test]
     fn leased_path_hands_off_to_the_holder() {
-        let r = route("/proj/src/main.rs", &leased_table(), Zone::ProjectSovereign, 150);
-        assert_eq!(r, Route::Handoff { to_session: "sess-proj".into() });
-        let env = envelope(&r, "/proj/src/main.rs", "rename fn").expect("handoff carries an envelope");
+        let r = route(
+            "/proj/src/main.rs",
+            &leased_table(),
+            Zone::ProjectSovereign,
+            150,
+        );
+        assert_eq!(
+            r,
+            Route::Handoff {
+                to_session: "sess-proj".into()
+            }
+        );
+        let env =
+            envelope(&r, "/proj/src/main.rs", "rename fn").expect("handoff carries an envelope");
         assert_eq!(env.to_session, "sess-proj");
         assert_eq!(env.op_summary, "rename fn");
     }
@@ -89,35 +102,58 @@ mod tests {
         let r = route("/media/f", &t, Zone::StewardSovereign, 150);
         assert_eq!(
             r,
-            Route::Handoff { to_session: "sess-x".into() },
+            Route::Handoff {
+                to_session: "sess-x".into()
+            },
             "a live lease always wins the handoff"
         );
     }
 
     #[test]
     fn expired_lease_falls_back_to_zone() {
-        let r = route("/proj/src/main.rs", &leased_table(), Zone::ProjectSovereign, 500);
+        let r = route(
+            "/proj/src/main.rs",
+            &leased_table(),
+            Zone::ProjectSovereign,
+            500,
+        );
         assert_eq!(r, Route::SuggestOnly, "lease expired → zone rules again");
     }
 
     #[test]
     fn project_ground_degrades_steward_to_advisor() {
         let empty = LeaseTable::default();
-        assert_eq!(route("/proj/a", &empty, Zone::ProjectSovereign, 0), Route::SuggestOnly);
-        assert_eq!(route("/proj/a", &empty, Zone::Overlap, 0), Route::SuggestOnly);
+        assert_eq!(
+            route("/proj/a", &empty, Zone::ProjectSovereign, 0),
+            Route::SuggestOnly
+        );
+        assert_eq!(
+            route("/proj/a", &empty, Zone::Overlap, 0),
+            Route::SuggestOnly
+        );
     }
 
     #[test]
     fn steward_ground_executes_unclaimed_refuses() {
         let empty = LeaseTable::default();
-        assert_eq!(route("/media/a", &empty, Zone::StewardSovereign, 0), Route::StewardExecutes);
-        assert_eq!(route("/nowhere", &empty, Zone::Unclaimed, 0), Route::Refused);
+        assert_eq!(
+            route("/media/a", &empty, Zone::StewardSovereign, 0),
+            Route::StewardExecutes
+        );
+        assert_eq!(
+            route("/nowhere", &empty, Zone::Unclaimed, 0),
+            Route::Refused
+        );
     }
 
     #[test]
     fn no_envelope_without_handoff() {
         let empty = LeaseTable::default();
-        for zone in [Zone::StewardSovereign, Zone::ProjectSovereign, Zone::Unclaimed] {
+        for zone in [
+            Zone::StewardSovereign,
+            Zone::ProjectSovereign,
+            Zone::Unclaimed,
+        ] {
             let r = route("/p", &empty, zone, 0);
             assert!(
                 envelope(&r, "/p", "op").is_none(),

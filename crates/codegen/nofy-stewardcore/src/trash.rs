@@ -92,7 +92,10 @@ fn staged_name(original: &Path, id: &str) -> String {
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "item".into());
-    match original.extension().map(|e| e.to_string_lossy().into_owned()) {
+    match original
+        .extension()
+        .map(|e| e.to_string_lossy().into_owned())
+    {
         Some(ext) if !ext.is_empty() => format!("{stem}-{id}.{ext}"),
         _ => format!("{stem}-{id}"),
     }
@@ -163,7 +166,11 @@ impl TrashStore {
     /// lived, not where the restoring process happens to run.
     pub fn add(&self, path: &Path, now: u64) -> io::Result<TrashEntry> {
         let meta = fs::symlink_metadata(path)?;
-        let size = if meta.is_dir() { dir_size(path) } else { meta.len() };
+        let size = if meta.is_dir() {
+            dir_size(path)
+        } else {
+            meta.len()
+        };
         let original = dunce::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         fs::create_dir_all(self.stage_dir())?;
         // Unique id: second + pid + a counter against existing entries.
@@ -236,7 +243,10 @@ impl TrashStore {
         if original.exists() {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
-                format!("original path '{}' exists again; refusing to overwrite", entry.original_path),
+                format!(
+                    "original path '{}' exists again; refusing to overwrite",
+                    entry.original_path
+                ),
             ));
         }
         if let Some(parent) = original.parent() {
@@ -312,7 +322,10 @@ mod tests {
         let entry = trash.add(&subtree, 200).unwrap();
         assert_eq!(entry.size, 2);
         let restored = trash.restore(&entry.id).unwrap();
-        assert_eq!(fs::read_to_string(restored.join("inner/a.txt")).unwrap(), "aa");
+        assert_eq!(
+            fs::read_to_string(restored.join("inner/a.txt")).unwrap(),
+            "aa"
+        );
     }
 
     #[test]

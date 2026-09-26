@@ -987,8 +987,12 @@ mod tests {
         let handle = tokio::spawn({
             let shared = shared.clone();
             async move {
-                nofy_tool_runtime::Tool::run(&tool, test_ctx_with_call_id(shared, "tc-short"), input)
-                    .await
+                nofy_tool_runtime::Tool::run(
+                    &tool,
+                    test_ctx_with_call_id(shared, "tc-short"),
+                    input,
+                )
+                .await
             }
         });
 

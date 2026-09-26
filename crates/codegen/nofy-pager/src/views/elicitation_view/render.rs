@@ -2,12 +2,12 @@
 //! viewport (form fields or the full URL), and action rows pinned at the
 //! bottom so Accept/Decline stay reachable however long the body is.
 
+use nofy_tools::mcp_elicitation::ElicitFieldKind;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use unicode_width::UnicodeWidthStr;
-use nofy_tools::mcp_elicitation::ElicitFieldKind;
 
 use crate::theme::Theme;
 

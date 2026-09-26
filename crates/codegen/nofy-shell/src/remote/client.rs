@@ -69,11 +69,7 @@ pub(crate) fn fetch_models_blocking(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
     let models_response: ModelsResponse = response.json()?;
-    tracing::info!(
-        "Fetched {} models from {}",
-        models_response.data.len(),
-        url
-    );
+    tracing::info!("Fetched {} models from {}", models_response.data.len(), url);
     let mut models = Vec::with_capacity(models_response.data.len());
     for (idx, value) in models_response.data.into_iter().enumerate() {
         match parse_remote_model_value(&value, &inference_base_url) {

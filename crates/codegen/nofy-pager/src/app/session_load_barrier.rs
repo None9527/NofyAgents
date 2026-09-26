@@ -21,8 +21,8 @@
 use std::time::{Duration, Instant};
 
 use agent_client_protocol as acp;
-use serde::Deserialize;
 use nofy_acp_lib::AcpClientMessage;
+use serde::Deserialize;
 
 use super::actions::TaskResult;
 use super::agent::AgentId;

@@ -70,9 +70,7 @@ async fn tool_result_text(actor: &SessionActor, call_id: &str) -> String {
     conv.iter()
         .rev()
         .find_map(|item| match item {
-            nofy_sampling_types::ConversationItem::ToolResult(tr)
-                if tr.tool_call_id == call_id =>
-            {
+            nofy_sampling_types::ConversationItem::ToolResult(tr) if tr.tool_call_id == call_id => {
                 Some(tr.content.to_string())
             }
             _ => None,

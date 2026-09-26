@@ -164,10 +164,7 @@ mod tests {
 
     #[test]
     fn empty_system_prompt_counts_as_absent() {
-        let items = vec![
-            ConversationItem::system(""),
-            ConversationItem::user("q"),
-        ];
+        let items = vec![ConversationItem::system(""), ConversationItem::user("q")];
         let audit = ProjectionAudit::compute("c1", "r1", &items, &[], false, false, false);
         assert!(!audit.system_prompt_present);
     }

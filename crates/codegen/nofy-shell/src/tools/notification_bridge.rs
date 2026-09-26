@@ -7,15 +7,15 @@ use crate::session::persistence::{
 };
 use crate::tools::task_completed_frame;
 use agent_client_protocol::{self as acp, Client as _};
+use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
+use nofy_hunk_tracker::HunkTrackerHandle;
+use nofy_tools::notification::types::{ToolNotification, ToolNotificationHandle};
+use nofy_tools::types::output::{BashOutput, ToolOutput};
+use nofy_workspace::session::file_state::FileStateTracker;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{Mutex as TokioMutex, mpsc};
-use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
-use nofy_tools::notification::types::{ToolNotification, ToolNotificationHandle};
-use nofy_tools::types::output::{BashOutput, ToolOutput};
-use nofy_workspace::session::file_state::FileStateTracker;
-use nofy_hunk_tracker::HunkTrackerHandle;
 const TASK_WAKE_ADMISSION_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(250);
 /// Configuration for the notification bridge.
 pub(crate) struct NotificationBridgeConfig {
@@ -383,8 +383,7 @@ async fn handle_notification(
         }
         ToolNotification::SubagentCompleted(_) => {}
         ToolNotification::TaskCompleted(task_snapshot) => {
-            let is_monitor =
-                task_snapshot.kind == nofy_tools::computer::types::TaskKind::Monitor;
+            let is_monitor = task_snapshot.kind == nofy_tools::computer::types::TaskKind::Monitor;
             let task_id = task_snapshot.task_id.clone();
             let goal_loop_active = config
                 .goal_loop_active
@@ -1541,8 +1540,8 @@ mod tests {
     #[tokio::test]
     async fn bash_output_chunk_persists_and_broadcasts_one_event_id() {
         let (config, mut gateway_rx, mut persistence_rx, _cmd_rx) = make_test_config_full();
-        let notification = ToolNotification::BashOutputChunk(
-            nofy_tools::notification::types::BashOutputChunk {
+        let notification =
+            ToolNotification::BashOutputChunk(nofy_tools::notification::types::BashOutputChunk {
                 base: nofy_tools::notification::types::BashNotificationBase {
                     tool_call_id: "call-1".into(),
                     command: "echo hi".into(),
@@ -1551,8 +1550,7 @@ mod tests {
                     truncated: false,
                     cwd: PathBuf::from("/tmp"),
                 },
-            },
-        );
+            });
         let mut offsets = HashMap::new();
         handle_notification(&config, notification, &mut offsets).await;
         let persisted_id = match persistence_rx.try_recv().expect("chunk must be persisted") {
@@ -2125,11 +2123,10 @@ mod tests {
     #[tokio::test]
     async fn plan_mode_entered_emits_current_mode_update_plan() {
         let (config, mut gateway_rx, mut persistence_rx, _cmd_rx) = make_test_config_full();
-        let notification = ToolNotification::PlanModeEntered(
-            nofy_tools::notification::types::PlanModeEntered {
+        let notification =
+            ToolNotification::PlanModeEntered(nofy_tools::notification::types::PlanModeEntered {
                 tool_call_id: "tc-enter-1".into(),
-            },
-        );
+            });
         let mut offsets = HashMap::new();
         handle_notification(&config, notification, &mut offsets).await;
         let mut gateway_modes = Vec::new();

@@ -4,7 +4,7 @@
 //! empty`. This module is the user face: list what is recoverable,
 //! restore one entry by id, empty deliberately.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Subcommand;
 
 #[derive(Debug, clap::Args, Clone)]
@@ -89,7 +89,10 @@ pub fn run(args: &TrashArgs, state_dir: &std::path::Path) -> Result<()> {
             let removed = store
                 .empty()
                 .map_err(|e| anyhow::anyhow!("trash empty failed: {e}"))?;
-            println!("emptied: {removed} entr{} removed", if removed == 1 { "y" } else { "ies" });
+            println!(
+                "emptied: {removed} entr{} removed",
+                if removed == 1 { "y" } else { "ies" }
+            );
         }
     }
     Ok(())
@@ -132,7 +135,9 @@ mod tests {
 
         run(
             &TrashArgs {
-                command: TrashCommand::Add { path: victim.clone() },
+                command: TrashCommand::Add {
+                    path: victim.clone(),
+                },
             },
             state,
         )
@@ -146,7 +151,9 @@ mod tests {
 
         run(
             &TrashArgs {
-                command: TrashCommand::Restore { id: entries[0].id.clone() },
+                command: TrashCommand::Restore {
+                    id: entries[0].id.clone(),
+                },
             },
             state,
         )

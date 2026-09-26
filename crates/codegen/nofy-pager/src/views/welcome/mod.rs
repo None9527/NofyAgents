@@ -843,7 +843,6 @@ fn render_welcome_trust(
     }
 }
 
-
 /// Shrink a rect by `inset` columns on the left and right (clamped at 0).
 fn inset_horizontal(rect: Rect, inset: u16) -> Rect {
     Rect {
@@ -1001,8 +1000,7 @@ fn render_welcome_done(
     // Keep the segmented control (and ACK y/N) visible when history is open
     // if first-run Local ACK is pending — otherwise the confirm is unpainted
     // while the ACK handler still swallows keys.
-    let show_workspace_picker =
-        p.chat_mode && (!show_picker || p.workspace_mode_ack_pending);
+    let show_workspace_picker = p.chat_mode && (!show_picker || p.workspace_mode_ack_pending);
     #[cfg(feature = "local-workspace")]
     let workspace_picker_rows = if show_workspace_picker {
         workspace_mode::WORKSPACE_MODE_MENU_ROWS
@@ -1262,7 +1260,11 @@ fn render_welcome_done(
         cursor_pos,
         post_flush_escapes,
         menu_rects,
-        prompt_rect: if show_picker { None } else { Some(layout.prompt) },
+        prompt_rect: if show_picker {
+            None
+        } else {
+            Some(layout.prompt)
+        },
         session_picker_hit_areas: picker_close_button,
         import_banner_rect,
         announcement_truncated,
@@ -1562,7 +1564,6 @@ pub(crate) fn render_session_picker(
     )
 }
 
-
 /// Render one startup warning centered in the given area.
 ///
 /// `startup_warnings` can hold more than one entry (the WezTerm
@@ -1607,7 +1608,6 @@ fn render_startup_warnings(
     Paragraph::new(lines).render(area, buf);
     None
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1777,7 +1777,6 @@ mod tests {
             "writing the clear must commit ownership"
         );
     }
-
 
     #[test]
     fn picker_welcome_returns_paired_overlay_clear() {

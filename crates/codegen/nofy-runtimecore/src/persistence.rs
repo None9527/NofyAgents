@@ -103,9 +103,19 @@ mod tests {
     #[test]
     fn all_persistent_passes_the_audit() {
         let state = RuntimeState {
-            lanes: vec![Lane { id: "main".into(), class: PersistClass::Persistent }],
-            operations: vec![Operation { id: "op1".into(), lane: "main".into(), class: PersistClass::Persistent }],
-            deferred: vec![Deferred { id: "d1".into(), class: PersistClass::Persistent }],
+            lanes: vec![Lane {
+                id: "main".into(),
+                class: PersistClass::Persistent,
+            }],
+            operations: vec![Operation {
+                id: "op1".into(),
+                lane: "main".into(),
+                class: PersistClass::Persistent,
+            }],
+            deferred: vec![Deferred {
+                id: "d1".into(),
+                class: PersistClass::Persistent,
+            }],
         };
         assert!(audit_persistence(&state).is_empty());
     }
@@ -113,9 +123,19 @@ mod tests {
     #[test]
     fn every_volatile_member_is_a_named_violation() {
         let state = RuntimeState {
-            lanes: vec![Lane { id: "tmp".into(), class: PersistClass::Volatile }],
-            operations: vec![Operation { id: "op2".into(), lane: "tmp".into(), class: PersistClass::Volatile }],
-            deferred: vec![Deferred { id: "d2".into(), class: PersistClass::Volatile }],
+            lanes: vec![Lane {
+                id: "tmp".into(),
+                class: PersistClass::Volatile,
+            }],
+            operations: vec![Operation {
+                id: "op2".into(),
+                lane: "tmp".into(),
+                class: PersistClass::Volatile,
+            }],
+            deferred: vec![Deferred {
+                id: "d2".into(),
+                class: PersistClass::Volatile,
+            }],
         };
         let violations = audit_persistence(&state);
         assert_eq!(violations.len(), 3, "all three principles enforced");

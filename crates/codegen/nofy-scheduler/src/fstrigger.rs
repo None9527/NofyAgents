@@ -79,9 +79,7 @@ impl FsTriggerPolicy {
         //    event opens the window; the first event AT/after its end
         //    triggers and re-opens.
         match self.open.get(&event.path) {
-            Some(&start) if event.at < start + self.debounce_secs => {
-                TriggerOutcome::Debounced
-            }
+            Some(&start) if event.at < start + self.debounce_secs => TriggerOutcome::Debounced,
             _ => {
                 self.open.insert(event.path.clone(), event.at);
                 self.triggers.push(event.at);
@@ -114,38 +112,65 @@ mod tests {
         assert_eq!(policy.ingest(&own), TriggerOutcome::RefusedSelf);
         assert_eq!(policy.refused_self, 1);
         // Refused events consume no budget and open no debounce window.
-        assert_eq!(policy.ingest(&event("out.log", 6)), TriggerOutcome::Triggered(6));
+        assert_eq!(
+            policy.ingest(&event("out.log", 6)),
+            TriggerOutcome::Triggered(6)
+        );
     }
 
     #[test]
     fn debounce_absorbs_bursts_into_one_trigger() {
         let mut policy = FsTriggerPolicy::new(10, 100, 60);
-        assert_eq!(policy.ingest(&event("f", 100)), TriggerOutcome::Triggered(100));
+        assert_eq!(
+            policy.ingest(&event("f", 100)),
+            TriggerOutcome::Triggered(100)
+        );
         for at in [101, 105, 109] {
             assert_eq!(policy.ingest(&event("f", at)), TriggerOutcome::Debounced);
         }
         // At the window end the next event triggers again.
-        assert_eq!(policy.ingest(&event("f", 110)), TriggerOutcome::Triggered(110));
+        assert_eq!(
+            policy.ingest(&event("f", 110)),
+            TriggerOutcome::Triggered(110)
+        );
     }
 
     #[test]
     fn debounce_is_per_path() {
         let mut policy = FsTriggerPolicy::new(10, 100, 60);
-        assert_eq!(policy.ingest(&event("a", 100)), TriggerOutcome::Triggered(100));
+        assert_eq!(
+            policy.ingest(&event("a", 100)),
+            TriggerOutcome::Triggered(100)
+        );
         // A different path is not debounced by `a`'s window.
-        assert_eq!(policy.ingest(&event("b", 101)), TriggerOutcome::Triggered(101));
+        assert_eq!(
+            policy.ingest(&event("b", 101)),
+            TriggerOutcome::Triggered(101)
+        );
         assert_eq!(policy.ingest(&event("a", 102)), TriggerOutcome::Debounced);
     }
 
     #[test]
     fn budget_caps_triggers_per_window_and_refills() {
         let mut policy = FsTriggerPolicy::new(0, 2, 60);
-        assert_eq!(policy.ingest(&event("a", 100)), TriggerOutcome::Triggered(100));
-        assert_eq!(policy.ingest(&event("b", 110)), TriggerOutcome::Triggered(110));
-        assert_eq!(policy.ingest(&event("c", 120)), TriggerOutcome::BudgetExhausted);
+        assert_eq!(
+            policy.ingest(&event("a", 100)),
+            TriggerOutcome::Triggered(100)
+        );
+        assert_eq!(
+            policy.ingest(&event("b", 110)),
+            TriggerOutcome::Triggered(110)
+        );
+        assert_eq!(
+            policy.ingest(&event("c", 120)),
+            TriggerOutcome::BudgetExhausted
+        );
         assert_eq!(policy.budget_exhausted, 1);
         // Past the window, the oldest trigger falls out: budget frees up.
-        assert_eq!(policy.ingest(&event("d", 161)), TriggerOutcome::Triggered(161));
+        assert_eq!(
+            policy.ingest(&event("d", 161)),
+            TriggerOutcome::Triggered(161)
+        );
     }
 
     #[test]
@@ -154,7 +179,11 @@ mod tests {
             event("a", 10),
             event("a", 11),
             event("b", 12),
-            FsEvent { path: "a".into(), at: 13, self_generated: true },
+            FsEvent {
+                path: "a".into(),
+                at: 13,
+                self_generated: true,
+            },
             event("a", 30),
         ];
         let run = |seq: &[FsEvent]| {

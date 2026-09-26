@@ -1597,9 +1597,7 @@ impl SessionActor {
         purpose: DrainPurpose,
         extra: Vec<nofy_tools::implementations::nofy_build::update_goal::UpdateGoalEnvelope>,
     ) {
-        use nofy_tools::implementations::nofy_build::update_goal::{
-            RejectReason, UpdateGoalAck,
-        };
+        use nofy_tools::implementations::nofy_build::update_goal::{RejectReason, UpdateGoalAck};
         if !self.goal_harness_enabled() {
             let reject = || UpdateGoalAck::Rejected {
                 reason: RejectReason::HarnessDisabled,

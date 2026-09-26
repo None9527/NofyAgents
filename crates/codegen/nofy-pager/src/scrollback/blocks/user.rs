@@ -712,7 +712,10 @@ mod tests {
             .skip(1)
             .map(|s| s.content.as_ref())
             .collect();
-        assert_eq!(body, vec!["run ", "/commit", " then ", "/review", " please"]);
+        assert_eq!(
+            body,
+            vec!["run ", "/commit", " then ", "/review", " please"]
+        );
         if theme.accent_skill != theme.text_primary {
             let teal: Vec<&str> = lines[0]
                 .content
@@ -855,8 +858,14 @@ mod tests {
         let visible = line_text(last);
         assert!(visible.ends_with(" \u{2026}"));
         // 结构断言:token 完整保留、参数仍在同一行(NO_COLOR 下不可按色彩区分)。
-        assert!(visible.contains("/do-it"), "token must survive whole: {visible:?}");
-        assert!(visible.contains("more"), "args must stay on the line: {visible:?}");
+        assert!(
+            visible.contains("/do-it"),
+            "token must survive whole: {visible:?}"
+        );
+        assert!(
+            visible.contains("more"),
+            "args must stay on the line: {visible:?}"
+        );
         if theme.accent_skill != theme.text_primary {
             assert_eq!(teal_text(last, &theme), "/do-it");
             let body: String = last

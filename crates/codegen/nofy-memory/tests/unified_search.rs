@@ -134,13 +134,8 @@ async fn searches_personal_and_current_project_with_branch_and_status_filters() 
         .persist(&foreign_project, ObservationStatus::Active)
         .unwrap();
 
-    let mut index = UnifiedMemoryIndex::open(
-        &root,
-        project,
-        MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
+    let mut index =
+        UnifiedMemoryIndex::open(&root, project, MemoryIndexConfig::default(), 4).unwrap();
     index.rebuild().unwrap();
 
     let results = unified_search(
@@ -201,13 +196,8 @@ async fn active_correction_suppresses_old_fact_and_outweighs_automatic_capture()
         .persist(&correction, ObservationStatus::Active)
         .unwrap();
 
-    let mut index = UnifiedMemoryIndex::open(
-        &root,
-        project,
-        MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
+    let mut index =
+        UnifiedMemoryIndex::open(&root, project, MemoryIndexConfig::default(), 4).unwrap();
     index.rebuild().unwrap();
     let results = unified_search(
         &index,
@@ -232,13 +222,8 @@ async fn stale_hash_is_skipped_then_repaired_from_canonical_files() {
     let topic_id = uuid::Uuid::new_v4();
     write_topic(&topic, topic_id, 1, "Use Rust stable.");
 
-    let mut index = UnifiedMemoryIndex::open(
-        &root,
-        project,
-        MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
+    let mut index =
+        UnifiedMemoryIndex::open(&root, project, MemoryIndexConfig::default(), 4).unwrap();
     index.rebuild().unwrap();
     write_topic(&topic, topic_id, 2, "Use Rust nightly.");
 
@@ -264,7 +249,11 @@ async fn stale_hash_is_skipped_then_repaired_from_canonical_files() {
     )
     .await
     .unwrap();
-    assert!(repaired.iter().any(|result| result.snippet.contains("nightly")));
+    assert!(
+        repaired
+            .iter()
+            .any(|result| result.snippet.contains("nightly"))
+    );
 }
 
 #[tokio::test]
@@ -285,13 +274,8 @@ async fn deleting_indexes_and_rebuilding_preserves_result_identity_and_ignores_k
     )
     .unwrap();
 
-    let mut index = UnifiedMemoryIndex::open(
-        &root,
-        project,
-        MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
+    let mut index =
+        UnifiedMemoryIndex::open(&root, project, MemoryIndexConfig::default(), 4).unwrap();
     index.rebuild().unwrap();
     let before = unified_search(
         &index,
@@ -302,18 +286,20 @@ async fn deleting_indexes_and_rebuilding_preserves_result_identity_and_ignores_k
     )
     .await
     .unwrap();
-    let before_ids: Vec<_> = before.iter().map(|result| result.chunk_id.clone()).collect();
-    assert!(before.iter().all(|result| !result.snippet.contains("external")));
+    let before_ids: Vec<_> = before
+        .iter()
+        .map(|result| result.chunk_id.clone())
+        .collect();
+    assert!(
+        before
+            .iter()
+            .all(|result| !result.snippet.contains("external"))
+    );
 
     drop(index);
     UnifiedMemoryIndex::delete_derived_indexes(&root, project).unwrap();
-    let mut rebuilt = UnifiedMemoryIndex::open(
-        &root,
-        project,
-        MemoryIndexConfig::default(),
-        4,
-    )
-    .unwrap();
+    let mut rebuilt =
+        UnifiedMemoryIndex::open(&root, project, MemoryIndexConfig::default(), 4).unwrap();
     rebuilt.rebuild().unwrap();
     let after = unified_search(
         &rebuilt,

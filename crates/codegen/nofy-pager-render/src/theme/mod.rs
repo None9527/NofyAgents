@@ -13,9 +13,9 @@
 pub mod cache;
 pub mod color_support;
 pub mod env_appearance;
+pub mod md_style;
 mod nofyday;
 mod nofynight;
-pub mod md_style;
 pub mod osc11;
 mod oscura;
 mod rosepine;

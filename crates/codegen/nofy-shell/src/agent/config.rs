@@ -7,10 +7,6 @@ use crate::remote::DEFAULT_CONTEXT_WINDOW;
 use crate::{config::StorageMode, sampling::ApiBackend, tools::config::ShellToolsetConfig};
 use agent_client_protocol as acp;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-use std::num::NonZeroU64;
-use std::path::PathBuf;
-use std::sync::Arc;
 use nofy_agent::prompt::skills::SkillsConfig;
 use nofy_sampler::{AuthScheme, SamplerConfig};
 use nofy_sampling_types::{
@@ -21,6 +17,10 @@ use nofy_sampling_types::{
 use nofy_tools::types::compat::{
     COMPAT_CELLS, CompatConfig, CompatConfigToml, CompatRemoteKey, CompatSurface, CompatVendor,
 };
+use serde::{Deserialize, Serialize};
+use std::num::NonZeroU64;
+use std::path::PathBuf;
+use std::sync::Arc;
 /// The mode in which the agent is running.
 /// Determines behavior like relay sync enablement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -760,9 +760,7 @@ impl PluginsConfig {
         }
     }
     /// Build a `DiscoveryConfig` from this plugins config.
-    pub(crate) fn to_discovery_config(
-        &self,
-    ) -> nofy_agent::plugins::discovery::DiscoveryConfig {
+    pub(crate) fn to_discovery_config(&self) -> nofy_agent::plugins::discovery::DiscoveryConfig {
         nofy_agent::plugins::discovery::DiscoveryConfig {
             cli_plugin_dirs: self.cli_plugin_dirs.clone(),
             config_paths: self.paths.iter().map(std::path::PathBuf::from).collect(),
@@ -1905,11 +1903,7 @@ impl Config {
     /// Must be called after `new_from_toml_cfg` on the **primary startup path**
     /// before the config is handed to `MvpAgent`. Project definitions are overlaid
     /// per cwd after that cwd's authoritative folder-trust resolve.
-    pub(crate) fn resolve_subagents(
-        &mut self,
-        cli_flag: Option<bool>,
-        raw_config: &toml::Value,
-    ) {
+    pub(crate) fn resolve_subagents(&mut self, cli_flag: Option<bool>, raw_config: &toml::Value) {
         let sa = crate::config::SubagentsConfig::resolve_with_cli(cli_flag, raw_config);
         self.resolve_subagent_limits(&sa);
         self.subagents_enabled = sa.enabled;
@@ -2946,10 +2940,8 @@ pub(crate) fn resolve_model_list(
                     )
                 })
                 .collect();
-        let mut effort_menu_donors: std::collections::HashMap<
-            String,
-            Vec<ReasoningEffortOption>,
-        > = std::collections::HashMap::new();
+        let mut effort_menu_donors: std::collections::HashMap<String, Vec<ReasoningEffortOption>> =
+            std::collections::HashMap::new();
         for (key, entry) in &resolved {
             if entry.info.reasoning_efforts.is_empty() {
                 continue;
@@ -4709,7 +4701,11 @@ pub(crate) fn provider_task_sampling_config(cfg: &Config) -> SamplerConfig {
                 .ok()
                 .filter(|v| !v.trim().is_empty())
         })
-        .unwrap_or_else(|| crate::session::persistence::default_model_id().0.to_string());
+        .unwrap_or_else(|| {
+            crate::session::persistence::default_model_id()
+                .0
+                .to_string()
+        });
     let entries = resolve_model_list(cfg, None);
     let entry = entries
         .get(&model_id)
@@ -4856,8 +4852,8 @@ impl ModelSwitchIncompatibleAgentError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serial_test::serial;
     use nofy_test_support::EnvGuard;
+    use serial_test::serial;
     #[test]
     fn main_cli_tools_override_preserves_profile_injection_policy() {
         let overrides = CliAgentOverrides {
@@ -5171,15 +5167,9 @@ reasoning_effort = "low"
                 None,
             ),
         );
-        let resolved = resolve_aux_model_sampling_config(
-            "nofy-build",
-            &catalog,
-            &endpoints,
-            None,
-            None,
-            None,
-        )
-        .expect("override entry has an API key, so resolution succeeds");
+        let resolved =
+            resolve_aux_model_sampling_config("nofy-build", &catalog, &endpoints, None, None, None)
+                .expect("override entry has an API key, so resolution succeeds");
         assert_eq!(resolved.model, "v9m-rl-learnability-tp8");
         assert_eq!(resolved.base_url, "https://vendor.example/v1");
         assert_eq!(resolved.api_key.as_deref(), Some("vendor-key"));
@@ -6303,7 +6293,10 @@ reasoning_effort = "low"
         let parsed: ConfigModelOverride =
             toml::from_str(r#"modalities = { input = ["text", "image"], output = ["text"] }"#)
                 .expect("modalities inline table should parse");
-        let mods = parsed.modalities.as_ref().expect("modalities should be present");
+        let mods = parsed
+            .modalities
+            .as_ref()
+            .expect("modalities should be present");
         assert_eq!(mods.input, vec!["text".to_string(), "image".to_string()]);
         assert_eq!(mods.output, vec!["text".to_string()]);
         let entry = parsed.apply("vision-model", None, &endpoints);
@@ -6332,7 +6325,10 @@ reasoning_effort = "low"
             .meta
             .clone()
             .unwrap();
-        assert_eq!(meta["inputModalities"], serde_json::json!(["text", "image"]));
+        assert_eq!(
+            meta["inputModalities"],
+            serde_json::json!(["text", "image"])
+        );
         assert_eq!(meta["acceptsImages"], true);
         assert_eq!(meta["outputModalities"], serde_json::json!(["text"]));
     }
@@ -6543,7 +6539,13 @@ reasoning_effort = "low"
     }
     #[test]
     fn sampling_config_context_window_from_entry_or_default() {
-        let model = test_model_entry("any-model", nofy_env::PROD_XAI_API_BASE_URL, None, None, None);
+        let model = test_model_entry(
+            "any-model",
+            nofy_env::PROD_XAI_API_BASE_URL,
+            None,
+            None,
+            None,
+        );
         let config = sampling_config_for_model(
             &model,
             resolve_credentials(&model, None),
@@ -6553,7 +6555,13 @@ reasoning_effort = "low"
             None,
         );
         assert_eq!(config.context_window, 200_000);
-        let mut model = test_model_entry("any-model", nofy_env::PROD_XAI_API_BASE_URL, None, None, None);
+        let mut model = test_model_entry(
+            "any-model",
+            nofy_env::PROD_XAI_API_BASE_URL,
+            None,
+            None,
+            None,
+        );
         model.info.context_window = NonZeroU64::new(256_000).unwrap();
         let config = sampling_config_for_model(
             &model,
@@ -6624,7 +6632,10 @@ reasoning_effort = "low"
             ]
         );
         assert_eq!(info.model_at(ReasoningEffort::Low), "gateway-model-fast");
-        assert_eq!(info.model_at(ReasoningEffort::High), "gateway-model-thinking");
+        assert_eq!(
+            info.model_at(ReasoningEffort::High),
+            "gateway-model-thinking"
+        );
     }
 
     /// An effort with no declared variant keeps sending the base id, so a
@@ -6656,8 +6667,8 @@ reasoning_effort = "low"
     /// A model with no variants at all sends its own id at every effort.
     #[test]
     fn model_at_without_variants_is_the_base_model() {
-        let mut info = test_model_entry("plain", "https://api.example.com/v1", None, None, None)
-            .info;
+        let mut info =
+            test_model_entry("plain", "https://api.example.com/v1", None, None, None).info;
         info.model = "gateway-model".to_string();
         for effort in [
             ReasoningEffort::None,
@@ -7832,11 +7843,8 @@ reasoning_effort = "low"
     #[test]
     fn config_models_default_is_not_overwritten_by_default_models_json() {
         let config_default = Some("custom-byok-model");
-        let resolved = resolve_string_flag(
-            None,
-            "NOFY_DEFAULT_MODEL_TEST_NONEXISTENT",
-            config_default,
-        );
+        let resolved =
+            resolve_string_flag(None, "NOFY_DEFAULT_MODEL_TEST_NONEXISTENT", config_default);
         let resolved = resolved.expect("should resolve to a value");
         assert_eq!(resolved.value, "custom-byok-model");
         assert_eq!(
@@ -7889,7 +7897,8 @@ reasoning_effort = "low"
         let sampling = resolve_sampling(model, None);
         assert_eq!(sampling.api_key.as_deref(), Some("nofy-external-key"));
         assert_eq!(
-            sampling.base_url, nofy_env::PROD_XAI_API_BASE_URL,
+            sampling.base_url,
+            nofy_env::PROD_XAI_API_BASE_URL,
             "external API key should route to api.x.ai via api_base_url"
         );
         unsafe { std::env::remove_var("NOFY_API_KEY") };
@@ -7972,7 +7981,8 @@ reasoning_effort = "low"
             "env key should be used when no session and no model credentials"
         );
         assert_eq!(
-            sampling.base_url, nofy_env::PROD_XAI_API_BASE_URL,
+            sampling.base_url,
+            nofy_env::PROD_XAI_API_BASE_URL,
             "env key should route to api_base_url"
         );
         unsafe { std::env::remove_var("NOFY_API_KEY") };
@@ -10056,11 +10066,12 @@ hooks = true
     #[serial]
     fn resolve_compat_precedence_and_reserved_codex_hook() {
         let _env = isolate_compat_env();
-        let config =
-            parse_compat("[compat.cursor]
+        let config = parse_compat(
+            "[compat.cursor]
 sessions = false
 [compat.codex]
-hooks = false");
+hooks = false",
+        );
         let resolved = resolve_compat_config(&config);
         assert!(!resolved.cursor.sessions);
         assert!(!resolved.codex.hooks);
@@ -10077,12 +10088,13 @@ hooks = false");
     fn resolve_runtime_fields_compat_asymmetric_sources() {
         let _env = isolate_compat_env();
         let _cursor = EnvGuard::set("NOFY_CURSOR_SESSIONS_ENABLED", "false");
-        let raw: toml::Value =
-            toml::from_str("[compat.cursor]
+        let raw: toml::Value = toml::from_str(
+            "[compat.cursor]
 sessions = true
 [compat.claude]
-sessions = false")
-                .unwrap();
+sessions = false",
+        )
+        .unwrap();
         let mut config = Config::new_from_toml_cfg(&raw).unwrap();
         config.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
@@ -10467,13 +10479,17 @@ default = "grok-4.5"
 
         let resolved = resolve_model_list(&cfg, Some(prefetched));
 
-        let explicit = resolved.get("nofy-build").expect("nofy-build key must exist");
+        let explicit = resolved
+            .get("nofy-build")
+            .expect("nofy-build key must exist");
         assert_eq!(
             explicit.info.api_backend,
             ApiBackend::ChatCompletions,
             "explicit api_backend must not be overwritten by a same-slug sibling"
         );
-        let inherited = resolved.get("plain-grok").expect("plain-grok key must exist");
+        let inherited = resolved
+            .get("plain-grok")
+            .expect("plain-grok key must exist");
         assert_eq!(
             inherited.info.api_backend,
             ApiBackend::Responses,
@@ -10533,8 +10549,14 @@ default = "grok-4.5"
         let canonical = resolved
             .get("shared-wire-slug")
             .expect("canonical entry exists");
-        assert_eq!(canonical.info.reasoning_efforts, alias.info.reasoning_efforts);
-        assert_eq!(canonical.info.reasoning_effort, Some(ReasoningEffort::Xhigh));
+        assert_eq!(
+            canonical.info.reasoning_efforts,
+            alias.info.reasoning_efforts
+        );
+        assert_eq!(
+            canonical.info.reasoning_effort,
+            Some(ReasoningEffort::Xhigh)
+        );
     }
 
     #[test]
@@ -10841,7 +10863,11 @@ default = "grok-4.5"
             Some(4)
         );
         assert_eq!(
-            resolved.get("no-wait").expect("model should exist").info.rate_limit_retry_threshold,
+            resolved
+                .get("no-wait")
+                .expect("model should exist")
+                .info
+                .rate_limit_retry_threshold,
             Some(1),
             "1 is the documented way to disable 429 retries for a model"
         );
@@ -10883,7 +10909,11 @@ default = "grok-4.5"
         let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
         let resolved = resolve_model_list(&cfg, None);
         assert_eq!(
-            resolved.get("plain").expect("model should exist").info.rate_limit_retry_threshold,
+            resolved
+                .get("plain")
+                .expect("model should exist")
+                .info
+                .rate_limit_retry_threshold,
             None
         );
     }
@@ -10913,17 +10943,29 @@ default = "grok-4.5"
 
         let resolved = resolve_model_list(&cfg, Some(prefetched));
         assert_eq!(
-            resolved.get("inherited").expect("exists").info.rate_limit_retry_threshold,
+            resolved
+                .get("inherited")
+                .expect("exists")
+                .info
+                .rate_limit_retry_threshold,
             Some(9),
             "an unset model must inherit the [models] default"
         );
         assert_eq!(
-            resolved.get("from-catalog").expect("exists").info.rate_limit_retry_threshold,
+            resolved
+                .get("from-catalog")
+                .expect("exists")
+                .info
+                .rate_limit_retry_threshold,
             Some(3),
             "a prefetched catalog value must beat the [models] default"
         );
         assert_eq!(
-            resolved.get("overridden").expect("exists").info.rate_limit_retry_threshold,
+            resolved
+                .get("overridden")
+                .expect("exists")
+                .info
+                .rate_limit_retry_threshold,
             Some(2),
             "a per-model override must win over the [models] default"
         );

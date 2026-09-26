@@ -6,9 +6,9 @@
 //! session fork).
 use crate::util::config::WorktreeType as ShellWorktreeType;
 use anyhow::Result;
-use std::path::Path;
 use nofy_workspace::session::git::find_git_root_from_path;
 pub use nofy_workspace::worktree::*;
+use std::path::Path;
 const WORKTREE_LOG: &str = "xai_worktree";
 impl From<ShellWorktreeType> for WorktreeType {
     fn from(t: ShellWorktreeType) -> Self {
@@ -680,8 +680,7 @@ mod tests {
             git_ref: None,
         };
         let ops = nofy_workspace::WorkspaceOps::for_test();
-        let result =
-            resume_session_in_worktree(&req, &ops, ShellWorktreeType::Linked, false).await;
+        let result = resume_session_in_worktree(&req, &ops, ShellWorktreeType::Linked, false).await;
         let err = result.expect_err("should fail when session not found locally");
         let msg = err.to_string();
         assert!(

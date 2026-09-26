@@ -46,7 +46,6 @@ pub fn bootstrap(
         ModelsManager::from_config(&cfg, prefetched, auth_manager.clone())?
     };
 
-
     Ok((cfg, models_manager))
 }
 

@@ -51,7 +51,10 @@ pub enum ExtractError {
 }
 
 /// Plan the pipeline for one source. Deterministic stage order.
-pub fn pipeline(source: &ExtractSource, policy: &ExtractionPolicy) -> Result<Vec<Stage>, ExtractError> {
+pub fn pipeline(
+    source: &ExtractSource,
+    policy: &ExtractionPolicy,
+) -> Result<Vec<Stage>, ExtractError> {
     if source.path.trim().is_empty() {
         return Err(ExtractError::EmptyPath);
     }
@@ -80,11 +83,22 @@ pub struct ExtractedContent {
 /// Fold stage outputs into the stored record. The `embedded` flag can
 /// only be true when the policy enabled embeddings — the record cannot
 /// claim an embedding the pipeline never planned.
-pub fn content_record(source: &ExtractSource, text: &str, policy: &ExtractionPolicy) -> ExtractedContent {
-    let has_text_stage = matches!(source.kind, SourceKind::Pdf | SourceKind::Docx | SourceKind::PlainText);
+pub fn content_record(
+    source: &ExtractSource,
+    text: &str,
+    policy: &ExtractionPolicy,
+) -> ExtractedContent {
+    let has_text_stage = matches!(
+        source.kind,
+        SourceKind::Pdf | SourceKind::Docx | SourceKind::PlainText
+    );
     ExtractedContent {
         path: source.path.clone(),
-        text: if has_text_stage { text.to_string() } else { String::new() },
+        text: if has_text_stage {
+            text.to_string()
+        } else {
+            String::new()
+        },
         embedded: policy.embeddings,
     }
 }
@@ -94,14 +108,22 @@ mod tests {
     use super::*;
 
     fn source(kind: SourceKind) -> ExtractSource {
-        ExtractSource { path: "/media/doc.pdf".into(), kind }
+        ExtractSource {
+            path: "/media/doc.pdf".into(),
+            kind,
+        }
     }
 
     #[test]
     fn embeddings_default_off() {
         let policy = ExtractionPolicy::default();
         assert!(!policy.embeddings);
-        for kind in [SourceKind::Pdf, SourceKind::Docx, SourceKind::Image, SourceKind::PlainText] {
+        for kind in [
+            SourceKind::Pdf,
+            SourceKind::Docx,
+            SourceKind::Image,
+            SourceKind::PlainText,
+        ] {
             let stages = pipeline(&source(kind), &policy).unwrap();
             assert!(
                 !stages.contains(&Stage::LocalEmbeddings),
@@ -116,7 +138,11 @@ mod tests {
         let stages = pipeline(&source(SourceKind::Pdf), &policy).unwrap();
         assert_eq!(
             stages,
-            vec![Stage::ReadMetadata, Stage::ExtractText, Stage::LocalEmbeddings]
+            vec![
+                Stage::ReadMetadata,
+                Stage::ExtractText,
+                Stage::LocalEmbeddings
+            ]
         );
     }
 
@@ -141,8 +167,14 @@ mod tests {
 
     #[test]
     fn empty_path_fails_loud() {
-        let src = ExtractSource { path: "  ".into(), kind: SourceKind::Pdf };
-        assert_eq!(pipeline(&src, &ExtractionPolicy::default()), Err(ExtractError::EmptyPath));
+        let src = ExtractSource {
+            path: "  ".into(),
+            kind: SourceKind::Pdf,
+        };
+        assert_eq!(
+            pipeline(&src, &ExtractionPolicy::default()),
+            Err(ExtractError::EmptyPath)
+        );
     }
 
     #[test]
@@ -154,7 +186,11 @@ mod tests {
         let on = content_record(&src, "hello", &ExtractionPolicy { embeddings: true });
         assert!(on.embedded);
         // Images store no text even if a string is supplied.
-        let img = content_record(&source(SourceKind::Image), "ignored", &ExtractionPolicy::default());
+        let img = content_record(
+            &source(SourceKind::Image),
+            "ignored",
+            &ExtractionPolicy::default(),
+        );
         assert_eq!(img.text, "");
     }
 }

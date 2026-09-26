@@ -12,15 +12,15 @@
 use std::collections::HashSet;
 use std::time::Instant;
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
 use nofy_acp_lib::AcpResult;
 use nofy_markdown::StreamingMarkdownRenderer;
 pub use nofy_tools::implementations::nofy_build::ask_user_question::{
     AskUserQuestionMode, Question, QuestionOption,
 };
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
 
 use unicode_width::UnicodeWidthStr;
 
@@ -867,10 +867,10 @@ impl QuestionViewState {
     ) -> nofy_tools::implementations::nofy_build::ask_user_question::AskUserQuestionExtResponse
     {
         use indexmap::IndexMap;
-        use std::collections::HashMap;
         use nofy_tools::implementations::nofy_build::ask_user_question::{
             AskUserQuestionExtResponse, QuestionAnnotation,
         };
+        use std::collections::HashMap;
 
         let mut answers = IndexMap::new();
         let mut annotations: HashMap<String, QuestionAnnotation> = HashMap::new();

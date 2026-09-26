@@ -100,7 +100,9 @@ pub fn expire_undecided(ledger: &mut BatchLedger) -> usize {
 pub enum BatchOutcome {
     AllApproved,
     /// Some approved, some denied — the approved subset may proceed.
-    Partial { approved: Vec<String> },
+    Partial {
+        approved: Vec<String>,
+    },
     AnyDenied,
     /// Still undecided items remain.
     Incomplete,
@@ -134,9 +136,21 @@ mod tests {
         ApprovalBatch {
             batch_id: "cleanup-1".into(),
             items: vec![
-                BatchItem { id: "mv-1".into(), summary: "move logs/ to archive/".into(), high_risk: false },
-                BatchItem { id: "del-1".into(), summary: "trash 40 duplicate images".into(), high_risk: true },
-                BatchItem { id: "ren-1".into(), summary: "rename project files".into(), high_risk: false },
+                BatchItem {
+                    id: "mv-1".into(),
+                    summary: "move logs/ to archive/".into(),
+                    high_risk: false,
+                },
+                BatchItem {
+                    id: "del-1".into(),
+                    summary: "trash 40 duplicate images".into(),
+                    high_risk: true,
+                },
+                BatchItem {
+                    id: "ren-1".into(),
+                    summary: "rename project files".into(),
+                    high_risk: false,
+                },
             ],
         }
     }
@@ -173,7 +187,11 @@ mod tests {
         decide_item(&mut ledger, "mv-1", ItemDecision::Approved);
         // Deadline: two items never decided.
         assert_eq!(expire_undecided(&mut ledger), 2);
-        assert_eq!(batch_outcome(&ledger), BatchOutcome::AnyDenied, "expired = denied, never allowed");
+        assert_eq!(
+            batch_outcome(&ledger),
+            BatchOutcome::AnyDenied,
+            "expired = denied, never allowed"
+        );
     }
 
     #[test]

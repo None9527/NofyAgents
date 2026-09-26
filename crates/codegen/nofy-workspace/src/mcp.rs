@@ -6,7 +6,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use serde_json::Value;
 use nofy_computer_hub_mcp_adapter::{
     McpBridgeConfig, McpCallResult, McpContent, McpServerInfo, McpToolDefinition, McpToolHandler,
     McpTransport,
@@ -17,6 +16,7 @@ use nofy_mcp::servers::{McpClient, parse_mcp_qualified_name};
 use nofy_tool_protocol::ToolId;
 use nofy_tool_runtime::{ToolCallContext, ToolStream, TypedToolOutput};
 use nofy_tool_types::ToolDescription;
+use serde_json::Value;
 
 /// Adapts [`McpClient`] to the [`McpTransport`] trait for [`McpBridge`].
 pub(crate) struct McpClientTransportAdapter {

@@ -796,16 +796,13 @@ async fn list_skills(
         .collect()
 }
 
-fn slash_name_counts(
-    skills: &[nofy_agent::prompt::skills::SkillInfo],
-) -> HashMap<String, usize> {
+fn slash_name_counts(skills: &[nofy_agent::prompt::skills::SkillInfo]) -> HashMap<String, usize> {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for skill in skills.iter().filter(|s| s.user_invocable && s.enabled) {
         *counts.entry(skill.name.to_lowercase()).or_default() += 1;
         *counts
             .entry(
-                nofy_tools::implementations::skills::skill::format_skill_name(skill)
-                    .to_lowercase(),
+                nofy_tools::implementations::skills::skill::format_skill_name(skill).to_lowercase(),
             )
             .or_default() += 1;
     }
@@ -1344,17 +1341,22 @@ fn print_human(r: &InspectReport, out: &mut impl Write) -> std::io::Result<()> {
         if r.project_trusted { "yes" } else { "no" }
     )?;
 
-    print_section("Project Instructions", &r.project_instructions, |f| {
-        let status = disabled_compat_tags(f.disabled, f.compatibility_status);
-        format!(
-            "{} ({}, ~{} tokens){}{}",
-            f.path,
-            f.scope,
-            f.approx_tokens,
-            vendor_tag(&f.vendor),
-            status,
-        )
-    }, out)?;
+    print_section(
+        "Project Instructions",
+        &r.project_instructions,
+        |f| {
+            let status = disabled_compat_tags(f.disabled, f.compatibility_status);
+            format!(
+                "{} ({}, ~{} tokens){}{}",
+                f.path,
+                f.scope,
+                f.approx_tokens,
+                vendor_tag(&f.vendor),
+                status,
+            )
+        },
+        out,
+    )?;
 
     writeln!(out)?;
     writeln!(out, "  Permissions")?;
@@ -1481,12 +1483,17 @@ fn print_human(r: &InspectReport, out: &mut impl Write) -> std::io::Result<()> {
         out,
     )?;
 
-    print_section("Marketplaces", &r.marketplaces, |m| {
-        format!(
-            "{} ({}, {} enabled plugins)",
-            m.name, m.path, m.enabled_plugins
-        )
-    }, out)?;
+    print_section(
+        "Marketplaces",
+        &r.marketplaces,
+        |m| {
+            format!(
+                "{} ({}, {} enabled plugins)",
+                m.name, m.path, m.enabled_plugins
+            )
+        },
+        out,
+    )?;
 
     if r.mcp_servers.is_empty() {
         writeln!(out)?;
@@ -1588,7 +1595,11 @@ fn print_human(r: &InspectReport, out: &mut impl Write) -> std::io::Result<()> {
     }
 
     write!(out, "{}", render_config_warnings(&r.config_warnings))?;
-    write!(out, "{}", render_mcp_config_problems(&r.mcp_config_problems))?;
+    write!(
+        out,
+        "{}",
+        render_mcp_config_problems(&r.mcp_config_problems)
+    )?;
 
     write!(out, "{}", render_harness_compatibility(&r.external_compat))?;
     Ok(())
@@ -2279,7 +2290,10 @@ mod tests {
         };
         let (enforced3, advisory3) = super::classify_managed_features(&bypass_only);
         assert!(advisory3);
-        assert!(enforced3.is_empty(), "nothing is enforced by a bypass lock alone");
+        assert!(
+            enforced3.is_empty(),
+            "nothing is enforced by a bypass lock alone"
+        );
 
         // `disable_yolo = false` is an explicit non-request, not a request.
         let off = ManagedSettingsFeatures {
@@ -2289,5 +2303,4 @@ mod tests {
         };
         assert!(!super::classify_managed_features(&off).1);
     }
-
 }

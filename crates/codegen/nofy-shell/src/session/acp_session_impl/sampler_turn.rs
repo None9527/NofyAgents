@@ -72,10 +72,7 @@ pub(super) async fn call_with_auth_retry<F, Fut>(
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<
-            Output = Result<
-                nofy_tools::types::output::ToolRunResult,
-                nofy_tool_runtime::ToolError,
-            >,
+            Output = Result<nofy_tools::types::output::ToolRunResult, nofy_tool_runtime::ToolError>,
         >,
 {
     let result = call().await;
@@ -504,12 +501,12 @@ impl SessionActor {
                     let (sampling_client, model) = match &aux_classifier_sampler {
                         Some((client, model)) => (client.clone(), model.clone()),
                         None => {
-                            let client = session
-                                .prepare_chat_completion(false)
-                                .await
-                                .map_err(|e| nofy_workspace::permission::ClassifierFailure::TransportError(
-                                    e.to_string(),
-                                ))?;
+                            let client =
+                                session.prepare_chat_completion(false).await.map_err(|e| {
+                                    nofy_workspace::permission::ClassifierFailure::TransportError(
+                                        e.to_string(),
+                                    )
+                                })?;
                             let model = session
                                 .chat_state_handle
                                 .get_sampling_config()
@@ -542,12 +539,8 @@ impl SessionActor {
                             nofy_workspace::permission::classifier_output_json_schema(),
                         ),
                         reasoning_effort: classifier_reasoning_effort,
-                        x_nofy_conv_id: Some(
-                            format!("perm-classifier-{}", uuid::Uuid::new_v4()),
-                        ),
-                        x_nofy_req_id: Some(
-                            format!("nofy-perm-auto-{}", uuid::Uuid::new_v4()),
-                        ),
+                        x_nofy_conv_id: Some(format!("perm-classifier-{}", uuid::Uuid::new_v4())),
+                        x_nofy_req_id: Some(format!("nofy-perm-auto-{}", uuid::Uuid::new_v4())),
                         x_nofy_session_id: Some(session_id),
                         x_nofy_agent_id: Some(nofy_telemetry::id::agent_id()),
                         ..ConversationRequest::default()
@@ -555,15 +548,15 @@ impl SessionActor {
                     let fut = sampling_client.conversation_collect(request);
                     let response = tokio::time::timeout(classify_timeout, fut)
                         .await
-                        .map_err(|_| {
-                            nofy_workspace::permission::ClassifierFailure::Timeout
-                        })?
-                        .map_err(|e| nofy_workspace::permission::ClassifierFailure::TransportError(
-                            e.to_string(),
-                        ))?;
+                        .map_err(|_| nofy_workspace::permission::ClassifierFailure::Timeout)?
+                        .map_err(|e| {
+                            nofy_workspace::permission::ClassifierFailure::TransportError(
+                                e.to_string(),
+                            )
+                        })?;
                     Ok(response.assistant_text())
                 }
-                    .await;
+                .await;
                 if let Err(error) = &result {
                     tracing::warn!(%error, "permission auto classifier side-query failed");
                 }
@@ -1021,15 +1014,14 @@ impl SessionActor {
             .error_code
             .as_ref()
             .is_some_and(nofy_sampling_types::ApiErrorCode::is_size_overflow);
-        let error_type = if error.status_code
-            == Some(reqwest::StatusCode::TOO_MANY_REQUESTS.as_u16())
-        {
-            error.kind.as_str()
-        } else if size_coded || nofy_sampling_types::is_context_length_error(&error.message) {
-            "context_length"
-        } else {
-            error.kind.as_str()
-        };
+        let error_type =
+            if error.status_code == Some(reqwest::StatusCode::TOO_MANY_REQUESTS.as_u16()) {
+                error.kind.as_str()
+            } else if size_coded || nofy_sampling_types::is_context_length_error(&error.message) {
+                "context_length"
+            } else {
+                error.kind.as_str()
+            };
         let (error_type, detailed_message) = match self.auth_manager.as_ref() {
             Some(auth_manager) if error_type == "auth" => self.apply_auth_remedy(
                 &auth_manager.auth_remedy(),

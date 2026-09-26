@@ -550,8 +550,8 @@ fn rehydrate_worktree_from_ref_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use nofy_test_utils::git::{git_commit_all, init_git_repo};
+    use tempfile::TempDir;
 
     #[test]
     fn test_git_reset_hard_command() {

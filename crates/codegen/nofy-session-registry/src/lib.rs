@@ -85,11 +85,7 @@ impl Registry {
     /// Absolute session directory, when the session exists.
     pub fn session_dir(&self, session_id: &str) -> Option<PathBuf> {
         let rec = self.lookup(session_id)?;
-        Some(
-            self.sessions_dir()
-                .join(&rec.cwd_key)
-                .join(&rec.session_id),
-        )
+        Some(self.sessions_dir().join(&rec.cwd_key).join(&rec.session_id))
     }
 }
 

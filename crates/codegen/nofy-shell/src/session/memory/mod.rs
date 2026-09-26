@@ -11,5 +11,6 @@
 
 pub use nofy_memory::{
     MemoryIndex, MemoryScope, MemoryStorage, chunker, embed_missing_chunks, embedding, index,
-    init_sqlite_vec, mmr, query_expansion, schema, search, storage, text_utils, threat_scan, watcher,
+    init_sqlite_vec, mmr, query_expansion, schema, search, storage, text_utils, threat_scan,
+    watcher,
 };

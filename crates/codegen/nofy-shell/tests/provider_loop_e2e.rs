@@ -30,7 +30,7 @@ use std::time::Duration;
 use nofy_channel::frame::{read_frame_from, write_frame};
 use nofy_channel::hello::{Hello, ProtocolVersion};
 use nofy_control_schema::methods::ControlMethod;
-use nofy_test_support::process::{TestProcess, TestProcessConfig, TestOutput, TestStdin};
+use nofy_test_support::process::{TestOutput, TestProcess, TestProcessConfig, TestStdin};
 use nofy_test_support::*;
 
 const PERSONA_MARKER: &str = "PROVIDER_PERSONA_MARKER_文件管家人格";
@@ -48,8 +48,8 @@ struct ControlClient {
 
 impl ControlClient {
     fn connect(sock: &Path) -> Self {
-        let stream = UnixStream::connect(sock)
-            .unwrap_or_else(|e| panic!("connect {}: {e}", sock.display()));
+        let stream =
+            UnixStream::connect(sock).unwrap_or_else(|e| panic!("connect {}: {e}", sock.display()));
         stream
             .set_read_timeout(Some(Duration::from_secs(60)))
             .unwrap();

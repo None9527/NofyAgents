@@ -4,10 +4,10 @@
 
 use std::fmt;
 
+use nofy_circuit_breaker::RetryPolicy;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use nofy_circuit_breaker::RetryPolicy;
 
 use crate::provider_error::{parse_provider_error, parse_provider_error_str};
 
@@ -756,7 +756,9 @@ fn truncate_user_error(s: &str) -> String {
 fn structured_error_message(bytes: &[u8]) -> Option<String> {
     let rigid = std::str::from_utf8(bytes).ok().and_then(try_parse_error);
     if let Some(ParsedError {
-        error_type, message, ..
+        error_type,
+        message,
+        ..
     }) = &rigid
         && message != "unknown error"
     {
@@ -950,7 +952,10 @@ mod tests {
             "rate_limit_exceeded",
         ] {
             let parsed = ApiErrorCode::parse(code);
-            assert_eq!(serde_json::to_string(&parsed).unwrap(), format!("\"{code}\""));
+            assert_eq!(
+                serde_json::to_string(&parsed).unwrap(),
+                format!("\"{code}\"")
+            );
             assert_eq!(
                 serde_json::from_str::<ApiErrorCode>(&format!("\"{code}\"")).unwrap(),
                 parsed
@@ -964,10 +969,7 @@ mod tests {
     #[test]
     fn parse_error_code_reads_nested_and_flat_envelopes() {
         let nested = br#"{"error":{"message":"bad image","type":"invalid_request_error","code":"invalid_image"}}"#;
-        assert_eq!(
-            parse_error_code(nested),
-            Some(ApiErrorCode::InvalidImage)
-        );
+        assert_eq!(parse_error_code(nested), Some(ApiErrorCode::InvalidImage));
 
         let flat = br#"{"code":"invalid_image","error":"bad image"}"#;
         assert_eq!(parse_error_code(flat), Some(ApiErrorCode::InvalidImage));
@@ -986,7 +988,8 @@ mod tests {
     /// retryable stream error to a fatal `Serialization` error.
     #[test]
     fn lenient_code_swallows_non_string_nested_code() {
-        let body = r#"{"error":{"message":"too many tokens","type":"invalid_request_error","code":429}}"#;
+        let body =
+            r#"{"error":{"message":"too many tokens","type":"invalid_request_error","code":429}}"#;
         let err = try_parse_stream_error(body).expect("envelope must still parse");
         match err {
             SamplingError::StreamError {
@@ -1076,7 +1079,9 @@ mod tests {
         let token_tier = api(
             400,
             "too many tokens",
-            Some(ApiErrorCode::ContextOverflow("context_length_exceeded".into())),
+            Some(ApiErrorCode::ContextOverflow(
+                "context_length_exceeded".into(),
+            )),
         );
         assert!(!token_tier.is_byte_size_overflow_coded());
     }
@@ -1088,7 +1093,9 @@ mod tests {
         let err = api(
             400,
             "some unfamiliar provider wording",
-            Some(ApiErrorCode::ContextOverflow("exceed_context_size_error".into())),
+            Some(ApiErrorCode::ContextOverflow(
+                "exceed_context_size_error".into(),
+            )),
         );
         assert!(err.is_context_length_error());
         assert!(err.is_retry_vetoed());
@@ -1099,10 +1106,8 @@ mod tests {
     /// instead of fast-failing.
     #[test]
     fn rate_limit_with_retry_after_is_not_context_length() {
-        let err = api_429_with_retry_after(
-            "request is too long for this model, try again later",
-            None,
-        );
+        let err =
+            api_429_with_retry_after("request is too long for this model, try again later", None);
         assert!(!err.is_context_length_error());
         assert!(!err.is_retry_vetoed());
 
@@ -1110,7 +1115,9 @@ mod tests {
         // overflow the provider happened to answer with 429.
         let coded = api_429_with_retry_after(
             "request is too long for this model",
-            Some(ApiErrorCode::ContextOverflow("context_length_exceeded".into())),
+            Some(ApiErrorCode::ContextOverflow(
+                "context_length_exceeded".into(),
+            )),
         );
         assert!(coded.is_context_length_error());
         assert!(coded.is_retry_vetoed());

@@ -151,11 +151,7 @@ pub(crate) async fn delegate_session_search(root: &Path, query: &str) -> (u32, V
 pub(crate) fn search_answer_from_response(
     resp: &crate::session::storage::search::SessionSearchResponse,
 ) -> (u32, Vec<String>) {
-    let sessions: Vec<String> = resp
-        .results
-        .iter()
-        .map(|r| r.session_id.clone())
-        .collect();
+    let sessions: Vec<String> = resp.results.iter().map(|r| r.session_id.clone()).collect();
     let hits = resp.total_estimate.unwrap_or(sessions.len()) as u32;
     (hits, sessions)
 }
@@ -203,10 +199,7 @@ async fn run_provider_task(
     let cwd = match cwd {
         Some(dir) => {
             let path = PathBuf::from(dir);
-            anyhow::ensure!(
-                path.is_dir(),
-                "dispatch cwd '{dir}' is not a directory"
-            );
+            anyhow::ensure!(path.is_dir(), "dispatch cwd '{dir}' is not a directory");
             path
         }
         None => std::env::current_dir()?,
@@ -256,14 +249,13 @@ async fn run_provider_task(
             final_text = Some(assistant.content.to_string());
             break;
         }
-        items.push(nofy_sampling_types::ConversationItem::Assistant(assistant.clone()));
+        items.push(nofy_sampling_types::ConversationItem::Assistant(
+            assistant.clone(),
+        ));
         for call in &assistant.tool_calls {
             let params: serde_json::Value =
                 serde_json::from_str(&call.arguments).unwrap_or_else(|_| serde_json::json!({}));
-            let result = agent
-                .tool_bridge()
-                .call(&call.name, params, &call.id)
-                .await;
+            let result = agent.tool_bridge().call(&call.name, params, &call.id).await;
             let text = match &result {
                 Ok(run) => run.prompt_text.clone(),
                 Err(e) => format!("tool error: {e}"),
@@ -300,7 +292,11 @@ const MAX_TOOL_TURNS: usize = 24;
 
 /// Log-safe one-line summary of a tool argument/result payload.
 fn truncate_for_log(text: &str) -> String {
-    let flat: String = text.chars().take(160).collect::<String>().replace('\n', " ");
+    let flat: String = text
+        .chars()
+        .take(160)
+        .collect::<String>()
+        .replace('\n', " ");
     if text.chars().count() > 160 {
         format!("{flat}…")
     } else {
@@ -376,8 +372,9 @@ fn parse_verdict(answer: &str) -> Verdict {
         .lines()
         .find(|line| line.trim().to_uppercase().starts_with("VERDICT:"));
     match verdict_line {
-        Some(line) if line.to_uppercase().contains("ACHIEVED")
-            && !line.to_uppercase().contains("NOT_ACHIEVED") =>
+        Some(line)
+            if line.to_uppercase().contains("ACHIEVED")
+                && !line.to_uppercase().contains("NOT_ACHIEVED") =>
         {
             Verdict {
                 achieved: true,
@@ -401,7 +398,8 @@ fn reason_after(answer: &str, verdict_line: &str) -> String {
     if let Some(rest) = verdict_line.splitn(2, ':').nth(1) {
         let rest = rest.trim();
         // A bare "ACHIEVED"/"NOT_ACHIEVED" token carries no reason.
-        if !rest.is_empty() && !rest.eq_ignore_ascii_case("ACHIEVED")
+        if !rest.is_empty()
+            && !rest.eq_ignore_ascii_case("ACHIEVED")
             && !rest.eq_ignore_ascii_case("NOT_ACHIEVED")
         {
             parts.push(rest.to_string());
@@ -458,7 +456,10 @@ mod tests {
         };
         let (hits, sessions) = search_answer_from_response(&resp);
         assert_eq!(hits, 2);
-        assert_eq!(sessions, vec!["seed-cjk-1".to_string(), "seed-2".to_string()]);
+        assert_eq!(
+            sessions,
+            vec!["seed-cjk-1".to_string(), "seed-2".to_string()]
+        );
 
         // No total_estimate → falls back to the row count.
         let resp = SessionSearchResponse {

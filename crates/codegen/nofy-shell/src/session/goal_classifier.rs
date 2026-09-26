@@ -21,15 +21,15 @@ use crate::session::goal_planner::{
 };
 use crate::session::goal_role_tools::RoleToolNames;
 use crate::session::goal_tracker::GoalClassifierVerdict;
-use std::borrow::Cow;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::Duration;
 use nofy_file_utils::events::EventWriter;
 use nofy_tools::implementations::nofy_build::task::backend::{ChannelBackend, SubagentBackend};
 use nofy_tools::implementations::nofy_build::task::types::{
     SubagentOwner, SubagentRequest, SubagentRuntimeOverrides,
 };
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
 // Constants
 
@@ -2444,9 +2444,7 @@ mod tests {
 
     #[tokio::test]
     async fn channel_spawner_request_is_harness_internal() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let spawner = ChannelSpawner {
@@ -2495,9 +2493,7 @@ mod tests {
     /// SAME model — i.e. skeptic-0 keeps `pool[0]` on the cold fallback.
     #[tokio::test]
     async fn channel_spawner_applies_per_index_model_to_request() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let spawner = ChannelSpawner {
@@ -2567,9 +2563,7 @@ mod tests {
     /// `None` — the historic default-spawn behavior.
     #[tokio::test]
     async fn channel_spawner_inherit_index_leaves_model_none() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let spawner = ChannelSpawner {
             event_tx: tx,
@@ -5822,10 +5816,8 @@ mod tests {
     /// `runtime_overrides.model`.
     #[tokio::test]
     async fn cold_fallback_after_resume_failure_carries_pool0_model_on_request() {
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
         use std::sync::Mutex as StdMutex;
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
 
         // (model, resume_from) per spawn, in spawn order.
         type SpawnCapture = Arc<StdMutex<Vec<(Option<String>, Option<String>)>>>;
@@ -6014,10 +6006,7 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_VERIFIER_N") };
         // Literal 3 (not the const) so a regression that flips the production
         // default fails LOUDLY here, where a `== CONST` tautology would pass.
-        assert_eq!(
-            cfg_verifier(None).resolve_goal_verifier_count().value,
-            3
-        );
+        assert_eq!(cfg_verifier(None).resolve_goal_verifier_count().value, 3);
     }
 
     /// Production-side invariant: the wire default MUST stay at 3 even though
@@ -6043,15 +6032,11 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_VERIFIER_N") };
         // config is clamped to [MIN, MAX].
         assert_eq!(
-            cfg_verifier(Some(99))
-                .resolve_goal_verifier_count()
-                .value,
+            cfg_verifier(Some(99)).resolve_goal_verifier_count().value,
             GOAL_VERIFIER_SKEPTIC_MAX
         );
         assert_eq!(
-            cfg_verifier(Some(0))
-                .resolve_goal_verifier_count()
-                .value,
+            cfg_verifier(Some(0)).resolve_goal_verifier_count().value,
             GOAL_VERIFIER_SKEPTIC_MIN
         );
     }
@@ -6061,24 +6046,18 @@ mod tests {
     fn resolve_goal_classifier_max_runs_env_clamps_and_no_ceiling() {
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "0") };
         assert_eq!(
-            cfg_max_runs(None)
-                .resolve_goal_classifier_max_runs()
-                .value,
+            cfg_max_runs(None).resolve_goal_classifier_max_runs().value,
             GOAL_CLASSIFIER_MAX_RUNS_MIN
         );
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "999") };
         assert_eq!(
-            cfg_max_runs(None)
-                .resolve_goal_classifier_max_runs()
-                .value,
+            cfg_max_runs(None).resolve_goal_classifier_max_runs().value,
             999,
             "no upper ceiling"
         );
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "garbage") };
         assert_eq!(
-            cfg_max_runs(None)
-                .resolve_goal_classifier_max_runs()
-                .value,
+            cfg_max_runs(None).resolve_goal_classifier_max_runs().value,
             GOAL_CLASSIFIER_MAX_RUNS_DEFAULT
         );
         unsafe { std::env::remove_var("NOFY_GOAL_CLASSIFIER_MAX") };
@@ -6090,9 +6069,7 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_CLASSIFIER_MAX") };
         // Literal 10 so a regression flipping the production default fails here.
         assert_eq!(
-            cfg_max_runs(None)
-                .resolve_goal_classifier_max_runs()
-                .value,
+            cfg_max_runs(None).resolve_goal_classifier_max_runs().value,
             10
         );
     }
@@ -6125,9 +6102,7 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_STRATEGIST_EVERY") };
         // Default N = max(1, cap / 2).
         assert_eq!(
-            cfg_strategist(None)
-                .resolve_goal_strategist_every(10)
-                .value,
+            cfg_strategist(None).resolve_goal_strategist_every(10).value,
             5
         );
         for cap in [1, 2, 3] {
@@ -6156,9 +6131,7 @@ mod tests {
         // invalid env falls through to the default (cap/2).
         unsafe { std::env::set_var("NOFY_GOAL_STRATEGIST_EVERY", "not-a-number") };
         assert_eq!(
-            cfg_strategist(None)
-                .resolve_goal_strategist_every(10)
-                .value,
+            cfg_strategist(None).resolve_goal_strategist_every(10).value,
             5
         );
         unsafe { std::env::remove_var("NOFY_GOAL_STRATEGIST_EVERY") };
@@ -6179,9 +6152,7 @@ mod tests {
 
     #[tokio::test]
     async fn channel_spawner_blocks_until_subagent_result() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
         let release = Arc::new(Notify::new());

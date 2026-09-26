@@ -120,10 +120,7 @@ fn wrap_command(command: &str) -> Result<String, ComputerError> {
     #[cfg(unix)]
     {
         let quoted = shlex::try_quote(command).map_err(|_| ComputerError::CommandNotQuoted)?;
-        Ok(format!(
-            "{} -lc {quoted}",
-            crate::default_shell_path()
-        ))
+        Ok(format!("{} -lc {quoted}", crate::default_shell_path()))
     }
 }
 

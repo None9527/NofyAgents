@@ -203,13 +203,19 @@ fn acp_lifecycle_line(l: Lifecycle) -> AcpLine {
         Lifecycle::CompactCancelled => AcpLine::AutoCompactCancelled,
         Lifecycle::AutoContinue { total_tokens } => AcpLine::AutoContinueCompleted { total_tokens },
         Lifecycle::ImageCompressed { message } => AcpLine::ImageCompressed { message },
-        Lifecycle::Retrying { attempt, max_retries, reason } => AcpLine::RetryState {
+        Lifecycle::Retrying {
+            attempt,
+            max_retries,
+            reason,
+        } => AcpLine::RetryState {
             attempt,
             max_retries,
             reason,
             exhausted: false,
         },
-        Lifecycle::RetryExhausted { attempts, reason, .. } => AcpLine::RetryState {
+        Lifecycle::RetryExhausted {
+            attempts, reason, ..
+        } => AcpLine::RetryState {
             attempt: attempts,
             max_retries: attempts,
             reason,

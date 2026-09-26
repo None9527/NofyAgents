@@ -20,8 +20,8 @@
 use std::path::Path;
 use std::time::Duration;
 
-use rusqlite::{Connection, OptionalExtension, params};
 use nofy_sqlite_journal::JournalMode;
+use rusqlite::{Connection, OptionalExtension, params};
 
 use super::search_recovery;
 
@@ -569,9 +569,9 @@ impl SessionSearchIndex {
     /// has no CJK or is too short for trigram matching (< 3 chars after trim).
     fn cjk_trigram_query(query: &str) -> Option<String> {
         let trimmed = query.trim();
-        let has_cjk = trimmed
-            .chars()
-            .any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c) || ('\u{3400}'..='\u{4dbf}').contains(&c));
+        let has_cjk = trimmed.chars().any(|c| {
+            ('\u{4e00}'..='\u{9fff}').contains(&c) || ('\u{3400}'..='\u{4dbf}').contains(&c)
+        });
         if !has_cjk || trimmed.chars().count() < 3 {
             return None;
         }
@@ -1617,13 +1617,22 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let index = open(&tmp);
         index
-            .upsert_doc(&test_doc("s1", "会话标题", "今天讨论了文件管家的设计与崩溃恢复"))
+            .upsert_doc(&test_doc(
+                "s1",
+                "会话标题",
+                "今天讨论了文件管家的设计与崩溃恢复",
+            ))
             .unwrap();
 
         // unicode61 cannot segment this; the trigram index must match it as a
         // substring.
         let qr = index.query("文件管家", None, 10, 0, true).unwrap();
-        assert_eq!(qr.results.len(), 1, "CJK substring must hit: {:?}", qr.results);
+        assert_eq!(
+            qr.results.len(),
+            1,
+            "CJK substring must hit: {:?}",
+            qr.results
+        );
         assert_eq!(qr.results[0].session_id, "s1");
 
         // Title CJK also searchable.
@@ -1646,7 +1655,12 @@ mod tests {
         // unicode61 raw-phrase fallback; its prefix form (`文件*`) matches the
         // unsegmented doc token `文件管家内容`. Pin this useful behavior.
         let qr = index.query("文件", None, 10, 0, false).unwrap();
-        assert_eq!(qr.results.len(), 1, "short CJK prefix fallback: {:?}", qr.results);
+        assert_eq!(
+            qr.results.len(),
+            1,
+            "short CJK prefix fallback: {:?}",
+            qr.results
+        );
         // A short CJK query that is NOT a prefix of any token stays empty.
         let qr = index.query("管家", None, 10, 0, false).unwrap();
         assert!(qr.results.is_empty(), "non-prefix short CJK must not match");
@@ -1657,7 +1671,11 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let index = open(&tmp);
         index
-            .upsert_doc(&test_doc("s1", "Session picker", "the session picker opens"))
+            .upsert_doc(&test_doc(
+                "s1",
+                "Session picker",
+                "the session picker opens",
+            ))
             .unwrap();
         let qr = index.query("picker", None, 10, 0, false).unwrap();
         assert_eq!(qr.results.len(), 1, "ascii stemmed path must still work");

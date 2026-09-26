@@ -4,8 +4,8 @@ use std::io::Write;
 
 use anyhow::{Result, bail};
 use clap::Subcommand;
-use tokio_util::sync::CancellationToken;
 use nofy_fast_worktree::WorktreeRecord;
+use tokio_util::sync::CancellationToken;
 
 use agent_client_protocol as acp;
 use nofy_acp_lib::acp_send;

@@ -130,7 +130,10 @@ pub fn submit_run(
         }
         for t in &m.task {
             if !pack_map.contains_key(&t.pack) {
-                return Err(format!("task {} references undeclared pack {}", t.id, t.pack));
+                return Err(format!(
+                    "task {} references undeclared pack {}",
+                    t.id, t.pack
+                ));
             }
         }
     }
@@ -150,7 +153,9 @@ pub fn submit_run(
                 nofy_orchestra::dag::OnFailPolicy::Retry { attempts: t.retry }
             } else {
                 match m.on_fail {
-                    crate::orchestra::OnFail::Escalate => nofy_orchestra::dag::OnFailPolicy::Escalate,
+                    crate::orchestra::OnFail::Escalate => {
+                        nofy_orchestra::dag::OnFailPolicy::Escalate
+                    }
                     crate::orchestra::OnFail::Skip => nofy_orchestra::dag::OnFailPolicy::Skip,
                 }
             },
@@ -208,7 +213,10 @@ pub fn resume_run(stores: &DaemonStores) -> Result<Option<DaemonRun>, String> {
                 Some(nofy_orchestra::replay::OrchEvent::Dispatched { task: task.clone() })
             }
             nofy_orchestra::taskjournal::TaskEvent::Settled { task, ok, .. } => {
-                Some(nofy_orchestra::replay::OrchEvent::Settled { task: task.clone(), ok: *ok })
+                Some(nofy_orchestra::replay::OrchEvent::Settled {
+                    task: task.clone(),
+                    ok: *ok,
+                })
             }
             nofy_orchestra::taskjournal::TaskEvent::EscalationResolved { task, allow, .. } => {
                 Some(nofy_orchestra::replay::OrchEvent::EscalationResolved {
@@ -261,11 +269,18 @@ needs = ["t1"]
 "#;
         let (dr, total) = submit_run(manifest, &[], None).unwrap();
         assert_eq!(total, 2);
-        assert_eq!(dr.dag.tasks.len(), 2, "P2 DAG engine owns the dependency shape");
+        assert_eq!(
+            dr.dag.tasks.len(),
+            2,
+            "P2 DAG engine owns the dependency shape"
+        );
         // Per-task on_fail mapping: retry=2 → Retry{2}; retry=0 + default
         // on_fail=escalate → Escalate.
         let t1 = dr.dag.tasks.iter().find(|t| t.id == "t1").unwrap();
-        assert_eq!(t1.on_fail, nofy_orchestra::dag::OnFailPolicy::Retry { attempts: 2 });
+        assert_eq!(
+            t1.on_fail,
+            nofy_orchestra::dag::OnFailPolicy::Retry { attempts: 2 }
+        );
         let t2 = dr.dag.tasks.iter().find(|t| t.id == "t2").unwrap();
         assert_eq!(t2.on_fail, nofy_orchestra::dag::OnFailPolicy::Escalate);
         // Journal armed at submit: everything is reconcilable from the
@@ -304,7 +319,9 @@ needs = ["a"]
         let manifest =
             "packs = [\"p\", \"q\"]\n\n[[task]]\nid = \"t1\"\npack = \"q\"\ngoal = \"g\"\n";
         let pack = serde_json::json!({"id": "p", "persona": "x"});
-        let Err(err) = submit_run(manifest, &[pack], None) else { panic!("task referencing an undeclared pack must be refused") };
+        let Err(err) = submit_run(manifest, &[pack], None) else {
+            panic!("task referencing an undeclared pack must be refused")
+        };
         assert!(
             err.contains("undeclared pack"),
             "pack coverage is checked fail-loud: {err}"
@@ -346,8 +363,7 @@ needs = ["a"]
         }
     }
 
-    const ONE_TASK: &str =
-        "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+    const ONE_TASK: &str = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
 
     #[test]
     fn resume_replays_a_resolved_escalation_to_completion() {
@@ -365,18 +381,44 @@ needs = ["a"]
             })
             .unwrap();
         for event in [
-            TaskEvent::Armed { seq: 1, task: "t1".into(), run: "submit".into() },
-            TaskEvent::Claimed { seq: 2, task: "t1".into(), claimant: "provider".into() },
-            TaskEvent::Settled { seq: 3, task: "t1".into(), ok: false },
-            TaskEvent::Escalated { seq: 4, task: "t1".into(), reason: "failed".into() },
-            TaskEvent::EscalationResolved { seq: 5, task: "t1".into(), allow: true },
+            TaskEvent::Armed {
+                seq: 1,
+                task: "t1".into(),
+                run: "submit".into(),
+            },
+            TaskEvent::Claimed {
+                seq: 2,
+                task: "t1".into(),
+                claimant: "provider".into(),
+            },
+            TaskEvent::Settled {
+                seq: 3,
+                task: "t1".into(),
+                ok: false,
+            },
+            TaskEvent::Escalated {
+                seq: 4,
+                task: "t1".into(),
+                reason: "failed".into(),
+            },
+            TaskEvent::EscalationResolved {
+                seq: 5,
+                task: "t1".into(),
+                allow: true,
+            },
         ] {
             stores.journal.append(&event).unwrap();
         }
         let dr = resume_run(&stores).unwrap().expect("stored run resumes");
         assert_eq!(dr.journal.len(), 5, "the disk log is the journal truth");
-        assert!(dr.re_dispatch().is_empty(), "a resolved escalation leaves nothing to resume");
-        assert!(dr.orch.is_done(), "allowed skip-and-continue completes the run");
+        assert!(
+            dr.re_dispatch().is_empty(),
+            "a resolved escalation leaves nothing to resume"
+        );
+        assert!(
+            dr.orch.is_done(),
+            "allowed skip-and-continue completes the run"
+        );
     }
 
     #[test]
@@ -395,15 +437,34 @@ needs = ["a"]
             })
             .unwrap();
         for event in [
-            TaskEvent::Armed { seq: 1, task: "t1".into(), run: "submit".into() },
-            TaskEvent::Claimed { seq: 2, task: "t1".into(), claimant: "provider".into() },
-            TaskEvent::Settled { seq: 3, task: "t1".into(), ok: false },
-            TaskEvent::Escalated { seq: 4, task: "t1".into(), reason: "failed".into() },
+            TaskEvent::Armed {
+                seq: 1,
+                task: "t1".into(),
+                run: "submit".into(),
+            },
+            TaskEvent::Claimed {
+                seq: 2,
+                task: "t1".into(),
+                claimant: "provider".into(),
+            },
+            TaskEvent::Settled {
+                seq: 3,
+                task: "t1".into(),
+                ok: false,
+            },
+            TaskEvent::Escalated {
+                seq: 4,
+                task: "t1".into(),
+                reason: "failed".into(),
+            },
         ] {
             stores.journal.append(&event).unwrap();
         }
         let dr = resume_run(&stores).unwrap().expect("stored run resumes");
-        assert!(dr.orch.running.contains("t1"), "awaiting-decision work re-arms");
+        assert!(
+            dr.orch.running.contains("t1"),
+            "awaiting-decision work re-arms"
+        );
         assert!(
             dr.re_dispatch().is_empty(),
             "an escalated task awaits a decision, not a blind re-dispatch"
@@ -420,8 +481,13 @@ needs = ["a"]
             "persona": "x",
             "services": [{"name": "s"}, {"name": "s"}],
         });
-        let Err(err) = submit_run(manifest, &[pack], None) else { panic!("a realm collision must refuse the submit") };
-        assert!(err.contains("compose"), "the composition failure is named: {err}");
+        let Err(err) = submit_run(manifest, &[pack], None) else {
+            panic!("a realm collision must refuse the submit")
+        };
+        assert!(
+            err.contains("compose"),
+            "the composition failure is named: {err}"
+        );
     }
 
     #[test]
@@ -429,8 +495,13 @@ needs = ["a"]
         let dir = tempfile::tempdir().unwrap();
         let stores = stores_at(dir.path());
         std::fs::write(dir.path().join("run_store.json"), "{ torn").unwrap();
-        let Err(err) = resume_run(&stores) else { panic!("a torn plan store must refuse the resume") };
-        assert!(err.contains("run store"), "the store failure is named: {err}");
+        let Err(err) = resume_run(&stores) else {
+            panic!("a torn plan store must refuse the resume")
+        };
+        assert!(
+            err.contains("run store"),
+            "the store failure is named: {err}"
+        );
     }
 
     #[test]
@@ -467,8 +538,13 @@ needs = ["a"]
         std::fs::create_dir_all(dir.path().join("task_journal.jsonl")).unwrap();
         stores.journal =
             nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
-        let Err(err) = resume_run(&stores) else { panic!("an unreadable journal must refuse the resume") };
-        assert!(err.contains("task journal"), "the journal failure is named: {err}");
+        let Err(err) = resume_run(&stores) else {
+            panic!("an unreadable journal must refuse the resume")
+        };
+        assert!(
+            err.contains("task journal"),
+            "the journal failure is named: {err}"
+        );
     }
 
     #[test]
@@ -510,7 +586,9 @@ needs = ["a"]
 
         // Restart: reconciliation must see run B's armed task.
         let stores = stores_at(dir.path());
-        let dr = resume_run(&stores).unwrap().expect("the leftover run resumes");
+        let dr = resume_run(&stores)
+            .unwrap()
+            .expect("the leftover run resumes");
         assert_eq!(
             dr.re_dispatch(),
             vec!["t2".to_string()],
@@ -527,7 +605,9 @@ needs = ["a"]
             claimant: "provider".into(),
         });
         let stores = stores_at(dir.path());
-        let dr2 = resume_run(&stores).unwrap().expect("resume after the second crash");
+        let dr2 = resume_run(&stores)
+            .unwrap()
+            .expect("resume after the second crash");
         assert_eq!(
             dr2.re_dispatch(),
             vec!["t2".to_string()],

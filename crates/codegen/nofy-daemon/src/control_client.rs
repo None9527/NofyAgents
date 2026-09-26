@@ -55,8 +55,7 @@ impl ControlClient {
     pub fn call(&mut self, method: &ControlMethod) -> Result<serde_json::Value, String> {
         let frame = serde_json::to_vec(method).map_err(|e| e.to_string())?;
         write_frame(&mut self.stream, &frame).map_err(|e| format!("write: {e}"))?;
-        let Some(bytes) =
-            read_frame_from(&mut self.stream).map_err(|e| format!("read: {e}"))?
+        let Some(bytes) = read_frame_from(&mut self.stream).map_err(|e| format!("read: {e}"))?
         else {
             return Err("daemon closed the connection".into());
         };
@@ -348,7 +347,10 @@ mod tests {
         ready_rx.recv().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(50));
         let err = ControlClient::from_stream(client_side).unwrap_err();
-        assert!(err.contains("hello write"), "failure names the stage: {err}");
+        assert!(
+            err.contains("hello write"),
+            "failure names the stage: {err}"
+        );
         server.join().unwrap();
     }
 

@@ -120,7 +120,10 @@ mod tests {
 
     #[cfg(target_os = "linux")]
     fn spawn_sleeper() -> std::process::Child {
-        std::process::Command::new("sleep").arg("30").spawn().unwrap()
+        std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .unwrap()
     }
 
     #[cfg(target_os = "linux")]
@@ -199,11 +202,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let reg = ChildrenRegistry::at(dir.path());
         std::fs::create_dir_all(dir.path()).unwrap();
-        std::fs::write(
-            dir.path().join(CHILDREN_PREV_FILE),
-            "{ not json at all\n",
-        )
-        .unwrap();
+        std::fs::write(dir.path().join(CHILDREN_PREV_FILE), "{ not json at all\n").unwrap();
         let swept = reg.sweep_prev();
         assert!(swept.is_empty(), "torn lines carry no sweepable entry");
     }
@@ -227,7 +226,10 @@ mod tests {
         assert_eq!(swept.len(), 1);
         assert_eq!(swept[0].pid, pid);
         let status = stubborn.wait().unwrap();
-        assert!(!status.success(), "TERM-ignoring orphan dies to the escalation");
+        assert!(
+            !status.success(),
+            "TERM-ignoring orphan dies to the escalation"
+        );
     }
 
     #[cfg(target_os = "linux")]
@@ -248,7 +250,12 @@ mod tests {
             .unwrap();
         let mut out = String::new();
         use std::io::Read;
-        launcher.stdout.as_mut().unwrap().read_to_string(&mut out).unwrap();
+        launcher
+            .stdout
+            .as_mut()
+            .unwrap()
+            .read_to_string(&mut out)
+            .unwrap();
         let _ = launcher.wait(); // reap the launcher; the grandchild orphans
         let pid: u32 = out.trim().parse().unwrap();
         reg.register(pid, "orphan").unwrap();

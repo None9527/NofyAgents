@@ -15,10 +15,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use anyhow::Result;
 use git2::{DiffOptions, Oid, Repository};
+use nofy_fast_worktree::{BtrfsDelegate, IgnoredFilesMode, WorkingTreeMode, WorktreeBuilder};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex as TokioMutex;
 use tokio_util::sync::CancellationToken;
-use nofy_fast_worktree::{BtrfsDelegate, IgnoredFilesMode, WorkingTreeMode, WorktreeBuilder};
 
 use crate::session::git::{
     GitFileChange, change_type_from_git2_delta, find_git_root_from_path,
@@ -2386,8 +2386,8 @@ pub fn gc_worktrees_mgmt(
 pub fn worktree_auto_gc_layer_from_settings(
     s: &nofy_config_types::WorktreeAutoGcSettings,
 ) -> WorktreeAutoGcLayer {
-    use std::collections::BTreeMap;
     use nofy_config_types::WorktreeKindMaxAge;
+    use std::collections::BTreeMap;
 
     let max_age_by_kind = s
         .max_age_by_kind

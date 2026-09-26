@@ -42,7 +42,11 @@ pub fn author_validate(meta: &PackMetadata) -> Result<(), AuthorError> {
         }
     }
     let parts: Vec<&str> = meta.version.split('.').collect();
-    if parts.len() != 3 || !parts.iter().all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit())) {
+    if parts.len() != 3
+        || !parts
+            .iter()
+            .all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()))
+    {
         return Err(AuthorError::BadVersion(meta.version.clone()));
     }
     Ok(())
@@ -128,10 +132,16 @@ mod tests {
     fn authoring_rules_fail_loud() {
         let mut bad = meta("p", "1.0.0");
         bad.author = "  ".into();
-        assert_eq!(author_validate(&bad), Err(AuthorError::EmptyField("author".into())));
+        assert_eq!(
+            author_validate(&bad),
+            Err(AuthorError::EmptyField("author".into()))
+        );
         let mut badver = meta("p", "1.0");
         badver.version = "v1.0".into();
-        assert!(matches!(author_validate(&badver), Err(AuthorError::BadVersion(_))));
+        assert!(matches!(
+            author_validate(&badver),
+            Err(AuthorError::BadVersion(_))
+        ));
         assert!(author_validate(&meta("p", "1.0.0")).is_ok());
     }
 
@@ -141,7 +151,10 @@ mod tests {
         index.register(meta("reviewer", "1.0.0")).unwrap();
         assert_eq!(
             index.register(meta("reviewer", "1.0.0")),
-            Err(RegisterError::Duplicate { id: "reviewer".into(), version: "1.0.0".into() })
+            Err(RegisterError::Duplicate {
+                id: "reviewer".into(),
+                version: "1.0.0".into()
+            })
         );
         // A new version of the same pack is fine.
         index.register(meta("reviewer", "1.1.0")).unwrap();
@@ -160,8 +173,14 @@ mod tests {
         let mut writer = meta("writer", "2.0.0");
         writer.description = "writes documentation".into();
         index.register(writer).unwrap();
-        assert_eq!(index.discover("review"), vec!["code-review@1.0.0".to_string()]);
-        assert_eq!(index.discover("DOCUMENTATION"), vec!["writer@2.0.0".to_string()]);
+        assert_eq!(
+            index.discover("review"),
+            vec!["code-review@1.0.0".to_string()]
+        );
+        assert_eq!(
+            index.discover("DOCUMENTATION"),
+            vec!["writer@2.0.0".to_string()]
+        );
         assert!(index.discover("missing").is_empty());
     }
 

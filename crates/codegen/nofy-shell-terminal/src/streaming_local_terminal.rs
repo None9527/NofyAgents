@@ -10,9 +10,7 @@ use tokio::fs::OpenOptions;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-use crate::runner::{
-    AsyncTerminalRunner, TerminalError, TerminalRunRequest, TerminalRunResult,
-};
+use crate::runner::{AsyncTerminalRunner, TerminalError, TerminalRunRequest, TerminalRunResult};
 use crate::{TerminalInfo, TerminalStatus};
 use nofy_tools::types::output::{BashOutput, ToolOutput};
 

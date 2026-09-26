@@ -1,10 +1,10 @@
 use crate::auth::AuthManager;
 use crate::util::nofy_auth_credentials::NofyAuthCredentials;
-use reqwest::RequestBuilder;
-use std::sync::Arc;
 use nofy_auth::{
     AuthCredentialProvider, CredentialSnapshot, HttpAuth, StaticAuthCredentialProvider,
 };
+use reqwest::RequestBuilder;
+use std::sync::Arc;
 /// `api_key.id` for the active credential: hash the stable API key, never the
 /// OIDC bearer (which rotates). `None` for non-API-key auth.
 fn api_key_id_for(auth: Option<&crate::auth::NofyAuth>) -> Option<String> {
@@ -316,8 +316,8 @@ mod tests {
     use crate::auth::NofyComConfig;
     use crate::auth::manager::AuthManager;
     use chrono::{Duration as ChronoDuration, Utc};
-    use std::sync::Mutex;
     use nofy_auth::AuthCredentialProvider;
+    use std::sync::Mutex;
     /// Serializes tests that pin `NOFY_AUTH_EARLY_INVALIDATION_SECS`, since
     /// env vars are process-global and parallel tests would race.
     static EARLY_INVALIDATION_LOCK: Mutex<()> = Mutex::new(());

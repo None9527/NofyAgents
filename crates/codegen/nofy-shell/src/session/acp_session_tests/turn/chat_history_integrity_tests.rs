@@ -21,13 +21,13 @@
 
 use super::support::*;
 use super::*;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 use nofy_test_support::sse::{
     responses_api_reasoning_then_tool_call_events, responses_api_script_exact,
 };
 use nofy_test_support::{MockInferenceServer, ScriptedResponse};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 
 /// Product threshold at which the stationarity nudge fires. Kept as a local
 /// literal so this suite does not couple to the private latch constants;

@@ -4,6 +4,7 @@
 //! trace export so that session-level spans (with `session_id`, tool timings,
 //! inference latency, etc.) are available in the product observability backend.
 use crate::instrumentation;
+use nofy_auth::AuthCredentialProvider;
 use opentelemetry::global;
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_otlp::{WithExportConfig, WithHttpConfig};
@@ -12,7 +13,6 @@ use std::sync::{Arc, OnceLock};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::Layer as _;
 use tracing_subscriber::registry::LookupSpan;
-use nofy_auth::AuthCredentialProvider;
 mod redact;
 static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
 const ENV_OTEL_FILTER: &str = "NOFY_OTEL_FILTER";
@@ -481,8 +481,8 @@ pub fn otel_guard() -> OtelGuard {
 mod tests {
     use super::*;
     use async_trait::async_trait;
-    use std::sync::Mutex;
     use nofy_auth::{AuthCredentialProvider, CredentialSnapshot, HttpAuth};
+    use std::sync::Mutex;
     /// Test double for `AuthCredentialProvider`. When constructed with
     /// `with_refresh`, `refresh_after_unauthorized` rotates the token and
     /// returns `true`; otherwise it returns `false`.

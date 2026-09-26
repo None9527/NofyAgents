@@ -138,13 +138,13 @@ use crate::scrollback::text_selection::{
 use crate::theme::Theme;
 pub use crate::views::agent::{ActivePane, AgentViewLayout, InputMode, PaneAreas};
 use crate::views::block_viewer::BlockViewerPane;
+use crate::views::elicitation_view::ElicitationViewState;
 use crate::views::extensions_modal::ExtensionsModalState;
 use crate::views::file_search::line_viewer::LineViewerState;
 use crate::views::modal::{self, ActiveModal, ModalButtonHit};
 use crate::views::permission_view::{PermissionViewState, SubagentInfo};
 use crate::views::plan_approval_view::{PlanApprovalViewState, PlanComment};
 use crate::views::prompt_widget::{PromptWidget, StashedPrompt};
-use crate::views::elicitation_view::ElicitationViewState;
 use crate::views::question_view::QuestionViewState;
 use crate::views::queue_pane::QueuePane;
 use crate::views::subagent_catalog_pane::SubagentCatalogPane;

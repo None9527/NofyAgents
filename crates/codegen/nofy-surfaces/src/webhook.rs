@@ -40,7 +40,9 @@ pub fn sign_body(secret: &str, body: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeliveryVerdict {
     /// Signature valid, envelope well-formed, not a duplicate.
-    Accepted { payload: String },
+    Accepted {
+        payload: String,
+    },
     BadSignature,
     MalformedEnvelope,
     Duplicate,
@@ -54,7 +56,11 @@ pub struct WebhookSurface {
 
 impl WebhookSurface {
     /// Gate one delivery.
-    pub fn receive(&mut self, endpoint: &WebhookEndpoint, delivery: &WebhookDelivery) -> DeliveryVerdict {
+    pub fn receive(
+        &mut self,
+        endpoint: &WebhookEndpoint,
+        delivery: &WebhookDelivery,
+    ) -> DeliveryVerdict {
         // Gate 1: signature.
         let expected = sign_body(&endpoint.secret, &delivery.body);
         if expected != delivery.signature {
@@ -93,8 +99,14 @@ pub fn route_payload(payload: &str) -> RouteOutcome {
         return RouteOutcome::RefusedOutOfScope;
     }
     match verb {
-        "approve" => RouteOutcome::ApprovalAnswer { intent_id, allow: true },
-        "deny" => RouteOutcome::ApprovalAnswer { intent_id, allow: false },
+        "approve" => RouteOutcome::ApprovalAnswer {
+            intent_id,
+            allow: true,
+        },
+        "deny" => RouteOutcome::ApprovalAnswer {
+            intent_id,
+            allow: false,
+        },
         _ => RouteOutcome::RefusedOutOfScope,
     }
 }
@@ -114,7 +126,11 @@ mod tests {
     fn signed_delivery(id: &str, payload: &str, secret: &str) -> WebhookDelivery {
         let body = format!("{FRAME_BEGIN} [webhook]\n{payload}\n=====END UNTRUSTED CONTENT=====");
         let signature = sign_body(secret, &body);
-        WebhookDelivery { delivery_id: id.into(), body, signature }
+        WebhookDelivery {
+            delivery_id: id.into(),
+            body,
+            signature,
+        }
     }
 
     #[test]
@@ -137,7 +153,10 @@ mod tests {
         let mut surface = WebhookSurface::default();
         let mut delivery = signed_delivery("d1", "approve x", &endpoint().secret);
         delivery.signature = "forged".into();
-        assert_eq!(surface.receive(&endpoint(), &delivery), DeliveryVerdict::BadSignature);
+        assert_eq!(
+            surface.receive(&endpoint(), &delivery),
+            DeliveryVerdict::BadSignature
+        );
         assert_eq!(surface.processed_count(), 0);
     }
 
@@ -150,25 +169,40 @@ mod tests {
             body: body.into(),
             signature: sign_body(&endpoint().secret, body),
         };
-        assert_eq!(surface.receive(&endpoint(), &delivery), DeliveryVerdict::MalformedEnvelope);
+        assert_eq!(
+            surface.receive(&endpoint(), &delivery),
+            DeliveryVerdict::MalformedEnvelope
+        );
     }
 
     #[test]
     fn duplicate_delivery_deduped() {
         let mut surface = WebhookSurface::default();
         let delivery = signed_delivery("d1", "deny x", &endpoint().secret);
-        assert!(matches!(surface.receive(&endpoint(), &delivery), DeliveryVerdict::Accepted { .. }));
-        assert_eq!(surface.receive(&endpoint(), &delivery), DeliveryVerdict::Duplicate);
+        assert!(matches!(
+            surface.receive(&endpoint(), &delivery),
+            DeliveryVerdict::Accepted { .. }
+        ));
+        assert_eq!(
+            surface.receive(&endpoint(), &delivery),
+            DeliveryVerdict::Duplicate
+        );
         assert_eq!(surface.processed_count(), 1);
     }
 
     #[test]
     fn out_of_scope_payloads_refused() {
-        assert_eq!(route_payload("execute rm -rf /"), RouteOutcome::RefusedOutOfScope);
+        assert_eq!(
+            route_payload("execute rm -rf /"),
+            RouteOutcome::RefusedOutOfScope
+        );
         assert_eq!(route_payload("approve"), RouteOutcome::RefusedOutOfScope);
         assert_eq!(
             route_payload("deny del-1"),
-            RouteOutcome::ApprovalAnswer { intent_id: "del-1".into(), allow: false }
+            RouteOutcome::ApprovalAnswer {
+                intent_id: "del-1".into(),
+                allow: false
+            }
         );
     }
 }

@@ -1,8 +1,6 @@
 //! In-TUI `/doctor` report formatting.
 
-use super::{
-    DataControlFact, DiagnosticReport, FindingDisposition, NewlineFact, RuntimeFact,
-};
+use super::{DataControlFact, DiagnosticReport, FindingDisposition, NewlineFact, RuntimeFact};
 use crate::clipboard::{ClipboardDelivery, NativeClipboardPreflight};
 use crate::host::{DisplayServer, HostOs};
 

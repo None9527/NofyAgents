@@ -1,8 +1,8 @@
 //! SearchToolCallBlock — integration tool discovery results.
 
+use nofy_workspace::permission::mcp_titleize_segment;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span, Text};
-use nofy_workspace::permission::mcp_titleize_segment;
 
 use super::TOOL_HEADER_RANGE;
 use crate::appearance::AppearanceConfig;

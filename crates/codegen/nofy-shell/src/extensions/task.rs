@@ -1,6 +1,6 @@
 use agent_client_protocol as acp;
-use serde::{Deserialize, Serialize};
 use nofy_tools::types::{KillOutcome, TaskSnapshot};
+use serde::{Deserialize, Serialize};
 
 use nofy_tools::implementations::nofy_build::task::types::{
     SubagentCancelOutcome, SubagentInspection, SubagentProvenance, SubagentSnapshot,

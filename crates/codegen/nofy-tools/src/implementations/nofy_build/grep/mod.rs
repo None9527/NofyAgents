@@ -190,7 +190,8 @@ fn grep_timeout() -> Duration {
 /// [`nofy_tty_utils::KILL_REAP_TIMEOUT`]; on expiry the corpse is abandoned to
 /// tokio's orphan reaper (see the constant's docs for the D-state rationale).
 async fn reap_killed_rg(child: &mut Child) -> Option<std::process::ExitStatus> {
-    let status = nofy_tty_utils::reap_killed_bounded(child, nofy_tty_utils::KILL_REAP_TIMEOUT).await;
+    let status =
+        nofy_tty_utils::reap_killed_bounded(child, nofy_tty_utils::KILL_REAP_TIMEOUT).await;
     if status.is_none() {
         tracing::warn!(
             reap_timeout_secs = nofy_tty_utils::KILL_REAP_TIMEOUT.as_secs(),

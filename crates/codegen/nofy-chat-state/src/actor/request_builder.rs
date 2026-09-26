@@ -1,8 +1,6 @@
 //! ConversationRequest assembly — image compaction, pruning, repair, memory injection.
 
-use nofy_sampling_types::{
-    ConversationItem, ConversationRequest, ToolSpec, TraceContext,
-};
+use nofy_sampling_types::{ConversationItem, ConversationRequest, ToolSpec, TraceContext};
 
 use super::ChatStateActor;
 use crate::events::ChatStateEvent;
@@ -71,9 +69,8 @@ impl ChatStateActor {
         // base64 escape scan), so it runs inline on every turn. Eviction
         // rewrites earlier turns and busts the KV-cache prefix, so it only
         // fires when a 413 is actually near.
-        let (trigger_bytes, reclaim_target_bytes) = crate::image_budget::image_budget_limits(
-            self.state.sampling_config.max_request_bytes,
-        );
+        let (trigger_bytes, reclaim_target_bytes) =
+            crate::image_budget::image_budget_limits(self.state.sampling_config.max_request_bytes);
         let budgeted = crate::image_budget::apply_image_budget_with_limits(
             self.state.conversation.clone(),
             trigger_bytes,
@@ -333,5 +330,4 @@ mod tests {
         assert_eq!(items.len(), 2);
         assert!(matches!(&items[0], ConversationItem::System(_)));
     }
-
 }

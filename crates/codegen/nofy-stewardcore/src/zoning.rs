@@ -72,7 +72,10 @@ mod tests {
     #[test]
     fn zones_partition_correctly() {
         let (p, s) = (project(), steward());
-        assert_eq!(zone_for("/proj/src/main.rs", &p, &s), Zone::ProjectSovereign);
+        assert_eq!(
+            zone_for("/proj/src/main.rs", &p, &s),
+            Zone::ProjectSovereign
+        );
         assert_eq!(zone_for("/proj/archive/old.log", &p, &s), Zone::Overlap);
         assert_eq!(zone_for("/media/photo.jpg", &p, &s), Zone::StewardSovereign);
         assert_eq!(zone_for("/etc/passwd", &p, &s), Zone::Unclaimed);
@@ -86,22 +89,27 @@ mod tests {
             Strictness::LockedDown,
         );
         assert_eq!(strict, Strictness::LockedDown);
-        let strict2 = effective_strictness(
-            Zone::Overlap,
-            Strictness::Managed,
-            Strictness::Permissive,
-        );
+        let strict2 =
+            effective_strictness(Zone::Overlap, Strictness::Managed, Strictness::Permissive);
         assert_eq!(strict2, Strictness::Managed);
     }
 
     #[test]
     fn sovereign_zones_use_own_policy() {
         assert_eq!(
-            effective_strictness(Zone::ProjectSovereign, Strictness::Permissive, Strictness::LockedDown),
+            effective_strictness(
+                Zone::ProjectSovereign,
+                Strictness::Permissive,
+                Strictness::LockedDown
+            ),
             Strictness::Permissive
         );
         assert_eq!(
-            effective_strictness(Zone::StewardSovereign, Strictness::LockedDown, Strictness::Managed),
+            effective_strictness(
+                Zone::StewardSovereign,
+                Strictness::LockedDown,
+                Strictness::Managed
+            ),
             Strictness::Managed
         );
     }
@@ -109,7 +117,11 @@ mod tests {
     #[test]
     fn unclaimed_is_strictest() {
         assert_eq!(
-            effective_strictness(Zone::Unclaimed, Strictness::Permissive, Strictness::Permissive),
+            effective_strictness(
+                Zone::Unclaimed,
+                Strictness::Permissive,
+                Strictness::Permissive
+            ),
             Strictness::LockedDown
         );
     }

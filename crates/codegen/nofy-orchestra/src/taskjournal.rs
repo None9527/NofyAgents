@@ -16,16 +16,44 @@ use std::path::{Path, PathBuf};
 /// One task journal event.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TaskEvent {
-    Armed { seq: u64, task: String, run: String },
-    Claimed { seq: u64, task: String, claimant: String },
-    Settled { seq: u64, task: String, ok: bool },
-    Escalated { seq: u64, task: String, reason: String },
-    EscalationResolved { seq: u64, task: String, allow: bool },
+    Armed {
+        seq: u64,
+        task: String,
+        run: String,
+    },
+    Claimed {
+        seq: u64,
+        task: String,
+        claimant: String,
+    },
+    Settled {
+        seq: u64,
+        task: String,
+        ok: bool,
+    },
+    Escalated {
+        seq: u64,
+        task: String,
+        reason: String,
+    },
+    EscalationResolved {
+        seq: u64,
+        task: String,
+        allow: bool,
+    },
     /// User cancelled the task (W-7 `nofy task cancel`). Terminal.
-    Cancelled { seq: u64, task: String, reason: String },
+    Cancelled {
+        seq: u64,
+        task: String,
+        reason: String,
+    },
     /// Transitively skipped: a dependency failed-and-was-allowed or was
     /// cancelled (W-4 audit: skips are journaled, never silent). Terminal.
-    Skipped { seq: u64, task: String, reason: String },
+    Skipped {
+        seq: u64,
+        task: String,
+        reason: String,
+    },
 }
 
 impl TaskEvent {
@@ -246,15 +274,27 @@ mod tests {
     use super::*;
 
     fn armed(seq: u64, task: &str) -> TaskEvent {
-        TaskEvent::Armed { seq, task: task.into(), run: "run-1".into() }
+        TaskEvent::Armed {
+            seq,
+            task: task.into(),
+            run: "run-1".into(),
+        }
     }
 
     fn claimed(seq: u64, task: &str) -> TaskEvent {
-        TaskEvent::Claimed { seq, task: task.into(), claimant: "provider-1".into() }
+        TaskEvent::Claimed {
+            seq,
+            task: task.into(),
+            claimant: "provider-1".into(),
+        }
     }
 
     fn settled(seq: u64, task: &str, ok: bool) -> TaskEvent {
-        TaskEvent::Settled { seq, task: task.into(), ok }
+        TaskEvent::Settled {
+            seq,
+            task: task.into(),
+            ok,
+        }
     }
 
     #[test]
@@ -278,10 +318,14 @@ mod tests {
             armed(1, "t"),
             claimed(2, "t"),
             settled(3, "t", true),
-            claimed(4, "t"),   // terminal violation
+            claimed(4, "t"),        // terminal violation
             settled(5, "t", false), // terminal violation
         ]);
-        assert_eq!(journal.states["t"], TaskState::SettledOk, "settled stays settled");
+        assert_eq!(
+            journal.states["t"],
+            TaskState::SettledOk,
+            "settled stays settled"
+        );
         assert_eq!(journal.terminal_violations, 2);
     }
 
@@ -307,14 +351,30 @@ mod tests {
             armed(1, "t"),
             claimed(2, "t"),
             settled(3, "t", false),
-            TaskEvent::Escalated { seq: 4, task: "t".into(), reason: "budget exhausted".into() },
-            TaskEvent::EscalationResolved { seq: 5, task: "t".into(), allow: true },
+            TaskEvent::Escalated {
+                seq: 4,
+                task: "t".into(),
+                reason: "budget exhausted".into(),
+            },
+            TaskEvent::EscalationResolved {
+                seq: 5,
+                task: "t".into(),
+                allow: true,
+            },
         ]);
         assert_eq!(journal.states["t"], TaskState::ResolvedAllow);
         let denied = fold_tasks(&[
             armed(1, "t"),
-            TaskEvent::Escalated { seq: 2, task: "t".into(), reason: "r".into() },
-            TaskEvent::EscalationResolved { seq: 3, task: "t".into(), allow: false },
+            TaskEvent::Escalated {
+                seq: 2,
+                task: "t".into(),
+                reason: "r".into(),
+            },
+            TaskEvent::EscalationResolved {
+                seq: 3,
+                task: "t".into(),
+                allow: false,
+            },
         ]);
         assert_eq!(denied.states["t"], TaskState::ResolvedDeny);
         assert!(denied.states["t"].is_terminal());
@@ -326,7 +386,10 @@ mod tests {
         // disk; reconciliation reads straight from the file.
         let dir = tempfile::tempdir().unwrap();
         let store = TaskLogStore::open(dir.path().join("task.jsonl"));
-        assert!(store.read_events().unwrap().is_empty(), "missing file = empty log");
+        assert!(
+            store.read_events().unwrap().is_empty(),
+            "missing file = empty log"
+        );
         for event in [
             armed(1, "t1"),
             armed(2, "t2"),
@@ -356,7 +419,8 @@ mod tests {
             .append(true)
             .open(&path)
             .unwrap()
-            .write_all(b"{\"seq\":3,\"task\":\"t1\",\"Sett").unwrap();
+            .write_all(b"{\"seq\":3,\"task\":\"t1\",\"Sett")
+            .unwrap();
         let events = store.read_events().unwrap();
         assert_eq!(events.len(), 2, "torn tail is truncated, not an error");
         assert_eq!(store.re_dispatch().unwrap(), vec!["t1".to_string()]);

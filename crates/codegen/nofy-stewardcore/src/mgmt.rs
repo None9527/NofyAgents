@@ -21,14 +21,28 @@ use crate::tombstone::{ChangeOp, ChangeRecord, InverseOp, undo_batch};
 /// destructive exit is trash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MgmtOp {
-    Move { from: String, to: String },
-    Rename { from: String, to: String },
+    Move {
+        from: String,
+        to: String,
+    },
+    Rename {
+        from: String,
+        to: String,
+    },
     /// Metadata-only: tags never move or destroy bytes.
-    Tag { path: String, tag: String },
+    Tag {
+        path: String,
+        tag: String,
+    },
     /// Keep one copy, trash the rest.
-    Dedupe { keep: String, duplicates: Vec<String> },
+    Dedupe {
+        keep: String,
+        duplicates: Vec<String>,
+    },
     /// Trash a path (cleanup).
-    Cleanup { path: String },
+    Cleanup {
+        path: String,
+    },
 }
 
 /// Phase one: a proposed batch, not yet executable.
@@ -41,12 +55,21 @@ pub struct MgmtIntent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IntentError {
     EmptyBatch,
-    OutsideRoot { path: String },
+    OutsideRoot {
+        path: String,
+    },
     /// 「租约命中的管理操作加载期即拒」(AC-12): refused AT LOAD.
-    LeaseHit { path: String, holder: String },
-    TargetCollision { to: String },
+    LeaseHit {
+        path: String,
+        holder: String,
+    },
+    TargetCollision {
+        to: String,
+    },
     EmptyTag,
-    DedupeKeepIsDuplicate { keep: String },
+    DedupeKeepIsDuplicate {
+        keep: String,
+    },
     EmptyDedupe,
 }
 
@@ -95,7 +118,9 @@ pub fn validate_intent(intent: &MgmtIntent, ctx: &IntentContext) -> Result<(), I
     for op in &intent.ops {
         for path in op.touched_paths() {
             if !matches!(ctx.roots.classify(path), PathClass::Inside { .. }) {
-                return Err(IntentError::OutsideRoot { path: path.to_string() });
+                return Err(IntentError::OutsideRoot {
+                    path: path.to_string(),
+                });
             }
             if let Some(holder) = ctx.leases.lease_holder(path, ctx.now) {
                 return Err(IntentError::LeaseHit {
@@ -158,13 +183,19 @@ pub fn commit_intent(intent: &MgmtIntent, at: u64) -> CommittedBatch {
             MgmtOp::Move { from, to } => records.push(ChangeRecord {
                 batch_id: intent.batch_id.clone(),
                 path: from.clone(),
-                op: ChangeOp::Move { from: from.clone(), to: to.clone() },
+                op: ChangeOp::Move {
+                    from: from.clone(),
+                    to: to.clone(),
+                },
                 at,
             }),
             MgmtOp::Rename { from, to } => records.push(ChangeRecord {
                 batch_id: intent.batch_id.clone(),
                 path: from.clone(),
-                op: ChangeOp::Rename { from: from.clone(), to: to.clone() },
+                op: ChangeOp::Rename {
+                    from: from.clone(),
+                    to: to.clone(),
+                },
                 at,
             }),
             MgmtOp::Tag { path, tag } => tags.push((path.clone(), tag.clone())),
@@ -219,7 +250,12 @@ mod tests {
         leases: &'a LeaseTable,
         existing: &'a BTreeSet<String>,
     ) -> IntentContext<'a> {
-        IntentContext { roots, leases, now: 100, existing }
+        IntentContext {
+            roots,
+            leases,
+            now: 100,
+            existing,
+        }
     }
 
     fn roots() -> RootTable {
@@ -233,11 +269,15 @@ mod tests {
         let (leases, existing) = (LeaseTable::default(), BTreeSet::new());
         let intent = MgmtIntent {
             batch_id: "b1".into(),
-            ops: vec![MgmtOp::Cleanup { path: "/etc/passwd".into() }],
+            ops: vec![MgmtOp::Cleanup {
+                path: "/etc/passwd".into(),
+            }],
         };
         assert_eq!(
             validate_intent(&intent, &ctx(&roots(), &leases, &existing)),
-            Err(IntentError::OutsideRoot { path: "/etc/passwd".into() })
+            Err(IntentError::OutsideRoot {
+                path: "/etc/passwd".into()
+            })
         );
     }
 
@@ -248,11 +288,17 @@ mod tests {
         let existing = BTreeSet::new();
         let intent = MgmtIntent {
             batch_id: "b1".into(),
-            ops: vec![MgmtOp::Move { from: "/media/wip.txt".into(), to: "/media/done.txt".into() }],
+            ops: vec![MgmtOp::Move {
+                from: "/media/wip.txt".into(),
+                to: "/media/done.txt".into(),
+            }],
         };
         assert_eq!(
             validate_intent(&intent, &ctx(&roots(), &leases, &existing)),
-            Err(IntentError::LeaseHit { path: "/media/wip.txt".into(), holder: "sess-7".into() })
+            Err(IntentError::LeaseHit {
+                path: "/media/wip.txt".into(),
+                holder: "sess-7".into()
+            })
         );
     }
 
@@ -263,7 +309,10 @@ mod tests {
         existing.insert("/media/keep.txt".to_string());
         let intent = MgmtIntent {
             batch_id: "b1".into(),
-            ops: vec![MgmtOp::Rename { from: "/media/a.txt".into(), to: "/media/keep.txt".into() }],
+            ops: vec![MgmtOp::Rename {
+                from: "/media/a.txt".into(),
+                to: "/media/keep.txt".into(),
+            }],
         };
         assert!(matches!(
             validate_intent(&intent, &ctx(&roots(), &leases, &existing)),
@@ -273,8 +322,14 @@ mod tests {
         let intent2 = MgmtIntent {
             batch_id: "b1".into(),
             ops: vec![
-                MgmtOp::Rename { from: "/media/a.txt".into(), to: "/media/t.txt".into() },
-                MgmtOp::Rename { from: "/media/b.txt".into(), to: "/media/t.txt".into() },
+                MgmtOp::Rename {
+                    from: "/media/a.txt".into(),
+                    to: "/media/t.txt".into(),
+                },
+                MgmtOp::Rename {
+                    from: "/media/b.txt".into(),
+                    to: "/media/t.txt".into(),
+                },
             ],
         };
         assert!(matches!(
@@ -289,14 +344,23 @@ mod tests {
         let roots = roots();
         let c = ctx(&roots, &leases, &existing);
         assert_eq!(
-            validate_intent(&MgmtIntent { batch_id: "b".into(), ops: vec![] }, &c),
+            validate_intent(
+                &MgmtIntent {
+                    batch_id: "b".into(),
+                    ops: vec![]
+                },
+                &c
+            ),
             Err(IntentError::EmptyBatch)
         );
         assert_eq!(
             validate_intent(
                 &MgmtIntent {
                     batch_id: "b".into(),
-                    ops: vec![MgmtOp::Tag { path: "/media/f".into(), tag: "  ".into() }]
+                    ops: vec![MgmtOp::Tag {
+                        path: "/media/f".into(),
+                        tag: "  ".into()
+                    }]
                 },
                 &c
             ),
@@ -306,7 +370,10 @@ mod tests {
             validate_intent(
                 &MgmtIntent {
                     batch_id: "b".into(),
-                    ops: vec![MgmtOp::Dedupe { keep: "/media/a".into(), duplicates: vec![] }]
+                    ops: vec![MgmtOp::Dedupe {
+                        keep: "/media/a".into(),
+                        duplicates: vec![]
+                    }]
                 },
                 &c
             ),
@@ -323,7 +390,9 @@ mod tests {
                 },
                 &c
             ),
-            Err(IntentError::DedupeKeepIsDuplicate { keep: "/media/a".into() })
+            Err(IntentError::DedupeKeepIsDuplicate {
+                keep: "/media/a".into()
+            })
         );
     }
 
@@ -336,13 +405,21 @@ mod tests {
         let intent = MgmtIntent {
             batch_id: "b-ok".into(),
             ops: vec![
-                MgmtOp::Move { from: "/media/src.txt".into(), to: "/media/dst.txt".into() },
-                MgmtOp::Tag { path: "/media/dst.txt".into(), tag: "sorted".into() },
+                MgmtOp::Move {
+                    from: "/media/src.txt".into(),
+                    to: "/media/dst.txt".into(),
+                },
+                MgmtOp::Tag {
+                    path: "/media/dst.txt".into(),
+                    tag: "sorted".into(),
+                },
                 MgmtOp::Dedupe {
                     keep: "/media/img-1.jpg".into(),
                     duplicates: vec!["/media/img-2.jpg".into()],
                 },
-                MgmtOp::Cleanup { path: "/media/junk".into() },
+                MgmtOp::Cleanup {
+                    path: "/media/junk".into(),
+                },
             ],
         };
         assert_eq!(
@@ -356,13 +433,21 @@ mod tests {
         let intent = MgmtIntent {
             batch_id: "b9".into(),
             ops: vec![
-                MgmtOp::Move { from: "/media/a".into(), to: "/media/b".into() },
-                MgmtOp::Tag { path: "/media/b".into(), tag: "sorted".into() },
+                MgmtOp::Move {
+                    from: "/media/a".into(),
+                    to: "/media/b".into(),
+                },
+                MgmtOp::Tag {
+                    path: "/media/b".into(),
+                    tag: "sorted".into(),
+                },
                 MgmtOp::Dedupe {
                     keep: "/media/img-1.jpg".into(),
                     duplicates: vec!["/media/img-1 (2).jpg".into()],
                 },
-                MgmtOp::Cleanup { path: "/media/junk".into() },
+                MgmtOp::Cleanup {
+                    path: "/media/junk".into(),
+                },
             ],
         };
         let committed = commit_intent(&intent, 200);
@@ -377,30 +462,46 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(trash_paths.len(), 2, "dedupe dup + cleanup both lower to trash");
+        assert_eq!(
+            trash_paths.len(),
+            2,
+            "dedupe dup + cleanup both lower to trash"
+        );
         assert!(
             trash_paths.iter().all(|p| p.starts_with("/.trash/b9/")),
             "trash stays under the trash root"
         );
-        assert_eq!(committed.tags, vec![("/media/b".to_string(), "sorted".to_string())]);
+        assert_eq!(
+            committed.tags,
+            vec![("/media/b".to_string(), "sorted".to_string())]
+        );
     }
 
     #[test]
     fn rename_commits_to_the_manifest_and_rolls_back() {
         let intent = MgmtIntent {
             batch_id: "b-r".into(),
-            ops: vec![MgmtOp::Rename { from: "/media/old.txt".into(), to: "/media/new.txt".into() }],
+            ops: vec![MgmtOp::Rename {
+                from: "/media/old.txt".into(),
+                to: "/media/new.txt".into(),
+            }],
         };
         let committed = commit_intent(&intent, 300);
         assert_eq!(committed.records.len(), 1);
         assert_eq!(
             committed.records[0].op,
-            ChangeOp::Rename { from: "/media/old.txt".into(), to: "/media/new.txt".into() }
+            ChangeOp::Rename {
+                from: "/media/old.txt".into(),
+                to: "/media/new.txt".into()
+            }
         );
         // Rename 的逆操作与 Move 同形:新名 → 旧名。
         assert_eq!(
             rollback(&committed.snapshot),
-            &[InverseOp::MoveBack { from: "/media/new.txt".into(), to: "/media/old.txt".into() }]
+            &[InverseOp::MoveBack {
+                from: "/media/new.txt".into(),
+                to: "/media/old.txt".into()
+            }]
         );
     }
 
@@ -409,8 +510,13 @@ mod tests {
         let intent = MgmtIntent {
             batch_id: "b9".into(),
             ops: vec![
-                MgmtOp::Move { from: "/media/a".into(), to: "/media/b".into() },
-                MgmtOp::Cleanup { path: "/media/junk".into() },
+                MgmtOp::Move {
+                    from: "/media/a".into(),
+                    to: "/media/b".into(),
+                },
+                MgmtOp::Cleanup {
+                    path: "/media/junk".into(),
+                },
             ],
         };
         let committed = commit_intent(&intent, 200);
@@ -419,11 +525,17 @@ mod tests {
         // Reverse order: cleanup restored first, then the move undone.
         assert_eq!(
             inverses[0],
-            InverseOp::Restore { from: "/.trash/b9/junk".into(), to: "/media/junk".into() }
+            InverseOp::Restore {
+                from: "/.trash/b9/junk".into(),
+                to: "/media/junk".into()
+            }
         );
         assert_eq!(
             inverses[1],
-            InverseOp::MoveBack { from: "/media/b".into(), to: "/media/a".into() }
+            InverseOp::MoveBack {
+                from: "/media/b".into(),
+                to: "/media/a".into()
+            }
         );
     }
 }

@@ -5,7 +5,7 @@
 //! pending intent with its enveloped summary; `decide` answers one;
 //! `decide-all` answers every pending intent — the batch half.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Subcommand;
 use nofy_control_schema::methods::{ApprovalDecision, ControlMethod};
 
@@ -60,7 +60,10 @@ pub fn run(args: &ApprovalArgs, state_dir: &std::path::Path) -> Result<()> {
             let response = call(&mut client, &ControlMethod::ApprovalList)?;
             render_list(&response, *json);
         }
-        ApprovalCommand::Decide { intent_id, decision } => {
+        ApprovalCommand::Decide {
+            intent_id,
+            decision,
+        } => {
             let response = call(
                 &mut client,
                 &ControlMethod::ApprovalRespond {
@@ -129,7 +132,10 @@ fn call(
 /// Render an `approvals_listed` response as a table or JSON.
 fn render_list(response: &serde_json::Value, json: bool) {
     if json {
-        println!("{}", serde_json::to_string_pretty(response).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(response).unwrap_or_default()
+        );
         return;
     }
     let pending = response["pending"].as_array();
@@ -159,9 +165,18 @@ mod tests {
 
     #[test]
     fn decision_parse_is_strict_and_friendly() {
-        assert_eq!(parse_decision("allow").unwrap(), ApprovalDecision::AllowOnce);
-        assert_eq!(parse_decision("ALLOW").unwrap(), ApprovalDecision::AllowOnce);
-        assert_eq!(parse_decision("session").unwrap(), ApprovalDecision::AllowSession);
+        assert_eq!(
+            parse_decision("allow").unwrap(),
+            ApprovalDecision::AllowOnce
+        );
+        assert_eq!(
+            parse_decision("ALLOW").unwrap(),
+            ApprovalDecision::AllowOnce
+        );
+        assert_eq!(
+            parse_decision("session").unwrap(),
+            ApprovalDecision::AllowSession
+        );
         assert_eq!(parse_decision("deny").unwrap(), ApprovalDecision::Deny);
         assert_eq!(parse_decision("no").unwrap(), ApprovalDecision::Deny);
         let err = parse_decision("maybe").unwrap_err();

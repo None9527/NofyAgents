@@ -169,18 +169,12 @@ mod compaction_tool_choice_tests {
             resolve(Some("none"), Some("auto")),
             CompactionToolChoice::None
         );
-        assert_eq!(
-            resolve(None, Some("none")),
-            CompactionToolChoice::None
-        );
+        assert_eq!(resolve(None, Some("none")), CompactionToolChoice::None);
     }
 
     #[test]
     fn garbage_falls_through() {
-        assert_eq!(
-            resolve(Some("garbage"), None),
-            CompactionToolChoice::Auto
-        );
+        assert_eq!(resolve(Some("garbage"), None), CompactionToolChoice::Auto);
         assert_eq!(
             resolve(Some("garbage"), Some("also-bad")),
             CompactionToolChoice::Auto

@@ -10,9 +10,9 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
+use nofy_sqlite_journal::{BUSY_RETRY_BUDGET, JournalMode};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use nofy_sqlite_journal::{BUSY_RETRY_BUDGET, JournalMode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

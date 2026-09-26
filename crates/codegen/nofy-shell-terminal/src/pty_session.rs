@@ -13,9 +13,9 @@ use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
 use std::sync::{Arc, LazyLock};
 
+use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
 use portable_pty::{CommandBuilder, MasterPty, PtySize, native_pty_system};
 use tokio::sync::{Mutex, mpsc};
-use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
 
 use nofy_workspace::file_system::TargetClientId;
 

@@ -1,11 +1,10 @@
 //! Production subagent definition discovery and tool-policy resolution.
 use crate::config::{SubagentPersona, SubagentRole};
 use crate::types::{EffectiveRuntimeConfig, ResolutionError};
-use std::collections::HashMap;
-use std::path::Path;
 use nofy_agent::config::{AgentDefinition, IsolationMode};
 use nofy_agent::plugins::PluginRegistry;
 use nofy_agent::prompt::context::{PromptAudience, PromptContext};
+use nofy_tool_types::{SubagentCapabilityMode, SubagentIsolationMode};
 use nofy_tools::implementations::nofy_build::task::types::{
     SubagentCapabilityModeExt, SubagentRuntimeOverrides, prune_orphaned_background_task_tools,
 };
@@ -13,7 +12,8 @@ use nofy_tools::registry::types::ToolConfig;
 use nofy_tools::types::compat::CompatConfig;
 use nofy_tools::types::template_renderer::TemplateRenderer;
 use nofy_tools::types::tool::ToolKind;
-use nofy_tool_types::{SubagentCapabilityMode, SubagentIsolationMode};
+use std::collections::HashMap;
+use std::path::Path;
 /// Inputs that affect definition discovery and spawn permission.
 pub struct DefinitionResolutionContext<'a> {
     pub cwd: &'a Path,
@@ -66,18 +66,14 @@ pub fn discover_agent_definition(
     subagent_type: &str,
     context: &DefinitionResolutionContext<'_>,
 ) -> Option<AgentDefinition> {
-    nofy_agent::discovery::by_name_in_cwd_with_plugins(
-        subagent_type,
-        context.cwd,
-        context.plugins,
-    )
-    .or_else(|| {
-        context
-            .cli_agents
-            .iter()
-            .find(|definition| definition.name == subagent_type)
-            .cloned()
-    })
+    nofy_agent::discovery::by_name_in_cwd_with_plugins(subagent_type, context.cwd, context.plugins)
+        .or_else(|| {
+            context
+                .cli_agents
+                .iter()
+                .find(|definition| definition.name == subagent_type)
+                .cloned()
+        })
 }
 /// Sorted model-facing names available under the current discovery context.
 pub fn available_agent_names(context: &DefinitionResolutionContext<'_>) -> Vec<String> {

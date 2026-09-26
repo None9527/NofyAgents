@@ -3,11 +3,11 @@
 //! and enrichment helpers live in submodules.
 
 use chrono::{Duration, Utc};
+use nofy_auth::bearer_suffix;
 use parking_lot::RwLock;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
-use nofy_auth::bearer_suffix;
 
 use tokio_util::sync::CancellationToken;
 
@@ -1147,11 +1147,7 @@ impl AuthManager {
             DiskAuthState::FileMissing
             | DiskAuthState::EntryMissing
             | DiskAuthState::Unreadable => {
-                nofy_telemetry::unified_log::warn(
-                    "auth disk state: entry lost",
-                    None,
-                    Some(ctx),
-                );
+                nofy_telemetry::unified_log::warn("auth disk state: entry lost", None, Some(ctx));
             }
         }
     }

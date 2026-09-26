@@ -13,9 +13,9 @@
 //! cargo test -p nofy-tools --test path_suggestions_production
 //! ```
 
+use nofy_tools::util::path_suggestions::{format_not_found_error, path_not_found_hint};
 use std::path::PathBuf;
 use tempfile::TempDir;
-use nofy_tools::util::path_suggestions::{format_not_found_error, path_not_found_hint};
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 

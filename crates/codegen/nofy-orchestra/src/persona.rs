@@ -55,7 +55,10 @@ mod tests {
     use super::*;
 
     fn vars(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     fn allow(names: &[&str]) -> BTreeSet<String> {
@@ -102,7 +105,10 @@ mod tests {
             "{{unclosed"
         );
         assert_eq!(render_persona("{{}}", &vars(&[]), &allow(&[])), "{{}}");
-        assert_eq!(render_persona("no vars", &vars(&[]), &allow(&[])), "no vars");
+        assert_eq!(
+            render_persona("no vars", &vars(&[]), &allow(&[])),
+            "no vars"
+        );
     }
 
     #[test]

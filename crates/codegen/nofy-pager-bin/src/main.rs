@@ -9,10 +9,6 @@
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 use anyhow::Result;
-use std::env;
-use std::net::SocketAddr;
-use std::num::NonZeroUsize;
-use tokio_util::sync::CancellationToken;
 use nofy_pager::app::{
     AgentCmd, Command, HeadlessArgs, LeaderMgmtArgs, LeaderMgmtCommand, LeaderMode,
     LeaderTargetArgs, PagerArgs, join_early_prefetch, resolve_leader_mode,
@@ -22,6 +18,10 @@ use nofy_pager::app::{WorkspaceMgmtArgs, WorkspaceMgmtCommand, WorkspaceStartArg
 use nofy_pager::client_identity::PAGER_CLIENT_VERSION;
 use nofy_shell::agent::app::{run_headless, run_leader, run_stdio_agent};
 use nofy_shell::agent::config::Config as AgentConfig;
+use std::env;
+use std::net::SocketAddr;
+use std::num::NonZeroUsize;
+use tokio_util::sync::CancellationToken;
 /// Apply headless args to an existing config, only overriding values that are
 /// explicitly set. This allows environment defaults to be preserved when
 /// specific args are not provided.
@@ -31,10 +31,7 @@ fn apply_headless_args_to_config(args: &HeadlessArgs, config: &mut AgentConfig) 
     }
 }
 /// Apply global endpoint CLI args to an existing config.
-fn apply_agent_endpoint_args(
-    agent_args: &nofy_pager::app::AgentArgs,
-    config: &mut AgentConfig,
-) {
+fn apply_agent_endpoint_args(agent_args: &nofy_pager::app::AgentArgs, config: &mut AgentConfig) {
     if let Some(v) = &agent_args.cli_chat_proxy_base_url {
         config.endpoints.cli_chat_proxy_base_url = Some(v.clone());
     }
@@ -77,8 +74,8 @@ fn print_serve_startup_info(bind_addr: SocketAddr, secret: &str) {
 const HEADLESS_ENTRYPOINT: &str = "headless";
 /// Initialize simple tracing for non-TUI agent modes.
 fn init_tracing_simple(app_entrypoint: &'static str) {
-    use tracing_subscriber::{EnvFilter, Layer as _, fmt, layer::SubscriberExt as _};
     use nofy_telemetry::debug_log::RMCP_SSE_NOISE_TARGET;
+    use tracing_subscriber::{EnvFilter, Layer as _, fmt, layer::SubscriberExt as _};
     let default_filter = if app_entrypoint == HEADLESS_ENTRYPOINT {
         "off"
     } else {
@@ -112,15 +109,13 @@ fn init_tracing_simple(app_entrypoint: &'static str) {
             nofy_shell::auth::credential_provider::build_default_otel_layer_config(),
         ));
     nofy_telemetry::debug_log::install_firehose(registry, app_entrypoint);
-    nofy_telemetry::external::init(
-        nofy_shell::agent::config::resolve_external_otel_config(
-            nofy_telemetry::external::config::ExternalClientInfo {
-                service_version: env!("VERSION_WITH_COMMIT").to_owned(),
-                client_version: nofy_version::VERSION.to_owned(),
-                app_entrypoint: app_entrypoint.to_owned(),
-            },
-        ),
-    );
+    nofy_telemetry::external::init(nofy_shell::agent::config::resolve_external_otel_config(
+        nofy_telemetry::external::config::ExternalClientInfo {
+            service_version: env!("VERSION_WITH_COMMIT").to_owned(),
+            client_version: nofy_version::VERSION.to_owned(),
+            app_entrypoint: app_entrypoint.to_owned(),
+        },
+    ));
 }
 /// Leader management (`nofy leader list|info|kill`) was removed with the
 /// leader infrastructure in the sanitized build.
@@ -161,8 +156,8 @@ async fn run_agent_command(
     let _signal_flush = tokio::spawn(async {
         #[cfg(unix)]
         {
-            use tokio::signal::unix::{SignalKind, signal};
             use nofy_pager::app::signal_handler::next_signal_code;
+            use tokio::signal::unix::{SignalKind, signal};
             let mut term = signal(SignalKind::terminate()).ok();
             let mut hup = signal(SignalKind::hangup()).ok();
             let code = next_signal_code(&mut term, &mut hup).await;
@@ -605,9 +600,7 @@ fn main() {
         nofy_pager::memory_trace::install_allocator_stats_provider(jemalloc_allocator_stats);
         nofy_pager::memory_trace::install_allocator_dump_provider(jemalloc_stats_dump);
     }
-    nofy_pager::memory_trace::start(
-        nofy_shell::util::nofy_home::nofy_home().join("memtrace"),
-    );
+    nofy_pager::memory_trace::start(nofy_shell::util::nofy_home::nofy_home().join("memtrace"));
     raise_fd_limit();
     if let Err(e) = nofy_config::validate_requirements() {
         eprintln!("Couldn't start Nofy: {e}");
@@ -716,11 +709,7 @@ async fn async_main(args: PagerArgs) -> Result<()> {
             std::process::exit(1);
         }
     };
-    nofy_shell::config::apply_sandbox(
-        None,
-        sandbox_profile_arg.as_deref(),
-        args.cwd.as_deref(),
-    );
+    nofy_shell::config::apply_sandbox(None, sandbox_profile_arg.as_deref(), args.cwd.as_deref());
     flag_dashboard_at_startup_if_requested(&mut args)?;
     let is_interactive = args.command.is_none()
         && args.single.is_none()
@@ -916,8 +905,7 @@ async fn async_main(args: PagerArgs) -> Result<()> {
             .as_deref()
             .map(nofy_pager::headless::parse_json_schema)
             .transpose()?;
-        if json_schema.is_some()
-            && args.output_format == nofy_pager::headless::OutputFormat::Plain
+        if json_schema.is_some() && args.output_format == nofy_pager::headless::OutputFormat::Plain
         {
             args.output_format = nofy_pager::headless::OutputFormat::Json;
         }

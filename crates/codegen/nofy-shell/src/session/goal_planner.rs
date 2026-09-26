@@ -8,13 +8,13 @@
 
 use crate::session::events::{Event, GoalPlannerFailClosedReason, GoalRoleModelFailOpenReason};
 use crate::session::goal_role_tools::RoleToolNames;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use nofy_file_utils::events::EventWriter;
 use nofy_tools::implementations::nofy_build::task::backend::{ChannelBackend, SubagentBackend};
 use nofy_tools::implementations::nofy_build::task::types::{
     SubagentOwner, SubagentRequest, SubagentRuntimeOverrides,
 };
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 // Shared per-role model override + spawn-and-retry-once fail-open wrapper
 
@@ -564,8 +564,8 @@ fn record_fail_closed(
 mod tests {
     use super::*;
     use crate::session::goal_role_tools::tests::{assert_no_tool_placeholders, summary_with};
-    use std::sync::{Arc, Mutex};
     use nofy_tools::types::tool::ToolKind;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn planner_template_default_render_preserves_wording_and_has_no_placeholders() {
@@ -664,9 +664,7 @@ mod tests {
 
     #[tokio::test]
     async fn channel_spawner_request_is_harness_internal() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let wait_depth = Arc::new(crate::tools::tool_context::BlockingWaitState::new());
@@ -1275,9 +1273,7 @@ mod tests {
     /// request's `harness_agent_type`, not the subagent_type.
     #[tokio::test]
     async fn channel_spawner_threads_harness_override_to_request() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let spawner = ChannelSpawner {
             event_tx: tx,
@@ -1577,9 +1573,7 @@ mod tests {
     /// `ChannelSpawner` whose explicit spawn fails still returns `Planned`.
     #[tokio::test]
     async fn planner_retries_to_inherit_instead_of_failing_closed() {
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
         let plan_file = tmp_plan_file("retry-failopen");
         let plan_for_coord = plan_file.clone();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -1649,10 +1643,8 @@ mod tests {
     /// fail-CLOSED cancellation semantics.
     #[tokio::test]
     async fn planner_cancellation_pauses_as_aborted_without_retry() {
+        use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, SubagentResult};
         use std::sync::atomic::{AtomicUsize, Ordering};
-        use nofy_tools::implementations::nofy_build::task::types::{
-            SubagentEvent, SubagentResult,
-        };
         let plan_file = tmp_plan_file("cancel-aborted");
         let spawns = Arc::new(AtomicUsize::new(0));
         let spawns_coord = spawns.clone();

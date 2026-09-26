@@ -60,7 +60,9 @@ fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, Str
     if let Some(src) = auth_json_source() {
         let dest = nofy.join("auth.json");
         if let Err(e) = std::fs::copy(&src, &dest) {
-            eprintln!("pty_auto_mode: could not copy auth.json ({e}); the pager may start unauthenticated");
+            eprintln!(
+                "pty_auto_mode: could not copy auth.json ({e}); the pager may start unauthenticated"
+            );
         } else {
             eprintln!(
                 "pty_auto_mode: seeded auth from {} ({} bytes)",
@@ -177,7 +179,9 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
     }
 
     if is_auth_blocked_screen(&screen) {
-        eprintln!("pty_auto_mode: landed on the unauthenticated screen after key inject; env auth limit");
+        eprintln!(
+            "pty_auto_mode: landed on the unauthenticated screen after key inject; env auth limit"
+        );
         return;
     }
 
@@ -249,7 +253,9 @@ fn pty_shift_tab_skips_auto_when_gate_off() {
         harness.update(Duration::from_secs(2));
         let s = harness.screen_contents();
         if is_auth_blocked_screen(&s) {
-            eprintln!("pty_auto_mode(gate off): landed on the unauthenticated screen after key inject; env auth limit");
+            eprintln!(
+                "pty_auto_mode(gate off): landed on the unauthenticated screen after key inject; env auth limit"
+            );
             return;
         }
         if s.contains("Switched to mode: Plan") {

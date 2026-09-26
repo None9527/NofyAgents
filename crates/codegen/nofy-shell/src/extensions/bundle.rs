@@ -6,9 +6,9 @@ use crate::agent::MvpAgent;
 use crate::bundle::{self, BundleManifest};
 use agent_client_protocol as acp;
 use anyhow::Context;
+use nofy_tools::implementations::skills::discovery::extract_first_paragraph;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use nofy_tools::implementations::skills::discovery::extract_first_paragraph;
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct BundleStatusRequest {}
@@ -503,10 +503,16 @@ name = \"report\"
         seed_cache_with_skills(
             &root,
             &[
-                ("skills/commit/SKILL.md", "# Commit skill
-"),
-                ("skills/review/SKILL.md", "# Review skill
-"),
+                (
+                    "skills/commit/SKILL.md",
+                    "# Commit skill
+",
+                ),
+                (
+                    "skills/review/SKILL.md",
+                    "# Review skill
+",
+                ),
             ],
         );
         let status = status_bundle_at(&root).unwrap();
@@ -523,10 +529,16 @@ name = \"report\"
         seed_cache_with_skills(
             &root,
             &[
-                ("skills/commit/SKILL.md", "# Commit skill
-"),
-                ("skills/review/SKILL.md", "# Review skill
-"),
+                (
+                    "skills/commit/SKILL.md",
+                    "# Commit skill
+",
+                ),
+                (
+                    "skills/review/SKILL.md",
+                    "# Review skill
+",
+                ),
             ],
         );
         std::fs::remove_file(root.join("skills/commit/SKILL.md")).unwrap();

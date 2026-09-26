@@ -223,15 +223,10 @@ fn dispatch_load_session_ungated(
         agent_mut.turn_started_at = Some(std::time::Instant::now());
     }
     agent_mut.apply_app_scoped_gates(
-
         app.sharing_enabled,
-
         app.chat_mode,
-
         app.screen_mode,
-
         &app.active_announcements,
-
     );
     agent_mut.chat_kind = chat_kind || app.chat_mode;
     #[cfg(feature = "local-workspace")]
@@ -392,8 +387,7 @@ pub(in crate::app::dispatch) fn dispatch_pick_session(
     if nofy_shell::session::resolve_local_session(&session_id, &local_cwd).is_some() {
         return dispatch_load_session(app, session_id, None, false);
     }
-    if let Some(original_cwd) = nofy_shell::session::resolve_local_session_any_cwd(&session_id)
-    {
+    if let Some(original_cwd) = nofy_shell::session::resolve_local_session_any_cwd(&session_id) {
         return dispatch_load_session(
             app,
             session_id,
@@ -1003,8 +997,7 @@ pub(in crate::app::dispatch) fn dispatch_pick_content_session(
     if nofy_shell::session::resolve_local_session(&session_id, &local_cwd).is_some() {
         return dispatch_load_session(app, session_id, None, false);
     }
-    if let Some(original_cwd) = nofy_shell::session::resolve_local_session_any_cwd(&session_id)
-    {
+    if let Some(original_cwd) = nofy_shell::session::resolve_local_session_any_cwd(&session_id) {
         return dispatch_load_session(
             app,
             session_id,

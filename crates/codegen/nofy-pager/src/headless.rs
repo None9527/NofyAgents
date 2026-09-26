@@ -850,10 +850,7 @@ pub async fn run_single_turn(
         agent_config.default_model_override = Some(model.clone());
     }
 
-    agent_config.resolve_runtime_fields(&headless_runtime_resolution_ctx(
-        &options,
-        &raw_config,
-    ));
+    agent_config.resolve_runtime_fields(&headless_runtime_resolution_ctx(&options, &raw_config));
 
     agent_config.mode = nofy_shell::agent::config::AgentMode::Headless;
     agent_config.default_yolo_mode = options.yolo;
@@ -992,9 +989,7 @@ pub async fn run_single_turn(
         &cwd_str,
     )
     .await
-    .inspect_err(|_| {
-        nofy_telemetry::startup::report_total(crate::acp::StartupOutcome::Error)
-    })?;
+    .inspect_err(|_| nofy_telemetry::startup::report_total(crate::acp::StartupOutcome::Error))?;
 
     let restore_code = options.restore_code.then_some(true);
     let t_session = Instant::now();
@@ -1051,14 +1046,12 @@ pub async fn run_single_turn(
 
     let track_active = std::env::var("NOFY_TRACK_HEADLESS").is_ok();
     if track_active {
-        let _ = nofy_shell::active_sessions::register(
-            nofy_shell::active_sessions::ActiveSession {
-                session_id: session_id.clone(),
-                pid: std::process::id(),
-                cwd: cwd.display().to_string(),
-                opened_at: chrono::Utc::now(),
-            },
-        );
+        let _ = nofy_shell::active_sessions::register(nofy_shell::active_sessions::ActiveSession {
+            session_id: session_id.clone(),
+            pid: std::process::id(),
+            cwd: cwd.display().to_string(),
+            opened_at: chrono::Utc::now(),
+        });
     }
 
     // Seed the reducer's session context BEFORE applying model/effort so a later failure carries it.

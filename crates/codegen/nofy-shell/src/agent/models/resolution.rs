@@ -86,8 +86,7 @@ pub(crate) fn resolve_default_model(
         tracing::warn!("no selectable models; falling back to bundled default (pre-catalog)");
         let default_id = crate::models::default_model().to_string();
         let mut entry = ModelEntry::fallback(&default_id, &cfg.endpoints);
-        entry.info.user_selectable =
-            effective_allowlist(cfg).is_selected(&default_id, &default_id);
+        entry.info.user_selectable = effective_allowlist(cfg).is_selected(&default_id, &default_id);
         (default_id, entry)
     };
 
@@ -311,20 +310,16 @@ pub(crate) fn allowlist_excludes_all_message(cfg: &config::Config) -> String {
     let allowlist = effective_allowlist(cfg);
     let patterns = allowlist.patterns_for_message();
     match (allowlist.is_fleet(), patterns) {
-        (true, _) => {
-            "None of your models are permitted by your organization's model policy. \
+        (true, _) => "None of your models are permitted by your organization's model policy. \
              Contact your administrator."
-                .to_owned()
-        }
+            .to_owned(),
         (false, Some(p)) => format!(
             "None of your models are allowed by allowed_models ({p}). \
              Broaden the patterns or remove allowed_models, then restart."
         ),
-        (false, None) => {
-            "None of your models are allowed by allowed_models. \
+        (false, None) => "None of your models are allowed by allowed_models. \
              Broaden it or remove it from your config, then restart."
-                .to_owned()
-        }
+            .to_owned(),
     }
 }
 

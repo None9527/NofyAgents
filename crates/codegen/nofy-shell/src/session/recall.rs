@@ -7,7 +7,7 @@
 
 use nofy_tools::types::session_recall::{SessionRecallHit, SessionRecallProvider};
 
-use crate::session::storage::search::{execute_search, SessionSearchRequest};
+use crate::session::storage::search::{SessionSearchRequest, execute_search};
 use crate::util::nofy_home::nofy_home;
 
 /// Recall backend over the local session index (all projects).
@@ -25,7 +25,9 @@ impl SessionRecallProvider for ShellSessionRecall {
             offset: 0,
             include_content: true,
         };
-        let resp = execute_search(&root, &req).await.map_err(|e| e.to_string())?;
+        let resp = execute_search(&root, &req)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(resp
             .results
             .into_iter()

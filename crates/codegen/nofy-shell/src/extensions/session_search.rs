@@ -111,11 +111,8 @@ pub async fn handle(args: &acp::ExtRequest) -> ExtResult {
                         include_content,
                     };
                     let resp = to_response(
-                        crate::session::storage::search::execute_search(
-                            &root_dir,
-                            &internal_req,
-                        )
-                        .await?,
+                        crate::session::storage::search::execute_search(&root_dir, &internal_req)
+                            .await?,
                     );
                     let has_more = resp.next_offset.is_some();
                     let bootstrapping = resp.bootstrapping;

@@ -12,7 +12,7 @@
 
 use nofy_orchestra::caps::SubagentCapabilities;
 use ring::rand::SystemRandom;
-use ring::signature::{Ed25519KeyPair, KeyPair, UnparsedPublicKey, ED25519};
+use ring::signature::{ED25519, Ed25519KeyPair, KeyPair, UnparsedPublicKey};
 
 /// Derive the device identity from its public key.
 pub fn device_id(public_key: &[u8]) -> String {
@@ -31,8 +31,7 @@ impl Challenge {
     pub fn new(issued_at: u64) -> Self {
         let rng = SystemRandom::new();
         let mut nonce = [0u8; 32];
-        ring::rand::SecureRandom::fill(&rng, &mut nonce)
-            .expect("system RNG available");
+        ring::rand::SecureRandom::fill(&rng, &mut nonce).expect("system RNG available");
         Self { nonce, issued_at }
     }
 

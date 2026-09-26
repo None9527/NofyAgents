@@ -23,8 +23,9 @@ const TOOL_IMAGE_COMPACT_NOTE: &str = "[One or more images from this tool result
 /// (nginx `proxy-body-size`). Bodies larger than this are rejected with HTTP
 /// 413 — or a connection reset before the response is written. Inline image
 /// `data:` URLs (base64) are the dominant term in this size.
-const MAX_REQUEST_BYTES: usize =
-    ApiBackend::ChatCompletions.default_max_request_bytes().get() as usize;
+const MAX_REQUEST_BYTES: usize = ApiBackend::ChatCompletions
+    .default_max_request_bytes()
+    .get() as usize;
 
 /// Evict old images once the serialized body reaches this size.
 ///
@@ -738,11 +739,7 @@ mod tests {
             IMAGE_COMPACT_RECLAIM_TARGET_BYTES,
         );
         let kept = budgeted.items.iter().filter(|i| has_image(i)).count();
-        let evicted = budgeted
-            .items
-            .iter()
-            .filter(|i| has_placeholder(i))
-            .count();
+        let evicted = budgeted.items.iter().filter(|i| has_placeholder(i)).count();
 
         // Clearing only the trigger would evict ~3 images; reclaiming to the
         // low-water mark (~half the ceiling) must evict far more.
@@ -878,7 +875,10 @@ mod tests {
         let bytes = conversation_body_bytes(&conv);
         let budgeted = apply_image_budget_with_limits(conv, 1, bytes);
         assert_eq!(budgeted.outcome.evicted, 0);
-        assert!(has_image(&budgeted.items[0]), "exactly at target must not evict");
+        assert!(
+            has_image(&budgeted.items[0]),
+            "exactly at target must not evict"
+        );
     }
 
     #[test]
@@ -984,7 +984,10 @@ mod tests {
             },
         )];
         let url_bytes = TEST_IMG_BYTES;
-        let with = vec![tool_result_with_image_of_bytes("Read image file: sheet.png", url_bytes)];
+        let with = vec![tool_result_with_image_of_bytes(
+            "Read image file: sheet.png",
+            url_bytes,
+        )];
         let delta = conversation_body_bytes(&with) - conversation_body_bytes(&without);
         // The URL's raw bytes, the image-part frame around it, and the
         // `,"images":[...]` field wrapper (omitted entirely when empty by
@@ -1004,7 +1007,11 @@ mod tests {
         // ~200 KB body, reclaim to 150 KB: the oldest tool image goes.
         let budgeted = apply_image_budget_with_limits(conv, 1, 150_000);
         assert_eq!(budgeted.outcome.evicted, 1);
-        assert_eq!(tool_images(&budgeted.items[0]), 0, "oldest tool image evicted");
+        assert_eq!(
+            tool_images(&budgeted.items[0]),
+            0,
+            "oldest tool image evicted"
+        );
         assert_eq!(tool_images(&budgeted.items[1]), 1, "newest tool image kept");
         assert!(
             tool_content(&budgeted.items[0]).contains(TOOL_IMAGE_COMPACT_NOTE),
@@ -1049,8 +1056,15 @@ mod tests {
         // ~300 KB body, reclaim to 150 KB: the two oldest go, whichever variant.
         let budgeted = apply_image_budget_with_limits(conv, 1, 150_000);
         assert_eq!(budgeted.outcome.evicted, 2);
-        assert_eq!(tool_images(&budgeted.items[0]), 0, "oldest tool image evicted");
-        assert!(has_placeholder(&budgeted.items[1]), "middle user image evicted");
+        assert_eq!(
+            tool_images(&budgeted.items[0]),
+            0,
+            "oldest tool image evicted"
+        );
+        assert!(
+            has_placeholder(&budgeted.items[1]),
+            "middle user image evicted"
+        );
         assert_eq!(tool_images(&budgeted.items[2]), 1, "newest tool image kept");
     }
 

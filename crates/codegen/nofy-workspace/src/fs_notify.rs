@@ -89,7 +89,10 @@ pub fn confine_to_root(
                 (None, None) => (Vec::new(), kind),
             }
         }
-        _ => (paths.into_iter().filter(|p| p.starts_with(root)).collect(), kind),
+        _ => (
+            paths.into_iter().filter(|p| p.starts_with(root)).collect(),
+            kind,
+        ),
     }
 }
 
@@ -212,8 +215,12 @@ fn parse_diff_name_status_line(
     let path = parts.next()?;
 
     match status.chars().next()? {
-        'A' => Some(nofy_codebase_graph::FileEvent::created(repo_root.join(path))),
-        'D' => Some(nofy_codebase_graph::FileEvent::removed(repo_root.join(path))),
+        'A' => Some(nofy_codebase_graph::FileEvent::created(
+            repo_root.join(path),
+        )),
+        'D' => Some(nofy_codebase_graph::FileEvent::removed(
+            repo_root.join(path),
+        )),
         'R' | 'C' => {
             let new_path = parts.next()?;
             Some(nofy_codebase_graph::FileEvent::renamed(
@@ -294,11 +301,9 @@ pub(crate) async fn refresh_codebase_graph_after_head_change(
     }
 
     if let Some(count) = files_updated {
-        let _ = events_tx.send(
-            nofy_workspace_types::WorkspaceEvent::CodebaseIndexUpdated {
-                files_indexed: count,
-            },
-        );
+        let _ = events_tx.send(nofy_workspace_types::WorkspaceEvent::CodebaseIndexUpdated {
+            files_indexed: count,
+        });
     }
 }
 
@@ -489,8 +494,8 @@ mod tests {
 
     #[test]
     fn parse_diff_name_status_all_variants() {
-        use std::path::Path;
         use nofy_codebase_graph::FileEventKind;
+        use std::path::Path;
         let root = Path::new("/repo");
 
         let ev = parse_diff_name_status_line("M\tsrc/main.rs", root).unwrap();

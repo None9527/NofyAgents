@@ -102,7 +102,10 @@ impl nofy_tool_runtime::Tool for MemorySearchImpl {
                     item.area.user_label(),
                     item.summary,
                     item.target.id,
-                    item.target.expected_hash.as_deref().unwrap_or("unavailable"),
+                    item.target
+                        .expected_hash
+                        .as_deref()
+                        .unwrap_or("unavailable"),
                 ));
             }
             return Ok(ToolOutput::Text(output.into()));

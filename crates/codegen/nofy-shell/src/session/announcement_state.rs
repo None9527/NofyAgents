@@ -4,9 +4,9 @@
 //! form ([`AnnouncementState`]) and the live tracking with its episode
 //! state machine ([`McpAnnounced`]) plus their working types.
 
+use nofy_tools::implementations::search_tool::ServerFingerprint;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use nofy_tools::implementations::search_tool::ServerFingerprint;
 
 /// Persisted announcement tracking state.
 ///

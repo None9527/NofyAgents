@@ -141,11 +141,11 @@ fn finish_transcript(app: &mut AppView, id: nofy_pager::app::agent::AgentId, out
         }
         Err(e) => {
             if let Some(agent) = app.agents.get_mut(&id) {
-                agent.scrollback.push_block(
-                    nofy_pager::scrollback::block::RenderBlock::system(format!(
+                agent
+                    .scrollback
+                    .push_block(nofy_pager::scrollback::block::RenderBlock::system(format!(
                         "Failed to write transcript: {e}"
-                    )),
-                );
+                    )));
             }
         }
     }
@@ -372,12 +372,11 @@ mod tests {
     #[test]
     fn transcript_expands_thinking_committed_collapsed() {
         let theme = Theme::current();
-        let appearance = super::super::commit::committed_appearance(
-            &nofy_pager::appearance::AppearanceConfig {
+        let appearance =
+            super::super::commit::committed_appearance(&nofy_pager::appearance::AppearanceConfig {
                 minimal_collapse_thinking: true,
                 ..Default::default()
-            },
-        );
+            });
         let mut entry = ScrollbackEntry::new(RenderBlock::thinking(
             "REASONINGBODY folded away at commit time",
         ));

@@ -7,8 +7,8 @@
 //! (forensics entry + supervisor-visible exit code), matching the hermes
 //! "ring-inside self-report × ring-outside watchdog" pattern (HM-F1).
 
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 fn now_nanos() -> u64 {
@@ -66,7 +66,11 @@ impl Default for WatchdogConfig {
 /// Spawn the ring-outside watchdog. The action runs on the watchdog thread;
 /// returning `true` from it stops the watchdog (the process is expected to be
 /// exiting), `false` continues sampling.
-pub fn spawn_watchdog<F>(health: Arc<EventLoopHealth>, cfg: WatchdogConfig, mut on_wedge: F) -> std::thread::JoinHandle<()>
+pub fn spawn_watchdog<F>(
+    health: Arc<EventLoopHealth>,
+    cfg: WatchdogConfig,
+    mut on_wedge: F,
+) -> std::thread::JoinHandle<()>
 where
     F: FnMut(Duration) -> bool + Send + 'static,
 {

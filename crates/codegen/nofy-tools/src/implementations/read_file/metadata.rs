@@ -29,7 +29,11 @@ pub(crate) fn is_pdf_magic(bytes: &[u8]) -> bool {
 /// `image/png`, and a structurally incomplete thumbnail (no `IEND`) later
 /// fails as `invalid_image`. `.svg` / `image/svg+xml`, and an incomplete PNG
 /// prefix followed by SVG markup, stay on the text path.
-pub fn should_embed_as_conversation_image(path: &std::path::Path, bytes: &[u8], mime: &str) -> bool {
+pub fn should_embed_as_conversation_image(
+    path: &std::path::Path,
+    bytes: &[u8],
+    mime: &str,
+) -> bool {
     if !mime.starts_with("image/") {
         return false;
     }
@@ -121,7 +125,9 @@ fn truncated_png_prefix() -> Vec<u8> {
 pub fn bytes_to_metadata(file_bytes: &[u8]) -> Result<FileMetadata, nofy_tool_runtime::ToolError> {
     let size = file_bytes.len();
     let data = infer::get(file_bytes).ok_or_else(|| {
-        nofy_tool_runtime::ToolError::invalid_arguments("failed to infer file type from magic bytes")
+        nofy_tool_runtime::ToolError::invalid_arguments(
+            "failed to infer file type from magic bytes",
+        )
     })?;
 
     Ok(FileMetadata {

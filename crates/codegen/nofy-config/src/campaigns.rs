@@ -261,8 +261,7 @@ mod tests {
             id: "c1".into(),
             patch: models_default_patch("campaign"),
         }];
-        let effective =
-            layers.effective_config_with_campaigns(&std::collections::HashSet::new());
+        let effective = layers.effective_config_with_campaigns(&std::collections::HashSet::new());
         assert_eq!(
             effective["models"]["default"].as_str(),
             Some("pinned"),

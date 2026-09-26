@@ -825,14 +825,13 @@ mod tests {
             });
         assert!(responses_event_may_have_output(&refusal));
 
-        let backend_progress =
-            rs::ResponseStreamEvent::ResponseCodeInterpreterCallInProgress(
-                rs_types::ResponseCodeInterpreterCallInProgressEvent {
-                    sequence_number: 2,
-                    output_index: 0,
-                    item_id: "ci-1".into(),
-                },
-            );
+        let backend_progress = rs::ResponseStreamEvent::ResponseCodeInterpreterCallInProgress(
+            rs_types::ResponseCodeInterpreterCallInProgressEvent {
+                sequence_number: 2,
+                output_index: 0,
+                item_id: "ci-1".into(),
+            },
+        );
         assert!(responses_event_may_have_output(&backend_progress));
     }
 
@@ -1058,9 +1057,7 @@ mod tests {
 
     #[tokio::test]
     async fn doom_loop_collector_signals_land_on_completed_response() {
-        use nofy_sampling_types::doom_loop::{
-            DOOM_LOOP_CHECK_EVENT_TYPE, SAMPLE_CHECK_EVENT_DATA,
-        };
+        use nofy_sampling_types::doom_loop::{DOOM_LOOP_CHECK_EVENT_TYPE, SAMPLE_CHECK_EVENT_DATA};
         let collector = crate::doom_loop::DoomLoopSignalCollector::default();
         assert!(collector.absorb(DOOM_LOOP_CHECK_EVENT_TYPE, SAMPLE_CHECK_EVENT_DATA));
         let raw = stream::iter(vec![Ok(text_delta_event("hello")), Ok(completed_event())]).boxed();

@@ -184,11 +184,21 @@ mod tests {
         assert_eq!(report.unknown_outcome, 1);
         assert!(report.needs_attention());
         // Sorted by seq for stable presentation.
-        let ids: Vec<&str> = report.intents.iter().map(|i| i.intent_id.as_str()).collect();
+        let ids: Vec<&str> = report
+            .intents
+            .iter()
+            .map(|i| i.intent_id.as_str())
+            .collect();
         assert_eq!(ids, vec!["a", "b", "c"]);
         let summary = report.summary_line();
-        assert!(summary.contains("bash(possibly still running)"), "{summary}");
-        assert!(summary.contains("search_replace(outcome unknown)"), "{summary}");
+        assert!(
+            summary.contains("bash(possibly still running)"),
+            "{summary}"
+        );
+        assert!(
+            summary.contains("search_replace(outcome unknown)"),
+            "{summary}"
+        );
         assert!(!summary.contains("read_file("), "{summary}");
     }
 
@@ -216,7 +226,11 @@ mod tests {
     fn unidentified_tool_is_unknown_not_safe() {
         let snapshot = project(&[
             event(0, EventKind::SessionStarted, serde_json::Value::Null),
-            event(1, EventKind::ToolInvoked, serde_json::json!({"intent_id": "a"})),
+            event(
+                1,
+                EventKind::ToolInvoked,
+                serde_json::json!({"intent_id": "a"}),
+            ),
         ]);
         let report = reconcile_open_intents(&snapshot, classifier);
         assert_eq!(report.unknown_outcome, 1);

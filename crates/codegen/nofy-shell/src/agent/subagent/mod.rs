@@ -21,14 +21,10 @@ use crate::session::{
 use crate::terminal::AsyncTerminalRunner;
 use crate::tools::ToolContext;
 use agent_client_protocol as acp;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot};
-use tokio_util::sync::CancellationToken;
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
-use nofy_file_utils::events::types::CancellationCategory;
 use nofy_agent::config::{McpInheritance, ModelOverride, PermissionMode};
+use nofy_file_utils::events::types::CancellationCategory;
+use nofy_hunk_tracker::HunkTrackerHandle;
 use nofy_sampling_types::conversation::ConversationItem;
 use nofy_subagent_resolution::ResumeSourceData;
 use nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer;
@@ -38,8 +34,15 @@ use nofy_tools::implementations::nofy_build::task::coordinator::{
 use nofy_tools::implementations::nofy_build::task::types::*;
 use nofy_tools::types::tool::ToolKind;
 use nofy_workspace::file_system::AsyncFileSystem;
-use nofy_hunk_tracker::HunkTrackerHandle;
-#[allow(dead_code, reason = "attempt ledger foundation consumed by the next storage slice")]
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use tokio::sync::{mpsc, oneshot};
+use tokio_util::sync::CancellationToken;
+#[allow(
+    dead_code,
+    reason = "attempt ledger foundation consumed by the next storage slice"
+)]
 mod attempt_store;
 mod handle_request;
 pub(crate) use handle_request::run_shell_child;
@@ -159,8 +162,7 @@ pub(crate) struct SubagentSpawnContext {
     /// When a subagent exits, its surviving tasks (monitors, bg commands)
     /// need their notification handles swapped to this so events route
     /// to the parent's notification bridge.
-    pub parent_notification_handle:
-        Option<nofy_tools::notification::types::ToolNotificationHandle>,
+    pub parent_notification_handle: Option<nofy_tools::notification::types::ToolNotificationHandle>,
     /// Parent's scheduler handle. When `Some`, the subagent reuses the
     /// parent's scheduler actor so scheduled tasks survive subagent exit.
     pub parent_scheduler_handle:
@@ -299,9 +301,7 @@ pub(crate) fn strip_ask_user_question_tool(tools: &mut Vec<nofy_sampling_types::
     tools.retain(|tool| tool.name != "ask_user_question");
 }
 pub(crate) fn strip_workflow_tool(tools: &mut Vec<nofy_sampling_types::ToolSpec>) {
-    tools.retain(|tool| {
-        !nofy_tools::implementations::nofy_build::is_workflow_tool_id(&tool.name)
-    });
+    tools.retain(|tool| !nofy_tools::implementations::nofy_build::is_workflow_tool_id(&tool.name));
 }
 impl SubagentSpawnContext {
     /// Would installing a live bearer resolver strip this subagent's only
@@ -1529,10 +1529,8 @@ fn resolve_agent_definition(
         toggles: &ctx.subagent_toggle,
         allowed_types: ctx.allowed_subagent_types.as_deref(),
     };
-    let mut def = nofy_subagent_resolution::discover_agent_definition(
-        subagent_type,
-        &resolution_context,
-    )?;
+    let mut def =
+        nofy_subagent_resolution::discover_agent_definition(subagent_type, &resolution_context)?;
     ctx.apply_session_cli_overrides(&mut def);
     Some(def)
 }
@@ -1665,11 +1663,7 @@ fn resolve_subagent_toolset(
         parent_model_agent_type: ctx.parent_model_agent_type.as_deref(),
         file_tool_overrides: ctx.file_tool_overrides.as_deref(),
     };
-    nofy_subagent_resolution::apply_harness_toolset(
-        subagent_type,
-        &resolution_context,
-        definition,
-    );
+    nofy_subagent_resolution::apply_harness_toolset(subagent_type, &resolution_context, definition);
 }
 /// Map a resolved `ToolServerConfig` into a [`SubagentTypeSummary`].
 ///
@@ -1812,8 +1806,7 @@ fn resolve_subagent_permission_mode(
 /// Main repo root for a subagent's source: the durable repo a completion snapshot is transferred into and the repo a resume rehydrates from — both arms MUST resolve this identically.
 fn resolve_subagent_source_repo(ctx: &SubagentSpawnContext) -> std::path::PathBuf {
     let source_cwd = parent_source_cwd(ctx);
-    nofy_workspace::session::git::find_main_repo_root_from_path(&source_cwd)
-        .unwrap_or(source_cwd)
+    nofy_workspace::session::git::find_main_repo_root_from_path(&source_cwd).unwrap_or(source_cwd)
 }
 enum SubagentWaitOutcome {
     Cancelled,
@@ -1963,9 +1956,7 @@ fn inject_subagent_completed_prompt(
         }
     }
 }
-fn telemetry_owner_kind(
-    request: &SubagentRequest,
-) -> nofy_telemetry::events::SubagentOwnerKind {
+fn telemetry_owner_kind(request: &SubagentRequest) -> nofy_telemetry::events::SubagentOwnerKind {
     if request.owner.is_workflow() {
         nofy_telemetry::events::SubagentOwnerKind::Workflow
     } else if request.from_scheduler_loop() {

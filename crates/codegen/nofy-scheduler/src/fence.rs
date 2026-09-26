@@ -63,10 +63,9 @@ impl SessionFence {
     /// Controller gate: release held deliveries for one session, FIFO.
     /// Released deliveries go out on both channels.
     pub fn release(&mut self, session: &str) -> Vec<Delivery> {
-        let (drained, kept): (Vec<_>, Vec<_>) =
-            std::mem::take(&mut self.held)
-                .into_iter()
-                .partition(|d| d.session == session);
+        let (drained, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.held)
+            .into_iter()
+            .partition(|d| d.session == session);
         self.held = kept;
         for delivery in &drained {
             self.record(delivery.clone());
@@ -158,7 +157,11 @@ mod tests {
         fence.submit(delivery(3, "a"));
 
         let drained = fence.release("a");
-        assert_eq!(drained, vec![delivery(1, "a"), delivery(3, "a")], "FIFO, only session a");
+        assert_eq!(
+            drained,
+            vec![delivery(1, "a"), delivery(3, "a")],
+            "FIFO, only session a"
+        );
         assert_eq!(fence.held_count(), 1, "session b still held");
     }
 

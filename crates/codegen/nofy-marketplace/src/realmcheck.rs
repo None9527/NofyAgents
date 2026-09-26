@@ -53,9 +53,10 @@ pub fn audit_realms(packs: &[PackManifest]) -> Result<RealmAudit, PackError> {
     let non_isolated: Vec<(String, String)> = packs
         .iter()
         .flat_map(|pack| {
-            pack.services.iter().filter(|svc| svc.realm != Realm::Isolated).map(
-                move |svc| (pack.id.clone(), svc.name.clone()),
-            )
+            pack.services
+                .iter()
+                .filter(|svc| svc.realm != Realm::Isolated)
+                .map(move |svc| (pack.id.clone(), svc.name.clone()))
         })
         .collect();
 
@@ -91,7 +92,10 @@ mod tests {
             subagents: vec![],
             services: services
                 .iter()
-                .map(|name| ServiceDecl { name: (*name).into(), realm: Realm::Isolated })
+                .map(|name| ServiceDecl {
+                    name: (*name).into(),
+                    realm: Realm::Isolated,
+                })
                 .collect(),
         }
     }
@@ -121,7 +125,10 @@ mod tests {
     #[test]
     fn within_realm_collision_fails_loud() {
         let packs = vec![pack("a", &["svc", "svc"])];
-        assert!(matches!(audit_realms(&packs), Err(PackError::RealmCollision { .. })));
+        assert!(matches!(
+            audit_realms(&packs),
+            Err(PackError::RealmCollision { .. })
+        ));
     }
 
     #[test]
@@ -129,7 +136,10 @@ mod tests {
         let mut bad = pack("a", &["svc"]);
         bad.services[0].realm = Realm::Root;
         let audit = audit_realms(&[bad]).unwrap();
-        assert_eq!(audit.non_isolated, vec![("a".to_string(), "svc".to_string())]);
+        assert_eq!(
+            audit.non_isolated,
+            vec![("a".to_string(), "svc".to_string())]
+        );
         assert_eq!(audit.verdict, IsolationVerdict::Findings);
     }
 

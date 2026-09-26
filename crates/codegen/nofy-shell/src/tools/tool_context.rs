@@ -9,20 +9,21 @@
 //! Note: Could be renamed to `SessionConfig` or flattened onto `SessionActor` in a future PR.
 use crate::terminal::AsyncTerminalRunner;
 use agent_client_protocol as acp;
-use std::collections::HashMap;
-use std::sync::Arc;
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
 use nofy_paths::AbsPathBuf;
 use nofy_workspace::file_system::{AsyncFileSystem, AsyncFsWrapper};
 use nofy_workspace::session::file_state::FileStateHandle;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Per-session record of the agent's file writes: absolute path → time
 /// of the most recent write. Shared between the notification bridge
 /// (writer, on `FileWritten`) and workspace reconciliation (reader).
 /// Mode-independent by design: it works in headless where hunk tracking
 /// and fs-watch are capability-gated off.
-pub(crate) type AgentWriteLedger =
-    Arc<std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, chrono::DateTime<chrono::Utc>>>>;
+pub(crate) type AgentWriteLedger = Arc<
+    std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, chrono::DateTime<chrono::Utc>>>,
+>;
 use nofy_hunk_tracker::HunkTrackerHandle;
 use nofy_tty_utils::ProcessScope;
 #[derive(Debug, Clone, Default)]
@@ -138,9 +139,9 @@ impl Drop for BlockingWaitGuard {
 pub(crate) fn subagent_foreground_wait(
     state: Arc<BlockingWaitState>,
 ) -> nofy_tools::implementations::nofy_build::task::types::SubagentForegroundWait {
-    nofy_tools::implementations::nofy_build::task::types::SubagentForegroundWait::new(
-        move || Box::new(BlockingWaitGuard::enter(Arc::clone(&state))),
-    )
+    nofy_tools::implementations::nofy_build::task::types::SubagentForegroundWait::new(move || {
+        Box::new(BlockingWaitGuard::enter(Arc::clone(&state)))
+    })
 }
 /// Session-level context. NOT used for tool execution (bridge handles that).
 /// Holds ACP gateway, cwd, hunk tracker, etc. for session infrastructure.
@@ -215,8 +216,7 @@ pub struct ToolContext {
         Option<nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer>,
     pub task_completion_reservations:
         Option<nofy_tools::reminders::task_completion::TaskCompletionReservations>,
-    pub task_wake_suppressed:
-        Option<nofy_tools::reminders::task_completion::TaskWakeSuppressed>,
+    pub task_wake_suppressed: Option<nofy_tools::reminders::task_completion::TaskWakeSuppressed>,
     /// Resolved name of the `BackgroundTaskAction` tool in the current toolset.
     /// Used by auto-wake to format completion messages with the correct tool name.
     pub task_output_tool_name: String,
@@ -283,7 +283,9 @@ impl ToolContext {
             session_env: Arc::new(session_env),
             hunk_tracker_handle,
             hunk_tracking_enabled: true,
-            agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
             convergence_extensions_used: std::sync::Arc::new(std::sync::Mutex::new(0)),
             convergence_base_limit: std::sync::Arc::new(std::sync::Mutex::new(None)),
             world_state_last_frame: std::sync::Arc::new(std::sync::Mutex::new(None)),
@@ -300,8 +302,8 @@ impl ToolContext {
             monitor_event_buffer: None,
             task_completion_reservations: None,
             task_wake_suppressed: None,
-            task_output_tool_name:
-                nofy_tools::reminders::task_completion::DEFAULT_TASK_OUTPUT_TOOL.to_string(),
+            task_output_tool_name: nofy_tools::reminders::task_completion::DEFAULT_TASK_OUTPUT_TOOL
+                .to_string(),
             auto_wake_enabled: true,
             goal_loop_active_gate: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             blocking_wait_depth: Arc::new(BlockingWaitState::new()),
@@ -329,7 +331,9 @@ impl ToolContext {
             session_env: Arc::new(session_env),
             hunk_tracker_handle,
             hunk_tracking_enabled: true,
-            agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
             convergence_extensions_used: std::sync::Arc::new(std::sync::Mutex::new(0)),
             convergence_base_limit: std::sync::Arc::new(std::sync::Mutex::new(None)),
             world_state_last_frame: std::sync::Arc::new(std::sync::Mutex::new(None)),
@@ -346,8 +350,8 @@ impl ToolContext {
             monitor_event_buffer: None,
             task_completion_reservations: None,
             task_wake_suppressed: None,
-            task_output_tool_name:
-                nofy_tools::reminders::task_completion::DEFAULT_TASK_OUTPUT_TOOL.to_string(),
+            task_output_tool_name: nofy_tools::reminders::task_completion::DEFAULT_TASK_OUTPUT_TOOL
+                .to_string(),
             auto_wake_enabled: true,
             goal_loop_active_gate: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             blocking_wait_depth: Arc::new(BlockingWaitState::new()),
@@ -403,11 +407,11 @@ mod output_budget_tests {
 mod tests {
     use super::BlockingWaitState;
     use crate::{terminal::AsyncTerminalRunner, tools::ToolContext};
-    use std::collections::HashMap;
-    use std::sync::Arc;
+    use nofy_hunk_tracker::HunkTrackerHandle;
     use nofy_paths::AbsPathBuf;
     use nofy_workspace::file_system::{AsyncFileSystem, AsyncFsWrapper};
-    use nofy_hunk_tracker::HunkTrackerHandle;
+    use std::collections::HashMap;
+    use std::sync::Arc;
     impl ToolContext {
         pub(crate) fn new_local_context(
             cwd: AbsPathBuf,
@@ -424,11 +428,13 @@ mod tests {
                 session_env: Arc::new(HashMap::new()),
                 hunk_tracker_handle: HunkTrackerHandle::noop(),
                 hunk_tracking_enabled: true,
-                agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+                agent_write_ledger: std::sync::Arc::new(std::sync::Mutex::new(
+                    std::collections::HashMap::new(),
+                )),
                 convergence_extensions_used: std::sync::Arc::new(std::sync::Mutex::new(0)),
-            convergence_base_limit: std::sync::Arc::new(std::sync::Mutex::new(None)),
-            world_state_last_frame: std::sync::Arc::new(std::sync::Mutex::new(None)),
-            verification_warned_at: std::sync::Arc::new(std::sync::Mutex::new(None)),
+                convergence_base_limit: std::sync::Arc::new(std::sync::Mutex::new(None)),
+                world_state_last_frame: std::sync::Arc::new(std::sync::Mutex::new(None)),
+                verification_warned_at: std::sync::Arc::new(std::sync::Mutex::new(None)),
                 prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
                 subagent_depth: 0,
                 subagent_model_inheritance: false,

@@ -102,7 +102,10 @@ mod tests {
 
     #[test]
     fn host_requests_always_route_out_of_the_session() {
-        assert_eq!(route(RequestOrigin::WorkflowHost), RouteLane::OutOfSessionWorker);
+        assert_eq!(
+            route(RequestOrigin::WorkflowHost),
+            RouteLane::OutOfSessionWorker
+        );
         assert_eq!(route(RequestOrigin::InSession), RouteLane::CurrentSession);
     }
 
@@ -114,13 +117,20 @@ mod tests {
         full.insert("HOME".into(), "/home/u".into());
         let scrubbed = scrub_env(&full, &["PATH", "HOME"]);
         assert_eq!(scrubbed.len(), 2);
-        assert!(!scrubbed.contains_key("SECRET_TOKEN"), "non-allowlisted vars never reach workers");
+        assert!(
+            !scrubbed.contains_key("SECRET_TOKEN"),
+            "non-allowlisted vars never reach workers"
+        );
     }
 
     #[test]
     fn kill_ladder_respects_grace() {
         assert_eq!(kill_stage(500, 1000), KillStage::TermSent);
-        assert_eq!(kill_stage(1000, 1000), KillStage::ForceKilled, "grace expiry is inclusive");
+        assert_eq!(
+            kill_stage(1000, 1000),
+            KillStage::ForceKilled,
+            "grace expiry is inclusive"
+        );
         assert_eq!(kill_stage(5000, 1000), KillStage::ForceKilled);
     }
 

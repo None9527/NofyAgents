@@ -30,10 +30,10 @@ use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use chrono::Utc;
+use nofy_mcp::servers::{ClientStateKind, HttpConfig, McpClient};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use nofy_mcp::servers::{ClientStateKind, HttpConfig, McpClient};
 
 const MANAGED: &str = "nofy_com_testconnector";
 

@@ -226,8 +226,8 @@ fn to_system_reminder_inner(
     }
 
     // Relevant memory from the unified service (post-compaction recovery).
-    if let Some(reminder) = memory_snapshot
-        .and_then(super::memory_context::format_unified_memory_snapshot)
+    if let Some(reminder) =
+        memory_snapshot.and_then(super::memory_context::format_unified_memory_snapshot)
     {
         sections.push(reminder);
     }

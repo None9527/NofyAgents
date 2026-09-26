@@ -4,7 +4,7 @@
 //! the raw journal file. `submit` wraps `TaskSubmit`, `list`/`status`
 //! project the task journal.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Subcommand;
 use nofy_control_schema::methods::ControlMethod;
 
@@ -67,7 +67,9 @@ pub fn run(args: &TaskArgs, state_dir: &std::path::Path) -> Result<()> {
             }
         }
         TaskCommand::List { .. } | TaskCommand::Status { .. } => ControlMethod::TaskList,
-        TaskCommand::Cancel { id } => ControlMethod::TaskCancel { task_id: id.clone() },
+        TaskCommand::Cancel { id } => ControlMethod::TaskCancel {
+            task_id: id.clone(),
+        },
     };
     let response = client
         .call(&method)
@@ -96,7 +98,10 @@ pub fn run(args: &TaskArgs, state_dir: &std::path::Path) -> Result<()> {
 /// Render a `task_listed` response as a table or JSON.
 fn render_list(response: &serde_json::Value, json: bool) {
     if json {
-        println!("{}", serde_json::to_string_pretty(response).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(response).unwrap_or_default()
+        );
         return;
     }
     let tasks = response["tasks"].as_array();
@@ -127,7 +132,10 @@ fn render_status(response: &serde_json::Value, id: &str, json: bool) {
         .cloned();
     match hit {
         Some(task) if json => {
-            println!("{}", serde_json::to_string_pretty(&task).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&task).unwrap_or_default()
+            );
         }
         Some(task) => {
             println!(
@@ -157,7 +165,10 @@ mod tests {
             ]
         });
         render_list(&listed, false);
-        render_list(&serde_json::json!({"kind": "task_listed", "tasks": []}), false);
+        render_list(
+            &serde_json::json!({"kind": "task_listed", "tasks": []}),
+            false,
+        );
         render_list(&listed, true);
     }
 

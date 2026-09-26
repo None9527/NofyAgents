@@ -16,9 +16,9 @@ pub mod approval;
 pub mod control_client;
 pub mod daemon;
 pub mod eviction;
-pub mod live;
 pub mod forensics;
 pub mod health;
+pub mod live;
 pub mod orchestra;
 pub mod pack;
 pub mod proc;
@@ -28,10 +28,10 @@ pub mod runlife;
 pub mod runstore;
 pub mod schedclock;
 pub mod scheduler;
+pub mod sd_notify;
 pub mod search_proxy;
 pub mod steward;
 pub mod surfaces;
-pub mod sd_notify;
 pub mod wire;
 
 use std::fs;
@@ -64,7 +64,9 @@ const INODE_RETRY: usize = 16;
 #[derive(Debug)]
 pub enum LockError {
     /// A live daemon holds the lock.
-    AlreadyRunning { holder: Option<LockPayload> },
+    AlreadyRunning {
+        holder: Option<LockPayload>,
+    },
     /// Lockfile kept being unlinked/recreated under us (pathological race).
     Contended,
     Io(std::io::Error),
@@ -188,15 +190,19 @@ mod tests {
         assert!(payload.starttime > 0, "starttime must be readable on Linux");
 
         let second = SingleInstanceLock::acquire(dir.path());
-        let Err(LockError::AlreadyRunning { holder }) = second else { panic!("expected AlreadyRunning, got {:?}", second.map(|_| ())) };
+        let Err(LockError::AlreadyRunning { holder }) = second else {
+            panic!("expected AlreadyRunning, got {:?}", second.map(|_| ()))
+        };
         assert_eq!(holder.expect("holder payload").pid, std::process::id());
     }
 
     #[test]
     fn io_errors_lift_into_lock_error() {
-        let err: LockError = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied")
-            .into();
-        assert!(matches!(err, LockError::Io(e) if e.kind() == std::io::ErrorKind::PermissionDenied));
+        let err: LockError =
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied").into();
+        assert!(
+            matches!(err, LockError::Io(e) if e.kind() == std::io::ErrorKind::PermissionDenied)
+        );
     }
 
     #[test]

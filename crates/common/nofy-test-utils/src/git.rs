@@ -184,14 +184,12 @@ pub fn make_feature_branch(dir: &Path, picks: usize) -> String {
     base
 }
 
-
 /// `git init -b main` plus `core.excludesFile=/dev/null`, the shared preamble
 /// for a seeded source repo.
 pub fn git_init_seed(dir: &Path) {
     run_git(dir, &["init", "-b", "main"]);
     run_git(dir, &["config", "core.excludesFile", "/dev/null"]);
 }
-
 
 /// Create `<temp>/repo` with one committed `tracked.txt` and return its path.
 pub fn seed_repo(temp: &Path) -> PathBuf {
@@ -202,7 +200,6 @@ pub fn seed_repo(temp: &Path) -> PathBuf {
     git_commit_all(&repo, "initial");
     repo
 }
-
 
 /// [`seed_repo`] plus a bare `origin` remote holding `refs/heads/main`.
 /// Returns `(repo, remote)`.
@@ -218,7 +215,6 @@ pub fn seed_repo_with_remote(temp: &Path) -> (PathBuf, PathBuf) {
     run_git(&repo, &["fetch", "origin"]);
     (repo, remote)
 }
-
 
 /// Commit a modification to `tracked.txt`, then `reset --hard HEAD~1` so only
 /// the reflog names the discarded commit. `when` pins the author/committer date

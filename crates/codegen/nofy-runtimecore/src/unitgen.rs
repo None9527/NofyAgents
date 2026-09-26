@@ -165,8 +165,15 @@ mod tests {
     #[test]
     fn label_metacharacters_refused() {
         for bad in ["nofy;rm", "nofy daemon", "nofy\nEvil", "nofy</string>"] {
-            let s = UnitSpec { label: bad.into(), ..spec() };
-            assert_eq!(launchd_plist(&s), Err(UnitError::BadLabel(bad.into())), "{bad:?} must be refused");
+            let s = UnitSpec {
+                label: bad.into(),
+                ..spec()
+            };
+            assert_eq!(
+                launchd_plist(&s),
+                Err(UnitError::BadLabel(bad.into())),
+                "{bad:?} must be refused"
+            );
         }
     }
 }

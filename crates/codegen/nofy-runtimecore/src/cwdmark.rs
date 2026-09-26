@@ -52,20 +52,30 @@ mod tests {
 
     #[test]
     fn marks_render_in_band_with_sequence() {
-        let mark = CwdMark { seq: 3, path: "/proj/src".into() };
+        let mark = CwdMark {
+            seq: 3,
+            path: "/proj/src".into(),
+        };
         assert_eq!(render_mark(&mark), "[cwd#3] /proj/src");
     }
 
     #[test]
     fn older_marks_are_stale() {
-        let old = CwdMark { seq: 2, path: "/a".into() };
+        let old = CwdMark {
+            seq: 2,
+            path: "/a".into(),
+        };
         assert!(is_stale(&old, 3));
         assert!(!is_stale(&old, 2), "the latest mark is not stale");
     }
 
     #[test]
     fn throttle_keeps_small_chunks_inline() {
-        assert_eq!(throttle("out-1", 100, 100), Throttle::Inline, "budget boundary inclusive");
+        assert_eq!(
+            throttle("out-1", 100, 100),
+            Throttle::Inline,
+            "budget boundary inclusive"
+        );
         assert_eq!(throttle("out-1", 0, 100), Throttle::Inline);
     }
 

@@ -7,12 +7,12 @@
 
 use super::support::*;
 use super::*;
-use std::sync::Arc;
-use std::time::Duration;
 use nofy_test_support::sse::{
     responses_api_reasoning_then_tool_call_events, responses_api_script_exact,
 };
 use nofy_test_support::{MockInferenceServer, ScriptedResponse};
+use std::sync::Arc;
+use std::time::Duration;
 
 /// `SessionActor` turn futures overflow the default test thread stack.
 fn block_on_session(f: impl FnOnce() + Send + 'static) {
@@ -51,16 +51,14 @@ fn drain_persistence_ok(mut rx: tokio::sync::mpsc::UnboundedReceiver<Persistence
         while let Some(msg) = rx.recv().await {
             match msg {
                 PersistenceMsg::AppendUpdateDurablyAndAck { respond_to, .. } => {
-                    let _ = respond_to.send(Ok(
-                        crate::session::persistence::DurableBarrierReceipt {
+                    let _ =
+                        respond_to.send(Ok(crate::session::persistence::DurableBarrierReceipt {
                             sequence: 1,
                             update_hash: "test-receipt".into(),
-                        },
-                    ));
+                        }));
                 }
                 PersistenceMsg::AppendCwdSwitchAndAck { respond_to, .. } => {
-                    let _ = respond_to
-                        .send(Ok(nofy_chat_state::StrictAppendAck::Appended));
+                    let _ = respond_to.send(Ok(nofy_chat_state::StrictAppendAck::Appended));
                 }
                 PersistenceMsg::FlushAndAck { respond_to } => {
                     let _ = respond_to.send(Ok(()));
@@ -176,16 +174,13 @@ fn runtime_evolution_end_to_end_journal_frame_and_verification() {
     use nofy_session_journal::VerificationState;
 
     block_on_session(|| {
-        let _world_state_gate = nofy_test_support::EnvGuard::set(
-            crate::session::world_state::WORLD_STATE_ENV,
-            "1",
-        );
+        let _world_state_gate =
+            nofy_test_support::EnvGuard::set(crate::session::world_state::WORLD_STATE_ENV, "1");
         let _verification_gate = nofy_test_support::EnvGuard::set(
             crate::session::runtime_journal::VERIFICATION_GATE_ENV,
             "1",
         );
         current_thread_local(async {
-
             let session_dir = tempfile::tempdir().expect("session dir");
             let target = session_dir.path().join("target.txt");
             // The bound toolset runs against the real fs: seed on disk.
@@ -292,12 +287,18 @@ fn runtime_evolution_end_to_end_journal_frame_and_verification() {
                 journal.events().iter().map(|e| e.kind).collect();
             use nofy_session_journal::EventKind;
             assert_eq!(
-                kinds.iter().filter(|k| **k == EventKind::ToolInvoked).count(),
+                kinds
+                    .iter()
+                    .filter(|k| **k == EventKind::ToolInvoked)
+                    .count(),
                 3,
                 "all three tool calls journaled: {kinds:?}"
             );
             assert_eq!(
-                kinds.iter().filter(|k| **k == EventKind::ToolSucceeded).count(),
+                kinds
+                    .iter()
+                    .filter(|k| **k == EventKind::ToolSucceeded)
+                    .count(),
                 3,
                 "all three tool successes journaled: {kinds:?}"
             );
@@ -312,11 +313,15 @@ fn runtime_evolution_end_to_end_journal_frame_and_verification() {
                 .map(|e| &e.payload)
                 .collect();
             assert!(
-                reminders.iter().any(|p| p["reminder"] == "world_state_frame"),
+                reminders
+                    .iter()
+                    .any(|p| p["reminder"] == "world_state_frame"),
                 "world-state frame injection journaled: {reminders:?}"
             );
             assert!(
-                reminders.iter().any(|p| p["reminder"] == "verification_missing"),
+                reminders
+                    .iter()
+                    .any(|p| p["reminder"] == "verification_missing"),
                 "verification reminder journaled: {reminders:?}"
             );
 

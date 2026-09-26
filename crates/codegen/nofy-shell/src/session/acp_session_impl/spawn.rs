@@ -763,15 +763,16 @@ pub(crate) async fn spawn_session_actor(
     let (user_question_tx, user_question_rx) = tokio::sync::mpsc::unbounded_channel::<
         nofy_tools::implementations::nofy_build::ask_user_question::types::UserQuestionRequest,
     >();
-    let memory_root_for_session = memory_config
-        .as_ref()
-        .filter(|config| config.enabled)
-        .map(|config| {
-            config
-                .root_dir_override
-                .clone()
-                .unwrap_or_else(|| nofy_tools::util::nofy_home::nofy_home().join("memory"))
-        });
+    let memory_root_for_session =
+        memory_config
+            .as_ref()
+            .filter(|config| config.enabled)
+            .map(|config| {
+                config
+                    .root_dir_override
+                    .clone()
+                    .unwrap_or_else(|| nofy_tools::util::nofy_home::nofy_home().join("memory"))
+            });
     let memory_capture_for_session = memory_config
         .as_ref()
         .filter(|config| config.automatic_learning_active())

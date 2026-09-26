@@ -99,7 +99,10 @@ mod tests {
     fn manifest_validation_fails_loud() {
         let mut bad = manifest();
         bad.capabilities = vec![];
-        assert_eq!(validate_manifest(&bad), Err(ManifestError::EmptyField("capabilities".into())));
+        assert_eq!(
+            validate_manifest(&bad),
+            Err(ManifestError::EmptyField("capabilities".into()))
+        );
         let mut escaping = manifest();
         escaping.artifacts.push("../outside".into());
         assert_eq!(
@@ -113,10 +116,16 @@ mod tests {
     fn empty_id_or_version_refused() {
         let mut no_id = manifest();
         no_id.id = "  ".into();
-        assert_eq!(validate_manifest(&no_id), Err(ManifestError::EmptyField("id".into())));
+        assert_eq!(
+            validate_manifest(&no_id),
+            Err(ManifestError::EmptyField("id".into()))
+        );
         let mut no_version = manifest();
         no_version.version = "".into();
-        assert_eq!(validate_manifest(&no_version), Err(ManifestError::EmptyField("version".into())));
+        assert_eq!(
+            validate_manifest(&no_version),
+            Err(ManifestError::EmptyField("version".into()))
+        );
     }
 
     #[test]
@@ -131,7 +140,10 @@ mod tests {
     #[test]
     fn undeclared_artifacts_refused() {
         let mut zone = IsolationZone::default();
-        assert_eq!(zone.admit(&manifest(), "bin/extra"), Err(AdmitError::Undeclared("bin/extra".into())));
+        assert_eq!(
+            zone.admit(&manifest(), "bin/extra"),
+            Err(AdmitError::Undeclared("bin/extra".into()))
+        );
         assert!(zone.is_empty());
     }
 

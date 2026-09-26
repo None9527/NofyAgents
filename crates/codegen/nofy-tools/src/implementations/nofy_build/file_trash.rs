@@ -36,7 +36,8 @@ fn trash_root() -> Result<std::path::PathBuf, String> {
             return Ok(std::path::PathBuf::from(home).join("trash"));
         }
     }
-    let home = std::env::var("HOME").map_err(|_| "neither NOFY_HOME nor HOME is set".to_string())?;
+    let home =
+        std::env::var("HOME").map_err(|_| "neither NOFY_HOME nor HOME is set".to_string())?;
     Ok(std::path::PathBuf::from(home).join(".nofy").join("trash"))
 }
 
@@ -110,9 +111,8 @@ impl nofy_tool_runtime::Tool for FileTrashDeleteTool {
                 message: format!("path '{}' does not exist", input.path),
             });
         }
-        let root = trash_root().map_err(|e| {
-            nofy_tool_runtime::ToolError::custom("trash_root", e)
-        })?;
+        let root =
+            trash_root().map_err(|e| nofy_tool_runtime::ToolError::custom("trash_root", e))?;
         let store = nofy_stewardcore::trash::TrashStore::at(root);
         match store.add(&target, now_secs()) {
             Ok(entry) => Ok(FileTrashDeleteOutput {
@@ -139,7 +139,10 @@ mod tests {
         // The resolver honors NOFY_HOME and falls back to ~/.nofy.
         let _guard = nofy_test_support::env::EnvGuard::set("NOFY_HOME", "/tmp/trash-root-probe");
         let root = trash_root().unwrap();
-        assert_eq!(root, std::path::PathBuf::from("/tmp/trash-root-probe/trash"));
+        assert_eq!(
+            root,
+            std::path::PathBuf::from("/tmp/trash-root-probe/trash")
+        );
         drop(_guard);
         let _unset = nofy_test_support::env::EnvGuard::unset("NOFY_HOME");
         let fallback = trash_root().unwrap();

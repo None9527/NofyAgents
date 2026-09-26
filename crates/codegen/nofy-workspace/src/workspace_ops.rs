@@ -22,11 +22,6 @@ use crate::file_system::ContentSearchRequest;
 use crate::handle::WorkspaceHandle;
 use crate::worktree::{ApplyWorktreeRequest, CreateWorktreeRequest, RemoveWorktreeRequest};
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use nofy_computer_hub_sdk::ToolHarness;
 use nofy_tools::types::output::ToolRunResult;
 use nofy_workspace_client::{WorkspaceClient, is_transport_fatal};
@@ -74,6 +69,11 @@ pub use nofy_workspace_types::rpc::worktree::{
     PrepareWorktreeFromWorktreeResponse, WorktreeDbPathReq, WorktreeDbPathResponse,
     WorktreeDbRebuildReq, WorktreeDbStatsReq, WorktreeGcReq, WorktreeListReq, WorktreeShowReq,
 };
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 /// Implements [`WorkspaceRpc`] for request types whose responses
 /// reference crate-internal types and so cannot live in the types crate.
 macro_rules! workspace_rpc {
@@ -1866,9 +1866,8 @@ mod tests {
             unreachable!("for_test builds a local handle");
         };
         let sid = "sess-teardown";
-        let toolset = std::sync::Arc::new(
-            nofy_tools::registry::types::FinalizedToolset::empty_for_test(),
-        );
+        let toolset =
+            std::sync::Arc::new(nofy_tools::registry::types::FinalizedToolset::empty_for_test());
         let weak = std::sync::Arc::downgrade(&toolset);
         ops.bind_local_session(
             sid,
@@ -1988,9 +1987,9 @@ mod tests {
     /// A `SessionSummary` (with a turn carrying a hunk) mirrors identically.
     #[test]
     fn session_summary_to_wire_serializes_identically() {
-        use std::sync::Arc;
         use nofy_hunk_tracker::SessionSummary;
         use nofy_hunk_tracker::types::{Hunk, HunkSource, TurnSummary};
+        use std::sync::Arc;
         let hunk = Hunk::file_created(
             std::path::PathBuf::from("/repo/a.rs"),
             "x\n".to_string(),

@@ -10,9 +10,12 @@ use crate::rpc_envelope::{RpcEnvelope, envelope_err};
 use crate::workspace_ops::WorkspaceOp;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use prometheus::{HistogramVec, IntCounterVec, register_histogram_vec, register_int_counter_vec};
-use serde_json::Value;
 use nofy_computer_hub_sdk::ToolServerHandler;
+use nofy_tool_protocol::{HookEvent, HookFrame, SessionId, ToolId, ToolServerEvictParams};
+use nofy_tool_runtime::{
+    ToolCallContext, ToolError, ToolErrorKind, ToolStream, TypedToolOutput, terminal_only,
+};
+use nofy_tool_types::ToolDescription;
 use nofy_tools::computer::types::TaskKind;
 use nofy_tools::implementations::nofy_build::scheduler::interval::interval_to_human;
 use nofy_tools::implementations::nofy_build::scheduler::types::{
@@ -23,11 +26,8 @@ use nofy_tools::types::resources::Terminal;
 use nofy_workspace_types::rpc::workspace::{
     BackgroundTaskSnapshotWire, ScheduledTaskSnapshotWire, TasksSnapshotResponse,
 };
-use nofy_tool_protocol::{HookEvent, HookFrame, SessionId, ToolId, ToolServerEvictParams};
-use nofy_tool_runtime::{
-    ToolCallContext, ToolError, ToolErrorKind, ToolStream, TypedToolOutput, terminal_only,
-};
-use nofy_tool_types::ToolDescription;
+use prometheus::{HistogramVec, IntCounterVec, register_histogram_vec, register_int_counter_vec};
+use serde_json::Value;
 /// Deprecation monitor for the self-attested `caller_session_id` param:
 /// `kind="param_mismatch"` — the param disagreed with the server-bound envelope
 /// session (envelope trusted); `kind="envelope_absent"` — no envelope
@@ -1188,11 +1188,11 @@ mod tests {
     use crate::handle::tests::{
         background_capable_cfg, make_confining_handle, make_handle, start_background_sleep,
     };
+    use nofy_tool_protocol::turn_hook;
     use nofy_tools::implementations::nofy_build::scheduler::types::{
         ScheduledTask, SchedulerState,
     };
     use nofy_tools::types::resources::State;
-    use nofy_tool_protocol::turn_hook;
     /// Helper: consume the first item from a ToolStream.
     async fn next_item(
         stream: &mut ToolStream<TypedToolOutput>,

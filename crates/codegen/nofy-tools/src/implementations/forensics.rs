@@ -121,7 +121,11 @@ fn render_entry(entry: &ForensicsEntry) -> (String, String) {
                 "startup".to_string(),
                 format!(
                     "pid {pid}; previous run {}",
-                    if clean { "ended cleanly" } else { "DIED UNCLEAN" }
+                    if clean {
+                        "ended cleanly"
+                    } else {
+                        "DIED UNCLEAN"
+                    }
                 ),
             )
         }
@@ -157,7 +161,9 @@ fn death_verdict(entries: &[ForensicsEntry]) -> Option<String> {
             if prev_clean {
                 Some(format!("daemon running/ended cleanly; {toll}"))
             } else {
-                Some(format!("PREVIOUS RUN DIED UNCLEAN (crash or kill -9); {toll}"))
+                Some(format!(
+                    "PREVIOUS RUN DIED UNCLEAN (crash or kill -9); {toll}"
+                ))
             }
         }
         "unclean_death_detected" => Some(format!(
@@ -195,7 +201,10 @@ mod tests {
         e.dead_kind = Some("startup".into());
         let (event, detail) = render_entry(&e);
         assert_eq!(event, "UNCLEAN_DEATH");
-        assert!(detail.contains("pid 5") && detail.contains("startup"), "{detail}");
+        assert!(
+            detail.contains("pid 5") && detail.contains("startup"),
+            "{detail}"
+        );
 
         let mut e = entry("clean_shutdown");
         e.pid = Some(9);

@@ -20,9 +20,9 @@ use std::time::Duration;
 use agent_client_protocol as acp;
 use agent_client_protocol::Client as _;
 use futures::stream::{FuturesUnordered, StreamExt as _};
-use serde_json::value::RawValue;
 use nofy_hooks::event::{HookEventEnvelope, HookEventName, HookPayload};
 use nofy_telemetry::events::ClientHookGateOutcome;
+use serde_json::value::RawValue;
 
 use super::{SessionActor, ToolLoop};
 use crate::extensions::hooks::{
@@ -105,9 +105,7 @@ fn matching_callback_ids<'a>(
 ) -> Vec<&'a str> {
     groups
         .iter()
-        .filter(|group| {
-            nofy_hooks::matcher::matcher_allows(group.matcher.as_ref(), match_value)
-        })
+        .filter(|group| nofy_hooks::matcher::matcher_allows(group.matcher.as_ref(), match_value))
         .flat_map(|group| group.callback_ids.iter().map(String::as_str))
         .collect()
 }

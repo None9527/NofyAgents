@@ -38,7 +38,10 @@ mod tests {
 
     #[test]
     fn test_display_version_formatting() {
-        assert_eq!(display_version_with_commit("0.2.5 (abc1234)"), "0.2.5 (abc1234)");
+        assert_eq!(
+            display_version_with_commit("0.2.5 (abc1234)"),
+            "0.2.5 (abc1234)"
+        );
         assert_eq!(display_version(), VERSION);
     }
 }

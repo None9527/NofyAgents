@@ -8,7 +8,6 @@ use dashmap::DashMap;
 use async_trait::async_trait;
 
 use futures::StreamExt;
-use serde::{Deserialize, Serialize};
 use nofy_computer_hub_core::{
     CompoundResolver, ConnectionCleanupReport, ErasedTool, ResolvedTool, SessionCleanupReport,
     ToolHandle, ToolRegistry, ToolSessionBindOutcome, ToolSessionUnbindOutcome,
@@ -21,6 +20,7 @@ use nofy_tool_runtime::{
     SearchSnapshot, ServerSummary, Tool, ToolCallContext, ToolError, ToolStreamItem,
 };
 use nofy_tool_types::ToolDescription;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 struct EmptyArgs {}

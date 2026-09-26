@@ -52,9 +52,10 @@ pub fn tombstones(manifest: &[ChangeRecord]) -> Vec<Tombstone> {
     manifest
         .iter()
         .filter_map(|record| match &record.op {
-            ChangeOp::Move { from, to } | ChangeOp::Rename { from, to } => {
-                Some(Tombstone { from: from.clone(), to: to.clone() })
-            }
+            ChangeOp::Move { from, to } | ChangeOp::Rename { from, to } => Some(Tombstone {
+                from: from.clone(),
+                to: to.clone(),
+            }),
             ChangeOp::Trash { from, trash_path } => Some(Tombstone {
                 from: from.clone(),
                 to: trash_path.clone(),
@@ -116,19 +117,28 @@ mod tests {
             ChangeRecord {
                 batch_id: "b1".into(),
                 path: "/a".into(),
-                op: ChangeOp::Move { from: "/a".into(), to: "/b".into() },
+                op: ChangeOp::Move {
+                    from: "/a".into(),
+                    to: "/b".into(),
+                },
                 at: 10,
             },
             ChangeRecord {
                 batch_id: "b1".into(),
                 path: "/b".into(),
-                op: ChangeOp::Rename { from: "/b".into(), to: "/c".into() },
+                op: ChangeOp::Rename {
+                    from: "/b".into(),
+                    to: "/c".into(),
+                },
                 at: 20,
             },
             ChangeRecord {
                 batch_id: "b2".into(),
                 path: "/x".into(),
-                op: ChangeOp::Trash { from: "/x".into(), trash_path: "/.trash/x".into() },
+                op: ChangeOp::Trash {
+                    from: "/x".into(),
+                    trash_path: "/.trash/x".into(),
+                },
                 at: 30,
             },
         ]
@@ -140,19 +150,31 @@ mod tests {
         // /a → /b → /c chains through two tombstones.
         assert_eq!(
             resolve_reference(&stones, "/a"),
-            Resolved::Forwarded { stale: "/a".into(), current: "/c".into() }
+            Resolved::Forwarded {
+                stale: "/a".into(),
+                current: "/c".into()
+            }
         );
         assert_eq!(
             resolve_reference(&stones, "/b"),
-            Resolved::Forwarded { stale: "/b".into(), current: "/c".into() }
+            Resolved::Forwarded {
+                stale: "/b".into(),
+                current: "/c".into()
+            }
         );
         // Trashed file forwards to the trash location.
         assert_eq!(
             resolve_reference(&stones, "/x"),
-            Resolved::Forwarded { stale: "/x".into(), current: "/.trash/x".into() }
+            Resolved::Forwarded {
+                stale: "/x".into(),
+                current: "/.trash/x".into()
+            }
         );
         // Unknown path: no forwarding.
-        assert_eq!(resolve_reference(&stones, "/zz"), Resolved::Current("/zz".into()));
+        assert_eq!(
+            resolve_reference(&stones, "/zz"),
+            Resolved::Current("/zz".into())
+        );
     }
 
     #[test]
@@ -162,11 +184,17 @@ mod tests {
         // Reverse order: rename undone first, then the move.
         assert_eq!(
             undo[0],
-            InverseOp::MoveBack { from: "/c".into(), to: "/b".into() }
+            InverseOp::MoveBack {
+                from: "/c".into(),
+                to: "/b".into()
+            }
         );
         assert_eq!(
             undo[1],
-            InverseOp::MoveBack { from: "/b".into(), to: "/a".into() }
+            InverseOp::MoveBack {
+                from: "/b".into(),
+                to: "/a".into()
+            }
         );
     }
 
@@ -175,7 +203,10 @@ mod tests {
         let undo = undo_batch(&manifest(), "b2");
         assert_eq!(
             undo,
-            vec![InverseOp::Restore { from: "/.trash/x".into(), to: "/x".into() }]
+            vec![InverseOp::Restore {
+                from: "/.trash/x".into(),
+                to: "/x".into()
+            }]
         );
     }
 
@@ -188,8 +219,14 @@ mod tests {
     fn tombstone_chain_terminates_on_cycle() {
         // A pathological cycle must not loop forever.
         let stones = vec![
-            Tombstone { from: "/a".into(), to: "/b".into() },
-            Tombstone { from: "/b".into(), to: "/a".into() },
+            Tombstone {
+                from: "/a".into(),
+                to: "/b".into(),
+            },
+            Tombstone {
+                from: "/b".into(),
+                to: "/a".into(),
+            },
         ];
         let _ = resolve_reference(&stones, "/a"); // terminates by bound
     }

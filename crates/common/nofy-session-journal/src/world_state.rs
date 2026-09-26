@@ -298,7 +298,11 @@ impl WorldStateEntry {
 
     /// The identity key of this entry within a [`WorldState`].
     pub fn key(&self) -> (Partition, &str, &str) {
-        (self.partition, self.subject.as_str(), self.predicate.as_str())
+        (
+            self.partition,
+            self.subject.as_str(),
+            self.predicate.as_str(),
+        )
     }
 }
 
@@ -556,9 +560,24 @@ mod tests {
     #[test]
     fn partition_entries_are_deterministically_ordered() {
         let mut ws = WorldState::new();
-        ws.upsert(entry(Partition::Workspace, "b.rs", "modified", Authority::External));
-        ws.upsert(entry(Partition::Workspace, "a.rs", "modified", Authority::External));
-        ws.upsert(entry(Partition::Execution, "job", "running", Authority::Observed));
+        ws.upsert(entry(
+            Partition::Workspace,
+            "b.rs",
+            "modified",
+            Authority::External,
+        ));
+        ws.upsert(entry(
+            Partition::Workspace,
+            "a.rs",
+            "modified",
+            Authority::External,
+        ));
+        ws.upsert(entry(
+            Partition::Execution,
+            "job",
+            "running",
+            Authority::Observed,
+        ));
 
         let subjects: Vec<&str> = ws
             .partition_entries(Partition::Workspace)
@@ -571,8 +590,8 @@ mod tests {
 
     #[test]
     fn confidence_is_clamped() {
-        let e = entry(Partition::Knowledge, "fact", "known", Authority::Inferred)
-            .with_confidence(1.7);
+        let e =
+            entry(Partition::Knowledge, "fact", "known", Authority::Inferred).with_confidence(1.7);
         assert_eq!(e.confidence, Some(1.0));
     }
 
@@ -597,7 +616,12 @@ mod tests {
     #[test]
     fn world_state_round_trips_through_json() {
         let mut ws = WorldState::new();
-        ws.upsert(entry(Partition::Execution, "intents", "open_count", Authority::Observed));
+        ws.upsert(entry(
+            Partition::Execution,
+            "intents",
+            "open_count",
+            Authority::Observed,
+        ));
         let line = serde_json::to_string(&ws).unwrap();
         let back: WorldState = serde_json::from_str(&line).unwrap();
         assert_eq!(back, ws);

@@ -10,18 +10,18 @@ use crate::views::modal_window::{
     self, ModalContentArea, ModalSizing, ModalWindowConfig, ModalWindowState, Shortcut,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use unicode_width::UnicodeWidthStr;
 use nofy_agent::config::{AgentDefinition, AgentScope, BuiltinAgentName};
 use nofy_shell::agent::config::AgentSelectionConfig;
 use nofy_tools::implementations::skills::discovery::extract_first_paragraph;
 use nofy_tools::registry::types::ToolServerConfig;
 use nofy_tools::types::template_renderer::TemplateRenderer;
 use nofy_tools::types::tool::ToolKind;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Modifier, Style};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use unicode_width::UnicodeWidthStr;
 /// Which tab is active in the agents modal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentsTab {

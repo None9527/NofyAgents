@@ -28,9 +28,13 @@ pub struct ZoneContext<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CleanupVerdict {
     Cleanable,
-    Forbidden { reason: String },
+    Forbidden {
+        reason: String,
+    },
     /// Uncertain state: must Ask, never assume.
-    Ask { reason: String },
+    Ask {
+        reason: String,
+    },
 }
 
 /// Forbidden-zone check: leased / gitignored / recently touched =
@@ -48,7 +52,10 @@ pub fn cleanup_verdict(ctx: &ZoneContext) -> CleanupVerdict {
     }
     match ctx.days_since_touch {
         Some(days) if days <= ctx.recent_window_days => CleanupVerdict::Forbidden {
-            reason: format!("touched {days} days ago (window {})", ctx.recent_window_days),
+            reason: format!(
+                "touched {days} days ago (window {})",
+                ctx.recent_window_days
+            ),
         },
         Some(_) => CleanupVerdict::Cleanable,
         None => CleanupVerdict::Ask {
@@ -131,7 +138,10 @@ mod tests {
 
     #[test]
     fn old_unmanaged_files_are_cleanable() {
-        assert_eq!(cleanup_verdict(&ctx(false, false, Some(30))), CleanupVerdict::Cleanable);
+        assert_eq!(
+            cleanup_verdict(&ctx(false, false, Some(30))),
+            CleanupVerdict::Cleanable
+        );
     }
 
     #[test]
@@ -165,6 +175,10 @@ mod tests {
             a.record_batch();
         }
         assert_eq!(a.next_batch_mode(), BatchMode::Live);
-        assert_eq!(b.next_batch_mode(), BatchMode::DryRun, "other roots keep their trial");
+        assert_eq!(
+            b.next_batch_mode(),
+            BatchMode::DryRun,
+            "other roots keep their trial"
+        );
     }
 }

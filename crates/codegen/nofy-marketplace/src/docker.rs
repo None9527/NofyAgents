@@ -56,11 +56,8 @@ mod tests {
 
     #[test]
     fn declared_args_resolve() {
-        let resolved = resolve_build_args(
-            &subset(),
-            &[("LINTER_VERSION".into(), "2.1".into())],
-        )
-        .unwrap();
+        let resolved =
+            resolve_build_args(&subset(), &[("LINTER_VERSION".into(), "2.1".into())]).unwrap();
         assert_eq!(resolved, vec![("LINTER_VERSION".into(), "2.1".into())]);
     }
 

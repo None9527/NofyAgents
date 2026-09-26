@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
-use nofy_channel::frame::{read_frame_from, write_frame, FrameError};
+use nofy_channel::frame::{FrameError, read_frame_from, write_frame};
 use nofy_channel::hello::{Hello, HelloAck, ProtocolVersion};
 use nofy_control_schema::methods::{ControlMethod, ControlResponse};
 
@@ -54,7 +54,7 @@ impl<S: Read + Write> ProviderClient<S> {
                 return Err(FrameError::Io(std::io::Error::new(
                     std::io::ErrorKind::Unsupported,
                     format!("version mismatch: daemon {daemon:?} client {client:?}"),
-                )))
+                )));
             }
         }
         let noted = read_frame_from(&mut stream)?.ok_or_else(|| {
@@ -134,7 +134,7 @@ impl<S: Read + Write> ProviderClient<S> {
                 return Err(FrameError::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     format!("unexpected search poll response: {other:?}"),
-                )))
+                )));
             }
         })
     }
@@ -182,8 +182,8 @@ impl<S: Read + Write> ProviderClient<S> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::daemon::serve_connection;
     use crate::daemon::DaemonRun;
+    use crate::daemon::serve_connection;
     use crate::{approval::ApprovalBroker, live::LiveBus, search_proxy::SearchProxy};
 
     fn daemon_side(
@@ -196,9 +196,7 @@ mod tests {
             let _ = serve_connection(
                 &mut reader,
                 &mut writer,
-                &nofy_session_registry::Registry::at(
-                    tempfile::tempdir().unwrap().path(),
-                ),
+                &nofy_session_registry::Registry::at(tempfile::tempdir().unwrap().path()),
                 &ApprovalBroker::new(),
                 &LiveBus::new(),
                 &SearchProxy::new(),
@@ -337,7 +335,9 @@ mod tests {
         // an infinite loop needs an external EOF to terminate in tests).
         let mut provider = ProviderClient::register(client_end, "shell-1").unwrap();
         let dispatch = provider.poll_once().unwrap().expect("t1 dispatched");
-        let ControlResponse::TaskDispatch { task_id, .. } = &dispatch else { panic!("unexpected dispatch: {dispatch:?}") };
+        let ControlResponse::TaskDispatch { task_id, .. } = &dispatch else {
+            panic!("unexpected dispatch: {dispatch:?}")
+        };
         let task_id = task_id.clone();
         assert_eq!(task_id, "t1");
         provider.report(&task_id, true, None).unwrap();
@@ -427,7 +427,10 @@ mod tests {
                 .err()
                 .unwrap()
         );
-        assert!(err.contains("daemon closed during handshake"), "stage named: {err}");
+        assert!(
+            err.contains("daemon closed during handshake"),
+            "stage named: {err}"
+        );
     }
 
     #[test]
@@ -455,7 +458,10 @@ mod tests {
                 .err()
                 .unwrap()
         );
-        assert!(err.contains("daemon closed after hello"), "stage named: {err}");
+        assert!(
+            err.contains("daemon closed after hello"),
+            "stage named: {err}"
+        );
     }
 
     #[test]
@@ -477,7 +483,9 @@ mod tests {
     fn register_second_write_failure_surfaces() {
         // Hello goes out; the ProviderRegister frame hits a broken pipe.
         let stream = ScriptedStream::failing_after(2); // hello = 2 write calls
-        let Err(err) = ProviderClient::register(stream, "shell-x") else { panic!("the scripted broken pipe must refuse the handshake") };
+        let Err(err) = ProviderClient::register(stream, "shell-x") else {
+            panic!("the scripted broken pipe must refuse the handshake")
+        };
         assert!(matches!(err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::BrokenPipe));
     }
 
@@ -492,7 +500,9 @@ mod tests {
     fn register_first_write_failure_surfaces() {
         // The very first write (the Hello frame) hits a broken pipe.
         let stream = ScriptedStream::failing_after(0);
-        let Err(err) = ProviderClient::register(stream, "shell-x") else { panic!("the scripted broken pipe must refuse the handshake") };
+        let Err(err) = ProviderClient::register(stream, "shell-x") else {
+            panic!("the scripted broken pipe must refuse the handshake")
+        };
         assert!(matches!(err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::BrokenPipe));
     }
 
@@ -507,7 +517,9 @@ mod tests {
 
     #[test]
     fn register_torn_ack_is_read_error() {
-        let Err(err) = ProviderClient::register(torn_input(), "shell-x") else { panic!("a torn ack must refuse the handshake") };
+        let Err(err) = ProviderClient::register(torn_input(), "shell-x") else {
+            panic!("a torn ack must refuse the handshake")
+        };
         assert!(matches!(err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof));
     }
 
@@ -515,7 +527,9 @@ mod tests {
     fn register_malformed_noted_is_parse_error() {
         // Accepted hello, then a noted frame that is not a ControlResponse.
         let input = vec![accepted_ack(), b"{ not a response".to_vec()];
-        let Err(err) = ProviderClient::register(ScriptedStream::new(&input), "shell-x") else { panic!("a malformed noted frame must refuse the handshake") };
+        let Err(err) = ProviderClient::register(ScriptedStream::new(&input), "shell-x") else {
+            panic!("a malformed noted frame must refuse the handshake")
+        };
         assert!(
             matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::InvalidData),
             "parse failure surfaces as InvalidData: {err:?}"
@@ -575,7 +589,10 @@ mod tests {
     fn poll_once_eof_is_named() {
         let mut client = registered_client(&[]);
         let err = format!("{:?}", client.poll_once().unwrap_err());
-        assert!(err.contains("daemon closed during poll"), "stage named: {err}");
+        assert!(
+            err.contains("daemon closed during poll"),
+            "stage named: {err}"
+        );
     }
 
     #[test]
@@ -598,7 +615,10 @@ mod tests {
     fn search_poll_once_eof_is_named() {
         let mut client = registered_client(&[]);
         let err = format!("{:?}", client.search_poll_once().unwrap_err());
-        assert!(err.contains("daemon closed during search poll"), "stage named: {err}");
+        assert!(
+            err.contains("daemon closed during search poll"),
+            "stage named: {err}"
+        );
     }
 
     #[test]
@@ -634,15 +654,19 @@ mod tests {
         let err = ProviderClient::connect(&dir.path().join("absent.sock"), "shell-x")
             .err()
             .expect("no listener = connect failure");
-        assert!(matches!(err, FrameError::Io(_)), "connect failure is io: {err:?}");
+        assert!(
+            matches!(err, FrameError::Io(_)),
+            "connect failure is io: {err:?}"
+        );
     }
 
     #[test]
     fn register_malformed_ack_is_parse_error() {
-        let Err(err) = ProviderClient::register(
-            ScriptedStream::new(&[b"{ not an ack".to_vec()]),
-            "shell-x",
-        ) else { panic!("a malformed ack must refuse the handshake") };
+        let Err(err) =
+            ProviderClient::register(ScriptedStream::new(&[b"{ not an ack".to_vec()]), "shell-x")
+        else {
+            panic!("a malformed ack must refuse the handshake")
+        };
         assert!(
             matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::InvalidData),
             "parse failure surfaces as InvalidData: {err:?}"
@@ -692,9 +716,17 @@ mod tests {
                 true
             })
             .unwrap_err();
-        let is_eof = matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof);
-        assert!(is_eof, "the loop exits loud when the daemon connection dies: {err:?}");
-        assert_eq!(*seen.lock().unwrap(), 1, "the non-task dispatch reached on_task");
+        let is_eof =
+            matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof);
+        assert!(
+            is_eof,
+            "the loop exits loud when the daemon connection dies: {err:?}"
+        );
+        assert_eq!(
+            *seen.lock().unwrap(),
+            1,
+            "the non-task dispatch reached on_task"
+        );
     }
 
     #[test]
@@ -720,8 +752,12 @@ mod tests {
                 true
             })
             .unwrap_err();
-        let is_eof = matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof);
-        assert!(is_eof, "the loop exits loud when the daemon connection dies: {err:?}");
+        let is_eof =
+            matches!(&err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof);
+        assert!(
+            is_eof,
+            "the loop exits loud when the daemon connection dies: {err:?}"
+        );
         let seen = seen.lock().unwrap();
         assert_eq!(seen.len(), 1, "exactly one task was executed");
         assert!(matches!(

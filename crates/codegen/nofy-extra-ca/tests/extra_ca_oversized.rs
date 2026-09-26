@@ -20,10 +20,7 @@ fn oversized_bundle_ignored_clients_build() {
 
     // Safety: sole test in this binary; set before any OnceLock resolve.
     unsafe {
-        std::env::set_var(
-            nofy_extra_ca::ENV_NOFY_EXTRA_CA_BUNDLE,
-            path.as_os_str(),
-        );
+        std::env::set_var(nofy_extra_ca::ENV_NOFY_EXTRA_CA_BUNDLE, path.as_os_str());
     }
 
     assert!(nofy_extra_ca::extra_root_ders().is_empty());

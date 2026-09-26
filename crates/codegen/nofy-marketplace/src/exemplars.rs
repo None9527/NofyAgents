@@ -18,7 +18,12 @@ pub fn file_steward_pack() -> PackManifest {
                   move to trash. Index hints are suggestions; the disk is \
                   truth."
             .into(),
-        skills: vec!["find".into(), "organize".into(), "cleanup".into(), "dedupe".into()],
+        skills: vec![
+            "find".into(),
+            "organize".into(),
+            "cleanup".into(),
+            "dedupe".into(),
+        ],
         mcp: vec![],
         tool_policy: "strict".into(),
         model_route: None,
@@ -62,7 +67,8 @@ pub fn exemplars_pass_third_party_gate() -> Result<Vec<PackManifest>, String> {
     let mut parsed = Vec::new();
     for pack in exemplar_packs() {
         let raw = serde_json::to_value(&pack).map_err(|e| e.to_string())?;
-        let manifest = parse_pack(&raw).map_err(|e| format!("{pack_id}: {e:?}", pack_id = pack.id))?;
+        let manifest =
+            parse_pack(&raw).map_err(|e| format!("{pack_id}: {e:?}", pack_id = pack.id))?;
         parsed.push(manifest);
     }
     compose_packs(&parsed).map_err(|e| format!("compose: {e:?}"))?;
@@ -98,7 +104,11 @@ mod tests {
         // DS-P4: exemplars are model-facing composition only.
         for pack in exemplar_packs() {
             let raw = serde_json::to_value(&pack).unwrap();
-            assert!(parse_pack(&raw).is_ok(), "{} must not leak host-plane keys", pack.id);
+            assert!(
+                parse_pack(&raw).is_ok(),
+                "{} must not leak host-plane keys",
+                pack.id
+            );
         }
     }
 

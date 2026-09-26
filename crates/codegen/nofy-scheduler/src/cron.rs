@@ -96,7 +96,12 @@ mod tests {
 
     #[test]
     fn startup_repair_marks_inflight_failed() {
-        let state = fold(&[added("a"), started("a", 1, 100), added("b"), started("b", 7, 200)]);
+        let state = fold(&[
+            added("a"),
+            started("a", 1, 100),
+            added("b"),
+            started("b", 7, 200),
+        ]);
         assert_eq!(state.inflight.len(), 2);
 
         let repair = startup_repair(&state);
@@ -164,7 +169,11 @@ mod tests {
                 run_id: 4, // stale: run 4 is not in flight
             },
         ]);
-        assert_eq!(state.inflight.get("a"), Some(&(5, 10)), "in-flight must survive stale result");
+        assert_eq!(
+            state.inflight.get("a"),
+            Some(&(5, 10)),
+            "in-flight must survive stale result"
+        );
     }
 
     #[test]
@@ -175,7 +184,12 @@ mod tests {
 
     #[test]
     fn watchdog_fails_only_stale_runs() {
-        let state = fold(&[added("a"), started("a", 1, 100), added("b"), started("b", 2, 900)]);
+        let state = fold(&[
+            added("a"),
+            started("a", 1, 100),
+            added("b"),
+            started("b", 2, 900),
+        ]);
         let events = watchdog_events(&state, 1000, 300);
         assert_eq!(events.len(), 1, "only the run older than the timeout");
         assert!(matches!(
@@ -202,7 +216,14 @@ mod tests {
     fn engine_loop_catch_up_plus_repair_replays_from_scratch() {
         // Full boot shape: missed dues caught up latest-only, crashed run
         // repaired — then fold-from-scratch reproduces it all.
-        let mut log = vec![added("a"), crate::ScheduleEvent::Armed { id: "a".into(), due: 10 }, started("a", 1, 50)];
+        let mut log = vec![
+            added("a"),
+            crate::ScheduleEvent::Armed {
+                id: "a".into(),
+                due: 10,
+            },
+            started("a", 1, 50),
+        ];
         let state = fold(&log);
         log.extend(crate::catch_up_events(&state, 200, 4));
         log.extend(startup_repair(&fold(&log)));

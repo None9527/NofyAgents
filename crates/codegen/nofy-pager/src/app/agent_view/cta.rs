@@ -578,12 +578,10 @@ impl AgentView {
             } => (plugin_relative_path.clone(), name.clone(), true),
             _ => return,
         };
-        nofy_telemetry::session_ctx::log_event(
-            nofy_telemetry::events::PluginCtaConnectClicked {
-                plugin_name: name.clone(),
-                is_retry,
-            },
-        );
+        nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PluginCtaConnectClicked {
+            plugin_name: name.clone(),
+            is_retry,
+        });
         let Some(session_id) = self.session.session_id.clone() else {
             return;
         };
@@ -609,8 +607,7 @@ impl AgentView {
             .push(super::actions::Effect::InstallPluginFromCta {
                 agent_id: self.session.id,
                 session_id,
-                source_url_or_path: nofy_plugin_marketplace::OFFICIAL_SOURCE_GIT_URL
-                    .to_string(),
+                source_url_or_path: nofy_plugin_marketplace::OFFICIAL_SOURCE_GIT_URL.to_string(),
                 plugin_relative_path,
             });
     }

@@ -15,7 +15,13 @@ use std::path::{Path, PathBuf};
 /// anything else (notably `/` and `..`) replaced with `_`.
 pub fn safe_stem(id: &str) -> String {
     id.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect()
 }
 
@@ -81,7 +87,11 @@ mod tests {
         assert_eq!(files.read_heartbeat("nightly").unwrap(), None);
         files.write_heartbeat("nightly", 100).unwrap();
         assert_eq!(files.read_heartbeat("nightly").unwrap(), Some(100));
-        assert_eq!(files.read_success("nightly").unwrap(), None, "attempt is not success");
+        assert_eq!(
+            files.read_success("nightly").unwrap(),
+            None,
+            "attempt is not success"
+        );
 
         files.write_success("nightly", 105).unwrap();
         assert_eq!(files.read_success("nightly").unwrap(), Some(105));

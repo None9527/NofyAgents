@@ -36,6 +36,7 @@ pub mod memory_trace;
 //   - `minimal_api`  — minimal → pager read surface (facade over `pub(crate)`s).
 // Module names are kept flat (via `#[path]`) so existing references and
 // every `crate::minimal_{api,hook}` call site stay valid.
+pub mod approval_cmd;
 #[path = "minimal/api.rs"]
 pub mod minimal_api;
 #[path = "minimal/hook.rs"]
@@ -47,17 +48,16 @@ pub mod obf;
 pub mod plugin_cmd;
 pub mod pty_wrap;
 pub mod recent_dirs;
+pub mod schedule_cmd;
 pub mod scrollback;
 pub mod search;
-pub mod approval_cmd;
-pub mod schedule_cmd;
 pub mod sessions_cmd;
-pub mod task_cmd;
-pub mod trash_cmd;
 pub mod settings;
 pub mod slash;
 pub mod startup;
+pub mod task_cmd;
 pub mod tips;
+pub mod trash_cmd;
 pub mod tutorial_docs;
 pub mod wrap_clipboard_image;
 pub mod wrap_cmd;

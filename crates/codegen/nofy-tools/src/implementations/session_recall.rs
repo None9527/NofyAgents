@@ -99,9 +99,7 @@ impl nofy_tool_runtime::Tool for SessionRecallTool {
             )
         })?;
         if hits.is_empty() {
-            return Ok(ToolOutput::Text(
-                "No matching prior sessions found.".into(),
-            ));
+            return Ok(ToolOutput::Text("No matching prior sessions found.".into()));
         }
         let mut out = String::new();
         for hit in &hits {

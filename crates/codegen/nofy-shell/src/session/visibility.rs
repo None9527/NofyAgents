@@ -99,7 +99,10 @@ mod tests {
             HeadlessPolicy::from_wire(Some("exclude")),
             HeadlessPolicy::Exclude,
         );
-        assert_eq!(HeadlessPolicy::from_wire(Some("only")), HeadlessPolicy::Only);
+        assert_eq!(
+            HeadlessPolicy::from_wire(Some("only")),
+            HeadlessPolicy::Only
+        );
         assert_eq!(
             HeadlessPolicy::from_wire(Some("include")),
             HeadlessPolicy::Include,

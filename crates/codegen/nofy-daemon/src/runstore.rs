@@ -82,7 +82,8 @@ mod tests {
 
     fn stored() -> StoredRun {
         StoredRun {
-            manifest_toml: "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n".into(),
+            manifest_toml: "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n"
+                .into(),
             packs: vec![serde_json::json!({"id": "p", "persona": "x"})],
             cwd: None,
         }
@@ -121,7 +122,10 @@ mod tests {
         let path = dir.path().join("run.json");
         std::fs::write(&path, "{ not json").unwrap();
         let store = RunStore::open(&path);
-        assert!(store.load().is_err(), "a torn plan must surface, never vanish");
+        assert!(
+            store.load().is_err(),
+            "a torn plan must surface, never vanish"
+        );
     }
 
     #[test]

@@ -1,8 +1,8 @@
 pub mod config;
 pub(crate) mod dual_clock;
-pub mod nofy_auth_credentials;
 pub mod hooks;
 pub mod limits;
+pub mod nofy_auth_credentials;
 pub(crate) mod subprocess;
 pub(crate) mod text_sanitize;
 

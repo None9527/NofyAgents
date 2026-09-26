@@ -7,8 +7,8 @@
 use std::io::{Read, Write};
 use std::time::Duration;
 
-use nofy_channel::frame::{read_frame_from, write_frame, FrameError};
-use nofy_channel::hello::{negotiate, Hello, HelloAck};
+use nofy_channel::frame::{FrameError, read_frame_from, write_frame};
+use nofy_channel::hello::{Hello, HelloAck, negotiate};
 use nofy_control_schema::errors::{ControlError, ControlErrorCode};
 use nofy_control_schema::methods::{ControlMethod, ControlResponse};
 use nofy_session_registry::Registry;
@@ -16,7 +16,7 @@ use nofy_session_registry::Registry;
 use crate::approval::ApprovalBroker;
 use crate::daemon::DEFAULT_APPROVAL_TIMEOUT;
 use crate::live::LiveBus;
-use crate::runlife::{submit_run, DaemonRun, DaemonStores};
+use crate::runlife::{DaemonRun, DaemonStores, submit_run};
 use crate::search_proxy::SearchProxy;
 
 /// Attach streaming: disk delta replay first (disk is truth), then live
@@ -46,9 +46,8 @@ fn stream_session<R: Read, W: Write>(
                     None => true,
                 };
                 if wanted {
-                    let frame = serde_json::to_vec(&ControlResponse::SessionEvent {
-                        event: ev.clone(),
-                    })?;
+                    let frame =
+                        serde_json::to_vec(&ControlResponse::SessionEvent { event: ev.clone() })?;
                     write_frame(writer, &frame)?;
                     last_sent = last_sent.max(ev.seq);
                 }
@@ -61,9 +60,7 @@ fn stream_session<R: Read, W: Write>(
         match rx.recv_timeout(Duration::from_millis(500)) {
             Ok(ev) => {
                 if ev.seq > last_sent {
-                    let frame = serde_json::to_vec(&ControlResponse::SessionEvent {
-                        event: ev,
-                    })?;
+                    let frame = serde_json::to_vec(&ControlResponse::SessionEvent { event: ev })?;
                     if write_frame(writer, &frame).is_err() {
                         bus.unsubscribe(session_id, sub_id);
                         return Ok(());
@@ -137,10 +134,7 @@ pub fn serve_connection<R: Read, W: Write>(
                     count: recs.len() as u32,
                 })?
             }
-            Ok(ControlMethod::SessionAttach {
-                session_id,
-                cursor,
-            }) => {
+            Ok(ControlMethod::SessionAttach { session_id, cursor }) => {
                 return stream_session(reader, writer, registry, bus, &session_id, cursor);
             }
             Ok(ControlMethod::SessionSearch { query }) => {
@@ -184,37 +178,37 @@ pub fn serve_connection<R: Read, W: Write>(
                         ),
                     ))?
                 } else {
-                match submit_run(&manifest, &packs, cwd.clone()) {
-                    Ok((mut dr, total)) => {
-                        // R2/S wiring: persist the PLAN and attach the
-                        // durable journal before the run becomes visible.
-                        let mut failed: Option<String> = None;
-                        if let Some(stores) = stores {
-                            if let Err(e) = stores.runs.save(&crate::runstore::StoredRun {
-                                manifest_toml: manifest.clone(),
-                                packs: packs.clone(),
-                                cwd: cwd.clone(),
-                            }) {
-                                failed = Some(format!("run store save failed: {e}"));
-                            } else if let Err(e) = dr.attach_journal(stores.journal.clone()) {
-                                failed = Some(format!("task journal attach failed: {e}"));
+                    match submit_run(&manifest, &packs, cwd.clone()) {
+                        Ok((mut dr, total)) => {
+                            // R2/S wiring: persist the PLAN and attach the
+                            // durable journal before the run becomes visible.
+                            let mut failed: Option<String> = None;
+                            if let Some(stores) = stores {
+                                if let Err(e) = stores.runs.save(&crate::runstore::StoredRun {
+                                    manifest_toml: manifest.clone(),
+                                    packs: packs.clone(),
+                                    cwd: cwd.clone(),
+                                }) {
+                                    failed = Some(format!("run store save failed: {e}"));
+                                } else if let Err(e) = dr.attach_journal(stores.journal.clone()) {
+                                    failed = Some(format!("task journal attach failed: {e}"));
+                                }
+                            }
+                            if let Some(msg) = failed {
+                                serde_json::to_value(ControlError::new(
+                                    ControlErrorCode::Internal,
+                                    msg,
+                                ))?
+                            } else {
+                                *run.lock().unwrap() = Some(dr);
+                                serde_json::to_value(ControlResponse::ProjectAccepted { total })?
                             }
                         }
-                        if let Some(msg) = failed {
-                            serde_json::to_value(ControlError::new(
-                                ControlErrorCode::Internal,
-                                msg,
-                            ))?
-                        } else {
-                            *run.lock().unwrap() = Some(dr);
-                            serde_json::to_value(ControlResponse::ProjectAccepted { total })?
-                        }
+                        Err(msg) => serde_json::to_value(ControlError::new(
+                            ControlErrorCode::Internal,
+                            format!("manifest rejected: {msg}"),
+                        ))?,
                     }
-                    Err(msg) => serde_json::to_value(ControlError::new(
-                        ControlErrorCode::Internal,
-                        format!("manifest rejected: {msg}"),
-                    ))?,
-                }
                 }
             }
             Ok(ControlMethod::TaskPoll) => {
@@ -312,10 +306,7 @@ pub fn serve_connection<R: Read, W: Write>(
                                 "ok": true,
                                 "output": output,
                             });
-                            let dir = registry
-                                .root()
-                                .join("scheduler")
-                                .join("deliveries");
+                            let dir = registry.root().join("scheduler").join("deliveries");
                             if let Err(e) = nofy_scheduler::delivery::deliver_to(
                                 &dir,
                                 sched_id,
@@ -328,116 +319,122 @@ pub fn serve_connection<R: Read, W: Write>(
                     }
                     serde_json::to_value(ControlResponse::TaskNoted)?
                 } else {
-                use crate::orchestra::SettleOutcome;
-                let outcome = {
-                    let mut guard = run.lock().unwrap();
-                    guard
-                        .as_mut()
-                        .map(|r| r.orch.settle(&task_id, succeeded))
-                        .unwrap_or(SettleOutcome::Done)
-                };
-                // Q3 wiring (FR11.5): journal the settle for KNOWN tasks
-                // only (unknown ids never enter the journal).
-                if let Some(r) = run.lock().unwrap().as_mut() {
-                    if r.journal.iter().any(|e| e.task() == task_id) {
-                        let seq = r.journal_next_seq();
-                        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Settled {
-                            seq,
-                            task: task_id.clone(),
-                            ok: succeeded,
-                        });
-                    }
-                }
-                if let SettleOutcome::Escalate(id) = outcome {
-                    // Cross-surface decision: allow = skip dependents and
-                    // continue; deny = abort the run.
-                    let summary = format!("task {id} failed; allow skip-and-continue?");
-                    // Q3 wiring (FR11.5): journal the escalation.
+                    use crate::orchestra::SettleOutcome;
+                    let outcome = {
+                        let mut guard = run.lock().unwrap();
+                        guard
+                            .as_mut()
+                            .map(|r| r.orch.settle(&task_id, succeeded))
+                            .unwrap_or(SettleOutcome::Done)
+                    };
+                    // Q3 wiring (FR11.5): journal the settle for KNOWN tasks
+                    // only (unknown ids never enter the journal).
                     if let Some(r) = run.lock().unwrap().as_mut() {
-                        let seq = r.journal_next_seq();
-                        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Escalated {
-                            seq,
-                            task: id.clone(),
-                            reason: summary.clone(),
-                        });
+                        if r.journal.iter().any(|e| e.task() == task_id) {
+                            let seq = r.journal_next_seq();
+                            r.record_event(nofy_orchestra::taskjournal::TaskEvent::Settled {
+                                seq,
+                                task: task_id.clone(),
+                                ok: succeeded,
+                            });
+                        }
                     }
-                    if broker.register(&id, &summary) {
-                        let decision = broker.wait(&id, DEFAULT_APPROVAL_TIMEOUT);
-                        broker.settle(&id);
-                        // Q3 wiring (FR11.8): the decision is booked through
-                        // the batch-approval ledger — an undecided item at
-                        // the deadline is DENIED (fail-closed), never
-                        // defaulted to allow.
-                        let batch = nofy_orchestra::batchapproval::ApprovalBatch {
-                            batch_id: format!("escalation-{id}"),
-                            items: vec![nofy_orchestra::batchapproval::BatchItem {
-                                id: id.clone(),
-                                summary: summary.clone(),
-                                high_risk: true,
-                            }],
-                        };
-                        let mut ledger = nofy_orchestra::batchapproval::init_ledger(&batch);
-                        match decision {
-                            Some(d) => {
-                                let item =
-                                    if d == nofy_control_schema::methods::ApprovalDecision::AllowOnce {
+                    if let SettleOutcome::Escalate(id) = outcome {
+                        // Cross-surface decision: allow = skip dependents and
+                        // continue; deny = abort the run.
+                        let summary = format!("task {id} failed; allow skip-and-continue?");
+                        // Q3 wiring (FR11.5): journal the escalation.
+                        if let Some(r) = run.lock().unwrap().as_mut() {
+                            let seq = r.journal_next_seq();
+                            r.record_event(nofy_orchestra::taskjournal::TaskEvent::Escalated {
+                                seq,
+                                task: id.clone(),
+                                reason: summary.clone(),
+                            });
+                        }
+                        if broker.register(&id, &summary) {
+                            let decision = broker.wait(&id, DEFAULT_APPROVAL_TIMEOUT);
+                            broker.settle(&id);
+                            // Q3 wiring (FR11.8): the decision is booked through
+                            // the batch-approval ledger — an undecided item at
+                            // the deadline is DENIED (fail-closed), never
+                            // defaulted to allow.
+                            let batch = nofy_orchestra::batchapproval::ApprovalBatch {
+                                batch_id: format!("escalation-{id}"),
+                                items: vec![nofy_orchestra::batchapproval::BatchItem {
+                                    id: id.clone(),
+                                    summary: summary.clone(),
+                                    high_risk: true,
+                                }],
+                            };
+                            let mut ledger = nofy_orchestra::batchapproval::init_ledger(&batch);
+                            match decision {
+                                Some(d) => {
+                                    let item = if d
+                                        == nofy_control_schema::methods::ApprovalDecision::AllowOnce
+                                    {
                                         nofy_orchestra::batchapproval::ItemDecision::Approved
                                     } else {
                                         nofy_orchestra::batchapproval::ItemDecision::Denied
                                     };
-                                nofy_orchestra::batchapproval::decide_item(&mut ledger, &id, item);
+                                    nofy_orchestra::batchapproval::decide_item(
+                                        &mut ledger,
+                                        &id,
+                                        item,
+                                    );
+                                }
+                                None => {
+                                    nofy_orchestra::batchapproval::expire_undecided(&mut ledger);
+                                }
                             }
-                            None => {
-                                nofy_orchestra::batchapproval::expire_undecided(&mut ledger);
-                            }
-                        }
-                        let allow = matches!(
-                            nofy_orchestra::batchapproval::batch_outcome(&ledger),
-                            nofy_orchestra::batchapproval::BatchOutcome::AllApproved
-                        );
-                        if let Some(r) = run.lock().unwrap().as_mut() {
-                            r.orch.resolve_escalation(&id, allow);
-                            let seq = r.journal_next_seq();
-                            r.record_event(
-                                nofy_orchestra::taskjournal::TaskEvent::EscalationResolved {
-                                    seq,
-                                    task: id.clone(),
-                                    allow,
-                                },
+                            let allow = matches!(
+                                nofy_orchestra::batchapproval::batch_outcome(&ledger),
+                                nofy_orchestra::batchapproval::BatchOutcome::AllApproved
                             );
-                            if allow {
-                                // W-4 audit: skip-and-continue moves the
-                                // dependents to dead — journal each skip.
-                                journal_skips(r, "skipped: dependency failed (escalation allowed)");
+                            if let Some(r) = run.lock().unwrap().as_mut() {
+                                r.orch.resolve_escalation(&id, allow);
+                                let seq = r.journal_next_seq();
+                                r.record_event(
+                                    nofy_orchestra::taskjournal::TaskEvent::EscalationResolved {
+                                        seq,
+                                        task: id.clone(),
+                                        allow,
+                                    },
+                                );
+                                if allow {
+                                    // W-4 audit: skip-and-continue moves the
+                                    // dependents to dead — journal each skip.
+                                    journal_skips(
+                                        r,
+                                        "skipped: dependency failed (escalation allowed)",
+                                    );
+                                }
                             }
                         }
                     }
-                }
-                // S wiring: a finished run releases the stored plan; the
-                // journal stays as the audit trail.
-                if let Some(stores) = stores {
-                    let done = run
-                        .lock()
-                        .unwrap()
-                        .as_ref()
-                        .map(|r| r.orch.is_done())
-                        .unwrap_or(false);
-                    if done {
-                        if let Err(e) = stores.runs.clear() {
-                            tracing::error!(?e, "run store clear failed");
+                    // S wiring: a finished run releases the stored plan; the
+                    // journal stays as the audit trail.
+                    if let Some(stores) = stores {
+                        let done = run
+                            .lock()
+                            .unwrap()
+                            .as_ref()
+                            .map(|r| r.orch.is_done())
+                            .unwrap_or(false);
+                        if done {
+                            if let Err(e) = stores.runs.clear() {
+                                tracing::error!(?e, "run store clear failed");
+                            }
                         }
                     }
-                }
-                serde_json::to_value(ControlResponse::TaskNoted)?
+                    serde_json::to_value(ControlResponse::TaskNoted)?
                 }
             }
             Ok(ControlMethod::SearchPoll) => match search.poll() {
-                Some((request_id, q)) => {
-                    serde_json::to_value(ControlResponse::SearchDispatch {
-                        request_id,
-                        query: q,
-                    })?
-                }
+                Some((request_id, q)) => serde_json::to_value(ControlResponse::SearchDispatch {
+                    request_id,
+                    query: q,
+                })?,
                 None => serde_json::to_value(ControlResponse::NoPending)?,
             },
             Ok(ControlMethod::SearchResult {
@@ -462,10 +459,7 @@ pub fn serve_connection<R: Read, W: Write>(
                 bus.publish(event);
                 serde_json::to_value(ControlResponse::Pong)?
             }
-            Ok(ControlMethod::ApprovalRequest {
-                intent_id,
-                summary,
-            }) => {
+            Ok(ControlMethod::ApprovalRequest { intent_id, summary }) => {
                 // Q1 wiring: self-destructive requests are refused AT THE
                 // BOUNDARY (governance lifeguard, FR5.6) — they never
                 // reach a surface round-trip.
@@ -497,9 +491,7 @@ pub fn serve_connection<R: Read, W: Write>(
                     match broker.wait(&intent_id, DEFAULT_APPROVAL_TIMEOUT) {
                         Some(decision) => {
                             broker.settle(&intent_id);
-                            serde_json::to_value(ControlResponse::ApprovalResolved {
-                                decision,
-                            })?
+                            serde_json::to_value(ControlResponse::ApprovalResolved { decision })?
                         }
                         None => serde_json::to_value(ControlError::new(
                             ControlErrorCode::ApprovalTimeout,
@@ -526,9 +518,12 @@ pub fn serve_connection<R: Read, W: Write>(
                 let pending = broker
                     .pending_intents()
                     .into_iter()
-                    .map(|(intent_id, summary)| {
-                        nofy_control_schema::methods::PendingApproval { intent_id, summary }
-                    })
+                    .map(
+                        |(intent_id, summary)| nofy_control_schema::methods::PendingApproval {
+                            intent_id,
+                            summary,
+                        },
+                    )
                     .collect();
                 serde_json::to_value(ControlResponse::ApprovalsListed { pending })?
             }
@@ -574,7 +569,10 @@ pub fn serve_connection<R: Read, W: Write>(
                 }
             }
             Ok(ControlMethod::ScheduleRemove { id }) => {
-                match stores.as_ref().map(|s| s.scheduler.lock().unwrap().remove_schedule(&id)) {
+                match stores
+                    .as_ref()
+                    .map(|s| s.scheduler.lock().unwrap().remove_schedule(&id))
+                {
                     Some(Ok(())) => serde_json::to_value(ControlResponse::ScheduleNoted)?,
                     Some(Err(msg)) => serde_json::to_value(ControlError::new(
                         ControlErrorCode::Internal,
@@ -607,7 +605,9 @@ pub fn serve_connection<R: Read, W: Write>(
                         .collect();
                     serde_json::to_value(ControlResponse::ScheduleListed { entries })?
                 } else {
-                    serde_json::to_value(ControlResponse::ScheduleListed { entries: Vec::new() })?
+                    serde_json::to_value(ControlResponse::ScheduleListed {
+                        entries: Vec::new(),
+                    })?
                 }
             }
             Ok(ControlMethod::TaskList) => {
@@ -628,10 +628,13 @@ pub fn serve_connection<R: Read, W: Write>(
                 let mut run_ids: std::collections::BTreeMap<String, String> =
                     std::collections::BTreeMap::new();
                 for ev in &events {
-                    if let nofy_orchestra::taskjournal::TaskEvent::Armed { task, run: run_id, .. } =
-                        ev
+                    if let nofy_orchestra::taskjournal::TaskEvent::Armed {
+                        task, run: run_id, ..
+                    } = ev
                     {
-                        run_ids.entry(task.clone()).or_insert_with(|| run_id.clone());
+                        run_ids
+                            .entry(task.clone())
+                            .or_insert_with(|| run_id.clone());
                     }
                 }
                 let tasks = journal
@@ -755,11 +758,7 @@ pub(crate) fn peer_pid(stream: &std::os::unix::net::UnixStream) -> Option<u32> {
             &mut len,
         )
     };
-    if ret == 0 {
-        Some(pid as u32)
-    } else {
-        None
-    }
+    if ret == 0 { Some(pid as u32) } else { None }
 }
 
 /// Wall-clock seconds since the epoch (preauth windows).
@@ -826,11 +825,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         // Seed one session so the registry has something to count.
         std::fs::create_dir_all(tmp.path().join("sessions/cw1/s1")).unwrap();
-        std::fs::write(
-            tmp.path().join("sessions/cw1/s1/chat_history.jsonl"),
-            "{}",
-        )
-        .unwrap();
+        std::fs::write(tmp.path().join("sessions/cw1/s1/chat_history.jsonl"), "{}").unwrap();
         let registry = Registry::at(tmp.path());
 
         let mut wire_in = Vec::new();
@@ -847,7 +842,17 @@ mod tests {
 
         let mut reader = std::io::Cursor::new(wire_in);
         let mut writer = Vec::new();
-        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
+        serve_connection(
+            &mut reader,
+            &mut writer,
+            &registry,
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        )
+        .unwrap();
 
         // Parse the response frames back out.
         let mut rr = std::io::Cursor::new(writer);
@@ -875,7 +880,17 @@ mod tests {
         write_frame(&mut wire_in, &serde_json::to_vec(&hello).unwrap()).unwrap();
         let mut reader = std::io::Cursor::new(wire_in);
         let mut writer = Vec::new();
-        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
+        serve_connection(
+            &mut reader,
+            &mut writer,
+            &registry,
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        )
+        .unwrap();
         let mut rr = std::io::Cursor::new(writer);
         let ack: HelloAck =
             serde_json::from_slice(&read_frame_from(&mut rr).unwrap().unwrap()).unwrap();
@@ -904,7 +919,17 @@ mod tests {
             let registry = Registry::at(&tmp_path);
             let mut r = std::io::Cursor::new(provider_in);
             let mut out = Vec::new();
-            serve_connection(&mut r, &mut out, &registry, &shared2, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &registry,
+                &shared2,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
+            )
+            .unwrap();
             out
         });
 
@@ -924,7 +949,17 @@ mod tests {
             let registry = Registry::at(tmp.path());
             let mut r = std::io::Cursor::new(surface_in);
             let mut surface_out = Vec::new();
-            serve_connection(&mut r, &mut surface_out, &registry, &shared, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
+            serve_connection(
+                &mut r,
+                &mut surface_out,
+                &registry,
+                &shared,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
+            )
+            .unwrap();
         }
 
         let out = provider_thread.join().unwrap();
@@ -972,7 +1007,11 @@ mod tests {
             serde_json::from_slice(&read_frame_from(&mut rr).unwrap().unwrap()).unwrap();
         assert_eq!(err["code"], "AUTH_DENIED");
         assert!(err["detail"].to_string().contains("lifeguard"));
-        assert_eq!(broker.pending_count(), 0, "nothing was registered for a surface");
+        assert_eq!(
+            broker.pending_count(),
+            0,
+            "nothing was registered for a surface"
+        );
     }
 
     #[test]
@@ -1029,7 +1068,8 @@ mod tests {
     #[test]
     fn submit_validates_packs_and_dispatch_carries_persona() {
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
-        let manifest = "packs = [\"sec\"]\n\n[[task]]\nid = \"t1\"\npack = \"sec\"\ngoal = \"audit\"\n";
+        let manifest =
+            "packs = [\"sec\"]\n\n[[task]]\nid = \"t1\"\npack = \"sec\"\ngoal = \"audit\"\n";
 
         // Host-plane leak in a pack manifest is rejected at submit.
         let leaky = serde_json::json!({
@@ -1269,10 +1309,12 @@ needs = ["t1"]
             None,
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("not a directory"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("not a directory")
+        );
     }
 
     #[test]
@@ -1317,12 +1359,17 @@ needs = ["t1"]
         assert_eq!(frames[1]["code"], "INTERNAL", "the second submit refuses");
         let detail = frames[1]["detail"].as_str().unwrap();
         assert!(detail.contains("still active"), "{detail}");
-        assert!(detail.contains("nofy task cancel"), "the remedy is named: {detail}");
-        assert_eq!(frames[2]["kind"], "task_dispatch", "the first run keeps dispatching");
+        assert!(
+            detail.contains("nofy task cancel"),
+            "the remedy is named: {detail}"
+        );
+        assert_eq!(
+            frames[2]["kind"], "task_dispatch",
+            "the first run keeps dispatching"
+        );
         assert_eq!(frames[3]["kind"], "task_noted");
         assert_eq!(
-            frames[4]["kind"],
-            "project_accepted",
+            frames[4]["kind"], "project_accepted",
             "after the run settles, a new submit is accepted"
         );
     }
@@ -1349,13 +1396,21 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: true,
+                output: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1377,7 +1432,11 @@ goal = "second"
         }
         let guard = run.lock().unwrap();
         let dr = guard.as_ref().unwrap();
-        assert_eq!(dr.re_dispatch(), vec!["t2".to_string()], "claimed-but-unsettled must resume");
+        assert_eq!(
+            dr.re_dispatch(),
+            vec!["t2".to_string()],
+            "claimed-but-unsettled must resume"
+        );
         // The journal is dense and complete: 2 armed + 1 claimed + 1
         // settled + 1 claimed.
         assert_eq!(dr.journal.len(), 5);
@@ -1418,13 +1477,21 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: true,
+                output: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1449,7 +1516,11 @@ goal = "second"
         // Recovery reads straight from disk: t2 was claimed, never settled.
         let reopened =
             nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
-        assert_eq!(reopened.read_events().unwrap().len(), 5, "2 armed + claimed + settled + claimed");
+        assert_eq!(
+            reopened.read_events().unwrap().len(),
+            5,
+            "2 armed + claimed + settled + claimed"
+        );
         assert_eq!(
             reopened.re_dispatch().unwrap(),
             vec!["t2".to_string()],
@@ -1492,13 +1563,21 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: true,
+                output: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1519,9 +1598,17 @@ goal = "second"
         }
         // "Restart": all in-memory state is gone; resume from disk.
         drop(run);
-        let resumed = resume_run(&stores).unwrap().expect("stored run must resume");
-        assert!(resumed.orch.succeeded.contains("t1"), "settled work stays settled");
-        assert!(resumed.orch.running.contains("t2"), "in-flight work re-arms");
+        let resumed = resume_run(&stores)
+            .unwrap()
+            .expect("stored run must resume");
+        assert!(
+            resumed.orch.succeeded.contains("t1"),
+            "settled work stays settled"
+        );
+        assert!(
+            resumed.orch.running.contains("t2"),
+            "in-flight work re-arms"
+        );
         assert_eq!(resumed.re_dispatch(), vec!["t2".to_string()]);
         assert!(!resumed.orch.is_done());
         // A completed run clears the plan store; this one crashed mid-run,
@@ -1559,13 +1646,21 @@ goal = "only"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: None,
+            }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: true,
+                output: None,
+            }),
         )
         .unwrap();
         {
@@ -1583,8 +1678,14 @@ goal = "only"
             )
             .unwrap();
         }
-        assert!(stores.runs.load().unwrap().is_none(), "finished run releases the plan");
-        assert!(resume_run(&stores).unwrap().is_none(), "nothing left to resume");
+        assert!(
+            stores.runs.load().unwrap().is_none(),
+            "finished run releases the plan"
+        );
+        assert!(
+            resume_run(&stores).unwrap().is_none(),
+            "nothing left to resume"
+        );
     }
 
     /// Drain every framed response after the HelloAck.
@@ -1682,16 +1783,32 @@ goal = "only"
             .unwrap();
         }
         let frames = response_frames(out);
-        assert_eq!(frames[0]["code"], "INTERNAL", "default-off refusal is structured");
+        assert_eq!(
+            frames[0]["code"], "INTERNAL",
+            "default-off refusal is structured"
+        );
         assert!(frames[0]["detail"].as_str().unwrap().contains("disabled"));
-        assert_eq!(frames[1]["kind"], "schedule_noted", "enable is a deliberate act");
-        assert_eq!(frames[2]["kind"], "schedule_noted", "valid spec accepted after enable");
-        assert_eq!(frames[3]["code"], "INTERNAL", "grammar gate refuses before the log");
+        assert_eq!(
+            frames[1]["kind"], "schedule_noted",
+            "enable is a deliberate act"
+        );
+        assert_eq!(
+            frames[2]["kind"], "schedule_noted",
+            "valid spec accepted after enable"
+        );
+        assert_eq!(
+            frames[3]["code"], "INTERNAL",
+            "grammar gate refuses before the log"
+        );
         assert_eq!(frames[4]["kind"], "schedule_listed");
         assert_eq!(frames[4]["entries"][0]["id"], "j1");
         assert_eq!(frames[4]["entries"][0]["spec"], "* * * * *");
         assert_eq!(frames[5]["kind"], "schedule_noted");
-        assert_eq!(frames[6]["entries"].as_array().unwrap().len(), 0, "removed schedule leaves the table");
+        assert_eq!(
+            frames[6]["entries"].as_array().unwrap().len(),
+            0,
+            "removed schedule leaves the table"
+        );
     }
 
     #[test]
@@ -1731,7 +1848,10 @@ goal = "only"
         }
         // "Restart": fresh stores from the same durable log.
         let stores = scheduler_stores(dir.path());
-        assert!(stores.scheduler.lock().unwrap().enabled(), "non-empty log proves enablement");
+        assert!(
+            stores.scheduler.lock().unwrap().enabled(),
+            "non-empty log proves enablement"
+        );
         let mut input2 = Vec::new();
         write_frame(&mut input2, &hello_frame()).unwrap();
         write_frame(&mut input2, &method_frame(&ControlMethod::ScheduleList)).unwrap();
@@ -1751,7 +1871,10 @@ goal = "only"
             .unwrap();
         }
         let frames = response_frames(out);
-        assert_eq!(frames[0]["kind"], "schedule_listed", "listing works without re-enabling");
+        assert_eq!(
+            frames[0]["kind"], "schedule_listed",
+            "listing works without re-enabling"
+        );
         assert_eq!(frames[0]["entries"][0]["id"], "nightly");
         assert_eq!(frames[0]["entries"][0]["spec"], "0 3 * * *");
     }
@@ -1777,13 +1900,21 @@ goal = "risky"
         write_frame(&mut provider_in, &hello_frame()).unwrap();
         write_frame(
             &mut provider_in,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: None,
+            }),
         )
         .unwrap();
         write_frame(&mut provider_in, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut provider_in,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: false, output: None }),
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: false,
+                output: None,
+            }),
         )
         .unwrap();
         let (run2, shared2) = (run.clone(), shared.clone());
@@ -1835,12 +1966,19 @@ goal = "risky"
         let dr = guard.as_ref().unwrap();
         // Journal: armed, claimed, settled(fail), escalated, resolved(allow).
         use nofy_orchestra::taskjournal::TaskEvent;
-        assert!(dr.journal.iter().any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1")));
+        assert!(
+            dr.journal
+                .iter()
+                .any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1"))
+        );
         assert!(dr.journal.iter().any(|e| matches!(
             e,
             TaskEvent::EscalationResolved { task, allow: true, .. } if task == "t1"
         )));
-        assert!(dr.re_dispatch().is_empty(), "resolved escalation leaves nothing to resume");
+        assert!(
+            dr.re_dispatch().is_empty(),
+            "resolved escalation leaves nothing to resume"
+        );
     }
 
     #[test]
@@ -1939,7 +2077,10 @@ goal = "risky"
             serde_json::from_slice(&read_frame_from(&mut cr).unwrap().unwrap()).unwrap();
         assert_eq!(search_resp["kind"], "search");
         assert_eq!(search_resp["hits"], 7);
-        assert_eq!(search_resp["sessions"][0], "s1", "matched session identities ride the answer");
+        assert_eq!(
+            search_resp["sessions"][0], "s1",
+            "matched session identities ride the answer"
+        );
         assert_eq!(search_resp["sessions"][1], "s2");
     }
 
@@ -2069,7 +2210,10 @@ goal = "risky"
             None,
         )
         .unwrap();
-        assert!(out.is_empty(), "a peer that hangs up before Hello gets nothing");
+        assert!(
+            out.is_empty(),
+            "a peer that hangs up before Hello gets nothing"
+        );
     }
 
     #[test]
@@ -2145,7 +2289,9 @@ goal = "risky"
                 None,
             )
         });
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         let mut writer = &client;
         write_frame(&mut writer, &hello_frame()).unwrap();
         write_frame(
@@ -2158,9 +2304,11 @@ goal = "risky"
         .unwrap();
         let mut reader = std::io::BufReader::new(&client);
         let ack = read_frame_from(&mut reader).unwrap().unwrap();
-        assert!(serde_json::from_slice::<HelloAck>(&ack)
-            .map(|a| matches!(a, HelloAck::Accepted { .. }))
-            .unwrap_or(false));
+        assert!(
+            serde_json::from_slice::<HelloAck>(&ack)
+                .map(|a| matches!(a, HelloAck::Accepted { .. }))
+                .unwrap_or(false)
+        );
         drop(reader);
         drop(client); // hangup: the next heartbeat write fails, stream ends
         streamer.join().unwrap().unwrap();
@@ -2188,7 +2336,9 @@ goal = "risky"
             let mut r = &server;
             stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
         });
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         let mut reader = std::io::BufReader::new(&client);
         // No cursor: the WHOLE journal replays; the torn line is skipped.
         let f1 = read_frame_from(&mut reader).unwrap().unwrap();
@@ -2219,7 +2369,9 @@ goal = "risky"
             let mut r = &server;
             stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
         });
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         let mut reader = std::io::BufReader::new(&client);
         std::thread::sleep(Duration::from_millis(50)); // let it subscribe
         bus.publish(ev("s1", 5));
@@ -2260,7 +2412,9 @@ goal = "risky"
             let mut r = &server;
             stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
         });
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         let mut reader = std::io::BufReader::new(&client);
         for expected in 0..3u64 {
             let f = read_frame_from(&mut reader).unwrap().unwrap();
@@ -2272,7 +2426,10 @@ goal = "risky"
         bus.publish(ev("s1", 3));
         let f = read_frame_from(&mut reader).unwrap().unwrap();
         let v: serde_json::Value = serde_json::from_slice(&f).unwrap();
-        assert_eq!(v["event"]["seq"], 3, "the duplicate never reaches the client");
+        assert_eq!(
+            v["event"]["seq"], 3,
+            "the duplicate never reaches the client"
+        );
         drop(reader);
         drop(client);
         streamer.join().unwrap().unwrap();
@@ -2321,7 +2478,9 @@ goal = "risky"
             let mut r = &server;
             stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
         });
-        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
         let mut reader = std::io::BufReader::new(&client);
         // Idle past one heartbeat tick: a Pong probe arrives.
         let f = read_frame_from(&mut reader).unwrap().unwrap();
@@ -2380,10 +2539,12 @@ goal = "risky"
             Some(&stores),
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("run store save failed"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("run store save failed")
+        );
     }
 
     #[test]
@@ -2409,11 +2570,16 @@ goal = "risky"
             Some(&stores),
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("task journal attach failed"));
-        assert!(run.lock().unwrap().is_none(), "a failed attach never installs the run");
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("task journal attach failed")
+        );
+        assert!(
+            run.lock().unwrap().is_none(),
+            "a failed attach never installs the run"
+        );
     }
 
     #[test]
@@ -2444,7 +2610,10 @@ goal = "risky"
         assert_eq!(frames[0]["kind"], "project_accepted");
         assert_eq!(frames[1]["kind"], "task_noted");
         let journal_len = run.lock().unwrap().as_ref().unwrap().journal.len();
-        assert_eq!(journal_len, 1, "only the submit-time Armed event; ghost never enters");
+        assert_eq!(
+            journal_len, 1,
+            "only the submit-time Armed event; ghost never enters"
+        );
     }
 
     #[test]
@@ -2557,13 +2726,22 @@ goal = "risky"
             &run,
             None,
         );
-        assert_eq!(frames[2]["kind"], "task_noted", "no round-trip, the settle is noted");
+        assert_eq!(
+            frames[2]["kind"], "task_noted",
+            "no round-trip, the settle is noted"
+        );
         let guard = run.lock().unwrap();
         let dr = guard.as_ref().unwrap();
         use nofy_orchestra::taskjournal::TaskEvent;
-        assert!(dr.journal.iter().any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1")));
         assert!(
-            !dr.journal.iter().any(|e| matches!(e, TaskEvent::EscalationResolved { .. })),
+            dr.journal
+                .iter()
+                .any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1"))
+        );
+        assert!(
+            !dr.journal
+                .iter()
+                .any(|e| matches!(e, TaskEvent::EscalationResolved { .. })),
             "a skipped round-trip resolves nothing"
         );
         assert!(!dr.orch.is_done());
@@ -2615,7 +2793,10 @@ goal = "risky"
         let mut perms = std::fs::metadata(dir.path()).unwrap().permissions();
         perms.set_readonly(false);
         std::fs::set_permissions(dir.path(), perms).unwrap();
-        assert_eq!(frames[1]["kind"], "task_noted", "the settle ack is not held hostage");
+        assert_eq!(
+            frames[1]["kind"], "task_noted",
+            "the settle ack is not held hostage"
+        );
         assert!(
             stores.runs.load().unwrap().is_some(),
             "the undeletable plan survives the failed clear"
@@ -2658,10 +2839,12 @@ goal = "risky"
             None,
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("unknown or late search result"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("unknown or late search result")
+        );
     }
 
     #[test]
@@ -2678,7 +2861,11 @@ goal = "risky"
             None,
         );
         assert_eq!(frames[0]["kind"], "pong");
-        assert_eq!(rx.try_recv().unwrap().seq, 7, "the push reached the live bus");
+        assert_eq!(
+            rx.try_recv().unwrap().seq,
+            7,
+            "the push reached the live bus"
+        );
         bus.unsubscribe("s1", sub_id);
     }
 
@@ -2699,10 +2886,12 @@ goal = "risky"
             None,
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("duplicate approval intent"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("duplicate approval intent")
+        );
     }
 
     #[test]
@@ -2720,10 +2909,12 @@ goal = "risky"
             None,
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("unknown or settled approval intent"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("unknown or settled approval intent")
+        );
     }
 
     #[test]
@@ -2750,10 +2941,12 @@ goal = "risky"
         );
         for frame in &frames[0..3] {
             assert_eq!(frame["code"], "INTERNAL");
-            assert!(frame["detail"]
-                .as_str()
-                .unwrap()
-                .contains("scheduler store not attached"));
+            assert!(
+                frame["detail"]
+                    .as_str()
+                    .unwrap()
+                    .contains("scheduler store not attached")
+            );
         }
         assert_eq!(frames[3]["kind"], "schedule_listed");
         assert_eq!(frames[3]["entries"].as_array().unwrap().len(), 0);
@@ -2773,10 +2966,12 @@ goal = "risky"
             Some(&stores),
         );
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"]
-            .as_str()
-            .unwrap()
-            .contains("schedule remove refused"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("schedule remove refused")
+        );
     }
 
     #[test]
@@ -2825,7 +3020,10 @@ goal = "risky"
         let files: Vec<_> = std::fs::read_dir(&delivered).unwrap().collect();
         assert_eq!(files.len(), 1);
         let body = std::fs::read_to_string(files[0].as_ref().unwrap().path()).unwrap();
-        assert!(body.contains("done"), "the provider output rides the delivery");
+        assert!(
+            body.contains("done"),
+            "the provider output rides the delivery"
+        );
     }
 
     #[test]
@@ -2961,7 +3159,12 @@ goal = "risky"
         .unwrap();
         let frames = response_frames(out);
         assert_eq!(frames[0]["code"], "INTERNAL");
-        assert!(frames[0]["detail"].as_str().unwrap().contains("bad method frame"));
+        assert!(
+            frames[0]["detail"]
+                .as_str()
+                .unwrap()
+                .contains("bad method frame")
+        );
     }
 
     #[test]

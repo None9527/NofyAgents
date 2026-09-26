@@ -176,7 +176,9 @@ goal = "g3"
         loop {
             match run.dispatch_next() {
                 Some(task) => {
-                    journal.push(OrchEvent::Dispatched { task: task.id.clone() });
+                    journal.push(OrchEvent::Dispatched {
+                        task: task.id.clone(),
+                    });
                     let (id, ok) = outcomes.next().expect("scripted outcome");
                     assert_eq!(id, &task.id, "script must follow dispatch order");
                     let outcome = run.settle(id, *ok);
@@ -218,8 +220,12 @@ goal = "g3"
         let state = fold_orch(&manifest, &journal);
         assert_equivalent(&run, &state);
         assert_eq!(state.succeeded.len(), 3);
-        assert!(state.dispatch_order.iter().all(|t| t == "flaky"
-            || t == "after" || t == "solo"));
+        assert!(
+            state
+                .dispatch_order
+                .iter()
+                .all(|t| t == "flaky" || t == "after" || t == "solo")
+        );
     }
 
     #[test]
@@ -238,7 +244,11 @@ goal = "g3"
         assert!(state.dead.contains("after"), "transitive skip must replay");
         assert!(state.succeeded.contains("solo"));
         assert_eq!(
-            state.dispatch_order.iter().filter(|t| *t == "flaky").count(),
+            state
+                .dispatch_order
+                .iter()
+                .filter(|t| *t == "flaky")
+                .count(),
             2,
             "retry re-dispatch is journaled"
         );
@@ -284,8 +294,13 @@ goal = "g3"
         let state = fold_orch(
             &manifest,
             &[
-                OrchEvent::Dispatched { task: "ghost".into() },
-                OrchEvent::Settled { task: "ghost".into(), ok: true },
+                OrchEvent::Dispatched {
+                    task: "ghost".into(),
+                },
+                OrchEvent::Settled {
+                    task: "ghost".into(),
+                    ok: true,
+                },
             ],
         );
         assert_eq!(state, ReplayState::default());
@@ -297,9 +312,16 @@ goal = "g3"
         let state = fold_orch(
             &manifest,
             &[
-                OrchEvent::Dispatched { task: "solo".into() },
-                OrchEvent::Settled { task: "solo".into(), ok: true },
-                OrchEvent::Dispatched { task: "solo".into() },
+                OrchEvent::Dispatched {
+                    task: "solo".into(),
+                },
+                OrchEvent::Settled {
+                    task: "solo".into(),
+                    ok: true,
+                },
+                OrchEvent::Dispatched {
+                    task: "solo".into(),
+                },
             ],
         );
         assert_eq!(
@@ -313,15 +335,24 @@ goal = "g3"
     #[test]
     fn skip_policy_fold_marks_exhausted_failure_dead() {
         // on_fail=skip: budget-exhausted failure lands in dead, never escalated.
-        let manifest =
-            ProjectManifest::from_toml(&MANIFEST.replace("escalate", "skip")).unwrap();
+        let manifest = ProjectManifest::from_toml(&MANIFEST.replace("escalate", "skip")).unwrap();
         let state = fold_orch(
             &manifest,
             &[
-                OrchEvent::Dispatched { task: "flaky".into() },
-                OrchEvent::Settled { task: "flaky".into(), ok: false },
-                OrchEvent::Dispatched { task: "flaky".into() },
-                OrchEvent::Settled { task: "flaky".into(), ok: false },
+                OrchEvent::Dispatched {
+                    task: "flaky".into(),
+                },
+                OrchEvent::Settled {
+                    task: "flaky".into(),
+                    ok: false,
+                },
+                OrchEvent::Dispatched {
+                    task: "flaky".into(),
+                },
+                OrchEvent::Settled {
+                    task: "flaky".into(),
+                    ok: false,
+                },
             ],
         );
         assert!(state.dead.contains("flaky"));
@@ -335,7 +366,10 @@ goal = "g3"
         // Resolution without a prior escalation: fail-closed ignore.
         let state = fold_orch(
             &manifest,
-            &[OrchEvent::EscalationResolved { task: "flaky".into(), allow: true }],
+            &[OrchEvent::EscalationResolved {
+                task: "flaky".into(),
+                allow: true,
+            }],
         );
         assert_eq!(state, ReplayState::default());
     }
@@ -343,8 +377,13 @@ goal = "g3"
     #[test]
     fn journal_parse_skips_blank_lines() {
         let events = vec![
-            OrchEvent::Dispatched { task: "solo".into() },
-            OrchEvent::Settled { task: "solo".into(), ok: true },
+            OrchEvent::Dispatched {
+                task: "solo".into(),
+            },
+            OrchEvent::Settled {
+                task: "solo".into(),
+                ok: true,
+            },
         ];
         // Blank lines mixed into the journal are skipped, not fatal.
         let with_blanks = render_journal(&events).replace('\n', "\n\n");

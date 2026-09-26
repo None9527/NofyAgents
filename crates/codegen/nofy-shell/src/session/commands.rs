@@ -620,8 +620,7 @@ pub enum SessionCommand {
     },
     /// This session's plugin registry, as served by `nofy/plugins/list`.
     PluginsList {
-        respond_to:
-            oneshot::Sender<Option<std::sync::Arc<nofy_agent::plugins::PluginRegistry>>>,
+        respond_to: oneshot::Sender<Option<std::sync::Arc<nofy_agent::plugins::PluginRegistry>>>,
     },
     /// Inject a notification (monitor event or bash task completion) into
     /// the session's notification queue. Notifications are idle-gated and
@@ -841,8 +840,7 @@ pub enum SessionCommand {
     /// of any subsequent turn's harness recording. Each `Vec` is one turn's
     /// synthetic `task` pairs, uploaded as its own sibling `turn_{N}` artifact.
     TakeHarnessTraceTurns {
-        respond_to:
-            oneshot::Sender<Vec<Vec<nofy_sampling_types::conversation::ConversationItem>>>,
+        respond_to: oneshot::Sender<Vec<Vec<nofy_sampling_types::conversation::ConversationItem>>>,
     },
     /// Take and clear the session actor's out-of-band streaming-turn capture.
     ///
@@ -925,7 +923,10 @@ mod cancellation_category_meta_tests {
                 PromptCompletionKind::MaxTurnsReached { limit: 1 },
                 Some("max_turns_reached"),
             ),
-            (PromptCompletionKind::StationarityEnded, Some("action_stationarity")),
+            (
+                PromptCompletionKind::StationarityEnded,
+                Some("action_stationarity"),
+            ),
             (PromptCompletionKind::Completed, None),
             (PromptCompletionKind::Rewound, None),
             (PromptCompletionKind::RemovedFromQueue, None),

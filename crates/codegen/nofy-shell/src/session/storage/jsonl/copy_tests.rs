@@ -1,8 +1,6 @@
 use crate::sampling::ConversationItem;
 use crate::session::info::Info;
-use crate::session::persistence::{
-    CHAT_FORMAT_VERSION, PersistedAgent, default_model_id,
-};
+use crate::session::persistence::{CHAT_FORMAT_VERSION, PersistedAgent, default_model_id};
 use crate::session::storage::{
     CopySessionOptions, JsonlStorageAdapter, SessionUpdate, StorageAdapter,
 };

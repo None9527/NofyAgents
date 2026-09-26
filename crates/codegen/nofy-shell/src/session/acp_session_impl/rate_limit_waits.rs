@@ -3,9 +3,7 @@
 use std::time::Duration;
 
 use nofy_sampler::{SamplingErrorInfo, SamplingErrorKind};
-use nofy_telemetry::events::{
-    RateLimitWaitOutcome as ReportedOutcome, SubagentRateLimitWaited,
-};
+use nofy_telemetry::events::{RateLimitWaitOutcome as ReportedOutcome, SubagentRateLimitWaited};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct RateLimitWaitConfig {

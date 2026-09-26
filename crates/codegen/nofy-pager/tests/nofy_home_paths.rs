@@ -16,10 +16,7 @@ fn nofy_home_override_path_helpers() {
         nofy_pager::util::pager_toml_path(),
         nofy_home.join("pager.toml")
     );
-    assert_eq!(
-        nofy_pager::util::display_nofy_home_prefix(),
-        "$NOFY_HOME"
-    );
+    assert_eq!(nofy_pager::util::display_nofy_home_prefix(), "$NOFY_HOME");
     assert_eq!(
         nofy_pager::util::display_user_nofy_path("config.toml"),
         "$NOFY_HOME/config.toml"

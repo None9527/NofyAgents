@@ -105,9 +105,7 @@ mod tests {
 
     #[test]
     fn steady_beats_report_no_misses() {
-        let events: Vec<_> = (0..5)
-            .map(|i| Beat { seq: i, at: i * 60 })
-            .collect();
+        let events: Vec<_> = (0..5).map(|i| Beat { seq: i, at: i * 60 }).collect();
         let projection = fold_heartbeat(&events, 60, 2);
         assert_eq!(projection.beats, 5);
         assert_eq!(projection.missed, 0);
@@ -146,21 +144,36 @@ mod tests {
     #[test]
     fn scratch_notepad_last_write_wins_and_clears() {
         let events = vec![
-            NoteSet { key: "last-cleanup".into(), value: "2026-08-17".into() },
-            NoteSet { key: "last-cleanup".into(), value: "2026-08-18".into() },
-            NoteSet { key: "todo".into(), value: "rotate logs".into() },
+            NoteSet {
+                key: "last-cleanup".into(),
+                value: "2026-08-17".into(),
+            },
+            NoteSet {
+                key: "last-cleanup".into(),
+                value: "2026-08-18".into(),
+            },
+            NoteSet {
+                key: "todo".into(),
+                value: "rotate logs".into(),
+            },
             NoteClear { key: "todo".into() },
         ];
         let projection = fold_heartbeat(&events, 60, 2);
         assert_eq!(projection.notes.len(), 1);
-        assert_eq!(projection.notes.get("last-cleanup").map(String::as_str), Some("2026-08-18"));
+        assert_eq!(
+            projection.notes.get("last-cleanup").map(String::as_str),
+            Some("2026-08-18")
+        );
     }
 
     #[test]
     fn replay_is_deterministic_at_every_prefix() {
         let events = vec![
             Beat { seq: 0, at: 0 },
-            NoteSet { key: "k".into(), value: "v".into() },
+            NoteSet {
+                key: "k".into(),
+                value: "v".into(),
+            },
             Beat { seq: 1, at: 300 },
             Beat { seq: 1, at: 310 },
             NoteClear { key: "k".into() },

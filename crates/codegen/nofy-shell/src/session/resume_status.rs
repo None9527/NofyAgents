@@ -422,7 +422,9 @@ pub(crate) fn format_reminder(snapshot: &ResumeStatusSnapshot) -> Option<String>
         }
     }
     if let Some(goal) = &snapshot.goal {
-        body.push_str("\n## Goal\nThe goal was paused when the session stopped and can be resumed:\n");
+        body.push_str(
+            "\n## Goal\nThe goal was paused when the session stopped and can be resumed:\n",
+        );
         let _ = std::fmt::Write::write_fmt(
             &mut body,
             format_args!("- {}\n", one_line(&goal.objective)),
@@ -481,12 +483,7 @@ mod tests {
         .unwrap();
     }
 
-    fn write_subagent_meta(
-        dir: &Path,
-        subagent_id: &str,
-        parent_session_id: &str,
-        status: &str,
-    ) {
+    fn write_subagent_meta(dir: &Path, subagent_id: &str, parent_session_id: &str, status: &str) {
         let d = dir.join("subagents").join(subagent_id);
         std::fs::create_dir_all(&d).unwrap();
         let meta = serde_json::json!({
@@ -506,7 +503,11 @@ mod tests {
         .unwrap();
     }
 
-    fn manifest_entry(task_id: &str, kind: TaskKind, display: Option<&str>) -> crate::terminal::BackgroundTaskManifestEntry {
+    fn manifest_entry(
+        task_id: &str,
+        kind: TaskKind,
+        display: Option<&str>,
+    ) -> crate::terminal::BackgroundTaskManifestEntry {
         crate::terminal::BackgroundTaskManifestEntry {
             task_id: task_id.to_string(),
             command: "sleep 100".to_string(),
@@ -595,9 +596,15 @@ mod tests {
     #[test]
     fn loops_survive_a_missing_or_corrupt_state_file() {
         let dir = tempfile::tempdir().unwrap();
-        assert!(loops_from_resources_state(dir.path()).is_empty(), "absent file");
+        assert!(
+            loops_from_resources_state(dir.path()).is_empty(),
+            "absent file"
+        );
         std::fs::write(dir.path().join("resources_state.json"), b"{not json").unwrap();
-        assert!(loops_from_resources_state(dir.path()).is_empty(), "corrupt file");
+        assert!(
+            loops_from_resources_state(dir.path()).is_empty(),
+            "corrupt file"
+        );
         // Parses as JSON, but the tasks are not ScheduledTask-shaped: guessing
         // here would inject a reminder the model acts on.
         std::fs::write(
@@ -632,10 +639,19 @@ mod tests {
     #[test]
     fn subagent_scan_tolerates_absent_dir_and_unreadable_meta() {
         let dir = tempfile::tempdir().unwrap();
-        assert!(running_subagent_metas(dir.path(), "p").is_empty(), "no subagents dir");
+        assert!(
+            running_subagent_metas(dir.path(), "p").is_empty(),
+            "no subagents dir"
+        );
         std::fs::create_dir_all(dir.path().join("subagents").join("broken")).unwrap();
-        std::fs::write(dir.path().join("subagents").join("broken").join("meta.json"), b"{")
-            .unwrap();
+        std::fs::write(
+            dir.path()
+                .join("subagents")
+                .join("broken")
+                .join("meta.json"),
+            b"{",
+        )
+        .unwrap();
         assert!(
             running_subagent_metas(dir.path(), "p").is_empty(),
             "a corrupt meta.json is skipped, not fatal"
@@ -676,7 +692,10 @@ mod tests {
         persist(dir.path(), &second);
         let loaded = load_and_clear(dir.path());
         assert_eq!(loaded.loops.len(), 1, "the first snapshot must win");
-        assert!(loaded.workflows.is_empty(), "the second must not be merged in");
+        assert!(
+            loaded.workflows.is_empty(),
+            "the second must not be merged in"
+        );
         assert!(!exists(dir.path()), "load_and_clear consumes the file");
     }
 
@@ -721,9 +740,20 @@ mod tests {
         };
         let merged = merge_legacy_manifest(dir.path(), snapshot);
 
-        let ids: Vec<&str> = merged.background.iter().map(|t| t.task_id.as_str()).collect();
-        assert_eq!(ids, vec!["dup", "bash-1"], "snapshot entry first, no duplicate");
-        assert_eq!(merged.background[0].description.as_deref(), Some("from snapshot"));
+        let ids: Vec<&str> = merged
+            .background
+            .iter()
+            .map(|t| t.task_id.as_str())
+            .collect();
+        assert_eq!(
+            ids,
+            vec!["dup", "bash-1"],
+            "snapshot entry first, no duplicate"
+        );
+        assert_eq!(
+            merged.background[0].description.as_deref(),
+            Some("from snapshot")
+        );
         assert_eq!(merged.monitors.len(), 1);
         assert_eq!(
             merged.monitors[0].description.as_deref(),
@@ -822,30 +852,66 @@ mod tests {
     #[test]
     fn every_section_states_what_happened_to_that_category() {
         let snapshot = ResumeStatusSnapshot {
-            loops: vec![ResumeLoop { id: "L".into(), interval_secs: 300, prompt: "check ci".into() }],
-            background: vec![ResumeTask { task_id: "B".into(), description: Some("build".into()) }],
-            monitors: vec![ResumeTask { task_id: "M".into(), description: None }],
+            loops: vec![ResumeLoop {
+                id: "L".into(),
+                interval_secs: 300,
+                prompt: "check ci".into(),
+            }],
+            background: vec![ResumeTask {
+                task_id: "B".into(),
+                description: Some("build".into()),
+            }],
+            monitors: vec![ResumeTask {
+                task_id: "M".into(),
+                description: None,
+            }],
             subagents: vec![ResumeSubagent {
                 subagent_id: "S".into(),
                 subagent_type: Some("explore".into()),
                 description: Some("find".into()),
             }],
-            workflows: vec![ResumeWorkflow { run_id: "W".into(), objective: "review".into() }],
-            goal: Some(ResumeGoal { objective: "ship".into() }),
+            workflows: vec![ResumeWorkflow {
+                run_id: "W".into(),
+                objective: "review".into(),
+            }],
+            goal: Some(ResumeGoal {
+                objective: "ship".into(),
+            }),
         };
         let text = format_reminder(&snapshot).unwrap();
         assert!(text.starts_with("This session was resumed after the previous process exited.\n"));
-        assert!(text.contains("These loops are still scheduled despite the restart:"), "{text}");
+        assert!(
+            text.contains("These loops are still scheduled despite the restart:"),
+            "{text}"
+        );
         assert!(text.contains("- \"L\": every 300s — check ci"), "{text}");
-        assert!(text.contains("These background commands were killed when the session stopped:"), "{text}");
+        assert!(
+            text.contains("These background commands were killed when the session stopped:"),
+            "{text}"
+        );
         assert!(text.contains("- \"B\": build"), "{text}");
-        assert!(text.contains("These monitors were killed when the session stopped:"), "{text}");
-        assert!(text.contains("- \"M\"\n"), "a task with no description renders id only: {text}");
-        assert!(text.contains("These subagents were cancelled when the session stopped:"), "{text}");
+        assert!(
+            text.contains("These monitors were killed when the session stopped:"),
+            "{text}"
+        );
+        assert!(
+            text.contains("- \"M\"\n"),
+            "a task with no description renders id only: {text}"
+        );
+        assert!(
+            text.contains("These subagents were cancelled when the session stopped:"),
+            "{text}"
+        );
         assert!(text.contains("- \"S\" (explore): find"), "{text}");
-        assert!(text.contains("These workflows were cancelled when the session stopped:"), "{text}");
+        assert!(
+            text.contains("These workflows were cancelled when the session stopped:"),
+            "{text}"
+        );
         assert!(text.contains("- \"W\" (cancelled): review"), "{text}");
-        assert!(text.contains("The goal was paused when the session stopped and can be resumed:"), "{text}");
+        assert!(
+            text.contains("The goal was paused when the session stopped and can be resumed:"),
+            "{text}"
+        );
         assert!(text.contains("- ship"), "{text}");
     }
 
@@ -871,13 +937,26 @@ mod tests {
     #[test]
     fn sections_are_omitted_when_their_category_is_empty() {
         let snapshot = ResumeStatusSnapshot {
-            loops: vec![ResumeLoop { id: "L".into(), interval_secs: 60, prompt: "p".into() }],
+            loops: vec![ResumeLoop {
+                id: "L".into(),
+                interval_secs: 60,
+                prompt: "p".into(),
+            }],
             ..Default::default()
         };
         let text = format_reminder(&snapshot).unwrap();
         assert!(text.contains("## Loops"));
-        for absent in ["## Background commands", "## Monitors", "## Subagents", "## Workflows", "## Goal"] {
-            assert!(!text.contains(absent), "{absent} must not render for an empty category: {text}");
+        for absent in [
+            "## Background commands",
+            "## Monitors",
+            "## Subagents",
+            "## Workflows",
+            "## Goal",
+        ] {
+            assert!(
+                !text.contains(absent),
+                "{absent} must not render for an empty category: {text}"
+            );
         }
     }
 
@@ -935,8 +1014,13 @@ mod tests {
         let snapshot = reconstruct_from_disk(
             dir.path(),
             "p1",
-            vec![ResumeWorkflow { run_id: "W".into(), objective: "o".into() }],
-            Some(ResumeGoal { objective: "g".into() }),
+            vec![ResumeWorkflow {
+                run_id: "W".into(),
+                objective: "o".into(),
+            }],
+            Some(ResumeGoal {
+                objective: "g".into(),
+            }),
         );
         assert_eq!(snapshot.loops.len(), 1);
         assert_eq!(snapshot.subagents.len(), 1);
@@ -952,16 +1036,31 @@ mod tests {
     fn snapshot_round_trips_through_json() {
         let dir = tempfile::tempdir().unwrap();
         let snapshot = ResumeStatusSnapshot {
-            loops: vec![ResumeLoop { id: "L".into(), interval_secs: 60, prompt: "p".into() }],
-            background: vec![ResumeTask { task_id: "B".into(), description: Some("d".into()) }],
-            monitors: vec![ResumeTask { task_id: "M".into(), description: None }],
+            loops: vec![ResumeLoop {
+                id: "L".into(),
+                interval_secs: 60,
+                prompt: "p".into(),
+            }],
+            background: vec![ResumeTask {
+                task_id: "B".into(),
+                description: Some("d".into()),
+            }],
+            monitors: vec![ResumeTask {
+                task_id: "M".into(),
+                description: None,
+            }],
             subagents: vec![ResumeSubagent {
                 subagent_id: "S".into(),
                 subagent_type: None,
                 description: None,
             }],
-            workflows: vec![ResumeWorkflow { run_id: "W".into(), objective: "o".into() }],
-            goal: Some(ResumeGoal { objective: "g".into() }),
+            workflows: vec![ResumeWorkflow {
+                run_id: "W".into(),
+                objective: "o".into(),
+            }],
+            goal: Some(ResumeGoal {
+                objective: "g".into(),
+            }),
         };
         persist(dir.path(), &snapshot);
         // No legacy manifest present, so the merge is a no-op and the
@@ -977,7 +1076,11 @@ mod tests {
         persist(
             dir.path(),
             &ResumeStatusSnapshot {
-                loops: vec![ResumeLoop { id: "L".into(), interval_secs: 60, prompt: "p".into() }],
+                loops: vec![ResumeLoop {
+                    id: "L".into(),
+                    interval_secs: 60,
+                    prompt: "p".into(),
+                }],
                 ..Default::default()
             },
         );

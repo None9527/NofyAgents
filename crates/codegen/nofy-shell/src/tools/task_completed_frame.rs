@@ -3,9 +3,9 @@
 //! wrote. Bounding the output field alone does not bound the line: the
 //! wrapper and the JSON encoding go on top of it.
 
+use nofy_tools::types::TaskSnapshot;
 use serde_json::Value;
 use serde_json::value::RawValue;
-use nofy_tools::types::TaskSnapshot;
 
 use crate::extensions::notification::{SessionNotification, SessionUpdate};
 

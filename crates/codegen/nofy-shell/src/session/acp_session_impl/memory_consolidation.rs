@@ -117,7 +117,10 @@ impl SessionActor {
             })
             .await
             .map_err(|error| error.to_string())?;
-        Ok(format!("已记住到{}：{}", receipt.area_label, receipt.summary))
+        Ok(format!(
+            "已记住到{}：{}",
+            receipt.area_label, receipt.summary
+        ))
     }
 
     async fn consolidate_area(

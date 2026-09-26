@@ -114,7 +114,9 @@ fn scan_git_dirty(git_root: &std::path::Path) -> Option<GitDirtySnapshot> {
     let repo = gix::discover(git_root).ok()?;
     let status = repo.status(gix::progress::Discard).ok()?;
     let status = nofy_gix_status::with_budgeted_thread_limit(status);
-    let iter = status.into_index_worktree_iter(Vec::<BString>::new()).ok()?;
+    let iter = status
+        .into_index_worktree_iter(Vec::<BString>::new())
+        .ok()?;
     let mut paths: Vec<String> = Vec::new();
     let mut truncated = false;
     for item in iter {
@@ -125,9 +127,7 @@ fn scan_git_dirty(git_root: &std::path::Path) -> Option<GitDirtySnapshot> {
         };
         let rela = match &item {
             gix::status::index_worktree::Item::Modification { rela_path, .. } => rela_path,
-            gix::status::index_worktree::Item::DirectoryContents { entry, .. } => {
-                &entry.rela_path
-            }
+            gix::status::index_worktree::Item::DirectoryContents { entry, .. } => &entry.rela_path,
             gix::status::index_worktree::Item::Rewrite { dirwalk_entry, .. } => {
                 &dirwalk_entry.rela_path
             }
@@ -264,11 +264,7 @@ pub(crate) fn project_workspace_partition(
     agent_writes: &[WorkspaceChange],
     external_edits: &[WorkspaceChange],
 ) -> Vec<WorldStateEntry> {
-    fn project(
-        changes: &[WorkspaceChange],
-        predicate: &str,
-        source: &str,
-    ) -> Vec<WorldStateEntry> {
+    fn project(changes: &[WorkspaceChange], predicate: &str, source: &str) -> Vec<WorldStateEntry> {
         let mut sorted: Vec<&WorkspaceChange> = changes.iter().collect();
         sorted.sort_by(|a, b| b.at.cmp(&a.at).then_with(|| a.path.cmp(&b.path)));
         sorted
@@ -859,7 +855,10 @@ pub(crate) fn render_world_state_frame(state: &WorldState) -> String {
                 _ => {}
             }
         }
-        let pending = task.iter().filter(|e| e.predicate == "pending_work").count();
+        let pending = task
+            .iter()
+            .filter(|e| e.predicate == "pending_work")
+            .count();
         if pending > 0 {
             parts.push(format!("{pending} pending work item(s)"));
         }
@@ -900,9 +899,14 @@ pub(crate) fn render_world_state_frame(state: &WorldState) -> String {
     // Knowledge: conflicts only surface in the frame when they exist —
     // facts and evidence back the other lines already.
     let knowledge = state.partition_entries(Partition::Knowledge);
-    let conflicts = knowledge.iter().filter(|e| e.predicate == "conflict").count();
+    let conflicts = knowledge
+        .iter()
+        .filter(|e| e.predicate == "conflict")
+        .count();
     if conflicts > 0 {
-        lines.push(format!("knowledge: {conflicts} unresolved authority conflict(s)"));
+        lines.push(format!(
+            "knowledge: {conflicts} unresolved authority conflict(s)"
+        ));
     }
 
     if lines.is_empty() {
@@ -996,11 +1000,17 @@ mod tests {
         // Gauge + 2 reality claims; the read-only bookkeeping intent is
         // not projected.
         assert_eq!(entries.len(), 3);
-        let running = entries.iter().find(|e| e.predicate == "possibly_running").unwrap();
+        let running = entries
+            .iter()
+            .find(|e| e.predicate == "possibly_running")
+            .unwrap();
         assert_eq!(running.subject, "i2");
         assert_eq!(running.authority, Authority::Inferred);
         assert_eq!(running.source_sequence, Some(6));
-        let unknown = entries.iter().find(|e| e.predicate == "outcome_unknown").unwrap();
+        let unknown = entries
+            .iter()
+            .find(|e| e.predicate == "outcome_unknown")
+            .unwrap();
         assert_eq!(unknown.subject, "i3");
     }
 
@@ -1039,15 +1049,24 @@ mod tests {
     #[test]
     fn governance_marks_unpinned_budget_unknown() {
         let entries = project_governance_partition(None, 0, 3);
-        let limit = entries.iter().find(|e| e.predicate == "base_limit").unwrap();
+        let limit = entries
+            .iter()
+            .find(|e| e.predicate == "base_limit")
+            .unwrap();
         assert_eq!(limit.status, EntryStatus::Unknown);
         assert_eq!(limit.value, serde_json::Value::Null);
-        let turns = entries.iter().find(|e| e.predicate == "turns_used").unwrap();
+        let turns = entries
+            .iter()
+            .find(|e| e.predicate == "turns_used")
+            .unwrap();
         assert_eq!(turns.value, json!(3));
         assert_eq!(turns.authority, Authority::Observed);
 
         let entries = project_governance_partition(Some(40), 2, 44);
-        let limit = entries.iter().find(|e| e.predicate == "base_limit").unwrap();
+        let limit = entries
+            .iter()
+            .find(|e| e.predicate == "base_limit")
+            .unwrap();
         assert_eq!(limit.value, json!(40));
         assert_eq!(limit.authority, Authority::Policy);
         assert_eq!(limit.status, EntryStatus::Observed);
@@ -1079,7 +1098,9 @@ mod tests {
         assert!(frame.contains("2 agent-written file(s), latest /b.rs"));
         assert!(frame.contains("externally modified: /a.rs"));
         assert!(
-            frame.contains("governance: turn budget — base limit 40, extensions used 1, turns used 41")
+            frame.contains(
+                "governance: turn budget — base limit 40, extensions used 1, turns used 41"
+            )
         );
     }
 
@@ -1261,7 +1282,10 @@ mod tests {
                 last_mutation_seq: 7,
             }),
         );
-        let goal = entries.iter().find(|e| e.predicate == "active_goal").unwrap();
+        let goal = entries
+            .iter()
+            .find(|e| e.predicate == "active_goal")
+            .unwrap();
         assert_eq!(goal.subject, "g1");
         assert_eq!(goal.value["objective"], "refactor the parser");
         assert_eq!(goal.authority, Authority::Observed);
@@ -1302,13 +1326,19 @@ mod tests {
     fn agent_partition_projects_workers_and_assignment() {
         let extras = extras_fixture();
         let entries = project_agent_partition(&extras);
-        let worker = entries.iter().find(|e| e.predicate == "active_worker").unwrap();
+        let worker = entries
+            .iter()
+            .find(|e| e.predicate == "active_worker")
+            .unwrap();
         assert_eq!(worker.subject, "sub-1");
         assert_eq!(worker.value["type"], "general-purpose");
         assert_eq!(worker.value["elapsed_ms"], 12_000);
         assert_eq!(worker.source, "subagent-coordinator");
 
-        let assignment = entries.iter().find(|e| e.predicate == "assignment").unwrap();
+        let assignment = entries
+            .iter()
+            .find(|e| e.predicate == "assignment")
+            .unwrap();
         assert_eq!(assignment.subject, "sub-1");
         assert_eq!(assignment.value["goal_id"], "g1");
         assert_eq!(assignment.value["role"], "worker");
@@ -1336,7 +1366,10 @@ mod tests {
                 verification_seq: 6,
             }),
         );
-        let fact = entries.iter().find(|e| e.predicate == "known_fact").unwrap();
+        let fact = entries
+            .iter()
+            .find(|e| e.predicate == "known_fact")
+            .unwrap();
         assert_eq!(fact.authority, Authority::Inferred);
         assert_eq!(fact.value["unknown_outcome"], 1);
         let evidence = entries.iter().find(|e| e.predicate == "evidence").unwrap();

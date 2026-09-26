@@ -149,8 +149,9 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
     let mut req: RenameRequest = parse_params(args)?;
     if req.reset_to_auto {
         if !req.title.trim().is_empty() {
-            return Err(acp::Error::invalid_request()
-                .data("title must be empty when resetToAuto is set"));
+            return Err(
+                acp::Error::invalid_request().data("title must be empty when resetToAuto is set")
+            );
         }
         return reset_session_title_to_auto(agent, &req.session_id, req.cwd.as_deref()).await;
     }

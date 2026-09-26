@@ -68,9 +68,7 @@ pub struct Turn<T> {
 /// Fork prefix (DS-#11): everything up to and including the LAST
 /// completed turn; any trailing open turns are dropped.
 pub fn fork_completed_prefix<T: Clone>(turns: &[Turn<T>]) -> Vec<Turn<T>> {
-    let last_completed = turns
-        .iter()
-        .rposition(|t| t.state == TurnState::Completed);
+    let last_completed = turns.iter().rposition(|t| t.state == TurnState::Completed);
     match last_completed {
         Some(pos) => turns[..=pos].to_vec(),
         None => Vec::new(),
@@ -92,10 +90,20 @@ mod tests {
         assert!(child.has(Caps::READ));
         // Widening is detectable and must be rejected by callers.
         let widened = Caps(child.0 | Caps::APPROVE);
-        assert!(!widened.narrow(Caps::WRITE).is_narrowing_of(child.narrow(Caps::WRITE)));
-        assert!(widened.is_narrowing_of(parent), "widened stays inside the host grant");
+        assert!(
+            !widened
+                .narrow(Caps::WRITE)
+                .is_narrowing_of(child.narrow(Caps::WRITE))
+        );
+        assert!(
+            widened.is_narrowing_of(parent),
+            "widened stays inside the host grant"
+        );
         let smuggled = Caps(child.0 | (1 << 10));
-        assert!(!smuggled.is_narrowing_of(parent), "extra bits are not a narrowing");
+        assert!(
+            !smuggled.is_narrowing_of(parent),
+            "extra bits are not a narrowing"
+        );
     }
 
     #[test]
@@ -103,8 +111,15 @@ mod tests {
         let empty = Caps::empty();
         assert!(!empty.has(Caps::READ));
         assert!(!empty.has(Caps::APPROVE));
-        assert!(empty.is_narrowing_of(Caps::full()), "empty is the narrowest grant");
-        assert_eq!(Caps::full().narrow(u16::MAX), empty, "full narrowed to nothing = empty");
+        assert!(
+            empty.is_narrowing_of(Caps::full()),
+            "empty is the narrowest grant"
+        );
+        assert_eq!(
+            Caps::full().narrow(u16::MAX),
+            empty,
+            "full narrowed to nothing = empty"
+        );
     }
 
     #[test]
@@ -118,10 +133,22 @@ mod tests {
     #[test]
     fn fork_drops_trailing_open_turns() {
         let turns = vec![
-            Turn { state: TurnState::Completed, payload: "a" },
-            Turn { state: TurnState::Completed, payload: "b" },
-            Turn { state: TurnState::Open, payload: "c" },
-            Turn { state: TurnState::Open, payload: "d" },
+            Turn {
+                state: TurnState::Completed,
+                payload: "a",
+            },
+            Turn {
+                state: TurnState::Completed,
+                payload: "b",
+            },
+            Turn {
+                state: TurnState::Open,
+                payload: "c",
+            },
+            Turn {
+                state: TurnState::Open,
+                payload: "d",
+            },
         ];
         let prefix = fork_completed_prefix(&turns);
         assert_eq!(prefix.len(), 2);
@@ -132,18 +159,34 @@ mod tests {
     #[test]
     fn fork_with_interleaved_open_keeps_last_completed() {
         let turns = vec![
-            Turn { state: TurnState::Completed, payload: 1 },
-            Turn { state: TurnState::Open, payload: 2 },
-            Turn { state: TurnState::Completed, payload: 3 },
+            Turn {
+                state: TurnState::Completed,
+                payload: 1,
+            },
+            Turn {
+                state: TurnState::Open,
+                payload: 2,
+            },
+            Turn {
+                state: TurnState::Completed,
+                payload: 3,
+            },
         ];
         let prefix = fork_completed_prefix(&turns);
-        assert_eq!(prefix.len(), 3, "open turn mid-transcript is inside the prefix boundary");
+        assert_eq!(
+            prefix.len(),
+            3,
+            "open turn mid-transcript is inside the prefix boundary"
+        );
         assert_eq!(prefix.last().unwrap().payload, 3);
     }
 
     #[test]
     fn fork_of_all_open_is_empty() {
-        let turns = vec![Turn { state: TurnState::Open, payload: () }];
+        let turns = vec![Turn {
+            state: TurnState::Open,
+            payload: (),
+        }];
         assert!(fork_completed_prefix(&turns).is_empty());
         assert!(fork_completed_prefix::<()>(&[]).is_empty());
     }
@@ -152,11 +195,20 @@ mod tests {
     fn fork_prefix_arms_hold_for_every_payload_type() {
         // Both match arms must hold in every generic instantiation, not
         // only in the one a single test happens to instantiate.
-        let open_str = [Turn { state: TurnState::Open, payload: "x" }];
+        let open_str = [Turn {
+            state: TurnState::Open,
+            payload: "x",
+        }];
         assert!(fork_completed_prefix(&open_str).is_empty());
-        let open_int = [Turn { state: TurnState::Open, payload: 7 }];
+        let open_int = [Turn {
+            state: TurnState::Open,
+            payload: 7,
+        }];
         assert!(fork_completed_prefix(&open_int).is_empty());
-        let done_unit = [Turn { state: TurnState::Completed, payload: () }];
+        let done_unit = [Turn {
+            state: TurnState::Completed,
+            payload: (),
+        }];
         assert_eq!(fork_completed_prefix(&done_unit).len(), 1);
     }
 }

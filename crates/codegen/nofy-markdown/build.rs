@@ -23,4 +23,3 @@ fn main() {
     let out = Path::new(&env::var("OUT_DIR").expect("OUT_DIR set by cargo")).join("syntaxes.bin");
     dump_to_uncompressed_file(&set, &out).expect("dump the two-face syntax set");
 }
-

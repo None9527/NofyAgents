@@ -44,7 +44,11 @@ pub fn fold_goals(events: &[GoalEvent]) -> BTreeMap<String, GoalState> {
                 states.entry(task.clone()).or_default().goal = Some(goal.clone());
             }
             GoalEvent::StepClaimed { task, step } => {
-                states.entry(task.clone()).or_default().claimed.insert(step.clone());
+                states
+                    .entry(task.clone())
+                    .or_default()
+                    .claimed
+                    .insert(step.clone());
             }
             GoalEvent::StepAccepted { task, step } => {
                 let state = states.entry(task.clone()).or_default();
@@ -183,7 +187,11 @@ mod tests {
 
     #[test]
     fn rejection_supersedes_earlier_acceptance() {
-        let states = fold_goals(&[stated("t"), accepted("t", "a"), rejected("t", "a", "regressed")]);
+        let states = fold_goals(&[
+            stated("t"),
+            accepted("t", "a"),
+            rejected("t", "a", "regressed"),
+        ]);
         assert_eq!(
             verdict(&states["t"], &["a".into()]),
             Verdict::Rejected {

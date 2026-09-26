@@ -107,8 +107,16 @@ mod tests {
         let mut timer = arm("t", 1000, 2000); // 1000s out
         // The wall clock jumps +1h, but only 10 monotonic seconds passed.
         timer.revalidate(10, 1000 + 3600);
-        assert_eq!(timer.monotonic_remaining(), 990, "monotonic remainder is truth");
-        assert_eq!(timer.fire_at_wall, 1000 + 3600 + 990, "wall fire time re-derived");
+        assert_eq!(
+            timer.monotonic_remaining(),
+            990,
+            "monotonic remainder is truth"
+        );
+        assert_eq!(
+            timer.fire_at_wall,
+            1000 + 3600 + 990,
+            "wall fire time re-derived"
+        );
         assert!(!timer.is_due(10), "wall jump must not fire the timer");
         assert!(timer.is_due(990));
     }

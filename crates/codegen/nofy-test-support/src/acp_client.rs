@@ -13,8 +13,8 @@ use std::time::Duration;
 use crate::scaled;
 
 use agent_client_protocol::{self as acp, Agent as _};
-use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use nofy_acp_lib::LineBufferedRead;
+use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 use crate::env::nofy_binary;
 use crate::headless::stderr_tail;
@@ -429,11 +429,7 @@ impl NofyStdioClient {
             self.conn.load_session(
                 acp::LoadSessionRequest::new(session_id.clone(), cwd.to_path_buf())
                     .mcp_servers(vec![])
-                    .meta(
-                        serde_json::json!({ "cursor": cursor })
-                            .as_object()
-                            .cloned(),
-                    ),
+                    .meta(serde_json::json!({ "cursor": cursor }).as_object().cloned()),
             ),
         )
         .await

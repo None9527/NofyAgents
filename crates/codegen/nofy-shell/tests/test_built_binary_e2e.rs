@@ -25,8 +25,8 @@ use std::future::Future;
 use std::process::Command;
 use std::time::Duration;
 
-use serde_json::Value;
 use nofy_test_support::*;
+use serde_json::Value;
 
 /// Run an async test body inside a `LocalSet` (required by ACP's `!Send` futures).
 /// Eliminates the `let local = LocalSet::new(); local.run_until(async { ... }).await`
@@ -52,8 +52,7 @@ async fn single_model_server(model: &str, backend: &str) -> MockInferenceServer 
 
 async fn nofy_build_server() -> MockInferenceServer {
     MockInferenceServer::start_with_models(vec![
-        MockModelEntry::with_agent_type("grok-4.5", "nofy-build")
-            .with_api_backend("responses"),
+        MockModelEntry::with_agent_type("grok-4.5", "nofy-build").with_api_backend("responses"),
     ])
     .await
     .expect("start mock server")
@@ -483,8 +482,8 @@ async fn test_headless_streaming_messages_json_output() {
 #[tokio::test]
 #[ignore] // requires pre-built binary; run with --ignored
 async fn test_headless_streaming_messages_json_carries_per_response_metadata() {
-    use serde_json::json;
     use nofy_test_support::scripted::{ScriptedResponse, SseEvent};
+    use serde_json::json;
 
     let model = "messages-compatible-model";
     let server = single_model_server(model, "messages").await;
@@ -596,8 +595,8 @@ async fn test_headless_streaming_messages_json_carries_per_response_metadata() {
 #[tokio::test]
 #[ignore] // requires pre-built binary; run with --ignored
 async fn test_headless_streaming_messages_json_carries_stop_sequence() {
-    use serde_json::json;
     use nofy_test_support::scripted::{ScriptedResponse, SseEvent};
+    use serde_json::json;
 
     let model = "messages-compatible-model";
     let server = single_model_server(model, "messages").await;

@@ -29,12 +29,12 @@ use criterion::{
     BenchmarkId, Criterion, SamplingMode, Throughput, criterion_group, criterion_main,
 };
 use filetime::{FileTime, set_file_mtime};
-use tempfile::TempDir;
 use nofy_fast_worktree::{ListFilter, WorktreeDb, WorktreeKind, WorktreeRecord, WorktreeStatus};
 use nofy_shell::session::info::Info;
 use nofy_shell::session::persistence::Summary;
 use nofy_shell::session::storage::{JsonlStorageAdapter, StorageAdapter};
 use nofy_shell::session::unified_list::{ListReq, UnifiedListResult, build_unified_list};
+use tempfile::TempDir;
 
 const WORKSPACE_COUNT: usize = 3_000;
 // Bump whenever workload semantics change, even if aggregate counts do not.

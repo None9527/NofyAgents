@@ -203,7 +203,11 @@ async fn crash_mid_tool_then_resume_reconciles_journal() {
 
             // Session still usable after recovery.
             let resp = client2.prompt(&session_for_resume, "are we back?").await;
-            assert!(resp.is_ok(), "post-recovery prompt failed: {:?}", resp.err());
+            assert!(
+                resp.is_ok(),
+                "post-recovery prompt failed: {:?}",
+                resp.err()
+            );
             assert!(
                 client2.captured_text().contains("recovered fine"),
                 "post-recovery answer missing, got: {}",

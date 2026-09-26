@@ -75,9 +75,7 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
             let (gateway_tx, _) = mpsc::unbounded_channel::<nofy_acp_lib::AcpClientMessage>();
             let (persistence_tx, _) = mpsc::unbounded_channel::<PersistenceMsg>();
             let cwd = nofy_paths::AbsPathBuf::new(std::path::PathBuf::from("/tmp")).unwrap();
-            let fs = Arc::new(nofy_workspace::file_system::MockFs::new(
-                cwd.to_path_buf(),
-            ));
+            let fs = Arc::new(nofy_workspace::file_system::MockFs::new(cwd.to_path_buf()));
             let terminal = Arc::new(DummyTerminal {});
             let (hunk_tx, _) = tokio::sync::mpsc::unbounded_channel();
             let hunk_tracker_handle = nofy_hunk_tracker::HunkTrackerActor::spawn(
@@ -321,7 +319,8 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                 recap_epoch: std::cell::Cell::new(0),
                 turn_summary_task: std::cell::RefCell::new(None),
                 turn_summary_generation: std::cell::Cell::new(0),
-                turn_summary_enabled: false,                title_refresh_enabled: false,
+                turn_summary_enabled: false,
+                title_refresh_enabled: false,
                 title_refresh_task: std::cell::RefCell::new(None),
                 title_refresh_generation: std::cell::Cell::new(0),
                 next_title_refresh_idx: std::cell::Cell::new(0),

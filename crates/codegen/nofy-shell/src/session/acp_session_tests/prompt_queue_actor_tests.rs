@@ -1130,7 +1130,6 @@ async fn queue_input_send_now_inserts_behind_running_front_and_requests_cancel()
         .await;
 }
 
-
 #[tokio::test]
 async fn queue_input_auto_send_now_only_inside_wait_window() {
     let local = tokio::task::LocalSet::new();

@@ -32,7 +32,12 @@ pub enum GuardSignal {
 
 impl RepetitionGuard {
     pub fn new(threshold: u32) -> Self {
-        Self { threshold: threshold.max(2), last_signature: None, run_length: 0, reminders: 0 }
+        Self {
+            threshold: threshold.max(2),
+            last_signature: None,
+            run_length: 0,
+            reminders: 0,
+        }
     }
 
     /// Observe one call. Returns the guard's signal.
@@ -111,8 +116,16 @@ mod tests {
         let mut guard = RepetitionGuard::new(3);
         assert_eq!(guard.observe("ls -la"), GuardSignal::Fresh);
         assert_eq!(guard.observe("ls -la"), GuardSignal::Repeat);
-        assert_eq!(guard.observe("ls -la"), GuardSignal::Remind, "third in a row reminds");
-        assert_eq!(guard.observe("ls -la"), GuardSignal::Remind, "the loop keeps reminding");
+        assert_eq!(
+            guard.observe("ls -la"),
+            GuardSignal::Remind,
+            "third in a row reminds"
+        );
+        assert_eq!(
+            guard.observe("ls -la"),
+            GuardSignal::Remind,
+            "the loop keeps reminding"
+        );
         assert_eq!(guard.reminders, 2);
     }
 
@@ -122,14 +135,22 @@ mod tests {
         guard.observe("ls -la");
         guard.observe("ls -la");
         assert_eq!(guard.observe("pwd"), GuardSignal::Fresh);
-        assert_eq!(guard.observe("ls -la"), GuardSignal::Fresh, "run restarted after the change");
+        assert_eq!(
+            guard.observe("ls -la"),
+            GuardSignal::Fresh,
+            "run restarted after the change"
+        );
         assert_eq!(guard.reminders, 0);
     }
 
     #[test]
     fn threshold_floor_is_two() {
         let mut guard = RepetitionGuard::new(0);
-        assert_eq!(guard.observe("x"), GuardSignal::Fresh, "a single call never reminds");
+        assert_eq!(
+            guard.observe("x"),
+            GuardSignal::Fresh,
+            "a single call never reminds"
+        );
         assert_eq!(guard.observe("x"), GuardSignal::Remind);
     }
 
@@ -139,7 +160,11 @@ mod tests {
         t.arm("build", 100);
         t.arm("test", 200);
         assert_eq!(t.check("build", 150), TimeoutState::TimedOut);
-        assert_eq!(t.check("test", 150), TimeoutState::Active, "build's timeout must not bleed into test");
+        assert_eq!(
+            t.check("test", 150),
+            TimeoutState::Active,
+            "build's timeout must not bleed into test"
+        );
         assert_eq!(t.check("docs", 150), TimeoutState::Unscoped);
         assert_eq!(t.timed_out(150), vec!["build".to_string()]);
     }
@@ -150,8 +175,15 @@ mod tests {
         t.arm("build", 100);
         assert!(t.disarm("build"));
         assert_eq!(t.check("build", 50), TimeoutState::Unscoped);
-        assert!(!t.disarm("build"), "disarming twice reports the second miss");
+        assert!(
+            !t.disarm("build"),
+            "disarming twice reports the second miss"
+        );
         t.arm("build", 300);
-        assert_eq!(t.check("build", 250), TimeoutState::Active, "re-arm replaces the old deadline");
+        assert_eq!(
+            t.check("build", 250),
+            TimeoutState::Active,
+            "re-arm replaces the old deadline"
+        );
     }
 }

@@ -67,8 +67,8 @@ fn test_claimant_reindexes_even_when_marker_exists() {
 
         // The reindex rewrote the marker and released the claim.
         assert_ne!(read_marker(&db_path).as_deref(), Some("123"));
-        let claim = with_search_index(&db_path, |index| index.get_meta(META_KEY_BOOTSTRAP_CLAIM))
-            .unwrap();
+        let claim =
+            with_search_index(&db_path, |index| index.get_meta(META_KEY_BOOTSTRAP_CLAIM)).unwrap();
         assert_eq!(claim, None);
     });
 }
@@ -262,79 +262,79 @@ fn test_concurrent_gates_single_flight() {
         .build()
         .expect("test runtime");
     rt.block_on(async {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let root = tmp.path().to_path_buf();
-    let storage = JsonlStorageAdapter::with_root(root.clone());
-    for id in ["s1", "s2"] {
-        let info = Info {
-            id: acp::SessionId::new(id),
-            cwd: "/ws".to_string(),
-        };
-        storage
-            .init_session(&info, acp::ModelId::new("test"))
-            .await
-            .unwrap();
-    }
-    with_search_index(&search_db_path(&root), |_| Ok(())).unwrap();
+        let tmp = tempfile::TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        let storage = JsonlStorageAdapter::with_root(root.clone());
+        for id in ["s1", "s2"] {
+            let info = Info {
+                id: acp::SessionId::new(id),
+                cwd: "/ws".to_string(),
+            };
+            storage
+                .init_session(&info, acp::ModelId::new("test"))
+                .await
+                .unwrap();
+        }
+        with_search_index(&search_db_path(&root), |_| Ok(())).unwrap();
 
-    let progress_a = Arc::new(BootstrapProgress::default());
-    let progress_b = Arc::new(BootstrapProgress::default());
-    let storage_a = storage.clone();
-    let storage_b = storage.clone();
-    let root_a = root.clone();
-    let root_b = root;
-    let pa = Arc::clone(&progress_a);
-    let pb = Arc::clone(&progress_b);
-    let start = Arc::new(tokio::sync::Barrier::new(2));
-    let start_a = Arc::clone(&start);
-    let start_b = Arc::clone(&start);
-    let (a, b) = tokio::join!(
-        tokio::spawn(async move {
-            start_a.wait().await;
-            bootstrap_with_lease_inner(
-                &root_a,
-                &storage_a,
-                &pa,
-                &TEST_TIMING,
-                BootstrapRole::Launch,
-            )
-            .await
-        }),
-        tokio::spawn(async move {
-            start_b.wait().await;
-            bootstrap_with_lease_inner(
-                &root_b,
-                &storage_b,
-                &pb,
-                &TEST_TIMING,
-                BootstrapRole::Launch,
-            )
-            .await
-        }),
-    );
-    let a = a.expect("gate a task panicked");
-    let b = b.expect("gate b task panicked");
-    assert!(a.is_ok(), "gate a: {a:?}");
-    assert!(b.is_ok(), "gate b: {b:?}");
+        let progress_a = Arc::new(BootstrapProgress::default());
+        let progress_b = Arc::new(BootstrapProgress::default());
+        let storage_a = storage.clone();
+        let storage_b = storage.clone();
+        let root_a = root.clone();
+        let root_b = root;
+        let pa = Arc::clone(&progress_a);
+        let pb = Arc::clone(&progress_b);
+        let start = Arc::new(tokio::sync::Barrier::new(2));
+        let start_a = Arc::clone(&start);
+        let start_b = Arc::clone(&start);
+        let (a, b) = tokio::join!(
+            tokio::spawn(async move {
+                start_a.wait().await;
+                bootstrap_with_lease_inner(
+                    &root_a,
+                    &storage_a,
+                    &pa,
+                    &TEST_TIMING,
+                    BootstrapRole::Launch,
+                )
+                .await
+            }),
+            tokio::spawn(async move {
+                start_b.wait().await;
+                bootstrap_with_lease_inner(
+                    &root_b,
+                    &storage_b,
+                    &pb,
+                    &TEST_TIMING,
+                    BootstrapRole::Launch,
+                )
+                .await
+            }),
+        );
+        let a = a.expect("gate a task panicked");
+        let b = b.expect("gate b task panicked");
+        assert!(a.is_ok(), "gate a: {a:?}");
+        assert!(b.is_ok(), "gate b: {b:?}");
 
-    let db_path = search_db_path(tmp.path());
-    assert!(
-        read_marker(&db_path).is_some(),
-        "completion marker must exist after concurrent gates"
-    );
-    assert!(
-        !has_bootstrap_claim(&db_path).unwrap(),
-        "claim must be released after concurrent gates"
-    );
+        let db_path = search_db_path(tmp.path());
+        assert!(
+            read_marker(&db_path).is_some(),
+            "completion marker must exist after concurrent gates"
+        );
+        assert!(
+            !has_bootstrap_claim(&db_path).unwrap(),
+            "claim must be released after concurrent gates"
+        );
 
-    let a_ran = progress_a.total.load(Ordering::Relaxed) > 0;
-    let b_ran = progress_b.total.load(Ordering::Relaxed) > 0;
-    assert_eq!(
-        usize::from(a_ran) + usize::from(b_ran),
-        1,
-        "exactly one gate must reindex, a_total={}, b_total={}",
-        progress_a.total.load(Ordering::Relaxed),
-        progress_b.total.load(Ordering::Relaxed),
-    );
+        let a_ran = progress_a.total.load(Ordering::Relaxed) > 0;
+        let b_ran = progress_b.total.load(Ordering::Relaxed) > 0;
+        assert_eq!(
+            usize::from(a_ran) + usize::from(b_ran),
+            1,
+            "exactly one gate must reindex, a_total={}, b_total={}",
+            progress_a.total.load(Ordering::Relaxed),
+            progress_b.total.load(Ordering::Relaxed),
+        );
     });
 }

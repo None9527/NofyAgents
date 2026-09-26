@@ -594,9 +594,11 @@ mod fact_projecting_tests {
             .sample_compaction(&turns, &prompt(), Duration::from_secs(1))
             .await
             .unwrap();
-        assert!(output
-            .response
-            .starts_with("# Key facts retained by compaction"));
+        assert!(
+            output
+                .response
+                .starts_with("# Key facts retained by compaction")
+        );
         assert!(output.response.contains("what to do"));
         assert!(output.response.ends_with("LLM SUMMARY"));
     }

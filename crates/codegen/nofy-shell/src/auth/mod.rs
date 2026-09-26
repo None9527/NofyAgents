@@ -25,8 +25,8 @@ pub(crate) use auth_provider::{
 pub(crate) use auth_provider::{test_backdate_provider_mint, test_counting_provider};
 pub use config::NofyComConfig;
 pub(crate) use external_auth::{parse_output, refresh_with_command};
-pub(crate) use flow::try_noninteractive_auth_no_mint;
 pub use flow::try_ensure_fresh_auth;
+pub(crate) use flow::try_noninteractive_auth_no_mint;
 pub use jwt::{is_jwt_expired_or_near, parse_jwt_expiration};
 mod meta;
 pub use error::{AuthError, RefreshTokenError, RefreshTokenFailedReason};

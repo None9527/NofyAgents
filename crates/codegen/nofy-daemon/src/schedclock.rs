@@ -24,9 +24,11 @@ pub const RUN_TIMEOUT_SECS: u64 = 30 * 60;
 pub fn spawn(stores: DaemonStores) -> std::thread::JoinHandle<()> {
     std::thread::Builder::new()
         .name("nofy-sched-clock".into())
-        .spawn(move || loop {
-            std::thread::sleep(TICK);
-            tick(&stores);
+        .spawn(move || {
+            loop {
+                std::thread::sleep(TICK);
+                tick(&stores);
+            }
         })
         .expect("schedule clock thread spawns")
 }
@@ -54,17 +56,15 @@ pub fn tick(stores: &DaemonStores) -> Vec<(String, u64, String, Option<String>)>
                 tracing::warn!(schedule = %id, error = %e, "fired run could not start");
                 continue;
             }
-            let (goal, cwd) = payload
-                .get(&id)
-                .cloned()
-                .unwrap_or((None, None));
+            let (goal, cwd) = payload.get(&id).cloned().unwrap_or((None, None));
             match goal {
                 Some(goal) => {
-                    stores
-                        .sched_runs
-                        .lock()
-                        .unwrap()
-                        .push_back((id.clone(), due, goal.clone(), cwd.clone()));
+                    stores.sched_runs.lock().unwrap().push_back((
+                        id.clone(),
+                        due,
+                        goal.clone(),
+                        cwd.clone(),
+                    ));
                     fired.push((id, due, goal, cwd));
                 }
                 None => {
@@ -174,7 +174,8 @@ mod tests {
         {
             let mut svc = stores.scheduler.lock().unwrap();
             svc.enable();
-            svc.add_schedule("empty", "* * * * *", None, None, false).unwrap();
+            svc.add_schedule("empty", "* * * * *", None, None, false)
+                .unwrap();
             svc.arm("empty", now - 5).unwrap();
         }
         assert!(tick(&stores).is_empty(), "no run dispatched");

@@ -313,11 +313,11 @@ pub fn stream_chat_completions<'a>(
 mod tests {
     use super::*;
     use futures_util::stream;
-    use std::pin::pin;
     use nofy_sampling_types::{
         ChatChunkChoice, ChatChunkDelta, FinishReason, Role, ToolCallDelta as ChunkToolCallDelta,
         ToolCallFunctionDelta, Usage, rs,
     };
+    use std::pin::pin;
 
     fn rid() -> RequestId {
         RequestId::from("test-req")
@@ -397,8 +397,18 @@ mod tests {
     #[tokio::test]
     async fn tool_call_merge_survives_empty_id_and_name_continuation_chunks() {
         let chunks: Vec<Result<ChatCompletionChunk, SamplingError>> = vec![
-            Ok(tool_call_chunk(0, Some("call_1"), Some("read_file"), Some(""))),
-            Ok(tool_call_chunk(0, Some(""), Some(""), Some("{\"target_file\": "))),
+            Ok(tool_call_chunk(
+                0,
+                Some("call_1"),
+                Some("read_file"),
+                Some(""),
+            )),
+            Ok(tool_call_chunk(
+                0,
+                Some(""),
+                Some(""),
+                Some("{\"target_file\": "),
+            )),
             Ok(tool_call_chunk(0, Some(""), Some(""), Some("\"calc.py\"}"))),
             Ok(final_chunk(FinishReason::ToolCalls)),
         ];

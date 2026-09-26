@@ -8,7 +8,7 @@
 //! refusal, and never blocks the session — the live env travels in memory,
 //! not through the dump.
 
-use nofy_runtimecore::envsnapshot::{dump, EnvSnapshot, StagedSnapshot};
+use nofy_runtimecore::envsnapshot::{EnvSnapshot, StagedSnapshot, dump};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -66,9 +66,16 @@ mod tests {
         env.insert("A".into(), "1".into());
         env.insert("B_2".into(), "two words".into());
         persist(&capture(&env), &path).unwrap();
-        assert!(!dir.path().join("env_snapshot.tmp").exists(), "no tmp residue after rename");
+        assert!(
+            !dir.path().join("env_snapshot.tmp").exists(),
+            "no tmp residue after rename"
+        );
         let parsed = parse_dump(&std::fs::read_to_string(&path).unwrap()).unwrap();
-        assert_eq!(parsed, capture(&env), "disk copy reparses to the same snapshot");
+        assert_eq!(
+            parsed,
+            capture(&env),
+            "disk copy reparses to the same snapshot"
+        );
     }
 
     #[test]

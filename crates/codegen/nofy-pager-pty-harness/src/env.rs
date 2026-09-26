@@ -37,13 +37,7 @@ fn ensure_local_pager_binary(binary: &std::path::Path) -> Result<()> {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
     let mut cmd = Command::new(&cargo);
     cmd.current_dir(workspace_root()?)
-        .args([
-            "build",
-            "-p",
-            "nofy-pager-bin",
-            "--bin",
-            "nofy",
-        ])
+        .args(["build", "-p", "nofy-pager-bin", "--bin", "nofy"])
         .stdin(Stdio::null())
         .envs(nofy_tty_utils::pager_env());
     nofy_tty_utils::detach_std_command(&mut cmd);

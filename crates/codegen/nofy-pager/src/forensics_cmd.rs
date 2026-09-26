@@ -58,7 +58,11 @@ fn render_entry(entry: &serde_json::Value) -> (String, String) {
                 "startup".to_string(),
                 format!(
                     "pid {pid}; previous run {}",
-                    if clean { "ended cleanly" } else { "DIED UNCLEAN" }
+                    if clean {
+                        "ended cleanly"
+                    } else {
+                        "DIED UNCLEAN"
+                    }
                 ),
             )
         }
@@ -99,7 +103,9 @@ fn death_verdict(entries: &[serde_json::Value]) -> Option<String> {
             if prev_clean {
                 Some(format!("daemon running/ended cleanly; {toll}"))
             } else {
-                Some(format!("PREVIOUS RUN DIED UNCLEAN (crash or kill -9); {toll}"))
+                Some(format!(
+                    "PREVIOUS RUN DIED UNCLEAN (crash or kill -9); {toll}"
+                ))
             }
         }
         Some("unclean_death_detected") => Some(format!(
@@ -133,7 +139,10 @@ mod tests {
             serde_json::json!({"dead_pid": 5, "dead_kind": "startup"}),
         ));
         assert_eq!(event, "UNCLEAN_DEATH");
-        assert!(detail.contains("pid 5") && detail.contains("startup"), "{detail}");
+        assert!(
+            detail.contains("pid 5") && detail.contains("startup"),
+            "{detail}"
+        );
 
         let (event, _) = render_entry(&entry("clean_shutdown", serde_json::json!({"pid": 9})));
         assert_eq!(event, "clean_shutdown");
@@ -141,16 +150,28 @@ mod tests {
 
     #[test]
     fn death_verdict_names_the_crash() {
-        let clean_only = vec![entry("startup", serde_json::json!({"pid": 1, "prev_had_clean_shutdown": true}))];
+        let clean_only = vec![entry(
+            "startup",
+            serde_json::json!({"pid": 1, "prev_had_clean_shutdown": true}),
+        )];
         assert!(death_verdict(&clean_only).unwrap().contains("cleanly"));
 
         // Real ledger shape: a crash leaves a startup without
         // clean_shutdown, so the next boot writes BOTH the startup flag
         // and an unclean_death_detected entry (forensics.rs).
         let crashed = vec![
-            entry("startup", serde_json::json!({"pid": 1, "prev_had_clean_shutdown": true})),
-            entry("startup", serde_json::json!({"pid": 2, "prev_had_clean_shutdown": false})),
-            entry("unclean_death_detected", serde_json::json!({"dead_pid": 1, "dead_kind": "startup", "detected_by_pid": 2})),
+            entry(
+                "startup",
+                serde_json::json!({"pid": 1, "prev_had_clean_shutdown": true}),
+            ),
+            entry(
+                "startup",
+                serde_json::json!({"pid": 2, "prev_had_clean_shutdown": false}),
+            ),
+            entry(
+                "unclean_death_detected",
+                serde_json::json!({"dead_pid": 1, "dead_kind": "startup", "detected_by_pid": 2}),
+            ),
         ];
         let verdict = death_verdict(&crashed).unwrap();
         assert!(verdict.contains("DIED UNCLEAN"), "{verdict}");

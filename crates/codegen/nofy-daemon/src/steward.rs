@@ -80,7 +80,10 @@ impl SuggestionBatch {
         }
         let roots = self.root_table();
         for p in self.touched_paths() {
-            if !matches!(roots.classify(&p.to_string_lossy()), PathClass::Inside { .. }) {
+            if !matches!(
+                roots.classify(&p.to_string_lossy()),
+                PathClass::Inside { .. }
+            ) {
                 return Err(StewardError::OutsideRoot { path: p.clone() });
             }
         }
@@ -141,7 +144,12 @@ impl SuggestionBatch {
         let intent = self.to_intent(batch_id);
         let roots = self.root_table();
         let existing = std::collections::BTreeSet::new();
-        let ctx = mgmt::IntentContext { roots: &roots, leases, now, existing: &existing };
+        let ctx = mgmt::IntentContext {
+            roots: &roots,
+            leases,
+            now,
+            existing: &existing,
+        };
         mgmt::validate_intent(&intent, &ctx)?;
         Ok(mgmt::commit_intent(&intent, at))
     }
@@ -154,11 +162,7 @@ impl SuggestionBatch {
         crate::orchestra::TaskSpec {
             id: task_id.to_string(),
             pack: "file-steward".into(),
-            goal: format!(
-                "apply {} steward ops: {}",
-                self.ops.len(),
-                self.rationale
-            ),
+            goal: format!("apply {} steward ops: {}", self.ops.len(), self.rationale),
             needs: Vec::new(),
             verify: Some("all-or-nothing".into()),
             retry: 0,
@@ -228,10 +232,17 @@ mod tests {
         // refused AT LOAD, before any execution planning.
         let b = batch(
             "/home/u/Downloads",
-            vec![StewardOp::Trash { path: "/home/u/Downloads/wip.zip".into() }],
+            vec![StewardOp::Trash {
+                path: "/home/u/Downloads/wip.zip".into(),
+            }],
         );
         let mut leases = LeaseTable::default();
-        leases.declare("sess-9", &["/home/u/Downloads/wip.zip".to_string()], 100, 300);
+        leases.declare(
+            "sess-9",
+            &["/home/u/Downloads/wip.zip".to_string()],
+            100,
+            300,
+        );
         assert_eq!(
             b.gate(&leases, 150),
             Err(StewardGateError::Leased {
@@ -254,34 +265,46 @@ mod tests {
                     keep: "/home/u/Downloads/a.pdf".into(),
                     trash: "/home/u/Downloads/a (copy).pdf".into(),
                 },
-                StewardOp::Trash { path: "/home/u/Downloads/tmp.bin".into() },
+                StewardOp::Trash {
+                    path: "/home/u/Downloads/tmp.bin".into(),
+                },
             ],
         );
         let leases = LeaseTable::default();
         let committed = b.commit_two_phase("steward-b1", &leases, 100, 200).unwrap();
         // Both removals lowered to Trash — nothing deleted.
         assert_eq!(committed.records.len(), 2);
-        assert!(committed.records.iter().all(|r| matches!(
-            r.op,
-            nofy_stewardcore::tombstone::ChangeOp::Trash { .. }
-        )));
+        assert!(
+            committed
+                .records
+                .iter()
+                .all(|r| matches!(r.op, nofy_stewardcore::tombstone::ChangeOp::Trash { .. }))
+        );
         // The rollback snapshot restores everything, in reverse.
         let inverses = nofy_stewardcore::mgmt::rollback(&committed.snapshot);
         assert_eq!(inverses.len(), 2);
-        assert!(inverses.iter().all(|op| matches!(
-            op,
-            nofy_stewardcore::tombstone::InverseOp::Restore { .. }
-        )));
+        assert!(
+            inverses
+                .iter()
+                .all(|op| matches!(op, nofy_stewardcore::tombstone::InverseOp::Restore { .. }))
+        );
     }
 
     #[test]
     fn two_phase_commit_refuses_leased_batches() {
         let b = batch(
             "/home/u/Downloads",
-            vec![StewardOp::Trash { path: "/home/u/Downloads/wip.zip".into() }],
+            vec![StewardOp::Trash {
+                path: "/home/u/Downloads/wip.zip".into(),
+            }],
         );
         let mut leases = LeaseTable::default();
-        leases.declare("sess-9", &["/home/u/Downloads/wip.zip".to_string()], 100, 300);
+        leases.declare(
+            "sess-9",
+            &["/home/u/Downloads/wip.zip".to_string()],
+            100,
+            300,
+        );
         assert!(matches!(
             b.commit_two_phase("steward-b2", &leases, 150, 200),
             Err(mgmt::IntentError::LeaseHit { .. })

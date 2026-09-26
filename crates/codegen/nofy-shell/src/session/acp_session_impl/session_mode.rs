@@ -61,14 +61,12 @@ impl SessionActor {
             if entered && turn_in_flight {
                 self.activate_plan_mode_mid_turn().await;
             }
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::PlanModeToggled {
-                    enabled: true,
-                    trigger: nofy_telemetry::events::PlanModeTrigger::User,
-                    turn_in_flight,
-                    was_previously_active: !entered,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PlanModeToggled {
+                enabled: true,
+                trigger: nofy_telemetry::events::PlanModeTrigger::User,
+                turn_in_flight,
+                was_previously_active: !entered,
+            });
             if entered {
                 tracing::info_span!(
                     "session.permission_mode_changed",
@@ -97,14 +95,12 @@ impl SessionActor {
                 turn_in_flight,
                 "Plan mode toggled OFF"
             );
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::PlanModeToggled {
-                    enabled: false,
-                    trigger: nofy_telemetry::events::PlanModeTrigger::User,
-                    turn_in_flight,
-                    was_previously_active: true,
-                },
-            );
+            nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::PlanModeToggled {
+                enabled: false,
+                trigger: nofy_telemetry::events::PlanModeTrigger::User,
+                turn_in_flight,
+                was_previously_active: true,
+            });
             tracing::info_span!(
                 "session.permission_mode_changed",
                 from_mode = "plan",

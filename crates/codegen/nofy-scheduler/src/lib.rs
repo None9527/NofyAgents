@@ -155,7 +155,13 @@ impl ScheduleState {
 /// Apply one event to the state — the fold's single-event step.
 pub fn apply(state: &mut ScheduleState, event: &ScheduleEvent) {
     match event {
-        ScheduleEvent::Added { id, spec, goal, cwd, once } => {
+        ScheduleEvent::Added {
+            id,
+            spec,
+            goal,
+            cwd,
+            once,
+        } => {
             // Explicit (re-)registration: fresh definition, disable cleared.
             state.schedules.insert(
                 id.clone(),
@@ -382,17 +388,11 @@ mod tests {
     }
 
     fn armed(id: &str, due: u64) -> ScheduleEvent {
-        ScheduleEvent::Armed {
-            id: id.into(),
-            due,
-        }
+        ScheduleEvent::Armed { id: id.into(), due }
     }
 
     fn fired(id: &str, due: u64) -> ScheduleEvent {
-        ScheduleEvent::Fired {
-            id: id.into(),
-            due,
-        }
+        ScheduleEvent::Fired { id: id.into(), due }
     }
 
     /// Apply a proposed event batch to a state — the log-append+fold path
@@ -420,7 +420,9 @@ mod tests {
             },
             added("weekly"),
             armed("weekly", 500),
-            ScheduleEvent::Removed { id: "weekly".into() },
+            ScheduleEvent::Removed {
+                id: "weekly".into(),
+            },
         ]
     }
 
@@ -452,7 +454,10 @@ mod tests {
         assert!(!once.is_live("hourly")); // disabled
         assert!(!once.schedules.contains_key("weekly")); // removed
         assert_eq!(once.pending_count(), 1); // nightly@100 only
-        assert_eq!(once.pending.get("nightly").map(Vec::as_slice), Some(&[100][..]));
+        assert_eq!(
+            once.pending.get("nightly").map(Vec::as_slice),
+            Some(&[100][..])
+        );
     }
 
     #[test]
@@ -486,7 +491,11 @@ mod tests {
 
     #[test]
     fn degenerate_fork_is_ignored() {
-        let log = vec![added("a"), armed("a", 1), ScheduleEvent::Forked { child: 0 }];
+        let log = vec![
+            added("a"),
+            armed("a", 1),
+            ScheduleEvent::Forked { child: 0 },
+        ];
         let state = fold(&log);
         // Fork naming the current generation changes nothing.
         assert_eq!(state.generation, 0);
@@ -524,7 +533,13 @@ mod tests {
 
     #[test]
     fn duplicate_arm_and_fire_are_idempotent() {
-        let state = fold(&[added("a"), armed("a", 5), armed("a", 5), fired("a", 5), fired("a", 5)]);
+        let state = fold(&[
+            added("a"),
+            armed("a", 5),
+            armed("a", 5),
+            fired("a", 5),
+            fired("a", 5),
+        ]);
         assert_eq!(state.pending_count(), 0);
     }
 
@@ -559,7 +574,10 @@ mod tests {
 
         store.append(&added("nightly")).unwrap();
         store.append(&armed("nightly", 42)).unwrap();
-        assert_eq!(store.state().unwrap(), fold(&[added("nightly"), armed("nightly", 42)]));
+        assert_eq!(
+            store.state().unwrap(),
+            fold(&[added("nightly"), armed("nightly", 42)])
+        );
 
         // Reopen (new handle, same path): replay from disk reproduces state.
         let reopened = LogStore::open(store.path());
@@ -615,7 +633,10 @@ mod tests {
         assert_eq!(after.pending_count(), 0);
         // Exactly one fire for three missed dues.
         assert_eq!(
-            events.iter().filter(|e| matches!(e, ScheduleEvent::Fired { .. })).count(),
+            events
+                .iter()
+                .filter(|e| matches!(e, ScheduleEvent::Fired { .. }))
+                .count(),
             1
         );
     }
@@ -686,7 +707,13 @@ mod tests {
         };
         // Applying the same drop twice changes nothing the second time.
         let once = fold(&[added("a"), armed("a", 10), armed("a", 20), drop.clone()]);
-        let twice = fold(&[added("a"), armed("a", 10), armed("a", 20), drop.clone(), drop]);
+        let twice = fold(&[
+            added("a"),
+            armed("a", 10),
+            armed("a", 20),
+            drop.clone(),
+            drop,
+        ]);
         assert_eq!(once, twice);
         assert_eq!(once.pending_count(), 0);
         // Dropping for an unknown id or unknown dues is a no-op.
@@ -701,7 +728,13 @@ mod tests {
     fn catch_up_survives_replay_through_the_log() {
         // The full engine loop shape: propose events, append to the log,
         // fold from scratch — crash-safe catch-up.
-        let mut log = vec![added("a"), armed("a", 10), armed("a", 20), added("b"), armed("b", 30)];
+        let mut log = vec![
+            added("a"),
+            armed("a", 10),
+            armed("a", 20),
+            added("b"),
+            armed("b", 30),
+        ];
         let mut state = fold(&log);
         loop {
             let events = catch_up_events(&state, 100, 1);

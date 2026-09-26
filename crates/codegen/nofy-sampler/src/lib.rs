@@ -49,6 +49,7 @@ pub use events::{
 };
 pub use handle::SamplerHandle;
 pub use metrics::{InferenceLatencyStats, compute_percentiles};
+pub use prewarm::{PrewarmOutcome, PrewarmReport, prewarm_transport};
 pub use retry::{
     DEFAULT_MAX_RETRIES, MAX_RETRY_BACKOFF, RATE_LIMIT_RETRY_THRESHOLD, RetryDecision,
     classify_error, format_sampling_error, resolve_max_retries, retry_after_or_backoff,
@@ -56,5 +57,4 @@ pub use retry::{
 };
 pub use sampling_log::AuthInfo;
 pub use stream::{collect_response, stream_chat_completions, stream_messages, stream_responses};
-pub use prewarm::{PrewarmOutcome, PrewarmReport, prewarm_transport};
 pub use types::RequestId;

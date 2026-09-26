@@ -465,7 +465,12 @@ mod tests {
         assert_eq!(p["memory_enabled"], true);
         assert_eq!(p["role_instructions"], "test role");
         assert_eq!(p["persona_instructions"], "test persona");
-        assert!(p["scratch_dir"].as_str().unwrap().ends_with(std::path::MAIN_SEPARATOR));
+        assert!(
+            p["scratch_dir"]
+                .as_str()
+                .unwrap()
+                .ends_with(std::path::MAIN_SEPARATOR)
+        );
     }
     #[test]
     fn test_placeholders_user_info_defaults_to_empty() {

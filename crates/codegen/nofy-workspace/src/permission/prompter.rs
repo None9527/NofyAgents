@@ -9,8 +9,8 @@ use crate::permission::{
 };
 use agent_client_protocol::{self as acp, Client as _};
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
-use nofy_mcp::servers::parse_mcp_qualified_name;
 use nofy_file_utils::events::{Event, EventWriter, PermissionDecision};
+use nofy_mcp::servers::parse_mcp_qualified_name;
 use nofy_tools::implementations::nofy_build::web_fetch::domain_from_url;
 
 const REJECT_ONCE_LABEL: &str = "No, and tell Nofy what to do differently";

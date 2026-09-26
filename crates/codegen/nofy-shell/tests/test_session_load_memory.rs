@@ -12,15 +12,15 @@
 #[global_allocator]
 static DHAT_ALLOC: dhat::Alloc = dhat::Alloc;
 
-use pretty_assertions::assert_eq;
 use nofy_shell::session::storage::{JsonlStorageAdapter, StorageAdapter, prepare_replay_lines};
 use nofy_shell::session::testkit::synth::{self, SessionSpec};
 use nofy_test_support::env::env_parse;
+use pretty_assertions::assert_eq;
 
 #[cfg(feature = "dhat-heap")]
-use std::path::Path;
-#[cfg(feature = "dhat-heap")]
 use nofy_shell::session::info::Info;
+#[cfg(feature = "dhat-heap")]
+use std::path::Path;
 
 use tempfile::TempDir;
 
@@ -561,7 +561,7 @@ mod rss {
             std::env::set_var("NOFY_API_BASE_URL", server.url());
             std::env::set_var("NOFY_API_KEY", "test-key-for-ci");
             std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-            }
+        }
 
         let (info, dir) = synth::prepare_session(nofy_home.path(), cwd.path(), &opts).await;
         let on_disk_bytes = file_len(&dir.join("updates.jsonl"));

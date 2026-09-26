@@ -1,12 +1,12 @@
 use super::support::*;
 use super::*;
-use std::future::Future;
-use std::sync::Arc;
-use std::time::Duration;
 use nofy_test_support::sse::{
     responses_api_reasoning_then_tool_call_events, responses_api_script_exact,
 };
 use nofy_test_support::{MockInferenceServer, ScriptedResponse};
+use std::future::Future;
+use std::sync::Arc;
+use std::time::Duration;
 
 /// `SessionActor` turn futures overflow the default test thread stack.
 fn block_on_session(f: impl FnOnce() + Send + 'static) {
@@ -182,8 +182,7 @@ fn completed_turn_flush_enospc_returns_error() {
 #[test]
 #[serial_test::serial]
 fn cancelled_turn_flush_enospc_still_reports_cancellation() {
-    let _governor_off =
-        nofy_test_support::EnvGuard::set(nofy_convergence::GOVERNOR_ENV, "0");
+    let _governor_off = nofy_test_support::EnvGuard::set(nofy_convergence::GOVERNOR_ENV, "0");
     block_on_session(|| {
         current_thread_local(async {
             let server = MockInferenceServer::start()
