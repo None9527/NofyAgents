@@ -63,6 +63,7 @@ fn spawn_agent_process(
 struct TextCapture {
     chunks: std::sync::Mutex<Vec<String>>,
     event_ids: std::sync::Mutex<Vec<String>>,
+    nofy_session_updates: std::sync::Mutex<Vec<serde_json::Value>>,
     notification_count: AtomicU32,
 }
 
@@ -113,6 +114,21 @@ impl acp::Client for TestAcpClient {
             && !text_content.text.is_empty()
         {
             self.capture.chunks.lock().unwrap().push(text_content.text);
+        }
+        Ok(())
+    }
+
+    async fn ext_notification(&self, args: acp::ExtNotification) -> acp::Result<()> {
+        if matches!(
+            args.method.as_ref(),
+            "nofy/session_notification" | "nofy/session/update"
+        ) && let Ok(value) = serde_json::from_str(args.params.get())
+        {
+            self.capture
+                .nofy_session_updates
+                .lock()
+                .unwrap()
+                .push(value);
         }
         Ok(())
     }
@@ -294,6 +310,11 @@ impl NofyStdioClient {
 
     pub fn captured_text(&self) -> String {
         self.capture.chunks.lock().unwrap().join("")
+    }
+
+    /// Trusted Nofy extension updates captured in receive order.
+    pub fn captured_nofy_session_updates(&self) -> Vec<serde_json::Value> {
+        self.capture.nofy_session_updates.lock().unwrap().clone()
     }
 
     pub fn notification_count(&self) -> u32 {
@@ -602,4 +623,42 @@ fn push_skipped_tail(skipped: &mut usize, tail: &mut Vec<String>, line: &str) {
         tail.remove(0);
     }
     tail.push(line.trim_end().chars().take(200).collect());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_client_captures_known_nofy_updates_and_ignores_unknown_extensions() {
+        let capture = Arc::new(TextCapture::default());
+        let client = TestAcpClient {
+            capture: capture.clone(),
+        };
+        let update = serde_json::json!({
+            "sessionId": "s1",
+            "update": {
+                "sessionUpdate": "memory_write_receipt",
+                "receipt": "已记住到“关于我”：默认使用 Rust。撤销"
+            }
+        });
+        let raw = serde_json::value::to_raw_value(&update).unwrap();
+        acp::Client::ext_notification(
+            &client,
+            acp::ExtNotification::new("nofy/session_notification", raw.into()),
+        )
+        .await
+        .unwrap();
+
+        let unknown = serde_json::value::to_raw_value(&serde_json::json!({"value": 1})).unwrap();
+        acp::Client::ext_notification(
+            &client,
+            acp::ExtNotification::new("future/extension", unknown.into()),
+        )
+        .await
+        .unwrap();
+
+        let updates = capture.nofy_session_updates.lock().unwrap();
+        assert_eq!(updates.as_slice(), [update]);
+    }
 }
