@@ -616,6 +616,48 @@
         assert!(!apply_session_event(&update, &mut session, &mut scrollback));
     }
 
+    #[test]
+    fn memory_reference_renders_safe_deduplicated_label() {
+        let mut session = make_session(Some("s1"));
+        let mut scrollback = ScrollbackState::new();
+        let reference = nofy_tools::types::memory_service::MemoryReference {
+            area: nofy_tools::types::memory_service::MemoryArea::Project,
+            area_label: "当前项目".into(),
+            summary: "使用 Rust workspace".into(),
+            source: "你明确要求记住".into(),
+        };
+        let update = NofySessionUpdate::MemoryReferenceUsed {
+            references: vec![reference.clone(), reference],
+        };
+
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
+        assert!(matches!(
+            last_session_event(&scrollback),
+            Some(SessionEvent::MemoryReference { labels })
+                if labels == ["当前项目 · 使用 Rust workspace"]
+        ));
+    }
+
+    #[test]
+    fn memory_write_receipt_renders_only_public_copy() {
+        let mut session = make_session(Some("s1"));
+        let mut scrollback = ScrollbackState::new();
+        let update = NofySessionUpdate::MemoryWriteReceipt {
+            receipt: "已记住到“关于我”：默认使用 Rust。撤销".into(),
+            undo_operation_id: Some("opaque-operation".into()),
+            undo_generation: Some(2),
+        };
+
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
+        let Some(SessionEvent::MemoryWriteReceipt { receipt }) =
+            last_session_event(&scrollback)
+        else {
+            panic!("expected memory receipt event");
+        };
+        assert_eq!(receipt, "已记住到“关于我”：默认使用 Rust。撤销");
+        assert!(!receipt.contains("opaque"));
+    }
+
     // ── handle_child_session_notification ──────────────────────────────
 
     #[test]

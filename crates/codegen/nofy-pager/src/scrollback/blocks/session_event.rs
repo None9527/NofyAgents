@@ -141,6 +141,10 @@ pub enum SessionEvent {
         /// What triggered the save: "session-end", "flush", or "dream".
         trigger: String,
     },
+    /// Trusted facts that were selected and injected for this answer.
+    MemoryReference { labels: Vec<String> },
+    /// A durable explicit-memory mutation completed successfully.
+    MemoryWriteReceipt { receipt: String },
     /// A `/goal` finished (status → Complete). Carries the goal's total
     /// elapsed time across all its turns, distinct from the per-turn
     /// "Worked for" marker.
@@ -276,6 +280,10 @@ impl SessionEvent {
                 let short_path = crate::util::abbreviate_path(path);
                 format!("Memory saved ({trigger}) \u{2192} {short_path}  \u{00b7}  /memory to view")
             }
+            SessionEvent::MemoryReference { labels } => {
+                format!("基于记忆：{}", labels.join("；"))
+            }
+            SessionEvent::MemoryWriteReceipt { receipt } => receipt.clone(),
             SessionEvent::GoalCompleted { elapsed } => {
                 format!(
                     "Goal complete \u{2014} {} end-to-end.",
@@ -949,6 +957,19 @@ mod tests {
         let msg = event.message();
         assert!(msg.starts_with("Memory saved (flush)"));
         assert!(msg.contains("/memory to view"));
+    }
+
+    #[test]
+    fn memory_product_messages_are_concise_and_safe() {
+        let reference = SessionEvent::MemoryReference {
+            labels: vec!["当前项目 · 部署约定".into()],
+        };
+        assert_eq!(reference.message(), "基于记忆：当前项目 · 部署约定");
+
+        let receipt = SessionEvent::MemoryWriteReceipt {
+            receipt: "已记住到“关于我”：默认使用 Rust。撤销".into(),
+        };
+        assert_eq!(receipt.message(), "已记住到“关于我”：默认使用 Rust。撤销");
     }
 
     #[test]

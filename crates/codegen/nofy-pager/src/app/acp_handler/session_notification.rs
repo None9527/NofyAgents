@@ -232,7 +232,9 @@ pub(super) fn handle_session_notification_with_origin(
         | NofySessionUpdate::ImageDropped { .. }
         | NofySessionUpdate::MemoryFlushCompleted { .. }
         | NofySessionUpdate::MemoryDreamCompleted { .. }
-        | NofySessionUpdate::MemorySessionSaved { .. }) => {
+        | NofySessionUpdate::MemorySessionSaved { .. }
+        | NofySessionUpdate::MemoryReferenceUsed { .. }
+        | NofySessionUpdate::MemoryWriteReceipt { .. }) => {
             let changed = apply_session_event(update, &mut agent.session, &mut agent.scrollback);
             if let NofySessionUpdate::AutoCompactCompleted { tokens_after, .. } = update {
                 refresh_context_used(agent, *tokens_after);
@@ -1399,6 +1401,32 @@ pub(super) fn apply_session_event(
             let message = notes.join("\n");
             tracing::info!("Image dropped: {message}");
             scrollback.push_block(RenderBlock::system(message));
+            true
+        }
+        NofySessionUpdate::MemoryReferenceUsed { references } => {
+            let mut labels = references
+                .iter()
+                .map(|reference| format!("{} · {}", reference.area_label, reference.summary))
+                .collect::<Vec<_>>();
+            labels.sort();
+            labels.dedup();
+            if labels.is_empty() {
+                return false;
+            }
+            scrollback.push_block(RenderBlock::session_event(SessionEvent::MemoryReference {
+                labels,
+            }));
+            true
+        }
+        NofySessionUpdate::MemoryWriteReceipt { receipt, .. } => {
+            if receipt.trim().is_empty() {
+                return false;
+            }
+            scrollback.push_block(RenderBlock::session_event(
+                SessionEvent::MemoryWriteReceipt {
+                    receipt: receipt.clone(),
+                },
+            ));
             true
         }
         _ => false,
