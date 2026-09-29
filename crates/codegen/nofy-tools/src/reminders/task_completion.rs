@@ -621,6 +621,7 @@ pub fn consumed_completion_ids(output: &ToolOutput) -> Vec<&str> {
         | ToolOutput::FileTrashDelete(_)
         | ToolOutput::UpdateGoal(_)
         | ToolOutput::Workflow(_)
+        | ToolOutput::MemoryWrite(_)
         | ToolOutput::Dynamic(_) => {}
     }
     ids

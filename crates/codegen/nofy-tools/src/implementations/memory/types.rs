@@ -99,9 +99,27 @@ pub struct MemoryWriteInput {
     pub undo_generation: Option<u64>,
 }
 
-/// Output schema for `memory_write` (used for JSON Schema generation only).
-#[derive(Debug, JsonSchema)]
+/// Durable result from `memory_write`.
+///
+/// `public_receipt` is the only field intended for normal user rendering.
+/// The remaining opaque coordinates let the model perform a later
+/// revise/forget/undo without exposing storage internals in that receipt.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct MemoryWriteOutput {
-    /// Human-readable result: what changed and where.
-    pub result: String,
+    pub public_receipt: String,
+    pub action: MemoryWriteAction,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub area_label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub undo_operation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub undo_generation: Option<u64>,
 }
+
+impl nofy_tool_runtime::ToolOutput for MemoryWriteOutput {}

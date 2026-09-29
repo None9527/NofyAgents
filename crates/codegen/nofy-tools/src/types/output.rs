@@ -567,6 +567,7 @@ pub enum ToolOutput {
     FileTrashDelete(crate::implementations::nofy_build::file_trash::FileTrashDeleteOutput),
     UpdateGoal(crate::implementations::nofy_build::update_goal::UpdateGoalOutput),
     Workflow(crate::implementations::nofy_build::workflow::WorkflowToolOutput),
+    MemoryWrite(crate::implementations::memory::types::MemoryWriteOutput),
     /// Dynamic output for runtime-registered tools (MCP, test tools, etc.)
     Dynamic(DynamicOutput),
     /// Generic text output for tools that produce simple formatted text
@@ -899,6 +900,17 @@ impl ToolOutput {
             ToolOutput::FileTrashDelete(o) => o.message.clone(),
             ToolOutput::UpdateGoal(o) => o.summary.clone(),
             ToolOutput::Workflow(o) => o.message.clone(),
+            ToolOutput::MemoryWrite(o) => serde_json::json!({
+                "result": o.public_receipt,
+                "action": o.action,
+                "area": o.area_label,
+                "summary": o.summary,
+                "target_id": o.target_id,
+                "expected_hash": o.expected_hash,
+                "undo_operation_id": o.undo_operation_id,
+                "undo_generation": o.undo_generation,
+            })
+            .to_string(),
             ToolOutput::Dynamic(v) => serde_json::to_string_pretty(&v.value).unwrap_or_default(),
             ToolOutput::Text(text) => text.text.clone(),
         }

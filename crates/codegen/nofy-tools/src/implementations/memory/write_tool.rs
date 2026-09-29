@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use super::types::{MemoryWriteAction, MemoryWriteInput, MemoryWriteScope};
+use super::types::{MemoryWriteAction, MemoryWriteInput, MemoryWriteOutput, MemoryWriteScope};
 use crate::types::memory_service::{
     ForgetRequest, MemoryArea, MemoryService, MemoryTarget, RememberRequest, ReviseTopicRequest,
     UndoToken,
@@ -35,7 +35,7 @@ impl crate::types::tool_metadata::ToolMetadata for MemoryWriteImpl {
 
 impl nofy_tool_runtime::Tool for MemoryWriteImpl {
     type Args = MemoryWriteInput;
-    type Output = ToolOutput;
+    type Output = MemoryWriteOutput;
 
     fn id(&self) -> nofy_tool_protocol::ToolId {
         nofy_tool_protocol::ToolId::new("memory_write").expect("valid tool id")
@@ -63,7 +63,7 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
         &self,
         ctx: nofy_tool_runtime::ToolCallContext,
         input: MemoryWriteInput,
-    ) -> Result<ToolOutput, nofy_tool_runtime::ToolError> {
+    ) -> Result<MemoryWriteOutput, nofy_tool_runtime::ToolError> {
         use crate::types::tool_metadata::shared_resources;
         let tool_id = nofy_tool_protocol::ToolId::new("memory_write").expect("valid");
         let resources = shared_resources(&ctx)?;
@@ -73,8 +73,9 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
             .get::<Arc<dyn MemoryService>>()
             .cloned()
         else {
-            return Ok(ToolOutput::Text(
-                "Memory is not enabled. Enable memory before using this tool.".into(),
+            return Err(nofy_tool_runtime::ToolError::execution(
+                tool_id.clone(),
+                "Memory is not enabled. Enable memory before using this tool.".to_owned(),
             ));
         };
         let output = match input.action {
@@ -98,18 +99,19 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
                     })
                     .await
                     .map_err(|error| execution(&tool_id, error))?;
-                format!(
-                    "已记住到{}：{}\nTarget: {}\nHash: {}\n可撤销操作：{}",
-                    receipt.area_label,
-                    receipt.summary,
-                    receipt.target.id,
-                    receipt
-                        .target
-                        .expected_hash
-                        .as_deref()
-                        .unwrap_or("unavailable"),
-                    receipt.undo_token.operation_id,
-                )
+                MemoryWriteOutput {
+                    public_receipt: format!(
+                        "已记住到“{}”：{}。撤销",
+                        receipt.area_label, receipt.summary
+                    ),
+                    action: MemoryWriteAction::Remember,
+                    area_label: Some(receipt.area_label),
+                    summary: Some(receipt.summary),
+                    target_id: Some(receipt.target.id),
+                    expected_hash: receipt.target.expected_hash,
+                    undo_operation_id: Some(receipt.undo_token.operation_id),
+                    undo_generation: Some(receipt.undo_token.generation),
+                }
             }
             MemoryWriteAction::Revise => {
                 let statement = require_statement(&tool_id, input.statement)?;
@@ -120,18 +122,16 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
                     })
                     .await
                     .map_err(|error| execution(&tool_id, error))?;
-                format!(
-                    "已纠正：{}\nRevision: {}\nTarget: {}\nHash: {}\n可撤销操作：{}",
-                    receipt.summary,
-                    receipt.revision,
-                    receipt.target.id,
-                    receipt
-                        .target
-                        .expected_hash
-                        .as_deref()
-                        .unwrap_or("unavailable"),
-                    receipt.undo_token.operation_id,
-                )
+                MemoryWriteOutput {
+                    public_receipt: format!("已纠正记忆：{}。撤销", receipt.summary),
+                    action: MemoryWriteAction::Revise,
+                    area_label: None,
+                    summary: Some(receipt.summary),
+                    target_id: Some(receipt.target.id),
+                    expected_hash: receipt.target.expected_hash,
+                    undo_operation_id: Some(receipt.undo_token.operation_id),
+                    undo_generation: Some(receipt.undo_token.generation),
+                }
             }
             MemoryWriteAction::Forget => {
                 let receipt = memory
@@ -141,7 +141,16 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
                     })
                     .await
                     .map_err(|error| execution(&tool_id, error))?;
-                receipt.summary
+                MemoryWriteOutput {
+                    public_receipt: receipt.summary.clone(),
+                    action: MemoryWriteAction::Forget,
+                    area_label: None,
+                    summary: Some(receipt.summary),
+                    target_id: None,
+                    expected_hash: None,
+                    undo_operation_id: None,
+                    undo_generation: None,
+                }
             }
             MemoryWriteAction::Undo => {
                 let operation_id = input
@@ -160,13 +169,19 @@ impl nofy_tool_runtime::Tool for MemoryWriteImpl {
                     })
                     .await
                     .map_err(|error| execution(&tool_id, error))?;
-                format!(
-                    "已撤销最近的记忆操作。Snapshot generation: {}",
-                    receipt.snapshot_generation
-                )
+                MemoryWriteOutput {
+                    public_receipt: "已撤销最近的记忆操作。".to_owned(),
+                    action: MemoryWriteAction::Undo,
+                    area_label: None,
+                    summary: None,
+                    target_id: None,
+                    expected_hash: None,
+                    undo_operation_id: None,
+                    undo_generation: Some(receipt.snapshot_generation),
+                }
             }
         };
-        Ok(ToolOutput::Text(output.into()))
+        Ok(output)
     }
 }
 
@@ -216,4 +231,54 @@ fn execution(
     error: impl std::fmt::Display,
 ) -> nofy_tool_runtime::ToolError {
     nofy_tool_runtime::ToolError::execution(tool_id.clone(), error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_receipt_hides_opaque_coordinates_while_prompt_keeps_them() {
+        let output = MemoryWriteOutput {
+            public_receipt: "已记住到“关于我”：默认使用 Rust。撤销".to_owned(),
+            action: MemoryWriteAction::Remember,
+            area_label: Some("关于我".to_owned()),
+            summary: Some("默认使用 Rust".to_owned()),
+            target_id: Some("topic-opaque".to_owned()),
+            expected_hash: Some("hash-opaque".to_owned()),
+            undo_operation_id: Some("undo-opaque".to_owned()),
+            undo_generation: Some(7),
+        };
+
+        assert!(!output.public_receipt.contains("topic-opaque"));
+        assert!(!output.public_receipt.contains("hash-opaque"));
+        assert!(!output.public_receipt.contains("undo-opaque"));
+
+        let prompt = ToolOutput::MemoryWrite(output).to_prompt_format();
+        assert!(prompt.contains("topic-opaque"));
+        assert!(prompt.contains("hash-opaque"));
+        assert!(prompt.contains("undo-opaque"));
+    }
+
+    #[test]
+    fn memory_write_output_round_trips_through_registry_shape() {
+        let output = ToolOutput::MemoryWrite(MemoryWriteOutput {
+            public_receipt: "已纠正记忆：使用稳定版 Rust。撤销".to_owned(),
+            action: MemoryWriteAction::Revise,
+            area_label: None,
+            summary: Some("使用稳定版 Rust".to_owned()),
+            target_id: Some("topic-1".to_owned()),
+            expected_hash: Some("hash-1".to_owned()),
+            undo_operation_id: Some("undo-1".to_owned()),
+            undo_generation: Some(2),
+        });
+
+        let json = serde_json::to_value(&output).unwrap();
+        let decoded: ToolOutput = serde_json::from_value(json).unwrap();
+        let ToolOutput::MemoryWrite(decoded) = decoded else {
+            panic!("expected memory write output");
+        };
+        assert_eq!(decoded.public_receipt, "已纠正记忆：使用稳定版 Rust。撤销");
+        assert_eq!(decoded.target_id.as_deref(), Some("topic-1"));
+    }
 }
