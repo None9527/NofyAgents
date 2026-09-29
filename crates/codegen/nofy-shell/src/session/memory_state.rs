@@ -46,6 +46,12 @@ pub(crate) struct SessionMemory {
     pub search_counter: RefCell<Option<Arc<AtomicU64>>>,
     /// Counts first-turn memory context injections.
     pub injection_count: AtomicU64,
+    /// Safe references injected into the active top-level turn. Drained after
+    /// the assistant response and never populated from model-generated text.
+    pub active_references: RefCell<Vec<nofy_tools::types::memory_service::MemoryReference>>,
+    /// Successful explicit mutations waiting for an after-response receipt.
+    pub pending_write_receipts:
+        RefCell<Vec<nofy_tools::implementations::memory::types::MemoryWriteOutput>>,
     /// Counts post-compaction memory re-injection searches.
     pub compaction_recovery_count: AtomicU64,
     /// Total memory chunks added across all sources.
@@ -61,6 +67,32 @@ pub(crate) struct SessionMemory {
 }
 
 impl SessionMemory {
+    pub(crate) fn replace_active_references(
+        &self,
+        references: Vec<nofy_tools::types::memory_service::MemoryReference>,
+    ) {
+        *self.active_references.borrow_mut() = references;
+    }
+
+    pub(crate) fn take_active_references(
+        &self,
+    ) -> Vec<nofy_tools::types::memory_service::MemoryReference> {
+        std::mem::take(&mut *self.active_references.borrow_mut())
+    }
+
+    pub(crate) fn queue_write_receipt(
+        &self,
+        receipt: nofy_tools::implementations::memory::types::MemoryWriteOutput,
+    ) {
+        self.pending_write_receipts.borrow_mut().push(receipt);
+    }
+
+    pub(crate) fn take_write_receipts(
+        &self,
+    ) -> Vec<nofy_tools::implementations::memory::types::MemoryWriteOutput> {
+        std::mem::take(&mut *self.pending_write_receipts.borrow_mut())
+    }
+
     pub(crate) fn record_capture_barrier(
         &self,
         barrier: crate::session::memory_capture::CaptureBarrier,

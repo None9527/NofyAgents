@@ -146,6 +146,8 @@ async fn create_test_actor_with_memory(
             flush_error_count: std::sync::atomic::AtomicU64::new(0),
             search_counter: std::cell::RefCell::new(None),
             injection_count: std::sync::atomic::AtomicU64::new(0),
+            active_references: std::cell::RefCell::new(Vec::new()),
+            pending_write_receipts: std::cell::RefCell::new(Vec::new()),
             compaction_recovery_count: std::sync::atomic::AtomicU64::new(0),
             chunks_added: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
             dream_config: Default::default(),
@@ -526,7 +528,13 @@ async fn test_first_turn_reminder_injects_without_persisted_block() {
                     .load(std::sync::atomic::Ordering::Relaxed),
                 "latch must be set after the injection decision runs"
             );
+            assert_eq!(actor.memory.active_references.borrow().len(), 1);
             assert_eq!(None, actor.first_turn_memory_reminder().await);
+            assert_eq!(
+                actor.memory.active_references.borrow().len(),
+                1,
+                "later model calls in the same turn must retain provenance"
+            );
         })
         .await;
 }

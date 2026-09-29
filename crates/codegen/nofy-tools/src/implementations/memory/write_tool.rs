@@ -7,7 +7,6 @@ use crate::types::memory_service::{
     ForgetRequest, MemoryArea, MemoryService, MemoryTarget, RememberRequest, ReviseTopicRequest,
     UndoToken,
 };
-use crate::types::output::ToolOutput;
 use crate::types::tool::{ToolKind, ToolNamespace};
 
 pub const MAX_WRITE_CHARS: usize = 1000;
@@ -236,6 +235,7 @@ fn execution(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::output::ToolOutput;
 
     #[test]
     fn public_receipt_hides_opaque_coordinates_while_prompt_keeps_them() {

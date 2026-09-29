@@ -218,6 +218,8 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                     flush_error_count: std::sync::atomic::AtomicU64::new(0),
                     search_counter: std::cell::RefCell::new(None),
                     injection_count: std::sync::atomic::AtomicU64::new(0),
+                    active_references: std::cell::RefCell::new(Vec::new()),
+                    pending_write_receipts: std::cell::RefCell::new(Vec::new()),
                     compaction_recovery_count: std::sync::atomic::AtomicU64::new(0),
                     chunks_added: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
                     dream_config: Default::default(),

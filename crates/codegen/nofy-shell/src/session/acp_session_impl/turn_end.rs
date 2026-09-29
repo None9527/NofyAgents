@@ -398,6 +398,29 @@ impl SessionActor {
         cancellation_category: Option<&str>,
     ) {
         let (stop_reason, agent_result) = crate::sampling::error::prompt_complete_fields(mapped);
+        if mapped.is_ok() {
+            let references = self.memory.take_active_references();
+            if !references.is_empty() {
+                self.send_xai_notification(
+                    crate::extensions::notification::SessionUpdate::MemoryReferenceUsed {
+                        references,
+                    },
+                )
+                .await;
+            }
+        } else {
+            self.memory.take_active_references();
+        }
+        for receipt in self.memory.take_write_receipts() {
+            self.send_xai_notification(
+                crate::extensions::notification::SessionUpdate::MemoryWriteReceipt {
+                    receipt: receipt.public_receipt,
+                    undo_operation_id: receipt.undo_operation_id,
+                    undo_generation: receipt.undo_generation,
+                },
+            )
+            .await;
+        }
         let mut extra = serde_json::Map::new();
         if let Some(t) = cancel_trigger {
             extra.insert("cancelTrigger".to_string(), serde_json::json!(t));

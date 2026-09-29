@@ -1553,6 +1553,8 @@ pub(crate) async fn spawn_session_actor(
             flush_error_count: std::sync::atomic::AtomicU64::new(0),
             search_counter: std::cell::RefCell::new(memory_search_counter),
             injection_count: std::sync::atomic::AtomicU64::new(0),
+            active_references: std::cell::RefCell::new(Vec::new()),
+            pending_write_receipts: std::cell::RefCell::new(Vec::new()),
             compaction_recovery_count: std::sync::atomic::AtomicU64::new(0),
             chunks_added: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
             dream_config: memory_config

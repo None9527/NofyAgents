@@ -88,6 +88,71 @@ fn agent_msg_update(text: &str) -> acp::SessionUpdate {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn memory_product_updates_precede_turn_terminal_after_response() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            let (gateway_tx, _gateway_rx) =
+                mpsc::unbounded_channel::<nofy_acp_lib::AcpClientMessage>();
+            let (persistence_tx, mut persistence_rx) = mpsc::unbounded_channel::<PersistenceMsg>();
+            let actor = create_test_actor(0, 256_000, 85, gateway_tx, persistence_tx).await;
+            actor.memory.replace_active_references(vec![
+                nofy_tools::types::memory_service::MemoryReference {
+                    area: nofy_tools::types::memory_service::MemoryArea::Project,
+                    area_label: "当前项目".into(),
+                    summary: "使用 Rust workspace".into(),
+                    source: "你明确要求记住".into(),
+                },
+            ]);
+            actor.memory.queue_write_receipt(
+                nofy_tools::implementations::memory::types::MemoryWriteOutput {
+                    public_receipt: "已记住到“关于我”：默认使用 Rust。撤销".into(),
+                    action: nofy_tools::implementations::memory::types::MemoryWriteAction::Remember,
+                    area_label: Some("关于我".into()),
+                    summary: Some("默认使用 Rust".into()),
+                    target_id: Some("opaque-target".into()),
+                    expected_hash: Some("opaque-hash".into()),
+                    undo_operation_id: Some("opaque-undo".into()),
+                    undo_generation: Some(2),
+                },
+            );
+
+            actor
+                .emit_turn_completed(
+                    "memory-turn".into(),
+                    &Ok(acp::StopReason::EndTurn),
+                    None,
+                    None,
+                    None,
+                )
+                .await;
+
+            let updates = drain_persistence(&mut persistence_rx)
+                .into_iter()
+                .filter_map(|message| match message {
+                    PersistenceMsg::Update(crate::session::storage::SessionUpdate::Nofy(n)) => {
+                        Some(n.update)
+                    }
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert!(matches!(
+                updates.as_slice(),
+                [
+                    NofySessionUpdate::MemoryReferenceUsed { .. },
+                    NofySessionUpdate::MemoryWriteReceipt { .. },
+                    NofySessionUpdate::TurnCompleted { .. }
+                ]
+            ));
+            let NofySessionUpdate::MemoryWriteReceipt { receipt, .. } = &updates[1] else {
+                unreachable!();
+            };
+            assert!(!receipt.contains("opaque"));
+        })
+        .await;
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn normal_completion_persists_turn_completed_after_buffered_delta_flush() {
     let local = tokio::task::LocalSet::new();
     local

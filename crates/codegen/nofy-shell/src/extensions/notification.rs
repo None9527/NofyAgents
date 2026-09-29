@@ -497,6 +497,19 @@ pub enum SessionUpdate {
         /// Path to the written session log
         path: String,
     },
+    /// Trusted provenance for facts injected into the completed top-level turn.
+    MemoryReferenceUsed {
+        references: Vec<nofy_tools::types::memory_service::MemoryReference>,
+    },
+    /// Durable explicit-memory mutation receipt. Opaque undo coordinates are
+    /// carried for the action handler but must not be rendered as text.
+    MemoryWriteReceipt {
+        receipt: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        undo_operation_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        undo_generation: Option<u64>,
+    },
     /// Auto-compact was cancelled (user pressed Ctrl+C)
     AutoCompactCancelled {
         /// Reason for cancellation
@@ -1751,6 +1764,40 @@ mod tests {
         let json_str = serde_json::to_string(&update).unwrap();
         let parsed: SessionUpdate = serde_json::from_str(&json_str).unwrap();
         assert_eq!(update, parsed);
+    }
+
+    #[test]
+    fn memory_reference_used_roundtrips_without_storage_coordinates() {
+        let update = SessionUpdate::MemoryReferenceUsed {
+            references: vec![nofy_tools::types::memory_service::MemoryReference {
+                area: nofy_tools::types::memory_service::MemoryArea::Project,
+                area_label: "当前项目".into(),
+                summary: "使用 Rust workspace".into(),
+                source: "你明确要求记住".into(),
+            }],
+        };
+        let json = serde_json::to_string(&update).unwrap();
+        let parsed: SessionUpdate = serde_json::from_str(&json).unwrap();
+        assert_eq!(update, parsed);
+        for internal in ["expected_hash", "revision", "operation_id", "MEMORY.md"] {
+            assert!(!json.contains(internal), "leaked {internal}");
+        }
+    }
+
+    #[test]
+    fn memory_write_receipt_roundtrips_with_hidden_undo_coordinates() {
+        let update = SessionUpdate::MemoryWriteReceipt {
+            receipt: "已记住到“关于我”：默认使用 Rust。撤销".into(),
+            undo_operation_id: Some("opaque-operation".into()),
+            undo_generation: Some(3),
+        };
+        let json = serde_json::to_string(&update).unwrap();
+        let parsed: SessionUpdate = serde_json::from_str(&json).unwrap();
+        assert_eq!(update, parsed);
+        let SessionUpdate::MemoryWriteReceipt { receipt, .. } = parsed else {
+            panic!("expected memory write receipt");
+        };
+        assert!(!receipt.contains("opaque-operation"));
     }
 
     #[test]

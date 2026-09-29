@@ -1639,6 +1639,7 @@ impl SessionActor {
         {
             return None;
         }
+        self.memory.replace_active_references(Vec::new());
         self.memory
             .context_injected
             .store(true, std::sync::atomic::Ordering::Relaxed);
@@ -1690,7 +1691,13 @@ impl SessionActor {
             configured_min_score: 0.0,
             injection_duration_ms: inject_start.elapsed().as_millis() as u64,
         });
-        crate::session::helpers::memory_context::format_unified_memory_snapshot(&snapshot)
+        let formatted =
+            crate::session::helpers::memory_context::format_unified_memory_snapshot(&snapshot);
+        if formatted.is_some() && self.tool_context.task_output_token_budget.is_none() {
+            self.memory
+                .replace_active_references(snapshot.references.clone());
+        }
+        formatted
     }
 
     /// Inspect `tool_calls` for a `StructuredOutput` call and decide the turn's

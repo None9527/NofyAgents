@@ -2372,6 +2372,11 @@ impl SessionActor {
     ) -> Result<Vec<ConversationItem>, acp::Error> {
         use crate::session::acp_conversion::{acp_plan_update, acp_tool_update, maybe_rewrite};
         let (mut result, mut tool_layer_images) = drained.into_parts();
+        if self.tool_context.task_output_token_budget.is_none()
+            && let ToolsToolOutput::MemoryWrite(receipt) = &result.output
+        {
+            self.memory.queue_write_receipt(receipt.clone());
+        }
         let consumed_ids =
             nofy_tools::reminders::task_completion::consumed_completion_ids(&result.output);
         if !consumed_ids.is_empty() {
