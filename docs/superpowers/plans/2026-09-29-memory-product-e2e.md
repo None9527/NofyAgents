@@ -130,3 +130,19 @@
 - [ ] Run the ignored real-binary E2E suite with `NOFY_BINARY` set.
 - [ ] Run `gitnexus_detect_changes(scope: all)` and inspect every affected process before the final commit.
 - [ ] Commit as `docs(memory): define product memory release gate`, then push `二次开发分支` only when every gate is green.
+
+## Completion evidence (2026-09-29)
+
+Tasks 1-7 are implemented in commits `20a300ee` through `f9f9dd63`.
+The canonical real-binary suite now has four green scenarios covering the
+write/read/quiet path, correction plus forget across restarts, project
+isolation, and secret rejection without a false receipt. E3 worktree identity,
+E5 derived-index rebuild, E6 automatic-learning consent and subagent isolation,
+and E7 promptware quarantine are pinned by the layered tests and release guard
+listed in `docs/architecture/unified-memory-validation.md`; there is no second
+memory implementation or second E2E harness.
+
+Task 8 gates passed before its final commit: rustfmt, workspace all-targets
+check, all `nofy-memory` tests, 98 filtered shell memory tests, 3 tools memory
+tests, 74 test-support tests, 38 pager session-event tests, the unified-memory
+guard, and all 4 ignored real-binary product tests with `NOFY_BINARY` set.
