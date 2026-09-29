@@ -203,11 +203,25 @@ pub struct SnapshotRequest {
     pub max_items: usize,
 }
 
+/// User-safe provenance for one fact included in a frozen inference snapshot.
+///
+/// Storage coordinates deliberately do not cross this boundary. Mutation tools
+/// keep their opaque target and hash values separately.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct MemoryReference {
+    pub area: MemoryArea,
+    pub area_label: String,
+    pub summary: String,
+    pub source: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct MemorySnapshot {
     pub generation: u64,
     pub content: String,
     pub content_hash: String,
+    #[serde(default)]
+    pub references: Vec<MemoryReference>,
 }
 
 #[async_trait::async_trait]

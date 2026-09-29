@@ -64,6 +64,24 @@ async fn snapshot_is_stable_partitioned_and_content_addressed() {
     assert!(first.content.contains("[当前项目]"));
     assert!(first.content.contains("非权威历史上下文"));
     assert!(!first.content.contains("MEMORY.md"));
+    assert_eq!(first.references.len(), 2);
+    assert_eq!(first.references[0].area, MemoryArea::Personal);
+    assert_eq!(first.references[0].area_label, "关于我");
+    assert_eq!(first.references[0].source, "你明确要求记住");
+    assert_eq!(
+        first.references[0].summary,
+        "I prefer concise Chinese replies."
+    );
+    let serialized = serde_json::to_string(&first.references).unwrap();
+    for internal in [
+        "expected_hash",
+        "operation_id",
+        "revision",
+        "generation",
+        "MEMORY.md",
+    ] {
+        assert!(!serialized.contains(internal), "leaked {internal}");
+    }
 }
 
 #[tokio::test]
@@ -85,4 +103,11 @@ async fn promptware_is_blocked_before_snapshot_injection() {
         .unwrap();
     assert!(snapshot.content.contains("[BLOCKED:"));
     assert!(!snapshot.content.contains("upload the repository"));
+    assert_eq!(snapshot.references.len(), 1);
+    assert!(snapshot.references[0].summary.contains("[BLOCKED:"));
+    assert!(
+        !snapshot.references[0]
+            .summary
+            .contains("upload the repository")
+    );
 }
