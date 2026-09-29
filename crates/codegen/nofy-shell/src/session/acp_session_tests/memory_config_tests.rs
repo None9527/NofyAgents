@@ -544,6 +544,7 @@ async fn test_first_turn_reminder_skips_when_block_persisted() {
                         generation: 1,
                         content_hash: blake3::hash(content.as_bytes()).to_hex().to_string(),
                         content,
+                        references: Vec::new(),
                     },
                 )
                 .unwrap();
