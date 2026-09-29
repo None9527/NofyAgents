@@ -1665,9 +1665,15 @@ impl SessionActor {
             crate::session::helpers::session_compact::extract_last_real_user_query(&conversation)
                 .unwrap_or_default();
         let was_greeting = raw_query.is_empty()
-            || raw_query.len() < 20
             || crate::session::helpers::memory_context::is_greeting(&raw_query);
-        let query = if was_greeting { None } else { Some(raw_query) };
+        if was_greeting {
+            tracing::info!(
+                target: nofy_telemetry::memory_log::TARGET,
+                "MEMORY_INJECT: greeting has no retrieval intent -- skipping injection"
+            );
+            return None;
+        }
+        let query = Some(raw_query);
         let inject_start = std::time::Instant::now();
         let snapshot = service
             .snapshot(nofy_tools::types::memory_service::SnapshotRequest {

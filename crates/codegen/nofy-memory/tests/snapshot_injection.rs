@@ -60,17 +60,17 @@ async fn snapshot_is_stable_partitioned_and_content_addressed() {
         .unwrap();
 
     assert_eq!(first, second);
-    assert!(first.content.contains("[关于我]"));
+    assert!(!first.content.contains("[关于我]"));
     assert!(first.content.contains("[当前项目]"));
     assert!(first.content.contains("非权威历史上下文"));
     assert!(!first.content.contains("MEMORY.md"));
-    assert_eq!(first.references.len(), 2);
-    assert_eq!(first.references[0].area, MemoryArea::Personal);
-    assert_eq!(first.references[0].area_label, "关于我");
+    assert_eq!(first.references.len(), 1);
+    assert_eq!(first.references[0].area, MemoryArea::Project);
+    assert_eq!(first.references[0].area_label, "当前项目");
     assert_eq!(first.references[0].source, "你明确要求记住");
     assert_eq!(
         first.references[0].summary,
-        "I prefer concise Chinese replies."
+        "The project uses Rust workspaces."
     );
     let serialized = serde_json::to_string(&first.references).unwrap();
     for internal in [
@@ -82,6 +82,28 @@ async fn snapshot_is_stable_partitioned_and_content_addressed() {
     ] {
         assert!(!serialized.contains(internal), "leaked {internal}");
     }
+}
+
+#[tokio::test]
+async fn queried_snapshot_omits_unmatched_memories() {
+    let (_temp, memory) = service();
+    remember(
+        &memory,
+        MemoryArea::Project,
+        "The project uses Rust workspaces.",
+    )
+    .await;
+
+    let snapshot = memory
+        .snapshot(SnapshotRequest {
+            query: Some("banana smoothie recipe".to_owned()),
+            max_items: 4,
+        })
+        .await
+        .unwrap();
+
+    assert!(snapshot.references.is_empty());
+    assert!(!snapshot.content.contains("Rust workspaces"));
 }
 
 #[tokio::test]

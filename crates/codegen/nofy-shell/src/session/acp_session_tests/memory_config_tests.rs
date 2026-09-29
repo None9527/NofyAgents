@@ -538,6 +538,23 @@ async fn test_first_turn_reminder_injects_without_persisted_block() {
         })
         .await;
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn test_first_turn_reminder_stays_quiet_for_greeting() {
+    let local = tokio::task::LocalSet::new();
+    local
+        .run_until(async {
+            let actor = create_injection_ready_actor(vec![
+                nofy_sampling_types::ConversationItem::system("You are a helpful assistant."),
+                nofy_sampling_types::ConversationItem::user("hi"),
+            ])
+            .await;
+
+            assert_eq!(None, actor.first_turn_memory_reminder().await);
+            assert!(actor.memory.active_references.borrow().is_empty());
+        })
+        .await;
+}
 /// A block persisted by an earlier `--resume` segment must suppress the
 /// re-search — a re-scored block would bust the prompt-prefix KV cache.
 #[tokio::test(flavor = "current_thread")]
