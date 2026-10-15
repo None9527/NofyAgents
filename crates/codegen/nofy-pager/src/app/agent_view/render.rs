@@ -1274,17 +1274,24 @@ impl AgentView {
         let drain_blocked = self.drain_blocked();
         let watchers = self.watchers();
         let parked = self.renders_parked();
+        // The Dock replaces idle/parked queue cues as one control band, even
+        // when currently empty. Hiding it explicitly restores the old cues.
+        let dock_covers_cues =
+            self.dock.on && !self.dock.hidden && !viewer_open && self.block_viewer.is_none();
+        let turn_status_drain_blocked = !dock_covers_cues && drain_blocked;
+        let turn_status_watchers = if dock_covers_cues {
+            Default::default()
+        } else {
+            watchers
+        };
+        let turn_status_parked = !dock_covers_cues && parked;
         let wake_display_state = self.wake_display_state();
         let turn_status_height = if turn_status::should_show(
             wake_display_state.unwrap_or(&self.session.state),
-            drain_blocked,
+            turn_status_drain_blocked,
             self.mcp_init_progress.as_ref(),
-            if self.dock.shown {
-                Default::default()
-            } else {
-                watchers
-            },
-            parked,
+            turn_status_watchers,
+            turn_status_parked,
         ) {
             1
         } else {
@@ -2154,7 +2161,11 @@ impl AgentView {
             self.hovered_link_idx = None;
         }
         if turn_status_height > 0 {
-            let pad_left = HorizontalLayout::ACCENT + layout_cfg.block_pad_left.saturating_sub(1);
+            let pad_left = if self.dock.on {
+                agent::CONTROL_GUTTER
+            } else {
+                HorizontalLayout::ACCENT + layout_cfg.block_pad_left.saturating_sub(1)
+            };
             let turn_area = Rect {
                 x: layout.turn_status.x + pad_left,
                 y: layout.turn_status.y,
@@ -2238,8 +2249,12 @@ impl AgentView {
                     .goal_state
                     .as_ref()
                     .is_some_and(|g| g.verifying_completion);
-                let held_queue = self.held_queue_count();
-                let held_queue_top_sendable = self.held_queue_top_sendable();
+                let held_queue = if self.dock.on {
+                    0
+                } else {
+                    self.held_queue_count()
+                };
+                let held_queue_top_sendable = !self.dock.on && self.held_queue_top_sendable();
                 let turn_output = turn_status::render_turn_status(
                     buf,
                     turn_area,
@@ -2249,7 +2264,7 @@ impl AgentView {
                         turn_elapsed: self.turn_elapsed(),
                         activity_started_at: self.activity_started_at,
                         tick,
-                        drain_blocked,
+                        drain_blocked: turn_status_drain_blocked,
                         buttons: Some(turn_status::MouseButtons {
                             cancel_hovered: self.hit_cancel_button.hovered,
                             bg_hovered: self.hit_bg_button.hovered,
@@ -2261,14 +2276,10 @@ impl AgentView {
                         is_bash_turn: self.bash_turn,
                         is_pending_user_input,
                         goal_verifying,
-                        watchers: if self.dock.shown {
-                            Default::default()
-                        } else {
-                            watchers
-                        },
-                        parked,
+                        watchers: turn_status_watchers,
+                        parked: turn_status_parked,
                         flat_background: false,
-                        held_queue: if self.dock.shown { 0 } else { held_queue },
+                        held_queue,
                         held_queue_top_sendable,
                     },
                 );

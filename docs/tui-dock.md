@@ -30,6 +30,13 @@ can require more. The actual terminal height has the final say. Tiny terminals
 suppress optional rows to preserve the composer. Subagent fullscreen takeover
 and task output viewers suppress the parent Dock.
 
+The fullscreen control band shares upstream's one-column status/Dock gutter,
+independent of conversation padding. A blank row separates live turn feedback
+(including Waiting) from the Dock; normal/compact composer gaps retain upstream
+rules. The visible Dock owns parked/watcher/queue cues instead of duplicating
+them in the turn-status row. Explicitly hiding it restores parked/watcher cues.
+Status button hit targets follow the painted row, not the Dock's bounds.
+
 Minimal mode retains external prompt editing on Ctrl+G and the read-only
 `/tasks` snapshot. Desktop, task persistence, scheduler and memory are unchanged.
 This does not claim parity with unpublished upstream product versions or add
@@ -50,8 +57,20 @@ shell process. It checks bottom placement, hide/restore, resize, output viewer
 and actual process termination through Dock stop. It requires no real API key.
 Adapter tests cover all five groups and the stop actions for monitors, loops,
 subagents and workflows; they do not claim live multi-model/network coverage.
+The Waiting PTY regression additionally measures status/Dock/composer rows and
+gutters during a delayed model response with a real background task. Unit tests
+cover normal/compact alignment with custom scrollback padding and parked cues
+across hide/restore.
 
 2026-10-16 macOS aarch64 results: pager lib 8179 passed / 6 existing ignored;
 Dock native PTY 1 passed; minimal external-editor native PTY 1 passed.
 GitNexus staged scan: LOW, 34 mapped symbols, no mapped execution flows.
 New Dock files are not yet in the index; the scan is not a substitute for tests.
+
+Control-band follow-up (2026-10-16): the native Waiting geometry regression
+fails against the previous `c47045c5` installation (missing pre-Dock gap) and
+passes against the aligned binary. Both Dock PTYs pass, including real task
+termination; the minimal external-editor PTY also passes. Pager lib: 8181 passed,
+zero failures, six existing ignored; targeted rustfmt check passes. Staged impact scan:
+LOW, five mapped symbols, no mapped execution flows. The existing index does
+not map the new Dock adapter tests.

@@ -11,6 +11,73 @@ use crate::views::dock::{DockItem, Section};
 use crossterm::event::{Event, KeyCode, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::buffer::Buffer;
 
+#[test]
+fn waiting_control_band_matches_upstream_in_normal_and_compact_modes() {
+    for compact in [false, true] {
+        let mut agent = make_agent();
+        add_running_bg_task(&mut agent);
+        agent.session.state = crate::app::agent::AgentState::TurnRunning;
+        let mut appearance = agent.scrollback.appearance().clone();
+        appearance.prompt.compact = compact;
+        // Status alignment must not depend on custom conversation padding.
+        appearance.scrollback.layout.block_pad_left = 7;
+        agent.scrollback.set_appearance(appearance);
+        let buf = draw(&mut agent, 100, 40);
+        let rows: Vec<String> = (0..40)
+            .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect())
+            .collect();
+        let wait_y = rows
+            .iter()
+            .position(|line| line.contains("Waiting"))
+            .expect("live Waiting feedback");
+        let dock = agent.pane_areas.tasks;
+        assert_eq!(dock.y as usize, wait_y + 2, "one blank row before Dock");
+        assert!(rows[wait_y + 1].trim().is_empty());
+        let wait_x = rows[wait_y]
+            .chars()
+            .position(|c| !c.is_whitespace())
+            .unwrap();
+        let dock_x = rows[dock.y as usize]
+            .chars()
+            .position(|c| !c.is_whitespace())
+            .unwrap();
+        assert_eq!(
+            wait_x, dock_x,
+            "status and Dock use the same upstream gutter"
+        );
+        assert_eq!(wait_x as u16, dock.x + crate::views::agent::CONTROL_GUTTER);
+        assert_eq!(agent.pane_areas.prompt.x, dock.x);
+        let prompt_gap = u16::from(!compact && agent.scrollback.appearance().turn_status.gap);
+        assert_eq!(agent.pane_areas.prompt.y, dock.bottom() + prompt_gap);
+        let stop = agent.hit_cancel_button.rect.expect("live stop hit target");
+        assert_eq!(stop.y as usize, wait_y);
+        assert!(!dock.contains(stop.as_position()));
+    }
+}
+
+#[test]
+fn parked_wait_uses_live_status_with_dock_and_restores_idle_cue_when_hidden() {
+    let mut agent = make_agent();
+    add_running_bg_task(&mut agent);
+    agent.session.state = crate::app::agent::AgentState::TurnRunning;
+    crate::app::agent_view::test_fixtures::simulate_task_output_wait(&mut agent, "task-1");
+    queue(&mut agent);
+    let buf = draw(&mut agent, 100, 40);
+    let screen: String = buf.content.iter().map(|cell| cell.symbol()).collect();
+    // Known task waits use the command subject, not the model's Waiting label.
+    let status_y = agent.hit_cancel_button.rect.expect("live wait status").y;
+    let status: String = (0..100).map(|x| buf[(x, status_y)].symbol()).collect();
+    assert!(status.contains("sleep 5…"), "live task wait: {status}");
+    assert!(!screen.contains("queued — Enter to send now"));
+    assert!(agent.hit_watching_cue.rect.is_none());
+    agent.toggle_dock();
+    draw(&mut agent, 100, 40);
+    assert!(
+        agent.hit_watching_cue.rect.is_some(),
+        "hidden Dock restores the idle cue"
+    );
+}
+
 fn draw(agent: &mut AgentView, width: u16, height: u16) -> Buffer {
     let area = Rect::new(0, 0, width, height);
     let mut buf = Buffer::empty(area);

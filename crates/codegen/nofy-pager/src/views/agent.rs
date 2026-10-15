@@ -84,6 +84,8 @@ impl PaneAreas {
 /// prompt (plugin CTA, follow-ups, banner/tip) so the prompt and scrollback
 /// are never starved.
 pub const SHORT_TERMINAL_ROWS: u16 = 16;
+/// Public upstream's prompt/control-band gutter, independent of scrollback padding.
+pub(crate) const CONTROL_GUTTER: u16 = 1;
 /// Auto-compact threshold: at or below this height the render-value compact
 /// flag is forced on. Deliberately above [`SHORT_TERMINAL_ROWS`], which stays
 /// the hard-degradation gate (tip-row renderability, CTA/follow-up trims).
@@ -270,8 +272,10 @@ impl AgentViewLayout {
             .saturating_add(prompt_height)
             .saturating_add(prompt_gap)
             .saturating_add(shortcuts_height);
-        let tasks_height = tasks_height.min(inner_area.height.saturating_sub(reserved));
+        let tasks_height =
+            tasks_height.min(inner_area.height.saturating_sub(reserved).saturating_sub(1));
         if tasks_height > 0 {
+            constraints.push(Constraint::Length(1)); // Upstream's gap before Dock.
             constraints.push(Constraint::Length(tasks_height));
         }
         if prompt_gap > 0 {
@@ -374,6 +378,7 @@ impl AgentViewLayout {
             Rect::default()
         };
         let tasks = if tasks_height > 0 {
+            i += 1;
             let r = chunks[i];
             i += 1;
             r
