@@ -556,8 +556,9 @@ fn jemalloc_stats_dump() -> String {
 }
 fn version_text() -> String {
     format!(
-        "nofy {}\n",
-        nofy_version::display_version_with_commit(env!("VERSION_WITH_COMMIT"))
+        "nofy {}\n{}\n",
+        nofy_version::display_version_with_commit(env!("VERSION_WITH_COMMIT")),
+        nofy_version::upstream_display()
     )
 }
 fn write_version(writer: &mut impl std::io::Write) -> std::io::Result<()> {
@@ -1043,6 +1044,8 @@ mod tests {
         let output = String::from_utf8(output).unwrap();
         assert!(output.starts_with("nofy "));
         assert!(output.contains(env!("VERSION_WITH_COMMIT")));
+        assert!(output.contains(&format!("\n{}\n", nofy_version::upstream_display())));
+        assert_eq!(output.lines().count(), 2);
         assert!(output.ends_with(")\n"), "{output:?}");
     }
     #[test]

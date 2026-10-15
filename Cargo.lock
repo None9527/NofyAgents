@@ -7451,6 +7451,7 @@ dependencies = [
  "rand 0.9.2",
  "ratatui",
  "regex",
+ "semver",
  "serde",
  "serde_json",
  "serial_test",
@@ -7481,7 +7482,7 @@ dependencies = [
 
 [[package]]
 name = "nofy-pager-bin"
-version = "0.2.121"
+version = "1.0.45+nofy.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -7499,6 +7500,7 @@ dependencies = [
  "nofy-version",
  "nofy-workspace",
  "rustls",
+ "semver",
  "serde_json",
  "serial_test",
  "tikv-jemalloc-ctl",
@@ -8386,7 +8388,7 @@ dependencies = [
 
 [[package]]
 name = "nofy-version"
-version = "0.2.121"
+version = "1.0.45+nofy.1"
 dependencies = [
  "semver",
 ]

@@ -473,7 +473,7 @@ pub fn start(dir: PathBuf) {
                             threshold_bytes: None,
                             dump_file: None,
                             pid: Some(std::process::id()),
-                            version: Some(env!("CARGO_PKG_VERSION")),
+                            version: Some(nofy_version::VERSION),
                         });
                     }
                     s.record("sample", None);

@@ -1,9 +1,12 @@
 [package]
 license = "Apache-2.0"
 name = "nofy-version"
-version = "0.2.121"
+version = "1.0.45+nofy.1"
 edition.workspace = true
-description = "Lockstepped grok CLI version."
+description = "Shared Nofy product version and audited upstream baseline."
+
+[build-dependencies]
+semver = { workspace = true }
 
 [dependencies]
 semver = { workspace = true }

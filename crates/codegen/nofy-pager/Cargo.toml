@@ -1,3 +1,6 @@
+[build-dependencies]
+semver = { workspace = true }
+
 [package]
 name = "nofy-pager"
 version = "0.2.121"

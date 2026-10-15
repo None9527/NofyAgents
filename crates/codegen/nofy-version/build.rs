@@ -1,3 +1,6 @@
+#[path = "build_support.rs"]
+mod build_support;
+
 fn main() {
-    println!("cargo:rerun-if-env-changed=NOFY_VERSION");
+    build_support::emit(false);
 }

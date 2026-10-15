@@ -1627,6 +1627,14 @@ mod tests {
             .to_string()
     }
 
+    #[test]
+    fn version_badge_uses_shared_product_version() {
+        for mode in [VersionBadgeMode::Full, VersionBadgeMode::HeroInline] {
+            let rendered = badge_text(mode, None);
+            assert!(rendered.contains(nofy_version::VERSION), "{rendered:?}");
+        }
+    }
+
     /// The badge carries the product name and the version, and never a release label.
     #[test]
     fn version_badge_carries_no_release_label() {

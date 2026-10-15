@@ -1,6 +1,9 @@
+[build-dependencies]
+semver = { workspace = true }
+
 [package]
 name = "nofy-pager-bin"
-version = "0.2.121"
+version = "1.0.45+nofy.1"
 edition.workspace = true
 license = "Apache-2.0"
 authors = ["xAI"]

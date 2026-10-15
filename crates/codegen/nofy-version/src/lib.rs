@@ -1,8 +1,15 @@
-//! Installed nofy CLI version, lockstepped with shipping binaries.
+//! Product version shared by the CLI, UI and protocol clients.
 
 use semver::Version;
 
 pub const TEST_VERSION_ENV: &str = "NOFY_TEST_VERSION";
+
+pub const UPSTREAM_VERSION: &str = env!("NOFY_UPSTREAM_VERSION");
+pub const UPSTREAM_COMMIT: &str = env!("NOFY_UPSTREAM_COMMIT");
+
+pub fn upstream_display() -> String {
+    format!("upstream {} ({})", UPSTREAM_VERSION, &UPSTREAM_COMMIT[..12])
+}
 
 pub const VERSION: &str = match option_env!("NOFY_VERSION") {
     Some(v) => v,
