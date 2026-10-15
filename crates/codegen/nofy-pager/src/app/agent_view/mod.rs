@@ -176,6 +176,7 @@ mod prompt;
 mod prompt_stash;
 pub(in crate::app) use prompt_stash::prompt_history_text;
 pub use prompt_stash::{PromptStashEntry, StashCause};
+mod dock;
 mod queue;
 mod render;
 pub use render::AppRenderParams;
@@ -750,6 +751,7 @@ pub struct AgentView {
     pub tip_typing_dismissed: bool,
     pub todo: TodoPane,
     pub tasks: TasksPane,
+    pub(crate) dock: dock::DockState,
     pub catalog: SubagentCatalogPane,
     pub queue: QueuePane,
     /// Per-agent mirror of the server-authoritative shared prompt queue

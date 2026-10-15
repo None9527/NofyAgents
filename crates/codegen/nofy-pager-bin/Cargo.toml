@@ -3,7 +3,7 @@ semver = { workspace = true }
 
 [package]
 name = "nofy-pager-bin"
-version = "1.0.45+nofy.2"
+version = "1.0.45+nofy.3"
 edition.workspace = true
 license = "Apache-2.0"
 authors = ["xAI"]

@@ -34,7 +34,8 @@ impl AgentView {
                 return InputOutcome::Changed;
             }
             if key.code == KeyCode::Tab
-                && self.tasks.overlay.visible
+                && self.dock.shown
+                && !self.dock.hidden
                 && self.set_active_pane(AgentPane::Tasks, false)
             {
                 self.tasks.overlay.focused = true;
@@ -314,6 +315,12 @@ impl AgentView {
         key: &KeyEvent,
         registry: &ActionRegistry,
     ) -> InputOutcome {
+        if !self.is_minimal_mode() {
+            if registry.matches_id(ActionId::ToggleTasks, key) {
+                return self.toggle_dock();
+            }
+            return self.handle_dock_key(key);
+        }
         use crate::views::overlay::{handle_overlay_key, handle_overlay_nav_key};
         use crate::views::tasks_pane::TaskEntry;
         if registry.matches_id(ActionId::ToggleTasks, key) {
@@ -661,7 +668,9 @@ impl AgentView {
                 self.queue.handle_scroll(lines, col, row);
             }
             ActivePane::Tasks => {
-                self.tasks.handle_scroll(lines, col, row);
+                if let Some(section) = self.dock_section_at(self.pane_areas.tasks, row) {
+                    self.scroll_dock_section(section, lines as isize);
+                }
             }
             ActivePane::Catalog => {
                 self.catalog.handle_scroll(lines, col, row);

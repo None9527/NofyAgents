@@ -349,6 +349,24 @@ impl AgentView {
         registry: &ActionRegistry,
         esc_owned_before_agent: bool,
     ) -> Vec<HintItem> {
+        if self.active_pane == ActivePane::Tasks && !self.is_minimal_mode() {
+            let mut hints = Vec::new();
+            if let Some(label) = self.dock_enter_label() {
+                hints.push(HintItem::new(key!(Enter), label));
+            }
+            if self
+                .dock_items()
+                .get(self.dock.cursor)
+                .copied()
+                .and_then(|item| self.dock_stop_action(item))
+                .is_some()
+            {
+                hints.push(HintItem::new(key!('x'), "stop"));
+            }
+            hints.push(HintItem::new(key!(Tab), "prompt"));
+            hints.push(HintItem::new(key!('g', CONTROL), "hide dock"));
+            return hints;
+        }
         let fold_label = self.selected_fold_label();
         let is_editing = matches!(self.prompt_mode, PromptMode::EditingQueued { .. });
         let selected_entry = self
@@ -885,6 +903,10 @@ impl AgentView {
             self.inline_media_iterm_emitted.clear();
         }
         if let Some(ref child_sid) = self.active_subagent.clone() {
+            self.dock.shown = false;
+            self.dock.stop_button = None;
+            self.pane_areas.tasks = Rect::default();
+            self.pane_areas.queue = Rect::default();
             if let Some(esc) = self.take_own_inline_media_clear_escapes() {
                 nofy_shell::util::with_locked_stderr(|stderr| {
                     let _ = std::io::Write::write_all(stderr, esc.as_bytes());
@@ -1212,9 +1234,6 @@ impl AgentView {
             &queued_cron_ids,
             &self.workflow_runs,
         );
-        if self.active_pane == ActivePane::Tasks && !self.tasks.is_visible() {
-            self.active_pane = ActivePane::Scrollback;
-        }
         self.catalog.sync_from_bundle(bundle_state);
         if self.active_pane == ActivePane::Catalog && !self.catalog.is_visible() {
             self.active_pane = ActivePane::Scrollback;
@@ -1223,12 +1242,8 @@ impl AgentView {
         if self.active_pane == ActivePane::Catalog && !self.catalog.is_visible() {
             self.active_pane = ActivePane::Scrollback;
         }
-        let viewer_open = self.active_subagent.is_some();
-        let tasks_height = if viewer_open {
-            0
-        } else {
-            self.tasks.desired_height(area.height)
-        };
+        let viewer_open =
+            self.active_subagent.is_some() || self.show_workflows || self.show_goal_detail;
         let catalog_height = if viewer_open {
             0
         } else {
@@ -1243,7 +1258,19 @@ impl AgentView {
         if self.active_pane == ActivePane::Queue && !self.queue.is_visible() {
             self.active_pane = ActivePane::Scrollback;
         }
-        let queue_height = self.queue.desired_height();
+        self.dock.on = true;
+        self.queue.overlay.visible = self.dock.queued_expanded;
+        self.reconcile_dock_before_paint();
+        let tasks_height = if viewer_open || self.block_viewer.is_some() || self.dock.hidden {
+            0
+        } else {
+            crate::views::dock::desired_height(&self.dock_snapshot())
+        };
+        self.dock.shown = tasks_height > 0;
+        if !self.dock.shown && self.active_pane == ActivePane::Tasks {
+            self.set_active_pane(ActivePane::Scrollback, true);
+        }
+        let queue_height = 0;
         let drain_blocked = self.drain_blocked();
         let watchers = self.watchers();
         let parked = self.renders_parked();
@@ -1252,7 +1279,11 @@ impl AgentView {
             wake_display_state.unwrap_or(&self.session.state),
             drain_blocked,
             self.mcp_init_progress.as_ref(),
-            watchers,
+            if self.dock.shown {
+                Default::default()
+            } else {
+                watchers
+            },
             parked,
         ) {
             1
@@ -1523,7 +1554,7 @@ impl AgentView {
                 .iter()
                 .filter(|e| Some(e.id.as_str()) != running)
                 .count();
-        if queue_len > 0 {
+        if queue_len > 0 && !self.dock.shown {
             use ratatui::style::Modifier;
             let mut queue_style = ratatui::style::Style::default()
                 .fg(theme.accent_user)
@@ -1987,29 +2018,30 @@ impl AgentView {
                 }
             }
         }
-        if tasks_height > 0 {
-            let bg_focused = self.active_pane == ActivePane::Tasks && !overlay_focused;
-            self.tasks.render(
-                layout.tasks,
-                buf,
-                bg_focused,
-                layout_cfg,
-                &self.session.bg_tasks,
-                &self.subagent_sessions,
-                &self.session.scheduled_tasks,
-            );
-            let close_rect = agent::render_todo_chrome(
-                buf,
-                layout.tasks,
-                layout_cfg,
-                bg_focused,
-                false,
-                self.hit_bg_close.hovered,
-                &theme,
-            )
-            .and_then(|sel| sel.close_button_rect());
-            self.hit_bg_close.set(close_rect);
+        self.dock.shown = layout.tasks.area() > 0;
+        if !self.dock.shown && self.active_pane == ActivePane::Tasks {
+            self.set_active_pane(ActivePane::Scrollback, true);
         }
+        self.dock.stop_button = None;
+        self.hit_bg_close.clear();
+        if self.dock.shown {
+            self.pane_areas.tasks = layout.tasks;
+            self.dock.reveal_pending = false;
+            self.clamp_dock_overflow();
+            self.sync_dock_hover_from_pointer(layout.tasks);
+            let mut data = self.dock_snapshot();
+            data.focused &= !overlay_focused;
+            self.cache_dock_stop_at(layout.tasks, &data);
+            data.stop_hovered = self
+                .dock
+                .stop_button
+                .as_ref()
+                .is_some_and(|hit| hit.rect.contains(self.last_mouse_pos.into()));
+            crate::views::dock::render(buf, layout.tasks, &theme, &data);
+            layout.queue = crate::views::dock::queue_body_rect(layout.tasks, &data);
+            self.cache_dock_frame(layout.tasks.height);
+        }
+        self.take_dock_row_request();
         if catalog_height > 0 {
             let cat_focused = self.active_pane == ActivePane::Catalog && !overlay_focused;
             self.catalog
@@ -2045,7 +2077,7 @@ impl AgentView {
         } else {
             self.hit_todo_close.clear();
         }
-        if queue_height > 0 {
+        if layout.queue.area() > 0 {
             let queue_focused = self.active_pane == ActivePane::Queue && !overlay_focused;
             self.queue.render(
                 layout.queue,
@@ -2229,10 +2261,14 @@ impl AgentView {
                         is_bash_turn: self.bash_turn,
                         is_pending_user_input,
                         goal_verifying,
-                        watchers,
+                        watchers: if self.dock.shown {
+                            Default::default()
+                        } else {
+                            watchers
+                        },
                         parked,
                         flat_background: false,
-                        held_queue,
+                        held_queue: if self.dock.shown { 0 } else { held_queue },
                         held_queue_top_sendable,
                     },
                 );

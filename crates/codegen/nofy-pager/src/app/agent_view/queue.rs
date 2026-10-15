@@ -446,6 +446,10 @@ impl AgentView {
     /// Toggle queue pane visibility (shared by Ctrl-; shortcut and badge click).
     pub(in crate::app) fn toggle_queue_pane(&mut self) {
         self.queue.overlay.toggle();
+        if !self.is_minimal_mode() {
+            self.dock.queued_expanded = self.queue.overlay.visible;
+            self.dock.hidden = false;
+        }
         self.queue.on_state_change();
         if self.queue.overlay.focused {
             self.set_active_pane(AgentPane::Queue, false);
@@ -470,6 +474,9 @@ impl AgentView {
             .or_else(|| handle_overlay_nav_key(&mut self.queue.overlay, key));
         if let Some(action) = action {
             self.queue.on_state_change();
+            if !self.is_minimal_mode() {
+                self.dock.queued_expanded = self.queue.overlay.visible;
+            }
             // Overlay dismiss skips hide_queue_pane; reset edge when queue is empty.
             if !self.queue.overlay.visible && self.visible_queue_is_empty() {
                 self.queue.reset_auto_show_edge();

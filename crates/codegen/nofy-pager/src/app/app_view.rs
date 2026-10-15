@@ -6231,9 +6231,10 @@ pub(crate) mod tests {
         full.screen_mode = ScreenMode::Fullscreen;
         let out = full.handle_input(&event);
         assert!(matches!(out, InputOutcome::Changed));
-        assert!(full.agents[&id].tasks.overlay.visible);
-        assert!(full.agents[&id].tasks.overlay.focused);
+        assert!(full.agents[&id].dock.hidden);
         assert!(full.pending_editor.is_none());
+        assert!(matches!(full.handle_input(&event), InputOutcome::Changed));
+        assert!(!full.agents[&id].dock.hidden);
     }
     #[test]
     fn minimal_ctrl_backslash_is_inert_while_full_modes_open_dashboard() {

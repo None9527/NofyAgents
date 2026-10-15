@@ -14,6 +14,13 @@
       "upstreamVersion": "1.0.45",
       "upstreamCommit": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
       "notes": "补齐 CLI 一键升版、结构化构建身份、修订比较、打包校验与可回滚安装链；桌面不变"
+    },
+    {
+      "previousVersion": "1.0.45+nofy.2",
+      "version": "1.0.45+nofy.3",
+      "upstreamVersion": "1.0.45",
+      "upstreamCommit": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+      "notes": "移植公开上游底部 Dock，统一工作流、子代理、后台任务、监控和队列；保留 Nofy 任务后端与 minimal 模式"
     }
   ]
 }

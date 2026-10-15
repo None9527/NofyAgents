@@ -1,5 +1,18 @@
 # 上游同步台账
 
+## 2026-10-16 Fullscreen Dock（1.0.45+nofy.3）
+
+整模块移植公开上游 `2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8` 的底部 Dock；
+布局文件归一后与上游一致，绘制模块移除远程开关并适配本地 hover 色。
+Workflows/Subagents/Tasks/Watchers/Queued 复用 Nofy 生命周期和操作分发，
+替代顶部 TasksPane；保留 catalog/Todo、minimal 外部编辑器和只读 /tasks。
+键盘/鼠标停止按稳定 ID 校验，工作流停止使用 run ID，队列不另建后端。
+
+验证：pager lib 8179 通过、6 项原有忽略；真实后台进程的底部 Dock PTY
+（位置、显隐、缩放、输出查看、停止）通过；minimal Ctrl+G 编辑器往返 PTY 通过。
+无新增遥测/云端开关，不涉及桌面，不声称与未公开新版产品全量等价。
+具体操作与验证边界见 [TUI Dock](tui-dock.md)。
+
 我们与上游 xai-org/grok-build 无共同 git 历史(物理剔除 xAI 依赖 + 全量改名),
 每次上游更新只能人工对照移植。本文档记录基线、流程与**有意分歧**,
 让每次同步的摸底成本最小化。

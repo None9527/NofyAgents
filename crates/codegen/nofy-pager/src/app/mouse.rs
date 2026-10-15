@@ -34,6 +34,9 @@ impl AgentView {
     ///
     /// Scroll events are handled at app level (not here).
     pub(super) fn handle_mouse(&mut self, mouse: &MouseEvent) -> InputOutcome {
+        if let Some(outcome) = self.handle_dock_mouse(mouse) {
+            return outcome;
+        }
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 self.left_mouse_down = true;
@@ -47,6 +50,9 @@ impl AgentView {
                 }
                 if self.hit_queue_close.contains(mouse.column, mouse.row) {
                     self.queue.overlay.escape();
+                    if !self.is_minimal_mode() {
+                        self.dock.queued_expanded = false;
+                    }
                     self.queue.on_state_change();
                     if self.active_pane == AgentPane::Queue {
                         self.set_active_pane(AgentPane::Scrollback, false);
@@ -139,6 +145,11 @@ impl AgentView {
                 if self.hit_watching_cue.contains(mouse.column, mouse.row)
                     && !self.pos_occluded(mouse.column, mouse.row)
                 {
+                    if !self.is_minimal_mode() {
+                        self.dock.hidden = false;
+                        self.set_active_pane(AgentPane::Tasks, false);
+                        return InputOutcome::Changed;
+                    }
                     let was_visible = self.tasks.overlay.visible;
                     self.tasks.overlay.toggle();
                     self.tasks.on_state_change();

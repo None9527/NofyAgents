@@ -33,6 +33,7 @@ pub enum ActivePane {
     Todo,
     Queue,
     Prompt,
+    /// Fullscreen's unified bottom Dock (legacy pane identity retained).
     Tasks,
     Catalog,
 }
@@ -49,6 +50,7 @@ pub struct PaneAreas {
     pub todo: Rect,
     pub queue: Rect,
     pub prompt: Rect,
+    /// Fullscreen Dock, including its embedded queue body.
     pub tasks: Rect,
     pub catalog: Rect,
 }
@@ -56,6 +58,10 @@ impl PaneAreas {
     /// Determine which pane a screen position falls in, if any.
     pub fn hit_test(&self, col: u16, row: u16) -> Option<ActivePane> {
         let pos = (col, row).into();
+        // Queue body is embedded inside the fullscreen Dock.
+        if self.queue.area() > 0 && self.queue.contains(pos) {
+            return Some(ActivePane::Queue);
+        }
         if self.tasks.area() > 0 && self.tasks.contains(pos) {
             return Some(ActivePane::Tasks);
         }
@@ -64,9 +70,6 @@ impl PaneAreas {
         }
         if self.todo.area() > 0 && self.todo.contains(pos) {
             return Some(ActivePane::Todo);
-        }
-        if self.queue.area() > 0 && self.queue.contains(pos) {
-            return Some(ActivePane::Queue);
         }
         if self.scrollback.contains(pos) {
             return Some(ActivePane::Scrollback);
@@ -191,7 +194,18 @@ impl AgentViewLayout {
         } else {
             follow_ups_height
         };
-        let top_vpad = outer_vpad;
+        let top_vpad = if area.height <= SHORT_TERMINAL_ROWS {
+            0
+        } else {
+            outer_vpad
+        };
+        let cramped = area.height <= 10;
+        let catalog_height = if cramped { 0 } else { catalog_height };
+        let todo_height = if cramped { 0 } else { todo_height };
+        let btw_height = if cramped { 0 } else { btw_height };
+        let banner_height = if cramped { 0 } else { banner_height };
+        let turn_status_height = if cramped { 0 } else { turn_status_height };
+        let prompt_height = prompt_height.min(area.height.saturating_sub(2).max(1));
         let outer_block = Block::default().padding(Padding::new(
             layout_cfg.eff_hpad_left(compact),
             layout_cfg.eff_hpad_right(compact),
@@ -206,10 +220,6 @@ impl AgentViewLayout {
             constraints.push(Constraint::Length(startup_warning_height));
         }
         let pane_gap = if top_vpad == 0 { 0u16 } else { 1 };
-        if tasks_height > 0 {
-            constraints.push(Constraint::Length(pane_gap));
-            constraints.push(Constraint::Length(tasks_height));
-        }
         if catalog_height > 0 {
             constraints.push(Constraint::Length(pane_gap));
             constraints.push(Constraint::Length(catalog_height));
@@ -220,7 +230,11 @@ impl AgentViewLayout {
         }
         let status_gap = if top_vpad == 0 { 0u16 } else { 1 };
         constraints.push(Constraint::Length(status_gap));
-        constraints.push(Constraint::Min(5));
+        constraints.push(Constraint::Min(if area.height <= SHORT_TERMINAL_ROWS {
+            1
+        } else {
+            5
+        }));
         if btw_height > 0 {
             constraints.push(Constraint::Length(1));
             constraints.push(Constraint::Length(btw_height));
@@ -244,6 +258,21 @@ impl AgentViewLayout {
         if follow_ups_height > 0 {
             constraints.push(Constraint::Length(1));
             constraints.push(Constraint::Length(follow_ups_height));
+        }
+        // Dock yields space to the prompt and conversation on short terminals.
+        let reserved = constraints
+            .iter()
+            .map(|c| match c {
+                Constraint::Length(n) | Constraint::Min(n) => *n,
+                _ => 0,
+            })
+            .fold(0u16, u16::saturating_add)
+            .saturating_add(prompt_height)
+            .saturating_add(prompt_gap)
+            .saturating_add(shortcuts_height);
+        let tasks_height = tasks_height.min(inner_area.height.saturating_sub(reserved));
+        if tasks_height > 0 {
+            constraints.push(Constraint::Length(tasks_height));
         }
         if prompt_gap > 0 {
             constraints.push(Constraint::Length(prompt_gap));
@@ -271,14 +300,6 @@ impl AgentViewLayout {
         let status_bar = chunks[i];
         i += 1;
         let startup_warnings = if startup_warning_height > 0 {
-            let r = chunks[i];
-            i += 1;
-            r
-        } else {
-            Rect::default()
-        };
-        let tasks = if tasks_height > 0 {
-            i += 1;
             let r = chunks[i];
             i += 1;
             r
@@ -346,6 +367,13 @@ impl AgentViewLayout {
         };
         let follow_ups = if follow_ups_height > 0 {
             i += 1;
+            let r = chunks[i];
+            i += 1;
+            r
+        } else {
+            Rect::default()
+        };
+        let tasks = if tasks_height > 0 {
             let r = chunks[i];
             i += 1;
             r

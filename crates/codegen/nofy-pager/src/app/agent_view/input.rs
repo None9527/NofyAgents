@@ -1112,6 +1112,9 @@ impl AgentView {
                 } else {
                     let consumed = match self.active_pane {
                         AgentPane::Todo => self.todo.handle_paste(text),
+                        AgentPane::Tasks if !self.is_minimal_mode() => {
+                            return InputOutcome::ActionThenForward(Action::FocusPrompt);
+                        }
                         AgentPane::Tasks => self.tasks.handle_paste(text),
                         AgentPane::Catalog => self.catalog.handle_paste(text),
                         AgentPane::Queue => self.queue.handle_paste(text),
@@ -1147,6 +1150,9 @@ impl AgentView {
             && key.kind != KeyEventKind::Release
             && registry.matches_id(ActionId::ToggleTasks, key)
         {
+            if !self.is_minimal_mode() {
+                return self.toggle_dock();
+            }
             self.tasks.overlay.toggle();
             self.tasks.on_state_change();
             if self.tasks.overlay.focused {
@@ -1739,18 +1745,13 @@ mod background_and_tasks_shortcut_tests {
         add_running_execute(&mut agent);
         let first = agent.handle_input(&ctrl('g'), &registry);
         assert!(matches!(first, InputOutcome::Changed));
-        assert_eq!(agent.active_pane, AgentPane::Tasks);
-        assert!(agent.tasks.overlay.visible);
-        assert!(agent.tasks.overlay.focused);
+        assert_eq!(agent.active_pane, AgentPane::Prompt);
+        assert!(agent.dock.hidden);
         assert_eq!(agent.prompt.text(), "draft");
         assert_eq!(agent.prompt.cursor(), draft_len);
         let second = agent.handle_input(&ctrl('g'), &registry);
-        assert!(matches!(
-            second,
-            InputOutcome::Action(Action::FocusScrollback)
-        ));
-        assert!(!agent.tasks.overlay.visible);
-        assert!(!agent.tasks.overlay.focused);
+        assert!(matches!(second, InputOutcome::Changed));
+        assert!(!agent.dock.hidden);
     }
 }
 #[cfg(test)]

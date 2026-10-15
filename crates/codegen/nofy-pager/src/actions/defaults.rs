@@ -42,8 +42,8 @@ fn mode_ctrl_g_action(screen_mode: crate::app::ScreenMode) -> ActionDef {
     } else {
         ActionDef {
             id: ActionId::ToggleTasks,
-            label: "tasks",
-            description: "Toggle tasks pane",
+            label: "dock",
+            description: "Show or hide the bottom activity dock",
             default_key: key!('g', CONTROL),
             alt_keys: vec![],
             category: Category::Panels,
@@ -52,7 +52,7 @@ fn mode_ctrl_g_action(screen_mode: crate::app::ScreenMode) -> ActionDef {
             hint_key_display: None,
             requires_confirmation: false,
             long_help: Some(
-                "Shows or hides the tasks pane, which lists background tasks and their status.\nUse it to monitor or return to work you sent to the background with Ctrl+B.\nA side pane; toggle off to reclaim width.",
+                "Shows workflows, subagents, background commands, watchers and queued prompts above the composer.\nTab from the conversation focuses the dock; Enter opens or expands, x stops a selected task.\nCtrl+G hides or restores the dock.",
             ),
         }
     }
