@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "releases": [
+    {
+      "previousVersion": null,
+      "version": "1.0.45+nofy.1",
+      "upstreamVersion": "1.0.45",
+      "upstreamCommit": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+      "notes": "统一 Rust/CLI 产品版本、上游审计基线和构建身份；不代表 TUI 全量吸收。"
+    },
+    {
+      "previousVersion": "1.0.45+nofy.1",
+      "version": "1.0.45+nofy.2",
+      "upstreamVersion": "1.0.45",
+      "upstreamCommit": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+      "notes": "补齐 CLI 一键升版、结构化构建身份、修订比较、打包校验与可回滚安装链；桌面不变"
+    }
+  ]
+}

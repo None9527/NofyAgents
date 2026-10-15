@@ -1,11 +1,13 @@
 #[test]
 fn compiled_version_tracks_audited_upstream() {
-    let expected = std::env::var("NOFY_VERSION").unwrap_or_else(|_| "1.0.45+nofy.1".into());
+    let source =
+        build_support::parse_metadata(include_str!("../upstream-version.txt"), None).unwrap();
+    let expected = std::env::var("NOFY_VERSION").unwrap_or_else(|_| source.version.clone());
     assert_eq!(nofy_version::VERSION, expected);
     assert!(semver::Version::parse(nofy_version::VERSION).is_ok());
     assert_eq!(
         nofy_version::upstream_display(),
-        "upstream 1.0.45 (2bdd1d6a6369)"
+        format!("upstream {} ({})", source.upstream, &source.commit[..12])
     );
 }
 #[allow(dead_code)]
@@ -16,7 +18,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const META: &str = include_str!("../upstream-version.txt");
+const META: &str = "1.0.45\n2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8\n1\n";
 
 #[test]
 fn metadata_rejects_invalid_fields_and_override() {
@@ -33,7 +35,10 @@ fn metadata_rejects_invalid_fields_and_override() {
     let meta = build_support::parse_metadata(META, Some("1.0.45+nofy.2")).unwrap();
     assert_eq!(meta.version, "1.0.45+nofy.2");
     assert_eq!(meta.upstream, "1.0.45");
-    assert_eq!(meta.commit, nofy_version::UPSTREAM_COMMIT);
+    assert_eq!(
+        meta.commit,
+        build_support::parse_metadata(META, None).unwrap().commit
+    );
 }
 
 struct Fixture(PathBuf);

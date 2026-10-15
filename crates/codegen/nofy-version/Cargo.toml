@@ -1,7 +1,7 @@
 [package]
 license = "Apache-2.0"
 name = "nofy-version"
-version = "1.0.45+nofy.1"
+version = "1.0.45+nofy.2"
 edition.workspace = true
 description = "Shared Nofy product version and audited upstream baseline."
 

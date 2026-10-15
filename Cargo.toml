@@ -69,6 +69,7 @@ members = [
     "crates/codegen/nofy-tools",
     "crates/codegen/nofy-tools-api",
     "crates/codegen/nofy-version",
+    "crates/codegen/nofy-release",
     "crates/codegen/nofy-workspace",
     "crates/codegen/nofy-workspace-client",
     "crates/codegen/nofy-workspace-types",

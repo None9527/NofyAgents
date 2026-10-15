@@ -71,6 +71,7 @@ CLI 显示本地身份、dirty/unknown 状态与上游基线；fullscreen/minima
 为可靠识别新增未跟踪文件，pager 与二进制的构建脚本每次构建重新探测状态；
 不递归监听整个仓库/target，共享版本库不依赖 HEAD 变化。
 
-后续提升基线/修订时同步修改该元数据及 `nofy-version`、`nofy-pager-bin` 两个 Cargo 包版本，
-更新锁文件和吸收台账，再构建验证；其他内部 crate 不随产品版本重编号。
+后续提升基线/修订由独立 `nofy-release bump` 入口同步修改元数据、`nofy-version`、`nofy-pager-bin`、
+锁文件及 CLI 发行记录，先预览再显式应用；操作见 `docs/cli-release.md`。其他内部 crate 不随产品版本重编号。
+版本比较、JSON 机器身份、产物校验与安装回滚已由后续版本链设计覆盖；不引入远程自动更新服务。
 上游基线不表示 TUI 全量一致：统一底部 Dock 仍是独立待实施任务。

@@ -1,0 +1,43 @@
+name: Nofy CLI release-chain validation
+on:
+  push:
+    paths: ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/**", "docs/releases/cli.json", ".github/workflows/nofy-cli.yml"]
+  pull_request:
+    paths: ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/**", "docs/releases/cli.json", ".github/workflows/nofy-cli.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+jobs:
+  native-chain:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: cargo run --locked -p nofy-release -- check
+      - run: cargo test --locked -p nofy-release -p nofy-version
+      - run: cargo test --locked -p nofy-pager-bin --bin nofy version
+      - run: cargo build --locked -p nofy-pager-bin --bin nofy
+      - name: Package and verify native CLI
+        run: |
+          binary=target/debug/nofy
+          if [ "${{ runner.os }}" = "Windows" ]; then binary=target/debug/nofy.exe; fi
+          "$binary" version --json
+          cargo run --release --locked -p nofy-release -- package --binary "$binary" --profile dev --out target/nofy-dist/ci
+          cargo run --release --locked -p nofy-release -- verify --manifest target/nofy-dist/ci/release.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nofy-cli-${{ runner.os }}
+          path: target/nofy-dist/ci/
+          retention-days: 7

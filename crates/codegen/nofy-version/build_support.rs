@@ -46,17 +46,37 @@ fn git_stdout(root: &Path, args: &[&str]) -> Option<String> {
         .map(|s| s.trim().to_owned())
 }
 
-pub fn build_identity(root: &Path, version: &str) -> String {
+pub fn git_identity(root: &Path) -> (String, &'static str) {
     let commit = git_stdout(root, &["rev-parse", "HEAD"])
         .filter(|s| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit()))
-        .map(|s| s[..12].to_owned())
         .unwrap_or_else(|| "unknown".into());
     let state = match git_stdout(root, &["status", "--porcelain", "--untracked-files=normal"]) {
-        Some(status) if status.is_empty() && commit != "unknown" => "",
-        Some(status) if !status.is_empty() && commit != "unknown" => ", dirty",
+        Some(status) if status.is_empty() && commit != "unknown" => "clean",
+        Some(status) if !status.is_empty() && commit != "unknown" => "dirty",
+        _ => "unknown",
+    };
+    (commit, state)
+}
+
+fn format_identity(version: &str, commit: &str, state: &str) -> String {
+    let short = if commit.len() == 40 {
+        &commit[..12]
+    } else {
+        commit
+    };
+    let suffix = match state {
+        "clean" => "",
+        "dirty" => ", dirty",
         _ => ", state unknown",
     };
-    format!("{version} ({commit}{state})")
+    format!("{version} ({short}{suffix})")
+}
+
+// Kept for the isolated build-script regression harness.
+#[allow(dead_code)]
+pub fn build_identity(root: &Path, version: &str) -> String {
+    let (commit, state) = git_identity(root);
+    format_identity(version, &commit, state)
 }
 
 pub fn emit(with_git: bool) {
@@ -109,9 +129,16 @@ pub fn emit(with_git: bool) {
         let probe =
             Path::new(&std::env::var("OUT_DIR").expect("OUT_DIR")).join("version-state-probe");
         println!("cargo:rerun-if-changed={}", probe.display());
+        let (commit, state) = git_identity(&root);
+        println!("cargo:rustc-env=NOFY_BUILD_COMMIT={commit}");
+        println!("cargo:rustc-env=NOFY_WORKTREE_STATE={state}");
+        println!(
+            "cargo:rustc-env=NOFY_BUILD_TARGET={}",
+            std::env::var("TARGET").expect("TARGET")
+        );
         println!(
             "cargo:rustc-env=VERSION_WITH_COMMIT={}",
-            build_identity(&root, &meta.version)
+            format_identity(&meta.version, &commit, state)
         );
     }
 }

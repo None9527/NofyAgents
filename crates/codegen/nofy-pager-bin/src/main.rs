@@ -564,11 +564,32 @@ fn version_text() -> String {
 fn write_version(writer: &mut impl std::io::Write) -> std::io::Result<()> {
     writer.write_all(version_text().as_bytes())
 }
+fn version_json() -> serde_json::Value {
+    serde_json::json!({
+        "schemaVersion": 1,
+        "currentVersion": nofy_version::VERSION,
+        "fullVersion": env!("VERSION_WITH_COMMIT"),
+        "upstreamVersion": nofy_version::UPSTREAM_VERSION,
+        "upstreamCommit": nofy_version::UPSTREAM_COMMIT,
+        "buildCommit": env!("NOFY_BUILD_COMMIT"),
+        "worktreeState": env!("NOFY_WORKTREE_STATE"),
+        "target": env!("NOFY_BUILD_TARGET"),
+    })
+}
+fn write_version_json(writer: &mut impl std::io::Write) -> std::io::Result<()> {
+    serde_json::to_writer(&mut *writer, &version_json()).map_err(std::io::Error::other)?;
+    writer.write_all(b"\n")
+}
 fn dispatch_version_if_requested(args: &PagerArgs) -> bool {
-    if !args.version {
+    if !args.version && !matches!(&args.command, Some(Command::Version { .. })) {
         return false;
     }
-    if let Err(error) = write_version(&mut std::io::stdout().lock()) {
+    let result = if matches!(&args.command, Some(Command::Version { json: true })) {
+        write_version_json(&mut std::io::stdout().lock())
+    } else {
+        write_version(&mut std::io::stdout().lock())
+    };
+    if let Err(error) = result {
         eprintln!("Error: {error}");
         std::process::exit(1);
     }
@@ -777,10 +798,7 @@ async fn async_main(args: PagerArgs) -> Result<()> {
             }
             Command::Version { json } => {
                 if json {
-                    let payload = serde_json::json!({
-                        "currentVersion": env!("VERSION_WITH_COMMIT"),
-                    });
-                    println!("{}", serde_json::to_string(&payload)?);
+                    write_version_json(&mut std::io::stdout().lock())?;
                 } else {
                     write_version(&mut std::io::stdout().lock())?;
                 }
@@ -1047,6 +1065,19 @@ mod tests {
         assert!(output.contains(&format!("\n{}\n", nofy_version::upstream_display())));
         assert_eq!(output.lines().count(), 2);
         assert!(output.ends_with(")\n"), "{output:?}");
+    }
+    #[test]
+    fn version_json_has_machine_identity_without_display_annotations() {
+        let mut out = Vec::new();
+        write_version_json(&mut out).unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&out).unwrap();
+        let current = json["currentVersion"].as_str().unwrap();
+        assert_eq!(current, nofy_version::VERSION);
+        assert!(nofy_version::release::compare_versions(current, current).is_ok());
+        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["fullVersion"], env!("VERSION_WITH_COMMIT"));
+        assert_eq!(json["buildCommit"], env!("NOFY_BUILD_COMMIT"));
+        assert_eq!(json["target"], env!("NOFY_BUILD_TARGET"));
     }
     #[test]
     fn version_flags_and_doctor_are_distinct_early_intents() {

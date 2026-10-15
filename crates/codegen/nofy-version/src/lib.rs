@@ -2,6 +2,8 @@
 
 use semver::Version;
 
+pub mod release;
+
 pub const TEST_VERSION_ENV: &str = "NOFY_TEST_VERSION";
 
 pub const UPSTREAM_VERSION: &str = env!("NOFY_UPSTREAM_VERSION");

@@ -7482,7 +7482,7 @@ dependencies = [
 
 [[package]]
 name = "nofy-pager-bin"
-version = "1.0.45+nofy.1"
+version = "1.0.45+nofy.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -7693,6 +7693,22 @@ dependencies = [
  "tui-scrollbar",
  "unicode-segmentation",
  "unicode-width 0.2.0",
+]
+
+[[package]]
+name = "nofy-release"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dunce",
+ "nofy-tty-utils",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "toml_edit 0.22.27",
 ]
 
 [[package]]
@@ -8388,7 +8404,7 @@ dependencies = [
 
 [[package]]
 name = "nofy-version"
-version = "1.0.45+nofy.1"
+version = "1.0.45+nofy.2"
 dependencies = [
  "semver",
 ]
