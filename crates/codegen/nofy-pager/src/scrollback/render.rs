@@ -3730,7 +3730,9 @@ mod tests {
                         .all(|link| link.presentation == expected_presentation),
                     "{name} {mode:?} width={width}: {path_links:?}"
                 );
-                let expected_owned = expected_presentation == LinkPresentation::Opaque;
+                // Only complete paths are discoverable by the editor, but
+                // opaque/clipped paths must not invoke the client's URL opener.
+                let expected_owned = false;
                 assert!(path_links.iter().all(|link| {
                     assert_eq!(
                         link.target,
@@ -3768,7 +3770,7 @@ mod tests {
             );
             assert!(path_links.iter().all(|link| {
                 let policy = file_link_policy(link, &terminal);
-                policy.osc8_url.is_some() && policy.open_target.is_some()
+                policy.osc8_url.is_none() && policy.open_target.is_none()
             }));
         }
     }
@@ -3776,7 +3778,10 @@ mod tests {
     #[test]
     fn basename_headers_stay_nofy_owned_for_duplicate_and_outside_targets() {
         let cwd = std::path::PathBuf::from("/worktree");
-        let terminal = official_vscode_remote_context();
+        let terminal = crate::terminal::TerminalContext {
+            brand: crate::terminal::TerminalName::VsCode,
+            ..Default::default()
+        };
         let cases = [
             ("duplicate-a", "/worktree/src/a/main.rs"),
             ("duplicate-b", "/worktree/src/b/main.rs"),

@@ -10,7 +10,7 @@ use super::line_utils::truncate_str;
 /// Read/Edit tool-header path paint surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolPathSurface {
-    /// Basename only.
+    /// Basename, except VS Code SSH where native file discovery needs an absolute path.
     Collapsed,
     /// Relative to session cwd when lexically contained; else normalized.
     Expanded,
@@ -199,6 +199,35 @@ pub fn path_for_tool_surface(
     width: Option<usize>,
     reserved: usize,
 ) -> String {
+    path_for_tool_surface_in_terminal(
+        path,
+        surface,
+        cwd,
+        width,
+        reserved,
+        crate::terminal::terminal_context(),
+    )
+}
+
+fn path_for_tool_surface_in_terminal(
+    path: &str,
+    surface: ToolPathSurface,
+    cwd: Option<&Path>,
+    width: Option<usize>,
+    reserved: usize,
+    terminal: &crate::terminal::TerminalContext,
+) -> String {
+    // Remote files must be discoverable by VS Code's current SSH filesystem,
+    // not represented by an opaque basename with a client-side file:// URL.
+    if terminal.brand == crate::terminal::TerminalName::VsCode
+        && terminal.is_official_vscode_remote
+        && let Some(target) = resolve_tool_path_target(path, cwd)
+        && target.is_absolute()
+    {
+        // Keep symlink-sensitive `..` components and let the renderer clip long
+        // rows; never substitute an ellipsis for the actual remote target.
+        return target.to_string_lossy().into_owned();
+    }
     match surface {
         ToolPathSurface::Collapsed => {
             let budget = width.unwrap_or(usize::MAX).saturating_sub(reserved);
@@ -212,6 +241,68 @@ pub fn path_for_tool_surface(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn vscode_ssh_tool_headers_expose_remote_absolute_targets() {
+        use crate::terminal::{TerminalContext, TerminalName};
+        let remote = TerminalContext {
+            brand: TerminalName::VsCode,
+            is_ssh: true,
+            is_official_vscode_remote: true,
+            ..Default::default()
+        };
+        let cwd = Path::new("/home/none");
+        for surface in [ToolPathSurface::Collapsed, ToolPathSurface::Expanded] {
+            for (input, expected) in [
+                ("ida_shot.png", "/home/none/ida_shot.png"),
+                ("/tmp/ida_shot.png", "/tmp/ida_shot.png"),
+                ("link/../ida_shot.png", "/home/none/link/../ida_shot.png"),
+            ] {
+                let painted = path_for_tool_surface_in_terminal(
+                    input,
+                    surface,
+                    Some(cwd),
+                    Some(80),
+                    12,
+                    &remote,
+                );
+                assert_eq!(painted, expected);
+                let target = crate::render::osc8::tool_path_file_target(input, Some(cwd)).unwrap();
+                let presentation =
+                    crate::render::osc8::file_link_presentation(&painted, &target, Some(cwd));
+                assert_eq!(
+                    presentation,
+                    crate::render::osc8::LinkPresentation::SelfResolvingPath
+                );
+            }
+        }
+        assert_eq!(
+            path_for_tool_surface_in_terminal(
+                "ida_shot.png",
+                ToolPathSurface::Collapsed,
+                Some(cwd),
+                Some(8),
+                5,
+                &remote,
+            ),
+            "/home/none/ida_shot.png"
+        );
+        let local = TerminalContext {
+            brand: TerminalName::VsCode,
+            ..Default::default()
+        };
+        assert_eq!(
+            path_for_tool_surface_in_terminal(
+                "/home/none/ida_shot.png",
+                ToolPathSurface::Collapsed,
+                Some(cwd),
+                Some(80),
+                5,
+                &local,
+            ),
+            "ida_shot.png"
+        );
+    }
 
     #[test]
     fn shorten_path_fits() {

@@ -328,12 +328,23 @@ mod tests {
             vec![],
             &terminal,
         );
-        assert_eq!(map.len(), 1, "opaque relative paint stays Nofy-owned");
+        assert_eq!(
+            overlay_for(state.cwd()).links()[0].presentation,
+            LinkPresentation::Opaque
+        );
+        assert!(
+            map.is_empty(),
+            "opaque remote paths cannot open client URLs"
+        );
         assert!(!map.is_stale(state.generation()));
 
         let new_cwd = std::path::PathBuf::from("/worktree");
         state.set_cwd(Some(new_cwd.clone()));
         assert!(map.is_stale(state.generation()));
+        assert_eq!(
+            overlay_for(state.cwd()).links()[0].presentation,
+            LinkPresentation::SelfResolvingPath
+        );
         map.rebuild_for_context(
             state.generation(),
             &overlay_for(state.cwd()),

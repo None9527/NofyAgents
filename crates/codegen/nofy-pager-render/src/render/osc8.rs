@@ -52,7 +52,7 @@ pub fn resolve_link_target_with_presentation(
 /// Resolve one semantic target for both OSC 8 output and app-owned activation.
 pub fn resolve_link_target_for_context(
     target: &LinkTarget,
-    presentation: LinkPresentation,
+    _presentation: LinkPresentation,
     terminal: &crate::terminal::TerminalContext,
 ) -> Option<ResolvedLinkTarget> {
     match target {
@@ -65,9 +65,10 @@ pub fn resolve_link_target_for_context(
         }
         LinkTarget::File(_)
             if terminal.brand == crate::terminal::TerminalName::VsCode
-                && terminal.is_official_vscode_remote
-                && presentation == LinkPresentation::SelfResolvingPath =>
+                && terminal.is_official_vscode_remote =>
         {
+            // A remote file:// URL is not local to the VS Code client. Even
+            // clipped/opaque text must not fall back to the client's OS opener.
             Some(ResolvedLinkTarget {
                 osc8_url: None,
                 open_target: None,
@@ -876,8 +877,8 @@ mod tests {
                 terminal: official_remote.clone(),
                 target: file.clone(),
                 presentation: LinkPresentation::Opaque,
-                expected_osc8: Some("file:///worktree/src/main.rs"),
-                expected_open: true,
+                expected_osc8: None,
+                expected_open: false,
             },
             Case {
                 name: "unproven VS Code SSH file",

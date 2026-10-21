@@ -261,6 +261,19 @@ TUI 通过 `xai-grok-markdown` crate 实现流式 Markdown 渲染：
 
 ---
 
+## VSCode Remote-SSH 文件链接（2026-10-21）
+
+- 官方 VSCode SSH 终端中，Read/Edit 标题显示远端绝对路径，保留影响符号链接语义的 `..`。
+- 文件路径由 VSCode 原生文件检测器处理，macOS 使用 Command+点击，在当前 SSH 窗口打开；不输出对应的 `file://` OSC 8，也不调用客户端外部程序。
+- 被裁切、不能独立定位的文件文字不回退到外部 URL。需要加宽终端以显示完整路径；VSCode 的终端文件链接检测必须开启。
+- 本机终端、非官方 VSCode 分支及 HTTP/HTTPS 链接保持原策略。本次未替换远端已有的 Grok 程序。
+
+维护入口：修改 `render/tool_paths.rs`、`render/osc8.rs` 或文件链接点击策略时阅读本节；由调试维护者在这些策略改变时更新。
+验证入口：`nofy-pager-render` 的链接/路径测试、`nofy-pager` 单测，以及 `pty_e2e_vscode_ssh_links` 原生 PTY 测试。
+PTY 对照验证 PNG 标题的绝对路径与无外部文件 URL；VSCode SSH 实机点击另用临时 PNG 验证，未部署远端 Nofy。
+
+---
+
 ## ACP / Leader 集成
 
 TUI 通过 ACP 协议与 Leader 进程通信：
