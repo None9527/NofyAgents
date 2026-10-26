@@ -1,5 +1,154 @@
 //! Tests for session create, exit, trust, startup actions, worktree creation, and cloud lifecycle.
 use super::*;
+
+#[test]
+fn context_window_failure_preserves_selected_budget_and_reset_uses_server_default() {
+    let mut app = test_app_with_agent();
+    let aid = AgentId(0);
+    let model_id = acp::ModelId::new("window-model");
+    let agent = app.agents.get_mut(&aid).unwrap();
+    agent.session.models.available.insert(
+        model_id.clone(),
+        acp::ModelInfo::new(model_id.clone(), "Window Model").meta(
+            serde_json::json!({"totalContextTokens":128000,"contextWindows":[128000,256000]})
+                .as_object()
+                .cloned(),
+        ),
+    );
+    agent.session.models.set_current(model_id.clone(), None);
+    agent
+        .session
+        .models
+        .set_context_window_selection(Some(256000));
+    agent.session.model_switch_pending = true;
+    dispatch(
+        Action::TaskComplete(TaskResult::SwitchModelContextComplete {
+            agent_id: aid,
+            model_id: model_id.clone(),
+            effort: None,
+            result: Err(SwitchModelError::Other("test rejection".into())),
+        }),
+        &mut app,
+    );
+    assert_eq!(
+        app.agents[&aid].session.models.get_context_window(),
+        Some(256000)
+    );
+    assert!(!app.agents[&aid].session.model_switch_pending);
+    let effects = dispatch(
+        Action::SwitchModelContext {
+            model_id: model_id.clone(),
+            effort: None,
+            context_window: None,
+        },
+        &mut app,
+    );
+    assert!(matches!(
+        &effects[..],
+        [Effect::SwitchModelContext {
+            context_window: None,
+            ..
+        }]
+    ));
+    dispatch(
+        Action::TaskComplete(TaskResult::SwitchModelContextComplete {
+            agent_id: aid,
+            model_id,
+            effort: None,
+            result: Ok((None, Some(128000))),
+        }),
+        &mut app,
+    );
+    assert_eq!(
+        app.agents[&aid].session.models.context_window_selection(),
+        None
+    );
+    assert_eq!(
+        app.agents[&aid].session.models.get_context_window(),
+        Some(128000)
+    );
+}
+
+#[test]
+fn context_window_dispatch_waits_for_server_confirmation_and_applies_actual_budget() {
+    let mut app = test_app_with_agent();
+    let aid = AgentId(0);
+    let model_id = acp::ModelId::new("window-model");
+    {
+        let agent = app.agents.get_mut(&aid).unwrap();
+        agent.session.models.available.insert(
+            model_id.clone(),
+            acp::ModelInfo::new(model_id.clone(), "Window Model").meta(
+                serde_json::json!({"totalContextTokens":128000,"contextWindows":[128000,256000]})
+                    .as_object()
+                    .cloned(),
+            ),
+        );
+        agent.session.models.set_current(model_id.clone(), None);
+    }
+    let effects = dispatch(
+        Action::SwitchModelContext {
+            model_id: model_id.clone(),
+            effort: None,
+            context_window: Some(256000),
+        },
+        &mut app,
+    );
+    assert!(matches!(
+        &effects[..],
+        [Effect::SwitchModelContext {
+            context_window: Some(256000),
+            ..
+        }]
+    ));
+    assert_eq!(
+        app.agents[&aid].session.models.get_context_window(),
+        Some(128000)
+    );
+    dispatch(
+        Action::TaskComplete(TaskResult::SwitchModelContextComplete {
+            agent_id: aid,
+            model_id,
+            effort: None,
+            result: Ok((Some(256000), Some(256000))),
+        }),
+        &mut app,
+    );
+    assert_eq!(
+        app.agents[&aid].session.models.get_context_window(),
+        Some(256000)
+    );
+    assert!(!app.agents[&aid].session.model_switch_pending);
+}
+
+#[test]
+fn context_window_rejects_invalid_choice_without_sending_or_mutating() {
+    let mut app = test_app_with_agent();
+    let aid = AgentId(0);
+    let model_id = acp::ModelId::new("window-model");
+    let agent = app.agents.get_mut(&aid).unwrap();
+    agent.session.models.available.insert(
+        model_id.clone(),
+        acp::ModelInfo::new(model_id.clone(), "Window Model").meta(
+            serde_json::json!({"totalContextTokens":128000,"contextWindows":[128000,256000]})
+                .as_object()
+                .cloned(),
+        ),
+    );
+    agent.session.models.set_current(model_id.clone(), None);
+    assert!(
+        dispatch(
+            Action::SwitchModelContext {
+                model_id,
+                effort: None,
+                context_window: Some(0)
+            },
+            &mut app
+        )
+        .is_empty()
+    );
+    assert!(!app.agents[&aid].session.model_switch_pending);
+}
 /// Simulate a release-stamped build so folder-trust is active (a local/dev
 /// build auto-trusts and persists nothing). Mirrors this module's raw env idiom.
 fn simulate_release_build() {

@@ -34,6 +34,23 @@ use crate::types::tool::{ToolKind, ToolNamespace};
 /// `ToolMetadata` impl so it can call `versioned_definition()`, etc.
 /// after dispatch.
 pub trait ToolMetadata: Send + Sync {
+    /// Canonical argument identifying a single file. The client owns locking;
+    /// shells and multi-file patches have no single lock path.
+    fn lock_path_param(&self) -> Option<&'static str> {
+        None
+    }
+
+    /// Version-specific model-visible schema, applied before parameter-name
+    /// discovery so templates and aliases use the advertised contract.
+    fn advertised_input_schema(
+        &self,
+        _contract_version: Option<&str>,
+        _input_schema: &serde_json::Value,
+        _effective_params: &serde_json::Value,
+    ) -> Option<serde_json::Value> {
+        None
+    }
+
     /// High-level category (Read, Edit, Search, Execute, ...).
     /// Drives template rendering (`${{ tools.by_kind.search }}`) and the
     /// default `is_read_only()` derivation.

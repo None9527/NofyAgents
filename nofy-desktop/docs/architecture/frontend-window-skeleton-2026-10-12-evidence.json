@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-12",
+  "scope": "Unified extensible window skeleton; no kernel/protocol/model changes",
+  "impact": {
+    "LOW": [
+      "App",
+      "AuxPane",
+      "loadLayoutInner",
+      "saveLayout",
+      "useHotkeys"
+    ],
+    "UNKNOWN": [
+      "ShellLayout",
+      "SideSheet",
+      "windowActions",
+      "useElementWidth",
+      "useTranscriptScroll"
+    ],
+    "manualScrollCaller": [
+      "Spine"
+    ],
+    "newExceptions": 0
+  },
+  "verify": {
+    "log": "/tmp/nofy-window-skeleton-final-scope-verify.log",
+    "unitTests": 428,
+    "status": "passed",
+    "architecture": {
+      "files": 210,
+      "imports": 980,
+      "legacyExceptions": 14
+    },
+    "styleOwners": 7
+  },
+  "gui": {
+    "skeleton": {
+      "report": "output/playwright/window-skeleton-2026-10-12T14-08-16.601Z/report.json",
+      "cases": 5,
+      "pageErrors": 0
+    },
+    "sidebar": {
+      "report": "output/playwright/sidebar-2026-10-12T13-40-13.603Z/report.json",
+      "cases": 11,
+      "pageErrors": 0
+    },
+    "homepage": {
+      "report": "output/playwright/homepage-2026-10-12T14-03-43.724Z/report.json",
+      "cases": 14,
+      "pageErrors": 0
+    },
+    "workspace": {
+      "report": "output/playwright/workspace-2026-10-12T13-48-18.085Z/report.json",
+      "cases": 21,
+      "pageErrors": 0
+    },
+    "spacing": {
+      "report": "output/playwright/collapsed-spacing-2026-10-12T13-48-28.666Z/report.json",
+      "cases": 1,
+      "pageErrors": 0
+    },
+    "settings": {
+      "report": "output/playwright/2026-10-12T14-06-27.916Z-settings/report.json",
+      "cases": 20,
+      "pageErrors": 0
+    },
+    "virtual": {
+      "report": "output/playwright/virtual-2026-10-12T14-03-33.704Z/report.json",
+      "cases": 11,
+      "pageErrors": 0
+    }
+  },
+  "package": {
+    "status": "passed",
+    "log": "/tmp/nofy-window-skeleton-final-scope-package.log",
+    "verificationLog": "/tmp/nofy-window-skeleton-final-scope-package-verify.log",
+    "isolatedLaunches": 2,
+    "kernelBundled": false,
+    "signing": "ad-hoc local",
+    "reopened": true,
+    "mainProcesses": 1,
+    "kernelChildren": 1
+  },
+  "failedReports": [
+    "output/playwright/homepage-2026-10-12T13-40-22.512Z/report.json",
+    "output/playwright/window-skeleton-2026-10-12T13-43-37.098Z/report.json",
+    "output/playwright/window-skeleton-2026-10-12T13-45-17.975Z/report.json",
+    "output/playwright/2026-10-12T13-48-32.238Z-settings/report.json",
+    "output/playwright/homepage-2026-10-12T13-56-41.450Z/report.json",
+    "output/playwright/virtual-2026-10-12T13-59-53.088Z/report.json",
+    "output/playwright/virtual-2026-10-12T14-01-29.291Z/report.json"
+  ],
+  "limitations": [
+    "Real prompt-without-response investigation not resolved by this skeleton",
+    "No OS mouse/Windows/Linux/notarization validation"
+  ],
+  "routeIdentity": {
+    "sameInstances": true,
+    "draftPreserved": true
+  },
+  "readingRegression": {
+    "before": {
+      "key": "seg:user:e2e-session-1:0",
+      "offset": -476
+    },
+    "after": {
+      "key": "seg:user:e2e-session-1:0",
+      "offset": -476
+    }
+  },
+  "excludedTestAttempt": "Virtual route test was accidentally inserted into the helper and recursively ran; owned test processes were stopped, placement corrected and rerun. It is excluded from passed counts.",
+  "virtualRouteAnchor": {
+    "before": {
+      "x": 283.7265625,
+      "y": 71.8984375,
+      "width": 711.546875,
+      "height": 25.1953125
+    },
+    "after": {
+      "x": 283.7265625,
+      "y": 71.8984375,
+      "width": 711.546875,
+      "height": 25.1953125
+    }
+  },
+  "guiTotal": 83
+}

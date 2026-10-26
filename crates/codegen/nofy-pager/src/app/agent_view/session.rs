@@ -35,6 +35,7 @@ impl AgentView {
     /// safety; a stale highwater could dedup-drop the new session's events
     /// outright).
     pub(crate) fn bind_session_id(&mut self, session_id: agent_client_protocol::SessionId) {
+        self.load_failed = false;
         if self.session.session_id.as_ref() != Some(&session_id) {
             self.session_binding_epoch = self.session_binding_epoch.wrapping_add(1);
             self.last_seen_event_id = None;
@@ -89,6 +90,7 @@ impl AgentView {
     pub fn new(session: AgentSession, scrollback: ScrollbackState) -> Self {
         let prompt = PromptWidget::new_with_cwd(&session.cwd);
         let mut view = Self {
+            load_failed: false,
             session,
             session_binding_epoch: 0,
             scrollback,
@@ -835,7 +837,7 @@ impl AgentView {
         } else {
             WaitingReason::Model
         };
-        Some(TurnActivity::Waiting(reason))
+        Some(self.enrich_waiting_activity(TurnActivity::Waiting(reason)))
     }
     /// Fill in a `TaskOutput` wait's display subject from live task state.
     fn enrich_waiting_activity(
@@ -844,6 +846,18 @@ impl AgentView {
     ) -> crate::acp::tracker::TurnActivity {
         use crate::acp::tracker::{TurnActivity, WaitingReason};
         match activity {
+            TurnActivity::Waiting(WaitingReason::Subagent | WaitingReason::Subagents(_)) => {
+                let count = self
+                    .subagent_sessions
+                    .values()
+                    .filter(|s| s.is_running() && !s.is_background && s.workflow_run_id.is_none())
+                    .count();
+                TurnActivity::Waiting(if count > 1 {
+                    WaitingReason::Subagents(count)
+                } else {
+                    WaitingReason::Subagent
+                })
+            }
             TurnActivity::Waiting(WaitingReason::TaskOutput {
                 task_ids, waits, ..
             }) => {
@@ -1266,6 +1280,31 @@ mod resolve_turn_activity_tests {
     #[test]
     fn running_with_no_stream_waits_on_model() {
         let view = running_view();
+        assert_eq!(
+            view.resolve_turn_activity(),
+            Some(TurnActivity::Waiting(WaitingReason::Model))
+        );
+    }
+
+    #[test]
+    fn subagent_wait_counts_only_running_foreground_children() {
+        let mut view = running_view();
+        for sid in ["one", "two", "background"] {
+            let mut info = crate::app::agent_view::test_fixtures::running_subagent_info(sid);
+            info.is_background = sid == "background";
+            view.subagent_sessions
+                .insert(info.child_session_id.to_string(), info);
+        }
+        assert_eq!(
+            view.resolve_turn_activity(),
+            Some(TurnActivity::Waiting(WaitingReason::Subagents(2)))
+        );
+        view.subagent_sessions.remove("two");
+        assert_eq!(
+            view.resolve_turn_activity(),
+            Some(TurnActivity::Waiting(WaitingReason::Subagent))
+        );
+        view.subagent_sessions.get_mut("one").unwrap().is_background = true;
         assert_eq!(
             view.resolve_turn_activity(),
             Some(TurnActivity::Waiting(WaitingReason::Model))

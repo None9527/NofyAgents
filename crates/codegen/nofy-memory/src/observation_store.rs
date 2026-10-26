@@ -37,6 +37,7 @@ impl ObservationStore {
         status: ObservationStatus,
     ) -> Result<PathBuf, ObservationStoreError> {
         let scope = self.layout.scope(&observation.scope);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())?;
         let relative = format!("observations/{}.md", observation.id.as_uuid());
         let path = scope.root().join(&relative);
         let body = format!(
@@ -61,6 +62,7 @@ impl ObservationStore {
         now: i64,
     ) -> Result<(), ObservationStoreError> {
         let scope = self.layout.scope(scope);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())?;
         let state = UnifiedState::open(self.layout.meta_database(), scope.state_database())?;
         state.quarantine_capture(record_id, reason, payload, now)?;
         Ok(())
@@ -75,6 +77,7 @@ impl ObservationStore {
         reason: &str,
     ) -> Result<(), ObservationStoreError> {
         let scope_layout = self.layout.scope(scope);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())?;
         let salt = uuid::Uuid::new_v4();
         let salted_previous_hash =
             blake3::hash(format!("{salt}:{target_id}:{previous_hash}").as_bytes())
@@ -99,6 +102,7 @@ impl ObservationStore {
         observation_id: ObservationId,
     ) -> Result<(), ObservationStoreError> {
         let scope_layout = self.layout.scope(scope);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())?;
         let path = scope_layout
             .observations_directory()
             .join(format!("{}.md", observation_id.as_uuid()));

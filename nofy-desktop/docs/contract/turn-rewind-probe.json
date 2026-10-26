@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-10-08T10:27:40.921Z",
+  "version": "0.2.121",
+  "report": {
+    "modelId": "gemini-3.8-flash-high",
+    "files_only": {
+      "stopReason": "end_turn",
+      "fileWritten": true,
+      "checkpoint": {
+        "promptIndex": 0,
+        "snapshotCount": 1,
+        "hasFileChanges": true
+      },
+      "preview": {
+        "success": false,
+        "mode": "files_only",
+        "cleanFiles": [
+          "m2-rewind-files_only.txt"
+        ],
+        "conflicts": [],
+        "error": null
+      },
+      "previewDidNotMutate": true,
+      "commit": {
+        "success": true,
+        "mode": "files_only",
+        "revertedFiles": [
+          "m2-rewind-files_only.txt"
+        ],
+        "conflicts": [],
+        "promptTextPresent": false,
+        "error": null
+      },
+      "fileRemoved": true,
+      "freshLoadReplay": {
+        "user": 1,
+        "marker": 0,
+        "agent": 1,
+        "tool": 2
+      },
+      "passed": true
+    },
+    "all": {
+      "stopReason": "end_turn",
+      "fileWritten": true,
+      "checkpoint": {
+        "promptIndex": 0,
+        "snapshotCount": 1,
+        "hasFileChanges": true
+      },
+      "preview": {
+        "success": false,
+        "mode": "all",
+        "cleanFiles": [
+          "m2-rewind-all.txt"
+        ],
+        "conflicts": [],
+        "error": null
+      },
+      "previewDidNotMutate": true,
+      "commit": {
+        "success": true,
+        "mode": "all",
+        "revertedFiles": [
+          "m2-rewind-all.txt"
+        ],
+        "conflicts": [],
+        "promptTextPresent": true,
+        "error": null
+      },
+      "fileRemoved": true,
+      "freshLoadReplay": {
+        "user": 0,
+        "marker": 0,
+        "agent": 0,
+        "tool": 0
+      },
+      "passed": true
+    }
+  }
+}

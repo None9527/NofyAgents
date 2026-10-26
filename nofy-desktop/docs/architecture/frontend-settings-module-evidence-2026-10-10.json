@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-10",
+  "scope": "Settings section registry, scoped catalog queries, draft and busy navigation protection; kernel unchanged",
+  "verify": {
+    "command": "pnpm verify",
+    "log": "/tmp/nofy-settings-module-verify-final.log",
+    "acpTests": 41,
+    "desktopTests": 332,
+    "total": 373,
+    "newResourceTests": 7,
+    "protocolSmoke": 7,
+    "ptySmoke": 8,
+    "recoverySmoke": 11
+  },
+  "gui": [
+    {
+      "report": "output/playwright/2026-10-10T07-30-27.740Z-settings/report.json",
+      "passed": 20,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/2026-10-10T07-28-11.247Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/project-2026-10-10T07-28-11.247Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/workspace-2026-10-10T07-28-11.247Z/report.json",
+      "passed": 12,
+      "pageErrors": 0
+    }
+  ],
+  "performance": {
+    "report": "output/performance/after-shell-settings-2026-10-10T07-30-43.633Z/report.json",
+    "archive": "docs/architecture/benchmarks/2026-10-10-settings-module.json",
+    "moduleIsolationAssertionsPassed": true,
+    "scope": "Single deterministic production Electron sample, no real model or peak-memory validation"
+  },
+  "architecture": {
+    "files": 181,
+    "imports": 854,
+    "legacyExceptions": 15
+  },
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "f35ede44ed472f2be99529f8571c47bb833f008db6550ad05f604b02ddc68899",
+    "isolatedLaunchesPassed": 2,
+    "log": "/tmp/nofy-settings-module-package-verify.log",
+    "kernelBundled": false,
+    "signing": "ad-hoc local only"
+  },
+  "sourceHashes": {
+    "apps/desktop/renderer/application/settings/resourceCache.ts": "c12f07a6f4c6150ba7925f8475e6c67233ef38b3480887d0f406bceb9d613a6e",
+    "apps/desktop/renderer/application/settings/resources.ts": "d4ff6eca8f8f4aaca8cc61f77b761c2b78834008b10894c5e0d177bf30ec8b32",
+    "apps/desktop/renderer/features/settings/sectionRegistry.tsx": "94c84afada3b51ae1f3ecc12db3fc3d0204448376cb2ea34cf0eeeafd7cb6593",
+    "apps/desktop/renderer/features/settings/SettingsSurface.tsx": "8375addc5159cf9746d600884bbaa4d9c90a7bf64bb06e628aaed201db08c9ba",
+    "apps/desktop/renderer/features/settings/SettingsBoundary.tsx": "91419146ad3f4dc0821f547d67d0dafb5b333c513a85aa53165033d4f20f475f",
+    "apps/desktop/renderer/features/settings/SettingsExitGuard.tsx": "25517045f21a12f7ff2a8c23f8448671e4a7b62c775c9305a583054790729966",
+    "apps/desktop/renderer/features/settings/ProviderSettings.tsx": "7258ecc7e32e356bf5d18f407067862b225123c86d6a0f8f7321e5f07158d619",
+    "apps/desktop/renderer/features/settings/ModelSettings.tsx": "2f39770b9b53098667c99fc3905f4f501fa109ac60b0dd8868dfc5588a8129d3",
+    "apps/desktop/renderer/features/settings/McpSettings.tsx": "a64bb4802ff4788565685e0d85f35b990bd181d6ebcebefc919d34a620a08564",
+    "apps/desktop/renderer/features/settings/PluginSettings.tsx": "8f3e96ca06e1509983cbe31ab9ddaac8211ab10b79e05bca55d63dc4306a0960",
+    "apps/desktop/test/settings-resource-cache.test.ts": "540fa6ccfcc53c158357490fae2a58822803a19932ed2a5b1fcd4a2b7af62978",
+    "apps/desktop/e2e/settings-acceptance.mjs": "cbd0c876784d82fb57e17c280e1323d0cf8cfdef756b45d102a3a919342146e7"
+  }
+}

@@ -539,6 +539,41 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
         TaskResult::CompactComplete { agent_id, result } => {
             handle_compact_complete(app, agent_id, result)
         }
+        TaskResult::SwitchModelContextComplete {
+            agent_id,
+            model_id,
+            effort,
+            result,
+        } => match result {
+            Ok((selection, total)) => {
+                let previous_window = app
+                    .agents
+                    .get(&agent_id)
+                    .and_then(|agent| agent.session.models.get_context_window());
+                let effects =
+                    handle_switch_model_complete(app, agent_id, model_id, effort, Ok(()), None);
+                if let Some(agent) = app.agents.get_mut(&agent_id) {
+                    agent.session.models.set_context_window_selection(selection);
+                    if let Some(total) = total.filter(|total| *total > 0) {
+                        agent.session.models.override_context_window(total);
+                        if let Some(context) = agent.context_state.as_mut() {
+                            context.total = total;
+                        }
+                    }
+                    if let Some(tokens) = agent.session.models.get_context_window()
+                        && Some(tokens) != previous_window
+                    {
+                        agent.scrollback.push_block(RenderBlock::system(format!(
+                            "Context window: {tokens} tokens"
+                        )));
+                    }
+                }
+                effects
+            }
+            Err(error) => {
+                handle_switch_model_complete(app, agent_id, model_id, effort, Err(error), None)
+            }
+        },
         TaskResult::SwitchModelComplete {
             agent_id,
             model_id,

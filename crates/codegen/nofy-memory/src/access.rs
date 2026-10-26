@@ -87,6 +87,7 @@ impl MemoryAccess {
         relative_topic: &Path,
         content: &str,
     ) -> Result<(), AccessError> {
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(self.scope.root())?;
         let target = self.topic_target(relative_topic)?;
         if target.exists() {
             return Err(AccessError::DestinationExists(target.display().to_string()));
@@ -117,6 +118,7 @@ impl MemoryAccess {
         content: &str,
         kill_point: Option<AccessKillPoint>,
     ) -> Result<(), AccessError> {
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(self.scope.root())?;
         let target = self.topic_target(relative_topic)?;
         let previous = std::fs::read(&target)?;
         require_hash(&previous, expected_hash)?;
@@ -186,6 +188,7 @@ impl MemoryAccess {
         expected_hash: &ContentHash,
         kill_point: Option<AccessKillPoint>,
     ) -> Result<(), AccessError> {
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(self.scope.root())?;
         let previous = self.topic_target(previous_topic)?;
         let next = self.topic_target(next_topic)?;
         let bytes = std::fs::read(&previous)?;
@@ -245,6 +248,7 @@ impl MemoryAccess {
         expected_hash: &ContentHash,
         kill_point: Option<AccessKillPoint>,
     ) -> Result<(), AccessError> {
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(self.scope.root())?;
         let target = self.topic_target(relative_topic)?;
         let bytes = std::fs::read(&target)?;
         require_hash(&bytes, expected_hash)?;
@@ -291,6 +295,7 @@ impl MemoryAccess {
     }
 
     pub fn rebuild_manifest(&self) -> Result<(), AccessError> {
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(self.scope.root())?;
         let mut topics = BTreeMap::new();
         collect_topics(
             self.scope.root(),

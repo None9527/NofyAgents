@@ -42,6 +42,11 @@ pub(super) fn handle_models_update(notif: &acp::ExtNotification, app: &mut AppVi
                 .session
                 .models
                 .update_catalog(new_models.available.clone(), shell_fallback_current.clone());
+            if let Some(notice) = agent.session.models.take_current_notice() {
+                agent
+                    .scrollback
+                    .push_block(crate::scrollback::block::RenderBlock::system(notice));
+            }
         }
         true
     } else {

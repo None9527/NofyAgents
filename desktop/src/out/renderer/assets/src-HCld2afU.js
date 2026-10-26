@@ -4805,6 +4805,7 @@ var El = {
   });
 A({ schemaVersion: F(`zcode.model-providers.v1`), providers: k(zl) });
 var Bl = Rl.extend({
+    modalitiesConfigured: D().optional(),
     disabledReason: w().optional(),
     supportsTools: D().optional(),
     supportsStructuredOutput: D().optional(),
@@ -4961,6 +4962,7 @@ function cu(e) {
     kinds: au([...(e.kinds ?? [])]),
     ...(e.defaultKind ? { defaultKind: e.defaultKind } : {}),
     modalities: { input: t, output: n },
+    ...e.modalitiesConfigured !== void 0 ? { modalitiesConfigured: e.modalitiesConfigured } : {},
     contextWindow: $l(e.id, e.contextWindow),
     ...(e.maxOutputTokens ? { maxOutputTokens: e.maxOutputTokens } : {}),
     ...(e.reasoning ? { reasoning: e.reasoning } : {}),

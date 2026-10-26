@@ -1534,6 +1534,31 @@ pub(crate) fn execute(
                     TaskResult::CancelComplete
                 });
         }
+        Effect::SwitchModelContext { agent_id, session_id, model_id, effort, context_window } => {
+            let tx = acp_tx.clone();
+            tasks.spawn(async move {
+                let mut meta = acp::Meta::new();
+                meta.insert("contextWindow".into(), context_window.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null));
+                if let Some(effort) = effort {
+                    use nofy_shell::sampling::types::{REASONING_EFFORT_META_KEY, reasoning_effort_meta_value};
+                    meta.insert(REASONING_EFFORT_META_KEY.into(), reasoning_effort_meta_value(effort));
+                }
+                let req = acp::SetSessionModelRequest::new(session_id, model_id.clone()).meta(Some(meta));
+                let result = acp_send(req, &tx).await.map(|response| {
+                    let selected = response.meta.as_ref().and_then(|meta| meta.get("contextWindow")).and_then(serde_json::Value::as_u64);
+                    let total = response.meta.as_ref().and_then(|meta| meta.get("contextWindowTotal")).and_then(serde_json::Value::as_u64);
+                    (selected, total)
+                }).map_err(|error| {
+                    use nofy_shell::agent::config::ModelSwitchIncompatibleAgentError;
+                    if let Some(error) = ModelSwitchIncompatibleAgentError::from_acp_error(&error) {
+                        SwitchModelError::IncompatibleAgent { error, prev_model_id: None }
+                    } else {
+                        SwitchModelError::Other(sanitize_user_error(&error.to_string()))
+                    }
+                });
+                TaskResult::SwitchModelContextComplete { agent_id, model_id, effort, result }
+            });
+        }
         Effect::SwitchModel {
             agent_id,
             session_id,
@@ -1563,7 +1588,6 @@ pub(crate) fn execute(
                         .meta(meta);
                     let result = acp_send(req, &tx)
                         .await
-                        .map(|_| ())
                         .map_err(|e| {
                             use nofy_shell::agent::config::ModelSwitchIncompatibleAgentError;
                             if let Some(typed) = ModelSwitchIncompatibleAgentError::from_acp_error(
@@ -1577,11 +1601,17 @@ pub(crate) fn execute(
                                 SwitchModelError::Other(sanitize_user_error(&e.to_string()))
                             }
                         });
+                    if let Ok(response) = &result
+                        && response.meta.as_ref().is_some_and(|meta| meta.contains_key("contextWindow")) {
+                        let selection = response.meta.as_ref().and_then(|meta| meta.get("contextWindow")).and_then(serde_json::Value::as_u64);
+                        let total = response.meta.as_ref().and_then(|meta| meta.get("contextWindowTotal")).and_then(serde_json::Value::as_u64);
+                        return TaskResult::SwitchModelContextComplete { agent_id, model_id, effort, result: Ok((selection, total)) };
+                    }
                     TaskResult::SwitchModelComplete {
                         agent_id,
                         model_id,
                         effort,
-                        result,
+                        result: result.map(|_| ()),
                         prev_model_id,
                     }
                 });
@@ -1598,11 +1628,7 @@ pub(crate) fn execute(
                         {
                             return (ProbedAttachment::ProbeDropped, None);
                         }
-                        if probe_bracketed
-                            && crate::terminal::terminal_context()
-                                .brand
-                                .delivers_ime_as_bracketed_paste()
-                        {
+                        if probe_bracketed {
                             match crate::clipboard::bracketed_payload_came_from_clipboard_result(
                                 probe_text.as_deref().unwrap_or(""),
                             ) {

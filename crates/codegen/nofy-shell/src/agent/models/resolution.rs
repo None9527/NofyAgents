@@ -83,7 +83,7 @@ pub(crate) fn resolve_default_model(
             tracing::warn!("no auth-visible selectable model; using first selectable entry");
             return (key.clone(), entry.clone());
         }
-        tracing::warn!("no selectable models; falling back to bundled default (pre-catalog)");
+        tracing::warn!("no selectable models; waiting for a configured model catalog");
         let default_id = crate::models::default_model().to_string();
         let mut entry = ModelEntry::fallback(&default_id, &cfg.endpoints);
         entry.info.user_selectable = effective_allowlist(cfg).is_selected(&default_id, &default_id);

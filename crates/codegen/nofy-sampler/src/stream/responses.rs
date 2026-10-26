@@ -477,6 +477,11 @@ pub(crate) fn stream_responses_tracked<'a>(
             .and_then(|s| s.parse::<i64>().ok());
 
         let status = response.status.clone();
+        let incomplete_reason = response.incomplete_details.as_ref().map(|d| d.reason.as_str());
+        let incomplete_stop = match incomplete_reason {
+            Some("content_filter") => StopReason::ContentFilter,
+            _ => StopReason::Length,
+        };
 
         // Convert to ConversationItem(s); patch in accumulated reasoning
         // text as a fallback when the final response lacks `content` /
@@ -490,7 +495,10 @@ pub(crate) fn stream_responses_tracked<'a>(
             _ => false,
         });
 
-        let stop_reason = if has_tool_calls {
+        let stop_reason = if matches!(status, Status::Incomplete) {
+            // Keep the terminal cut visible to the shared request-level gate.
+            Some(incomplete_stop)
+        } else if has_tool_calls {
             Some(StopReason::ToolCalls)
         } else {
             match status {
@@ -589,6 +597,58 @@ mod tests {
 
     fn empty_completed_response() -> rs_types::Response {
         build_response(rs_types::Status::Completed)
+    }
+
+    #[tokio::test]
+    async fn incomplete_terminal_reason_is_not_masked_by_tool_calls() {
+        for reason in ["max_output_tokens", "content_filter"] {
+            let mut response = build_response(rs_types::Status::Incomplete);
+            response.incomplete_details =
+                Some(serde_json::from_value(serde_json::json!({"reason": reason})).unwrap());
+            response.output = vec![rs_types::OutputItem::FunctionCall(
+                rs_types::FunctionToolCall {
+                    arguments: "{".into(),
+                    call_id: "call".into(),
+                    name: "test".into(),
+                    id: None,
+                    status: None,
+                },
+            )];
+            let event =
+                rs::ResponseStreamEvent::ResponseCompleted(rs_types::ResponseCompletedEvent {
+                    response,
+                    sequence_number: 0,
+                });
+            let raw = stream::iter(vec![Ok(event)]).boxed();
+            let events = collect(stream_responses(
+                raw,
+                None,
+                rid(),
+                Duration::from_secs(60),
+                None,
+            ))
+            .await;
+            let SamplingEvent::Completed { response, .. } = events.last().unwrap() else {
+                panic!("expected completed wire response: {events:?}");
+            };
+            assert_eq!(
+                response.stop_reason,
+                Some(if reason == "content_filter" {
+                    StopReason::ContentFilter
+                } else {
+                    StopReason::Length
+                })
+            );
+            let verdict = nofy_sampling_types::LengthPolicy::CompletePartial.verdict(response);
+            assert_eq!(
+                verdict,
+                if reason == "content_filter" {
+                    nofy_sampling_types::LengthVerdict::Pass
+                } else {
+                    nofy_sampling_types::LengthVerdict::Fail
+                }
+            );
+        }
     }
 
     fn failed_response_with_error(message: &str) -> rs_types::Response {

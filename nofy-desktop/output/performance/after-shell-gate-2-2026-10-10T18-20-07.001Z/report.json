@@ -1,0 +1,185 @@
+{
+  "label": "after-shell-gate-2",
+  "source": "Production Electron; deterministic ACP; opt-in numeric render counters; no real model",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "cases": [
+    {
+      "size": 1000,
+      "load": {
+        "counts": {
+          "App": 4,
+          "Composer": 4,
+          "Sidebar": 1,
+          "Spine": 9,
+          "BlockView": 48,
+          "Markdown": 24
+        },
+        "longTasks": [],
+        "inputFrames": [],
+        "totalBlocks": 1000,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 386,
+        "heapBytes": 14300000,
+        "loadMs": 351
+      },
+      "editing": {
+        "counts": {
+          "App": 20,
+          "Composer": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          1.5,
+          12.800000004470348,
+          13.899999998509884,
+          4.600000001490116,
+          11.400000005960464,
+          14.100000001490116,
+          14.5,
+          13.199999995529652,
+          13,
+          13.600000001490116,
+          10.5,
+          13.5,
+          13.800000004470348,
+          14.799999997019768,
+          13.600000001490116,
+          13.299999997019768,
+          12.799999997019768,
+          12.899999998509884,
+          13.5,
+          12.600000001490116
+        ],
+        "totalBlocks": 1000,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 386,
+        "heapBytes": 14300000,
+        "inputToFrameP95Ms": 14.5
+      },
+      "stream": {
+        "counts": {
+          "App": 5,
+          "Composer": 5,
+          "Spine": 32,
+          "BlockView": 21,
+          "Markdown": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          10,
+          5.399999998509884
+        ],
+        "totalBlocks": 1002,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 385,
+        "heapBytes": 14300000
+      }
+    },
+    {
+      "size": 10000,
+      "load": {
+        "counts": {
+          "App": 5,
+          "Composer": 5,
+          "Sidebar": 1,
+          "Spine": 10,
+          "BlockView": 438,
+          "Markdown": 219
+        },
+        "longTasks": [],
+        "inputFrames": [],
+        "totalBlocks": 10000,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 386,
+        "heapBytes": 14300000,
+        "loadMs": 1036
+      },
+      "editing": {
+        "counts": {
+          "App": 20,
+          "Composer": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          7.800000004470348,
+          9.199999995529652,
+          10.899999998509884,
+          12.699999995529652,
+          11.600000001490116,
+          13.600000001490116,
+          14.399999998509884,
+          13.199999995529652,
+          14.800000004470348,
+          14.199999995529652,
+          14.599999994039536,
+          13.400000005960464,
+          13.800000004470348,
+          22.299999997019768,
+          19,
+          20.599999994039536,
+          17.100000001490116,
+          14.399999998509884,
+          14.5,
+          11.900000005960464
+        ],
+        "totalBlocks": 10000,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 386,
+        "heapBytes": 14300000,
+        "inputToFrameP95Ms": 20.599999994039536
+      },
+      "stream": {
+        "counts": {
+          "App": 5,
+          "Composer": 5,
+          "Spine": 32,
+          "BlockView": 21,
+          "Markdown": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          11.100000001490116,
+          6.300000004470348
+        ],
+        "totalBlocks": 10002,
+        "virtualized": true,
+        "domBlocks": 24,
+        "domNodes": 385,
+        "heapBytes": 14300000
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "background": {
+    "counts": {
+      "App": 1
+    },
+    "longTasks": [],
+    "inputFrames": [],
+    "totalBlocks": 10002,
+    "virtualized": true,
+    "domBlocks": 24,
+    "domNodes": 385,
+    "heapBytes": 14300000
+  },
+  "settingsBackground": {
+    "counts": {
+      "App": 1
+    },
+    "longTasks": [],
+    "inputFrames": [],
+    "totalBlocks": 0,
+    "virtualized": false,
+    "domBlocks": 0,
+    "domNodes": 0,
+    "heapBytes": 14300000
+  }
+}

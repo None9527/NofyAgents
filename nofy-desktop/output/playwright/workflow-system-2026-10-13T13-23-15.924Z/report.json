@@ -1,0 +1,50 @@
+{
+  "source": "Controlled multi-stage workflow in isolated Electron; DOM identity and frame measurements",
+  "cases": [
+    {
+      "name": "S01 collapsed reasoning exposes live content; same-line growth preserves node",
+      "status": "passed"
+    },
+    {
+      "name": "S02 reasoning changes identity without replay or replacing the text node",
+      "status": "passed"
+    },
+    {
+      "name": "S03 completed child tools remain one active stage with current command",
+      "status": "passed"
+    },
+    {
+      "name": "S04 arriving prose ends stage and shows live response before completion",
+      "status": "passed"
+    },
+    {
+      "name": "S05 completed answer retains its DOM while work folds, keyboard restores details",
+      "status": "passed"
+    },
+    {
+      "name": "S06 a new turn reserves bounded answer space, consumed by a growing response",
+      "status": "failed",
+      "error": "Error: locator.waitFor: Error: strict mode violation: getByText('正在检查视口行为', { exact: true }) resolved to 2 elements:\n    1) <span data-summary-key=\"0\" data-follow-end=\"true\" class=\"ui-rolling-summary__current\">正在检查视口行为</span> aka getByText('正在检查视口行为').first()\n    2) <p class=\"md__p\">正在检查视口行为</p> aka locator('p').filter({ hasText: '正在检查视口行为' })\n\nCall log:\n\u001b[2m  - waiting for getByText('正在检查视口行为', { exact: true }) to be visible\u001b[22m\n"
+    },
+    {
+      "name": "S07 upward reading is not stolen by streaming; explicit bottom resumes following",
+      "status": "passed",
+      "details": {
+        "before": 25,
+        "after": 25
+      }
+    },
+    {
+      "name": "S08 opening tool output anchors the trigger, user wheel cancels compensation",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-block-id=\"error-tool\"] .activity-card > summary') to be visible\u001b[22m\n"
+    },
+    {
+      "name": "S09 completed turn retains error outside folded history; narrow geometry stays bounded",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(await row.locator('[data-block-id=\"error-tool\"] .activity-card').isVisible())\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workflow-system-2026-10-13T13-23-15.924Z"
+}

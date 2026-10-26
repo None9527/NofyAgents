@@ -41,6 +41,10 @@ export type LayoutPrefs = {
   projectOrder: string[];
   /** 右侧辅助面板宽（活壳实测 548）；拖拽左缘调宽，双击把手恢复默认。 */
   auxWidth: number;
+  /** Automatic distribution unless the user explicitly drags the panel. Missing legacy values infer from width. */
+  auxSizing?: "auto" | "fixed";
+  /** Right pane covers the workbench. The saved split width is kept for restore. Missing keys stay split. */
+  auxExpanded: boolean;
   /** 终端 dock 高（默认 280 = 活壳 17.5rem）；拖拽顶缘调高，双击把手恢复默认。 */
   dockHeight: number;
   /**
@@ -53,11 +57,11 @@ export type LayoutPrefs = {
 
 /** 活壳实测值（docs/contract/zcode-live-metrics.json）；拖拽下限/上限见 shell CSS。 */
 export const SIDEBAR_WIDTH_DEFAULT = 264;
-export const SIDEBAR_WIDTH_MIN = 200;
+export const SIDEBAR_WIDTH_MIN = 240;
 export const SIDEBAR_WIDTH_MAX = 480;
 export const AUX_WIDTH_DEFAULT = 548;
 export const AUX_WIDTH_MIN = 320;
-export const AUX_WIDTH_MAX = 760;
+export const AUX_WIDTH_MAX = 4096;
 export const DOCK_HEIGHT_DEFAULT = 280;
 export const DOCK_HEIGHT_MIN = 140;
 export const DOCK_HEIGHT_MAX = 640;
@@ -105,6 +109,8 @@ function loadLayoutInner(): LayoutPrefs {
     dockOpen: false,
     projectOrder: [],
     auxWidth: AUX_WIDTH_DEFAULT,
+    auxSizing: "auto",
+    auxExpanded: false,
     dockHeight: DOCK_HEIGHT_DEFAULT,
   };
   try {
@@ -113,7 +119,7 @@ function loadLayoutInner(): LayoutPrefs {
     const widthMatch = /w=(\d+)/.exec(raw);
     const width = widthMatch === null ? SIDEBAR_WIDTH_DEFAULT : Number(widthMatch[1]);
     return {
-      sidebarOpen: !raw.includes("sidebar-closed"),
+      sidebarOpen: !raw.includes("sidebar-closed") && width >= SIDEBAR_WIDTH_MIN,
       auxOpen: !raw.includes("aux-closed"),
       sidebarWidth: Number.isFinite(width) ? Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, width)) : SIDEBAR_WIDTH_DEFAULT,
       // 旧值没有 v=/s= 段 ⇒ 落回默认（向后兼容：升级前的布局键照样能读）
@@ -123,6 +129,8 @@ function loadLayoutInner(): LayoutPrefs {
       dockOpen: raw.includes("dock-open"),
       projectOrder: parseProjectOrder(raw),
       auxWidth: parseAuxWidth(raw),
+      auxSizing: raw.includes("as=fixed") ? "fixed" : raw.includes("as=auto") || parseAuxWidth(raw) === AUX_WIDTH_DEFAULT ? "auto" : "fixed",
+      auxExpanded: raw.includes("ax=full"),
       dockHeight: parseDockHeight(raw),
     };
   } catch {
@@ -147,7 +155,8 @@ export function saveLayout(layout: LayoutPrefs): void {
       layout.auxWidth === AUX_WIDTH_DEFAULT ? value : value + "|a=" + String(Math.round(layout.auxWidth));
     const withDock =
       layout.dockHeight === DOCK_HEIGHT_DEFAULT ? withAux : withAux + "|dh=" + String(Math.round(layout.dockHeight));
-    window.localStorage.setItem(LAYOUT_KEY, withDock);
+    const withSizing = withDock + "|as=" + (layout.auxSizing ?? (layout.auxWidth === AUX_WIDTH_DEFAULT ? "auto" : "fixed"));
+    window.localStorage.setItem(LAYOUT_KEY, layout.auxExpanded ? withSizing + "|ax=full" : withSizing);
   } catch {
     /* 隐私模式/配额满：记不住不影响使用 */
   }

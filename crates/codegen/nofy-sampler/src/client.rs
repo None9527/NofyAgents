@@ -2027,6 +2027,7 @@ impl SamplingClient {
     ) -> Result<ConversationResponse> {
         let request_id = crate::types::RequestId::random();
         let idle_timeout = std::time::Duration::from_secs(300);
+        let length_policy = request.length_policy;
         let result = match self.api_backend() {
             ApiBackend::ChatCompletions => {
                 let (raw, meta) = self.conversation_stream(request).await?;
@@ -2046,9 +2047,30 @@ impl SamplingClient {
                 crate::stream::collect_response(events).await
             }
         };
-        result
+        let response = result
             .map(|(response, _metrics)| response)
-            .map_err(stream_collect_error)
+            .map_err(stream_collect_error)?;
+        apply_length_policy(length_policy, response)
+    }
+}
+
+/// Shared terminal gate for actor and direct collection paths.
+pub(crate) fn apply_length_policy(
+    policy: nofy_sampling_types::LengthPolicy,
+    response: ConversationResponse,
+) -> Result<ConversationResponse> {
+    use nofy_sampling_types::LengthVerdict;
+    match policy.verdict(&response) {
+        LengthVerdict::Fail => Err(SamplingError::MaxTokensTruncation),
+        LengthVerdict::Salvage | LengthVerdict::SalvageToolCalls => {
+            tracing::info!(
+                ?policy,
+                tool_calls = response.tool_calls().len(),
+                "completing length-truncated response per explicit request policy"
+            );
+            Ok(response)
+        }
+        LengthVerdict::Pass => Ok(response),
     }
 }
 

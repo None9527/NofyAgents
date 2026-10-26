@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "scope": "Local macOS arm64 production Electron, isolated deterministic ACP, 1440x900; not a universal platform or network-model budget",
+  "trials": 3,
+  "inputSamplesPerCase": 20,
+  "maxInputToFrameP95Ms": 33.4,
+  "maxMountedMessageBlocks": 200,
+  "maxStreamAppRenders": 8,
+  "maxStreamComposerRenders": 8,
+  "maxInputLongTaskMs": 50,
+  "maxCorpusLoadMs": 5000
+}

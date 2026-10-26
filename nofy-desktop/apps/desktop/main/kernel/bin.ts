@@ -1,36 +1,27 @@
-/**
- * 内核二进制定位。
- *
- * 移植自 seam/kernel-supervisor.js 的 resolveNofyBin（行为等价），但强化一处：
- * **找不到时抛错，不返回一个不存在的路径**。
- * 旧路 D6 的教训——写死 /usr/bin/node 这个不存在的路径，把「未配置」变成了
- * spawn ENOENT，进而全会话面 EPIPE 闸死。
- */
-import { existsSync } from "node:fs";
+/** Kernel is installed separately. Bundles contain no kernel, config, credentials or sessions. */
+import { accessSync, constants, existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
 const here = dirname(fileURLToPath(import.meta.url));
 
-/** 候选序：显式 env → 用户安装位 → 本仓库 release 构建产物（开发期兜底）。 */
-export function kernelBinCandidates(): string[] {
+/** Explicit path, user install, then repository release build during development only. */
+export function kernelBinCandidates(moduleDirectory = here): string[] {
+  const repository = resolve(moduleDirectory, "..", "..", "..", "..", "..");
   return [
     process.env["NOFY_BIN"] ?? "",
-    join(homedir(), ".local", "bin", "nofy"),
-    // main/kernel/bin.ts → apps/desktop → apps → nofy-desktop → 仓库根 = 四级上
-    resolve(here, "..", "..", "..", "..", "..", "target", "release", "nofy"),
-  ].filter((c) => c.length > 0);
+    join(homedir(), ".local", "bin", process.platform === "win32" ? "nofy.exe" : "nofy"),
+    ...(existsSync(join(repository, "Cargo.toml")) ? [join(repository, "target", "release", process.platform === "win32" ? "nofy.exe" : "nofy")] : []),
+  ].filter(candidate => candidate.length > 0);
 }
 
-export function resolveKernelBin(): string {
-  for (const c of kernelBinCandidates()) {
-    if (existsSync(c)) return c;
+export function resolveKernelBin(candidates = kernelBinCandidates()): string {
+  for (const candidate of candidates) {
+    try {
+      if (!statSync(candidate).isFile()) continue;
+      accessSync(candidate, process.platform === "win32" ? constants.F_OK : constants.X_OK);
+      return resolve(candidate);
+    } catch { /* Continue to the next supported install location. */ }
   }
-  throw new Error(
-    "nofy kernel binary not found. Looked in: " +
-      kernelBinCandidates().join(" | ") +
-      " — set NOFY_BIN to an explicit path.",
-  );
+  throw new Error("nofy kernel binary not found or not executable. Looked in: " + candidates.join(" | ") + " — install nofy at ~/.local/bin/nofy or set NOFY_BIN to an executable absolute path.");
 }
-

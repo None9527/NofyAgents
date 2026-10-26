@@ -21,6 +21,8 @@ import { app, BrowserWindow } from "electron";
 import type { WebContents } from "electron";
 import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { homedir } from "node:os";
+import { createModelController } from "./config/model-controller.ts";
 import { fileURLToPath } from "node:url";
 import { adaptConnection } from "../renderer/core/kernel-port.ts";
 import type { BootstrapInfo } from "../preload/contract.ts";
@@ -133,7 +135,8 @@ let mainWindow: BrowserWindow | null = null;
 function workspaceCwd(): string {
   const explicit = process.env["NOFY_WORKSPACE"];
   if (explicit !== undefined && explicit.length > 0) return explicit;
-  return process.cwd();
+  const cwd = process.cwd();
+  return app.isPackaged && (cwd === "/" || cwd.startsWith(app.getAppPath())) ? homedir() : cwd;
 }
 
 /**
@@ -256,7 +259,9 @@ async function main(): Promise<void> {
   const conn = getKernel();
   unhold = holdServerRequests(conn);
   bridge = createKernelBridge(adaptConnection(conn));
-  unregisterIpc = registerKernelIpc({ bridge, bootstrap: bootstrapInfo });
+  const models = createModelController(() => isolatedHome?.path ?? process.env["NOFY_HOME"] ?? join(homedir(), ".nofy"), bridge);
+  unregisterIpc = registerKernelIpc({ bridge, bootstrap: bootstrapInfo,
+    models: { readModelConfig: models.read, updateModelConfig: models.update }, configurationBusy: models.busy });
 
   // 先派生内核：握手与建窗并行（见文件头「启动顺序」）
   conn.connect();

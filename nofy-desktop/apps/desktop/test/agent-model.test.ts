@@ -11,8 +11,11 @@ import {
   agentBlocks,
   agentSummary,
   agentView,
+  agentWorkPhrase,
+  directoryAgents,
   runningAgentRows,
   cleanAgentOutput,
+  presentAgentOutput,
   hashToAgentColor,
   isAgentBlock,
   linkedPollBlockIds,
@@ -140,6 +143,18 @@ test("strip：模型面页脚摘掉、正文保留", () => {
   assert.equal(stripSubagentFooter("正文一行\n" + FOOTER), "正文一行");
 });
 
+test("presentAgentOutput：纯派发通知不展示，通知后的正文和页脚正文保留", () => {
+  assert.equal(presentAgentOutput(null, NOTICE), null);
+  assert.equal(presentAgentOutput(NOTICE, NOTICE), null);
+  assert.equal(presentAgentOutput(NOTICE, "目录已经列完"), "目录已经列完");
+  assert.equal(presentAgentOutput(null, NOTICE + "\n\n目录已经列完"), "目录已经列完");
+  const flat = NOTICE.replaceAll("\n", " ");
+  assert.equal(presentAgentOutput(null, flat), null);
+  assert.equal(presentAgentOutput(null, "目录已经列完\n" + FOOTER), "目录已经列完");
+  assert.equal(presentAgentOutput("顶层目录：apps、docs", NOTICE), "顶层目录：apps、docs");
+  assert.equal(presentAgentOutput(null, "Subagent started in background. Then we looked around."), "Subagent started in background. Then we looked around.");
+});
+
 test("cleanAgentOutput：meta 行 + 页脚一起摘（真轮次 Result.output 形态）", () => {
   const raw =
     "apps/\ndocs/\n\n" +
@@ -170,6 +185,7 @@ test("运行态：派发后无轮询结果=运行中；轮询 completed=结束�
   assert.equal(spawned.subagentId, "01a08d44-733b-7881-bef1-12c0ab2fb13e");
   assert.equal(spawned.subagentType, "explore");
   assert.equal(spawned.description, "列出工作区顶层目录");
+  assert.equal(spawned.output, null);
   const polled = agentView(mkTool("completed", { resultText: NOTICE }), mkPoll({ rawOutput: POLL_RAW }));
   assert.equal(polled.running, false);
   assert.equal(polled.output, "顶层目录：apps、docs、packages、tests");
@@ -194,6 +210,50 @@ test("轮询 join：task_id / 入参 task_ids / 标题短 id 三路", () => {
   assert.ok(linked.has("tool:p2"));
   assert.ok(linked.has("tool:p3"));
   assert.ok(!linked.has("tool:p4"));
+});
+
+test("回放把工具名收成标题后，派发通知和轮询结果仍进目录", () => {
+  const spawn = mkTool("completed", {
+    id: "tool:s",
+    toolCallId: "s",
+    name: "测试子agent勘察工作区",
+    title: "测试子agent勘察工作区",
+    resultText: NOTICE,
+  });
+  const poll = mkTool("completed", {
+    id: "tool:p",
+    toolCallId: "p",
+    name: "[subagent:explore] 列出工作区顶层目录 (01a08d44)",
+    title: "[subagent:explore] 列出工作区顶层目录 (01a08d44)",
+    rawOutput: POLL_RAW,
+    resultText: null,
+  });
+  assert.equal(isAgentBlock(spawn), true);
+  assert.equal(isAgentBlock(poll), false);
+  const views = agentBlocks(mkSession([spawn, poll]));
+  assert.equal(views.length, 1);
+  assert.equal(views[0]?.subagentId, "01a08d44-733b-7881-bef1-12c0ab2fb13e");
+  assert.equal(views[0]?.running, false);
+  assert.equal(views[0]?.output, "顶层目录：apps、docs、packages、tests");
+  const listed = directoryAgents(views.map((row) => ({ ...row, activity: null })), {}, {});
+  assert.equal(listed.length, 1);
+  assert.equal(agentWorkPhrase(listed[0]!), "已完成");
+});
+
+test("只有启动清单和结束事件时，目录仍列出已完成的子智能体", () => {
+  const rows = directoryAgents([], {
+    child: {
+      subagentId: "child", parentSessionId: null, childSessionId: null, subagentType: "explore",
+      description: "测试子agent勘察工作区", startedAtEpochMs: null, durationMs: null, turnCount: 1,
+      toolCallCount: 2, tokensUsed: null, contextWindowTokens: null, contextUsagePct: null,
+      toolsUsed: [], errorCount: null, restoredFromReplay: true,
+    },
+  }, { child: { status: "completed", error: null, durationMs: 9029, output: "勘察结果" } });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0]?.subagentId, "child");
+  assert.equal(agentWorkPhrase(rows[0]!), "已完成");
+  assert.equal(rows[0]?.output, "勘察结果");
+  assert.equal(rows[0]?.description, "测试子agent勘察工作区");
 });
 
 test("agentBlocks：非 task 块不进；流式阶段 argsDelta 顶替提示词位", () => {

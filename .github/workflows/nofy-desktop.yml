@@ -1,0 +1,62 @@
+name: Nofy desktop validation
+on:
+  push:
+    paths: ["nofy-desktop/**", "crates/codegen/**", ".github/workflows/nofy-desktop.yml"]
+  pull_request:
+    paths: ["nofy-desktop/**", "crates/codegen/**", ".github/workflows/nofy-desktop.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  credential-free:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nofy-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: nofy-desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm gen
+      - run: pnpm architecture:check
+      - run: pnpm ui:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm audit:fixtures
+      - run: pnpm build
+  macos-local-package:
+    runs-on: macos-15
+    needs: credential-free
+    defaults:
+      run:
+        working-directory: nofy-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: nofy-desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # pnpm can skip dependency lifecycle scripts; packaging requires Electron's runtime.
+      - run: pnpm --filter @nofy-desktop/app exec node node_modules/electron/install.js
+      - run: pnpm package:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nofy-macos-local-package
+          path: |
+            nofy-desktop/release/mac-*/*.zip
+            nofy-desktop/release/mac-*/*.sha256
+          retention-days: 7
+# Live model tests require explicit controlled credentials and a separately installed NOFY_BIN.
+# Packaging does not imply Windows/Linux support, Developer ID signing, notarization or public release.

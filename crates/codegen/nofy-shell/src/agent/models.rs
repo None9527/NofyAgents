@@ -860,7 +860,7 @@ impl ModelsManager {
         {
             Some(m) => m,
             None => {
-                tracing::warn!("no models available in catalog; defaulting to bundled model");
+                tracing::warn!("no models configured; initializing without an inference model");
                 let default_id = crate::models::default_model().to_string();
                 fallback = ModelEntry::fallback(&default_id, &config.endpoints);
                 &fallback

@@ -1,0 +1,39 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-13T15:47:39.817Z",
+  "cases": [
+    {
+      "name": "U01 user actions are 4px below the bubble and only appear on hover/focus",
+      "status": "passed",
+      "durationMs": 2970
+    },
+    {
+      "name": "R01 user bubble, icon actions and grouped exploration match the conversation structure",
+      "status": "passed",
+      "durationMs": 539
+    },
+    {
+      "name": "R02 nested Markdown, GFM task list and table cells render as semantic content",
+      "status": "passed",
+      "durationMs": 450
+    },
+    {
+      "name": "R03 code copy and wrapping preserve exact text",
+      "status": "passed",
+      "durationMs": 93
+    },
+    {
+      "name": "R04 table and code downloads use native save dialog and retain original data",
+      "status": "passed",
+      "durationMs": 656
+    },
+    {
+      "name": "R05 dark/light, wide/narrow layouts keep reading surfaces within their viewport",
+      "status": "passed",
+      "durationMs": 708
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/user-actions-2026-10-13T15-47-39.816Z",
+  "finishedAt": "2026-10-13T15:47:46.196Z"
+}

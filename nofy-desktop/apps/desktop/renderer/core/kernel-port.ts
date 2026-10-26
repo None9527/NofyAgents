@@ -37,7 +37,7 @@ export type KernelPort = {
   /** 应答内核→客户端请求。不应答则内核悬挂或 fail-closed。 */
   respond: (id: RpcId, result: unknown) => void;
   /** 停止轮次。session/cancel 是 **notification**（陷阱 T1）。 */
-  cancel: (sessionId: string) => void;
+  cancel: (sessionId: string, meta?: Record<string, unknown>) => void;
   /** 连接是否已就绪（initialize 完成且传输开着）。 */
   isReady: () => boolean;
 };
@@ -69,11 +69,10 @@ export function adaptConnection(conn: KernelConnection): KernelPort {
     respond: (id, result) => {
       conn.respond(id, result);
     },
-    cancel: (sessionId) => {
-      conn.cancel(sessionId);
+    cancel: (sessionId, meta) => {
+      conn.cancel(sessionId, meta);
     },
     isReady: () => conn.isInitialized && conn.isOpen(),
   };
 }
-
 

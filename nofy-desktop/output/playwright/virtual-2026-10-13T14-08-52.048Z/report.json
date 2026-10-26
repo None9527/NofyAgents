@@ -1,0 +1,91 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 22,
+        "totalBlocks": 10000
+      }
+    },
+    {
+      "name": "V02 offscreen find mounts and positions the actual matching block",
+      "status": "passed"
+    },
+    {
+      "name": "V03 background append preserves the history-reading anchor",
+      "status": "passed"
+    },
+    {
+      "name": "V04 pinned bottom follows appended stream",
+      "status": "passed"
+    },
+    {
+      "name": "V05 folding process preserves commentary and dynamically measured history",
+      "status": "passed",
+      "details": {
+        "expanded": 2860.7109375,
+        "folded": 266.7890625
+      }
+    },
+    {
+      "name": "V06 find expands a hidden intermediate answer and survives width changes",
+      "status": "passed"
+    },
+    {
+      "name": "V07 switching sessions cannot reuse another session measurements",
+      "status": "passed"
+    },
+    {
+      "name": "V08 an offscreen rewind dialog remains mounted until explicitly closed",
+      "status": "passed"
+    },
+    {
+      "name": "V09 renderer reload restores kernel history with bounded DOM",
+      "status": "passed"
+    },
+    {
+      "name": "V10 switching back restores an offscreen virtual reading anchor",
+      "status": "passed",
+      "details": {
+        "before": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        },
+        "after": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        }
+      }
+    },
+    {
+      "name": "V11 hiding the workspace route preserves an offscreen virtual anchor",
+      "status": "passed",
+      "details": {
+        "before": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        },
+        "after": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "stderr": "Debugger ending on ws://127.0.0.1:56297/04c9c6d7-4b32-4c30-a925-0636ce50b2ba\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n[nofy-desktop] kernel child exited pid=45935 code=null signal=SIGTERM\n",
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

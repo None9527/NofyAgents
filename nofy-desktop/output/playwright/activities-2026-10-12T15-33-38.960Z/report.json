@@ -1,0 +1,193 @@
+{
+  "source": "isolated Electron + staged synthetic ACP; native DOM, pointer, keyboard and animation frames",
+  "cases": [
+    {
+      "name": "A01 live command output, grouped reads, thoughts and hidden hooks are distinct",
+      "status": "passed",
+      "details": {
+        "motion": "activity-pulse"
+      }
+    },
+    {
+      "name": "A02 successful command closes automatically and manual choice survives status completion",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nnull !== ''\n"
+    },
+    {
+      "name": "A03 editing displays actual changed fragments with semantic colors",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "setup",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '活动验证完成', exact: true }) to be visible\u001b[22m\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/activities-2026-10-12T15-33-38.960Z",
+  "dom": [
+    {
+      "class": "recent-workspaces",
+      "open": false,
+      "expanded": null,
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "最近项目"
+    },
+    {
+      "class": "ui-motion-disclosure activity-slice",
+      "open": false,
+      "expanded": "false",
+      "height": 39,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "已工作 1 秒\n2 次查阅"
+    },
+    {
+      "class": "ui-motion-disclosure block block--thought",
+      "open": false,
+      "expanded": "false",
+      "height": 32,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-explore work-group",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "运行命令\npnpm test --reporter=verbose\n已完成"
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "第二个命令\nnode validate.js\n执行中"
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "编辑文件\n已完成"
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": true,
+      "expanded": "true",
+      "height": 262,
+      "pseudo": "231.797px",
+      "visible": "visible",
+      "text": "运行命令\nnode missing.js\n失败\nbash\nnode missing.js\n\n输出\nCannot find module missing.js\n参数"
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "参数"
+    },
+    {
+      "class": "ui-motion-disclosure activity-card tool-card",
+      "open": false,
+      "expanded": "false",
+      "height": 30,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": "未知结果\n状态未知"
+    },
+    {
+      "class": "ui-motion-disclosure activity-parameters",
+      "open": false,
+      "expanded": "false",
+      "height": 23,
+      "pseudo": "0px",
+      "visible": "hidden",
+      "text": ""
+    }
+  ]
+}

@@ -120,6 +120,10 @@ impl From<EditInput> for crate::types::tool_io::ToolInput {
 pub struct EditTool;
 
 impl crate::types::tool_metadata::ToolMetadata for EditTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("file_path")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Edit
     }

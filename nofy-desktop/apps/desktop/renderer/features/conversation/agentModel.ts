@@ -21,7 +21,7 @@
  *
  * ## 调色板色徽（抄活壳逆向：AgentToolBlocks.tsx:35 八色 + ShellCommandBlocks.ts:24 哈希）
  */
-import type { Block, SessionState, SubagentFinishedInfo } from "../../core/store/state.ts";
+import type { Block, SessionState, SubagentFinishedInfo, SubagentProgress } from "../../core/store/state.ts";
 
 /** 内核认的 spawn 工具 wire 名（task/mod.rs:49 逐字）。 */
 export const AGENT_TOOL_NAMES = new Set(["task", "Task", "spawn_subagent"]);
@@ -77,6 +77,30 @@ export function cleanAgentOutput(text: string): string {
   return stripSubagentFooter(stripSubagentMeta(text));
 }
 
+/**
+ * 给人看的回传。轮询 / subagent_finished 的正文优先。
+ * spawn 完成帧只是模型面的派发通知（Subagent started in background…），不是结果。
+ * 通知后面若还夹着正文，只留正文。
+ */
+export function presentAgentOutput(primary: string | null, fallback: string | null): string | null {
+  return withoutSpawnNotice(primary) ?? withoutSpawnNotice(fallback);
+}
+
+function withoutSpawnNotice(text: string | null): string | null {
+  if (text === null) return null;
+  const cleaned = cleanAgentOutput(text).trim();
+  if (cleaned.length === 0) return null;
+  if (!/^Subagent started in background\.\s*(?:\r?\n\s*)?subagent_id:\s*\S+/.test(cleaned)) return cleaned;
+  const rest = cleaned
+    .replace(/^Subagent started in background\.\s*/, "")
+    .replace(/^subagent_id:\s*\S+\s*/, "")
+    .replace(/^type:\s*\S+\s*/, "")
+    .replace(/^\s*description:\s*.+?(?=\s+Use get_command_or_subagent_output|$)/, "")
+    .replace(/^\s*Use get_command_or_subagent_output\b[\s\S]*?results\.\s*/, "")
+    .trim();
+  return rest.length > 0 ? rest : null;
+}
+
 export const AGENT_COLOR_PALETTE = ["yellow", "red", "orange", "green", "cyan", "blue", "purple", "pink"] as const;
 export type AgentColor = (typeof AGENT_COLOR_PALETTE)[number];
 
@@ -124,7 +148,7 @@ export type AgentBlockView = {
   subagentType: string | null;
   persona: string | null;
   subagentId: string | null;
-  /** 子智能体正文：轮询 Result.output 优先，模型面页脚帧兜底。 */
+  /** 子智能体正文。轮询 / 终态优先；纯派发通知不展示。 */
   output: string | null;
   /** 轮询 Result 的状态（completed/failed/…）；还没轮询到 = null。 */
   resultStatus: string | null;
@@ -134,13 +158,32 @@ export type AgentBlockView = {
 
 const ENDED = new Set(["completed", "success", "cancelled", "canceled"]);
 
+/** 回放会把工具名收成展示标题。派发通知和 TaskOutput 仍是子智能体。 */
+function toolBody(block: Extract<Block, { kind: "tool-call" }>): string | null {
+  if (typeof block.resultText === "string" && block.resultText.length > 0) return block.resultText;
+  const raw = block.rawOutput;
+  if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+    const text = (raw as Record<string, unknown>)["text"];
+    if (typeof text === "string" && text.length > 0) return text;
+  }
+  return null;
+}
+
+function hasSpawnNotice(block: Extract<Block, { kind: "tool-call" }>): boolean {
+  const text = toolBody(block);
+  return text !== null && text.includes("Subagent started in background.") && parseSpawnNotice(text).subagentId !== null;
+}
+
 export function isAgentBlock(block: Block): block is Extract<Block, { kind: "tool-call" }> {
   if (block.kind !== "tool-call") return false;
-  return block.toolKind === "task" || (block.name !== null && AGENT_TOOL_NAMES.has(block.name));
+  return block.toolKind === "task" || (block.name !== null && AGENT_TOOL_NAMES.has(block.name)) || hasSpawnNotice(block);
 }
 
 export function isAgentPollBlock(block: Block): block is Extract<Block, { kind: "tool-call" }> {
-  return block.kind === "tool-call" && block.name !== null && AGENT_POLL_NAMES.has(block.name);
+  if (block.kind !== "tool-call" || hasSpawnNotice(block)) return false;
+  if (block.name !== null && AGENT_POLL_NAMES.has(block.name)) return true;
+  const taskId = parseTaskResult(block.rawOutput)?.taskId;
+  return typeof taskId === "string" && taskId.length > 0;
 }
 
 function rawInputText(block: Extract<Block, { kind: "tool-call" }>): string {
@@ -158,8 +201,9 @@ export function agentView(
   poll: Extract<Block, { kind: "tool-call" }> | null,
   finished: SubagentFinishedInfo | null = null,
 ): AgentBlockView {
-  const footer = parseSubagentFooter(block.resultText);
-  const notice = parseSpawnNotice(block.resultText);
+  const body = toolBody(block);
+  const footer = parseSubagentFooter(body);
+  const notice = parseSpawnNotice(body);
   const input = (block.rawInput ?? null) as Record<string, unknown> | null;
   const prompt = input !== null && typeof input["prompt"] === "string" ? (input["prompt"] as string) : null;
   const descFromInput = input !== null && typeof input["description"] === "string" ? (input["description"] as string) : null;
@@ -192,12 +236,7 @@ export function agentView(
     subagentType,
     persona: footer?.persona ?? null,
     subagentId,
-    output:
-      outputFromResult !== null
-        ? cleanAgentOutput(outputFromResult)
-        : block.resultText !== null
-          ? cleanAgentOutput(block.resultText)
-          : null,
+    output: presentAgentOutput(outputFromResult, block.resultText),
     resultStatus: result?.status ?? finished?.status ?? null,
     durationSecs: result?.durationSecs ?? (finished !== null && finished.durationMs !== null ? finished.durationMs / 1000 : null),
     color: hashToAgentColor(subagentType ?? block.name ?? "task"),
@@ -215,7 +254,7 @@ function pollMatches(poll: Extract<Block, { kind: "tool-call" }>, subagentId: st
 }
 
 /** 会话脊柱里的子智能体块（按出现序），轮询块已 join 进对应视图。 */
-export function agentBlocks(session: SessionState | null): AgentBlockView[] {
+export function agentBlocks(session: Pick<SessionState, "blocks" | "subagentFinished"> | null): AgentBlockView[] {
   if (session === null) return [];
   const spawns = session.blocks.filter(isAgentBlock);
   const polls = session.blocks.filter(isAgentPollBlock);
@@ -242,7 +281,7 @@ export function agentBlocks(session: SessionState | null): AgentBlockView[] {
 }
 
 /** 已被某个子智能体块收编的轮询块 id：脊柱不再单独画它们（活壳把它们折进 agent 视图）。 */
-export function linkedPollBlockIds(session: SessionState | null): Set<string> {
+export function linkedPollBlockIds(session: Pick<SessionState, "blocks"> | null): Set<string> {
   const ids = new Set<string>();
   if (session === null) return ids;
   const spawns = session.blocks.filter(isAgentBlock);
@@ -287,4 +326,56 @@ export type AgentRow = AgentBlockView & { activity: string | null };
  */
 export function runningAgentRows(rows: AgentRow[]): AgentRow[] {
   return rows.filter((r) => r.running);
+}
+
+function progressDirectoryRow(row: SubagentProgress, finished: SubagentFinishedInfo | null): AgentRow {
+  const failed = finished?.status === "failed";
+  return {
+    blockId: "progress:" + row.subagentId,
+    toolCallId: row.subagentId,
+    status: finished?.status ?? null,
+    running: finished === null,
+    failed,
+    prompt: null,
+    streamingArgs: null,
+    description: row.description,
+    subagentType: row.subagentType,
+    persona: null,
+    subagentId: row.subagentId,
+    output: presentAgentOutput(finished?.output ?? null, null),
+    resultStatus: finished?.status ?? null,
+    durationSecs: finished?.durationMs != null ? finished.durationMs / 1000 : row.durationMs != null ? row.durationMs / 1000 : null,
+    color: hashToAgentColor(row.subagentType ?? row.description ?? "task"),
+    activity: null,
+  };
+}
+
+/** 右侧目录。回放后的工具块认不出来时，仍用启动清单和结束事件把点开的那条补上。 */
+export function directoryAgents(agents: readonly AgentRow[], progress: Record<string, SubagentProgress>, finished: Record<string, SubagentFinishedInfo> = {}): AgentRow[] {
+  const seen = new Set<string>();
+  const rows = agents.map((agent) => {
+    if (agent.subagentId !== null) seen.add(agent.subagentId);
+    const done = agent.subagentId !== null ? finished[agent.subagentId] : undefined;
+    if (done === undefined || !agent.running) return agent;
+    return {
+      ...agent,
+      running: false,
+      failed: agent.failed || done.status === "failed",
+      output: agent.output ?? presentAgentOutput(done.output, null),
+      resultStatus: agent.resultStatus ?? done.status,
+      durationSecs: agent.durationSecs ?? (done.durationMs != null ? done.durationMs / 1000 : null),
+    };
+  });
+  for (const row of Object.values(progress)) {
+    if (seen.has(row.subagentId)) continue;
+    rows.push(progressDirectoryRow(row, finished[row.subagentId] ?? null));
+  }
+  return rows;
+}
+
+/** 脊柱、右侧目录、任务概览共用。取消回执不另写一个词。 */
+export function agentWorkPhrase(row: { running: boolean; failed: boolean }): "正在工作" | "失败" | "已完成" {
+  if (row.running) return "正在工作";
+  if (row.failed) return "失败";
+  return "已完成";
 }

@@ -472,6 +472,9 @@ pub fn draw_frame(
         let _ = post_flush.write_to(terminal.backend_mut());
     }
     cursor.apply(action, terminal.backend_mut());
+    if let CursorAction::Reposition(x, y) | CursorAction::Show(x, y) = action {
+        terminal.record_cursor_position(ratatui::layout::Position::new(x, y));
+    }
     let _ = terminal.backend_mut().queue(EndSynchronizedUpdate);
     let _ = terminal.backend_mut().flush();
 }

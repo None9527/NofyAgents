@@ -189,6 +189,7 @@ pub fn is_sendable_wait(activity: &Option<TurnActivity>) -> bool {
                 | WaitingReason::TasksComplete
                 | WaitingReason::Sleep
                 | WaitingReason::Subagent
+                | WaitingReason::Subagents(_)
         ))
     )
 }

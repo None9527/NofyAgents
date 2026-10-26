@@ -839,6 +839,14 @@ pub enum SessionUpdate {
         /// does not support reasoning effort or no effort override was applied.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning_effort: Option<String>,
+        #[serde(default, rename = "contextWindow")]
+        context_window: Option<u64>,
+        #[serde(
+            default,
+            rename = "contextWindowTotal",
+            skip_serializing_if = "Option::is_none"
+        )]
+        context_window_total: Option<u64>,
     },
     /// Streaming chunk of a tool call's arguments.
     ///
@@ -2218,6 +2226,8 @@ mod tests {
         let with_effort = SessionUpdate::ModelChanged {
             model_id: "grok-4".into(),
             reasoning_effort: Some("high".into()),
+            context_window: None,
+            context_window_total: None,
         };
         let json = serde_json::to_value(&with_effort).unwrap();
         assert_eq!(json["sessionUpdate"], "model_changed");
@@ -2227,6 +2237,8 @@ mod tests {
         let without_effort = SessionUpdate::ModelChanged {
             model_id: "grok-3".into(),
             reasoning_effort: None,
+            context_window: None,
+            context_window_total: None,
         };
         let json = serde_json::to_value(&without_effort).unwrap();
         assert_eq!(json["sessionUpdate"], "model_changed");
@@ -2248,6 +2260,8 @@ mod tests {
         let original = SessionUpdate::ModelChanged {
             model_id: "grok-4".into(),
             reasoning_effort: Some("medium".into()),
+            context_window: Some(256_000),
+            context_window_total: Some(128_000),
         };
         let json_str = serde_json::to_string(&original).unwrap();
         let parsed: SessionUpdate = serde_json::from_str(&json_str).unwrap();
@@ -2269,6 +2283,8 @@ mod tests {
             update: SessionUpdate::ModelChanged {
                 model_id: "grok-4".into(),
                 reasoning_effort: None,
+                context_window: None,
+                context_window_total: None,
             },
             meta: None,
         };

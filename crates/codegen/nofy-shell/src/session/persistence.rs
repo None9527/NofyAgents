@@ -29,6 +29,27 @@ use tokio::sync::{mpsc, watch};
 /// - Version 1: ConversationItem format (used for new sessions)
 pub const CHAT_FORMAT_VERSION: u8 = 1;
 
+/// A server-confirmed budget ceiling, tied to the sampling model rather than a menu choice.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerContextWindow {
+    pub model: String,
+    pub window: std::num::NonZeroU64,
+}
+
+impl ServerContextWindow {
+    pub fn effective_window(
+        &self,
+        model: &str,
+        requested: std::num::NonZeroU64,
+    ) -> std::num::NonZeroU64 {
+        if self.model == model {
+            self.window.min(requested)
+        } else {
+            requested
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PersistenceContentChunk {
     content_chunks: Vec<acp::ContentBlock>,
@@ -124,6 +145,8 @@ pub(crate) enum PersistenceMsg {
         /// Persisted so resume does not depend on mutable external definitions.
         agent: PersistedAgent,
         reasoning_effort: Option<Option<ReasoningEffort>>,
+        context_window_selection: Option<Option<std::num::NonZeroU64>>,
+        server_context_window: Option<Option<ServerContextWindow>>,
     },
     PlanState(TodoState),
     /// Plan mode lifecycle state to persist
@@ -971,6 +994,10 @@ pub struct Summary {
     pub sandbox_profile: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<ReasoningEffort>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_window_selection: Option<std::num::NonZeroU64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_context_window: Option<ServerContextWindow>,
     /// Ultra-short summary of the most recent successful turn, shown as the
     /// dashboard row's secondary line (via the roster for non-attached
     /// clients). Displayed until replaced by the next successful turn (or
@@ -1060,6 +1087,8 @@ impl Summary {
             agent: PersistedAgentSelection::default(),
             sandbox_profile: None,
             reasoning_effort: None,
+            context_window_selection: None,
+            server_context_window: None,
             last_turn_summary: None,
             last_turn_summary_prompt_id: None,
         })
@@ -2119,14 +2148,18 @@ impl SessionPersistence {
                     model_id,
                     agent,
                     reasoning_effort,
+                    context_window_selection,
+                    server_context_window,
                 } => {
                     if let Err(e) = self
                         .storage
-                        .update_current_model_and_agent(
+                        .update_current_model_and_context(
                             &self.info,
                             &model_id,
                             Some(&agent),
                             reasoning_effort,
+                            context_window_selection,
+                            server_context_window,
                         )
                         .await
                     {

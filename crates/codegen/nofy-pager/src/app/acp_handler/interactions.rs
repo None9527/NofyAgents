@@ -48,18 +48,30 @@ pub(crate) fn handle_mcp_elicit(
         .as_ref()
         .is_some_and(|ev| ev.is_url_waiting());
     if waiting {
-        if let Some((_, old_tx)) = agent.pending_elicitation.take() {
+        if let Some((old_req, old_tx)) = agent.pending_elicitation.take() {
+            agent.push_unanswered_elicitation_notice(
+                &old_req.server_name,
+                "was replaced by a newer request",
+            );
             cancel_elicitation_request(old_tx);
         }
         agent.pending_elicitation = Some((ext_req, ext.response_tx));
         return is_active;
     }
 
-    if let Some((_, old_tx)) = agent.pending_elicitation.take() {
+    if let Some((old_req, old_tx)) = agent.pending_elicitation.take() {
+        agent.push_unanswered_elicitation_notice(
+            &old_req.server_name,
+            "was replaced by a newer request",
+        );
         cancel_elicitation_request(old_tx);
     }
 
     if let Some(mut old) = agent.elicitation_view.take() {
+        agent.push_unanswered_elicitation_notice(
+            &old.server_name,
+            "was replaced by a newer request",
+        );
         if let Some(old_tx) = old.take_response_tx() {
             cancel_elicitation_request(old_tx);
         }

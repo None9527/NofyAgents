@@ -1,53 +1,20 @@
-/**
- * CodeBlock —— 代码块外壳：语言条 + 复制按钮 + 行号 + 高亮正文。
- *
- * 解剖对照（活壳 streamdown 族，见 MarkdownCodeBlock.tsx 头注）：
- *   CodeBlockHeader（语言名条）→ 我们的 .codeblock__head
- *   CodeBlockCopyButton        → 复制按钮（下载按钮登记在 uiux-reference.md §7，
- *                                它需要 document.createElement 造 anchor，暂不做）
- *   行号（CSS counter）         → .codeblock__line::before
- *   shiki 高亮正文              → 自写 highlight.tsx（取舍见其文件头）
- *
- * 复制走 navigator.clipboard（用户手势内、非 window/document API，dep-guard 兼容）；
- * 失败给「复制失败」而不是静默——剪贴板权限被拒是常见现实。
- */
+import { useLocale } from "./useLocale.ts";
 import { useMemo, useState } from "react";
 import { highlightLines, normalizeLang, renderTokens } from "./highlight.tsx";
-import { IconCheck, IconCopy } from "./icons.tsx";
-
-export function CodeBlock({ lang, code }: { lang: string | null; code: string }) {
-  const [copied, setCopied] = useState<"idle" | "ok" | "err">("idle");
+import { IconWrap } from "./icons.tsx";
+import { CopyButton, SaveButton } from "./contentActions.tsx";
+import { Btn } from "./primitives.tsx";
+import { tr } from "./i18n.ts";
+export function CodeBlock({ lang, code, onSaveText, lineNumbers = true, defaultWrap = false }: { lang: string | null; code: string; onSaveText?: (text: string, filename: string) => Promise<boolean>; lineNumbers?: boolean; defaultWrap?: boolean }) {
+  useLocale();
+  const [wrap, setWrap] = useState(defaultWrap);
   const lines = useMemo(() => highlightLines(code, lang), [code, lang]);
-
-  const copy = (): void => {
-    navigator.clipboard
-      .writeText(code)
-      .then(() => {
-        setCopied("ok");
-        setTimeout(() => setCopied("idle"), 1500);
-      })
-      .catch(() => setCopied("err"));
-  };
-
-  return (
-    <div className="codeblock">
-      <div className="codeblock__head">
-        <span className="codeblock__lang mono">{normalizeLang(lang)}</span>
-        <button type="button" className="codeblock__copy" onClick={copy} title="复制代码块内容">
-          {copied === "ok" ? <IconCheck size={12} /> : <IconCopy size={12} />}
-          <span>{copied === "ok" ? "已复制" : copied === "err" ? "复制失败" : "复制"}</span>
-        </button>
-      </div>
-      <pre className="codeblock__pre mono">
-        <code>
-          {lines.map((ln, i) => (
-            <span key={String(i)} className="codeblock__line">
-              {renderTokens(ln, String(i))}
-              {"\n"}
-            </span>
-          ))}
-        </code>
-      </pre>
-    </div>
-  );
+  return <div className={"codeblock" + (wrap ? " codeblock--wrap" : "") + (lineNumbers ? " codeblock--numbered" : "")}>
+    <div className="codeblock__head"><span className="codeblock__lang mono">{normalizeLang(lang)}</span><div className="codeblock__actions">
+      <Btn variant="ghost" size="icon" aria-label={tr("代码自动换行")} title={tr("代码自动换行")} aria-pressed={wrap} onClick={() => setWrap(value => !value)}><IconWrap size={15} /></Btn>
+      <SaveButton text={code} filename={"code." + (lang?.match(/^[a-z0-9]+$/i)?.[0] ?? "txt")} onSave={onSaveText} />
+      <CopyButton text={code} label="复制代码块内容" />
+    </div></div>
+    <pre className="codeblock__pre mono"><code>{lines.map((line, i) => <span key={i} className="codeblock__line">{renderTokens(line, String(i))}{"\n"}</span>)}</code></pre>
+  </div>;
 }

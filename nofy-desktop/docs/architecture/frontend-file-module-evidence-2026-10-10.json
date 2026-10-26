@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-10",
+  "scope": "Read-only file resource module: typed bounded raster preview, native directory invalidation, scoped view recovery; kernel ACP text path unchanged",
+  "verify": {
+    "fullCommand": "pnpm verify",
+    "fullLog": "/tmp/nofy-files-module-verify-final.log",
+    "finalTestsLog": "/tmp/nofy-files-module-tests-final.log",
+    "finalTypesLog": "/tmp/nofy-files-module-types-final.log",
+    "acpTests": 41,
+    "desktopTests": 345,
+    "total": 386,
+    "newTests": 13,
+    "protocolSmoke": 7,
+    "ptySmoke": 8,
+    "recoverySmoke": 11,
+    "note": "Full verify followed by final complete test/typecheck after two added recovery/race tests; production source unchanged"
+  },
+  "gui": [
+    {
+      "report": "output/playwright/workspace-2026-10-10T07-57-28.124Z/report.json",
+      "passed": 17,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/2026-10-10T07-54-41.469Z-settings/report.json",
+      "passed": 20,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/2026-10-10T07-54-41.469Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/project-2026-10-10T07-54-41.469Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    }
+  ],
+  "performance": {
+    "report": "output/performance/after-shell-files-2026-10-10T07-57-36.819Z/report.json",
+    "archive": "docs/architecture/benchmarks/2026-10-10-file-module.json",
+    "moduleIsolationAssertionsPassed": true,
+    "scope": "Single deterministic simulation; not model network or peak-memory validation"
+  },
+  "architecture": {
+    "files": 185,
+    "imports": 869,
+    "legacyExceptions": 15
+  },
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "6535832f09af6bd1852ff40b6723a1f17eb45bcb48791b93d0b8d23ff2b17024",
+    "isolatedLaunchesPassed": 2,
+    "log": "/tmp/nofy-files-module-package-verify.log",
+    "kernelBundled": false,
+    "signing": "ad-hoc local only"
+  },
+  "sourceHashes": {
+    "apps/desktop/shared/workspace-files-contract.ts": "e66b6bb0ba70893ba13f2b3337f6824672941866450a87c73ed4729c15aa25ae",
+    "apps/desktop/main/seam/workspace-files.ts": "ceb8da58015d9b63ff682dd14466ebbf41e006957c9989aaee159004723640cd",
+    "apps/desktop/main/seam/register.ts": "1e3de59788718084c1e7b2ebe6041d6fb7dcd6b1b2426e78dd5513645ef3ea23",
+    "apps/desktop/preload/contract.ts": "0e80fe5c7323167fb335aa90aa6596a8ee47f247d564ac5400e99e29566f7fb8",
+    "apps/desktop/preload/index.ts": "7834b478707c8f07c2776a51574ff04aaa7e7032f2af148974e3a2e033b6c676",
+    "apps/desktop/renderer/application/client.ts": "c7aa41f7e3355b70dbc3ba7a4611fe197b4d28c8e8eef246a13a9163baec1995",
+    "apps/desktop/renderer/application/workspace/fileCapabilities.ts": "ba763b7450e6f74b2f5222fa1e477841de91f72072300a04e9ec27e9cb380917",
+    "apps/desktop/renderer/application/workspace/fileWorkspacePrefs.ts": "6280cb0d648f7ca7b8a8bc3732dea9b6577e1f2acbe7f2eb45b02e462b31cc0b",
+    "apps/desktop/renderer/application/workspace/fileWorkspaceCache.ts": "cd52516fa95fd8b3fa5cbe87efdf127651e4f74ebf71e66ffb06128e91ce8334",
+    "apps/desktop/renderer/application/workspace/fileResources.ts": "49a6ad2b0c29c5f2b5747336da47378c190762bdc9cb98c5cfe05d1e80167788",
+    "apps/desktop/renderer/application/workspace/useFileWorkspace.ts": "e9cb2bd82204f53e79a187c954bbeedf81f67ebdab306ecc36301366198ef3ff",
+    "apps/desktop/renderer/features/aux/FileViewer.tsx": "43b6d86527aa85196873431011fbb49e4543abbf5fa11a7f964cfab3987f446c",
+    "apps/desktop/renderer/features/aux/FilePane.tsx": "e8aa81777c46304724aa65e6b38564efc90f61df5126cf96b21ec4ac70a60499",
+    "apps/desktop/test/workspace-files-native.test.ts": "d7c4f93348502fd26729d545c58098746fa3645513d5a1aba9f510494a4d955b",
+    "apps/desktop/test/file-workspace-recovery.test.ts": "a6c192ae656a936e93c083d2e28028d383d6d236935e32e17d7673ed62adb74e",
+    "apps/desktop/e2e/workspace-acceptance.mjs": "d23d02a12dc3da90e7a83e1cebf1148a67b28b99921f9612b862f59c3b76ae04"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-10-10T18:53:58.024Z",
+  "scope": "Actual installed kernel, isolated empty NOFY_HOME, no prompt, credentials or model request",
+  "valid": {
+    "accepted": false,
+    "error": "Authentication required"
+  },
+  "missing": {
+    "accepted": false,
+    "error": "Authentication required"
+  }
+}

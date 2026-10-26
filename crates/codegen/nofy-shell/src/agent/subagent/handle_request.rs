@@ -865,6 +865,8 @@ pub(crate) async fn run_shell_child(
             model_id: effective_model_id.clone(),
             agent: crate::session::persistence::PersistedAgent::from(&definition),
             reasoning_effort: Some(effective_sampling_config.reasoning_effort),
+            context_window_selection: None,
+            server_context_window: None,
         });
     let pins = ctx.compaction_pins_for_child(&definition.user_message_template);
     // Captured before `effective_sampling_config` is moved into the spawn: the

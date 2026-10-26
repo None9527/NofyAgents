@@ -775,6 +775,10 @@ async fn handle_replacement(
     ))
 }
 impl crate::types::tool_metadata::ToolMetadata for SearchReplaceTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("file_path")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Edit
     }

@@ -115,6 +115,28 @@ pub enum TerminalName {
 }
 
 impl TerminalName {
+    pub fn width_shrink(self) -> nofy_ratatui_inline::WidthShrink {
+        use nofy_ratatui_inline::WidthShrink;
+        match self {
+            Self::AppleTerminal
+            | Self::Ghostty
+            | Self::Iterm2
+            | Self::VsCode
+            | Self::Cursor
+            | Self::Windsurf
+            | Self::Zed
+            | Self::WezTerm
+            | Self::Kitty
+            | Self::Alacritty
+            | Self::Rio
+            | Self::Foot
+            | Self::NofyDesktop
+            | Self::Vte
+            | Self::Terminator
+            | Self::WindowsTerminal => WidthShrink::Rewraps,
+            _ => WidthShrink::Truncates,
+        }
+    }
     pub fn is_vte_based(self) -> bool {
         matches!(self, Self::Vte | Self::Terminator) // WHY: single source of truth for the VTE family
     }
@@ -160,6 +182,19 @@ impl TerminalName {
 }
 
 impl TerminalContext {
+    pub fn width_shrink(&self) -> nofy_ratatui_inline::WidthShrink {
+        use nofy_ratatui_inline::WidthShrink;
+        if self.embedded_editor.is_some() {
+            return WidthShrink::Truncates;
+        }
+        match self.multiplexer {
+            MultiplexerKind::Tmux | MultiplexerKind::Zellij | MultiplexerKind::Cmux => {
+                WidthShrink::Rewraps
+            }
+            MultiplexerKind::Screen | MultiplexerKind::Herdr => WidthShrink::Truncates,
+            MultiplexerKind::Undetected => self.env_brand.width_shrink(),
+        }
+    }
     pub fn is_vte_based(&self) -> bool {
         self.brand.is_vte_based() || self.vte_version.is_some() // WHY: covers brand + legacy version marker
     }

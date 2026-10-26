@@ -1,8 +1,9 @@
 mod display;
 
 use std::io::Write;
+use std::path::Path;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use clap::Subcommand;
 use nofy_fast_worktree::WorktreeRecord;
 use tokio_util::sync::CancellationToken;
@@ -45,6 +46,14 @@ pub struct WorktreeArgs {
 
 #[derive(Debug, Subcommand, Clone)]
 enum WorktreeCommand {
+    /// Create a worktree without starting an interactive session
+    Create {
+        /// Worktree name; generated when omitted
+        name: Option<String>,
+        /// Branch, tag, or commit; without it, HEAD plus uncommitted changes
+        #[arg(long = "ref", value_name = "REF")]
+        git_ref: Option<String>,
+    },
     /// List tracked worktrees
     #[command(visible_alias = "ls")]
     List {
@@ -128,6 +137,11 @@ pub async fn run(args: WorktreeArgs, agent_config: &AgentConfig) -> Result<()> {
 
 async fn dispatch(command: WorktreeCommand, tx: &nofy_acp_lib::AcpAgentTx) -> Result<()> {
     match command {
+        WorktreeCommand::Create { name, git_ref } => {
+            let source_cwd =
+                std::env::current_dir().context("couldn't read the current directory")?;
+            cmd_create(tx, &source_cwd, name, git_ref, &mut std::io::stdout()).await
+        }
         WorktreeCommand::List {
             repo,
             r#type,
@@ -147,6 +161,68 @@ async fn dispatch(command: WorktreeCommand, tx: &nofy_acp_lib::AcpAgentTx) -> Re
         } => cmd_gc(tx, dry_run, max_age, force).await,
         WorktreeCommand::Db { command } => cmd_db(tx, command).await,
     }
+}
+
+/// Keep stdout machine-readable for `cd "$(nofy worktree create)"`.
+async fn cmd_create(
+    tx: &nofy_acp_lib::AcpAgentTx,
+    source_cwd: &Path,
+    name: Option<String>,
+    git_ref: Option<String>,
+    out: &mut impl Write,
+) -> Result<()> {
+    let result: serde_json::Value = ext_call(
+        tx,
+        "nofy/git/worktree/create_from_worktree_sync",
+        &serde_json::json!({
+            "sourceWorktreePath": source_cwd.to_string_lossy(),
+            "newSessionId": format!("pager-{}", &uuid::Uuid::new_v4().simple().to_string()[..12]),
+            "copyMode": if git_ref.is_some() { "clean" } else { "dirty" },
+            "label": name,
+            "gitRef": git_ref,
+        }),
+    )
+    .await?;
+    write_created_worktree(&result, source_cwd, out)
+}
+
+fn write_created_worktree(
+    result: &serde_json::Value,
+    source_cwd: &Path,
+    out: &mut impl Write,
+) -> Result<()> {
+    if let Some(summary) = result
+        .get("strategySummary")
+        .and_then(serde_json::Value::as_str)
+    {
+        let _ = writeln!(std::io::stderr().lock(), "{summary}");
+    }
+    let worktree_root = result
+        .get("worktreePath")
+        .and_then(serde_json::Value::as_str)
+        .map(std::path::PathBuf::from)
+        .context("response missing worktreePath")?;
+    let session_cwd = result
+        .get("sourceGitRoot")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|root| source_cwd.strip_prefix(root).ok())
+        .map(|relative| worktree_root.join(relative))
+        .unwrap_or_else(|| worktree_root.clone());
+    let dir = if session_cwd.is_dir() {
+        &session_cwd
+    } else {
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "{} is not in the new worktree; printing the worktree root",
+            session_cwd.display()
+        );
+        &worktree_root
+    };
+    Ok(crate::util::ignore_broken_pipe(writeln!(
+        out,
+        "{}",
+        dir.display()
+    ))?)
 }
 
 fn ext_request<T: serde::Serialize>(
@@ -554,5 +630,65 @@ mod tests {
             }
             _ => panic!("expected List variant"),
         }
+    }
+
+    #[test]
+    fn create_accepts_optional_name_and_ref() {
+        #[derive(clap::Parser)]
+        struct Cli {
+            #[command(subcommand)]
+            command: WorktreeCommand,
+        }
+        use clap::Parser;
+        for (argv, expected_name, expected_ref) in [
+            (vec!["test", "create"], None, None),
+            (
+                vec!["test", "create", "feature", "--ref", "main"],
+                Some("feature"),
+                Some("main"),
+            ),
+            (
+                vec!["test", "create", "--ref", "HEAD~1"],
+                None,
+                Some("HEAD~1"),
+            ),
+        ] {
+            let WorktreeCommand::Create { name, git_ref } =
+                Cli::try_parse_from(argv).unwrap().command
+            else {
+                panic!("expected create");
+            };
+            assert_eq!(name.as_deref(), expected_name);
+            assert_eq!(git_ref.as_deref(), expected_ref);
+        }
+    }
+
+    #[test]
+    fn create_stdout_contains_only_directory_and_falls_back_to_root() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("created");
+        let nested = root.join("nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        let result = serde_json::json!({ "worktreePath": root, "sourceGitRoot": "/source", "strategySummary": "copied working tree" });
+        let mut out = Vec::new();
+        write_created_worktree(&result, Path::new("/source/nested"), &mut out).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            format!("{}\n", nested.display())
+        );
+        let mut out = Vec::new();
+        write_created_worktree(&result, Path::new("/source/missing"), &mut out).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            format!("{}\n", root.display())
+        );
+        assert!(
+            write_created_worktree(
+                &serde_json::json!({}),
+                Path::new("/source"),
+                &mut Vec::new()
+            )
+            .is_err()
+        );
     }
 }

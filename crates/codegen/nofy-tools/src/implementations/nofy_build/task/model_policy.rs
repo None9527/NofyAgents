@@ -17,6 +17,9 @@ pub enum TaskModelSelection {
 pub struct TaskParams {
     #[serde(default)]
     pub model_selection: TaskModelSelection,
+    /// Names offered by the existing discovery and parent policy gates.
+    #[serde(default)]
+    pub selectable_subagent_types: Vec<String>,
 }
 
 crate::register_resource!("nofy_build", "TaskParams", TaskParams);
@@ -63,6 +66,7 @@ pub fn task_versioned_definition(
         crate::types::template_renderer::strip_markers_on_render_failure(raw_description, &error)
     });
     let schema = exported_input_schema(input_schema, selection_from_params(effective_params));
+    let schema = with_subagent_choices(schema, effective_params);
     let schema = if param_map.is_empty() {
         schema
     } else {
@@ -78,9 +82,71 @@ pub fn hidden_selection_message(param_name: &str) -> String {
     )
 }
 
+fn with_subagent_choices(
+    mut schema: serde_json::Value,
+    params: &serde_json::Value,
+) -> serde_json::Value {
+    let Some(names) = params
+        .get("selectable_subagent_types")
+        .and_then(|v| v.as_array())
+    else {
+        return schema;
+    };
+    // Discovery is not exhaustive: the unified resolver also accepts session
+    // CLI definitions. Keep a string contract, with advisory choices rather
+    // than a closed enum that would hide valid CLI names.
+    if !names.is_empty()
+        && names.len() <= 64
+        && names
+            .iter()
+            .all(|name| name.as_str().is_some_and(|name| name.len() <= 128))
+        && let Some(property) = schema
+            .pointer_mut("/properties/subagent_type")
+            .and_then(|v| v.as_object_mut())
+    {
+        property.insert("examples".into(), serde_json::Value::Array(names.clone()));
+        let original = property
+            .get("description")
+            .and_then(|value| value.as_str())
+            .unwrap_or_default();
+        property.insert("description".into(), serde_json::Value::String(format!(
+            "{original} Available discovered types: {}. Additional session-defined agent names are accepted and validated at spawn.",
+            serde_json::Value::Array(names.clone())
+        )));
+    }
+    schema
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn discovered_subagent_choices_preserve_optional_type_and_canonical_mapping() {
+        let schema = serde_json::json!({"type":"object","properties":{"subagent_type":{"type":"string"}},"required":["prompt"]});
+        let offered = with_subagent_choices(
+            schema.clone(),
+            &serde_json::json!({"selectable_subagent_types":["general-purpose", "my-plugin:reviewer"]}),
+        );
+        assert_eq!(
+            offered["properties"]["subagent_type"]["examples"],
+            serde_json::json!(["general-purpose", "my-plugin:reviewer"])
+        );
+        assert_eq!(offered["required"], schema["required"]);
+        let mapped = crate::util::remap::remap_schema_properties(
+            &offered,
+            &std::collections::HashMap::from([("subagent_type".into(), "agent_kind".into())]),
+        );
+        assert!(mapped["properties"]["agent_kind"]["examples"].is_array());
+        assert!(mapped["properties"]["agent_kind"].get("enum").is_none());
+        assert_eq!(
+            with_subagent_choices(
+                schema.clone(),
+                &serde_json::json!({"selectable_subagent_types":[]})
+            ),
+            schema
+        );
+    }
 
     #[test]
     fn inherited_selection_removes_model_from_schema() {

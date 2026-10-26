@@ -129,6 +129,7 @@ pub fn gc_scope(
     now: i64,
     archive_retention_secs: i64,
 ) -> Result<RetentionReport, RetentionError> {
+    let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())?;
     let state = UnifiedState::open(layout.meta_database(), scope.state_database())?;
     let protected = state.incomplete_operation_targets()?;
     let tombstones_deleted = state.delete_expired_tombstones(now, &protected)?;

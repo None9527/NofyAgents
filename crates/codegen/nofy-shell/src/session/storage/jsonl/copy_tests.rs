@@ -1146,6 +1146,11 @@ async fn copy_session_data_inherits_source_summary_fields() {
     // process-global configured profile.
     let mut src_summary = adapter.read_summary_sync(&source_info).unwrap();
     src_summary.sandbox_profile = Some("workspace".to_string());
+    src_summary.context_window_selection = std::num::NonZeroU64::new(256_000);
+    src_summary.server_context_window = Some(crate::session::persistence::ServerContextWindow {
+        model: default_model_id().0.to_string(),
+        window: std::num::NonZeroU64::new(180_000).unwrap(),
+    });
     let inline = nofy_agent::AgentDefinition::from_json(&serde_json::json!({
         "name": "forked-inline",
         "description": "Must survive a fork",
@@ -1171,6 +1176,14 @@ async fn copy_session_data_inherits_source_summary_fields() {
     assert_eq!(loaded.head_branch.as_deref(), Some("feature-branch"));
     assert_eq!(loaded.sandbox_profile.as_deref(), Some("workspace"));
     assert_eq!(loaded.agent_name(), Some("forked-inline"));
+    assert_eq!(
+        loaded.context_window_selection,
+        std::num::NonZeroU64::new(256_000)
+    );
+    assert_eq!(
+        loaded.server_context_window,
+        src_summary.server_context_window
+    );
     assert_eq!(
         loaded
             .agent_profile()

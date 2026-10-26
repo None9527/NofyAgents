@@ -11,12 +11,29 @@ impl SessionActor {
         auto_compact_threshold_percent: u8,
     ) -> Result<acp::ModelId, acp::Error> {
         let model_id = acp::ModelId::new(sampling_config.model.clone());
-        let new_context_window = self.compaction.context_window_override.unwrap_or_else(|| {
-            std::num::NonZeroU64::new(sampling_config.context_window).unwrap_or_else(|| {
-                std::num::NonZeroU64::new(DEFAULT_CONTEXT_WINDOW)
-                    .expect("DEFAULT_CONTEXT_WINDOW is non-zero")
-            })
-        });
+        let mut new_context_window = self
+            .compaction
+            .context_window_override
+            .or(self.compaction.context_window_selection.get())
+            .unwrap_or_else(|| {
+                std::num::NonZeroU64::new(sampling_config.context_window).unwrap_or_else(|| {
+                    std::num::NonZeroU64::new(DEFAULT_CONTEXT_WINDOW)
+                        .expect("DEFAULT_CONTEXT_WINDOW is non-zero")
+                })
+            });
+        {
+            let mut cap = self.compaction.server_context_window.borrow_mut();
+            if cap
+                .as_ref()
+                .is_some_and(|cap| cap.model != sampling_config.model)
+            {
+                *cap = None;
+            }
+            if let Some(cap) = cap.as_ref() {
+                new_context_window =
+                    cap.effective_window(&sampling_config.model, new_context_window);
+            }
+        }
         let prev_threshold = self.compaction.threshold_percent.get();
         if prev_threshold != auto_compact_threshold_percent {
             tracing::info!(
@@ -119,6 +136,8 @@ impl SessionActor {
                 model_id: model_id.clone(),
                 agent: crate::session::persistence::PersistedAgent::Named(agent_name),
                 reasoning_effort: Some(sampling_config.reasoning_effort),
+                context_window_selection: Some(self.compaction.context_window_selection.get()),
+                server_context_window: Some(self.compaction.server_context_window.borrow().clone()),
             });
         self.emit_status_snapshot_detached();
         Ok(model_id)

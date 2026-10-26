@@ -2,6 +2,90 @@
 //! accept/decline/cancel resolution, the pending-request promotion chain,
 //! and the composer stash handoff.
 
+#[cfg(test)]
+mod outcome_tests {
+    use super::*;
+    use crate::views::elicitation_view::ElicitationViewState;
+    use nofy_tools::mcp_elicitation::{
+        McpElicitExtRequest, McpElicitExtResponse, McpElicitModeFields,
+    };
+
+    fn request() -> McpElicitExtRequest {
+        McpElicitExtRequest {
+            session_id: "s".into(),
+            tool_call_id: "input-1".into(),
+            server_name: "demo".into(),
+            message: "Enter input".into(),
+            mode: McpElicitModeFields::Form {
+                requested_schema: None,
+            },
+        }
+    }
+
+    fn notices(agent: &mut AgentView) -> Vec<String> {
+        agent
+            .scrollback
+            .entries_mut()
+            .filter_map(|entry| match &entry.block {
+                crate::scrollback::block::RenderBlock::System(block) => Some(block.text.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn unanswered_outcomes_restore_draft_and_explain_why() {
+        for (response, expected, closed) in [
+            (McpElicitExtResponse::Decline, "was declined", false),
+            (McpElicitExtResponse::Cancel, "without answering", false),
+            (
+                McpElicitExtResponse::Accept { content: None },
+                "before this answer was delivered",
+                true,
+            ),
+        ] {
+            let mut agent = super::super::test_fixtures::make_agent();
+            agent.prompt.set_text("keep my draft");
+            let stash = agent.stash_prompt_for_elicitation();
+            let (tx, mut rx) = tokio::sync::oneshot::channel();
+            if closed {
+                rx.close();
+            }
+            agent.elicitation_view = Some(ElicitationViewState::from_request(
+                request(),
+                stash,
+                Some(tx),
+            ));
+            agent.finish_elicitation(response);
+            assert_eq!(agent.prompt.text(), "keep my draft");
+            assert!(agent.elicitation_view.is_none());
+            assert!(
+                notices(&mut agent)
+                    .iter()
+                    .any(|text| text.contains(expected))
+            );
+        }
+    }
+
+    #[test]
+    fn resolved_pending_request_has_one_notice_and_preserves_draft() {
+        let mut agent = super::super::test_fixtures::make_agent();
+        agent.prompt.set_text("unchanged");
+        let (tx, _rx) = tokio::sync::oneshot::channel();
+        agent.pending_elicitation = Some((request(), tx));
+        assert!(agent.dismiss_resolved_interaction("input-1"));
+        assert!(!agent.dismiss_resolved_interaction("input-1"));
+        assert_eq!(agent.prompt.text(), "unchanged");
+        assert_eq!(
+            notices(&mut agent)
+                .iter()
+                .filter(|text| text.contains("closed before"))
+                .count(),
+            1
+        );
+    }
+}
+
 use super::AgentView;
 use crate::app::app_view::InputOutcome;
 use crate::input::key::RowWalk;
@@ -413,12 +497,38 @@ impl AgentView {
         let Some(mut ev) = self.elicitation_view.take() else {
             return InputOutcome::Unchanged;
         };
-        // The card closes either way; an undelivered answer just means the
-        // MCP side already gave up on the request.
-        let _ = ev.send_response(response);
+        use nofy_tools::mcp_elicitation::McpElicitExtResponse;
+        let refusal = match &response {
+            McpElicitExtResponse::Accept { .. } => None,
+            McpElicitExtResponse::Decline => Some("was declined"),
+            McpElicitExtResponse::Cancel => Some("was dismissed without answering"),
+        };
+        let notice = if ev.send_response(response) {
+            refusal
+        } else {
+            Some("closed before this answer was delivered (timed out or answered elsewhere)")
+        };
+        if let Some(reason) = notice {
+            self.push_unanswered_elicitation_notice(&ev.server_name, reason);
+        }
         self.restore_elicitation_prompt(ev.stashed_prompt);
         self.promote_pending_elicitation();
         InputOutcome::Changed
+    }
+
+    /// Preserve a visible outcome when an input request receives no answer here.
+    pub(crate) fn push_unanswered_elicitation_notice(&mut self, server: &str, reason: &str) {
+        let server: String = server
+            .chars()
+            .filter(|c| !c.is_control())
+            .take(100)
+            .collect();
+        crate::app::mode_switch::push_block_behind_live_stream(
+            &mut self.scrollback,
+            crate::scrollback::block::RenderBlock::system(format!(
+                "MCP “{server}” request for input {reason}."
+            )),
+        );
     }
 
     /// Take composer ownership for an opening elicitation card.

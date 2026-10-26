@@ -406,6 +406,22 @@ fn maybe_show_send_now_tip(app: &mut AppView) {
 ///
 /// `literal = true` (follow-up chip click) submits `text` straight to the
 /// model: the slash-command and exit-alias branches are skipped so server/model-controlled chip text can never execute a command.
+fn refuse_failed_tab(agent: &mut AgentView, minimal: bool) -> bool {
+    if !agent.load_failed {
+        return false;
+    }
+    let notice =
+        "This session didn't open. Open it again with /resume, or start a new one with /new.";
+    if minimal {
+        agent
+            .scrollback
+            .push_block(RenderBlock::system(notice.to_owned()));
+    } else {
+        agent.show_toast(notice);
+    }
+    true
+}
+
 pub(super) fn dispatch_send_prompt_inner(
     app: &mut AppView,
     text: String,
@@ -432,6 +448,7 @@ pub(super) fn dispatch_send_prompt_inner(
         return vec![];
     };
     // Capture app-level fields before the mut-borrow on `agent`.
+    let minimal = app.screen_mode.is_minimal();
     let show_tips_from_app = app.show_tips;
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
@@ -446,6 +463,12 @@ pub(super) fn dispatch_send_prompt_inner(
         return vec![];
     };
 
+    let runs_locally = !literal
+        && (text.trim().starts_with('/')
+            || crate::slash::commands::exit::is_exit_alias(text.trim()));
+    if !runs_locally && refuse_failed_tab(agent, minimal) {
+        return vec![];
+    }
     // Paste-then-immediate-send: an image probe from a just-pasted Cmd+V is
     // still off-thread. Stash this send and re-issue it once the probe completes
     // so the image is never dropped from the built content blocks. Scoped to
@@ -574,6 +597,15 @@ pub(super) fn dispatch_send_prompt_inner(
 
         // Map CommandResult to pager behavior. (MRU persistence is queued
         // off-thread inside `record_command_use` above.)
+        if matches!(
+            &exec_result,
+            CommandResult::QueueCommand(_)
+                | CommandResult::InjectSkill { .. }
+                | CommandResult::PassThrough(_)
+        ) && refuse_failed_tab(agent, minimal)
+        {
+            return vec![];
+        }
         match exec_result {
             CommandResult::Handled | CommandResult::HandledNoOp => {
                 if consume_input {
@@ -885,6 +917,7 @@ pub(super) fn dispatch_send_prompt_inner(
 /// just with `QueueEntryKind::BashCommand`. No scrollback block is pushed here;
 /// the execute block from the shell IS the visual entry.
 pub(super) fn dispatch_send_bash_command(app: &mut AppView, command: String) -> Vec<Effect> {
+    let minimal = app.screen_mode.is_minimal();
     if app.reconnect_pending {
         app.show_toast("Reconnecting, please wait...");
         return vec![];
@@ -898,6 +931,9 @@ pub(super) fn dispatch_send_bash_command(app: &mut AppView, command: String) -> 
         return vec![];
     };
     // Submitting a bash command retires any edit-contextual ephemeral tip.
+    if refuse_failed_tab(agent, minimal) {
+        return vec![];
+    }
     agent.ephemeral_tip.clear_on_submit();
 
     // Store in prompt history with `! ` prefix for restore semantics.

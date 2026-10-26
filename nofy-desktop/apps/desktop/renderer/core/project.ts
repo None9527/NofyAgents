@@ -14,10 +14,31 @@
  */
 import type { JsonObject } from "../../main/acp/connection.ts";
 import type { NormalizedEvent, EventMeta } from "./events.ts";
+import { finishTurn, resumeTurn, turnFeedback } from "./turnLifecycle.ts";
+import { hasEventSequence, rememberEventSequence } from "./eventSequence.ts";
+import { toolEditPreviews } from "./toolContent.ts";
+import { presentUserEcho } from "./userEcho.ts";
 import {
   emptySession,
   initialState,
 } from "./store/state.ts";
+import {
+  applyListedSubagents,
+  applyListedTasks,
+  applyMonitorEvent,
+  applyScheduledCreated,
+  applyScheduledDeleted,
+  applyScheduledFired,
+  applySubagentProgress,
+  applySubagentSpawned,
+  applyTaskBackgrounded,
+  applyTaskCompleted,
+  noteKillRequested,
+  noteKillResolved,
+  noteScheduleDeleted,
+  noteSubagentCancel,
+} from "./taskMonitor.ts";
+import type { SubagentCancelOutcome } from "./store/state.ts";
 import type {
   AppState,
   Block,
@@ -33,8 +54,10 @@ import type {
 export type Action =
   | { type: "connection/status"; status: AppState["connection"]["status"] }
   | { type: "connection/initialized"; result: JsonObject }
-  | { type: "session/created"; sessionId: string; cwd: string | null; modelId: string | null }
+  | { type: "session/created"; sessionId: string; cwd: string | null; modelId: string | null; activate?: boolean }
   | { type: "session/activated"; sessionId: string }
+  | { type: "session/forgotten"; sessionId: string }
+  | { type: "session/replay-reset"; sessionId: string }
   /**
    * 用**读路径响应**补全会话元数据。存在理由（replay-dedup-measured.md §2）：
    * session_info_update 与 session_summary_generated 都**不在回放集**里，
@@ -57,7 +80,7 @@ export type Action =
   | { type: "kernel/unknown"; key: string }
   /** 乐观：已发出 prompt，置运行态。**不插用户块**（内核会发 user_message_chunk，插了会重复）。 */
   | { type: "session/turn-requested"; sessionId: string }
-  | { type: "session/turn-failed"; sessionId: string; error: string }
+  | { type: "session/turn-failed"; sessionId: string; error: string; preserveRunning?: boolean }
   /** 乐观：已发 cancel 通知（陷阱 T1 的 notification），等 turn_completed{cancelled} 收尾。 */
   | { type: "session/cancel-requested"; sessionId: string }
   /**
@@ -65,7 +88,14 @@ export type Action =
    * 存在理由：内核只对 plan 的进/出推 current_mode_update（session_mode.rs:85-112），
    * ask/default 切完**不推**——不记回执芯片就会掉回 default，显示成没切成功。
    */
-  | { type: "session/mode-set"; sessionId: string; mode: string };
+  | { type: "session/mode-set"; sessionId: string; mode: string }
+  /** task/list 对账。新行记为回放，不把已终态的行翻回 running。 */
+  | { type: "tasks/listed"; sessionId: string; tasks: unknown[] }
+  | { type: "subagents/listed"; sessionId: string; subagents: unknown[] }
+  | { type: "task/kill-requested"; sessionId: string; taskId: string; at: number }
+  | { type: "task/kill-resolved"; sessionId: string; taskId: string; outcome: string | null }
+  | { type: "subagent/cancel-resolved"; sessionId: string; subagentId: string; outcome: SubagentCancelOutcome | null }
+  | { type: "schedule/delete-resolved"; sessionId: string; taskId: string; deleted: boolean };
 
 /* ═══════════════════════ 小工具 ═══════════════════════ */
 
@@ -189,7 +219,8 @@ function patchToolBlock(
 export function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "connection/status":
-      return { ...state, connection: { ...state.connection, status: action.status } };
+      return { ...state, pendingInteractions: action.status === "reconnecting" ? [] : state.pendingInteractions, connection: { ...state.connection, status: action.status,
+        transportEpoch: state.connection.transportEpoch + (action.status === "reconnecting" && state.connection.status !== "reconnecting" ? 1 : 0) } };
 
     case "connection/initialized": {
       const r = action.result;
@@ -199,6 +230,7 @@ export function reduce(state: AppState, action: Action): AppState {
       return {
         ...state,
         connection: {
+          transportEpoch: state.connection.transportEpoch,
           status: "ready",
           agentVersion: str(meta["agentVersion"]) ?? str(r["agentVersion"]),
           modelState: meta["modelState"] ?? null,
@@ -225,11 +257,27 @@ export function reduce(state: AppState, action: Action): AppState {
           cwd: action.cwd ?? s.cwd,
           modelId: action.modelId ?? s.modelId,
         })),
-        activeSessionId: action.sessionId,
+        activeSessionId: action.activate === false ? state.activeSessionId : action.sessionId,
       };
+
+    case "session/forgotten": {
+      const sessions = { ...state.sessions };
+      const roster = { ...state.roster };
+      delete sessions[action.sessionId];
+      delete roster[action.sessionId];
+      return { ...state, sessions, roster, activeSessionId: state.activeSessionId === action.sessionId ? Object.keys(sessions)[0] ?? null : state.activeSessionId, pendingInteractions: state.pendingInteractions.filter((p) => p.sessionId !== action.sessionId) };
+    }
 
     case "session/activated":
       return { ...state, activeSessionId: action.sessionId };
+
+    case "session/replay-reset":
+      return withSession(state, action.sessionId, (s) => ({
+        ...s, blocks: [], turns: [], lastEventSeq: -1, seenEventSeqs: [], toolIndexToId: {},
+        openAgentBlockId: null, openThoughtBlockId: null, currentPromptId: null,
+        agentState: "idle", stopReason: null, turnUsage: null, subagentFinished: {},
+        backgroundTasks: {}, scheduledTasks: {}, subagentProgress: {}, subagentCancel: {},
+      }));
 
     case "session/hydrated":
       return withSession(state, action.sessionId, (s) => ({
@@ -276,24 +324,39 @@ export function reduce(state: AppState, action: Action): AppState {
     case "session/mode-set":
       return withSession(state, action.sessionId, (s) => ({ ...s, mode: action.mode }));
 
-    case "session/turn-failed":
-      return withSession(state, action.sessionId, (s) => ({
-        ...s,
-        agentState: "idle",
-        stopReason: "error",
-        blocks: [
-          ...s.blocks,
-          {
-            kind: "event",
-            id: "err:" + action.sessionId + ":" + String(s.blocks.length),
-            tag: "prompt-error",
-            payload: { error: action.error },
-          },
-        ],
-      }));
+    case "session/turn-failed": {
+      const next = withSession(state, action.sessionId, (s) => {
+        // A queue rejection belongs to that submission, never to the active turn.
+        if (!action.preserveRunning && s.turns.length) return finishTurn(s, "error", Date.now(), action.error);
+        return { ...s, agentState: action.preserveRunning ? s.agentState : "idle",
+          stopReason: action.preserveRunning ? s.stopReason : "error",
+          blocks: [...s.blocks, { kind: "event", id: "err:" + action.sessionId + ":" + s.blocks.length,
+            tag: "prompt-error", payload: { error: action.error } }] };
+      });
+      return action.preserveRunning ? next : { ...next, pendingInteractions: next.pendingInteractions.filter(p => p.sessionId !== action.sessionId) };
+    }
 
     case "session/cancel-requested":
       return withSession(state, action.sessionId, (s) => ({ ...s, agentState: "turn-cancelling" }));
+
+    case "tasks/listed": {
+      const listed = applyListedTasks(state.sessions[action.sessionId]?.backgroundTasks ?? {}, action.tasks);
+      const next = withSession(state, action.sessionId, (s) => ({ ...s, backgroundTasks: listed.tasks }));
+      return listed.skipped === 0 ? next : countSkipped(next, "task/list:skipped", listed.skipped);
+    }
+    case "subagents/listed": {
+      const listed = applyListedSubagents(state.sessions[action.sessionId]?.subagentProgress ?? {}, action.subagents);
+      const next = withSession(state, action.sessionId, (s) => ({ ...s, subagentProgress: listed.rows }));
+      return listed.skipped === 0 ? next : countSkipped(next, "subagent/list_running:skipped", listed.skipped);
+    }
+    case "task/kill-requested":
+      return withSession(state, action.sessionId, (s) => ({ ...s, backgroundTasks: noteKillRequested(s.backgroundTasks, action.taskId, action.at) }));
+    case "task/kill-resolved":
+      return withSession(state, action.sessionId, (s) => ({ ...s, backgroundTasks: noteKillResolved(s.backgroundTasks, action.taskId, action.outcome) }));
+    case "subagent/cancel-resolved":
+      return withSession(state, action.sessionId, (s) => ({ ...s, subagentCancel: noteSubagentCancel(s.subagentCancel, action.subagentId, action.outcome) }));
+    case "schedule/delete-resolved":
+      return withSession(state, action.sessionId, (s) => ({ ...s, scheduledTasks: noteScheduleDeleted(s.scheduledTasks, action.taskId, action.deleted) }));
 
     case "kernel/event":
       return projectEvent(state, action.event);
@@ -414,7 +477,14 @@ function rosterRowOf(u: unknown): RosterEntry | null {
 function deduped(session: SessionState, meta: EventMeta): boolean {
   const seq = eventSeqOf(meta);
   if (seq === null) return false; // 无 eventId ⇒ 不参与去重
-  return seq <= session.lastEventSeq;
+  return hasEventSequence(session.seenEventSeqs, seq);
+}
+function rememberEvent(state: AppState, session: SessionState, meta: EventMeta): AppState {
+  const seq = eventSeqOf(meta);
+  if (seq === null) return state;
+  return { ...state, sessions: { ...state.sessions, [session.id]: {
+    ...session, seenEventSeqs: rememberEventSequence(session.seenEventSeqs, seq),
+  } } };
 }
 function bumpSeq(session: SessionState, meta: EventMeta): number {
   const seq = eventSeqOf(meta);
@@ -430,29 +500,41 @@ function projectSessionUpdate(
 ): AppState {
   const session = state.sessions[sessionId] ?? emptySession(sessionId);
   if (deduped(session, meta)) return state; // replay 重复帧
+  state = rememberEvent(state, session, meta);
+  if (["agent_message_chunk", "agent_thought_chunk", "tool_call"].includes(kind) && session.turns.at(-1)?.feedback?.kind === "retrying") {
+    state = withSession(state, sessionId, resumeTurn);
+  }
 
   switch (kind) {
     case "user_message_chunk": {
       // 〔夹具〕{content:{type:"text",text}, _meta:{modelId, promptIndex}}
       const content = isObj(update["content"]) ? update["content"] : {};
       const um = isObj(update["_meta"]) ? update["_meta"] : {};
+      const sourceUri = content["type"] === "resource_link" ? str(content["uri"]) : null;
+      const sourcePath = sourceUri?.startsWith("file:///") ? sourceUri.slice(7) : null;
+      // 〔源码〕turn.rs 给合成回传打 hideFromScrollback。监控/任务结束是给模型的
+      // system-reminder，不进用户气泡；定时任务只留下包装后面的正文。
+      const echo = presentUserEcho(str(content["text"]) ?? "", um["hideFromScrollback"] === true);
       const block: Block = {
         kind: "user-message",
         id: "user:" + sessionId + ":" + String(session.blocks.length),
-        text: str(content["text"]) ?? "",
+        text: echo.text,
         promptIndex: typeof um["promptIndex"] === "number" ? um["promptIndex"] : null,
         modelId: str(um["modelId"]),
+        ...(echo.hidden ? { hidden: true } : {}),
+        ...(sourcePath ? { source: { path: sourcePath, name: str(content["name"]) ?? sourcePath.split("/").pop() ?? sourcePath } } : {}),
       };
       return withSession(state, sessionId, (s) => ({
         ...s,
         blocks: [...s.blocks, block],
+        agentState: "turn-running",
         currentPromptId: s.currentPromptId,
         lastEventSeq: bumpSeq(s, meta),
         // 新用户消息开一个回合（上一条还是 user-message 则视为同消息的后续帧，不重开）。
         turns:
-          s.blocks.length > 0 && s.blocks[s.blocks.length - 1]?.kind === "user-message"
+          s.blocks.length > 0 && s.blocks[s.blocks.length - 1]?.kind === "user-message" && s.turns.at(-1)?.endedAt === null
             ? s.turns
-            : [...s.turns, { startedAt: Date.now(), endedAt: null }],
+            : [...s.turns, { startedAt: meta.agentTimestampMs ?? Date.now(), endedAt: null }],
       }));
     }
     case "agent_message_chunk":
@@ -462,6 +544,23 @@ function projectSessionUpdate(
       const delta = str(content["text"]) ?? "";
       const isThought = kind === "agent_thought_chunk";
       return withSession(state, sessionId, (s) => {
+        // Match the TUI's response boundary even when response_completed is absent
+        // (including replay). Do not infer a final answer or finish the user turn.
+        if (meta.streamStartMs !== undefined) {
+          const changed = s.agentStreamStartMs !== undefined && s.agentStreamStartMs !== meta.streamStartMs;
+          s = { ...s, agentStreamStartMs: meta.streamStartMs,
+            ...(changed ? {
+              openAgentBlockId: null,
+              blocks: s.blocks.map(b => (b.kind === "agent-message" || b.kind === "agent-thought") && !b.closed ? { ...b, closed: true } : b),
+            } : {}),
+          };
+        }
+        const tail = s.blocks.at(-1);
+        // ACP thought chunks are deltas, not individual messages. Only join
+        // adjacent open thoughts so tools, text and response boundaries keep order.
+        if (isThought && tail?.kind === "agent-thought" && !tail.closed) {
+          return { ...s, blocks: upsertBlock(s.blocks, { ...tail, text: tail.text + delta }), lastEventSeq: bumpSeq(s, meta) };
+        }
         const openId = s.openAgentBlockId;
         const open = openId === null ? undefined : s.blocks.find((b) => b.id === openId);
         if (open !== undefined && open.kind === "agent-message" && !isThought) {
@@ -477,7 +576,7 @@ function projectSessionUpdate(
           : { kind: "agent-message", id, text: delta, closed: false, usage: null };
         return {
           ...s,
-          blocks: [...s.blocks, block],
+          blocks: [...s.blocks.map(b => b.kind === "agent-thought" && !b.closed ? { ...b, closed: true } : b), block],
           openAgentBlockId: isThought ? s.openAgentBlockId : id,
           lastEventSeq: bumpSeq(s, meta),
         };
@@ -485,7 +584,7 @@ function projectSessionUpdate(
     }
     case "tool_call": {
       // 〔夹具〕{toolCallId, title:"read_file"（原始工具名）, rawInput:{target_file}, _meta:{"nofy/tool":{…}}}
-      // 注意首帧**没有** kind / locations / status；那些随 tool_call_update 到。
+      // 实时首帧通常不含结果；历史回放将最终结果聚合在同一个 tool_call 内。
       const toolCallId = str(update["toolCallId"]) ?? "";
       return withSession(state, sessionId, (s) => ({
         ...s,
@@ -494,6 +593,11 @@ function projectSessionUpdate(
           name: str(update["title"]) ?? b.name,
           rawInput: update["rawInput"] ?? b.rawInput,
           status: str(update["status"]) ?? b.status,
+          toolKind: str(update["kind"]) ?? b.toolKind,
+          locations: arr(update["locations"]).length > 0 ? arr(update["locations"]) : b.locations,
+          resultText: contentTextOf(update["content"]) ?? b.resultText,
+          editPreviews: toolEditPreviews(update["content"]) ?? b.editPreviews,
+          rawOutput: update["rawOutput"] ?? b.rawOutput,
         })),
         lastEventSeq: bumpSeq(s, meta),
       }));
@@ -513,6 +617,7 @@ function projectSessionUpdate(
           locations: arr(update["locations"]).length > 0 ? arr(update["locations"]) : b.locations,
           rawInput: update["rawInput"] ?? b.rawInput,
           resultText: contentTextOf(update["content"]) ?? b.resultText,
+          editPreviews: toolEditPreviews(update["content"]) ?? b.editPreviews,
           rawOutput: update["rawOutput"] ?? b.rawOutput,
         })),
         lastEventSeq: bumpSeq(s, meta),
@@ -578,33 +683,46 @@ function projectExtNotification(
 ): AppState {
   const session = state.sessions[sessionId] ?? emptySession(sessionId);
   if (deduped(session, meta)) return state;
+  state = rememberEvent(state, session, meta);
 
   switch (kind) {
-    case "turn_completed": {
-      // 〔夹具〕{prompt_id, stop_reason:"end_turn", usage{camelCase, 10 字段}}
-      // 〔源码 turn_end.rs:324-334〕权威回合收尾：persisted+replayed 轨，重连可从 replay 恢复。
-      const usage = parseTurnUsage(update["usage"]);
-      const next = withSession(state, sessionId, (s) => ({
-        ...s,
-        agentState: "idle",
-        stopReason: str(update["stop_reason"]),
-        turnUsage: usage ?? s.turnUsage,
-        currentPromptId: str(update["prompt_id"]) ?? s.currentPromptId,
-        // 关回合：最后一个开着的 turn 记本地墙钟终点（「已工作 Ns」turn 头用）。
-        turns: s.turns.map((t, i) => (i === s.turns.length - 1 && t.endedAt === null ? { ...t, endedAt: Date.now() } : t)),
-        // 收尾时关掉仍开着的 agent 块（正常路径下 response_completed 已关）
-        openAgentBlockId: null,
-        blocks: s.blocks.map((b) =>
-          b.kind === "agent-message" && !b.closed ? { ...b, closed: true } : b,
-        ),
+    case "rewind_marker": {
+      const target = update["target_prompt_index"];
+      if (typeof target !== "number" || !Number.isInteger(target) || target < 0) return state;
+      const next = withSession(state, sessionId, (s) => {
+        const cut = s.blocks.findIndex((b) => b.kind === "user-message" && b.promptIndex !== null && b.promptIndex >= target);
+        if (cut < 0) return { ...s, lastEventSeq: bumpSeq(s, meta) };
+        const blocks = s.blocks.slice(0, cut);
+        // marker 指向执行第 N 轮前；保留此前分支，不用 DOM/数组序号代替内核 promptIndex。
+        return { ...s, blocks, turns: s.turns.slice(0, blocks.filter((b) => b.kind === "user-message").length),
+          openAgentBlockId: null, openThoughtBlockId: null, toolIndexToId: {},
+          currentPromptId: null, agentState: "idle", turnUsage: null,
+          lastEventSeq: bumpSeq(s, meta) };
+      });
+      return { ...next, pendingInteractions: next.pendingInteractions.filter((p) => p.sessionId !== sessionId) };
+    }
+    case "retry_state": {
+      // Captured 2026-10-13: retrying ×14 → failed → turn_completed(error).
+      const type = str(update["type"]);
+      if (!["retrying", "failed", "exhausted"].includes(type ?? "")) return state;
+      const at = meta.agentTimestampMs ?? Date.now();
+      return withSession(state, sessionId, s => ({
+        ...turnFeedback(s, { kind: type === "retrying" ? "retrying" : "failed", at,
+          message: str(update["reason"]) ?? str(update["message"]) ?? "请求失败",
+          attempt: num(update["attempt"] ?? update["attempts"]), maxRetries: num(update["max_retries"]),
+          errorType: str(update["error_type"]) ?? undefined }),
         lastEventSeq: bumpSeq(s, meta),
       }));
-      // 回合收尾＝该会话挂起的权限/问答请求已死（内核不再等应答）。
-      // 不清就会留下点不动的孤儿审批卡（2026-09-13 实机三张叠卡事故的另一半）。
-      return {
-        ...next,
-        pendingInteractions: next.pendingInteractions.filter((p) => p.sessionId !== sessionId),
-      };
+    }
+    case "turn_completed": {
+      const usage = parseTurnUsage(update["usage"]);
+      const next = withSession(state, sessionId, s => ({
+        ...finishTurn(s, str(update["stop_reason"]) ?? "end_turn", meta.agentTimestampMs ?? Date.now(), str(update["agent_result"]) ?? undefined),
+        turnUsage: usage ?? s.turnUsage,
+        currentPromptId: str(update["prompt_id"]) ?? s.currentPromptId,
+        lastEventSeq: bumpSeq(s, meta),
+      }));
+      return { ...next, pendingInteractions: next.pendingInteractions.filter(p => p.sessionId !== sessionId) };
     }
     case "response_completed": {
       // 〔夹具〕{usage{snake_case, 5 字段}} —— **段级**收尾，一轮可多次（本轮 2 次）。
@@ -612,12 +730,12 @@ function projectExtNotification(
       const usage = parseSegmentUsage(update["usage"]);
       return withSession(state, sessionId, (s) => {
         const openId = s.openAgentBlockId;
-        if (openId === null) return { ...s };
         return {
           ...s,
           openAgentBlockId: null,
           blocks: s.blocks.map((b) =>
-            b.id === openId && b.kind === "agent-message" ? { ...b, closed: true, usage } : b,
+            b.id === openId && b.kind === "agent-message" ? { ...b, closed: true, usage }
+              : b.kind === "agent-thought" && !b.closed ? { ...b, closed: true } : b,
           ),
         };
       });
@@ -645,7 +763,7 @@ function projectExtNotification(
         };
       }
       return withSession(state, sessionId, (s) => ({
-        ...s,
+        ...resumeTurn(s),
         toolIndexToId: map,
         agentState: s.agentState === "idle" ? "turn-running" : s.agentState,
         blocks: patchToolBlock(s.blocks, toolCallId, (b) => ({
@@ -704,6 +822,46 @@ function projectExtNotification(
         };
       });
     }
+    case "task_backgrounded": {
+      const next = applyTaskBackgrounded(state.sessions[sessionId]?.backgroundTasks ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#task_backgrounded:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, backgroundTasks: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "task_completed": {
+      const next = applyTaskCompleted(state.sessions[sessionId]?.backgroundTasks ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#task_completed:missing-snapshot", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, backgroundTasks: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "monitor_event": {
+      const next = applyMonitorEvent(state.sessions[sessionId]?.backgroundTasks ?? {}, update);
+      if (!next.ok) return countUnhandled(state, "ext#monitor_event:" + next.reason, 1);
+      return withSession(state, sessionId, (s) => ({ ...s, backgroundTasks: next.tasks, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "scheduled_task_created": {
+      const next = applyScheduledCreated(state.sessions[sessionId]?.scheduledTasks ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#scheduled_task_created:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, scheduledTasks: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "scheduled_task_fired": {
+      const next = applyScheduledFired(state.sessions[sessionId]?.scheduledTasks ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#scheduled_task_fired:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, scheduledTasks: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "scheduled_task_deleted": {
+      const next = applyScheduledDeleted(state.sessions[sessionId]?.scheduledTasks ?? {}, update);
+      if (next === null) return countUnhandled(state, "ext#scheduled_task_deleted:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, scheduledTasks: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "subagent_spawned": {
+      const next = applySubagentSpawned(state.sessions[sessionId]?.subagentProgress ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#subagent_spawned:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, subagentProgress: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
+    case "subagent_progress": {
+      const next = applySubagentProgress(state.sessions[sessionId]?.subagentProgress ?? {}, update, meta.isReplay === true);
+      if (next === null) return countUnhandled(state, "ext#subagent_progress:missing-id", 1);
+      return withSession(state, sessionId, (s) => ({ ...s, subagentProgress: next, lastEventSeq: bumpSeq(s, meta) }));
+    }
     case "subagent_finished": {
       // 〔内核〕extensions/notification.rs SessionUpdate::SubagentFinished：父会话通道，
       // {subagent_id, child_session_id, status: completed|failed|cancelled, error?, tool_calls,
@@ -725,17 +883,22 @@ function projectExtNotification(
       }));
     }
     default:
-      // subagent_* / auto_compact_* / rewind_marker 等：TUI Part 4 有记载但**本轮未实测载荷**。
-      // 按「一条不造」显式计数，待对应夹具录到后再实现。
-      return {
-        ...state,
-        unhandled: {
-          ...state.unhandled,
-          ["ext#" + kind]: num(state.unhandled["ext#" + kind]) + 1,
-        },
-        appliedEvents: state.appliedEvents + 1,
-      };
+      // auto_compact_* 等：载荷未进会话状态。显式计数，不静默丢弃。
+      return countUnhandled(state, "ext#" + kind, 1);
   }
+}
+
+function countUnhandled(state: AppState, key: string, amount: number): AppState {
+  return {
+    ...state,
+    unhandled: { ...state.unhandled, [key]: num(state.unhandled[key]) + amount },
+    appliedEvents: state.appliedEvents + amount,
+  };
+}
+
+/** withSession 已经把 appliedEvents 加过 1。跳过的快照只记 unhandled。 */
+function countSkipped(state: AppState, key: string, amount: number): AppState {
+  return { ...state, unhandled: { ...state.unhandled, [key]: num(state.unhandled[key]) + amount } };
 }
 
 export { initialState };

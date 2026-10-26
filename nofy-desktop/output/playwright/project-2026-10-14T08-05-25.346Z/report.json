@@ -1,0 +1,64 @@
+{
+  "source": "Actual Electron GUI with deterministic ACP emulator; native open/save dialog provider stubs only. Actual main IPC, directory validation and fs export write.",
+  "startedAt": "2026-10-14T08:05:25.347Z",
+  "cases": [
+    {
+      "name": "E01 cancelled directory provider preserves draft and session count",
+      "status": "passed",
+      "durationMs": 161
+    },
+    {
+      "name": "E01 valid directory provider routes native IPC and actual cwd",
+      "status": "passed",
+      "durationMs": 55
+    },
+    {
+      "name": "E03 recent project navigation creates isolated task and preserves old drafts",
+      "status": "passed",
+      "durationMs": 400
+    },
+    {
+      "name": "E04 export cancellation writes no file; accepted dialog invokes real fs write",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('dialog', { name: '会话操作', exact: true }).getByRole('button', { name: '导出已加载内容…', exact: true })\n"
+    },
+    {
+      "name": "M2 pin and unread current then same-id activate marks read",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '会话操作', exact: true })\n    - locator resolved to <button title=\"会话操作\" type=\"button\" aria-haspopup=\"menu\" aria-expanded=\"true\" class=\"menu__trigger menu__trigger--icon menu__trigger--open\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <span class=\"menu__overlay\"></span> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "name": "M2 groups rename and dissolve without modifying sessions",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '会话操作', exact: true })\n    - locator resolved to <button title=\"会话操作\" type=\"button\" aria-haspopup=\"menu\" aria-expanded=\"true\" class=\"menu__trigger menu__trigger--icon menu__trigger--open\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <span class=\"menu__overlay\"></span> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "name": "M2 archive filter preserves current session then hides it after navigation",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '会话操作', exact: true })\n    - locator resolved to <button title=\"会话操作\" type=\"button\" aria-haspopup=\"menu\" aria-expanded=\"true\" class=\"menu__trigger menu__trigger--icon menu__trigger--open\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <span class=\"menu__overlay\"></span> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "name": "M2 running archive is disabled and does not change metadata",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '发送', exact: true })\n    - locator resolved to <button type=\"button\" class=\"sendbtn\" aria-label=\"发送\" title=\"发送（Enter）\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <span class=\"menu__overlay\"></span> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "name": "M2 reload persists local organisation and current task",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.taskrow__btn').filter({ hasText: 'E2E task 2' }).getByLabel('已置顶') to be visible\n"
+    },
+    {
+      "name": "M2 confirmed kernel deletion removes only target local metadata",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('dialog', { name: '会话操作', exact: true }).getByRole('button', { name: '删除会话…', exact: true })\n"
+    },
+    {
+      "name": "local organisation sends no invented lifecycle RPCs",
+      "status": "passed",
+      "durationMs": 1
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/project-2026-10-14T08-05-25.346Z",
+  "finishedAt": "2026-10-14T08:08:57.981Z"
+}

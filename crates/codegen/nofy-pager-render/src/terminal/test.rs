@@ -1,5 +1,60 @@
 use super::*;
 
+#[test]
+fn width_shrink_uses_innermost_known_terminal_layer() {
+    use nofy_ratatui_inline::WidthShrink;
+    let known = TerminalContext {
+        brand: TerminalName::Ghostty,
+        env_brand: TerminalName::Ghostty,
+        ..Default::default()
+    };
+    assert_eq!(known.width_shrink(), WidthShrink::Rewraps);
+    assert_eq!(
+        TerminalContext::default().width_shrink(),
+        WidthShrink::Truncates
+    );
+    assert_eq!(
+        TerminalContext {
+            brand: TerminalName::WindowsTerminal,
+            ..Default::default()
+        }
+        .width_shrink(),
+        WidthShrink::Truncates
+    );
+    for multiplexer in [
+        MultiplexerKind::Tmux,
+        MultiplexerKind::Zellij,
+        MultiplexerKind::Cmux,
+    ] {
+        assert_eq!(
+            TerminalContext {
+                multiplexer,
+                ..Default::default()
+            }
+            .width_shrink(),
+            WidthShrink::Rewraps
+        );
+    }
+    for multiplexer in [MultiplexerKind::Screen, MultiplexerKind::Herdr] {
+        assert_eq!(
+            TerminalContext {
+                multiplexer,
+                ..known.clone()
+            }
+            .width_shrink(),
+            WidthShrink::Truncates
+        );
+    }
+    assert_eq!(
+        TerminalContext {
+            embedded_editor: Some(EmbeddedEditor::Vim),
+            ..known
+        }
+        .width_shrink(),
+        WidthShrink::Truncates
+    );
+}
+
 // -- terminal_name_from_term_program (existing coverage) ------------------
 
 #[test]

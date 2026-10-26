@@ -1,0 +1,58 @@
+{
+  "source": "Controlled multi-stage workflow in isolated Electron; DOM identity and frame measurements",
+  "cases": [
+    {
+      "name": "S01 collapsed reasoning exposes live content; same-line growth preserves node",
+      "status": "passed"
+    },
+    {
+      "name": "S02 reasoning changes identity without replay or replacing the text node",
+      "status": "passed"
+    },
+    {
+      "name": "S03 completed child tools remain one active stage with current command",
+      "status": "passed"
+    },
+    {
+      "name": "S04 arriving prose ends stage and shows live response before completion",
+      "status": "passed"
+    },
+    {
+      "name": "S05 completed answer retains its DOM while work folds, keyboard restores details",
+      "status": "passed"
+    },
+    {
+      "name": "S06 a new turn reserves bounded answer space, consumed by a growing response",
+      "status": "passed",
+      "details": {
+        "space": 116.40625,
+        "available": 586
+      }
+    },
+    {
+      "name": "S07 upward reading is not stolen by streaming; explicit bottom resumes following",
+      "status": "passed",
+      "details": {
+        "before": 1628,
+        "after": 1628
+      }
+    },
+    {
+      "name": "S08 opening tool output anchors the trigger, user wheel cancels compensation",
+      "status": "passed",
+      "details": {
+        "maxDrift": 0
+      }
+    },
+    {
+      "name": "S09 completed turn retains error outside folded history; narrow geometry stays bounded",
+      "status": "passed",
+      "details": {
+        "width": 680,
+        "scrollWidth": 680
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workflow-system-2026-10-13T14-09-02.097Z"
+}

@@ -1,0 +1,12 @@
+{
+  "source": "isolated Electron + staged synthetic ACP; native DOM, pointer, keyboard and animation frames",
+  "cases": [
+    {
+      "name": "setup",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.activity-card').filter({ has: locator('.activity-card__detail').filter({ hasText: 'pnpm test' }) }).first().locator('.activity-output') to be visible\u001b[22m\n\u001b[2m    27 × locator resolved to hidden <section data-phase=\"running\" class=\"activity-output\">…</section>\u001b[22m\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/activities-2026-10-12T15-31-59.332Z"
+}

@@ -1,0 +1,169 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 22,
+        "totalBlocks": 10000
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "samples": [
+    {
+      "time": 273.69999998807907,
+      "mode": "user_follow",
+      "total": "0",
+      "top": 0,
+      "height": 322,
+      "available": 322,
+      "space": ""
+    },
+    {
+      "time": 303.5,
+      "mode": "prework_watch",
+      "total": "0",
+      "top": 0,
+      "height": 404,
+      "available": 404,
+      "space": "82px"
+    },
+    {
+      "time": 437.39999997615814,
+      "mode": "prework_watch",
+      "total": "1602",
+      "top": 189033,
+      "height": 189739,
+      "available": 706,
+      "space": "466px",
+      "first": "Bench reply 791 bold"
+    },
+    {
+      "time": 1449.199999988079,
+      "mode": "prework_follow",
+      "total": "8584",
+      "top": 1012896,
+      "height": 1013602,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4281 bold"
+    },
+    {
+      "time": 1476.3999999761581,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180416,
+      "height": 1181122,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1506.0999999940395,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180515,
+      "height": 1181221,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1535.699999988079,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180526,
+      "height": 1181232,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1563.5999999940395,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180537,
+      "height": 1181243,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1594.5,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180537,
+      "height": 1181243,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1624,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1653.699999988079,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1683.8999999761581,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1714,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1744.7999999821186,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1774,
+      "mode": "prework_follow",
+      "total": "10000",
+      "top": 1180548,
+      "height": 1181254,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    }
+  ],
+  "stderr": "Debugger ending on ws://127.0.0.1:56136/d307c056-fd30-4173-9cf5-472545f467ef\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n[nofy-desktop] kernel child exited pid=45844 code=null signal=SIGTERM\n",
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

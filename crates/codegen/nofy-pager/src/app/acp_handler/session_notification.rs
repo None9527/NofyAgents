@@ -976,6 +976,8 @@ pub(super) fn handle_session_notification_with_origin(
         NofySessionUpdate::ModelChanged {
             model_id,
             reasoning_effort,
+            context_window,
+            context_window_total,
         } => {
             if agent.session.model_switch_pending {
                 tracing::debug!(
@@ -1007,14 +1009,49 @@ pub(super) fn handle_session_notification_with_origin(
                 .and_then(|s| s.parse::<ReasoningEffort>().ok());
             let prev_model = agent.session.models.current.clone();
             let prev_effort = agent.session.models.reasoning_effort;
+            let prev_context_window = agent.session.models.context_window_selection();
+            let previous_budget = agent.session.models.get_context_window();
             agent
                 .session
                 .models
                 .set_current(new_model_id.clone(), effort);
+            agent
+                .session
+                .models
+                .set_context_window_selection(context_window);
+            // Old broadcasters don't carry a total. Keep a confirmed same-model
+            // cap instead of expanding to the static catalog/menu selection.
+            let budget = context_window_total.filter(|total| *total > 0).or_else(|| {
+                (prev_model.as_ref() == Some(&new_model_id))
+                    .then(|| {
+                        previous_budget.map(|previous| {
+                            agent
+                                .session
+                                .models
+                                .get_context_window()
+                                .map_or(previous, |current| previous.min(current))
+                        })
+                    })
+                    .flatten()
+            });
+            if let Some(total) = budget {
+                agent.session.models.override_context_window(total);
+                if let Some(context) = agent.context_state.as_mut() {
+                    context.total = total;
+                }
+            }
+            if let Some(notice) = agent.session.models.take_current_notice() {
+                agent
+                    .scrollback
+                    .push_block(crate::scrollback::block::RenderBlock::system(notice));
+            }
             agent.session.user_model_preference = Some(new_model_id.clone());
             let resolved_effort = agent.session.models.reasoning_effort;
+            let actually_changed = prev_model.as_ref() != Some(&new_model_id)
+                || prev_effort != resolved_effort
+                || prev_context_window != context_window;
             let actually_changed =
-                prev_model.as_ref() != Some(&new_model_id) || prev_effort != resolved_effort;
+                actually_changed || previous_budget != agent.session.models.get_context_window();
             if actually_changed {
                 tracing::info!(
                     session_id = session_notif.session_id.0.as_ref(),

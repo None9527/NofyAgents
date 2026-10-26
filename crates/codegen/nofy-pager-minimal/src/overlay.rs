@@ -444,6 +444,7 @@ pub fn render(
 /// A prompt-replacing modal overlay.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Modal {
+    Elicitation,
     Permission,
     Question,
     Rewind,
@@ -475,6 +476,9 @@ pub fn active_modal(agent: &AgentView) -> Option<Modal> {
     if minimal_api::question_view(agent).is_some() {
         return Some(Modal::Question);
     }
+    if minimal_api::elicitation_view(agent).is_some() {
+        return Some(Modal::Elicitation);
+    }
     if minimal_api::rewind_state(agent).is_some() {
         return Some(Modal::Rewind);
     }
@@ -486,6 +490,13 @@ pub fn active_modal(agent: &AgentView) -> Option<Modal> {
 /// live region (design Issue 5).
 pub fn modal_height(modal: Modal, agent: &mut AgentView, screen_h: u16, content_w: usize) -> u16 {
     match modal {
+        Modal::Elicitation => minimal_api::elicitation_view(agent)
+            .map(|state| {
+                nofy_pager::views::elicitation_view::elicitation_view_height(
+                    state, screen_h, content_w,
+                )
+            })
+            .unwrap_or(0),
         Modal::Permission => agent
             .permission_queue
             .front()
@@ -543,6 +554,10 @@ pub fn render_modal(
     screen_h: u16,
 ) -> Option<(u16, u16)> {
     match modal {
+        Modal::Elicitation => {
+            minimal_api::render_elicitation(agent, buf, area, theme);
+            None
+        }
         Modal::Permission => render_permission(buf, area, agent, theme),
         Modal::Question => render_question(buf, area, agent, theme, screen_h),
         Modal::Rewind => {
@@ -817,6 +832,42 @@ fn inline_input_style(theme: &Theme) -> PromptStyle {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn elicitation_is_a_painted_prompt_replacing_modal() {
+        let mut agent = minimal_api::test_agent_view(Some("s"), std::path::PathBuf::from("/tmp"));
+        let req = nofy_tools::mcp_elicitation::McpElicitExtRequest {
+            session_id: "s".into(),
+            tool_call_id: "t".into(),
+            server_name: "demo".into(),
+            message: "Enter email".into(),
+            mode: nofy_tools::mcp_elicitation::McpElicitModeFields::Form {
+                requested_schema: Some(
+                    serde_json::json!({"type":"object", "properties":{"email":{"type":"string"}}}),
+                ),
+            },
+        };
+        let state = nofy_pager::views::elicitation_view::ElicitationViewState::from_request(
+            req,
+            Some(agent.prompt.stash()),
+            None,
+        );
+        minimal_api::set_elicitation_view(&mut agent, state);
+        assert_eq!(active_modal(&agent), Some(Modal::Elicitation));
+        let height = modal_height(Modal::Elicitation, &mut agent, 40, 70);
+        assert!(height > 0 && height <= 40);
+        let area = Rect::new(0, 0, 75, height);
+        let mut buf = Buffer::empty(area);
+        render_modal(
+            &mut buf,
+            area,
+            Modal::Elicitation,
+            &mut agent,
+            &Theme::default(),
+            40,
+        );
+        let text: String = buf.content.iter().map(|cell| cell.symbol()).collect();
+        assert!(text.contains("Enter email"));
+    }
     use nofy_pager::views::suggestion_controller::CompletionItemParsed;
 
     fn completion_item() -> CompletionItemParsed {

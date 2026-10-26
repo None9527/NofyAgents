@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * ⌘K 命令面板的**纯模型**（无 DOM、无线路名、无 React）。
  *
@@ -40,9 +41,9 @@ export type PaletteScope = "all" | "commands" | "sessions";
 export const SCOPE_ORDER: PaletteScope[] = ["all", "commands", "sessions"];
 
 export const SCOPE_LABEL: Record<PaletteScope, string> = {
-  all: "全部",
-  commands: "命令",
-  sessions: "会话",
+  get all() { return tr("全部"); },
+  get commands() { return tr("命令"); },
+  get sessions() { return tr("会话"); },
 };
 
 export type ParsedQuery = { query: string; scope: PaletteScope; explicitScope: boolean };
@@ -75,12 +76,12 @@ export type ActionSection = "suggested" | "panels" | "configure" | "app";
 export const ACTION_SECTIONS: ActionSection[] = ["suggested", "panels", "configure", "app"];
 
 export const SECTION_LABEL: Record<ActionSection | "kernel" | "recent", string> = {
-  suggested: "建议",
-  panels: "面板",
-  configure: "配置",
-  app: "应用",
-  kernel: "内核命令",
-  recent: "最近会话",
+  get suggested() { return tr("建议"); },
+  get panels() { return tr("面板"); },
+  get configure() { return tr("配置"); },
+  get app() { return tr("应用"); },
+  get kernel() { return tr("内核命令"); },
+  get recent() { return tr("最近会话"); },
 };
 
 export const COLLAPSED_LIMIT = 3; // :1111 COLLAPSED_SECTION_LIMIT
@@ -93,7 +94,7 @@ export const HISTORY_LIMIT = 20; // :1026 SEARCH_HISTORY_LIMIT
 /** 图标键 → ui/icons.tsx 的组件（映射在 CommandPalette.tsx，本文件不 import React）。 */
 export type IconKey =
   | "plus" | "search" | "gear" | "terminal" | "panel" | "palette" | "message"
-  | "folder" | "mark" | "edit" | "info" | "shield" | "clock" | "boxes" | "file" | "zap";
+  | "folder" | "mark" | "edit" | "info" | "shield" | "clock" | "boxes" | "file" | "zap" | "globe";
 
 export type PaletteAction = {
   id: string;
@@ -211,7 +212,7 @@ export function findHighlightRanges(text: string, query: string): HighlightRange
 /** 空标题 → 「未命名」（抄 :934 resolveTaskTitle）。 */
 export function sessionTitle(title: string | null): string {
   const t = title?.trim() ?? "";
-  return t.length === 0 ? "未命名会话" : t;
+  return t.length === 0 ? tr("未命名会话") : t;
 }
 
 /**
@@ -222,13 +223,13 @@ export function sessionTitle(title: string | null): string {
 export function formatRelative(timestamp: number | null, now: number): string | null {
   if (timestamp === null || !Number.isFinite(timestamp)) return null;
   const elapsed = now - timestamp;
-  if (elapsed < 0) return "刚刚";
+  if (elapsed < 0) return tr("刚刚");
   const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return String(minutes) + " 分钟前";
+  if (minutes < 1) return tr("刚刚");
+  if (minutes < 60) return String(minutes) + tr(" 分钟前");
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return String(hours) + " 小时前";
-  return String(Math.floor(hours / 24)) + " 天前";
+  if (hours < 24) return String(hours) + tr(" 小时前");
+  return String(Math.floor(hours / 24)) + tr(" 天前");
 }
 
 /**
@@ -243,13 +244,13 @@ export function formatRelative(timestamp: number | null, now: number): string | 
 export function formatCompactRelative(timestamp: number | null, now: number): string | null {
   if (timestamp === null || !Number.isFinite(timestamp)) return null;
   const elapsed = now - timestamp;
-  if (elapsed < 0) return "刚刚";
+  if (elapsed < 0) return tr("刚刚");
   const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return String(minutes) + "分";
+  if (minutes < 1) return tr("刚刚");
+  if (minutes < 60) return String(minutes) + tr("分");
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return String(hours) + "小时";
-  return String(Math.floor(hours / 24)) + "天";
+  if (hours < 24) return String(hours) + tr("小时");
+  return String(Math.floor(hours / 24)) + tr("天");
 }
 
 /** 工作区末段名（抄 :1167 fileDirectoryLabel 的思路：路径按 / 切，取有意义的一段）。 */
@@ -362,7 +363,7 @@ export function buildPaletteView(input: PaletteInput): PaletteView {
   }
   if (showSessions && (hasQuery || scope === "sessions")) {
     const rows = matchedSessions.map((s) => ({ kind: "session" as const, key: s.key, session: s }));
-    if (rows.length > 0) groups.push({ key: "sessions", heading: "会话", rows: collapse("sessions", rows, rows.length), total: rows.length });
+    if (rows.length > 0) groups.push({ key: "sessions", heading: tr("会话"), rows: collapse("sessions", rows, rows.length), total: rows.length });
   }
   if (showActions) {
     for (const section of ACTION_SECTIONS) {

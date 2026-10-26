@@ -1,0 +1,445 @@
+{
+  "source": "isolated Electron + synthetic ACP",
+  "cases": [
+    {
+      "name": "C01 collapsed frame and conversation use the available width",
+      "status": "passed",
+      "details": [
+        {
+          "viewport": 880,
+          "card": {
+            "x": 0,
+            "y": 0,
+            "width": 880,
+            "height": 900,
+            "top": 0,
+            "right": 880,
+            "bottom": 900,
+            "left": 0
+          },
+          "host": {
+            "x": 0,
+            "y": 48,
+            "width": 880,
+            "height": 852,
+            "top": 48,
+            "right": 880,
+            "bottom": 900,
+            "left": 0
+          },
+          "text": {
+            "x": 56,
+            "y": -491.5,
+            "width": 768,
+            "height": 1197.65625,
+            "top": -491.5,
+            "right": 824,
+            "bottom": 706.15625,
+            "left": 56
+          },
+          "input": {
+            "x": 56,
+            "y": 766,
+            "width": 768,
+            "height": 110,
+            "top": 766,
+            "right": 824,
+            "bottom": 876,
+            "left": 56
+          }
+        },
+        {
+          "viewport": 1024,
+          "card": {
+            "x": 0,
+            "y": 0,
+            "width": 1024,
+            "height": 900,
+            "top": 0,
+            "right": 1024,
+            "bottom": 900,
+            "left": 0
+          },
+          "host": {
+            "x": 0,
+            "y": 48,
+            "width": 1024,
+            "height": 852,
+            "top": 48,
+            "right": 1024,
+            "bottom": 900,
+            "left": 0
+          },
+          "text": {
+            "x": 128,
+            "y": -491.5,
+            "width": 768,
+            "height": 1197.65625,
+            "top": -491.5,
+            "right": 896,
+            "bottom": 706.15625,
+            "left": 128
+          },
+          "input": {
+            "x": 128,
+            "y": 766,
+            "width": 768,
+            "height": 110,
+            "top": 766,
+            "right": 896,
+            "bottom": 876,
+            "left": 128
+          }
+        },
+        {
+          "viewport": 1280,
+          "card": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 900,
+            "top": 0,
+            "right": 1280,
+            "bottom": 900,
+            "left": 0
+          },
+          "host": {
+            "x": 0,
+            "y": 48,
+            "width": 1280,
+            "height": 852,
+            "top": 48,
+            "right": 1280,
+            "bottom": 900,
+            "left": 0
+          },
+          "text": {
+            "x": 256,
+            "y": -1661.5,
+            "width": 768,
+            "height": 2367.3125,
+            "top": -1661.5,
+            "right": 1024,
+            "bottom": 705.8125,
+            "left": 256
+          },
+          "input": {
+            "x": 256,
+            "y": 766,
+            "width": 768,
+            "height": 110,
+            "top": 766,
+            "right": 1024,
+            "bottom": 876,
+            "left": 256
+          }
+        },
+        {
+          "viewport": 1440,
+          "card": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 900,
+            "top": 0,
+            "right": 1440,
+            "bottom": 900,
+            "left": 0
+          },
+          "host": {
+            "x": 0,
+            "y": 48,
+            "width": 1440,
+            "height": 852,
+            "top": 48,
+            "right": 1440,
+            "bottom": 900,
+            "left": 0
+          },
+          "text": {
+            "x": 336,
+            "y": -2831,
+            "width": 768,
+            "height": 3536.96875,
+            "top": -2831,
+            "right": 1104,
+            "bottom": 705.96875,
+            "left": 336
+          },
+          "input": {
+            "x": 336,
+            "y": 766,
+            "width": 768,
+            "height": 110,
+            "top": 766,
+            "right": 1104,
+            "bottom": 876,
+            "left": 336
+          }
+        },
+        {
+          "viewport": 1920,
+          "card": {
+            "x": 0,
+            "y": 0,
+            "width": 1920,
+            "height": 900,
+            "top": 0,
+            "right": 1920,
+            "bottom": 900,
+            "left": 0
+          },
+          "host": {
+            "x": 0,
+            "y": 48,
+            "width": 1920,
+            "height": 852,
+            "top": 48,
+            "right": 1920,
+            "bottom": 900,
+            "left": 0
+          },
+          "text": {
+            "x": 576,
+            "y": -4000.5,
+            "width": 768,
+            "height": 4706.625,
+            "top": -4000.5,
+            "right": 1344,
+            "bottom": 706.125,
+            "left": 576
+          },
+          "input": {
+            "x": 576,
+            "y": 766,
+            "width": 768,
+            "height": 110,
+            "top": 766,
+            "right": 1344,
+            "bottom": 876,
+            "left": 576
+          }
+        }
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/collapsed-spacing-2026-10-12T14-55-43.818Z",
+  "metrics": [
+    {
+      "viewport": 880,
+      "card": {
+        "x": 0,
+        "y": 0,
+        "width": 880,
+        "height": 900,
+        "top": 0,
+        "right": 880,
+        "bottom": 900,
+        "left": 0
+      },
+      "host": {
+        "x": 0,
+        "y": 48,
+        "width": 880,
+        "height": 852,
+        "top": 48,
+        "right": 880,
+        "bottom": 900,
+        "left": 0
+      },
+      "text": {
+        "x": 56,
+        "y": -491.5,
+        "width": 768,
+        "height": 1197.65625,
+        "top": -491.5,
+        "right": 824,
+        "bottom": 706.15625,
+        "left": 56
+      },
+      "input": {
+        "x": 56,
+        "y": 766,
+        "width": 768,
+        "height": 110,
+        "top": 766,
+        "right": 824,
+        "bottom": 876,
+        "left": 56
+      }
+    },
+    {
+      "viewport": 1024,
+      "card": {
+        "x": 0,
+        "y": 0,
+        "width": 1024,
+        "height": 900,
+        "top": 0,
+        "right": 1024,
+        "bottom": 900,
+        "left": 0
+      },
+      "host": {
+        "x": 0,
+        "y": 48,
+        "width": 1024,
+        "height": 852,
+        "top": 48,
+        "right": 1024,
+        "bottom": 900,
+        "left": 0
+      },
+      "text": {
+        "x": 128,
+        "y": -491.5,
+        "width": 768,
+        "height": 1197.65625,
+        "top": -491.5,
+        "right": 896,
+        "bottom": 706.15625,
+        "left": 128
+      },
+      "input": {
+        "x": 128,
+        "y": 766,
+        "width": 768,
+        "height": 110,
+        "top": 766,
+        "right": 896,
+        "bottom": 876,
+        "left": 128
+      }
+    },
+    {
+      "viewport": 1280,
+      "card": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900,
+        "top": 0,
+        "right": 1280,
+        "bottom": 900,
+        "left": 0
+      },
+      "host": {
+        "x": 0,
+        "y": 48,
+        "width": 1280,
+        "height": 852,
+        "top": 48,
+        "right": 1280,
+        "bottom": 900,
+        "left": 0
+      },
+      "text": {
+        "x": 256,
+        "y": -1661.5,
+        "width": 768,
+        "height": 2367.3125,
+        "top": -1661.5,
+        "right": 1024,
+        "bottom": 705.8125,
+        "left": 256
+      },
+      "input": {
+        "x": 256,
+        "y": 766,
+        "width": 768,
+        "height": 110,
+        "top": 766,
+        "right": 1024,
+        "bottom": 876,
+        "left": 256
+      }
+    },
+    {
+      "viewport": 1440,
+      "card": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900,
+        "top": 0,
+        "right": 1440,
+        "bottom": 900,
+        "left": 0
+      },
+      "host": {
+        "x": 0,
+        "y": 48,
+        "width": 1440,
+        "height": 852,
+        "top": 48,
+        "right": 1440,
+        "bottom": 900,
+        "left": 0
+      },
+      "text": {
+        "x": 336,
+        "y": -2831,
+        "width": 768,
+        "height": 3536.96875,
+        "top": -2831,
+        "right": 1104,
+        "bottom": 705.96875,
+        "left": 336
+      },
+      "input": {
+        "x": 336,
+        "y": 766,
+        "width": 768,
+        "height": 110,
+        "top": 766,
+        "right": 1104,
+        "bottom": 876,
+        "left": 336
+      }
+    },
+    {
+      "viewport": 1920,
+      "card": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 900,
+        "top": 0,
+        "right": 1920,
+        "bottom": 900,
+        "left": 0
+      },
+      "host": {
+        "x": 0,
+        "y": 48,
+        "width": 1920,
+        "height": 852,
+        "top": 48,
+        "right": 1920,
+        "bottom": 900,
+        "left": 0
+      },
+      "text": {
+        "x": 576,
+        "y": -4000.5,
+        "width": 768,
+        "height": 4706.625,
+        "top": -4000.5,
+        "right": 1344,
+        "bottom": 706.125,
+        "left": 576
+      },
+      "input": {
+        "x": 576,
+        "y": 766,
+        "width": 768,
+        "height": 110,
+        "top": 766,
+        "right": 1344,
+        "bottom": 876,
+        "left": 576
+      }
+    }
+  ]
+}

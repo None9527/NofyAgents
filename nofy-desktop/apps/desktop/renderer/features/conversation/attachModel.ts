@@ -18,11 +18,8 @@
  */
 import type { FuzzyMatch } from "../../ui/readers.ts";
 
-export type AttachItem = {
-  path: string;
-  name: string;
-  kind: "file" | "directory" | "other";
-};
+import type { Attachment as AttachItem } from "../../application/contracts/public.ts";
+export type { Attachment as AttachItem } from "../../application/contracts/public.ts";
 
 export function matchToAttach(m: FuzzyMatch): AttachItem {
   return { path: m.path, name: m.name, kind: m.type };

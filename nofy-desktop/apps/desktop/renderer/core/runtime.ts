@@ -7,13 +7,14 @@
  * 和 KernelPort 的处理方式完全同构。
  */
 import type { BootstrapInfo, NofyBridge, PickedFile } from "../../preload/contract.ts";
+import type { ModelConfigAccess } from "../../preload/model-config-contract.ts";
 import type { Effect, TaskResult } from "./effects.ts";
 import type { KernelPort } from "./kernel-port.ts";
 import type { Action } from "./project.ts";
 import type { AppState } from "./store/state.ts";
 import type { Store } from "./store/store.ts";
 
-export type Runtime = {
+export type Runtime = ModelConfigAccess & {
   bridge: NofyBridge;
   port: KernelPort;
   store: Store<AppState, Action>;
@@ -22,4 +23,6 @@ export type Runtime = {
   bootstrap: () => Promise<BootstrapInfo>;
   /** 系统选文件框（宿主能力）；取消＝[]。实现住 seam，形状住 core（dep-guard 同构）。 */
   pickFiles: () => Promise<PickedFile[]>;
+  pickDirectory: () => Promise<string | null>;
+  saveText: (content: string, filename: string) => Promise<boolean>;
 };

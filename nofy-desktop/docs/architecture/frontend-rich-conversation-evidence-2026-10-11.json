@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-11",
+  "scope": "Conversation rendering module: messages, exploration groups, GFM and rich content controls",
+  "verify": {
+    "command": "pnpm verify",
+    "log": "/tmp/nofy-rich-verify.log",
+    "acpTests": 41,
+    "desktopTests": 369,
+    "total": 410,
+    "finalStyleCheck": "pnpm ui:check",
+    "finalStyleBuildLog": "/tmp/nofy-rich-build.log"
+  },
+  "gui": [
+    {
+      "report": "output/playwright/rich-2026-10-10T18-15-32.480Z/report.json",
+      "passed": 5,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/zcode-align-2026-10-10T18-17-06.207Z/report.json",
+      "passed": 5,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/virtual-2026-10-10T18-17-06.204Z/report.json",
+      "passed": 9,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/workspace-2026-10-10T18-19-42.646Z/report.json",
+      "passed": 17,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/2026-10-10T18-17-06.190Z-settings/report.json",
+      "passed": 20,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/2026-10-10T18-17-06.184Z/report.json",
+      "passed": 11,
+      "consoleErrors": []
+    }
+  ],
+  "performance": {
+    "report": "output/performance/gate-2026-10-10T18-19-57.600Z/report.json",
+    "summary": [
+      {
+        "size": 1000,
+        "inputSamples": 60,
+        "pooledInputToFrameP95Ms": 14.100000001490116,
+        "trialInputP95Ms": [
+          13.600000001490116,
+          14.5,
+          13.700000002980232
+        ],
+        "domBlocks": [
+          24,
+          24,
+          24
+        ],
+        "streamAppRenders": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "size": 10000,
+        "inputSamples": 60,
+        "pooledInputToFrameP95Ms": 17.30000000447035,
+        "trialInputP95Ms": [
+          14.5,
+          20.599999994039536,
+          16.100000001490116
+        ],
+        "domBlocks": [
+          24,
+          24,
+          24
+        ],
+        "streamAppRenders": [
+          4,
+          5,
+          5
+        ]
+      }
+    ],
+    "failures": []
+  },
+  "sourceHashes": {
+    "apps/desktop/renderer/ui/markdown.tsx": "b9c9af8851a57980523f2b0744de9cc6d3ce99f1df4fe0b1374ab427148edec3",
+    "apps/desktop/renderer/ui/markdownTable.tsx": "58b16c79b2a34dbd55362bda1e63766903e3061500845672f69464d48f3a1cbe",
+    "apps/desktop/renderer/ui/codeblock.tsx": "02e78a54e6566b996c27054d3eeeecf5f333c84d1c9b77ca4e5b34a0bd8511c3",
+    "apps/desktop/renderer/ui/contentActions.tsx": "9b788cf01b0bb1d84197c5de39d5528a0ac2ec376c373694ea7e7d479bec74d1",
+    "apps/desktop/renderer/ui/content.css": "f40f181ebdfdc47fdc8af1f1c8e5c91e5be51fbc6d291b80d2c196804312d45c",
+    "apps/desktop/renderer/ui/conversation.css": "1ccdbd573c9bdd07d5db7cd139e99675c902b69f54dd3df78829e4c2dff0f118",
+    "apps/desktop/renderer/ui/foundations.css": "d3d07bc2cd707ebea85744c6debb75131cdc63057c3b8d65a766f82142edfb59",
+    "apps/desktop/renderer/features/conversation/Spine.tsx": "9b00a02bc979c0dbd1fa08be3304653ff33338357900213c568f9f2292586225",
+    "apps/desktop/renderer/features/conversation/TurnActions.tsx": "bbfa05c87905620fef87d8ca0193bf88b665eefba47c73fe154aa45b85a58121",
+    "apps/desktop/renderer/features/conversation/workModel.ts": "1b7c1538922a8960688cfdfd90c67e93ea8e7ceaf3c76614aa9b0b4ed7289cc7"
+  },
+  "reference": {
+    "repo": "../ref-desktop",
+    "commit": "29628c9acdb81b703bbd4080c207a0e7ce5e276e",
+    "files": [
+      "packages/ui/src/components/ai-elements/message.tsx",
+      "packages/ui/src/components/ai-elements/markdown-table.tsx",
+      "packages/ui/src/components/ai-elements/code-block.tsx",
+      "packages/ui/src/v4/conversationAssistantWorkItems.ts"
+    ]
+  },
+  "dependencies": {
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
+  },
+  "reproducedAndRepaired": "Shared code max-height caused source-preview scroll position loss. Final numbered source blocks retain unbounded outer scrolling; 17 workspace GUI cases rerun successfully.",
+  "limits": [
+    "Screenshots use production Electron with isolated ACP emulator, not the live user conversation.",
+    "No model calls or screenshot credentials were used.",
+    "Kernel has no per-block timestamps or feedback endpoint: no invented timestamps, thought durations or remote like/dislike controls.",
+    "Existing syntax tokeniser retained; this is not a Shiki implementation or a complete ZCode port."
+  ],
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "622cf428b790100af728726d2470be22ba105c1d49ccc20f167e65e7bc42733c",
+    "isolatedLaunchesPassed": 2,
+    "log": "/tmp/nofy-rich-package-verify.log"
+  }
+}

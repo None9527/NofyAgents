@@ -12,6 +12,16 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 impl AgentView {
+    /// A full terminal clear can drop GPU image data. Keep CPU-side media,
+    /// but make the next frame upload again, including fullscreen children.
+    pub(crate) fn forget_transmitted_inline_media(&mut self) {
+        self.inline_media_ids.clear();
+        self.inline_media_iterm_emitted.clear();
+        self.last_placed_ids.clear();
+        for child in self.subagent_views.values_mut() {
+            child.forget_transmitted_inline_media();
+        }
+    }
     // -- Image viewer input --------------------------------------------------
 
     /// Handle a key event in the image viewer modal.
@@ -632,6 +642,26 @@ mod tests {
 
     fn make_agent() -> crate::app::agent_view::AgentView {
         crate::test_util::make_agent_view(None, "/tmp")
+    }
+
+    #[test]
+    fn full_clear_forgets_child_uploads_without_stopping_playback() {
+        let mut agent = make_agent();
+        let mut child = make_agent();
+        let path = std::path::PathBuf::from("/tmp/image.png");
+        child.inline_media_ids.insert(path.clone(), 9);
+        child.last_placed_ids.insert(9);
+        agent.inline_media_ids.insert(path, 8);
+        agent.last_placed_ids.insert(8);
+        agent.inline_video = Some(stub_inline_video());
+        agent.subagent_views.insert("child".into(), Box::new(child));
+        agent.forget_transmitted_inline_media();
+        assert!(agent.inline_media_ids.is_empty());
+        assert!(agent.last_placed_ids.is_empty());
+        let child = agent.subagent_views.get("child").unwrap();
+        assert!(child.inline_media_ids.is_empty());
+        assert!(child.last_placed_ids.is_empty());
+        assert!(agent.inline_video.is_some());
     }
 
     fn stub_inline_video() -> crate::app::agent_view::InlineVideoState {

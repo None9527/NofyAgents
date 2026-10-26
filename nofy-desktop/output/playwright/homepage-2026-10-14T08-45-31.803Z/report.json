@@ -1,0 +1,860 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-14T08:45:31.807Z",
+  "cases": [
+    {
+      "name": "H01 empty greeting and composer form one responsive group",
+      "status": "passed",
+      "durationMs": 216,
+      "details": {
+        "gap": 12,
+        "center": 0
+      }
+    },
+    {
+      "name": "H02 transcript, composer and bubble share an axis across panel geometry",
+      "status": "passed",
+      "durationMs": 7507,
+      "details": [
+        {
+          "width": 880,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 615
+            },
+            "body": {
+              "x": 265,
+              "w": 615
+            },
+            "column": {
+              "x": 289.6015625,
+              "w": 565.796875
+            },
+            "composer": {
+              "x": 289.6015625,
+              "w": 565.796875
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 294
+            },
+            "body": {
+              "x": 265,
+              "w": 294
+            },
+            "column": {
+              "x": 277,
+              "w": 270
+            },
+            "composer": {
+              "x": 277,
+              "w": 270
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 880,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 0,
+              "w": 880
+            },
+            "body": {
+              "x": 0,
+              "w": 880
+            },
+            "column": {
+              "x": 56,
+              "w": 768
+            },
+            "composer": {
+              "x": 56,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 0,
+              "w": 527
+            },
+            "body": {
+              "x": 0,
+              "w": 527
+            },
+            "column": {
+              "x": 24,
+              "w": 479
+            },
+            "composer": {
+              "x": 24,
+              "w": 479
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 900,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 635
+            },
+            "body": {
+              "x": 265,
+              "w": 635
+            },
+            "column": {
+              "x": 290.3984375,
+              "w": 584.1953125
+            },
+            "composer": {
+              "x": 290.3984375,
+              "w": 584.1953125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 314
+            },
+            "body": {
+              "x": 265,
+              "w": 314
+            },
+            "column": {
+              "x": 277,
+              "w": 290
+            },
+            "composer": {
+              "x": 277,
+              "w": 290
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 900,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 0,
+              "w": 900
+            },
+            "body": {
+              "x": 0,
+              "w": 900
+            },
+            "column": {
+              "x": 66,
+              "w": 768
+            },
+            "composer": {
+              "x": 66,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 0,
+              "w": 539
+            },
+            "body": {
+              "x": 0,
+              "w": 539
+            },
+            "column": {
+              "x": 24,
+              "w": 491
+            },
+            "composer": {
+              "x": 24,
+              "w": 491
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 901,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 636
+            },
+            "body": {
+              "x": 265,
+              "w": 636
+            },
+            "column": {
+              "x": 290.4375,
+              "w": 585.1171875
+            },
+            "composer": {
+              "x": 290.4375,
+              "w": 585.1171875
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 315
+            },
+            "body": {
+              "x": 265,
+              "w": 315
+            },
+            "column": {
+              "x": 277,
+              "w": 291
+            },
+            "composer": {
+              "x": 277,
+              "w": 291
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 901,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 0,
+              "w": 901
+            },
+            "body": {
+              "x": 0,
+              "w": 901
+            },
+            "column": {
+              "x": 66.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 66.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 0,
+              "w": 540
+            },
+            "body": {
+              "x": 0,
+              "w": 540
+            },
+            "column": {
+              "x": 24,
+              "w": 492
+            },
+            "composer": {
+              "x": 24,
+              "w": 492
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1000,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 735
+            },
+            "body": {
+              "x": 265,
+              "w": 735
+            },
+            "column": {
+              "x": 294.3984375,
+              "w": 676.1953125
+            },
+            "composer": {
+              "x": 294.3984375,
+              "w": 676.1953125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 414
+            },
+            "body": {
+              "x": 265,
+              "w": 414
+            },
+            "column": {
+              "x": 277,
+              "w": 390
+            },
+            "composer": {
+              "x": 277,
+              "w": 390
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1000,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 0,
+              "w": 1000
+            },
+            "body": {
+              "x": 0,
+              "w": 1000
+            },
+            "column": {
+              "x": 116,
+              "w": 768
+            },
+            "composer": {
+              "x": 116,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 0,
+              "w": 600
+            },
+            "body": {
+              "x": 0,
+              "w": 600
+            },
+            "column": {
+              "x": 24,
+              "w": 552
+            },
+            "composer": {
+              "x": 24,
+              "w": 552
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1280,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 1015
+            },
+            "body": {
+              "x": 265,
+              "w": 1015
+            },
+            "column": {
+              "x": 388.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 388.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 608
+            },
+            "body": {
+              "x": 265,
+              "w": 608
+            },
+            "column": {
+              "x": 289.3203125,
+              "w": 559.359375
+            },
+            "composer": {
+              "x": 289.3203125,
+              "w": 559.359375
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1280,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 481,
+              "w": 799
+            },
+            "body": {
+              "x": 481,
+              "w": 799
+            },
+            "column": {
+              "x": 512.9609375,
+              "w": 735.078125
+            },
+            "composer": {
+              "x": 512.9609375,
+              "w": 735.078125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 481,
+              "w": 478
+            },
+            "body": {
+              "x": 481,
+              "w": 478
+            },
+            "column": {
+              "x": 505,
+              "w": 430
+            },
+            "composer": {
+              "x": 505,
+              "w": 430
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1440,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 1175
+            },
+            "body": {
+              "x": 265,
+              "w": 1175
+            },
+            "column": {
+              "x": 468.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 468.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 704
+            },
+            "body": {
+              "x": 265,
+              "w": 704
+            },
+            "column": {
+              "x": 293.15625,
+              "w": 647.6796875
+            },
+            "composer": {
+              "x": 293.15625,
+              "w": 647.6796875
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1440,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 481,
+              "w": 959
+            },
+            "body": {
+              "x": 481,
+              "w": 959
+            },
+            "column": {
+              "x": 576.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 576.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 481,
+              "w": 600
+            },
+            "body": {
+              "x": 481,
+              "w": 600
+            },
+            "column": {
+              "x": 505,
+              "w": 552
+            },
+            "composer": {
+              "x": 505,
+              "w": 552
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1920,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 265,
+              "w": 1655
+            },
+            "body": {
+              "x": 265,
+              "w": 1655
+            },
+            "column": {
+              "x": 708.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 708.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 265,
+              "w": 1106
+            },
+            "body": {
+              "x": 265,
+              "w": 1106
+            },
+            "column": {
+              "x": 434,
+              "w": 768
+            },
+            "composer": {
+              "x": 434,
+              "w": 768
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1920,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 481,
+              "w": 1439
+            },
+            "body": {
+              "x": 481,
+              "w": 1439
+            },
+            "column": {
+              "x": 816.5,
+              "w": 768
+            },
+            "composer": {
+              "x": 816.5,
+              "w": 768
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 481,
+              "w": 890
+            },
+            "body": {
+              "x": 481,
+              "w": 890
+            },
+            "column": {
+              "x": 542,
+              "w": 768
+            },
+            "composer": {
+              "x": 542,
+              "w": 768
+            },
+            "mode": "split"
+          }
+        }
+      ]
+    },
+    {
+      "name": "H03 sheet traps focus, closes with Escape and restores the toggle",
+      "status": "passed",
+      "durationMs": 408
+    },
+    {
+      "name": "H03b menus inside a modal sheet stay clickable and Escape closes only the menu",
+      "status": "passed",
+      "durationMs": 512
+    },
+    {
+      "name": "H04 switching tasks restores reading position and back-to-latest is reachable",
+      "status": "passed",
+      "durationMs": 1033,
+      "details": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "name": "H05 resizing while reading retains the same message anchor",
+      "status": "passed",
+      "durationMs": 535,
+      "details": {
+        "before": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": -160
+        },
+        "after": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": -160
+        }
+      }
+    },
+    {
+      "name": "H06 approval replaces composer visually and preserves its draft on completion",
+      "status": "passed",
+      "durationMs": 253
+    },
+    {
+      "name": "H07 busy submission enters the authoritative queue before RPC completion",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('status').filter({ hasText: '正在等待模型响应…' }) to be visible\n"
+    },
+    {
+      "name": "H08 file-only attachment can submit without artificial text",
+      "status": "passed",
+      "durationMs": 132
+    },
+    {
+      "name": "H09 user actions remain hidden and close to the bubble; process rows are compact",
+      "status": "passed",
+      "durationMs": 438
+    },
+    {
+      "name": "H10 context popover escapes dock clipping, fits small viewports and scrolls all stats",
+      "status": "passed",
+      "durationMs": 1936,
+      "details": [
+        {
+          "topLayer": true,
+          "inDock": false,
+          "box": {
+            "x": 586.5,
+            "y": 69,
+            "width": 320,
+            "height": 761,
+            "top": 69,
+            "right": 906.5,
+            "bottom": 830,
+            "left": 586.5
+          },
+          "viewport": {
+            "w": 1440,
+            "h": 900
+          },
+          "dock": {
+            "x": 265,
+            "y": 756,
+            "width": 1175,
+            "height": 144,
+            "top": 756,
+            "right": 1440,
+            "bottom": 900,
+            "left": 265
+          },
+          "height": 759,
+          "scroll": 759,
+          "overflow": "auto"
+        },
+        {
+          "topLayer": true,
+          "inDock": false,
+          "box": {
+            "x": 205.3984375,
+            "y": 8,
+            "width": 320,
+            "height": 342,
+            "top": 8,
+            "right": 525.3984375,
+            "bottom": 350,
+            "left": 205.3984375
+          },
+          "viewport": {
+            "w": 880,
+            "h": 420
+          },
+          "dock": {
+            "x": 265,
+            "y": 276,
+            "width": 615,
+            "height": 144,
+            "top": 276,
+            "right": 880,
+            "bottom": 420,
+            "left": 265
+          },
+          "height": 340,
+          "scroll": 759,
+          "overflow": "auto"
+        }
+      ]
+    },
+    {
+      "name": "H11 right pane has one straight divider while the drag target remains eight",
+      "status": "passed",
+      "durationMs": 569,
+      "details": {
+        "gap": 1,
+        "rail": {
+          "x": 966,
+          "y": 0,
+          "width": 8,
+          "height": 900,
+          "top": 0,
+          "right": 974,
+          "bottom": 900,
+          "left": 966
+        },
+        "before": 470
+      }
+    },
+    {
+      "name": "H12 folding and reopening preserve the current reading anchor",
+      "status": "passed",
+      "durationMs": 1415,
+      "details": {
+        "before": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": 40
+        },
+        "folded": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": 40
+        },
+        "reopened": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": 40
+        }
+      }
+    },
+    {
+      "name": "H13 full-page route hiding retains the current message and reading offset",
+      "status": "passed",
+      "durationMs": 1585,
+      "details": {
+        "before": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": -460
+        },
+        "after": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": -460
+        }
+      }
+    },
+    {
+      "name": "H14 reading lane has whitespace, wide blocks fit and commentary has no duplicate answer actions",
+      "status": "passed",
+      "durationMs": 467,
+      "details": {
+        "host": {
+          "x": 261,
+          "y": 48,
+          "width": 1175,
+          "height": 852,
+          "top": 48,
+          "right": 1436,
+          "bottom": 900,
+          "left": 261
+        },
+        "column": {
+          "x": 464.5,
+          "y": -1171,
+          "width": 768,
+          "height": 1878.9921875,
+          "top": -1171,
+          "right": 1232.5,
+          "bottom": 707.9921875,
+          "left": 464.5
+        },
+        "input": {
+          "x": 464.5,
+          "y": 768,
+          "width": 768,
+          "height": 108,
+          "top": 768,
+          "right": 1232.5,
+          "bottom": 876,
+          "left": 464.5
+        },
+        "code": {
+          "x": 464.5,
+          "y": -492,
+          "width": 768,
+          "height": 185.9921875,
+          "top": -492,
+          "right": 1232.5,
+          "bottom": -306.0078125,
+          "left": 464.5
+        },
+        "table": {
+          "x": 464.5,
+          "y": -751,
+          "width": 768,
+          "height": 189,
+          "top": -751,
+          "right": 1232.5,
+          "bottom": -562,
+          "left": 464.5
+        },
+        "font": "16px",
+        "topPadding": "40px",
+        "innerActions": 0,
+        "expandedThoughts": 0
+      }
+    },
+    {
+      "name": "H15 a new turn awaiting its first content has a visible status above the input",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('status').filter({ hasText: '正在等待模型响应…' }) to be visible\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/homepage-2026-10-14T08-45-31.803Z",
+  "contextHoverDebug": {
+    "hover": true,
+    "focused": true,
+    "expanded": "true"
+  },
+  "finishedAt": "2026-10-14T08:46:52.335Z"
+}

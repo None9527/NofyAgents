@@ -1,0 +1,99 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 22,
+        "totalBlocks": 10000
+      }
+    },
+    {
+      "name": "V02 offscreen find mounts and positions the actual matching block",
+      "status": "passed"
+    },
+    {
+      "name": "V03 background append preserves the history-reading anchor",
+      "status": "passed"
+    },
+    {
+      "name": "V04 pinned bottom follows appended stream",
+      "status": "passed"
+    },
+    {
+      "name": "V05 folding process preserves commentary and dynamically measured history",
+      "status": "passed",
+      "details": {
+        "before": 2904.3046875,
+        "folded": 2904.3046875
+      }
+    },
+    {
+      "name": "V06 find expands a hidden intermediate answer and survives width changes",
+      "status": "passed"
+    },
+    {
+      "name": "V07 switching sessions cannot reuse another session measurements",
+      "status": "passed"
+    },
+    {
+      "name": "V08 an offscreen rewind dialog remains mounted until explicitly closed",
+      "status": "passed"
+    },
+    {
+      "name": "V09 renderer reload restores kernel history with bounded DOM",
+      "status": "passed"
+    },
+    {
+      "name": "V10 switching back restores an offscreen virtual reading anchor",
+      "status": "passed",
+      "details": {
+        "before": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        },
+        "after": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        }
+      }
+    },
+    {
+      "name": "V11 hiding the workspace route preserves an offscreen virtual anchor",
+      "status": "passed",
+      "details": {
+        "before": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        },
+        "after": {
+          "x": 295.359375,
+          "y": 72.09375,
+          "width": 698.2734375,
+          "height": 27.1953125
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "stderr": "sandbox_extension_issue_file failed for /Users/mac/nofy-build/nofy-desktop/node_modules/.pnpm/electron@44.2.0/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/Resources: 1 (Operation not permitted)\nDebugger ending on ws://127.0.0.1:51127/f8375a61-6869-4ccb-9ddb-3ed00ed991d2\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n[nofy-desktop] kernel child exited pid=65060 code=null signal=SIGTERM\n",
+  "dynamicDebug": [
+    {
+      "text": "bench:dynamic已工作 1 秒Intermediate details\nExpanded paragraph 0\nExpanded paragraph 1\nExpanded paragraph 2\nExpanded paragraph 3\nExpanded paragraph 4\nExpanded paragraph 5\nExpanded para",
+      "headings": [
+        "Intermediate details"
+      ]
+    }
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

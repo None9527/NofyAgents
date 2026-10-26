@@ -2,7 +2,9 @@
   "name": "nofy-desktop-root",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "gen": "pnpm --filter @nofy-desktop/acp gen",
     "typecheck": "pnpm -r typecheck",
@@ -17,7 +19,13 @@
     "build": "pnpm --filter @nofy-desktop/app build",
     "dev": "pnpm --filter @nofy-desktop/app dev",
     "start": "pnpm --filter @nofy-desktop/app start",
-    "verify": "pnpm gen && pnpm typecheck && pnpm test && pnpm audit:fixtures && pnpm build && pnpm smoke && pnpm smoke:pty && pnpm smoke:recovery"
+    "verify": "pnpm gen && pnpm architecture:check && pnpm ui:check && pnpm typecheck && pnpm test && pnpm audit:fixtures && pnpm build && pnpm smoke && pnpm smoke:pty && pnpm smoke:recovery",
+    "package:mac": "pnpm --filter @nofy-desktop/app package:mac",
+    "verify:package": "pnpm --filter @nofy-desktop/app verify:package",
+    "ui:check": "pnpm --filter @nofy-desktop/app ui:check",
+    "architecture:check": "pnpm --filter @nofy-desktop/app architecture:check",
+    "architecture:report": "pnpm --filter @nofy-desktop/app architecture:report",
+    "verify:performance": "pnpm build && node scripts/verify-conversation-performance.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

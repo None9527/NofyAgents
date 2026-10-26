@@ -1,0 +1,424 @@
+{
+  "date": "2026-10-12",
+  "reference": {
+    "bundle": "/Applications/ChatGPT.app",
+    "id": "com.openai.codex",
+    "version": "26.1007.21159",
+    "build": "20052",
+    "mode": "read-only static assets and user screenshot; no Codex UI automation, session/config access or extracted-code execution",
+    "extraction": "/tmp/nofy-codex-center-2026-10-12",
+    "assets": [
+      {
+        "asset": "above-composer-fixed-content-surface-12e93458ca0b.js",
+        "bytes": 934,
+        "sha256": "c9bc2931a033965309092aa01bc1ee519bae8b92abfce438f5010f75152614fc"
+      },
+      {
+        "asset": "app-initial-c468e3fd7f91.js",
+        "bytes": 11440241,
+        "sha256": "efd785d44bc6f07771f3d5a21cf255112d0f17969b398889e6a8a4868338152f"
+      },
+      {
+        "asset": "app-shared-2f2228189a8d.js",
+        "bytes": 8175172,
+        "sha256": "47b7173d0bbecc5f6f32157134add7be65c0a22c2555c5bbeb9665b1bcded7b0"
+      },
+      {
+        "asset": "app-shared-9a94b907ed47.css",
+        "bytes": 1268149,
+        "sha256": "69f929f71947824fed18365d54c8aa0c975a856649339e585a50f6f547e215d7"
+      },
+      {
+        "asset": "bookmarked-thread-user-message-navigation-4187539b577e.js",
+        "bytes": 5916,
+        "sha256": "cb3f7a5898b5bb6e3773b7a2b1904e2ef705061c5cd2580613f16edad493d822"
+      },
+      {
+        "asset": "composer-9ffc0601308f.js",
+        "bytes": 3866,
+        "sha256": "e2112363e2d1ce842b6ddafe359f42334769d3b4048d5b86799ea68bde157779"
+      },
+      {
+        "asset": "composer-entry-b613d1ea2c23.js",
+        "bytes": 5588,
+        "sha256": "3bc4bb67b977c3d22b6decae666aecca0909f4e21d3230e1a123623fc6c38aa2"
+      },
+      {
+        "asset": "composer-provider-ebd5963c6b99.js",
+        "bytes": 1604,
+        "sha256": "1c2c4fd50ef3948e283888212bfbb9d816826ccf0330a58ddf3af25d9e3ab65e"
+      },
+      {
+        "asset": "composer-scope-provider-99346228e507.js",
+        "bytes": 782,
+        "sha256": "69bd20855123bdd6965fcf1687161b3f45b44a0c281b54b941d5812305a3a8dd"
+      },
+      {
+        "asset": "composer-state-ab087c986c03.js",
+        "bytes": 5178,
+        "sha256": "c918713686c99454ff0ad4972eec055c72901d206dbf4d556d68cc4eb7e27aa2"
+      },
+      {
+        "asset": "composer-utility-bar-ffd8c9bda502.js",
+        "bytes": 138849,
+        "sha256": "be792e8a92c7fd14c972bd663e97df2e37132b38c5aee01f894056b1a4d23fa7"
+      },
+      {
+        "asset": "floating-navigation-rail-layout-17bd6c59412b.css",
+        "bytes": 4117,
+        "sha256": "3c0f212c73a619daf27166f02d48e87cce91ed5dc12eaeccc3007c387fd2edda"
+      },
+      {
+        "asset": "floating-navigation-rail-layout-bc0bb2884098.js",
+        "bytes": 2243,
+        "sha256": "95c98400bef999181f01476ecc9b3e766b530a71fe568bbda5bec06f037d67bf"
+      },
+      {
+        "asset": "git-summary-branch-changes-row-2c26a9358f5e.js",
+        "bytes": 2684,
+        "sha256": "b21deb21ba504a05d4dceaf670590fbb70c97231c594200e84576d22e7f54a1d"
+      },
+      {
+        "asset": "inline-composer-3f819053103b.css",
+        "bytes": 718,
+        "sha256": "e65fce8b5198e52d4aafba593412828ee95ef1eaaec1f8f36776cea222ddc4c9"
+      },
+      {
+        "asset": "inline-composer-ff56135dbdb6.js",
+        "bytes": 4158,
+        "sha256": "5a97a4b3740da31a2cc77f3ce1149d2e35298eef5e826a359ab4bbc3cb9edb5c"
+      },
+      {
+        "asset": "local-conversation-page-94891f4c5823.js",
+        "bytes": 56013,
+        "sha256": "9334f6b151b082bddced865ea48024991226df072c6a506729905f8cbcc320bb"
+      },
+      {
+        "asset": "local-conversation-thread-6508b6dc26ad.js",
+        "bytes": 347576,
+        "sha256": "895198560d4f3b7068a65eb7771203c775a8072333643f7aa5e4979a173e8830"
+      },
+      {
+        "asset": "local-conversation-thread-turn-entries-6035837536b1.js",
+        "bytes": 20364,
+        "sha256": "1f826183439065a90b830a56ed024ea11954b65c20677db44ab48b07ea895611"
+      },
+      {
+        "asset": "local-conversation-turn-73941131ae22.js",
+        "bytes": 92375,
+        "sha256": "229cfb0e1366c9e1034d1b2e3edc18bf7d7cea9042f843a31ff27063c9f26f61"
+      },
+      {
+        "asset": "sites-end-resource-61eec7d61437.js",
+        "bytes": 413206,
+        "sha256": "7003504065000ab4639df363a38b488d8ef22949caaf835a8ace5b7ed91a4ced"
+      },
+      {
+        "asset": "thread-app-shell-chrome-2d26d1c7a86e.css",
+        "bytes": 483,
+        "sha256": "6e1a1a738606874d1cd27c39a5390cd3023fddd4e5e3bca6d9769cc7f4c4e9dd"
+      },
+      {
+        "asset": "thread-app-shell-chrome-ffd37f1f7fb9.js",
+        "bytes": 76725,
+        "sha256": "26bb56b6e1a49e13b36955b1327597ae3ec09957a21ede102b72ab2eaa76d749"
+      },
+      {
+        "asset": "thread-overflow-menu-3a607b042df5.js",
+        "bytes": 17532,
+        "sha256": "0513ad1cbfb218f36f707584c5f39903e967909e1e9e6bf105daad7317a2c4d5"
+      },
+      {
+        "asset": "thread-panel-header-actions-9b6f920e749c.js",
+        "bytes": 4164,
+        "sha256": "6d8f163dca9d17e9ae0050aed2937043f3461071eae2e0d1d6531915e5c92c81"
+      },
+      {
+        "asset": "thread-scroll-controller-context-value-dc9902956be6.js",
+        "bytes": 425,
+        "sha256": "b4e2e1b0ce6768fc963cdb834751fa762228984cc08a2dfc444d5085be4b0a5c"
+      },
+      {
+        "asset": "thread-scroll-layout-24b9bd243051.css",
+        "bytes": 2404,
+        "sha256": "afc0befc6951a4bcf9d3f54d1fc0b3e320734d7ac4e909f579e0ce2cb08c3835"
+      },
+      {
+        "asset": "thread-scroll-layout-c566a7b214bc.js",
+        "bytes": 22112,
+        "sha256": "a905176184e38df85e1980aa7d2ac4cb15cb977dcf7cddfe58267801fe575392"
+      },
+      {
+        "asset": "thread-user-message-navigation-rail-298707f5eb6d.js",
+        "bytes": 28728,
+        "sha256": "da510e430ae81b7e88a5e326a44f3ec4477b532732f4ad59338b269cd12765f9"
+      },
+      {
+        "asset": "thread-user-message-navigation-rail-9057905bb670.css",
+        "bytes": 285,
+        "sha256": "bd338a269efa2a1568bf3c8e0c9c9ed3d9f3ff5a2b938f81c31c726b640e14d5"
+      },
+      {
+        "asset": "thread-user-message-navigation-rail-app-69b6fe0ec3ac.js",
+        "bytes": 1581,
+        "sha256": "d4f98b5ca92d9ba468d65ce8727e074f7dabdc68b88a7bb04e44f9e733c01bd5"
+      },
+      {
+        "asset": "thread-virtualizer-e1964ca5c039.js",
+        "bytes": 2131,
+        "sha256": "d1a120db42f0789fa5c7b6381b76090413ac027377844731ab7c4b5ccf3fcfb0"
+      },
+      {
+        "asset": "toggle-thread-summary-panel-f7e2a6161784.js",
+        "bytes": 4191,
+        "sha256": "0f98a573277ecf835ec96dcd3154ff3fb66033aee254a46a935d3376583456e3"
+      },
+      {
+        "asset": "user-message-attachments-22e5bdbaba33.js",
+        "bytes": 35798,
+        "sha256": "d2079ea9d5fcf564811d20957130be82d90614bb55022732f9aee7305b250df3"
+      },
+      {
+        "asset": "virtualized-turn-list-465f68af9ba8.js",
+        "bytes": 28663,
+        "sha256": "966c691f264380399fc5097866438c59f5f5445c47a206c9be8cadcf6970c2f3"
+      }
+    ]
+  },
+  "confirmed": {
+    "navigationRail": {
+      "minimumItems": 4,
+      "hitWidthClass": "w-9",
+      "hitHeightClass": "h-2.5",
+      "listMaxHeight": "min(70vh,40rem)",
+      "capabilities": [
+        "jump",
+        "scrub",
+        "hover preview",
+        "bookmark"
+      ],
+      "entry": "thread-user-message-navigation-rail-app-69b6fe0ec3ac.js"
+    },
+    "geometry": {
+      "reading": "48rem",
+      "wideMarkdown": "56rem",
+      "responsiveOverride": "thread-content-responsive-max-width",
+      "owner": "thread-scroll-layout-c566a7b214bc.js"
+    },
+    "footer": {
+      "position": "absolute bottom footer, shared content axis",
+      "paddingCompensation": "measured footer height + 16px in default mode",
+      "owner": "thread-scroll-layout-c566a7b214bc.js"
+    },
+    "diff": {
+      "defaultVisibleFiles": 3,
+      "input": [
+        "patchBatches",
+        "unifiedDiff",
+        "conversationId",
+        "cwd",
+        "hostId"
+      ],
+      "operations": [
+        "view changes",
+        "undo/reapply with pending and partial-result handling"
+      ],
+      "owner": "sites-end-resource-61eec7d61437.js"
+    },
+    "header": {
+      "more": "thread-overflow-menu-3a607b042df5.js",
+      "summary": "toggle-thread-summary-panel-f7e2a6161784.js"
+    }
+  },
+  "limitations": [
+    "Static chunks and aliases are not reconstructed source component names",
+    "All screenshot action icons were not dynamically mapped",
+    "Editor internal state and real provider round-trip not validated",
+    "Navigation rail/summary/turn diff and unavailable speech/feedback capabilities are research, not new Nofy implementations"
+  ],
+  "change": {
+    "owners": [
+      "ui/foundations.css",
+      "ui/conversation.css",
+      "features/conversation/Spine.tsx"
+    ],
+    "impact": {
+      "SegmentView": "LOW: Spine then App",
+      "BlockView": "LOW: SegmentView then Spine"
+    },
+    "readingWidth": "48rem",
+    "wideWidth": "56rem",
+    "gutter": "clamp(24px,4cqw,40px)",
+    "topBottomPadding": "40px/48px; compact-height 24px/28px",
+    "bodyFont": "UI + 2px",
+    "thoughtDefault": "collapsed",
+    "messageActions": "final assistant message only",
+    "waitingStatus": "visible while turn record runs without content"
+  },
+  "verify": {
+    "log": "/tmp/nofy-center-reading-verify.log",
+    "unitTests": 428,
+    "finalTypecheck": "/tmp/nofy-center-reading-final-typecheck.log",
+    "styleOwners": 7,
+    "legacyExceptions": 14
+  },
+  "gui": {
+    "homepage": {
+      "report": "output/playwright/homepage-2026-10-12T15-00-33.992Z/report.json",
+      "cases": 16,
+      "pageErrors": 0
+    },
+    "spacing": {
+      "report": "output/playwright/collapsed-spacing-2026-10-12T14-55-43.818Z/report.json",
+      "cases": 1,
+      "pageErrors": 0
+    },
+    "virtual": {
+      "report": "output/playwright/virtual-2026-10-12T14-55-47.646Z/report.json",
+      "cases": 11,
+      "pageErrors": 0
+    }
+  },
+  "package": {
+    "log": "/tmp/nofy-center-reading-package.log",
+    "verificationLog": "/tmp/nofy-center-reading-package-verify.log",
+    "status": "passed",
+    "isolatedLaunches": 2,
+    "reopened": true,
+    "mainProcesses": 1,
+    "kernelChildren": 1
+  },
+  "geometry": {
+    "host": {
+      "x": 265,
+      "y": 48,
+      "width": 1175,
+      "height": 852,
+      "top": 48,
+      "right": 1440,
+      "bottom": 900,
+      "left": 265
+    },
+    "column": {
+      "x": 468.5,
+      "y": -1221.5,
+      "width": 768,
+      "height": 1927.4296875,
+      "top": -1221.5,
+      "right": 1236.5,
+      "bottom": 705.9296875,
+      "left": 468.5
+    },
+    "input": {
+      "x": 468.5,
+      "y": 766,
+      "width": 768,
+      "height": 110,
+      "top": 766,
+      "right": 1236.5,
+      "bottom": 876,
+      "left": 468.5
+    },
+    "code": {
+      "x": 404.5,
+      "y": -422.6171875,
+      "width": 896,
+      "height": 185.9921875,
+      "top": -422.6171875,
+      "right": 1300.5,
+      "bottom": -236.625,
+      "left": 404.5
+    },
+    "table": {
+      "x": 404.5,
+      "y": -682.1328125,
+      "width": 896,
+      "height": 181.515625,
+      "top": -682.1328125,
+      "right": 1300.5,
+      "bottom": -500.6171875,
+      "left": 404.5
+    },
+    "font": "16px",
+    "topPadding": "40px",
+    "innerActions": 0,
+    "expandedThoughts": 0
+  },
+  "visibleWaitingStatus": {
+    "status": {
+      "x": 468.5,
+      "y": 667.0234375,
+      "width": 768,
+      "height": 39,
+      "top": 667.0234375,
+      "right": 1236.5,
+      "bottom": 706.0234375,
+      "left": 468.5
+    },
+    "host": {
+      "x": 265,
+      "y": 48,
+      "width": 1175,
+      "height": 706,
+      "top": 48,
+      "right": 1440,
+      "bottom": 754,
+      "left": 265
+    },
+    "input": {
+      "x": 468.5,
+      "y": 766,
+      "width": 768,
+      "height": 110,
+      "top": 766,
+      "right": 1236.5,
+      "bottom": 876,
+      "left": 468.5
+    }
+  },
+  "guiTotal": 28,
+  "activityPresentation": {
+    "date": "2026-10-12",
+    "minimumManualChatWidth": 280,
+    "defaultComfortableChatWidth": 600,
+    "rightPaneObservedWidth": 1374,
+    "tests": {
+      "unitTotal": 434,
+      "guiTotal": 40,
+      "consoleErrors": 0,
+      "reports": [
+        "output/playwright/homepage-2026-10-12T15-44-10.434Z/report.json",
+        "output/playwright/window-skeleton-2026-10-12T15-44-31.594Z/report.json",
+        "output/playwright/activities-2026-10-12T15-50-01.004Z/report.json",
+        "output/playwright/virtual-2026-10-12T15-50-08.001Z/report.json"
+      ]
+    },
+    "implemented": [
+      "native animated disclosure in both directions",
+      "manual expansion wins over completion",
+      "reduced motion",
+      "typed statuses and exceptional outcomes",
+      "grouped reads with kind=other fallback",
+      "command/output cards",
+      "ACP structured diff preservation and fragment previews",
+      "bounded output previews and full output copy",
+      "no empty collapse affordance",
+      "compact header and composer",
+      "nested search reveal",
+      "10000 block virtualization and anchor recovery"
+    ],
+    "structuredDiffSources": [
+      "packages/acp/schema/schema.unstable.json:2159",
+      "../crates/codegen/nofy-shell/src/session/acp_session_impl/tool_calls.rs:1803",
+      "apps/desktop/renderer/core/toolContent.ts",
+      "apps/desktop/renderer/core/project.ts"
+    ],
+    "packageVerification": "docs/contract/package-macos-verification.json",
+    "notClaimed": [
+      "real model API response recovery",
+      "per-turn full Git patch or undo",
+      "server-backed ratings or audio",
+      "native operating system mouse verification"
+    ]
+  }
+}

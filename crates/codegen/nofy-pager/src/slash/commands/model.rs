@@ -37,7 +37,7 @@ impl SlashCommand for ModelCommand {
     }
 
     fn usage(&self) -> &str {
-        "/model <name> [effort]"
+        "/model <name> [window] [effort]"
     }
 
     fn takes_args(&self) -> bool {
@@ -49,7 +49,7 @@ impl SlashCommand for ModelCommand {
     }
 
     fn arg_placeholder(&self) -> Option<&str> {
-        Some("<model> [effort]")
+        Some("<model> [window] [effort]")
     }
 
     fn suggest_args(&self, ctx: &AppCtx, args_query: &str) -> Option<Vec<ArgItem>> {
@@ -57,7 +57,29 @@ impl SlashCommand for ModelCommand {
             return None;
         }
 
-        // Effort phase if input is "<reasoning-model> ", else model phase.
+        if let Some((model_id, remainder)) = detect_window_phase(ctx.models, args_query) {
+            let first = remainder.split_whitespace().next().unwrap_or("");
+            if let Some(window) = super::context_window::parse_window(first)
+                && ctx.models.context_windows_for(&model_id).contains(&window)
+                && remainder.ends_with(char::is_whitespace)
+                && !ctx
+                    .models
+                    .reasoning_effort_options_for(&model_id)
+                    .is_empty()
+            {
+                return Some(build_window_effort_items(ctx.models, &model_id, window));
+            }
+            if remainder.trim().is_empty() || super::context_window::parse_window(first).is_some() {
+                if let Some(window) = super::context_window::parse_window(first)
+                    && remainder.split_whitespace().count() > 1
+                    && ctx.models.context_windows_for(&model_id).contains(&window)
+                {
+                    return Some(build_window_effort_items(ctx.models, &model_id, window));
+                }
+                return Some(build_window_items(ctx.models, &model_id));
+            }
+        }
+        // Legacy effort-only input stays accepted.
         if let Some(model_id) = detect_effort_phase(ctx.models, args_query) {
             return Some(build_effort_items(ctx.models, &model_id));
         }
@@ -76,6 +98,39 @@ impl SlashCommand for ModelCommand {
         // treat "4.5" as an effort level.
         if let Some(id) = ctx.models.resolve_by_name_or_id(trimmed) {
             return CommandResult::Action(Action::SetDefaultModel(id));
+        }
+
+        if let Some((id, remainder)) = detect_window_phase(ctx.models, trimmed) {
+            let mut parts = remainder.split_whitespace();
+            if let Some(first) = parts.next()
+                && let Some(window) = super::context_window::parse_window(first)
+            {
+                if !ctx.models.context_windows_for(&id).contains(&window) {
+                    return CommandResult::Error(
+                        "This model does not offer that context window.".into(),
+                    );
+                }
+                if ctx.session_id.is_none() {
+                    return CommandResult::Error(
+                        "Start a session before choosing a context window.".into(),
+                    );
+                }
+                let effort = match parts.next() {
+                    Some(token) => match ctx.models.resolve_effort_for_model(&id, token) {
+                        Ok(effort) => Some(effort),
+                        Err(error) => return CommandResult::Error(error.message()),
+                    },
+                    None => None,
+                };
+                if parts.next().is_some() {
+                    return CommandResult::Error("Usage: /model <name> [window] [effort]".into());
+                }
+                return CommandResult::Action(Action::SwitchModelContext {
+                    model_id: id,
+                    effort,
+                    context_window: Some(window),
+                });
+            }
         }
 
         // Trailing effort token + reasoning model → session-scoped switch
@@ -154,6 +209,29 @@ pub(in crate::slash) fn preselected_effort_arg(
     models: &ModelState,
     args_query: &str,
 ) -> Option<String> {
+    if let Some((id, remainder)) = detect_window_phase(models, args_query) {
+        let name = models.display_name_for(&id);
+        if remainder.trim().is_empty() {
+            let choices = models.context_windows_for(&id);
+            let selected = models
+                .get_context_window()
+                .filter(|_| models.current.as_ref() == Some(&id))
+                .filter(|window| choices.contains(window))
+                .or_else(|| choices.first().copied())?;
+            return Some(format!(
+                "{name} {selected}{}",
+                if models.reasoning_effort_options_for(&id).is_empty() {
+                    ""
+                } else {
+                    " "
+                }
+            ));
+        }
+        if let Some(window) = super::context_window::parse_window(remainder.trim()) {
+            let option = models.preselected_effort_option_for(&id)?;
+            return Some(format!("{name} {window} {}", option.id));
+        }
+    }
     let model_id = detect_effort_phase(models, args_query)?;
     let model_name = models.display_name_for(&model_id);
     if !args_query.trim_end().eq_ignore_ascii_case(&model_name) {
@@ -181,7 +259,7 @@ fn build_model_items(models: &ModelState) -> Vec<ArgItem> {
         // Trailing space on reasoning models: signals "more input
         // expected" to the prompt widget so Enter advances to effort
         // phase instead of submitting.
-        let insert_text = if supports {
+        let insert_text = if supports || models.context_windows_for(id).len() > 1 {
             format!("{} ", info.name)
         } else {
             info.name.clone()
@@ -191,10 +269,73 @@ fn build_model_items(models: &ModelState) -> Vec<ArgItem> {
             display,
             match_text: info.name.clone(),
             insert_text,
-            description: info.description.clone().unwrap_or_default(),
+            description: models
+                .notice_for(id)
+                .map(|notice| {
+                    format!(
+                        "{} {notice}",
+                        info.description.as_deref().unwrap_or_default()
+                    )
+                })
+                .unwrap_or_else(|| info.description.clone().unwrap_or_default()),
         });
     }
     items
+}
+
+fn detect_window_phase<'a>(models: &ModelState, query: &'a str) -> Option<(acp::ModelId, &'a str)> {
+    let mut candidates: Vec<_> = models
+        .available
+        .iter()
+        .filter(|(id, _)| models.context_windows_for(id).len() > 1)
+        .flat_map(|(id, info)| [(id, info.name.as_str()), (id, id.0.as_ref())])
+        .collect();
+    candidates.sort_by_key(|(_, name)| std::cmp::Reverse(name.len()));
+    for (id, name) in candidates {
+        if query.len() > name.len()
+            && query.is_char_boundary(name.len())
+            && query[..name.len()].eq_ignore_ascii_case(name)
+            && query[name.len()..].starts_with(char::is_whitespace)
+        {
+            return Some((id.clone(), &query[name.len()..]));
+        }
+    }
+    None
+}
+
+fn build_window_items(models: &ModelState, id: &acp::ModelId) -> Vec<ArgItem> {
+    let name = models.display_name_for(id);
+    let effort = !models.reasoning_effort_options_for(id).is_empty();
+    models
+        .context_windows_for(id)
+        .into_iter()
+        .map(|window| ArgItem {
+            display: format!(
+                "{window} tokens{}",
+                if models.current.as_ref() == Some(id)
+                    && models.get_context_window() == Some(window)
+                {
+                    " (current)"
+                } else {
+                    ""
+                }
+            ),
+            match_text: format!("{name} {window}"),
+            insert_text: format!("{name} {window}{}", if effort { " " } else { "" }),
+            description: "Context window; next choose effort".into(),
+        })
+        .collect()
+}
+
+fn build_window_effort_items(models: &ModelState, id: &acp::ModelId, window: u64) -> Vec<ArgItem> {
+    let name = models.display_name_for(id);
+    let options = models.reasoning_effort_options_for(id);
+    build_effort_arg_items(
+        &options,
+        models.reasoning_effort,
+        models.current.as_ref() == Some(id),
+        |option| format!("{name} {window} {}", option.id),
+    )
 }
 
 /// One row per effort level for the `/model` chained effort phase.
@@ -220,6 +361,60 @@ mod tests {
     use super::*;
     use nofy_shell::sampling::types::ReasoningEffort;
     use std::sync::Arc;
+
+    fn multiwindow_models() -> ModelState {
+        let mut models = ModelState::default();
+        let id = acp::ModelId::new("reasoning-x");
+        let info = acp::ModelInfo::new(id.clone(), "Reasoning X").meta(serde_json::json!({
+            "totalContextTokens":128000, "contextWindows":[128000,256000],
+            "supportsReasoningEffort":true,"reasoningEfforts":[{"value":"low","label":"Low","default":true},{"value":"high","label":"High"}]
+        }).as_object().cloned());
+        models.available.insert(id.clone(), info);
+        models.current = Some(id);
+        models
+    }
+
+    #[test]
+    fn multiwindow_model_chains_window_before_effort() {
+        let models = multiwindow_models();
+        let (id, remainder) = detect_window_phase(&models, "Reasoning X ").unwrap();
+        assert_eq!(remainder, " ");
+        let windows = build_window_items(&models, &id);
+        assert_eq!(windows[1].insert_text, "Reasoning X 256000 ");
+        let effort = build_window_effort_items(&models, &id, 256000);
+        assert_eq!(effort[1].insert_text, "Reasoning X 256000 high");
+        assert_eq!(
+            preselected_effort_arg(&models, "Reasoning X ").as_deref(),
+            Some("Reasoning X 128000 ")
+        );
+    }
+
+    #[test]
+    fn model_window_and_effort_parse_together_and_reject_unoffered_window() {
+        let models = multiwindow_models();
+        let sid = acp::SessionId::new("s1");
+        let mut ctx = dummy_exec_ctx(&models);
+        ctx.session_id = Some(&sid);
+        assert!(matches!(
+            ModelCommand.run(&mut ctx, "Reasoning X 256k high"),
+            CommandResult::Action(Action::SwitchModelContext {
+                context_window: Some(256000),
+                effort: Some(ReasoningEffort::High),
+                ..
+            })
+        ));
+        assert!(matches!(
+            ModelCommand.run(&mut ctx, "Reasoning X 512k high"),
+            CommandResult::Error(_)
+        ));
+        assert!(matches!(
+            ModelCommand.run(&mut ctx, "Reasoning X high"),
+            CommandResult::Action(Action::SwitchModel {
+                effort: Some(ReasoningEffort::High),
+                ..
+            })
+        ));
+    }
 
     fn model_with_reasoning(id: &str, name: &str) -> (acp::ModelId, acp::ModelInfo) {
         let id = acp::ModelId::new(Arc::from(id));

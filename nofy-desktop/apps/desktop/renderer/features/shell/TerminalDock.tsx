@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * TerminalDock —— 对话列底部的终端面板（生态面 #3）。
  *
@@ -37,7 +39,7 @@
  * - 活壳多一层 group/tabs 是 Radix Tabs 的结构需要；我们没有那层组件 ⇒ head + body 直挂根，
  *   padding/gap 度量不变。
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -47,7 +49,9 @@ import type { Runtime } from "../../core/runtime.ts";
 import { IconPlus, IconTerminal, IconX } from "../../ui/icons.tsx";
 import { DOCK_HEIGHT_DEFAULT, DOCK_HEIGHT_MAX, DOCK_HEIGHT_MIN } from "../../ui/prefs.ts";
 import { readTerminalId, readTerminalList, readTerminalLoad } from "../../ui/readers.ts";
-import { resolveTerminalPalette, TERMINAL_FONT_FAMILY, TERMINAL_FONT_SIZE } from "../../ui/theme.ts";
+import { loadGeneralPrefs, subscribeGeneralPrefs, terminalShellParam } from "../../ui/generalPrefs.ts";
+import { observeThemeChanges, resolveTerminalPalette, TERMINAL_FONT_FAMILY, TERMINAL_FONT_SIZE } from "../../ui/theme.ts";
+
 import type { ThemeName } from "../../ui/theme.ts";
 import {
   adoptableTerminals,
@@ -79,6 +83,8 @@ export type TerminalDockProps = {
 type Slot = { term: Terminal; fit: FitAddon; el: HTMLDivElement | null };
 
 export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, height, onHeight }: TerminalDockProps) {
+  const general = useSyncExternalStore(subscribeGeneralPrefs, loadGeneralPrefs, loadGeneralPrefs);
+  useLocale();
   const [tabs, setTabs] = useState<readonly DockTab[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -140,22 +146,23 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
   const createTab = useCallback((): void => {
     const { runtime: rt, sessionId: sid, cwd: dir } = ctx.current;
     if (sid === null || dir === null) {
-      setError("终端要等会话就绪（session/new 之后才有 sessionId 与 cwd）");
+      setError(tr("终端要等会话就绪"));
       return;
     }
     setCreating(true);
     setError(null);
     const name = nextTabName(tabsRef.current, dir);
+    const shell = terminalShellParam(loadGeneralPrefs().terminalShell);
     // rows/cols 先给内核默认 24×80；xterm 挂上后由 fitNow 立刻 resize 成真实尺寸
-    void rt.effect({ kind: "terminal/create", sessionId: sid, cwd: dir, rows: 24, cols: 80, name }).then((r) => {
+    void rt.effect({ kind: "terminal/create", sessionId: sid, cwd: dir, rows: 24, cols: 80, name, ...(shell ? { shell } : {}) }).then((r) => {
       setCreating(false);
       if (!r.ok) {
-        setError("新建终端失败：" + r.error);
+        setError(tr("新建终端失败：") + r.error);
         return;
       }
       const id = readTerminalId(r.value);
       if (id === null) {
-        setError("pty/create 没给 terminalId（形状见 ecosystem-shapes.json）");
+        setError(tr("pty/create 没给 terminalId（形状见 ecosystem-shapes.json）"));
         return;
       }
       setTabs((ts) => [...ts, makeTab(id, name)]);
@@ -248,7 +255,7 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
       if (el === undefined) continue; // 容器这一轮还没挂上：tabs 再变时补
       const term = new Terminal({
         fontSize: TERMINAL_FONT_SIZE,
-        fontFamily: TERMINAL_FONT_FAMILY,
+        fontFamily: loadGeneralPrefs().terminalFont.trim() || TERMINAL_FONT_FAMILY,
         theme: resolveTerminalPalette(rootRef.current),
         cursorBlink: true,
         scrollback: 5000,
@@ -270,12 +277,26 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
   // 主题换了 ⇒ 重读 dock 根的 computed 配色。等一帧：App 的主题 class 挂在它自己的 effect 里，
   // 而父组件 effect 在子组件之后跑，同步读会读到上一个主题。
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const palette = resolveTerminalPalette(rootRef.current);
-      for (const slot of slots.current.values()) slot.term.options.theme = palette;
-    });
-    return () => cancelAnimationFrame(raf);
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const palette = resolveTerminalPalette(rootRef.current);
+        for (const slot of slots.current.values()) slot.term.options.theme = palette;
+      });
+    };
+    update();
+    const stop = observeThemeChanges(update);
+    return () => { stop(); cancelAnimationFrame(raf); };
   }, [theme]);
+
+  useEffect(() => {
+    const family = general.terminalFont.trim() || TERMINAL_FONT_FAMILY;
+    for (const [id, slot] of slots.current) {
+      slot.term.options.fontFamily = family;
+      fitNow(id);
+    }
+  }, [fitNow, general.terminalFont]);
 
   // 容器尺寸变了（拖窗口 / 收放侧栏或辅助 pane）⇒ 重 fit 活动片
   useEffect(() => {
@@ -317,7 +338,7 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
     // kill 的线路形状带 sessionId（内核对 pty 只按 terminalId 找，形状照实测发）
     if (sid !== null) {
       void rt.effect({ kind: "terminal/kill", terminalId: id, sessionId: sid }).then((r) => {
-        if (!r.ok) setError("关闭终端失败：" + r.error);
+        if (!r.ok) setError(tr("关闭终端失败：") + r.error);
       });
     }
   }, []);
@@ -338,13 +359,13 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
   return (
     <section
       className={"dock" + (open ? "" : " dock--closed")}
-      aria-label="终端面板"
+      aria-label={tr("终端面板")}
       ref={rootRef}
       style={{ height: String(Math.round(height)) + "px" }}
     >
       <div
         className="dock__resize"
-        title="拖拽调整终端面板高度 · 双击恢复默认"
+        title={tr("拖拽调整终端面板高度 · 双击恢复默认")}
         onPointerDown={(e: ReactPointerEvent<HTMLDivElement>) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           resizeFrom.current = { y: e.clientY, h: height };
@@ -363,15 +384,15 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
         onDoubleClick={() => onHeight(DOCK_HEIGHT_DEFAULT)}
       />
       <div className="dock__head">
-        <div className="dock__tabs" role="tablist" aria-label="终端标签">
+        <div className="dock__tabs" role="tablist" aria-label={tr("终端标签")}>
           {tabs.map((t) => {
             const on = t.terminalId === activeId;
             const dead = t.exited || t.missing;
             const title =
               t.name +
-              (t.busy ? "（前台进程运行中）" : "") +
+              (t.busy ? tr("（前台进程运行中）") : "") +
               (dead ? " " + exitNote({ exitCode: t.exitCode, signal: t.signal, missing: t.missing }).trim() : "") +
-              (t.replayed ? " · 含内核回放的历史输出" : "");
+              (t.replayed ? tr(" · 含内核回放的历史输出") : "");
             return (
               <span key={t.terminalId} className="dock__tabwrap" role="presentation">
                 <button
@@ -386,13 +407,13 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
                   <IconTerminal size={12} />
                   <span className="dock__tabname">{t.name}</span>
                   {t.busy ? <span className="dock__busy" /> : null}
-                  {dead ? <span className="dock__badge">已退出</span> : null}
+                  {dead ? <span className="dock__badge">{tr("已退出")}</span> : null}
                 </button>
                 <button
                   type="button"
                   className="dock__tabx"
-                  aria-label={"关闭终端 " + t.name}
-                  title="关闭这个终端：_nofy/terminal/kill，里面的进程会被结束（不可恢复）"
+                  aria-label={tr("关闭终端 ") + t.name}
+                  title={tr("关闭这个终端：_nofy/terminal/kill，里面的进程会被结束（不可恢复）")}
                   onClick={() => closeTab(t.terminalId)}
                 >
                   <IconX size={12} />
@@ -411,8 +432,8 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
           className="iconbtn"
           onClick={createTab}
           disabled={creating}
-          aria-label="新建终端"
-          title="新建终端：_nofy/terminal/pty/create（内核默认按 $SHELL -l 起登录 shell；名字取工作区末段）"
+          aria-label={tr("新建终端")}
+          title={tr("新建终端：_nofy/terminal/pty/create（内核默认按 $SHELL -l 起登录 shell；名字取工作区末段）")}
         >
           <IconPlus size={16} />
         </button>
@@ -420,19 +441,15 @@ export function TerminalDock({ runtime, sessionId, cwd, theme, open, onClose, he
           type="button"
           className="iconbtn"
           onClick={onClose}
-          aria-label="关闭终端面板"
-          title="关闭终端面板：只收起，终端与其中正在跑的进程继续活着（⌘J 或卡片头「切换终端」再展开）"
+          aria-label={tr("关闭终端面板")}
+          title={tr("关闭终端面板：只收起，终端与其中正在跑的进程继续活着（⌘J 或卡片头「切换终端」再展开）")}
         >
           <IconX size={16} />
         </button>
       </div>
       <div className="dock__body" ref={bodyRef}>
         {tabs.length === 0 ? (
-          <p className="dock__empty">
-            还没有终端。点右上「＋」新建：内核按 <span className="mono">$SHELL -l</span> 起一个登录 shell，
-            名字取工作区末段。第一屏可能要等一下——shell 启动时会向终端发能力查询
-            （DA1 / XTVERSION / kitty 键盘 / OSC 11），xterm 会代答它认得的那几种。
-          </p>
+          <p className="dock__empty">{tr("还没有终端。点右上「＋」新建：内核按")}<span className="mono">$SHELL -l</span>{tr("起一个登录 shell，\n            名字取工作区末段。第一屏可能要等一下——shell 启动时会向终端发能力查询\n            （DA1 / XTVERSION / kitty 键盘 / OSC 11），xterm 会代答它认得的那几种。")}</p>
         ) : null}
         {tabs.map((t) => (
           <div

@@ -35,6 +35,66 @@ fn remember(statement: &str) -> RememberRequest {
     }
 }
 
+#[tokio::test]
+async fn dream_batch_budget_keeps_unprocessed_notes_active_for_the_next_pass() {
+    let (temp, memory) = service(true, true);
+    for i in 0..23 {
+        let statement = format!("Bounded dream evidence {i}");
+        let content_hash =
+            ContentHash::parse(blake3::hash(statement.as_bytes()).to_hex().to_string()).unwrap();
+        let observation = Observation {
+            id: ObservationId::new(),
+            scope: MemoryScope::Personal,
+            kind: ObservationKind::User,
+            statement,
+            keywords: vec![],
+            aliases: vec![],
+            supersedes: vec![],
+            project_validity: None,
+            provenance: Provenance {
+                session_id: "batch".into(),
+                turn_id: i.to_string(),
+                model: "test".into(),
+                prompt_version: "v1".into(),
+                source_hash: content_hash.clone(),
+            },
+            content_hash,
+            created_at: Utc::now(),
+        };
+        ObservationStore::new(temp.path().join("memory"))
+            .persist(&observation, ObservationStatus::Active)
+            .unwrap();
+    }
+    let first = memory
+        .consolidate(ConsolidateRequest {
+            area: MemoryArea::Personal,
+            mode: ConsolidationMode::Active,
+        })
+        .await
+        .unwrap();
+    assert_eq!(first.processed, 20);
+    assert_eq!(
+        std::fs::read_dir(temp.path().join("memory/personal/observations"))
+            .unwrap()
+            .count(),
+        3
+    );
+    let second = memory
+        .consolidate(ConsolidateRequest {
+            area: MemoryArea::Personal,
+            mode: ConsolidationMode::Active,
+        })
+        .await
+        .unwrap();
+    assert_eq!(second.processed, 3);
+    assert!(
+        std::fs::read_dir(temp.path().join("memory/personal/observations"))
+            .unwrap()
+            .next()
+            .is_none()
+    );
+}
+
 async fn search(memory: &dyn MemoryService, query: &str) -> Vec<String> {
     memory
         .search(SearchRequest {
@@ -48,6 +108,58 @@ async fn search(memory: &dyn MemoryService, query: &str) -> Vec<String> {
         .into_iter()
         .map(|hit| hit.summary)
         .collect()
+}
+
+#[tokio::test]
+async fn oversized_dream_note_reports_actionable_error_and_keeps_original_active() {
+    let (temp, memory) = service(true, true);
+    let statement = "Large evidence should be shortened or split. ".repeat(500);
+    let content_hash =
+        ContentHash::parse(blake3::hash(statement.as_bytes()).to_hex().to_string()).unwrap();
+    let observation = Observation {
+        id: ObservationId::new(),
+        scope: MemoryScope::Personal,
+        kind: ObservationKind::User,
+        statement,
+        keywords: vec![],
+        aliases: vec![],
+        supersedes: vec![],
+        project_validity: None,
+        provenance: Provenance {
+            session_id: "oversized".into(),
+            turn_id: "turn".into(),
+            model: "test".into(),
+            prompt_version: "v1".into(),
+            source_hash: content_hash.clone(),
+        },
+        content_hash,
+        created_at: Utc::now(),
+    };
+    let original = ObservationStore::new(temp.path().join("memory"))
+        .persist(&observation, ObservationStatus::Active)
+        .unwrap();
+    let error = memory
+        .consolidate(ConsolidateRequest {
+            area: MemoryArea::Personal,
+            mode: ConsolidationMode::Active,
+        })
+        .await
+        .unwrap_err();
+    let MemoryServiceError::InvalidRequest(message) = error else {
+        panic!("oversized batch must return an actionable input error")
+    };
+    assert!(message.contains("16 KiB"));
+    assert!(message.contains("缩短或拆分"));
+    assert!(original.is_file());
+    assert!(
+        !temp
+            .path()
+            .join(format!(
+                "memory/personal/archive/observations/{}.md",
+                observation.id.as_uuid()
+            ))
+            .exists()
+    );
 }
 
 #[tokio::test]

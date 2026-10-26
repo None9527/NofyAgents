@@ -77,14 +77,55 @@ pub fn write_atomically(
     }
     #[cfg(not(unix))]
     let _ = mode;
-    let result = options
-        .open(&tmp)
-        .and_then(|mut f| f.write_all(contents.as_bytes()))
-        .and_then(|()| std::fs::rename(&tmp, final_path));
+    let result = options.open(&tmp).and_then(|mut f| {
+        f.write_all(contents.as_bytes())?;
+        f.sync_all()?;
+        let created = f.metadata()?;
+        #[cfg(all(test, unix))]
+        BEFORE_ATOMIC_RENAME.with_borrow_mut(|hook| {
+            if let Some(hook) = hook.as_mut() {
+                hook(&tmp);
+            }
+        });
+        verify_created_file(&tmp, &created)?;
+        std::fs::rename(&tmp, &final_path)?;
+        // A competing legitimate writer may already have replaced ours.
+        // Report the race, but never remove its successfully committed data.
+        verify_created_file(&final_path, &created)
+    });
     if result.is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
     result
+}
+
+fn verify_created_file(path: &Path, created: &std::fs::Metadata) -> io::Result<()> {
+    let landed = std::fs::symlink_metadata(path)?;
+    #[cfg(unix)]
+    let matches = {
+        use std::os::unix::fs::MetadataExt as _;
+        landed.is_file() && landed.dev() == created.dev() && landed.ino() == created.ino()
+    };
+    #[cfg(not(unix))]
+    let matches = {
+        let _ = created;
+        landed.is_file()
+    };
+    if matches {
+        Ok(())
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "atomic-write temporary file identity changed",
+        ))
+    }
+}
+
+#[cfg(all(test, unix))]
+type AtomicRenameHook = Option<Box<dyn FnMut(&Path)>>;
+#[cfg(all(test, unix))]
+thread_local! {
+    static BEFORE_ATOMIC_RENAME: std::cell::RefCell<AtomicRenameHook> = const { std::cell::RefCell::new(None) };
 }
 
 #[cfg(all(test, unix))]
@@ -92,6 +133,43 @@ mod tests {
     use super::*;
     use std::fs;
     use std::os::unix::fs::symlink;
+
+    #[test]
+    fn swapped_temp_regular_file_is_not_published() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("config.json");
+        fs::write(&dest, "original").unwrap();
+        BEFORE_ATOMIC_RENAME.with_borrow_mut(|hook| {
+            *hook = Some(Box::new(|tmp| {
+                fs::remove_file(tmp).unwrap();
+                fs::write(tmp, "substituted").unwrap();
+            }))
+        });
+        let result = write_atomically(&dest, "intended", Some(0o600));
+        BEFORE_ATOMIC_RENAME.with_borrow_mut(|hook| *hook = None);
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(fs::read_to_string(&dest).unwrap(), "original");
+    }
+
+    #[test]
+    fn swapped_temp_symlink_never_overwrites_its_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let victim = dir.path().join("victim.json");
+        fs::write(&victim, "protected").unwrap();
+        let target = victim.clone();
+        BEFORE_ATOMIC_RENAME.with_borrow_mut(|hook| {
+            *hook = Some(Box::new(move |tmp| {
+                fs::remove_file(tmp).unwrap();
+                symlink(&target, tmp).unwrap();
+            }))
+        });
+        let dest = dir.path().join("config.json");
+        let result = write_atomically(&dest, "intended", None);
+        BEFORE_ATOMIC_RENAME.with_borrow_mut(|hook| *hook = None);
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(fs::read_to_string(&victim).unwrap(), "protected");
+        assert!(!dest.exists());
+    }
 
     #[test]
     fn resolve_atomic_destination_follows_leaf_symlink() {

@@ -800,6 +800,7 @@ impl AgentBuilder {
         }
         let task_params = TaskParams {
             model_selection: self.task_model_selection,
+            selectable_subagent_types: Vec::new(),
         };
         if let Ok(serde_json::Value::Object(params)) = serde_json::to_value(task_params) {
             merge_tool_params(
@@ -993,6 +994,19 @@ impl AgentBuilder {
                     allowed.retain(|t| !denied_types.iter().any(|d| d.eq_ignore_ascii_case(t)));
                 }
             }
+        }
+        if self.subagents_enabled {
+            let names = selectable_subagent_names(
+                &crate::discovery::all_subagents_with_plugins(
+                    &self.working_directory,
+                    &self.subagent_toggle,
+                    self.plugin_registry.as_deref(),
+                ),
+                definition.allowed_subagent_types.as_deref(),
+            );
+            let mut offered = serde_json::Map::new();
+            offered.insert("selectable_subagent_types".into(), serde_json::json!(names));
+            merge_tool_params(&mut tool_config, &["NofyBuild:task"], &offered);
         }
         if definition.allowed_subagent_types.as_deref() == Some(&[]) {
             let task_deps = ["task", "get_task_output", "kill_task", "wait_tasks"];
@@ -1289,6 +1303,26 @@ pub(crate) fn build_task_description(
 ) -> String {
     build_task_description_with_policy(subagents, model_slugs, TaskModelSelection::Selectable)
 }
+fn selectable_subagent_names(
+    subagents: &[SubagentEntry],
+    allowed: Option<&[String]>,
+) -> Vec<String> {
+    let mut names: Vec<String> = subagents
+        .iter()
+        .filter(|entry| {
+            allowed.is_none_or(|allowed| {
+                allowed
+                    .iter()
+                    .any(|name| name.eq_ignore_ascii_case(&entry.name))
+            })
+        })
+        .map(|entry| entry.name.clone())
+        .collect();
+    names.sort();
+    names.dedup();
+    names
+}
+
 fn build_task_description_with_policy(
     subagents: &[SubagentEntry],
     model_slugs: &[String],
@@ -1340,6 +1374,32 @@ mod tests {
             shadows_builtin: None,
             config_source: nofy_tools::types::config_source::ConfigSource::Builtin,
         }
+    }
+    #[test]
+    fn selectable_subagent_roster_obeys_parent_allowlist() {
+        let entries = vec![
+            entry(
+                "general-purpose",
+                "builtin",
+                SubagentSource::Builtin(crate::config::BuiltinAgentName::GeneralPurpose),
+            ),
+            entry(
+                "plugin:reviewer",
+                "custom",
+                SubagentSource::UserDefined {
+                    scope: AgentScope::User,
+                },
+            ),
+        ];
+        assert_eq!(
+            selectable_subagent_names(&entries, Some(&["PLUGIN:REVIEWER".into()])),
+            vec!["plugin:reviewer"]
+        );
+        assert!(selectable_subagent_names(&entries, Some(&[])).is_empty());
+        assert_eq!(
+            selectable_subagent_names(&entries, None),
+            vec!["general-purpose", "plugin:reviewer"]
+        );
     }
     #[test]
     fn build_task_description_builtin_includes_tools() {

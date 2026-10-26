@@ -1,0 +1,47 @@
+{
+  "gui": "output/playwright/homepage-2026-10-12T08-38-55.671Z/report.json",
+  "guiCases": 12,
+  "layoutContractTests": 8,
+  "contractLog": "/tmp/nofy-divider-contract.log",
+  "package": {
+    "application": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "artifact": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "889ff3efb1aa8a7f6db456576e23a5b5e7c0ef567fb7ae44dd8567fb55f2c331",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "version": "0.1.0",
+    "signing": "ad-hoc local only",
+    "kernelBundled": false
+  },
+  "packageVerification": {
+    "generatedAt": "2026-10-12T08:41:11.957Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "version": "0.1.0",
+    "app": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "results": [
+      {
+        "launch": 1,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-1.png",
+        "screenshotBytes": 142918,
+        "kernelReaped": true
+      },
+      {
+        "launch": 2,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-2.png",
+        "screenshotBytes": 142918,
+        "kernelReaped": true
+      }
+    ],
+    "kernelBundled": false,
+    "signing": "ad-hoc local only",
+    "scope": "Two local executable launches in isolated NOFY_HOME and Electron user-data-dir; no Gatekeeper/notarization, external installation, Windows/Linux or model conversation validation"
+  },
+  "reopenedBundle": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app"
+}

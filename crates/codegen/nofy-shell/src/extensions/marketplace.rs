@@ -212,10 +212,12 @@ async fn handle_update(
         }
     };
 
-    let source = match sources
-        .iter()
-        .find(|s| source_identity(s) == source_url_or_path)
-    {
+    let source = match sources.iter().find(|s| {
+        nofy_agent::plugins::source_identity::is_same_source_identity(
+            &source_identity(s),
+            source_url_or_path,
+        )
+    }) {
         Some(s) => s,
         None => {
             return ActionOutcome {
@@ -367,10 +369,12 @@ async fn handle_install(
         }
     };
 
-    let source = match sources
-        .iter()
-        .find(|s| source_identity(s) == source_url_or_path)
-    {
+    let source = match sources.iter().find(|s| {
+        nofy_agent::plugins::source_identity::is_same_source_identity(
+            &source_identity(s),
+            source_url_or_path,
+        )
+    }) {
         Some(s) => s,
         None => {
             return ActionOutcome {

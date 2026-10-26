@@ -1,0 +1,51 @@
+{
+  "source": "Actual Electron GUI + temporary deterministic ACP emulator; not real services",
+  "startedAt": "2026-10-08T10:28:42.538Z",
+  "cases": [
+    {
+      "name": "Settings language EN/ZH changes live without losing drafts",
+      "status": "passed"
+    },
+    {
+      "name": "System theme follows media changes; explicit themes override",
+      "status": "passed"
+    },
+    {
+      "name": "Font and language survive renderer reload",
+      "status": "passed"
+    },
+    {
+      "name": "Mounted terminal palette follows system theme changes",
+      "status": "passed",
+      "details": {
+        "light": {
+          "terminal": "oklch(0.269 0 0)",
+          "dock": "oklch(0.269 0 0)"
+        },
+        "dark": {
+          "terminal": "oklch(0.87 0 0)",
+          "dock": "oklch(0.87 0 0)"
+        }
+      }
+    },
+    {
+      "name": "MCP GUI create disable enable authenticate delete readback",
+      "status": "passed"
+    },
+    {
+      "name": "Plugin GUI install disable enable uninstall",
+      "status": "passed"
+    },
+    {
+      "name": "Credential form clears fake input on kernel acceptance",
+      "status": "passed"
+    },
+    {
+      "name": "1024x768 dark/light composer and plan approval stay reachable",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/2026-10-08T10-28-42.537Z-settings",
+  "finishedAt": "2026-10-08T10:28:51.069Z"
+}

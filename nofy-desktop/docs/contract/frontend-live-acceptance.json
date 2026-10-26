@@ -1,0 +1,200 @@
+{
+  "generatedAt": "2026-10-09T02:03:29.665Z",
+  "report": {
+    "kernelVersion": "0.2.121",
+    "modelId": "gemini-3.8-flash-high",
+    "question-accept": {
+      "passed": true,
+      "generatedAt": "2026-10-08T10:39:32.319Z",
+      "observedEvents": {
+        "question": 1,
+        "plan": 0,
+        "permission": 0,
+        "userChunks": 1,
+        "toolStarted": 1,
+        "malformed": 0,
+        "elicitation": 0
+      },
+      "evidence": {
+        "serverRequests": 1,
+        "answeredQuestions": 1,
+        "stopReason": "end_turn"
+      }
+    },
+    "lastPermissionDecision": {
+      "optionId": "allow-once",
+      "sent": true,
+      "kinds": [
+        {
+          "optionId": "enable-always-approve",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow-edits-session",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "allow-once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "reject-once",
+          "kind": "reject_once"
+        }
+      ],
+      "matchesPermissionTestFile": true
+    },
+    "permission-allow-once": {
+      "passed": true,
+      "generatedAt": "2026-10-09T02:03:29.658Z",
+      "observedEvents": {
+        "question": 0,
+        "plan": 0,
+        "permission": 1,
+        "userChunks": 1,
+        "toolStarted": 2,
+        "malformed": 0,
+        "elicitation": 0
+      },
+      "evidence": {
+        "serverRequests": 1,
+        "decision": "allow_once",
+        "fileMatches": true,
+        "stopReason": "end_turn"
+      }
+    },
+    "plan-approve": {
+      "passed": true,
+      "generatedAt": "2026-10-08T10:42:10.141Z",
+      "observedEvents": {
+        "question": 0,
+        "plan": 1,
+        "permission": 1,
+        "userChunks": 1,
+        "toolStarted": 4,
+        "malformed": 0,
+        "elicitation": 0
+      },
+      "evidence": {
+        "serverRequests": 1,
+        "planCharacters": 275,
+        "stopReason": "end_turn",
+        "implementationFileExists": true,
+        "implementationMatches": true
+      }
+    },
+    "elicitationSchema": {
+      "fieldNames": [
+        "region"
+      ],
+      "valid": true
+    },
+    "mcp-stdio-lifecycle": {
+      "passed": true,
+      "generatedAt": "2026-10-08T10:42:11.116Z",
+      "observedEvents": {
+        "question": 0,
+        "plan": 0,
+        "permission": 0,
+        "userChunks": 0,
+        "toolStarted": 0,
+        "malformed": 0,
+        "elicitation": 1
+      },
+      "evidence": {
+        "ready": {
+          "present": true,
+          "enabled": true,
+          "status": "ready",
+          "tools": [
+            "live_echo",
+            "live_form"
+          ]
+        },
+        "toolCallMatched": true,
+        "formAccepted": true,
+        "disabled": {
+          "present": true,
+          "enabled": false,
+          "tools": []
+        },
+        "enabled": {
+          "present": true,
+          "enabled": true,
+          "status": "ready",
+          "tools": [
+            "live_echo",
+            "live_form"
+          ]
+        },
+        "deleted": {
+          "present": false,
+          "enabled": false,
+          "tools": []
+        }
+      }
+    },
+    "cancel-running-tool": {
+      "passed": true,
+      "generatedAt": "2026-10-08T10:42:34.955Z",
+      "observedEvents": {
+        "question": 0,
+        "plan": 0,
+        "permission": 0,
+        "userChunks": 1,
+        "toolStarted": 2,
+        "malformed": 0,
+        "elicitation": 0
+      },
+      "evidence": {
+        "stopReason": "cancelled",
+        "cancelSent": true
+      }
+    },
+    "stream-interruption-and-history": {
+      "passed": true,
+      "generatedAt": "2026-10-08T10:42:41.636Z",
+      "observedEvents": {
+        "question": 0,
+        "plan": 0,
+        "permission": 0,
+        "userChunks": 2,
+        "toolStarted": 0,
+        "malformed": 0,
+        "elicitation": 0
+      },
+      "evidence": {
+        "pendingRejected": true,
+        "pidChanged": true,
+        "kernelChildren": 1,
+        "replayUserChunks": 1,
+        "automaticPromptResend": false
+      }
+    },
+    "eventsThisRun": {
+      "question": 0,
+      "plan": 0,
+      "permission": 1,
+      "userChunks": 1,
+      "toolStarted": 2,
+      "malformed": 0,
+      "elicitation": 0
+    },
+    "runOnly": "permission-allow-once",
+    "scope": "Real ACP server requests and isolated MCP lifecycle; programmatic responses, not GUI E2E. No credentials/config/raw frames saved.",
+    "priorFailureNotes": [
+      {
+        "phase": "permission-allow-once",
+        "detail": "Earlier isolated attempts hit the 120000 ms probe deadline. The latest exact allow-once test completed with matching file and end_turn. Cause of earlier timeouts is not established."
+      },
+      {
+        "phase": "mcp-stdio-lifecycle",
+        "detail": "Expanded fixture initially had a syntax error; fixed and independently checked initialization/tools listing before final real lifecycle pass."
+      },
+      {
+        "phase": "stream-interruption-and-history",
+        "detail": "Initial probe called ready before disconnect status; fixed by awaiting status:false. Final interruption/reconnect/history pass."
+      }
+    ]
+  }
+}

@@ -8,6 +8,84 @@
 
 use super::*;
 
+/// Drive the real actor/registry/workspace write path with renamed arguments
+/// and two different spellings of one file, not a simulated dispatch loop.
+#[tokio::test(flavor = "current_thread")]
+async fn renamed_alias_writers_execute_in_order_through_real_dispatcher() {
+    tokio::task::LocalSet::new()
+        .run_until(async {
+            use nofy_tools::registry::types::ToolConfig;
+            let (gateway_tx, mut gateway_rx) = tokio::sync::mpsc::unbounded_channel();
+            let (persistence_tx, _persistence_rx) = tokio::sync::mpsc::unbounded_channel();
+            let actor =
+                super::support::create_test_actor(0, 256_000, 85, gateway_tx, persistence_tx).await;
+            let mut edit = ToolConfig::from_id("NofyBuild:search_replace");
+            edit.params = Some(
+                serde_json::from_value(serde_json::json!({"skip_read_before_edit":true})).unwrap(),
+            );
+            edit.name_override = Some("edit_alias".into());
+            edit.params_name_overrides = Some(std::collections::HashMap::from([(
+                "file_path".into(),
+                "destination".into(),
+            )]));
+            *actor.agent.borrow_mut() = super::support::test_agent_with_tools(vec![
+                ToolConfig::from_id("NofyBuild:read_file"),
+                edit,
+            ])
+            .await;
+            actor
+                .workspace_ops
+                .bind_local_session(
+                    &actor.session_id_string(),
+                    actor.tool_context.cwd.as_path().to_path_buf(),
+                    actor.tool_context.hunk_tracker_handle.clone(),
+                    actor.agent.borrow().tool_bridge().toolset(),
+                    None,
+                )
+                .unwrap();
+            let drain = tokio::task::spawn_local(async move {
+                while let Some(message) = gateway_rx.recv().await {
+                    if let nofy_acp_lib::AcpClientMessage::SessionNotification(args) = message {
+                        let _ = args.response_tx.send(Ok(()));
+                    }
+                }
+            });
+            let dir = tempfile::tempdir().unwrap();
+            std::fs::create_dir(dir.path().join("nested")).unwrap();
+            let file = dir.path().join("shared.txt");
+            std::fs::write(&file, "first").unwrap();
+            let call = |id: &str, path: &std::path::Path, old: &str, new: &str| ToolCallResponse {
+                id: id.into(),
+                kind: "function".into(),
+                function: crate::sampling::types::ToolCallFunction::new(
+                    "edit_alias",
+                    serde_json::json!({
+                        "destination":path.to_string_lossy(), "old_string":old, "new_string":new
+                    })
+                    .to_string(),
+                ),
+            };
+            tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                actor.execute_tool_calls(vec![
+                    call("alias-first", &file, "first", "second"),
+                    call(
+                        "alias-second",
+                        &dir.path().join("nested/../shared.txt"),
+                        "second",
+                        "final",
+                    ),
+                ]),
+            )
+            .await
+            .expect("dispatcher must not hang")
+            .expect("dispatch must succeed");
+            assert_eq!(std::fs::read_to_string(file).unwrap(), "final");
+            drain.abort();
+        })
+        .await;
+}
+
 #[tokio::test]
 async fn test_parallel_dispatch_basic() {
     // Ordering correctness: verify that futures::future::join_all preserves

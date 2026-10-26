@@ -1,0 +1,50 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 24,
+        "totalBlocks": 10000
+      }
+    },
+    {
+      "name": "V02 offscreen find mounts and positions the actual matching block",
+      "status": "passed"
+    },
+    {
+      "name": "V03 background append preserves the history-reading anchor",
+      "status": "passed"
+    },
+    {
+      "name": "V04 pinned bottom follows appended stream",
+      "status": "passed"
+    },
+    {
+      "name": "V05 expanding and collapsing dynamically remeasures a turn",
+      "status": "passed",
+      "details": {
+        "before": 222.59375,
+        "expanded": 2798.7109375
+      }
+    },
+    {
+      "name": "V06 find expands a hidden intermediate answer and survives width changes",
+      "status": "passed"
+    },
+    {
+      "name": "V07 switching sessions cannot reuse another session measurements",
+      "status": "passed"
+    },
+    {
+      "name": "V08 an offscreen rewind dialog remains mounted until explicitly closed",
+      "status": "passed"
+    },
+    {
+      "name": "V09 renderer reload restores kernel history with bounded DOM",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": []
+}

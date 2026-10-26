@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * DiffChip —— 对话区右上的浮动汇总条（活壳实测：rounded-2xl 边框 chip，
  * file-diff 图标 + 「更改」 + +N(text-diff-added) −M(text-diff-removed)，h-32）。
@@ -15,6 +17,7 @@ export type DiffChipProps = {
 };
 
 export function DiffChip({ git, onOpen }: DiffChipProps) {
+  useLocale();
   if (git === null) return null;
   const all = [...git.staged, ...git.unstaged];
   if (all.length === 0) return null;
@@ -30,17 +33,17 @@ export function DiffChip({ git, onOpen }: DiffChipProps) {
       className="diffchip"
       onClick={onOpen}
       title={
-        "打开审查面板：工作区 ↔ HEAD（" +
+        tr("打开审查面板：工作区 ↔ HEAD（") +
         (git.branch ?? "?") +
         "@" +
         (git.commit ?? "").slice(0, 7) +
         "，" +
         String(all.length) +
-        " 个文件）"
+        tr(" 个文件）")
       }
     >
       <IconFileDiff size={16} />
-      <span className="diffchip__label">更改</span>
+      <span className="diffchip__label">{tr("更改")}</span>
       <span className="diffadd">+{String(add)}</span>
       <span className="diffdel">−{String(del)}</span>
     </button>

@@ -1,0 +1,115 @@
+{
+  "source": "isolated Electron + controlled ACP; actual content-axis geometry, lifecycle clock and scoped actions",
+  "cases": [
+    {
+      "name": "D01 collapsed process rows have no invisible content height",
+      "status": "passed",
+      "details": [
+        {
+          "height": 36,
+          "summary": 30,
+          "body": "0px",
+          "display": "flex"
+        },
+        {
+          "height": 36,
+          "summary": 30,
+          "body": "0px",
+          "display": "flex"
+        },
+        {
+          "height": 36,
+          "summary": 30,
+          "body": "0px",
+          "display": "flex"
+        },
+        {
+          "height": 36,
+          "summary": 30,
+          "body": "0px",
+          "display": "flex"
+        }
+      ]
+    },
+    {
+      "name": "D01b whitespace deltas never allocate transcript rows",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n4 !== 0\n"
+    },
+    {
+      "name": "D01c adjacent collapsed process rows stay compact",
+      "status": "passed",
+      "details": [
+        {
+          "top": 261.59375,
+          "bottom": 301.59375
+        },
+        {
+          "top": 301.59375,
+          "bottom": 325.59375
+        },
+        {
+          "top": 325.59375,
+          "bottom": 359.59375
+        },
+        {
+          "top": 359.59375,
+          "bottom": 378.59375
+        },
+        {
+          "top": 378.59375,
+          "bottom": 418.59375
+        },
+        {
+          "top": 418.59375,
+          "bottom": 442.59375
+        },
+        {
+          "top": 442.59375,
+          "bottom": 476.59375
+        },
+        {
+          "top": 476.59375,
+          "bottom": 516.59375
+        },
+        {
+          "top": 516.59375,
+          "bottom": 540.59375
+        },
+        {
+          "top": 540.59375,
+          "bottom": 574.59375
+        },
+        {
+          "top": 574.59375,
+          "bottom": 614.59375
+        },
+        {
+          "top": 614.59375,
+          "bottom": 638.59375
+        },
+        {
+          "top": 638.59375,
+          "bottom": 672.59375
+        }
+      ]
+    },
+    {
+      "name": "D02 operation labels never shrink under long command text, including narrow panes",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: [{\"text\":\"Updating plan\",\"width\":85,\"scroll\":85},{\"text\":\"已运行\",\"width\":8,\"scroll\":39},{\"text\":\"已运行\",\"width\":8,\"scroll\":39},{\"text\":\"运行命令\",\"width\":52,\"scroll\":52}]"
+    },
+    {
+      "name": "D03 plan is presented as task progress rather than a raw event tag",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n"
+    },
+    {
+      "name": "D04 pending tool arguments are not shown as an unknown result",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /状态未知/. Input:\n\n'运行命令\\n状态未知'\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/process-layout-2026-10-13T16-35-23.072Z"
+}

@@ -1,0 +1,78 @@
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":1,"clientCapabilities":{"fs":{"readTextFile":false,"writeTextFile":false},"elicitation":{"form":{},"url":{}},"_meta":{"nofy/folderTrust":{"interactive":true}}},"clientInfo":{"name":"nofy-desktop","version":"0.1.0"},"_meta":{"clientIdentifier":"nofy-desktop"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":2,"method":"session/new","params":{"cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[],"_meta":{}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":3,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":4,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":5,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":6,"method":"session/prompt","params":{"sessionId":"e2e-session-1","prompt":[{"type":"text","text":"请检查这两份配置，比较不同档位，并给出可复用的调用示例。"}],"_meta":{"promptId":"desktop-mv4pd77y-1"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":7,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":8,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":9,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":10,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":11,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":12,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":13,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":14,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":15,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":16,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":17,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":18,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":19,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":20,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":21,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":22,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":23,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":24,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":25,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":26,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":27,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":28,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":29,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":30,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":31,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":32,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":33,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":34,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":35,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":36,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":37,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":38,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":39,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":40,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":41,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":42,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":43,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":44,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":45,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":46,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":47,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":48,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":49,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":50,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":51,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":52,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":53,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":54,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":55,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":56,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":57,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":58,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":59,"method":"session/load","params":{"sessionId":"e2e-session-1","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[]}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":60,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":61,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":62,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":63,"method":"_nofy/fs/list","params":{"path":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","depth":1,"includeHidden":false,"limit":500,"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":64,"method":"session/new","params":{"cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","mcpServers":[],"_meta":{}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":65,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":66,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-2"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":67,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-2","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":68,"method":"_nofy/sessions/list","params":{}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":69,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":70,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":71,"method":"session/prompt","params":{"sessionId":"e2e-session-1","prompt":[{"type":"text","text":"e2e:plan"}],"_meta":{"promptId":"desktop-mv4pdarm-1"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":"10018-plan-1791776338117","result":{"outcome":"approved"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":72,"method":"session/prompt","params":{"sessionId":"e2e-session-1","prompt":[{"type":"text","text":"e2e:hold"}],"_meta":{"promptId":"desktop-mv4pdaxk-2"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":73,"method":"session/prompt","params":{"sessionId":"e2e-session-1","prompt":[{"type":"text","text":"additional instruction"}],"_meta":{"promptId":"desktop-mv4pdazg-3"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":74,"method":"session/prompt","params":{"sessionId":"e2e-session-1","prompt":[{"type":"resource_link","uri":"file:///var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces/attachment.txt","name":"attachment.txt"},{"type":"text","text":""}],"_meta":{"promptId":"desktop-mv4pddrz-4"}}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":75,"method":"_nofy/fs/list","params":{"path":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","depth":1,"includeHidden":false,"limit":500,"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":76,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":10018,"direction":"in","frame":{"jsonrpc":"2.0","id":77,"method":"_nofy/fs/list","params":{"path":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-gui-e2e-Uw5ACB/项目 A with spaces","depth":1,"includeHidden":false,"limit":500,"sessionId":"e2e-session-1"}}}

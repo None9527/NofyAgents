@@ -1,3 +1,6 @@
+import { organizationCommands } from "./sessionCommands.ts";
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * Sidebar —— 活壳 3.11.2 侧栏的我们的版本。
  *
@@ -7,13 +10,12 @@
  * 五段，自上而下与活壳同序：
  *
  *  1. h-12 拖拽区（[app-region:drag]）
- *  2. 叠层按钮组：绝对定位 h-14 z-20，macOS 让位 96px（实测首枚 x=96），
+ *  2. 窗口按钮组已迁到 WindowNavigation：折叠侧栏也保持可见，macOS 让位 96px。
+ *     原布局：绝对定位 h-14 z-20，
  *     4 枚 28×28、pitch 32：切换侧边栏(panel-left-close/open) / 后退(arrow-left) /
  *     前进(arrow-right) / 新建任务(message-circle-plus)
- *  3. 动作区 px-2 py-3 gap-1，**四行** 248×32：新建任务(message-circle-plus) / 搜索(search) /
- *     自动化(calendar-clock) / 插件市场(blocks)。注意：新建任务行与叠层第 4 枚**并存**
- *     （活壳就是这样；上一轮我误判成重复，是因为那行是 DIV 不是 BUTTON，选择器漏了它）。
- *     行内快捷键提示是**淡色小字**（ml-auto text-ui-xs），不是带边框的 kbd 芯片。
+ *  3. 动作区两行：新建任务 / 搜索。调度没有客户端列表方法，插件安装在设置里，
+ *     这两条不再占侧栏。行内快捷键提示是淡色小字，不是带边框的 kbd 芯片。
  *  4. tabs 行 h-28：分组(hash) | 项目(folder)（55×24 + 滑动胶囊）＋右侧 3 枚 24×24
  *     展开全部(maximize-2) / 筛选和排序(list-filter) / 归档(archive)
  *  5. 列表（flex-1 overflow-y-auto）＋ 页脚 h-56（诊断卡 + 设置齿轮 32×32）
@@ -21,24 +23,18 @@
  * ## 与活壳的刻意差别（每条都有据）
  *
  *  - 新建任务行用 <button> 而不是活壳的 DIV：同一外观、同一位置，语义更对（可聚焦、可读屏）。
- *  - 自动化 / 归档 / 添加项目置灰：读路径已实测但界面未接线，title 里写清缺什么。
- *    灰按钮比假按钮诚实。插件市场已于阶段 C UI 批接线（开设置面插件分区）。
+ *  - 归档是本机偏好，不是内核会话属性。调度列表和插件市场不在侧栏。
  *  - 项目行图标只用 house（本窗口工作区）与 folder（其他）；活壳还有 cloud（云端项目），
  *    本机内核不产生云端会话 ⇒ 不画永远不出现的图标。
- *  - 列表内容 = 已加载会话 + roster 全量。roster 条目带 cwd（实测），所以未加载的
- *    历史会话点一下就能 session/load —— 冷启动可用性由这条来（P1）。
- *  - 活壳侧栏还有一层 translate-x-full 的**滑入面板**（与侧栏等宽，覆盖在列表上），
- *    自动化/插件市场就是从那里滑出来的。我们的对应面走右侧辅助 pane，先不造第二层。
+ *  - 列表 = 已打开会话 + 会话名单。项目是一份文件夹列表：目录来自 workspace_list，
+ *    本窗口打开过但还没有会话的文件夹是空行。没有目录的会话在「聊天」，不进项目。
  */
 import { useState } from "react";
 import type { BootstrapInfo, NofyBridge } from "../../../preload/contract.ts";
-import type { AppState } from "../../core/store/state.ts";
+import type { Projection } from "../../application/contracts/public.ts";
+import { recordRender } from "../../ui/renderDiagnostics.ts";
 import {
   IconArchive,
-  IconArrowLeft,
-  IconArrowRight,
-  IconBlocks,
-  IconCalendarClock,
   IconChevronDown,
   IconChevronRight,
   IconExpand,
@@ -48,8 +44,6 @@ import {
   IconHash,
   IconHouse,
   IconMessagePlus,
-  IconPanelLeftClose,
-  IconPanelLeftOpen,
   IconPlus,
   IconSearch,
 } from "../../ui/icons.tsx";
@@ -59,11 +53,21 @@ import { Dot } from "../../ui/primitives.tsx";
 import type { ThemeName } from "../../ui/theme.ts";
 import type { SidebarModel, SidebarProject, SidebarSort, SidebarTask, SidebarView } from "./sidebarModel.ts";
 import { reorderProjects } from "./sidebarModel.ts";
-import type { SettingsSectionId } from "../settings/settingsModel.ts";
+import type { SettingsSectionId } from "../settings/public.ts";
 import { SidebarFoot } from "./SidebarFoot.tsx";
+import type { SessionMetadataPatch } from "./sessionMetadataModel.ts";
 
 export type SidebarProps = {
-  state: AppState;
+  archiveView?: boolean;
+  onArchiveView?: (archived: boolean) => void;
+  onRenameGroup?: (previous: string, next: string) => void;
+  onRemoveGroup?: (name: string) => void;
+  onTaskMetadataChange?: (sessionId: string, patch: SessionMetadataPatch) => void;
+  onOpenWorkspace: () => void;
+  workspaceBusy: boolean;
+  /** 在指定文件夹里新建任务（session/new）。空项目行的点击也走这里。 */
+  onPickWorkspace: (cwd: string) => void;
+  projection: Projection;
   boot: BootstrapInfo | null;
   bridge: NofyBridge;
   theme: ThemeName;
@@ -76,18 +80,14 @@ export type SidebarProps = {
   onSort: (s: SidebarSort) => void;
   /** 工作区行拖拽排序：传回全量 key 序（App 写进 LayoutPrefs.projectOrder）。 */
   onReorderProjects: (keys: string[]) => void;
-  sidebarOpen: boolean;
-  canBack: boolean;
-  canForward: boolean;
-  onBack: () => void;
-  onForward: () => void;
-  onToggleSidebar: () => void;
   onNewSession: () => void;
   newSessionBusy: boolean;
   onOpenPalette: () => void;
   onPickTask: (task: SidebarTask) => void;
-  /** 「插件市场」动作行开设置面插件分区（阶段 C UI 批接线）。 */
+  /** 页脚齿轮打开内核配置。外观不走这个入口。 */
   onOpenSettings: (section: SettingsSectionId) => void;
+  /** workspace_list 失败时的内核原文。项目列表同时退回会话自带目录。 */
+  catalogError?: string | null;
 };
 
 /**
@@ -110,15 +110,15 @@ function projActivity(p: SidebarProject): string | null {
   return null;
 }
 
-function TaskRow({ task, flat, onPick }: { task: SidebarTask; flat: boolean; onPick: (t: SidebarTask) => void }) {
-  const title = task.loaded
-    ? task.title + "（" + task.sessionId + "）"
-    : task.title + "（未加载 · roster：" + task.sessionId + "，点击走 session/load）";
+function TaskRow({ task, flat, onPick, onMetadataChange }: { task: SidebarTask; flat: boolean; onPick: (t: SidebarTask) => void; onMetadataChange?: (sessionId: string, patch: SessionMetadataPatch) => void }) {
+  useLocale();
+  const title = task.loaded ? task.title : task.title + tr("（尚未在本窗口打开）");
   return (
-    <div className={"taskrow" + (flat ? " taskrow--flat" : "") + (task.loaded ? "" : " taskrow--cold")}>
+    <div className={"taskrow" + (flat ? " taskrow--flat" : "") + (task.loaded ? "" : " taskrow--cold")} style={onMetadataChange ? { display: "flex", alignItems: "center" } : undefined}>
       <button
         type="button"
         className={"taskrow__btn" + (task.active ? " taskrow__btn--active" : "")}
+        style={onMetadataChange ? { flex: 1, minWidth: 0 } : undefined}
         onClick={() => onPick(task)}
         title={title}
       >
@@ -126,20 +126,31 @@ function TaskRow({ task, flat, onPick }: { task: SidebarTask; flat: boolean; onP
           {task.activity !== null && ATTENTION.has(task.activity) ? <Dot activity={task.activity} /> : null}
         </span>
         <span className="taskrow__title">{task.title}</span>
+        {task.pinned ? <span title={tr("已置顶（仅此窗口）")} aria-label={tr("已置顶（仅此窗口）")}>★</span> : null}
+        {task.unread ? <span title={tr("未读（仅此窗口）")} aria-label={tr("未读（仅此窗口）")}>●</span> : null}
+        {task.archived ? <span title={tr("已归档（仅此窗口）")} aria-label={tr("已归档（仅此窗口）")}><IconArchive size={12} /></span> : null}
         {task.time !== null ? <span className="taskrow__time">{task.time}</span> : null}
       </button>
+      {onMetadataChange ? <MenuButton variant="icon-sm" chevron={false} trigger="⋯" title={tr("组织会话 {0}", [task.title])}
+        items={organizationCommands(task, task.activity === "working" || task.activity === "needs_input").map(command => ({ ...command, label: tr(command.label) }))}
+        onPick={(id) => { const command = organizationCommands(task, task.activity === "working" || task.activity === "needs_input").find(item => item.id === id); if (command && !command.disabled) onMetadataChange(task.sessionId, command.patch); }} /> : null}
     </div>
   );
 }
 
 export function Sidebar(props: SidebarProps) {
+  recordRender("Sidebar");
+  useLocale();
   const {
-    state, boot, bridge, theme, onTheme, model, view, sort, onView, onSort,
+    projection, boot, bridge, theme, onTheme, model, view, sort, onView, onSort,
     onReorderProjects,
-    sidebarOpen, canBack, canForward, onBack, onForward, onToggleSidebar,
     onNewSession, newSessionBusy, onOpenPalette, onPickTask,
-    onOpenSettings,
+    onOpenSettings, onOpenWorkspace, workspaceBusy, onPickWorkspace,
+    archiveView = false, onArchiveView, onRenameGroup, onRemoveGroup, onTaskMetadataChange,
+    catalogError = null,
   } = props;
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState("");
 
   /**
    * 折叠态是**窗口局部态**（不进 store）。默认规则抄活壳的可见行为：
@@ -148,9 +159,10 @@ export function Sidebar(props: SidebarProps) {
    */
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [sectionOpen, setSectionOpen] = useState(true);
+  const [chatsOpen, setChatsOpen] = useState(true);
   /** 正在拖的工作区 key（HTML5 dnd）；null = 没在拖。 */
   const [dragKey, setDragKey] = useState<string | null>(null);
-  const isOpen = (p: SidebarProject): boolean => collapsed[p.key] ?? p.tasks.some((t) => t.active);
+  const isOpen = (p: SidebarProject): boolean => p.tasks.length > 0 && (collapsed[p.key] ?? p.tasks.some((t) => t.active));
 
   /**
    * 折叠开关。**当前态从 updater 的参数 m 算**，不从闭包里的 collapsed 算：
@@ -160,70 +172,26 @@ export function Sidebar(props: SidebarProps) {
   const toggleProject = (key: string): void =>
     setCollapsed((m) => {
       const p = model.projects.find((x) => x.key === key);
-      const open = m[key] ?? (p?.tasks.some((t) => t.active) ?? false);
+      const open = (p?.tasks.length ?? 0) > 0 && (m[key] ?? (p?.tasks.some((t) => t.active) ?? false));
       return { ...m, [key]: !open };
     });
 
-  const anyClosed = model.projects.some((p) => !isOpen(p));
+  const expandable = model.projects.filter((p) => p.tasks.length > 0);
+  const anyClosed = expandable.some((p) => !isOpen(p));
   const toggleAll = (): void => {
     const next: Record<string, boolean> = {};
-    for (const p of model.projects) next[p.key] = anyClosed ? false : true;
+    for (const p of expandable) next[p.key] = anyClosed ? false : true;
     setCollapsed(next);
   };
 
   const sortItems: MenuItem[] = [
-    { id: "recent", label: "按最近变更", hint: "roster.lastChangeUnixMs 降序", selected: sort === "recent" },
-    { id: "title", label: "按标题", hint: "localeCompare(zh)", selected: sort === "title" },
+    { id: "recent", label: tr("按最近变更"), hint: tr("最近变更在前"), selected: sort === "recent" },
+    { id: "title", label: tr("按标题"), hint: tr("按标题排序"), selected: sort === "title" },
   ];
 
   return (
     <aside className="sidebar">
       <div className="sidebar__drag" />
-
-      {/* 叠层：不占流式布局（活壳是 absolute h-14 z-20 + pointer-events 分离） */}
-      <div className="sidebar__overlay">
-        <div className="sidebar__overlay-btns">
-          <button
-            type="button"
-            className="iconbtn"
-            onClick={onToggleSidebar}
-            aria-label="切换侧边栏"
-            title="切换侧边栏（⌘B）"
-          >
-            {sidebarOpen ? <IconPanelLeftClose size={16} /> : <IconPanelLeftOpen size={16} />}
-          </button>
-          <button
-            type="button"
-            className="iconbtn"
-            onClick={onBack}
-            disabled={!canBack}
-            aria-label="后退"
-            title="后退：沿我看过的会话顺序回溯（历史栈上限 64）"
-          >
-            <IconArrowLeft size={16} />
-          </button>
-          <button
-            type="button"
-            className="iconbtn"
-            onClick={onForward}
-            disabled={!canForward}
-            aria-label="前进"
-            title="前进：回到后退之前的会话"
-          >
-            <IconArrowRight size={16} />
-          </button>
-          <button
-            type="button"
-            className="iconbtn"
-            onClick={onNewSession}
-            disabled={newSessionBusy}
-            aria-label="新建任务"
-            title="新建任务（⌘N）：session/new，cwd = 本窗口工作区"
-          >
-            <IconMessagePlus size={16} />
-          </button>
-        </div>
-      </div>
 
       <div className="sidebar__actions">
         <button
@@ -231,54 +199,36 @@ export function Sidebar(props: SidebarProps) {
           className="navrow"
           onClick={onNewSession}
           disabled={newSessionBusy}
-          title="新建任务（⌘N）：session/new，cwd = 本窗口工作区"
+          title={tr("新建任务（⌘N）")}
         >
           <IconMessagePlus size={16} />
-          <span className="navrow__label">新建任务</span>
+          <span className="navrow__label">{tr("新建任务")}</span>
           <span className="navrow__hint">⌘N</span>
         </button>
         <button
           type="button"
           className="navrow"
           onClick={onOpenPalette}
-          title="命令中心：内核命令（实测 167 条）+ 窗口动作 + 会话（含未加载的，点击走 session/load）"
+          title={tr("搜索会话和命令（⌘K）")}
         >
           <IconSearch size={16} />
-          <span className="navrow__label">搜索</span>
+          <span className="navrow__label">{tr("搜索")}</span>
           <span className="navrow__hint">⌘K</span>
-        </button>
-        <button
-          type="button"
-          className="navrow"
-          disabled
-          title="自动化：未接线（生态面 #6）。活壳这一行滑出定时任务面板；内核侧调度通告已有，读路径未录"
-        >
-          <IconCalendarClock size={16} />
-          <span className="navrow__label">自动化</span>
-        </button>
-        <button
-          type="button"
-          className="navrow"
-          onClick={() => onOpenSettings("plugins")}
-          title="插件市场：开设置面插件分区（只读：marketplace/list 292 条、plugins/list）"
-        >
-          <IconBlocks size={16} />
-          <span className="navrow__label">插件市场</span>
         </button>
       </div>
 
       <div className="sidebar__tabs">
-        <div className="tablist" role="tablist" aria-label="列表视图">
+        <div className="tablist" role="tablist" aria-label={tr("列表视图")}>
           <button
             type="button"
             role="tab"
             aria-selected={view === "grouped"}
             className={"tab" + (view === "grouped" ? " tab--on" : "")}
             onClick={() => onView("grouped")}
-            title="分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）"
+            title={tr("分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）")}
           >
             <IconHash size={12} />
-            <span>分组</span>
+            <span>{tr("分组")}</span>
           </button>
           <button
             type="button"
@@ -286,18 +236,18 @@ export function Sidebar(props: SidebarProps) {
             aria-selected={view === "projects"}
             className={"tab" + (view === "projects" ? " tab--on" : "")}
             onClick={() => onView("projects")}
-            title="项目：按工作区分组，组内是该工作区的任务"
+            title={tr("项目：按工作区分组，组内是该工作区的任务")}
           >
             <IconFolder size={12} />
-            <span>项目</span>
+            <span>{tr("项目")}</span>
           </button>
         </div>
         <button
           type="button"
           className="iconbtn iconbtn--sm"
           onClick={toggleAll}
-          aria-label={anyClosed ? "展开全部" : "收起全部"}
-          title={anyClosed ? "展开全部项目组" : "收起全部项目组"}
+          aria-label={anyClosed ? tr("展开全部") : tr("收起全部")}
+          title={anyClosed ? tr("展开全部项目组") : tr("收起全部项目组")}
         >
           <IconExpand size={14} />
         </button>
@@ -307,7 +257,7 @@ export function Sidebar(props: SidebarProps) {
           align="right"
           variant="icon-sm"
           chevron={false}
-          title="筛选和排序"
+          title={tr("筛选和排序")}
           trigger={<IconFilter size={14} />}
           items={sortItems}
           onPick={(id) => onSort(id === "title" ? "title" : "recent")}
@@ -315,43 +265,58 @@ export function Sidebar(props: SidebarProps) {
         <button
           type="button"
           className="iconbtn iconbtn--sm"
-          disabled
-          aria-label="归档"
-          title="归档：未接线。内核侧没有归档写路径的实测记录（roster 只给 activity/origin），不放假动作"
+          disabled={!onArchiveView}
+          aria-label={archiveView ? tr("返回未归档会话") : tr("查看归档会话")}
+          aria-pressed={archiveView}
+          onClick={() => onArchiveView?.(!archiveView)}
+          title={tr("本地归档列表，共 {0} 个会话", [String(model.archivedCount ?? 0)])}
         >
           <IconArchive size={14} />
         </button>
       </div>
 
       <div className="sidebar__scroll">
-        {model.total === 0 ? (
+        {catalogError ? <p className="sidebar__status" role="alert">{catalogError}</p> : null}
+        {model.total === 0 && (view !== "projects" || model.projects.length === 0) ? (
           <div className="emptyboard">
             <IconMessagePlus className="emptyboard-icon" />
-            <p className="emptyboard-title">还没有会话</p>
-            <p className="emptyboard-hint">点「新建任务」，开始第一段对话</p>
+            <p className="emptyboard-title">{tr(archiveView ? "归档列表为空" : "还没有会话")}</p>
+            <p className="emptyboard-hint">{tr(archiveView ? "会话菜单可将空闲会话归档；内核历史会保留" : "点「新建任务」，开始第一段对话")}</p>
           </div>
         ) : view === "grouped" ? (
           <div className="tasklist tasklist--flat">
-            {model.flat.map((t) => (
-              <TaskRow key={t.key} task={t} flat onPick={onPickTask} />
-            ))}
+            {(model.groups ?? [{ name: null, tasks: model.flat }]).map((group) => <section key={group.name === null ? "unassigned" : "named:" + group.name}>
+              {group.name !== null ? <div className="sechead">
+                <span className="sechead__name">{group.name}</span>
+                {onRenameGroup ? <button type="button" aria-label={tr("重命名分组 {0}", [group.name])} onClick={() => { setEditingGroup(group.name); setGroupName(group.name!); }}>{tr("重命名")}</button> : null}
+                {onRemoveGroup ? <button type="button" title={tr("会话回到未分组，不删除会话")} onClick={() => onRemoveGroup(group.name!)}>{tr("解散分组")}</button> : null}
+              </div> : model.groups && model.groups.length > 1 ? <div className="sechead">{tr("未分组")}</div> : null}
+              {editingGroup === group.name && group.name !== null && <form onSubmit={(e) => { e.preventDefault(); if (groupName.trim()) { onRenameGroup?.(group.name!, groupName.trim()); setEditingGroup(null); } }}>
+                <label>{tr("新分组名称")}<input autoFocus value={groupName} maxLength={80} onChange={(e) => setGroupName(e.target.value)} /></label>
+                <button type="submit" disabled={!groupName.trim()}>{tr("保存")}</button>
+                <button type="button" onClick={() => setEditingGroup(null)}>{tr("取消")}</button>
+              </form>}
+              {group.tasks.map((t) => <TaskRow key={t.key} task={t} flat onPick={onPickTask} onMetadataChange={onTaskMetadataChange} />)}
+            </section>)}
           </div>
         ) : (
+          <>
           <section className="seclist">
             <div className="sechead">
               {/* 活壳的区段头是**纯小标题**：没有计数、工具钮悬停才现（实测 24×24 在 x=202/226）。
                   整段折叠仍由标题点击承担，chevron 做淡，作为可折叠的唯一暗示。 */}
               <button type="button" className="sechead__label" onClick={() => setSectionOpen((v) => !v)}>
                 {sectionOpen ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
-                <span className="sechead__name">项目</span>
+                <span className="sechead__name">{tr("项目")}</span>
               </button>
               <span className="sechead__tools">
                 <button
                   type="button"
                   className="iconbtn iconbtn--sm"
-                  disabled
-                  aria-label="添加项目"
-                  title="添加项目：需要 main 侧目录选择器（IPC 第 10 通道未接线）"
+                  disabled={workspaceBusy}
+                  onClick={onOpenWorkspace}
+                  aria-label={tr("添加项目")}
+                  title={tr("选择项目文件夹")}
                 >
                   <IconPlus size={14} />
                 </button>
@@ -362,8 +327,8 @@ export function Sidebar(props: SidebarProps) {
                 ? (
                     <div className="emptyboard">
                       <IconFolder className="emptyboard-icon" />
-                      <p className="emptyboard-title">还没有项目</p>
-                      <p className="emptyboard-hint">有会话之后，它所在的文件夹会列在这里</p>
+                      <p className="emptyboard-title">{tr("还没有项目")}</p>
+                      <p className="emptyboard-hint">{tr("有会话之后，它所在的文件夹会列在这里")}</p>
                     </div>
                   )
                 : model.projects.map((p) => (
@@ -388,31 +353,47 @@ export function Sidebar(props: SidebarProps) {
                     }}
                     onDragEnd={() => setDragKey(null)}
                   >
-                    <button
-                      type="button"
-                      className="prow"
-                      onClick={() => toggleProject(p.key)}
-                      title={p.cwd ?? "会话未带 cwd"}
-                      aria-expanded={isOpen(p)}
-                    >
-                      {p.kind === "home" ? <IconHouse size={16} /> : <IconFolder size={16} />}
-                      <span className="prow__name">{p.label}</span>
-                      {/* 活壳工作区行右端没有计数/chevron（只有远端未连的警告+重连、或活动点）；
-                          折叠靠点行本身，aria-expanded 留给读屏。 */}
-                      {projActivity(p) !== null ? (
-                        <span className="prow__dot">
-                          <Dot activity={projActivity(p)} />
+                    <div className="projhead">
+                      <button
+                        type="button"
+                        className="prow"
+                        onClick={() => {
+                          if (p.tasks.length === 0) {
+                            if (!newSessionBusy) onPickWorkspace(p.cwd);
+                            return;
+                          }
+                          toggleProject(p.key);
+                        }}
+                        title={p.cwd}
+                        aria-expanded={p.tasks.length > 0 ? isOpen(p) : undefined}
+                      >
+                        {p.kind === "home" ? <IconHouse size={16} /> : <IconFolder size={16} />}
+                        <span className="prow__name">{p.label}</span>
+                        {/* 工作区行右端没有计数。有会话时点行折叠；空行点一下才新建任务。 */}
+                        {projActivity(p) !== null ? (
+                          <span className="prow__dot">
+                            <Dot activity={projActivity(p)} />
+                          </span>
+                        ) : null}
+                        <span className="prow__grip" aria-hidden="true">
+                          <IconGrip size={12} />
                         </span>
-                      ) : null}
-                      {/* 拖拽把手暗示：悬停才现（活壳 grip 同纪律）；整行 draggable，见 .proj */}
-                      <span className="prow__grip" aria-hidden="true">
-                        <IconGrip size={12} />
-                      </span>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        className="iconbtn iconbtn--sm prow__new"
+                        disabled={newSessionBusy}
+                        aria-label={tr("在 {0} 中新建任务", [p.label])}
+                        title={tr("在 {0} 中新建任务", [p.label])}
+                        onClick={() => onPickWorkspace(p.cwd)}
+                      >
+                        <IconMessagePlus size={14} />
+                      </button>
+                    </div>
                     {isOpen(p) ? (
                       <div className="tasklist">
                         {p.tasks.map((t) => (
-                          <TaskRow key={t.key} task={t} flat={false} onPick={onPickTask} />
+                          <TaskRow key={t.key} task={t} flat={false} onPick={onPickTask} onMetadataChange={onTaskMetadataChange} />
                         ))}
                       </div>
                     ) : null}
@@ -420,11 +401,29 @@ export function Sidebar(props: SidebarProps) {
                 ))
               : null}
           </section>
+          {model.chats.length > 0 ? (
+            <section className="seclist">
+              <div className="sechead">
+                <button type="button" className="sechead__label" onClick={() => setChatsOpen((v) => !v)}>
+                  {chatsOpen ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
+                  <span className="sechead__name">{tr("聊天")}</span>
+                </button>
+              </div>
+              {chatsOpen ? (
+                <div className="tasklist">
+                  {model.chats.map((t) => (
+                    <TaskRow key={t.key} task={t} flat={false} onPick={onPickTask} onMetadataChange={onTaskMetadataChange} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+          </>
         )}
       </div>
 
       <SidebarFoot
-        state={state}
+        projection={projection}
         boot={boot}
         bridge={bridge}
         theme={theme}

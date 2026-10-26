@@ -1189,6 +1189,19 @@ pub(crate) async fn spawn_session_actor(
                 Some(Arc::new(registry))
             }
         };
+    // A child must keep its parent's project plugin hooks, not replace them
+    // with the process-wide registry (which may belong to another project).
+    let built_hook_registry = if startup_hints.is_subagent {
+        built_hook_registry
+    } else {
+        nofy_agent::plugins::hooks_adapter::replace_plugin_hooks(
+            built_hook_registry,
+            plugin_registry
+                .as_deref()
+                .map(nofy_agent::plugins::hooks_adapter::active_plugin_hook_specs)
+                .unwrap_or_default(),
+        )
+    };
     let hook_registry_for_handle = built_hook_registry.clone();
     let workspace_ops_for_handle = workspace_ops.clone();
     #[allow(clippy::arc_with_non_send_sync)]
@@ -1519,6 +1532,8 @@ pub(crate) async fn spawn_session_actor(
             threshold_percent: std::cell::Cell::new(auto_compact_threshold_percent),
             force_compact: force_compact.clone(),
             context_window_override,
+            context_window_selection: std::cell::Cell::new(None),
+            server_context_window: std::cell::RefCell::new(None),
             count: std::sync::atomic::AtomicU64::new(0),
             auto_compact_suppressed: std::sync::atomic::AtomicU8::new(0),
             previous_model: std::cell::Cell::new(None),

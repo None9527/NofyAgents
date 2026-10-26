@@ -1,3 +1,4 @@
+import type { WorkspaceFileAccess } from "../shared/workspace-files-contract.ts";
 /**
  * preload 契约 —— main ↔ preload ↔ renderer 的**唯一**接口定义。
  *
@@ -14,6 +15,9 @@
  *     正是旧路 D2「桥的 main→host 方向从未被端到端验证」那类静默不一致的成因。
  */
 import type { KernelSignal, RpcId } from "../renderer/core/kernel-port.ts";
+import type { FileHostAccess } from "../shared/file-host-contract.ts";
+import type { UserBrowserAccess } from "../shared/user-browser-contract.ts";
+import type { ModelConfigAccess } from "./model-config-contract.ts";
 
 export type { KernelSignal, RpcId };
 
@@ -39,6 +43,27 @@ export const IPC = {
    * 取消＝空数组（不报错）；载荷只有 path/name 两个字符串，结构化克隆安全。
    */
   pickFiles: "nofy:pick-files",
+  pickDirectory: "nofy:pick-directory",
+  validateDirectory: "nofy:validate-directory",
+  saveText: "nofy:save-text",
+  copyFilePath: "nofy:copy-file-path",
+  openWorkspacePath: "nofy:open-workspace-path",
+  readRaster: "nofy:read-raster",
+  watchFiles: "nofy:watch-files",
+  unwatchFiles: "nofy:unwatch-files",
+  filesChanged: "nofy:files-changed",
+  readModelConfig: "nofy:read-model-config",
+  updateModelConfig: "nofy:update-model-config",
+  /** 宿主内置浏览器。不经内核，也不表示智能体能操作这个页面。 */
+  browserNavigate: "nofy:browser-navigate",
+  browserCommand: "nofy:browser-command",
+  browserSetBounds: "nofy:browser-set-bounds",
+  browserOpenExternal: "nofy:browser-open-external",
+  browserState: "nofy:browser-state",
+  browserHost: "nofy:browser-host",
+  browserHostEvent: "nofy:browser-host-event",
+  /** 桌面宿主设置：防休眠、内置浏览器代理。不经内核。 */
+  desktopHost: "nofy:desktop-host",
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -82,7 +107,14 @@ export type SubscribeResult = {
 /** 原生选文件框的一个结果。name = basename（芯片显示与 resource_link 的 name 用）。 */
 export type PickedFile = { path: string; name: string };
 
-export type NofyBridge = {
+/** 渲染进程交给主进程立刻执行的宿主设置。代理只改 Electron 会话。 */
+export type DesktopHostSettings = {
+  keepAwake: boolean;
+  httpProxy: string;
+  noProxy: string;
+};
+
+export type NofyBridge = ModelConfigAccess & FileHostAccess & WorkspaceFileAccess & UserBrowserAccess & {
   /** 订阅入站信号；返回退订函数。同步注册，注册后不再丢帧。 */
   onSignal: (cb: (sig: KernelSignal) => void) => () => void;
   /** 订阅握手：main 侧 attach 本 webContents 并回放 sticky/缓冲/未应答请求。 */
@@ -94,11 +126,15 @@ export type NofyBridge = {
   /** 应答内核→客户端请求。不应答则内核悬挂或 fail-closed。 */
   respond: (id: RpcId, result: unknown) => Promise<void>;
   /** 停止轮次。session/cancel 是 **notification**（陷阱 T1）。 */
-  cancel: (sessionId: string) => Promise<void>;
+  cancel: (sessionId: string, meta?: Record<string, unknown>) => Promise<void>;
   isReady: () => Promise<boolean>;
   bootstrap: () => Promise<BootstrapInfo>;
   /** 打开系统选文件框；取消返回 []。宿主能力，不经内核。 */
   pickFiles: () => Promise<PickedFile[]>;
+  applyDesktopHost: (settings: DesktopHostSettings) => Promise<void>;
+  pickDirectory: () => Promise<string | null>;
+  validateDirectory: (path: string) => Promise<string>;
+  saveText: (content: string, filename: string) => Promise<boolean>;
   /**
    * 边界自检。存在理由：丢帧/形状漂移的症状是「界面卡住不动」，
    * 没有任何报错。给 UI 与测试一个能直接读的计数，别让它变成玄学。

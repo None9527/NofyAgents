@@ -19,8 +19,13 @@ import type { PluginRow } from "../renderer/ui/readers.ts";
 
 test("分区表标签与可见性判定不漂移", () => {
   assert.equal(sectionLabel("mcp"), "MCP 服务");
+  assert.equal(sectionLabel("appearance"), "外观");
+  assert.equal(sectionLabel("hooks"), "钩子");
   assert.equal(isSettingsSection("usage"), true);
-  assert.equal(isSettingsSection("hooks"), false); // 没数据面的分区不画假入口
+  assert.equal(isSettingsSection("hooks"), true);
+  assert.equal(isSettingsSection("appearance"), true);
+  assert.equal(isSettingsSection("general"), true);
+  assert.equal(sectionLabel("general"), "常规");
   assert.equal(isSettingsSection("plugins"), true);
 });
 
@@ -64,8 +69,8 @@ test("分区表含用量：数据与统计组挂 usage", () => {
   assert.deepEqual(
     SETTINGS_GROUPS.map((g) => [g.id, g.sections.map((s) => s.id)]),
     [
-      ["basics", ["general"]],
-      ["agentCapabilities", ["plugins", "skills", "mcp"]],
+      ["basics", ["general", "appearance", "models"]],
+      ["agentCapabilities", ["plugins", "skills", "mcp", "hooks"]],
       ["dataAndStats", ["usage"]],
     ],
   );

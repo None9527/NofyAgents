@@ -16,7 +16,15 @@ async fn minimal_flush_left_no_hpad() {
         "{MOCK_RESPONSE_SENTINEL} — flush-left alignment check."
     ));
 
-    let mut harness = spawn_minimal(&content);
+    let mut harness = PtyHarness::spawn_with_content(
+        &pager_binary().expect("resolve pager binary"),
+        DEFAULT_ROWS,
+        DEFAULT_COLS,
+        &content,
+        &["--minimal", "--no-leader", "--permission-mode", "default"],
+    )
+    .expect("spawn explicit Ask minimal pager");
+    harness.set_respond_to_queries(true);
     wait_minimal_ready(&mut harness);
 
     // Idle: status + prompt + info bar must be flush-left (no leading spaces).
@@ -75,15 +83,24 @@ async fn minimal_flush_left_no_hpad() {
     // Close the dropdown / clear the prompt so quit isn't intercepted.
     harness.inject_keys(b"\x1b").expect("esc closes dropdown");
     harness.update(Duration::from_millis(100));
+    harness
+        .inject_keys(b"\x03")
+        .expect("clear remaining slash draft");
+    harness.update(Duration::from_millis(100));
+    assert!(
+        !harness.screen_contents().contains("❯ /tra"),
+        "slash draft is cleared before the tool turn"
+    );
 
-    // Permission modal: a scripted `run_terminal_command` tool call (no --yolo)
+    // Permission modal: a scripted content write in explicitly-pinned Ask mode.
+    // `touch` is creation-only and no longer trips the FileWrite grant floor.
     // opens the prompt-replacing permission modal. Its rows must be flush-left
     // too — previously the whole modal sat at the layout hpad (2 columns in).
     // The accent `┃` paints the modal's first column, so a correct row has zero
     // leading spaces.
     content.set_response("PERMISSION_SETTLED — turn finished after the allow.");
     let args = json!({
-        "command": "touch flush_marker.txt",
+        "command": "printf permission-check > flush_marker.txt",
         "description": "flush-left permission check",
     })
     .to_string();

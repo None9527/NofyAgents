@@ -21,6 +21,10 @@ use crate::types::tool::{ToolKind, ToolNamespace};
 pub struct ReadFileConciseTool;
 
 impl crate::types::tool_metadata::ToolMetadata for ReadFileConciseTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("target_file")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Read
     }

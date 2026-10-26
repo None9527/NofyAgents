@@ -851,6 +851,44 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             }]
         }
         Action::NextModel => vec![],
+        Action::SwitchModelContext {
+            model_id,
+            effort,
+            context_window,
+        } => {
+            let ActiveView::Agent(id) = app.active_view else {
+                return vec![];
+            };
+            let Some(agent) = app.agents.get_mut(&id) else {
+                return vec![];
+            };
+            let Some(session_id) = agent.session.session_id.clone() else {
+                agent.show_toast("Start a session before choosing a context window.");
+                return vec![];
+            };
+            if agent.session.model_switch_pending {
+                agent.show_toast("A model change is already in progress.");
+                return vec![];
+            }
+            if context_window.is_some_and(|tokens| {
+                !agent
+                    .session
+                    .models
+                    .context_windows_for(&model_id)
+                    .contains(&tokens)
+            }) {
+                agent.show_toast("This model does not offer that context window.");
+                return vec![];
+            }
+            agent.session.model_switch_pending = true;
+            vec![Effect::SwitchModelContext {
+                agent_id: id,
+                session_id,
+                model_id,
+                effort,
+                context_window,
+            }]
+        }
         Action::SwitchModel { model_id, effort } => {
             let ActiveView::Agent(id) = app.active_view else {
                 return vec![];

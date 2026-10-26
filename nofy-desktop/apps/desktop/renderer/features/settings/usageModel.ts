@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * 用量面纯聚合（#7）。输入 = ui/usageLedger.ts 的本机账本条目 + 「今天」键；
  * 不碰 Date / localStorage，全可门禁。活壳使用统计面的五卡/热力/趋势/模型占比
@@ -144,7 +145,7 @@ export function trendSeries(entries: UsageEntry[], todayKey: string, rangeDays: 
   const totals = new Map<string, number>();
   for (const e of entries) totals.set(e.m, (totals.get(e.m) ?? 0) + e.t);
   const top = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, topN).map(([m]) => m);
-  const models = top.includes("其他") ? top : [...top];
+  const models = top.includes(tr("其他")) ? top : [...top];
   const byModel = new Map<string, Map<string, number>>();
   for (const m of models) byModel.set(m, new Map());
   const other = new Map<string, number>();
@@ -158,7 +159,7 @@ export function trendSeries(entries: UsageEntry[], todayKey: string, rangeDays: 
     points: days.map((day) => ({ day, tokens: byModel.get(m)?.get(day) ?? 0 })),
   }));
   if (other.size > 0) {
-    out.push({ model: "其他", points: days.map((day) => ({ day, tokens: other.get(day) ?? 0 })) });
+    out.push({ model: tr("其他"), points: days.map((day) => ({ day, tokens: other.get(day) ?? 0 })) });
   }
   return out;
 }
@@ -179,13 +180,13 @@ export function modelShares(entries: UsageEntry[]): Array<{ model: string; token
 
 /** 大数中文档：≥1e8 亿、≥1e4 万（一位小数），否则原样；与活壳「8933.8 万」同语感。 */
 export function formatWan(n: number): string {
-  if (n >= 100_000_000) return (n / 100_000_000).toFixed(1) + " 亿";
-  if (n >= 10_000) return (n / 10_000).toFixed(1) + " 万";
+  if (n >= 100_000_000) return (n / 100_000_000).toFixed(1) + tr(" 亿");
+  if (n >= 10_000) return (n / 10_000).toFixed(1) + tr(" 万");
   return String(n);
 }
 
 /** 分钟档：<60 给「N 分钟」，否则「H 小时 M 分」。 */
 export function formatMinutes(min: number): string {
-  if (min < 60) return String(min) + " 分钟";
-  return String(Math.floor(min / 60)) + " 小时 " + String(min % 60) + " 分";
+  if (min < 60) return String(min) + tr(" 分钟");
+  return String(Math.floor(min / 60)) + tr(" 小时 ") + String(min % 60) + tr(" 分");
 }

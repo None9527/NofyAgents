@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * ApprovalCard —— 内核→客户端裁决面。
  *
@@ -35,6 +37,9 @@ import type { PermissionOption, ToolCallInfo } from "../../ui/readers.ts";
 import { preview, readOptions, readToolCall } from "../../ui/readers.ts";
 import type { QuestionnaireView, Selection } from "./questionModel.ts";
 import { acceptedPayload, emptySelections, isAnswered, readQuestionnaire } from "./questionModel.ts";
+import { PlanApprovalCard } from "./PlanApprovalCard.tsx";
+import { ElicitationCard } from "./ElicitationCard.tsx";
+import { permissionScope, permissionResponse } from "./permModel.ts";
 
 type Pending = AppState["pendingInteractions"] extends Array<infer T> ? T : never;
 
@@ -47,6 +52,7 @@ export type ApprovalHandlers = {
 };
 
 export function ApprovalCard({ item, handlers }: { item: Pending; handlers: ApprovalHandlers }) {
+  useLocale();
   /**
    * 审批到达即把焦点交给卡片容器（tabIndex=-1，Enter 不会误点选项）。
    * 不偷焦点的话焦点还在 composer，1-4 会被我们自己的「输入框内忽略」守卫吃掉；
@@ -66,6 +72,10 @@ export function ApprovalCard({ item, handlers }: { item: Pending; handlers: Appr
             return <QuestionCard item={item} handlers={handlers} />;
           case "folder-trust":
             return <FolderTrustCard item={item} handlers={handlers} />;
+          case "exit-plan":
+            return <PlanApprovalCard key={String(item.id)} item={item} handlers={handlers} />;
+          case "elicitation":
+            return <ElicitationCard key={String(item.id)} item={item} handlers={handlers} />;
           default:
             return <UnknownCard item={item} handlers={handlers} />;
         }
@@ -83,10 +93,10 @@ export function ApprovalCard({ item, handlers }: { item: Pending; handlers: Appr
  * 真开 YOLO 是客户端职责（App.tsx 另发 notify）——文案不藏这件事。
  */
 const OPTION_COPY: Record<string, { label: string; desc: string; danger: boolean }> = {
-  "allow-once": { label: "允许", desc: "仅允许这一次", danger: false },
-  "allow-edits-session": { label: "允许本会话", desc: "本次会话内的编辑不再询问", danger: false },
-  "reject-once": { label: "拒绝", desc: "这次先拒绝", danger: false },
-  "enable-always-approve": { label: "完全访问", desc: "允许本次并开启全放行，后续不再询问", danger: true },
+  "allow-once": { get label() { return tr("允许"); }, get desc() { return tr("仅允许这一次"); }, danger: false },
+  "allow-edits-session": { get label() { return tr("允许本会话"); }, get desc() { return tr("本次会话内的编辑不再询问"); }, danger: false },
+  "reject-once": { get label() { return tr("拒绝"); }, get desc() { return tr("这次先拒绝"); }, danger: false },
+  "enable-always-approve": { get label() { return tr("完全访问"); }, get desc() { return tr("允许本次并开启全放行，后续不再询问"); }, danger: true },
 };
 
 /** 展示顺序＝安全→危险：活壳三档逐字 + 全放行收尾当减速带。表外选项按内核顺序附尾。 */
@@ -155,14 +165,32 @@ function ctxIcon(kind: string | null): ReactNode {
  * 数字键 1–N 由 App 的全局热键直选直确（与屏幕行号同序，见 optionViews）。
  */
 function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalHandlers }) {
+  useLocale();
   const tool = readToolCall(item.params);
   const views = optionViews(readOptions(item.params));
   const [sel, setSel] = useState(0);
+  const [remarks, setRemarks] = useState("");
+  const [scope, setScope] = useState<"tool" | "server">("tool");
+  const [pattern, setPattern] = useState("");
+  const [glob, setGlob] = useState(false);
+  const [sent, setSent] = useState(false);
+  const submitted = useRef(false);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const target = targetOf(tool);
-  const confirm = () => {
-    const v = views[sel];
-    if (v !== undefined) handlers.chooseOption(item, v.optionId);
+  const selectedId = views[sel]?.optionId ?? "";
+  const mcp = permissionScope(item.params, selectedId);
+  const confirm = (index = sel) => {
+    const v = views[index];
+    if (v === undefined || submitted.current) return;
+    submitted.current = true;
+    setSent(true);
+    if (v.optionId === "reject-once" && remarks.trim()) handlers.answer(item, permissionResponse(v.optionId, { followup_message: remarks.trim() }));
+    else if (permissionScope(item.params, v.optionId)) {
+      const selectedScope = permissionScope(item.params, v.optionId)!;
+      handlers.answer(item, permissionResponse(v.optionId, scope === "server" && selectedScope.server ? { kind: "server", server: selectedScope.server } : { kind: "tool", tool_name: selectedScope.toolName }));
+    }
+    else if (v.optionId === "allow-always-command" && pattern.trim()) handlers.answer(item, permissionResponse(v.optionId, { command_parts: [pattern.trim()], is_glob: glob }));
+    else handlers.chooseOption(item, v.optionId);
   };
   const move = (next: number) => {
     const n = views.length;
@@ -172,7 +200,11 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
     rowRefs.current[i]?.focus();
   };
   const onListKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+    if ((e.target as HTMLElement).closest("input,textarea,select")) return;
+    if (/^[1-9]$/.test(e.key)) {
+      e.preventDefault();
+      confirm(Number(e.key) - 1);
+    } else if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
       move(sel + 1);
     } else if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
@@ -190,13 +222,13 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
     }
   };
   return (
-    <div className="approval">
+    <div className="approval" onKeyDown={onListKey}>
       <div className="approval__head">
-        <span className="approval__title">需要权限</span>
+        <span className="approval__title">{tr("需要权限")}</span>
       </div>
       <div className="approval__ctx">
         <span className="approval__ctxicon">{ctxIcon(tool?.kind ?? null)}</span>
-        <span className="approval__ctxstatus">等待确认</span>
+        <span className="approval__ctxstatus">{tr("等待确认")}</span>
         {target !== null ? (
           <span className="approval__ctxfile" title={target}>
             <IconFile size={13} />
@@ -205,16 +237,15 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
         ) : null}
       </div>
       {views.length === 0 ? (
-        <p className="approval__note">
-          这条请求没有可用选项（options 缺失或形状不符）。不猜——按取消处理更安全。
-        </p>
+        <p className="approval__note">{tr("这条请求没有可用选项（options 缺失或形状不符）。不猜——按取消处理更安全。")}</p>
       ) : (
         <>
-          <div className="approval__list" role="listbox" aria-label="需要权限" onKeyDown={onListKey}>
+          <div className="approval__list" role="listbox" aria-label={tr("需要权限")}>
             {views.map((v, i) => (
               <button
                 key={v.optionId}
                 type="button"
+                disabled={sent}
                 role="option"
                 aria-selected={i === sel}
                 tabIndex={i === sel ? 0 : -1}
@@ -231,7 +262,7 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
                   else setSel(i);
                 }}
                 onFocus={() => setSel(i)}
-                title={"按 " + String(i + 1) + " 直接确认此项 · optionId=" + v.optionId}
+                title={tr("按 ") + String(i + 1) + tr(" 直接确认此项 · optionId=") + v.optionId}
               >
                 <span className={"approval__num" + (i === sel ? " approval__num--on" : "")}>{String(i + 1)}.</span>
                 <span className="approval__optbody">
@@ -241,14 +272,22 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
               </button>
             ))}
           </div>
+          {selectedId === "reject-once" ? <label className="question__text">{tr("拒绝附言")}<textarea className="question__input" value={remarks} disabled={sent} placeholder={tr("告诉助手如何调整")} onChange={(e) => setRemarks(e.target.value)} />
+          </label> : null}
+          {mcp ? <label className="question__text">{tr("持续授权范围")}<select className="question__input" value={scope} disabled={sent} onChange={(e) => setScope(e.target.value === "server" ? "server" : "tool")}>
+              <option value="tool">{tr("仅工具：")}{mcp.toolName}</option>
+              {mcp.server ? <option value="server">{tr("整个服务器：")}{mcp.server}</option> : null}
+            </select>
+          </label> : null}
+          {selectedId === "allow-always-command" ? <div>
+            <label className="question__text">{tr("自定义命令范围（留空沿用内核默认）")}<input className="question__input" value={pattern} disabled={sent} onChange={(e) => setPattern(e.target.value)} />
+            </label>
+            <label><input type="checkbox" checked={glob} disabled={sent} onChange={(e) => setGlob(e.target.checked)} />{tr("将输入作为 glob 模式持续授权")}</label>
+          </div> : null}
           <div className="approval__foot">
             <span className="approval__hint">
-              <IconInfo size={14} />
-              使用 Tab / 上下键选择，回车确认
-            </span>
-            <button type="button" className="approval__confirm" onClick={confirm}>
-              确认
-            </button>
+              <IconInfo size={14} />{tr("使用 Tab / 上下键选择，回车确认")}</span>
+            <button type="button" className="approval__confirm" disabled={sent} onClick={() => confirm()}>{tr("确认")}</button>
           </div>
         </>
       )}
@@ -268,6 +307,7 @@ function PermissionCard({ item, handlers }: { item: Pending; handlers: ApprovalH
  * 取消走已登记的 {outcome:"cancelled"}（effects.ts cancelPayloadFor）。
  */
 function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHandlers }) {
+  useLocale();
   const q: QuestionnaireView = readQuestionnaire(item.params);
   const [qi, setQi] = useState(0);
   const [sels, setSels] = useState<Selection[]>(() => emptySelections(q.questions.length));
@@ -317,14 +357,14 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
   return (
     <div className="approval">
       <div className="approval__head">
-        <span className="approval__title">需要确认</span>
-        {q.mode === "plan" ? <Chip tone="plain">计划模式</Chip> : null}
+        <span className="approval__title">{tr("需要确认")}</span>
+        {q.mode === "plan" ? <Chip tone="plain">{tr("计划模式")}</Chip> : null}
         {q.questions.length > 1 ? (
           <span className="approval__method">{String(qi + 1)} / {String(q.questions.length)}</span>
         ) : null}
       </div>
       {cur === undefined ? (
-        <p className="approval__note">这条请求没有可用问题（questions 缺失或形状不符）。不猜——按取消处理更安全。</p>
+        <p className="approval__note">{tr("这条请求没有可用问题（questions 缺失或形状不符）。不猜——按取消处理更安全。")}</p>
       ) : (
         <>
           <p className="question__text">{cur.question}</p>
@@ -375,13 +415,13 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
                   >
                     <span className={"qmark" + (cur.multiSelect ? " qmark--multi" : "") + (on ? " qmark--on" : "")} aria-hidden="true" />
                     <span className="approval__optbody">
-                      <span className="approval__optlabel">自定义回答</span>
+                      <span className="approval__optlabel">{tr("自定义回答")}</span>
                     </span>
                   </button>
                   {open ? (
                     <input
                       className="question__input"
-                      placeholder="输入你的回答..."
+                      placeholder={tr("输入你的回答...")}
                       value={sel.notes}
                       autoFocus
                       ref={(el) => { inputRefs.current[qi] = el; }}
@@ -395,16 +435,14 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
           {focusedPreview !== null ? <pre className="question__preview">{focusedPreview}</pre> : null}
           <div className="approval__foot">
             <span className="approval__hint">
-              <IconInfo size={14} />
-              使用 Tab / 上下键选择，回车或空格选中
-            </span>
+              <IconInfo size={14} />{tr("使用 Tab / 上下键选择，回车或空格选中")}</span>
             <span className="question__nav">
               <button
                 type="button"
                 className="iconbtn qnav__flip"
                 disabled={qi === 0}
-                title="上一题"
-                aria-label="上一题"
+                title={tr("上一题")}
+                aria-label={tr("上一题")}
                 onClick={() => goto(qi - 1)}
               >
                 <IconChevronRight size={14} />
@@ -413,8 +451,8 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
                 type="button"
                 className="iconbtn"
                 disabled={qi >= q.questions.length - 1}
-                title="下一题"
-                aria-label="下一题"
+                title={tr("下一题")}
+                aria-label={tr("下一题")}
                 onClick={() => goto(qi + 1)}
               >
                 <IconChevronRight size={14} />
@@ -424,14 +462,14 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
                 type="button"
                 className="approval__confirm"
                 disabled={qi >= q.questions.length - 1 && payload === null}
-                title={qi >= q.questions.length - 1 && payload === null ? "至少回答一题才能提交" : "提交回答"}
+                title={qi >= q.questions.length - 1 && payload === null ? tr("至少回答一题才能提交") : tr("提交回答")}
                 onClick={() => {
                   if (payload === null) return;
                   if (qi < q.questions.length - 1) goto(qi + 1);
                   else handlers.answer(item, payload);
                 }}
               >
-                {qi < q.questions.length - 1 ? "继续" : "提交"}
+                {qi < q.questions.length - 1 ? tr("继续") : tr("提交")}
               </button>
             </span>
           </div>
@@ -442,27 +480,20 @@ function QuestionCard({ item, handlers }: { item: Pending; handlers: ApprovalHan
 }
 
 function FolderTrustCard({ item, handlers }: { item: Pending; handlers: ApprovalHandlers }) {
+  useLocale();
   return (
     <div className="approval">
       <div className="approval__head">
-        <span className="approval__title">工作区信任</span>
+        <span className="approval__title">{tr("工作区信任")}</span>
         <span className="approval__method">{item.method}</span>
       </div>
-      <p className="approval__note">
-        内核在问是否信任这个工作区。信任会**持久化**授权并热重载仓库级 MCP / 配置；
-        拒绝只在本进程内记账，工作区继续 gated（仓库级 MCP 与配置不加载）。
-        不应答是最差选择：内核超时后按「不是决定」处理，下次开会话还会再问。
-      </p>
+      <p className="approval__note">{tr("内核在问是否信任这个工作区。信任会**持久化**授权并热重载仓库级 MCP / 配置；\n        拒绝只在本进程内记账，工作区继续 gated（仓库级 MCP 与配置不加载）。\n        不应答是最差选择：内核超时后按「不是决定」处理，下次开会话还会再问。")}</p>
       <div className="approval__options">
-        <Btn variant="primary" onClick={() => handlers.trust(item, true)}>
-          信任此工作区
-        </Btn>
-        <Btn variant="danger" onClick={() => handlers.trust(item, false)}>
-          拒绝（保持 gated）
-        </Btn>
+        <Btn variant="primary" onClick={() => handlers.trust(item, true)}>{tr("信任此工作区")}</Btn>
+        <Btn variant="danger" onClick={() => handlers.trust(item, false)}>{tr("拒绝（保持 gated）")}</Btn>
       </div>
       <details>
-        <summary className="block__label">params（形状未实测，原样展示）</summary>
+        <summary className="block__label">{tr("params（形状未实测，原样展示）")}</summary>
         <pre className="tool-card__args">{preview(item.params, 1200)}</pre>
       </details>
     </div>
@@ -474,22 +505,19 @@ function FolderTrustCard({ item, handlers }: { item: Pending; handlers: Approval
  * 正向应答的形状还没实测，故只给取消，并把这一事实写在界面上。
  */
 function UnknownCard({ item, handlers }: { item: Pending; handlers: ApprovalHandlers }) {
+  useLocale();
   return (
     <div className="approval">
       <div className="approval__head">
-        <span className="approval__title">待裁决：{item.method}</span>
-        <Chip tone="warn">裁决面未实现</Chip>
+        <span className="approval__title">{tr("待裁决：")}{item.method}</span>
+        <Chip tone="warn">{tr("裁决面未实现")}</Chip>
       </div>
-      <p className="approval__note">
-        本桌面还没有这个请求的界面。取消载荷按方法族取自连接层已验证的 fail-safe 形状；
-        若该方法不在表内，取消会失败并保持挂起——此时用下方 Stop 兜底
-        （session/cancel 会连带把该会话所有挂起请求应答 cancelled）。
-      </p>
+      <p className="approval__note">{tr("本桌面还没有这个请求的界面。取消载荷按方法族取自连接层已验证的 fail-safe 形状；\n        若该方法不在表内，取消会失败并保持挂起——此时用下方 Stop 兜底\n        （session/cancel 会连带把该会话所有挂起请求应答 cancelled）。")}</p>
       <div className="approval__options">
-        <Btn onClick={() => handlers.cancel(item)}>取消这次请求</Btn>
+        <Btn onClick={() => handlers.cancel(item)}>{tr("取消这次请求")}</Btn>
       </div>
       <details>
-        <summary className="block__label">params（原样展示）</summary>
+        <summary className="block__label">{tr("params（原样展示）")}</summary>
         <pre className="tool-card__args">{preview(item.params, 1600)}</pre>
       </details>
     </div>

@@ -1,0 +1,34 @@
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":1,"clientCapabilities":{"fs":{"readTextFile":false,"writeTextFile":false},"elicitation":{"form":{},"url":{}},"_meta":{"nofy/folderTrust":{"interactive":true}}},"clientInfo":{"name":"nofy-desktop","version":"0.1.0"},"_meta":{"clientIdentifier":"nofy-desktop"}}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":2,"method":"session/new","params":{"cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-project-e2e-Xhodcd/项目 A with spaces","mcpServers":[],"_meta":{}}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":3,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":4,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":5,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":6,"method":"session/new","params":{"cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-project-e2e-Xhodcd/项目 B with spaces","mcpServers":[],"_meta":{}}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":7,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-2","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":8,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-2"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":9,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":10,"method":"session/new","params":{"cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-project-e2e-Xhodcd/项目 A with spaces","mcpServers":[],"_meta":{}}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":11,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-3","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":12,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-3"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":13,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":14,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":15,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":16,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":17,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-2","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":18,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-2"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":19,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":20,"method":"session/prompt","params":{"sessionId":"e2e-session-2","prompt":[{"type":"text","text":"Export 中文 and code ```js\n42\n```"}]}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":21,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-1","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":22,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-1"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":23,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":24,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-2","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":25,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-2"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":26,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":27,"method":"session/prompt","params":{"sessionId":"e2e-session-2","prompt":[{"type":"text","text":"e2e:plan"}]}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":"18875-plan-1791517470988","result":{"outcome":"approved"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":28,"method":"session/load","params":{"sessionId":"e2e-session-2","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-project-e2e-Xhodcd/项目 B with spaces","mcpServers":[]}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":29,"method":"_nofy/git/status","params":{"sessionId":"e2e-session-2","includeUntracked":true,"includeStats":true,"includePatches":true}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":30,"method":"_nofy/session/info","params":{"sessionId":"e2e-session-2"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":31,"method":"_nofy/sessions/list","params":{}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":32,"method":"_nofy/session/delete","params":{"sessionId":"e2e-session-2","cwd":"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-project-e2e-Xhodcd/项目 B with spaces"}}}
+{"pid":18875,"direction":"in","frame":{"jsonrpc":"2.0","id":33,"method":"_nofy/sessions/list","params":{}}}

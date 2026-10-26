@@ -1,0 +1,60 @@
+{
+  "source": "Controlled multi-stage workflow in isolated Electron; DOM identity and frame measurements",
+  "cases": [
+    {
+      "name": "W01 one quiet summary, no redundant waiting footer or auto-opening command",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n"
+    },
+    {
+      "name": "W02 additional answer preserves previous message DOM and manual tool expansion",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n"
+    },
+    {
+      "name": "W03 completion collapses history continuously without remounting final answer",
+      "status": "passed",
+      "details": {
+        "same": true,
+        "heights": [
+          345.484375,
+          345.484375,
+          345.484375,
+          345.484375,
+          345.484375,
+          345.484375,
+          331.984375,
+          330.1875,
+          322.109375,
+          304.7578125,
+          282.8828125,
+          267.265625,
+          257.328125,
+          250.8359375,
+          246.7109375,
+          244.265625,
+          243.0703125,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625,
+          242.7890625
+        ]
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workflow-motion-2026-10-13T11-00-19.798Z"
+}

@@ -57,6 +57,9 @@ pub struct ModelState {
     /// reading from the current model's metadata. Used for subagent
     /// views where SubagentProgress reports the actual window size.
     context_window_override: Option<u64>,
+    /// Session selection; catalog refresh must not replace it with defaults.
+    context_window_selection: Option<u64>,
+    shown_notices: std::collections::HashSet<String>,
 }
 
 impl ModelState {
@@ -81,6 +84,9 @@ impl ModelState {
 
     /// Total context window tokens for the current model (if available).
     fn current_context_window_tokens(&self) -> Option<u64> {
+        if self.context_window_selection.is_some() {
+            return self.context_window_selection;
+        }
         let meta = self.available.get(self.current.as_ref()?)?.meta.as_ref()?;
         meta.get("totalContextTokens")
             .and_then(|value| match value {
@@ -155,6 +161,13 @@ impl ModelState {
         // not this session's choice; only re-derive when the model changed so a
         // catalog refresh can't clobber a user-set effort.
         if self.current != previous_current_model {
+            self.context_window_override = None;
+            if !self.current.as_ref().is_some_and(|id| {
+                self.context_windows_for(id)
+                    .contains(&self.context_window_selection.unwrap_or(0))
+            }) {
+                self.context_window_selection = None;
+            }
             self.reasoning_effort = self
                 .current
                 .as_ref()
@@ -169,12 +182,84 @@ impl ModelState {
         model_id: acp::ModelId,
         effort_override: Option<ReasoningEffort>,
     ) {
+        if self.current.as_ref() != Some(&model_id) {
+            self.context_window_override = None;
+            if !self
+                .context_windows_for(&model_id)
+                .contains(&self.context_window_selection.unwrap_or(0))
+            {
+                self.context_window_selection = None;
+            }
+        }
         self.current = Some(model_id.clone());
         self.reasoning_effort = effort_override.or_else(|| {
             self.available
                 .get(&model_id)
                 .and_then(|info| parse_reasoning_effort_meta(info.meta.as_ref()))
         });
+    }
+
+    pub fn context_windows_for(&self, id: &acp::ModelId) -> Vec<u64> {
+        let Some(meta) = self.available.get(id).and_then(|info| info.meta.as_ref()) else {
+            return Vec::new();
+        };
+        let mut values = Vec::new();
+        if let Some(list) = meta
+            .get("contextWindows")
+            .and_then(serde_json::Value::as_array)
+        {
+            for value in list {
+                if let Some(value) = value.as_u64().filter(|v| *v > 0)
+                    && !values.contains(&value)
+                {
+                    values.push(value);
+                }
+            }
+        }
+        if values.is_empty()
+            && let Some(value) = meta
+                .get("totalContextTokens")
+                .and_then(serde_json::Value::as_u64)
+                .filter(|v| *v > 0)
+        {
+            values.push(value);
+        }
+        values
+    }
+
+    pub fn set_context_window_selection(&mut self, tokens: Option<u64>) {
+        self.context_window_selection = tokens.filter(|v| *v > 0);
+        self.context_window_override = None;
+    }
+
+    pub fn context_window_selection(&self) -> Option<u64> {
+        self.context_window_selection
+    }
+
+    pub fn notice_for(&self, id: &acp::ModelId) -> Option<String> {
+        let notice = self.available.get(id)?.meta.as_ref()?.get("notice")?;
+        let text = notice
+            .as_str()
+            .or_else(|| notice.get("text").and_then(serde_json::Value::as_str))?
+            .trim();
+        if text.is_empty() {
+            return None;
+        }
+        let text: String = text.chars().take(160).collect();
+        let label = notice
+            .get("label")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("Model notice");
+        let label: String = label.chars().take(24).collect();
+        Some(format!("{label}: {text}"))
+    }
+
+    pub fn take_current_notice(&mut self) -> Option<String> {
+        let id = self.current.as_ref()?;
+        let notice = self.notice_for(id)?;
+        self.shown_notices
+            .insert(format!("{}:{notice}", id.0))
+            .then_some(notice)
     }
 
     /// The reasoning-effort menu for the current model. Gate-first: an unset or
@@ -328,6 +413,18 @@ impl From<Option<acp::SessionModelState>> for ModelState {
     fn from(state: Option<acp::SessionModelState>) -> Self {
         state
             .map(|state| {
+                let selection = state
+                    .meta
+                    .as_ref()
+                    .and_then(|meta| meta.get("contextWindow"))
+                    .and_then(serde_json::Value::as_u64)
+                    .filter(|tokens| *tokens > 0);
+                let total = state
+                    .meta
+                    .as_ref()
+                    .and_then(|meta| meta.get("contextWindowTotal"))
+                    .and_then(serde_json::Value::as_u64)
+                    .filter(|tokens| *tokens > 0);
                 let mut models = IndexMap::new();
                 for model in state.available_models {
                     models.insert(model.model_id.clone(), model);
@@ -343,7 +440,9 @@ impl From<Option<acp::SessionModelState>> for ModelState {
                     available: models,
                     current: current_model,
                     reasoning_effort,
-                    context_window_override: None,
+                    context_window_override: total,
+                    context_window_selection: selection,
+                    shown_notices: Default::default(),
                 }
             })
             .unwrap_or_default()
@@ -354,6 +453,57 @@ impl From<Option<acp::SessionModelState>> for ModelState {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn window_catalog_accepts_scalar_and_deduplicates_positive_choices() {
+        let state = state_with_meta(Some(
+            serde_json::json!({"totalContextTokens": 128000, "contextWindows": [128000, 0, 256000, 128000, "bad"]}),
+        ));
+        assert_eq!(
+            state.context_windows_for(state.current.as_ref().unwrap()),
+            vec![128000, 256000]
+        );
+        let scalar = state_with_meta(Some(serde_json::json!({"totalContextTokens": 64000})));
+        assert_eq!(
+            scalar.context_windows_for(scalar.current.as_ref().unwrap()),
+            vec![64000]
+        );
+    }
+
+    #[test]
+    fn session_window_survives_catalog_refresh_and_effort_only_change() {
+        let mut state = state_with_meta(Some(
+            serde_json::json!({"totalContextTokens": 128000, "contextWindows": [128000,256000]}),
+        ));
+        state.set_context_window_selection(Some(256000));
+        let id = state.current.clone().unwrap();
+        state.update_catalog(state.available.clone(), Some(id.clone()));
+        state.set_current(id, None);
+        assert_eq!(state.get_context_window(), Some(256000));
+        state.set_context_window_selection(None);
+        assert_eq!(state.get_context_window(), Some(128000));
+    }
+
+    #[test]
+    fn restored_state_uses_session_selection_not_catalog_default_and_notice_is_once() {
+        let id = acp::ModelId::new("model");
+        let info = acp::ModelInfo::new(id.clone(), "Model").meta(serde_json::json!({"totalContextTokens":128000,"contextWindows":[128000,256000],"notice":{"text":"Preview model", "label":"Preview"}}).as_object().cloned());
+        let acp_state = acp::SessionModelState::new(id, vec![info]).meta(
+            serde_json::json!({"contextWindow":256000,"contextWindowTotal":256000})
+                .as_object()
+                .cloned(),
+        );
+        let mut state = ModelState::from(Some(acp_state));
+        assert_eq!(state.get_context_window(), Some(256000));
+        assert_eq!(state.context_window_selection(), Some(256000));
+        assert_eq!(
+            state.take_current_notice().as_deref(),
+            Some("Preview: Preview model")
+        );
+        assert_eq!(state.take_current_notice(), None);
+        state.update_catalog(state.available.clone(), state.current.clone());
+        assert_eq!(state.take_current_notice(), None);
+    }
 
     fn sample_models() -> ModelState {
         let mut state = ModelState::default();

@@ -29,6 +29,13 @@ pub async fn list_available_models(agent_config: &AgentConfig) -> Result<()> {
 
     let state = list_models(&spawned.channel.tx, PAGER_CLIENT_TYPE, PAGER_CLIENT_VERSION).await?;
 
+    if state.available_models.is_empty() {
+        println!(
+            "No models configured. Configure a model provider in ~/.nofy/config.json or a custom model catalog endpoint."
+        );
+        return Ok(());
+    }
+
     println!("Default model: {}", state.current_model_id.0);
     println!();
     println!("Available models:");

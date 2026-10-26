@@ -1,3 +1,4 @@
+import { tr } from "./ui/i18n.ts";
 /**
  * renderer 入口。
  *
@@ -7,7 +8,7 @@
 import { createRoot } from "react-dom/client";
 import { BRIDGE_GLOBAL } from "../preload/contract.ts";
 import type { NofyBridge } from "../preload/contract.ts";
-import { App } from "./features/shell/App.tsx";
+import { App } from "./features/shell/public.ts";
 import { createRuntime } from "./seam/runtime.ts";
 /* xterm 的结构样式（.xterm-viewport/.xterm-screen 的定位与滚动）。
  * 放在入口而不是组件里：它是第三方样式表，与我们的 styles.css 同级，
@@ -20,14 +21,14 @@ function bridgeFromWindow(): NofyBridge {
   const raw = w[BRIDGE_GLOBAL];
   if (typeof raw !== "object" || raw === null) {
     throw new Error(
-      "window." + BRIDGE_GLOBAL + " 缺失：preload 没挂上桥。检查 webPreferences.preload 路径与 sandbox:false。",
+      "window." + BRIDGE_GLOBAL + tr(" 缺失：preload 没挂上桥。检查 webPreferences.preload 路径与 sandbox:false。"),
     );
   }
   return raw as NofyBridge;
 }
 
 const host = document.getElementById("root");
-if (host === null) throw new Error("#root 缺失");
+if (host === null) throw new Error(tr("#root 缺失"));
 
 const runtime = createRuntime(bridgeFromWindow());
 

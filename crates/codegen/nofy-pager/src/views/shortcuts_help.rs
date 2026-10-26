@@ -395,6 +395,7 @@ pub fn filter_entries(
         return (0..entries.len()).collect();
     }
     let q = query.to_lowercase();
+    let tokens: Vec<&str> = q.split_whitespace().collect();
     let mut result: Vec<usize> = Vec::new();
     let mut pending_header: Option<usize> = None;
     let mut section_has_match = false;
@@ -412,7 +413,10 @@ pub fn filter_entries(
                 current_section_collapsed = !searching && collapsed.contains(category_idx);
             }
             ShortcutsHelpEntry::Hint {
-                item: h, dimmed, ..
+                item: h,
+                dimmed,
+                long_help,
+                ..
             } => {
                 if current_section_collapsed {
                     continue;
@@ -420,14 +424,16 @@ pub fn filter_entries(
                 if hide_dimmed && *dimmed {
                     continue;
                 }
-                let key_text = hint_key_display(h);
-                let key_pretty = hint_key_pretty(h);
-                let desc = hint_description(h);
-                let q_matches = q.is_empty()
-                    || h.label.to_lowercase().contains(&q)
-                    || key_text.to_lowercase().contains(&q)
-                    || key_pretty.to_lowercase().contains(&q)
-                    || desc.to_lowercase().contains(&q);
+                let haystack = format!(
+                    "{} {} {} {} {}",
+                    h.label,
+                    hint_key_display(h),
+                    hint_key_pretty(h),
+                    hint_description(h),
+                    long_help.unwrap_or_default()
+                )
+                .to_lowercase();
+                let q_matches = tokens.iter().all(|token| haystack.contains(token));
                 if q_matches {
                     if let Some(idx) = pending_header.take() {
                         result.push(idx);
@@ -1558,6 +1564,24 @@ mod tests {
 
     fn no_collapsed() -> std::collections::HashSet<usize> {
         std::collections::HashSet::new()
+    }
+
+    #[test]
+    fn search_matches_each_word_across_fields_and_long_help() {
+        let mut entry = hint("Cancel turn", key!('c', CONTROL));
+        if let ShortcutsHelpEntry::Hint { long_help, .. } = &mut entry {
+            *long_help = Some("Stops generation while keeping the session open");
+        }
+        let entries = vec![header("Agent", 0, 1), entry];
+        assert_eq!(
+            filter_entries(&entries, "SESSION cancel", false, &no_collapsed()),
+            vec![0, 1]
+        );
+        assert!(filter_entries(&entries, "session missing", false, &no_collapsed()).is_empty());
+        assert_eq!(
+            filter_entries(&entries, "  cancel   session  ", false, &no_collapsed()),
+            vec![0, 1]
+        );
     }
 
     fn no_expanded() -> std::collections::HashSet<ExpandKey> {

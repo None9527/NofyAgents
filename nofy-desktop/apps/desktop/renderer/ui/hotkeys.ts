@@ -13,7 +13,8 @@
  * 输入框内的按键一律忽略（target 是 textarea/input/select 或 isComposing），
  * 否则在 composer 里打数字会误触审批——那比没有快捷键更糟。
  */
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
+import { KeyboardScopeContext } from "./keyboardScope.ts";
 
 export type HotkeyMap = Record<string, (e: KeyboardEvent) => void>;
 
@@ -31,7 +32,8 @@ const CODE_TO_KEY: Record<string, string> = {
  */
 export function modDescriptors(e: KeyboardEvent): string[] {
   if (!(e.metaKey || e.ctrlKey) || e.repeat) return [];
-  const base = CODE_TO_KEY[e.code] ?? e.key.toLowerCase();
+  // macOS Option+B reports "∫" in key; shortcut identity still comes from KeyB.
+  const base = e.altKey && /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : CODE_TO_KEY[e.code] ?? e.key.toLowerCase();
   const out: string[] = [];
   if (e.altKey && e.shiftKey) out.push("mod+shift+alt+" + base);
   if (e.shiftKey) out.push("mod+shift+" + base);
@@ -49,7 +51,9 @@ function isTypingTarget(e: KeyboardEvent): boolean {
 }
 
 export function useHotkeys(map: HotkeyMap): void {
+  const enabled = useContext(KeyboardScopeContext);
   useEffect(() => {
+    if (!enabled) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.repeat || e.isComposing) return;
       // mod 组合键优先：命中最具体的描述符就执行并吃掉事件
@@ -72,5 +76,5 @@ export function useHotkeys(map: HotkeyMap): void {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [map]);
+  }, [map,enabled]);
 }

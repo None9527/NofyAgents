@@ -1,0 +1,61 @@
+{
+  "source": "Controlled multi-stage workflow in isolated Electron; DOM identity and frame measurements",
+  "cases": [
+    {
+      "name": "W01 one quiet summary, no redundant waiting footer or auto-opening command",
+      "status": "passed"
+    },
+    {
+      "name": "W02 additional answer preserves previous message DOM and manual tool expansion",
+      "status": "passed"
+    },
+    {
+      "name": "W03 completion collapses history continuously without remounting final answer",
+      "status": "passed",
+      "details": {
+        "same": true,
+        "heights": [
+          471.875,
+          471.875,
+          471.875,
+          471.875,
+          477.875,
+          432.34375,
+          400.6953125,
+          375.59375,
+          355.171875,
+          338.375,
+          321.4609375,
+          307.65625,
+          296.265625,
+          287.109375,
+          279.8515625,
+          274.3828125,
+          270.4375,
+          267.9921875,
+          266.875,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625,
+          266.7890625
+        ]
+      }
+    },
+    {
+      "name": "W04 keyboard expansion and reduced motion preserve final answer and manual tool state",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workflow-motion-2026-10-13T11-07-48.040Z"
+}

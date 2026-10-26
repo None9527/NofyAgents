@@ -519,24 +519,23 @@ impl SessionActor {
         if approved.iter().any(|p| p.tool_name == "search_tool") {
             self.retry_auth_required_servers().await;
         }
-        let write_paths: std::collections::HashSet<String> = approved
+        // Compute once for the whole batch: filesystem changes during dispatch
+        // must not change which lock a later call acquires.
+        let lock_toolset = self.agent.borrow().tool_bridge().toolset();
+        let lock_keys: Vec<(Option<String>, bool)> = approved
             .iter()
-            .filter(|prepared| !prepared.is_read_only)
-            .filter_map(|prepared| lock_path_for_args(&prepared.parsed_args).map(str::to_owned))
+            .map(|prepared| {
+                (
+                    lock_toolset.lock_path_for_call(
+                        &prepared.tool_name,
+                        &prepared.parsed_args,
+                        self.tool_context.cwd.as_path(),
+                    ),
+                    prepared.is_read_only,
+                )
+            })
             .collect();
-        let file_locks = {
-            let mut map: std::collections::HashMap<String, Arc<tokio::sync::Mutex<()>>> =
-                std::collections::HashMap::new();
-            for prepared in &approved {
-                if let Some(fp) = lock_path_for_args(&prepared.parsed_args)
-                    && write_paths.contains(fp)
-                {
-                    map.entry(fp.to_owned())
-                        .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
-                }
-            }
-            map
-        };
+        let file_locks = nofy_tools::util::lock_path::file_locks_for_batch(&lock_keys);
         let shared_recovery = Arc::new(tokio::sync::OnceCell::<bool>::const_new());
         let workspace_ops = self.workspace_ops.clone();
         let pending_interjections = self.pending_interjections.clone();
@@ -555,8 +554,7 @@ impl SessionActor {
                 let blocking_wait_depth = self.tool_context.blocking_wait_depth.clone();
                 let interruptible =
                     is_interruptible_wait_tool(&prepared.tool_name, &prepared.parsed_args);
-                let lock = lock_path_for_args(&prepared.parsed_args)
-                    .and_then(|fp| file_locks.get(fp).cloned());
+                let lock = file_locks[idx].clone();
                 let tools_execute_span = tracing::Span::current();
                 async move {
                     let exec_start = std::time::Instant::now();
@@ -3313,6 +3311,7 @@ mod plan_mode_edit_gate_tests {
                 &ToolInput::Bash(BashToolInput {
                     command: "echo hi > /tmp/f".into(),
                     timeout: None,
+                    block_until_ms: None,
                     description: "write via bash".into(),
                     is_background: false,
                 })

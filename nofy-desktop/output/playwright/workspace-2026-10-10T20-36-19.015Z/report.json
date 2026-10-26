@@ -1,0 +1,614 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T20:36:19.016Z",
+  "cases": [
+    {
+      "name": "W01 file reads use the scoped ACP adapter; late A cannot replace B",
+      "status": "passed",
+      "durationMs": 899
+    },
+    {
+      "name": "W02 closing a pending preview prevents it reappearing",
+      "status": "passed",
+      "durationMs": 655
+    },
+    {
+      "name": "W03 session switch invalidates same-root file reads",
+      "status": "passed",
+      "durationMs": 698
+    },
+    {
+      "name": "W04 failed fuzzy open displays the error",
+      "status": "passed",
+      "durationMs": 377
+    },
+    {
+      "name": "W05 preview slot, double-click pinning and resource deduplication",
+      "status": "passed",
+      "durationMs": 964
+    },
+    {
+      "name": "W06 Markdown/source modes retain separate reading positions",
+      "status": "passed",
+      "durationMs": 378
+    },
+    {
+      "name": "W07 tree and outer-panel hiding preserve resource tabs and scroll",
+      "status": "passed",
+      "durationMs": 298
+    },
+    {
+      "name": "W18 one shared resource tab strip, inline actions and module switching",
+      "status": "passed",
+      "durationMs": 1553,
+      "details": {
+        "head": {
+          "x": 799,
+          "y": 5,
+          "width": 476,
+          "height": 48,
+          "top": 5,
+          "right": 1275,
+          "bottom": 53,
+          "left": 799
+        },
+        "tabs": {
+          "x": 847,
+          "y": 15,
+          "width": 320,
+          "height": 28,
+          "top": 15,
+          "right": 1167,
+          "bottom": 43,
+          "left": 847
+        },
+        "header": {
+          "x": 799,
+          "y": 53,
+          "width": 476,
+          "height": 55,
+          "top": 53,
+          "right": 1275,
+          "bottom": 108,
+          "left": 799
+        },
+        "split": {
+          "x": 799,
+          "y": 108,
+          "width": 476,
+          "height": 747,
+          "top": 108,
+          "right": 1275,
+          "bottom": 855,
+          "left": 799
+        },
+        "oldTabs": 0,
+        "secondary": 0
+      }
+    },
+    {
+      "name": "W19 compact chrome at 320/400/548px and source fallback on extensionless files",
+      "status": "passed",
+      "durationMs": 1188,
+      "details": [
+        {
+          "size": 320,
+          "theme": "dark",
+          "header": {
+            "x": 1153,
+            "y": 53,
+            "width": 542,
+            "height": 55,
+            "top": 53,
+            "right": 1695,
+            "bottom": 108,
+            "left": 1153
+          },
+          "path": {
+            "x": 1165,
+            "y": 63,
+            "width": 210,
+            "height": 34,
+            "top": 63,
+            "right": 1375,
+            "bottom": 97,
+            "left": 1165
+          },
+          "action": {
+            "x": 1383,
+            "y": 66,
+            "width": 300,
+            "height": 28,
+            "top": 66,
+            "right": 1683,
+            "bottom": 94,
+            "left": 1383
+          },
+          "width": 542,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 320,
+          "theme": "light",
+          "header": {
+            "x": 1153,
+            "y": 53,
+            "width": 542,
+            "height": 55,
+            "top": 53,
+            "right": 1695,
+            "bottom": 108,
+            "left": 1153
+          },
+          "path": {
+            "x": 1165,
+            "y": 63,
+            "width": 210,
+            "height": 34,
+            "top": 63,
+            "right": 1375,
+            "bottom": 97,
+            "left": 1165
+          },
+          "action": {
+            "x": 1383,
+            "y": 66,
+            "width": 300,
+            "height": 28,
+            "top": 66,
+            "right": 1683,
+            "bottom": 94,
+            "left": 1383
+          },
+          "width": 542,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        },
+        {
+          "size": 400,
+          "theme": "dark",
+          "header": {
+            "x": 1301,
+            "y": 53,
+            "width": 394,
+            "height": 51,
+            "top": 53,
+            "right": 1695,
+            "bottom": 104,
+            "left": 1301
+          },
+          "path": {
+            "x": 1309,
+            "y": 61,
+            "width": 154,
+            "height": 34,
+            "top": 61,
+            "right": 1463,
+            "bottom": 95,
+            "left": 1309
+          },
+          "action": {
+            "x": 1469,
+            "y": 64,
+            "width": 218,
+            "height": 28,
+            "top": 64,
+            "right": 1687,
+            "bottom": 92,
+            "left": 1469
+          },
+          "width": 394,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 400,
+          "theme": "light",
+          "header": {
+            "x": 1301,
+            "y": 53,
+            "width": 394,
+            "height": 51,
+            "top": 53,
+            "right": 1695,
+            "bottom": 104,
+            "left": 1301
+          },
+          "path": {
+            "x": 1309,
+            "y": 61,
+            "width": 154,
+            "height": 34,
+            "top": 61,
+            "right": 1463,
+            "bottom": 95,
+            "left": 1309
+          },
+          "action": {
+            "x": 1469,
+            "y": 64,
+            "width": 218,
+            "height": 28,
+            "top": 64,
+            "right": 1687,
+            "bottom": 92,
+            "left": 1469
+          },
+          "width": 394,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        },
+        {
+          "size": 548,
+          "theme": "dark",
+          "header": {
+            "x": 1153,
+            "y": 53,
+            "width": 542,
+            "height": 55,
+            "top": 53,
+            "right": 1695,
+            "bottom": 108,
+            "left": 1153
+          },
+          "path": {
+            "x": 1165,
+            "y": 63,
+            "width": 210,
+            "height": 34,
+            "top": 63,
+            "right": 1375,
+            "bottom": 97,
+            "left": 1165
+          },
+          "action": {
+            "x": 1383,
+            "y": 66,
+            "width": 300,
+            "height": 28,
+            "top": 66,
+            "right": 1683,
+            "bottom": 94,
+            "left": 1383
+          },
+          "width": 542,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 548,
+          "theme": "light",
+          "header": {
+            "x": 1153,
+            "y": 53,
+            "width": 542,
+            "height": 55,
+            "top": 53,
+            "right": 1695,
+            "bottom": 108,
+            "left": 1153
+          },
+          "path": {
+            "x": 1165,
+            "y": 63,
+            "width": 210,
+            "height": 34,
+            "top": 63,
+            "right": 1375,
+            "bottom": 97,
+            "left": 1165
+          },
+          "action": {
+            "x": 1383,
+            "y": 66,
+            "width": 300,
+            "height": 28,
+            "top": 66,
+            "right": 1683,
+            "bottom": 94,
+            "left": 1383
+          },
+          "width": 542,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        }
+      ]
+    },
+    {
+      "name": "W08 session switch restores only its own resource workspace",
+      "status": "passed",
+      "durationMs": 122
+    },
+    {
+      "name": "W09 narrow tree drawer, themes and closing a non-active tab",
+      "status": "passed",
+      "durationMs": 238
+    },
+    {
+      "name": "W10 draggable inner tree width is independent and survives hide/show",
+      "status": "passed",
+      "durationMs": 275
+    },
+    {
+      "name": "W11 header breadcrumb and copy actions cross real native IPC",
+      "status": "passed",
+      "durationMs": 101
+    },
+    {
+      "name": "W12 default open, failure, app chooser cancellation and reveal use host providers",
+      "status": "passed",
+      "durationMs": 353
+    },
+    {
+      "name": "W13 raster preview crosses bounded native IPC without an ACP text read",
+      "status": "passed",
+      "durationMs": 207
+    },
+    {
+      "name": "W14 unsupported archives offer host opening and never request ACP text",
+      "status": "passed",
+      "durationMs": 225
+    },
+    {
+      "name": "W15 external writes update the selected file through scoped invalidation",
+      "status": "passed",
+      "durationMs": 412
+    },
+    {
+      "name": "W16 deleted files retain last known content with an explicit stale/error state",
+      "status": "passed",
+      "durationMs": 191
+    },
+    {
+      "name": "W17 renderer reload recovers pinned tabs, mode, scroll and tree width without caching content",
+      "status": "passed",
+      "durationMs": 931
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workspace-2026-10-10T20-36-19.015Z",
+  "positionsW07": [
+    {
+      "phase": "before-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 719,
+      "active": "查看源码",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 719,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-B",
+      "top": 0,
+      "height": 719,
+      "client": 719,
+      "active": "B.ts",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-A",
+      "top": 340,
+      "height": 5040,
+      "client": 719,
+      "active": "A.md",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-outer-reopen",
+      "top": 340,
+      "height": 5040,
+      "client": 719,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-zpq7yv/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-10T20:36:30.086Z"
+}

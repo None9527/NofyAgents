@@ -1168,6 +1168,27 @@ pub trait StorageAdapter: Send + Sync {
         reasoning_effort: Option<Option<ReasoningEffort>>,
     ) -> io::Result<()>;
 
+    /// Atomically persist model identity and its session context-window choice.
+    async fn update_current_model_and_context(
+        &self,
+        info: &Info,
+        model_id: &acp::ModelId,
+        agent: Option<&crate::session::persistence::PersistedAgent>,
+        reasoning_effort: Option<Option<ReasoningEffort>>,
+        context_window_selection: Option<Option<std::num::NonZeroU64>>,
+        server_context_window: Option<Option<crate::session::persistence::ServerContextWindow>>,
+    ) -> io::Result<()> {
+        if context_window_selection.flatten().is_some() || server_context_window.flatten().is_some()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "session storage does not support context-window selection",
+            ));
+        }
+        self.update_current_model_and_agent(info, model_id, agent, reasoning_effort)
+            .await
+    }
+
     /// Update the collection ID for telemetry tracing
     async fn update_collection_id(&self, info: &Info, collection_id: &str) -> io::Result<()>;
 

@@ -201,6 +201,7 @@ async fn seed_managed(actor: &SessionActor, mcp_url: &str) {
                     url: mcp_url.to_string(),
                     headers: vec![("Authorization".into(), "Bearer stale".into())],
                     local_agent_endpoint: false,
+                    bearer_token_file: None,
                 },
                 None,
                 None,

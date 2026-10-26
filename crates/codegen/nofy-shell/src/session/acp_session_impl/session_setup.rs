@@ -485,6 +485,8 @@ impl SessionActor {
         let mut updated_config = current_config.clone();
         if current_config.context_window != new_context_window
             && self.compaction.context_window_override.is_none()
+            && self.compaction.context_window_selection.get().is_none()
+            && self.compaction.server_context_window.borrow().is_none()
         {
             tracing::info!(
                 old_context_window = current_config.context_window.get(),
@@ -528,6 +530,8 @@ impl SessionActor {
         if let Some(new_cw) = metadata.context_window.and_then(std::num::NonZeroU64::new)
             && current_config.context_window != new_cw
             && self.compaction.context_window_override.is_none()
+            && self.compaction.context_window_selection.get().is_none()
+            && self.compaction.server_context_window.borrow().is_none()
         {
             if new_cw < current_config.context_window {
                 tracing::warn!(

@@ -1,0 +1,184 @@
+{
+  "label": "after-final",
+  "source": "Production Electron; deterministic ACP; opt-in numeric render counters; no real model",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "cases": [
+    {
+      "size": 1000,
+      "load": {
+        "counts": {
+          "App": 4,
+          "Spine": 1,
+          "BlockView": 1000,
+          "Markdown": 500
+        },
+        "longTasks": [
+          74,
+          54,
+          89,
+          109
+        ],
+        "inputFrames": [],
+        "domBlocks": 1000,
+        "domNodes": 8502,
+        "heapBytes": 17100000,
+        "loadMs": 854
+      },
+      "editing": {
+        "counts": {
+          "App": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          3.899999976158142,
+          10.700000047683716,
+          10.600000023841858,
+          11.400000095367432,
+          12.100000023841858,
+          11.799999952316284,
+          10.600000023841858,
+          9.899999976158142,
+          11.600000023841858,
+          10.5,
+          8.900000095367432,
+          11.200000047683716,
+          4.600000023841858,
+          11.600000023841858,
+          10.299999952316284,
+          11.700000047683716,
+          11.299999952316284,
+          12.700000047683716,
+          11.699999928474426,
+          11.699999928474426
+        ],
+        "domBlocks": 1000,
+        "domNodes": 8502,
+        "heapBytes": 17100000,
+        "inputToFrameP95Ms": 12.100000023841858
+      },
+      "stream": {
+        "counts": {
+          "App": 24,
+          "Spine": 21,
+          "BlockView": 21,
+          "Markdown": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          98.29999995231628
+        ],
+        "domBlocks": 1002,
+        "domNodes": 8518,
+        "heapBytes": 17100000
+      }
+    },
+    {
+      "size": 10000,
+      "load": {
+        "counts": {
+          "App": 7,
+          "Spine": 2,
+          "BlockView": 10000,
+          "Markdown": 5000
+        },
+        "longTasks": [
+          51,
+          443,
+          579,
+          226,
+          274
+        ],
+        "inputFrames": [],
+        "domBlocks": 10000,
+        "domNodes": 85002,
+        "heapBytes": 17100000,
+        "loadMs": 9758
+      },
+      "editing": {
+        "counts": {
+          "App": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          15.5,
+          18.100000023841858,
+          25.5,
+          17.300000071525574,
+          16.200000047683716,
+          16.600000023841858,
+          17.600000023841858,
+          17.600000023841858,
+          15.799999952316284,
+          17,
+          17.600000023841858,
+          16.5,
+          18,
+          17.199999928474426,
+          14.400000095367432,
+          16.200000047683716,
+          17.199999928474426,
+          17.40000009536743,
+          16.700000047683716,
+          15.399999976158142
+        ],
+        "domBlocks": 10000,
+        "domNodes": 85002,
+        "heapBytes": 17100000,
+        "inputToFrameP95Ms": 18.100000023841858
+      },
+      "stream": {
+        "counts": {
+          "App": 21,
+          "Spine": 8,
+          "BlockView": 8,
+          "Markdown": 7
+        },
+        "longTasks": [
+          88,
+          60,
+          112,
+          157,
+          78,
+          76,
+          82,
+          53,
+          61,
+          116
+        ],
+        "inputFrames": [
+          71.60000002384186
+        ],
+        "domBlocks": 10002,
+        "domNodes": 85018,
+        "heapBytes": 17100000
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "background": {
+    "counts": {
+      "App": 11
+    },
+    "longTasks": [
+      218,
+      443
+    ],
+    "inputFrames": [],
+    "domBlocks": 10002,
+    "domNodes": 85018,
+    "heapBytes": 17100000
+  },
+  "settingsBackground": {
+    "counts": {
+      "App": 21
+    },
+    "longTasks": [],
+    "inputFrames": [],
+    "domBlocks": 0,
+    "domNodes": 0,
+    "heapBytes": 17100000
+  }
+}

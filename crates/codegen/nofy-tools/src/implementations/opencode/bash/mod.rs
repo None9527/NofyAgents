@@ -220,6 +220,7 @@ impl From<BashInput> for ToolInput {
         ToolInput::Bash(crate::implementations::BashToolInput {
             command: value.command,
             timeout: value.timeout,
+            block_until_ms: None,
             description: value.description,
             is_background: false,
         })

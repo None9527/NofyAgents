@@ -37,6 +37,7 @@ import type { InboundFrame } from "@nofy-desktop/acp";
 import { TypedEmitter } from "../lib/emitter.ts";
 import { log, warn } from "../lib/log.ts";
 import { spawnKernelChild } from "../kernel/supervisor.ts";
+import { rpcErrorText } from "./provider-error.ts";
 
 const DEFAULT_READY_TIMEOUT_MS = 8_000;
 const DEFAULT_RECONNECT_MS = 2_000;
@@ -434,7 +435,10 @@ export class KernelConnection extends TypedEmitter<ConnectionEvents> {
         this.pending.delete(frame.id);
         if (waiter.timer !== null) clearTimeout(waiter.timer);
         if (frame.error !== undefined) {
-          const err = new Error(frame.error.message ?? "rpc error (" + waiter.method + ")");
+          // 供应商响应可能含凭据或请求内容：非 git 方法只把固定分类提示带到界面。
+          // git 方法的 data 是内核原文（git stderr），原样交给界面。
+          const message = rpcErrorText(waiter.method, frame.error);
+          const err = new Error(message);
           (err as Error & { code?: number }).code = frame.error.code;
           waiter.reject(err);
         } else {
@@ -520,7 +524,8 @@ export class KernelConnection extends TypedEmitter<ConnectionEvents> {
       case CLIENT_SIDE_METHOD.elicitation:
       case EXT_SERVER_REQUEST.mcpElicit: {
         if (this.listenerCount("elicitation") === 0) {
-          this.respond(id, { action: { outcome: "cancelled" } });
+          // MCP 扩展与标准 elicitation 的应答形状不同，不能共用嵌套 action。
+          this.respond(id, method === EXT_SERVER_REQUEST.mcpElicit ? { outcome: "cancel" } : { action: { outcome: "cancelled" } });
           return;
         }
         this.emit("elicitation", { id, method, params });
@@ -592,8 +597,6 @@ export function ensureKernel(timeoutMs?: number): Promise<KernelConnection> {
   });
   return ensureInflight;
 }
-
-
 
 
 

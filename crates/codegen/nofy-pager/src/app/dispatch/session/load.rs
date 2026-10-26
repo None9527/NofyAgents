@@ -1046,6 +1046,9 @@ pub(in crate::app::dispatch) fn handle_session_loaded(
         if let Some(m) = new_models {
             app.models = Some(m).into();
             agent.session.models = app.models.clone();
+            if let Some(notice) = agent.session.models.take_current_notice() {
+                agent.scrollback.push_block(RenderBlock::system(notice));
+            }
         }
         let deferred = crate::app::dispatch::session::lifecycle::apply_deferred_model_switch(
             agent,
@@ -1164,6 +1167,7 @@ pub(in crate::app::dispatch) fn handle_session_load_failed(
         if defer_to_open_reload_window(agent, agent_id, "SessionLoadFailed") {
             return vec![];
         }
+        agent.load_failed = true;
         agent.pending_extensions_fetch = false;
         agent.session.prompt_history_loading = false;
         agent.session.finish_command();

@@ -830,7 +830,18 @@ pub(super) async fn run_session(
                             session.handle_session_mode(session_mode).await;
                             let _ = responds_to.send(());
                         }
-                        SessionCommand::SetSessionModel { sampling_config, use_concise, apply_prompt_override, skip_prompt_rewrite, auto_compact_threshold_percent, responds_to } => {
+                        SessionCommand::GetContextWindowSelection { responds_to } => {
+                            let _ = responds_to.send(session.compaction.context_window_selection.get());
+                        }
+                        SessionCommand::RestoreServerContextWindow { cap } => {
+                            *session.compaction.server_context_window.borrow_mut() = Some(cap);
+                        }
+                        SessionCommand::GetContextWindowBudget { responds_to } => {
+                            let budget = session.chat_state_handle.get_sampling_config().await.map(|c| c.context_window);
+                            let _ = responds_to.send(budget);
+                        }
+                        SessionCommand::SetSessionModel { sampling_config, use_concise, apply_prompt_override, skip_prompt_rewrite, auto_compact_threshold_percent, context_window_selection, responds_to } => {
+                            session.compaction.context_window_selection.set(context_window_selection);
                             let updated_model_id = session.handle_set_session_model(sampling_config, use_concise, apply_prompt_override, skip_prompt_rewrite, auto_compact_threshold_percent).await;
                             let _ = responds_to.send(updated_model_id);
                         }
@@ -921,6 +932,12 @@ pub(super) async fn run_session(
                                 .list_tasks()
                                 .await;
                             let _ = respond_to.send(result);
+                        }
+                        SessionCommand::GetExtensionSnapshot { respond_to } => {
+                            let _ = respond_to.send((
+                                session.hook_registry.borrow().clone(),
+                                session.plugin_registry.borrow().clone(),
+                            ));
                         }
                         SessionCommand::GetHooksList { respond_to } => {
                             use crate::extensions::hooks::hook_spec_to_info;

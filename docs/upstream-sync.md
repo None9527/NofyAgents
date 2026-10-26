@@ -984,3 +984,42 @@ GCS trace result 上传。GitNexus 检测为 8 个已知符号、0 条受影响�
 最终逐项反查共覆盖 1.0.39 的 13 项、1.0.40 的 1 项和 1.0.41 的 14 项：原生落地 21、既有等价实现 7、
 明确有意分歧 0、待核实 0。完整逐行证据在 `docs/upstream-absorb-plan.md` §17.5。最后一次
 `git fetch upstream` 后 `upstream/main` 仍为 `f0e3be11`，没有 1.0.42 changelog，故批34–42 至此收口。
+
+### 1.0.42–1.0.45 更新审计（2026-10-01）
+
+上游从 `f0e3be11` 前进到 `2bdd1d6a6369`，新增 `97f190f6`、`2bdd1d6a` 两个同步提交，
+合计 991 文件（+129,569 / -27,951 行）。当前 Nofy 对账点 `e9401ff4dc96`。
+已读取25条发布说明与关键实现/测试，并比对当前 Nofy 等价路径，完成初审；没有合并或新增吸收提交。
+
+建议原生吸收批43–50，并对沙箱、统一记忆分别展开专项评估。细项与验收定义见
+`docs/upstream-update-audit-2026-10-01.md`、吸收计划 §18。此前 1.0.41 的发布说明收口不是
+源码全等价证明：本轮确认上游 headless 信号交接在旧对账点已存在，而 Nofy 未包含，已补入批47。
+草稿恢复光标到末尾已有等价实现；MCP structuredContent 部分路径已有，需查网关消费端，不能整体重做。
+当前仅文档分析完成，尚未运行本轮行为测试；跨终端重绘/resize、原子写防御等候选保留待核实状态。
+
+#### 批43 / 批44a 执行进展
+
+现已实施 Messages 分段签名累积和多块 signed reasoning 保留：sampler 全量205项通过，
+两次回退旧实现的反向测试均失败，恢复修复后通过。Narration显示策略仍待核实。
+批44a已将同批文件锁key按真实cwd与已有祖先归一化，并冻结后用于读写调度；
+2项新测试覆盖相对/绝对/新文件/symlink及symlink-parent语义。
+`cargo check -p nofy-shell --lib`通过（1m51s）；定向rustfmt检查与`git diff --check`通过。
+尚未做真实dispatcher并发E2E；批44锁元数据/参数重命名与批45–50仍待执行。
+本轮代码尚未提交/push，桌面现有改动保持原样。
+
+#### 批43–50 一次性落地与集中验证
+
+后续批次已原生实现：真实调度路径按归一key与参数别名锁文件；插件首启/重载/父扩展最新快照；
+MCP请求重读token与结构化结果消费；headless信号、minimal表单与失败tab恢复；模型多个窗口选择、
+菜单选择与服务器cap独立持久化；Bash block_until_ms及旧版本兼容；worktree薄CLI和TUI边界修复。
+源码反查补入LengthPolicy统一门控，保留显式主回合partial opt-in、默认不放行半截文本。
+唯一MemoryService新增scope共享写事务、有界整理与超限明确提示，回归包括真实进程锁与故障注入。
+
+集中验收完成：相关crate/集成回归去重21,797项通过，含Shell5274、Pager8121、tools2916、
+render1055、inline54、sampler27项独立integration、强制沙箱8与minimal30真实PTY+1 harness。
+真实PTY反查补齐底层resize高度/光标/reflow，修正两个失真的历史fixture；保留原核心断言。
+最终workspace all-targets、实际binary构建、定向rustfmt与diffcheck通过；索引重建成功，
+最终detect_changes为590符号/29流程/166已跟踪文件、risk CRITICAL，已核对预期范围并记录图覆盖限制。
+25条发布项最终分类21原生、1既有等价、3有意差异；本轮选定吸收项剩余0。
+Windows/Linux实机验证仍有边界，未将其称作整库全等价。详见本轮审计§7；无新增上游遥测，
+桌面原有改动保持原样，未提交/push。

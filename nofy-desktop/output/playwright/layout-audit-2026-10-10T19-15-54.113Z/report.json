@@ -1,0 +1,4673 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T19:15:54.114Z",
+  "cases": [],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/layout-audit-2026-10-10T19-15-54.113Z",
+  "empty": {
+    "chat": {
+      "x": 269,
+      "y": 53,
+      "w": 1006,
+      "h": 802
+    },
+    "spine": {
+      "x": 269,
+      "y": 53,
+      "w": 1006,
+      "h": 648
+    },
+    "empty": {
+      "x": 420,
+      "y": 97,
+      "w": 704,
+      "h": 353.875
+    },
+    "composer": {
+      "x": 420,
+      "y": 713,
+      "w": 704,
+      "h": 122
+    }
+  },
+  "measurements": [
+    {
+      "width": 880,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 880,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 842,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 842,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 692,
+        "client": 596,
+        "scroll": 596,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 548,
+        "h": 1098.9296875,
+        "client": 548,
+        "scroll": 548,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 395,
+        "y": 97,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 313,
+        "y": 252.3984375,
+        "w": 508,
+        "h": 861.53125,
+        "client": 508,
+        "scroll": 508,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 289,
+        "y": 757,
+        "w": 566,
+        "h": 122,
+        "client": 564,
+        "scroll": 564,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 304,
+        "y": 836,
+        "w": 536,
+        "h": 28,
+        "client": 536,
+        "scroll": 536,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 606,
+        "h": 48,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 332,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 454,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 690.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 808,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 840,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 880,
+      "config": "left264-right548",
+      "window": {
+        "w": 880,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 842,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 842,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 606,
+        "h": 692,
+        "client": 596,
+        "scroll": 596,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 548,
+        "h": 1098.9296875,
+        "client": 548,
+        "scroll": 548,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 395,
+        "y": 94.56454467773438,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 313,
+        "y": 249.96298217773438,
+        "w": 508,
+        "h": 861.5311279296875,
+        "client": 508,
+        "scroll": 508,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 289,
+        "y": 757,
+        "w": 566,
+        "h": 122,
+        "client": 564,
+        "scroll": 564,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 304,
+        "y": 836,
+        "w": 536,
+        "h": 28,
+        "client": 536,
+        "scroll": 536,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 606,
+        "h": 48,
+        "client": 606,
+        "scroll": 606,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 327,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "absolute",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 332,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 454,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 690.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 808,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 840,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 880,
+      "config": "left480-right548",
+      "window": {
+        "w": 880,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 445,
+        "y": 53,
+        "w": 430,
+        "h": 842,
+        "client": 430,
+        "scroll": 430,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 445,
+        "y": 53,
+        "w": 430,
+        "h": 842,
+        "client": 430,
+        "scroll": 430,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 445,
+        "y": 53,
+        "w": 430,
+        "h": 692,
+        "client": 420,
+        "scroll": 420,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 469,
+        "y": 73,
+        "w": 372,
+        "h": 1121.328125,
+        "client": 372,
+        "scroll": 372,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 538.8046875,
+        "y": 95.13308715820312,
+        "w": 282.1953125,
+        "h": 70.796875,
+        "client": 280,
+        "scroll": 280,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 489,
+        "y": 272.9299621582031,
+        "w": 332,
+        "h": 861.53125,
+        "client": 332,
+        "scroll": 332,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 465,
+        "y": 757,
+        "w": 390,
+        "h": 122,
+        "client": 388,
+        "scroll": 388,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 480,
+        "y": 836,
+        "w": 360,
+        "h": 28,
+        "client": 360,
+        "scroll": 360,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 445,
+        "y": 5,
+        "w": 430,
+        "h": 48,
+        "client": 430,
+        "scroll": 430,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 445,
+        "y": 53,
+        "w": 430,
+        "h": 842,
+        "client": 429,
+        "scroll": 429,
+        "padding": "0px",
+        "position": "absolute",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 508,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 630,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 690.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 808,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 840,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 880,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 880,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 874,
+        "h": 842,
+        "client": 874,
+        "scroll": 874,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 874,
+        "h": 842,
+        "client": 874,
+        "scroll": 874,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 874,
+        "h": 692,
+        "client": 864,
+        "scroll": 864,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 25,
+        "y": 73,
+        "w": 816,
+        "h": 1098.9296875,
+        "client": 816,
+        "scroll": 816,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 395,
+        "y": 95.85053253173828,
+        "w": 426,
+        "h": 48.39842987060547,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 45,
+        "y": 251.24896240234375,
+        "w": 776,
+        "h": 861.5313110351562,
+        "client": 776,
+        "scroll": 776,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 86,
+        "y": 757,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 101,
+        "y": 836,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 874,
+        "h": 48,
+        "client": 874,
+        "scroll": 874,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 129,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 251,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 625.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 743,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 775,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 900,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 842,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 842,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 692,
+        "client": 616,
+        "scroll": 616,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 568,
+        "h": 1098.9296875,
+        "client": 568,
+        "scroll": 568,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 415,
+        "y": 97,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 313,
+        "y": 252.3984375,
+        "w": 528,
+        "h": 861.53125,
+        "client": 528,
+        "scroll": 528,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 289,
+        "y": 757,
+        "w": 586,
+        "h": 122,
+        "client": 584,
+        "scroll": 584,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 304,
+        "y": 836,
+        "w": 556,
+        "h": 28,
+        "client": 556,
+        "scroll": 556,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 626,
+        "h": 48,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 332,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 454,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 710.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 828,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 860,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "config": "left264-right548",
+      "window": {
+        "w": 900,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 842,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 842,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 626,
+        "h": 692,
+        "client": 616,
+        "scroll": 616,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 568,
+        "h": 1098.9296875,
+        "client": 568,
+        "scroll": 568,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 415,
+        "y": 93.7565689086914,
+        "w": 426,
+        "h": 48.39844512939453,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 313,
+        "y": 249.15501403808594,
+        "w": 528,
+        "h": 861.53125,
+        "client": 528,
+        "scroll": 528,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 289,
+        "y": 757,
+        "w": 586,
+        "h": 122,
+        "client": 584,
+        "scroll": 584,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 304,
+        "y": 836,
+        "w": 556,
+        "h": 28,
+        "client": 556,
+        "scroll": 556,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 626,
+        "h": 48,
+        "client": 626,
+        "scroll": 626,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 347,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "absolute",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 332,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 454,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 710.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 828,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 860,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "config": "left480-right548",
+      "window": {
+        "w": 900,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 455,
+        "y": 53,
+        "w": 440,
+        "h": 842,
+        "client": 440,
+        "scroll": 440,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 455,
+        "y": 53,
+        "w": 440,
+        "h": 842,
+        "client": 440,
+        "scroll": 440,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 455,
+        "y": 53,
+        "w": 440,
+        "h": 692,
+        "client": 430,
+        "scroll": 430,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 479,
+        "y": 73,
+        "w": 382,
+        "h": 1121.328125,
+        "client": 382,
+        "scroll": 382,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 550.3046875,
+        "y": 95.06462097167969,
+        "w": 290.6953125,
+        "h": 70.796875,
+        "client": 289,
+        "scroll": 289,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 499,
+        "y": 272.8614807128906,
+        "w": 342,
+        "h": 861.5313720703125,
+        "client": 342,
+        "scroll": 342,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 475,
+        "y": 757,
+        "w": 400,
+        "h": 122,
+        "client": 398,
+        "scroll": 398,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 490,
+        "y": 836,
+        "w": 370,
+        "h": 28,
+        "client": 370,
+        "scroll": 370,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 455,
+        "y": 5,
+        "w": 440,
+        "h": 48,
+        "client": 440,
+        "scroll": 440,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 455,
+        "y": 53,
+        "w": 440,
+        "h": 842,
+        "client": 439,
+        "scroll": 439,
+        "padding": "0px",
+        "position": "absolute",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 518,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 640,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 710.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 828,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 860,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 900,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 894,
+        "h": 842,
+        "client": 894,
+        "scroll": 894,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 894,
+        "h": 842,
+        "client": 894,
+        "scroll": 894,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 894,
+        "h": 692,
+        "client": 884,
+        "scroll": 884,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 25,
+        "y": 73,
+        "w": 836,
+        "h": 1098.9296875,
+        "client": 836,
+        "scroll": 836,
+        "padding": "20px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 415,
+        "y": 97,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 45,
+        "y": 252.3984375,
+        "w": 796,
+        "h": 861.53125,
+        "client": 796,
+        "scroll": 796,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 96,
+        "y": 757,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 111,
+        "y": 836,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 894,
+        "h": 48,
+        "client": 894,
+        "scroll": 894,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 139,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 261,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 635.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 753,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 785,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 901,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 901,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 627,
+        "h": 842,
+        "client": 627,
+        "scroll": 627,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 627,
+        "h": 842,
+        "client": 627,
+        "scroll": 627,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 627,
+        "h": 688,
+        "client": 617,
+        "scroll": 617,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 569,
+        "h": 1106.9296875,
+        "client": 569,
+        "scroll": 569,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 412,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 256.3984375,
+        "w": 521,
+        "h": 861.53125,
+        "client": 521,
+        "scroll": 521,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 563,
+        "h": 122,
+        "client": 561,
+        "scroll": 561,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 533,
+        "h": 28,
+        "client": 533,
+        "scroll": 533,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 627,
+        "h": 48,
+        "client": 627,
+        "scroll": 627,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 344,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 466,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 699.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 817,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 849,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 901,
+      "config": "left264-right548",
+      "window": {
+        "w": 901,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 627,
+        "h": 842,
+        "client": 627,
+        "scroll": 627,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 403,
+        "h": 842,
+        "client": 403,
+        "scroll": 403,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 403,
+        "h": 688,
+        "client": 393,
+        "scroll": 393,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 345,
+        "h": 1129.328125,
+        "client": 345,
+        "scroll": 345,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 361.5546875,
+        "y": 99.09608459472656,
+        "w": 252.4453125,
+        "h": 70.796875,
+        "client": 250,
+        "scroll": 250,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 276.8929443359375,
+        "w": 297,
+        "h": 861.53125,
+        "client": 297,
+        "scroll": 297,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 339,
+        "h": 122,
+        "client": 337,
+        "scroll": 337,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 309,
+        "h": 28,
+        "client": 309,
+        "scroll": 309,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 627,
+        "h": 48,
+        "client": 627,
+        "scroll": 627,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 676,
+        "y": 53,
+        "w": 220,
+        "h": 842,
+        "client": 219,
+        "scroll": 219,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 25.1171875,
+          "right": 341.1171875,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 105.8671875,
+          "right": 450.984375,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 486.984375,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 102.015625,
+          "right": 593,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 625,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 901,
+      "config": "left480-right548",
+      "window": {
+        "w": 901,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 455.5,
+        "y": 53,
+        "w": 440.5,
+        "h": 842,
+        "client": 441,
+        "scroll": 441,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 455.5,
+        "y": 53,
+        "w": 216.5,
+        "h": 842,
+        "client": 217,
+        "scroll": 217,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 455.5,
+        "y": 53,
+        "w": 216.5,
+        "h": 688,
+        "client": 207,
+        "scroll": 207,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 479.5,
+        "y": 73,
+        "w": 158.5,
+        "h": 1525.671875,
+        "client": 159,
+        "scroll": 159,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 520.078125,
+        "y": 99.144775390625,
+        "w": 93.921875,
+        "h": 205.1875,
+        "client": 92,
+        "scroll": 92,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 503.5,
+        "y": 411.332275390625,
+        "w": 110.5,
+        "h": 1123.484375,
+        "client": 111,
+        "scroll": 111,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 487.5,
+        "y": 753,
+        "w": 152.5,
+        "h": 122,
+        "client": 151,
+        "scroll": 151,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 502.5,
+        "y": 832,
+        "w": 122.5,
+        "h": 28,
+        "client": 123,
+        "scroll": 123,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 455.5,
+        "y": 5,
+        "w": 440.5,
+        "h": 48,
+        "client": 441,
+        "scroll": 441,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 676,
+        "y": 53,
+        "w": 220,
+        "h": 842,
+        "client": 219,
+        "scroll": 219,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 18,
+          "right": 520.5,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 21.125,
+          "right": 532.640625,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 568.640625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 20.359375,
+          "right": 593,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 625,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 901,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 901,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 895,
+        "h": 842,
+        "client": 895,
+        "scroll": 895,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 895,
+        "h": 842,
+        "client": 895,
+        "scroll": 895,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 895,
+        "h": 688,
+        "client": 885,
+        "scroll": 885,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 25,
+        "y": 73,
+        "w": 837,
+        "h": 1106.9296875,
+        "client": 837,
+        "scroll": 837,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 412,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 49,
+        "y": 256.3984375,
+        "w": 789,
+        "h": 861.53125,
+        "client": 789,
+        "scroll": 789,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 96.5,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 111.5,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 895,
+        "h": 48,
+        "client": 895,
+        "scroll": 895,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 139.5,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 261.5,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 635.7890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 753.5,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 785.5,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1000,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 1000,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 726,
+        "h": 842,
+        "client": 726,
+        "scroll": 726,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 726,
+        "h": 842,
+        "client": 726,
+        "scroll": 726,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 726,
+        "h": 688,
+        "client": 716,
+        "scroll": 716,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 668,
+        "h": 1106.9296875,
+        "client": 668,
+        "scroll": 668,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 511,
+        "y": 99.90071105957031,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 255.2991485595703,
+        "w": 620,
+        "h": 861.5311889648438,
+        "client": 620,
+        "scroll": 620,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 662,
+        "h": 122,
+        "client": 660,
+        "scroll": 660,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 632,
+        "h": 28,
+        "client": 632,
+        "scroll": 632,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 726,
+        "h": 48,
+        "client": 726,
+        "scroll": 726,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 344,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 466,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 798.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 916,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 948,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1000,
+      "config": "left264-right548",
+      "window": {
+        "w": 1000,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 726,
+        "h": 842,
+        "client": 726,
+        "scroll": 726,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 416,
+        "h": 842,
+        "client": 416,
+        "scroll": 416,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 416,
+        "h": 688,
+        "client": 406,
+        "scroll": 406,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 358,
+        "h": 1129.328125,
+        "client": 358,
+        "scroll": 358,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 363.5,
+        "y": 98.854736328125,
+        "w": 263.5,
+        "h": 70.796875,
+        "client": 262,
+        "scroll": 262,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 276.651611328125,
+        "w": 310,
+        "h": 861.53125,
+        "client": 310,
+        "scroll": 310,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 352,
+        "h": 122,
+        "client": 350,
+        "scroll": 350,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 322,
+        "h": 28,
+        "client": 322,
+        "scroll": 322,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 726,
+        "h": 48,
+        "client": 726,
+        "scroll": 726,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 689,
+        "y": 53,
+        "w": 306,
+        "h": 842,
+        "client": 305,
+        "scroll": 305,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 26.5234375,
+          "right": 342.5234375,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 111.765625,
+          "right": 458.2890625,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 494.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 107.7109375,
+          "right": 606,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 638,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1000,
+      "config": "left480-right548",
+      "window": {
+        "w": 1000,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 485,
+        "y": 53,
+        "w": 510,
+        "h": 842,
+        "client": 510,
+        "scroll": 510,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 485,
+        "y": 53,
+        "w": 286,
+        "h": 842,
+        "client": 286,
+        "scroll": 286,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 485,
+        "y": 53,
+        "w": 286,
+        "h": 688,
+        "client": 276,
+        "scroll": 276,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 509,
+        "y": 73,
+        "w": 228,
+        "h": 1234.515625,
+        "client": 228,
+        "scroll": 228,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 560,
+        "y": 98.87834167480469,
+        "w": 153,
+        "h": 115.59375,
+        "client": 151,
+        "scroll": 151,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 533,
+        "y": 321.47210693359375,
+        "w": 180,
+        "h": 921.9219360351562,
+        "client": 180,
+        "scroll": 180,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 517,
+        "y": 753,
+        "w": 222,
+        "h": 122,
+        "client": 220,
+        "scroll": 220,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 532,
+        "y": 832,
+        "w": 192,
+        "h": 28,
+        "client": 192,
+        "scroll": 192,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 485,
+        "y": 5,
+        "w": 510,
+        "h": 48,
+        "client": 510,
+        "scroll": 510,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 775,
+        "y": 53,
+        "w": 220,
+        "h": 842,
+        "client": 219,
+        "scroll": 219,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 18,
+          "right": 550,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 52.703125,
+          "right": 601.2109375,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 637.2109375,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 50.7890625,
+          "right": 692,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 724,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1000,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 1000,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 994,
+        "h": 842,
+        "client": 994,
+        "scroll": 994,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 994,
+        "h": 842,
+        "client": 994,
+        "scroll": 994,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 994,
+        "h": 688,
+        "client": 984,
+        "scroll": 984,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 25,
+        "y": 73,
+        "w": 936,
+        "h": 1106.9296875,
+        "client": 936,
+        "scroll": 936,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 511,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 49,
+        "y": 256.3984375,
+        "w": 888,
+        "h": 861.53125,
+        "client": 888,
+        "scroll": 888,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 146,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 161,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 994,
+        "h": 48,
+        "client": 994,
+        "scroll": 994,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 189,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 311,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 685.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 803,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 835,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 1280,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1006,
+        "h": 842,
+        "client": 1006,
+        "scroll": 1006,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 1006,
+        "h": 842,
+        "client": 1006,
+        "scroll": 1006,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 1006,
+        "h": 688,
+        "client": 996,
+        "scroll": 996,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 948,
+        "h": 1106.9296875,
+        "client": 948,
+        "scroll": 948,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 791,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 256.3984375,
+        "w": 900,
+        "h": 861.53125,
+        "client": 900,
+        "scroll": 900,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 420,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 435,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1006,
+        "h": 48,
+        "client": 1006,
+        "scroll": 1006,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 463,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 585,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 959.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1077,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1109,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "config": "left264-right548",
+      "window": {
+        "w": 1280,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1006,
+        "h": 842,
+        "client": 1006,
+        "scroll": 1006,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 454,
+        "h": 842,
+        "client": 454,
+        "scroll": 454,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 454,
+        "h": 688,
+        "client": 444,
+        "scroll": 444,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 396,
+        "h": 1129.328125,
+        "client": 396,
+        "scroll": 396,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 369.203125,
+        "y": 98.64067077636719,
+        "w": 295.796875,
+        "h": 70.796875,
+        "client": 294,
+        "scroll": 294,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 276.4375305175781,
+        "w": 348,
+        "h": 861.53125,
+        "client": 348,
+        "scroll": 348,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 390,
+        "h": 122,
+        "client": 388,
+        "scroll": 388,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 360,
+        "h": 28,
+        "client": 360,
+        "scroll": 360,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1006,
+        "h": 48,
+        "client": 1006,
+        "scroll": 1006,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 727,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 344,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 466,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 526.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 644,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 676,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "config": "left480-right548",
+      "window": {
+        "w": 1280,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 485,
+        "y": 53,
+        "w": 790,
+        "h": 842,
+        "client": 790,
+        "scroll": 790,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 485,
+        "y": 53,
+        "w": 416,
+        "h": 842,
+        "client": 416,
+        "scroll": 416,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 485,
+        "y": 53,
+        "w": 416,
+        "h": 688,
+        "client": 406,
+        "scroll": 406,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 509,
+        "y": 73,
+        "w": 358,
+        "h": 1129.328125,
+        "client": 358,
+        "scroll": 358,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 579.5,
+        "y": 99.29454040527344,
+        "w": 263.5,
+        "h": 70.796875,
+        "client": 262,
+        "scroll": 262,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 533,
+        "y": 277.0914001464844,
+        "w": 310,
+        "h": 861.53125,
+        "client": 310,
+        "scroll": 310,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 517,
+        "y": 753,
+        "w": 352,
+        "h": 122,
+        "client": 350,
+        "scroll": 350,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 532,
+        "y": 832,
+        "w": 322,
+        "h": 28,
+        "client": 322,
+        "scroll": 322,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 485,
+        "y": 5,
+        "w": 790,
+        "h": 48,
+        "client": 790,
+        "scroll": 790,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 905,
+        "y": 53,
+        "w": 370,
+        "h": 842,
+        "client": 369,
+        "scroll": 369,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 26.5234375,
+          "right": 558.5234375,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 111.765625,
+          "right": 674.2890625,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 710.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 107.7109375,
+          "right": 822,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 854,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 1280,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 1274,
+        "h": 842,
+        "client": 1274,
+        "scroll": 1274,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 1274,
+        "h": 842,
+        "client": 1274,
+        "scroll": 1274,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 1274,
+        "h": 688,
+        "client": 1264,
+        "scroll": 1264,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 121,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 695,
+        "y": 99.07524108886719,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 145,
+        "y": 254.4736785888672,
+        "w": 976,
+        "h": 861.5311889648438,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 286,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 301,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 1274,
+        "h": 48,
+        "client": 1274,
+        "scroll": 1274,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 329,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 451,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 825.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 943,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 975,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 1440,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1166,
+        "h": 842,
+        "client": 1166,
+        "scroll": 1166,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 1166,
+        "h": 842,
+        "client": 1166,
+        "scroll": 1166,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 1166,
+        "h": 688,
+        "client": 1156,
+        "scroll": 1156,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 335,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 909,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 359,
+        "y": 256.3984375,
+        "w": 976,
+        "h": 861.53125,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 500,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 515,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1166,
+        "h": 48,
+        "client": 1166,
+        "scroll": 1166,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 543,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 665,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 1039.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1157,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1189,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "config": "left264-right548",
+      "window": {
+        "w": 1440,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1166,
+        "h": 842,
+        "client": 1166,
+        "scroll": 1166,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 614,
+        "h": 842,
+        "client": 614,
+        "scroll": 614,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 614,
+        "h": 688,
+        "client": 604,
+        "scroll": 604,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 293,
+        "y": 73,
+        "w": 556,
+        "h": 1106.9296875,
+        "client": 556,
+        "scroll": 556,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 399,
+        "y": 98.9327621459961,
+        "w": 426,
+        "h": 48.39844512939453,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 317,
+        "y": 254.33119201660156,
+        "w": 508,
+        "h": 861.53125,
+        "client": 508,
+        "scroll": 508,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 301,
+        "y": 753,
+        "w": 550,
+        "h": 122,
+        "client": 548,
+        "scroll": 548,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 316,
+        "y": 832,
+        "w": 520,
+        "h": 28,
+        "client": 520,
+        "scroll": 520,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1166,
+        "h": 48,
+        "client": 1166,
+        "scroll": 1166,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 887,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 344,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 466,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 686.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 804,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 836,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "config": "left480-right548",
+      "window": {
+        "w": 1440,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 485,
+        "y": 53,
+        "w": 950,
+        "h": 842,
+        "client": 950,
+        "scroll": 950,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 485,
+        "y": 53,
+        "w": 416,
+        "h": 842,
+        "client": 416,
+        "scroll": 416,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 485,
+        "y": 53,
+        "w": 416,
+        "h": 688,
+        "client": 406,
+        "scroll": 406,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 509,
+        "y": 73,
+        "w": 358,
+        "h": 1129.328125,
+        "client": 358,
+        "scroll": 358,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 579.5,
+        "y": 97.87934875488281,
+        "w": 263.5,
+        "h": 70.796875,
+        "client": 262,
+        "scroll": 262,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 533,
+        "y": 275.67620849609375,
+        "w": 310,
+        "h": 861.5313110351562,
+        "client": 310,
+        "scroll": 310,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 517,
+        "y": 753,
+        "w": 352,
+        "h": 122,
+        "client": 350,
+        "scroll": 350,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 532,
+        "y": 832,
+        "w": 322,
+        "h": 28,
+        "client": 322,
+        "scroll": 322,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 485,
+        "y": 5,
+        "w": 950,
+        "h": 48,
+        "client": 950,
+        "scroll": 950,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 905,
+        "y": 53,
+        "w": 530,
+        "h": 842,
+        "client": 529,
+        "scroll": 529,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 26.5234375,
+          "right": 558.5234375,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 111.765625,
+          "right": 674.2890625,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 710.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 107.7109375,
+          "right": 822,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 854,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 1440,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 1434,
+        "h": 842,
+        "client": 1434,
+        "scroll": 1434,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 1434,
+        "h": 842,
+        "client": 1434,
+        "scroll": 1434,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 1434,
+        "h": 688,
+        "client": 1424,
+        "scroll": 1424,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 201,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 775,
+        "y": 98.91215515136719,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 225,
+        "y": 254.3105926513672,
+        "w": 976,
+        "h": 861.5311889648438,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 366,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 381,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 1434,
+        "h": 48,
+        "client": 1434,
+        "scroll": 1434,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 409,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 531,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 905.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1023,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1055,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "config": "left264-rightClosed",
+      "window": {
+        "w": 1920,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1646,
+        "h": 842,
+        "client": 1646,
+        "scroll": 1646,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 1646,
+        "h": 842,
+        "client": 1646,
+        "scroll": 1646,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 1646,
+        "h": 688,
+        "client": 1636,
+        "scroll": 1636,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 575,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 1149,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 599,
+        "y": 256.3984375,
+        "w": 976,
+        "h": 861.53125,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 740,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 755,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1646,
+        "h": 48,
+        "client": 1646,
+        "scroll": 1646,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 783,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 905,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 1279.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1397,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1429,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "config": "left264-right548",
+      "window": {
+        "w": 1920,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 269,
+        "y": 53,
+        "w": 1646,
+        "h": 842,
+        "client": 1646,
+        "scroll": 1646,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 269,
+        "y": 53,
+        "w": 1094,
+        "h": 842,
+        "client": 1094,
+        "scroll": 1094,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 269,
+        "y": 53,
+        "w": 1094,
+        "h": 688,
+        "client": 1084,
+        "scroll": 1084,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 299,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 873,
+        "y": 99.09646606445312,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 323,
+        "y": 254.49490356445312,
+        "w": 976,
+        "h": 861.53125,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 464,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 479,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 269,
+        "y": 5,
+        "w": 1646,
+        "h": 48,
+        "client": 1646,
+        "scroll": 1646,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 1367,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 507,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 629,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 1003.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1121,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1153,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "config": "left480-right548",
+      "window": {
+        "w": 1920,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 485,
+        "y": 53,
+        "w": 1430,
+        "h": 842,
+        "client": 1430,
+        "scroll": 1430,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 485,
+        "y": 53,
+        "w": 878,
+        "h": 842,
+        "client": 878,
+        "scroll": 878,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 485,
+        "y": 53,
+        "w": 878,
+        "h": 688,
+        "client": 868,
+        "scroll": 868,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 509,
+        "y": 73,
+        "w": 820,
+        "h": 1106.9296875,
+        "client": 820,
+        "scroll": 820,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 879,
+        "y": 98.55084228515625,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 533,
+        "y": 253.94927978515625,
+        "w": 772,
+        "h": 861.5311889648438,
+        "client": 772,
+        "scroll": 772,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 572,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 587,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 485,
+        "y": 5,
+        "w": 1430,
+        "h": 48,
+        "client": 1430,
+        "scroll": 1430,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": {
+        "x": 1367,
+        "y": 53,
+        "w": 548,
+        "h": 842,
+        "client": 547,
+        "scroll": 547,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 615,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 737,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 1111.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1229,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1261,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "config": "leftClosed-rightClosed",
+      "window": {
+        "w": 1920,
+        "h": 900
+      },
+      "rootFont": "16px",
+      "body": {
+        "x": 1,
+        "y": 53,
+        "w": 1914,
+        "h": 842,
+        "client": 1914,
+        "scroll": 1914,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "chat": {
+        "x": 1,
+        "y": 53,
+        "w": 1914,
+        "h": 842,
+        "client": 1914,
+        "scroll": 1914,
+        "padding": "0px",
+        "position": "relative",
+        "overflowX": "hidden",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "spine": {
+        "x": 1,
+        "y": 53,
+        "w": 1914,
+        "h": 688,
+        "client": 1904,
+        "scroll": 1904,
+        "padding": "20px 24px",
+        "position": "static",
+        "overflowX": "auto",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "column": {
+        "x": 441,
+        "y": 73,
+        "w": 1024,
+        "h": 1106.9296875,
+        "client": 1024,
+        "scroll": 1024,
+        "padding": "24px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "user": {
+        "x": 1015,
+        "y": 101,
+        "w": 426,
+        "h": 48.3984375,
+        "client": 424,
+        "scroll": 424,
+        "padding": "12px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "answer": {
+        "x": 465,
+        "y": 256.3984375,
+        "w": 976,
+        "h": 861.53125,
+        "client": 976,
+        "scroll": 976,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "composer": {
+        "x": 606,
+        "y": 753,
+        "w": 704,
+        "h": 122,
+        "client": 702,
+        "scroll": 702,
+        "padding": "14px",
+        "position": "relative",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "toolbar": {
+        "x": 621,
+        "y": 832,
+        "w": 674,
+        "h": 28,
+        "client": 674,
+        "scroll": 674,
+        "padding": "0px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "header": {
+        "x": 1,
+        "y": 5,
+        "w": 1914,
+        "h": 48,
+        "client": 1914,
+        "scroll": 1914,
+        "padding": "0px 8px 0px 16px",
+        "position": "static",
+        "overflowX": "visible",
+        "scrollbarGutter": "auto",
+        "fontSize": "14px"
+      },
+      "aux": null,
+      "controls": [
+        {
+          "label": "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文（embeddedContext:true）；image:false audio:false —— 图/音模态内核不支持，不上 UI",
+          "w": 28,
+          "right": 649,
+          "clipped": false
+        },
+        {
+          "label": "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。全放行时内核完全不发权限请求（permission-flow-measured.md §0）",
+          "w": 118,
+          "right": 771,
+          "clipped": false
+        },
+        {
+          "label": "上下文用量：等待内核回传（_nofy/session/info 的 context 块）",
+          "w": 28,
+          "right": 1145.2890625,
+          "clipped": false
+        },
+        {
+          "label": "选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）",
+          "w": 113.7109375,
+          "right": 1263,
+          "clipped": false
+        },
+        {
+          "label": "发送",
+          "w": 28,
+          "right": 1295,
+          "clipped": false
+        }
+      ]
+    }
+  ],
+  "shortHeight": {
+    "spine": {
+      "y": 53,
+      "h": 240,
+      "w": 1006
+    },
+    "composer": {
+      "y": 305,
+      "h": 230,
+      "w": 704
+    },
+    "input": {
+      "y": 320,
+      "h": 160,
+      "w": 674
+    }
+  },
+  "finishedAt": "2026-10-10T19:15:58.493Z"
+}

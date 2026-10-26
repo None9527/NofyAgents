@@ -59,6 +59,8 @@ pub enum WaitingReason {
     Model,
     /// Blocked on a running foreground subagent (`task` / `spawn_subagent`).
     Subagent,
+    /// View-enriched wait with a confirmed foreground count.
+    Subagents(usize),
     /// Blocked polling/awaiting a background task's output
     /// (`get_command_or_subagent_output` / `get_task_output`).
     ///
@@ -124,6 +126,7 @@ impl WaitingReason {
         match self {
             Self::Model => "Waiting for response…".to_string(),
             Self::Subagent => "Waiting on subagent…".to_string(),
+            Self::Subagents(count) => format!("Waiting on {count} subagents…"),
             Self::TaskOutput {
                 subject: Some(subject),
                 ..
@@ -137,7 +140,7 @@ impl WaitingReason {
     pub fn as_telemetry_label(&self) -> &'static str {
         match self {
             Self::Model => "waiting_model",
-            Self::Subagent => "waiting_subagent",
+            Self::Subagent | Self::Subagents(_) => "waiting_subagent",
             Self::TaskOutput { .. } => "waiting_task_output",
             Self::TasksComplete => "waiting_tasks_complete",
             Self::Sleep => "waiting_sleep",
@@ -551,7 +554,7 @@ impl AcpUpdateTracker {
                 WaitingReason::TaskOutput { .. } => 0,
                 WaitingReason::TasksComplete => 1,
                 WaitingReason::Sleep => 2,
-                WaitingReason::Subagent => 3,
+                WaitingReason::Subagent | WaitingReason::Subagents(_) => 3,
                 WaitingReason::Model => 4,
             })
             .map(|w| w.reason.clone())

@@ -1,0 +1,20 @@
+export { ComposerBoundary as Composer } from "./ComposerBoundary.tsx";
+export { ConversationPane as Spine } from "./ConversationPane.tsx";
+export { AgentChip } from "./AgentChip.tsx";
+export { DiffChip } from "./DiffChip.tsx";
+export { QueueStrip } from "./QueueStrip.tsx";
+export { agentBlocks, agentSummary, agentWorkPhrase, directoryAgents, runningAgentRows } from "./agentModel.ts";
+export type { AgentRow } from "./agentModel.ts";
+export { currentPermId, permAction } from "./permModel.ts";
+export type { PermId } from "./permModel.ts";
+export type { AttachItem } from "./attachModel.ts";
+export { exportLoadedConversation } from "./exportModel.ts";
+export { findInConversation, parseSessionSearch } from "./findModel.ts";
+export type { SessionSearchHit } from "./findModel.ts";
+export { forkAtTurnEffect } from "./turnActionsModel.ts";
+export { QueueHost } from "./QueueHost.tsx";
+export { isAgentBlock, isAgentPollBlock } from "./agentModel.ts";
+export { agentOpenTarget, createTaskBoardSelector, createWatchingSelector, gitOverview, lineBadge, monitorTasks, oneShotTasks, overviewAgents, scheduledLoops, taskLabel, taskOpenTarget, taskRecord, taskStatusPhrase } from "./taskOverviewModel.ts";
+export type { OverviewAgent, TaskRecord } from "./taskOverviewModel.ts";
+
+export { ConversationDock } from "./ConversationDock.tsx";

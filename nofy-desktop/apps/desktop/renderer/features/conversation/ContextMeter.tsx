@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * ContextMeter —— 圆环按钮 + 上下文用量浮层。
  *
@@ -12,10 +14,8 @@
  *     → 图例行（size-2 色块 + 来源名 + 右对齐百分比 tabular-nums）→ 可选页脚行
  *     —— Home.tsx:5758-5843
  *
- * 我们没有 Radix，用与 MenuButton 同一套自绘手法（fixed overlay + absolute 弹层，
- * 不用 portal、不碰 document）。悬停即开、移入浮层不关（浮层是 hover 容器的子节点，
- * 2px 的 sideOffset 用 padding-bottom 补成连续热区，否则鼠标过缝就掉）；
- * 点击＝钉住（overlay 接管外点关闭），Esc 全关。
+ * UI AnchoredPopover 使用原生 top layer，定位与尺寸不受 dock/卡片的 overflow 裁剪。
+ * 悬停可读，点击钉住，外点与 Escape 关闭；跨过浮层间隙时短暂延迟关闭。
  *
  * ## 内容换成内核真字段
  *
@@ -25,7 +25,8 @@
  *   页脚   = 剩余可用 / 自动压缩阈值（含距阈值 tok）/ 回合 / 工具调用 / 已压缩
  *   条上刻度 = autoCompactThresholdPercent（活壳没有；内核给了就画，不猜默认值）
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnchoredPopover } from "../../ui/anchoredPopover.tsx";
 import { ContextRing } from "../../ui/contextmeter.tsx";
 import type { ContextView } from "./contextModel.ts";
 import { formatTokens } from "./contextModel.ts";
@@ -35,26 +36,35 @@ function pctText(p: number): string {
 }
 
 export function ContextMeter({ view }: { view: ContextView }) {
+  useLocale();
+  const anchor = useRef<HTMLButtonElement>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); }, []);
+  const enter = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); setHover(true); };
+  const leave = () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); leaveTimer.current = setTimeout(() => setHover(false), 120); };
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hover || pinned;
   const close = (): void => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
     setPinned(false);
     setHover(false);
   };
   return (
     <span
       className="ctxwrap"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseEnter={enter}
+      onMouseLeave={leave}
     >
       <button
+        ref={anchor}
         type="button"
         className={"ctx" + (view.warn ? " ctx--warn" : "")}
         aria-label={view.ringLabel}
-        title={view.ringLabel}
         aria-haspopup="dialog"
         aria-expanded={open}
+        onFocus={enter}
+        onBlur={leave}
         onClick={() => setPinned((p) => !p)}
         onKeyDown={(e) => {
           if (e.key === "Escape") close();
@@ -63,23 +73,13 @@ export function ContextMeter({ view }: { view: ContextView }) {
         <ContextRing ratio={view.ratio} cacheHit={view.cache.hit} />
       </button>
       {open ? (
-        <>
-          {pinned ? (
-            <span
-              className="ctxpop__overlay"
-              onClick={() => setPinned(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") close();
-              }}
-            />
-          ) : null}
-          <span className="ctxpop" role="dialog" aria-label={view.title}>
+        <AnchoredPopover anchor={anchor} className="ctxpop" label={view.title} onClose={close} onMouseEnter={enter} onMouseLeave={leave}>
             <span className="ctxpop__head">
               <span className="ctxpop__title">{view.title}</span>
               <span className="ctxpop__summary">{view.summary}</span>
             </span>
             {view.hasData ? (
-              <span className="ctxbar" role="img" aria-label={"上下文用量 " + String(view.pct) + "%"}>
+              <span className="ctxbar" role="img" aria-label={tr("上下文用量 ") + String(view.pct) + "%"}>
                 <span className="ctxbar__fill" style={{ width: pctText(view.ratio) }}>
                   {view.segments.map((s) => (
                     <span
@@ -115,9 +115,7 @@ export function ContextMeter({ view }: { view: ContextView }) {
             ) : null}
             {view.listings.length > 0 ? (
               <span className="ctxpop__group">
-                <span className="ctxpop__grouptitle">
-                  清单注入
-                  <span className="ctxpop__grouphint">已计入消息</span>
+                <span className="ctxpop__grouptitle">{tr("清单注入")}<span className="ctxpop__grouphint">{tr("已计入消息")}</span>
                 </span>
                 {view.listings.map((l) => (
                   <span key={l.id} className="ctxrow">
@@ -141,12 +139,9 @@ export function ContextMeter({ view }: { view: ContextView }) {
               </span>
             ) : null}
             {view.hasData ? null : (
-              <span className="ctxpop__empty">
-                等待内核回传 context 块（每 6s 轮询 _nofy/session/info）
-              </span>
+              <span className="ctxpop__empty">{tr("等待内核回传 context 块（每 6s 轮询 _nofy/session/info）")}</span>
             )}
-          </span>
-        </>
+        </AnchoredPopover>
       ) : null}
     </span>
   );

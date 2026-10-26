@@ -23,6 +23,8 @@ import {
   EXT_SERVER_REQUEST,
   EXT_REQUEST,
 } from "@nofy-desktop/acp";
+import { SERVICE_REQUESTS } from "./service-actions.ts";
+import type { ServiceOperation } from "./service-actions.ts";
 import { encodePtyInput } from "./events.ts";
 import type { RpcId } from "./kernel-port.ts";
 import type { KernelPort } from "./kernel-port.ts";
@@ -30,13 +32,16 @@ import { hydrateFromResponse } from "./bind.ts";
 import type { Action } from "./project.ts";
 import type { Store } from "./store/store.ts";
 import type { AppState } from "./store/state.ts";
+import { parseCancel, parseKill, parseScheduleDelete, parseSubagentList, parseTaskList } from "./taskMonitor.ts";
 
 export type Effect =
-  | { kind: "session/new"; cwd: string; modelId?: string | null }
-  | { kind: "session/load"; sessionId: string; cwd: string }
+  | { kind: "service/request"; operation: ServiceOperation; params: Record<string, unknown> }
+  | { kind: "session/new"; cwd: string; modelId?: string | null; activate?: boolean }
+  | { kind: "session/load"; sessionId: string; cwd: string; activate?: boolean; fresh?: boolean }
   | {
       kind: "session/prompt";
       sessionId: string;
+      promptId?: string;
       text: string;
       /**
        * 附加上下文（composer 的「+」）。每项变成一个 resource_link 块，排在文本块前。
@@ -45,13 +50,15 @@ export type Effect =
        */
       attach?: Array<{ path: string; name: string }>;
     }
-  | { kind: "session/cancel"; sessionId: string }
+  | { kind: "session/cancel"; sessionId: string; cancelSubagents?: boolean }
   /** 切模型。effort 给定时走内核 pager 同一条线路：session/set_model 的
    * _meta["reasoningEffort"]（nofy-sampling-types types.rs:785/818，pager
    * SwitchModel effects/mod.rs:1516-1535 逐字同机制）。 */
   | { kind: "session/setModel"; sessionId: string; modelId: string; effort?: string }
   | { kind: "session/setMode"; sessionId: string; modeId: string }
   | { kind: "roster/pull" }
+  /** `_nofy/session_summaries/workspace_list` with `{}`. The renderer keeps the body; this does not write the store. */
+  | { kind: "workspaces/pull" }
   | {
       /**
        * 客户端→内核的权限模式通知（acp_agent.rs:1245-1320 实测分派臂）。
@@ -115,11 +122,20 @@ export type Effect =
    * 审查面（生态面 #4）。三条读路径的参数形状来自探针实测（ecosystem-shapes.json）：
    *   git/status {sessionId, includeUntracked, includeStats, includePatches}
    *     ⇒ result{root,branch,commit,staged[],unstaged[]}，条目带 patch（unified diff 文本）
-   *   git/diffs  {sessionId, from, to, includePatch}
-   *     ⇒ **from 必须大写 "HEAD"**（小写静默空，探针记过的陷阱）；result{files[]}
+   *   git/diffs  {sessionId, from, to, includePatch, mergeBase}
+   *     ⇒ from 为 HEAD 时必须大写（小写静默空）；result{files[]}
+   *     mergeBase 只在 from/to 都是提交引用时生效。基准分支来自 git/branches。
+   *   git/branches {sessionId} ⇒ {result:{currentBranch, repoRoot, branches[{name,current,remote}]}}
    *   git/files  {sessionId, paths[], version}
    *     ⇒ **version 必须大写 "HEAD"**；result{files[{path,version,content,isBinary}],errors[]}
-   * 三者都是 EXT_DISPATCH_ONLY（请求，等响应）。
+   *   git/stage    {sessionId, paths[]}
+   *   git/unstage  {sessionId, paths[]}
+   *   git/discard  {sessionId, paths[], scope: working|staged|both, includeUntracked}
+   *   git/commit   {sessionId, message, push}  只有用户勾了提交并推送才把 push 设为 true
+   *   git/checkout {sessionId, branch, create}  create true 建分支，false 切换已有分支
+   * 写路径不发送 stage/content、amend、signoff、sync、stageAll，也不单独推送。
+   * 失败走 JSON-RPC error.data 里的内核原文。提交成功时 result 与 error 可以同时在，error 是警告。
+   * 这些都是 EXT_DISPATCH_ONLY（请求，等响应）。
    */
   | { kind: "git/status"; sessionId: string; includeUntracked?: boolean; includeStats?: boolean; includePatches?: boolean }
   /**
@@ -127,17 +143,26 @@ export type Effect =
    * 内核 codegen 型（nofy-hooks-plugins-types/src/lib.rs camelCase；skills 在
    * nofy-shell extensions/skills.rs）＋探针实测（docs/contract/ecosystem-shapes.json）：
    *   skills/list     {cwd}                 ⇒ {skills:[…]}（155 条实测）
+   *   skills/toggle   {name, enabled, cwd}  ⇒ 成功时同样是 SkillsListResponse {skills:[…]}
+   *     失败仍是成功的 JSON-RPC 帧：{result:null, error:"…"}。这里只原样带回 value。
    *   plugins/list    {sessionId}           ⇒ {plugins:[…]}
    *   marketplace/list {}                  ⇒ {sources:[…]}（292 条实测）
    *   mcp/list        {sessionId, cache:false} ⇒ {servers:[…]}
-   * 只读面：安装/卸载/启停写路径未实测 ⇒ 不发出站写，UI 灰按钮＋title 写明。
+   * skills/add|remove|config|reset 不接线。
    */
   | { kind: "eco/skills"; cwd: string }
+  | { kind: "skills/toggle"; name: string; enabled: boolean; cwd: string }
   | { kind: "eco/plugins"; sessionId: string }
   | { kind: "eco/marketplace" }
   | { kind: "eco/mcp"; sessionId: string }
-  | { kind: "git/diffs"; sessionId: string; from?: string; to?: string; includePatch?: boolean }
+  | { kind: "git/diffs"; sessionId: string; from?: string; to?: string; includePatch?: boolean; mergeBase?: boolean }
+  | { kind: "git/branches"; sessionId: string }
   | { kind: "git/files"; sessionId: string; paths: string[]; version?: string }
+  | { kind: "git/stage"; sessionId: string; paths: string[] }
+  | { kind: "git/unstage"; sessionId: string; paths: string[] }
+  | { kind: "git/discard"; sessionId: string; paths: string[]; scope: "working" | "staged" | "both"; includeUntracked: boolean }
+  | { kind: "git/commit"; sessionId: string; message: string; push: boolean }
+  | { kind: "git/checkout"; sessionId: string; branch: string; create: boolean }
   /**
    * 终端面（生态面 #3）。形状全部探针实测（ecosystem-shapes.json）：
    *   pty/create {sessionId, cwd, rows, cols, name, env[{name,value}]} ⇒ {result:{terminalId}}
@@ -161,11 +186,19 @@ export type Effect =
    * （scripts/pty-smoke.ts 把这条做成了门）。
    */
   | { kind: "terminal/list"; sessionId: string }
-  | { kind: "terminal/create"; sessionId: string; cwd: string; rows: number; cols: number; name: string }
+  | { kind: "terminal/create"; sessionId: string; cwd: string; rows: number; cols: number; name: string; shell?: string }
   | { kind: "terminal/load"; terminalId: string }
   | { kind: "terminal/resize"; terminalId: string; rows: number; cols: number }
   | { kind: "terminal/input"; terminalId: string; text: string }
-  | { kind: "terminal/kill"; terminalId: string; sessionId: string };
+  | { kind: "terminal/kill"; terminalId: string; sessionId: string }
+  /**
+   * 后台任务对账与三条写请求。清单失败不得派发空数组。
+   * kill 先在本地记 pending，响应或断线后再清；cancel 不写 subagentFinished。
+   */
+  | { kind: "tasks/reconcile"; sessionId: string }
+  | { kind: "task/kill"; sessionId: string; taskId: string }
+  | { kind: "subagent/cancel"; sessionId: string; subagentId: string }
+  | { kind: "scheduler/delete"; sessionId: string; taskId: string };
 
 export type TaskResult =
   | { ok: true; effect: Effect["kind"]; value?: unknown }
@@ -173,6 +206,13 @@ export type TaskResult =
 
 function fail(kind: Effect["kind"], e: unknown): TaskResult {
   return { ok: false, effect: kind, error: e instanceof Error ? e.message : String(e) };
+}
+
+const STALE_CONNECTION = "连接已变化，请等待会话恢复后重试";
+
+function openEpoch(store: Store<AppState, Action>): number | null {
+  const connection = store.getState().connection;
+  return connection.status === "ready" ? connection.transportEpoch : null;
 }
 
 /**
@@ -192,8 +232,9 @@ function cancelPayloadFor(method: string): Record<string, unknown> | null {
     case EXT_SERVER_REQUEST.exitPlanMode:
       return { outcome: "cancelled" };
     case CLIENT_SIDE_METHOD.elicitation:
+          return { action: { outcome: "cancelled" } };
     case EXT_SERVER_REQUEST.mcpElicit:
-      return { action: { outcome: "cancelled" } };
+      return { outcome: "cancel" };
     case EXT_SERVER_REQUEST.folderTrustRequest:
       // fail-closed：只有 "trust" 解锁；reject 是一个**决定**（保留 dedup key），
       // 语义比不应答干净（folder_trust_prompt.rs:221-228）。
@@ -216,6 +257,18 @@ export async function runEffect(
 ): Promise<TaskResult> {
   const dispatch = (a: Action): void => store.dispatch(a);
   switch (effect.kind) {
+    case "service/request": {
+      try {
+        const method = Object.hasOwn(SERVICE_REQUESTS, effect.operation) ? SERVICE_REQUESTS[effect.operation] : undefined;
+        if (!method) return { ok: false, effect: effect.kind, error: "Unsupported service operation" };
+        const value = effect.operation === "modelAuthenticate"
+          ? await port.request(method, effect.params)
+          : await port.extRequest(method, effect.params);
+        return { ok: true, effect: effect.kind, value };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
     case "session/new": {
       try {
         const res = await port.request(AGENT_METHOD.newSession, {
@@ -225,7 +278,7 @@ export async function runEffect(
         });
         const h = hydrateFromResponse(res);
         if (h.sessionId === null) return { ok: false, effect: effect.kind, error: "session/new 未返回 sessionId" };
-        dispatch({ type: "session/created", sessionId: h.sessionId, cwd: h.cwd, modelId: h.modelId });
+        dispatch({ type: "session/created", sessionId: h.sessionId, cwd: h.cwd, modelId: h.modelId, activate: effect.activate });
         dispatch({
           type: "session/hydrated",
           sessionId: h.sessionId,
@@ -241,6 +294,7 @@ export async function runEffect(
     }
     case "session/load": {
       try {
+        if (effect.fresh) dispatch({ type: "session/replay-reset", sessionId: effect.sessionId });
         const res = await port.request(AGENT_METHOD.loadSession, {
           sessionId: effect.sessionId,
           cwd: effect.cwd,
@@ -248,7 +302,7 @@ export async function runEffect(
         });
         const h = hydrateFromResponse(res);
         const sid = h.sessionId ?? effect.sessionId;
-        dispatch({ type: "session/created", sessionId: sid, cwd: h.cwd ?? effect.cwd, modelId: h.modelId });
+        dispatch({ type: "session/created", sessionId: sid, cwd: h.cwd ?? effect.cwd, modelId: h.modelId, activate: effect.activate });
         // ⚠ 冷启动时标题**只能**从这里来（回放集不含 session_info_update /
         // session_summary_generated，见 replay-dedup-measured.md §2）。
         dispatch({
@@ -266,7 +320,8 @@ export async function runEffect(
     }
     case "session/prompt": {
       // 乐观：只置运行态，不插用户块（内核会发 user_message_chunk）
-      dispatch({ type: "session/turn-requested", sessionId: effect.sessionId });
+      const wasRunning = store.getState().sessions[effect.sessionId]?.agentState === "turn-running";
+      if (!wasRunning) dispatch({ type: "session/turn-requested", sessionId: effect.sessionId });
       try {
         const blocks: Array<Record<string, unknown>> = [];
         for (const a of effect.attach ?? []) {
@@ -276,10 +331,11 @@ export async function runEffect(
         const res = await port.request(AGENT_METHOD.prompt, {
           sessionId: effect.sessionId,
           prompt: blocks,
+          ...(effect.promptId ? { _meta: { promptId: effect.promptId } } : {}),
         });
         return { ok: true, effect: effect.kind, value: res };
       } catch (e) {
-        dispatch({ type: "session/turn-failed", sessionId: effect.sessionId, error: e instanceof Error ? e.message : String(e) });
+        dispatch({ type: "session/turn-failed", sessionId: effect.sessionId, preserveRunning: wasRunning, error: e instanceof Error ? e.message : String(e) });
         return fail(effect.kind, e);
       }
     }
@@ -287,7 +343,7 @@ export async function runEffect(
       // 陷阱 T1：cancel 是 notification。port.cancel 内部走 notify，并且会
       // 连带把该会话所有挂起权限请求应答 cancelled（PORTING-PLAN §2.3）。
       dispatch({ type: "session/cancel-requested", sessionId: effect.sessionId });
-      port.cancel(effect.sessionId);
+      port.cancel(effect.sessionId, effect.cancelSubagents === undefined ? undefined : { cancelSubagents: effect.cancelSubagents });
       return { ok: true, effect: effect.kind };
     case "session/setModel": {
       try {
@@ -337,6 +393,14 @@ export async function runEffect(
             : o;
         const rows = Array.isArray(inner["sessions"]) ? inner["sessions"] : [];
         dispatch({ type: "kernel/event", event: { type: "roster/upsert", rows } });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "workspaces/pull": {
+      try {
+        const res = await port.extRequest(EXT_REQUEST.summariesWorkspaceList, {});
         return { ok: true, effect: effect.kind, value: res };
       } catch (e) {
         return fail(effect.kind, e);
@@ -420,6 +484,18 @@ export async function runEffect(
         return fail(effect.kind, e);
       }
     }
+    case "skills/toggle": {
+      try {
+        const res = await port.extRequest(EXT_CLIENT_REQUEST.skills_toggle, {
+          name: effect.name,
+          enabled: effect.enabled,
+          cwd: effect.cwd,
+        });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
     case "eco/plugins": {
       try {
         const res = await port.extRequest(EXT_CLIENT_REQUEST.plugins_list, { sessionId: effect.sessionId });
@@ -451,7 +527,16 @@ export async function runEffect(
           from: effect.from ?? "HEAD",
           to: effect.to ?? "working",
           includePatch: effect.includePatch ?? true,
+          mergeBase: effect.mergeBase === true,
         });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/branches": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_branches, { sessionId: effect.sessionId });
         return { ok: true, effect: effect.kind, value: res };
       } catch (e) {
         return fail(effect.kind, e);
@@ -463,6 +548,59 @@ export async function runEffect(
           sessionId: effect.sessionId,
           paths: effect.paths,
           version: effect.version ?? "HEAD",
+        });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/stage": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_stage, { sessionId: effect.sessionId, paths: effect.paths });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/unstage": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_unstage, { sessionId: effect.sessionId, paths: effect.paths });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/discard": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_discard, {
+          sessionId: effect.sessionId,
+          paths: effect.paths,
+          scope: effect.scope,
+          includeUntracked: effect.includeUntracked,
+        });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/commit": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_commit, {
+          sessionId: effect.sessionId,
+          message: effect.message,
+          push: effect.push === true,
+        });
+        return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "git/checkout": {
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.git_checkout, {
+          sessionId: effect.sessionId,
+          branch: effect.branch,
+          create: effect.create === true,
         });
         return { ok: true, effect: effect.kind, value: res };
       } catch (e) {
@@ -485,6 +623,7 @@ export async function runEffect(
           rows: effect.rows,
           cols: effect.cols,
           name: effect.name,
+          ...(effect.shell ? { shell: effect.shell } : {}),
           env: [{ name: "TERM", value: "xterm-256color" }],
         });
         return { ok: true, effect: effect.kind, value: res };
@@ -527,6 +666,88 @@ export async function runEffect(
           sessionId: effect.sessionId,
         });
         return { ok: true, effect: effect.kind, value: res };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "tasks/reconcile": {
+      const epoch = openEpoch(store);
+      if (epoch === null) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+      let error: string | null = null;
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.task_list, { sessionId: effect.sessionId });
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        const parsed = parseTaskList(res);
+        if (parsed.ok) dispatch({ type: "tasks/listed", sessionId: effect.sessionId, tasks: parsed.tasks });
+        else error = parsed.error;
+      } catch (e) {
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        error = e instanceof Error ? e.message : String(e);
+      }
+      try {
+        const res = await port.extRequest(EXT_DISPATCH_ONLY.subagent_list_running, { sessionId: effect.sessionId });
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        const parsed = parseSubagentList(res);
+        if (parsed.ok) dispatch({ type: "subagents/listed", sessionId: effect.sessionId, subagents: parsed.subagents });
+        else if (error === null) error = parsed.error;
+      } catch (e) {
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        if (error === null) error = e instanceof Error ? e.message : String(e);
+      }
+      return error === null ? { ok: true, effect: effect.kind } : { ok: false, effect: effect.kind, error };
+    }
+    case "task/kill": {
+      const epoch = openEpoch(store);
+      if (epoch === null) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+      dispatch({ type: "task/kill-requested", sessionId: effect.sessionId, taskId: effect.taskId, at: Date.now() });
+      const clearPending = (): void => {
+        dispatch({ type: "task/kill-resolved", sessionId: effect.sessionId, taskId: effect.taskId, outcome: null });
+      };
+      try {
+        const res = await port.extRequest(EXT_REQUEST.taskKill, { sessionId: effect.sessionId, taskId: effect.taskId });
+        if (store.getState().connection.transportEpoch !== epoch) {
+          clearPending();
+          return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        }
+        const parsed = parseKill(res);
+        dispatch({ type: "task/kill-resolved", sessionId: effect.sessionId, taskId: effect.taskId, outcome: parsed.outcome });
+        return parsed.error === null
+          ? { ok: true, effect: effect.kind, value: parsed.outcome }
+          : { ok: false, effect: effect.kind, error: parsed.error };
+      } catch (e) {
+        clearPending();
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        return fail(effect.kind, e);
+      }
+    }
+    case "subagent/cancel": {
+      const epoch = openEpoch(store);
+      if (epoch === null) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+      try {
+        const res = await port.extRequest(EXT_REQUEST.subagentCancel, { subagentId: effect.subagentId });
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        const parsed = parseCancel(res);
+        dispatch({ type: "subagent/cancel-resolved", sessionId: effect.sessionId, subagentId: effect.subagentId, outcome: parsed.outcome });
+        return parsed.error === null
+          ? { ok: true, effect: effect.kind, value: parsed.outcome }
+          : { ok: false, effect: effect.kind, error: parsed.error };
+      } catch (e) {
+        return fail(effect.kind, e);
+      }
+    }
+    case "scheduler/delete": {
+      const epoch = openEpoch(store);
+      if (epoch === null) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+      try {
+        const res = await port.extRequest(EXT_REQUEST.schedulerDelete, { sessionId: effect.sessionId, taskId: effect.taskId });
+        if (store.getState().connection.transportEpoch !== epoch) return { ok: false, effect: effect.kind, error: STALE_CONNECTION };
+        const parsed = parseScheduleDelete(res);
+        if (parsed.deleted !== null) {
+          dispatch({ type: "schedule/delete-resolved", sessionId: effect.sessionId, taskId: effect.taskId, deleted: parsed.deleted });
+        }
+        return parsed.error === null
+          ? { ok: true, effect: effect.kind, value: parsed.deleted }
+          : { ok: false, effect: effect.kind, error: parsed.error };
       } catch (e) {
         return fail(effect.kind, e);
       }

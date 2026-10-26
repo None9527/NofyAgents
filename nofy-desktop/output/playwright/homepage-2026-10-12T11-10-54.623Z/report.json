@@ -1,0 +1,760 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-12T11:10:54.625Z",
+  "cases": [
+    {
+      "name": "H01 empty greeting and composer form one responsive group",
+      "status": "passed",
+      "durationMs": 83,
+      "details": {
+        "gap": 12,
+        "center": 0
+      }
+    },
+    {
+      "name": "H02 transcript, composer and bubble share an axis across panel geometry",
+      "status": "passed",
+      "durationMs": 3724,
+      "details": [
+        {
+          "width": 880,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 606
+            },
+            "body": {
+              "x": 269,
+              "w": 606
+            },
+            "column": {
+              "x": 285,
+              "w": 564
+            },
+            "composer": {
+              "x": 285,
+              "w": 574
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 606
+            },
+            "body": {
+              "x": 269,
+              "w": 606
+            },
+            "column": {
+              "x": 285,
+              "w": 564
+            },
+            "composer": {
+              "x": 285,
+              "w": 574
+            },
+            "mode": "sheet"
+          }
+        },
+        {
+          "width": 880,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 5,
+              "w": 870
+            },
+            "body": {
+              "x": 5,
+              "w": 870
+            },
+            "column": {
+              "x": 26.5,
+              "w": 817
+            },
+            "composer": {
+              "x": 26.75,
+              "w": 826.5
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 5,
+              "w": 521
+            },
+            "body": {
+              "x": 5,
+              "w": 521
+            },
+            "column": {
+              "x": 21,
+              "w": 479
+            },
+            "composer": {
+              "x": 21,
+              "w": 489
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 900,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 626
+            },
+            "body": {
+              "x": 269,
+              "w": 626
+            },
+            "column": {
+              "x": 285,
+              "w": 584
+            },
+            "composer": {
+              "x": 285,
+              "w": 594
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 626
+            },
+            "body": {
+              "x": 269,
+              "w": 626
+            },
+            "column": {
+              "x": 285,
+              "w": 584
+            },
+            "composer": {
+              "x": 285,
+              "w": 594
+            },
+            "mode": "sheet"
+          }
+        },
+        {
+          "width": 900,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 5,
+              "w": 890
+            },
+            "body": {
+              "x": 5,
+              "w": 890
+            },
+            "column": {
+              "x": 27,
+              "w": 836
+            },
+            "composer": {
+              "x": 27.25,
+              "w": 845.5
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 5,
+              "w": 521
+            },
+            "body": {
+              "x": 5,
+              "w": 521
+            },
+            "column": {
+              "x": 21,
+              "w": 479
+            },
+            "composer": {
+              "x": 21,
+              "w": 489
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 901,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 627
+            },
+            "body": {
+              "x": 269,
+              "w": 627
+            },
+            "column": {
+              "x": 285,
+              "w": 585
+            },
+            "composer": {
+              "x": 285,
+              "w": 595
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 627
+            },
+            "body": {
+              "x": 269,
+              "w": 627
+            },
+            "column": {
+              "x": 285,
+              "w": 585
+            },
+            "composer": {
+              "x": 285,
+              "w": 595
+            },
+            "mode": "sheet"
+          }
+        },
+        {
+          "width": 901,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 5,
+              "w": 891
+            },
+            "body": {
+              "x": 5,
+              "w": 891
+            },
+            "column": {
+              "x": 27.0234375,
+              "w": 836.9453125
+            },
+            "composer": {
+              "x": 27.2734375,
+              "w": 846.4453125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 5,
+              "w": 521
+            },
+            "body": {
+              "x": 5,
+              "w": 521
+            },
+            "column": {
+              "x": 21,
+              "w": 479
+            },
+            "composer": {
+              "x": 21,
+              "w": 489
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1000,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 726
+            },
+            "body": {
+              "x": 269,
+              "w": 726
+            },
+            "column": {
+              "x": 286.8984375,
+              "w": 680.1953125
+            },
+            "composer": {
+              "x": 287.1484375,
+              "w": 689.6953125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 726
+            },
+            "body": {
+              "x": 269,
+              "w": 726
+            },
+            "column": {
+              "x": 286.8984375,
+              "w": 680.1953125
+            },
+            "composer": {
+              "x": 287.1484375,
+              "w": 689.6953125
+            },
+            "mode": "sheet"
+          }
+        },
+        {
+          "width": 1000,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 5,
+              "w": 990
+            },
+            "body": {
+              "x": 5,
+              "w": 990
+            },
+            "column": {
+              "x": 29.5,
+              "w": 931
+            },
+            "composer": {
+              "x": 29.75,
+              "w": 940.5
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 5,
+              "w": 521
+            },
+            "body": {
+              "x": 5,
+              "w": 521
+            },
+            "column": {
+              "x": 21,
+              "w": 479
+            },
+            "composer": {
+              "x": 21,
+              "w": 489
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1280,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 1006
+            },
+            "body": {
+              "x": 269,
+              "w": 1006
+            },
+            "column": {
+              "x": 293.8984375,
+              "w": 946.1953125
+            },
+            "composer": {
+              "x": 294.1484375,
+              "w": 955.6953125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 525
+            },
+            "body": {
+              "x": 269,
+              "w": 525
+            },
+            "column": {
+              "x": 285,
+              "w": 483
+            },
+            "composer": {
+              "x": 285,
+              "w": 493
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1280,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 485,
+              "w": 790
+            },
+            "body": {
+              "x": 485,
+              "w": 790
+            },
+            "column": {
+              "x": 504.5,
+              "w": 741
+            },
+            "composer": {
+              "x": 504.75,
+              "w": 750.5
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 485,
+              "w": 790
+            },
+            "body": {
+              "x": 485,
+              "w": 790
+            },
+            "column": {
+              "x": 504.5,
+              "w": 741
+            },
+            "composer": {
+              "x": 504.75,
+              "w": 750.5
+            },
+            "mode": "sheet"
+          }
+        },
+        {
+          "width": 1440,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 1166
+            },
+            "body": {
+              "x": 269,
+              "w": 1166
+            },
+            "column": {
+              "x": 297.8984375,
+              "w": 1098.1953125
+            },
+            "composer": {
+              "x": 298.1484375,
+              "w": 1107.6953125
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 622
+            },
+            "body": {
+              "x": 269,
+              "w": 622
+            },
+            "column": {
+              "x": 285,
+              "w": 580
+            },
+            "composer": {
+              "x": 285,
+              "w": 590
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1440,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 485,
+              "w": 950
+            },
+            "body": {
+              "x": 485,
+              "w": 950
+            },
+            "column": {
+              "x": 508.5,
+              "w": 893
+            },
+            "composer": {
+              "x": 508.75,
+              "w": 902.5
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 485,
+              "w": 525
+            },
+            "body": {
+              "x": 485,
+              "w": 525
+            },
+            "column": {
+              "x": 501,
+              "w": 483
+            },
+            "composer": {
+              "x": 501,
+              "w": 493
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1920,
+          "side": 264,
+          "before": {
+            "chat": {
+              "x": 269,
+              "w": 1646
+            },
+            "body": {
+              "x": 269,
+              "w": 1646
+            },
+            "column": {
+              "x": 511,
+              "w": 1152
+            },
+            "composer": {
+              "x": 516,
+              "w": 1152
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 269,
+              "w": 1102
+            },
+            "body": {
+              "x": 269,
+              "w": 1102
+            },
+            "column": {
+              "x": 296.296875,
+              "w": 1037.3984375
+            },
+            "composer": {
+              "x": 296.546875,
+              "w": 1046.8984375
+            },
+            "mode": "split"
+          }
+        },
+        {
+          "width": 1920,
+          "side": 480,
+          "before": {
+            "chat": {
+              "x": 485,
+              "w": 1430
+            },
+            "body": {
+              "x": 485,
+              "w": 1430
+            },
+            "column": {
+              "x": 619,
+              "w": 1152
+            },
+            "composer": {
+              "x": 624,
+              "w": 1152
+            },
+            "mode": "closed"
+          },
+          "after": {
+            "chat": {
+              "x": 485,
+              "w": 886
+            },
+            "body": {
+              "x": 485,
+              "w": 886
+            },
+            "column": {
+              "x": 506.8984375,
+              "w": 832.1953125
+            },
+            "composer": {
+              "x": 507.1484375,
+              "w": 841.6953125
+            },
+            "mode": "split"
+          }
+        }
+      ]
+    },
+    {
+      "name": "H03 sheet traps focus, closes with Escape and restores the toggle",
+      "status": "passed",
+      "durationMs": 695
+    },
+    {
+      "name": "H03b menus inside a modal sheet stay clickable and Escape closes only the menu",
+      "status": "passed",
+      "durationMs": 171
+    },
+    {
+      "name": "H04 switching tasks restores reading position and back-to-latest is reachable",
+      "status": "passed",
+      "durationMs": 694,
+      "details": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "name": "H05 resizing while reading retains the same message anchor",
+      "status": "passed",
+      "durationMs": 332,
+      "details": {
+        "before": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": 24
+        },
+        "after": {
+          "key": "seg:user:e2e-session-1:0",
+          "offset": 24
+        }
+      }
+    },
+    {
+      "name": "H06 approval replaces composer visually and preserves its draft on completion",
+      "status": "passed",
+      "durationMs": 205
+    },
+    {
+      "name": "H07 busy submission enters the authoritative queue before RPC completion",
+      "status": "passed",
+      "durationMs": 3633
+    },
+    {
+      "name": "H08 file-only attachment can submit without artificial text",
+      "status": "passed",
+      "durationMs": 154
+    },
+    {
+      "name": "H09 user actions remain hidden and close to the bubble; process rows are compact",
+      "status": "passed",
+      "durationMs": 432
+    },
+    {
+      "name": "H10 context popover escapes dock clipping, fits small viewports and scrolls all stats",
+      "status": "passed",
+      "durationMs": 1588,
+      "details": [
+        {
+          "topLayer": true,
+          "inDock": false,
+          "box": {
+            "x": 756.84375,
+            "y": 69,
+            "width": 320,
+            "height": 761,
+            "top": 69,
+            "right": 1076.84375,
+            "bottom": 830,
+            "left": 756.84375
+          },
+          "viewport": {
+            "w": 1440,
+            "h": 900
+          },
+          "dock": {
+            "x": 269,
+            "y": 757,
+            "width": 1166,
+            "height": 138,
+            "top": 757,
+            "right": 1435,
+            "bottom": 895,
+            "left": 269
+          },
+          "height": 759,
+          "scroll": 759,
+          "overflow": "auto"
+        },
+        {
+          "topLayer": true,
+          "inDock": false,
+          "box": {
+            "x": 210,
+            "y": 8,
+            "width": 320,
+            "height": 342,
+            "top": 8,
+            "right": 530,
+            "bottom": 350,
+            "left": 210
+          },
+          "viewport": {
+            "w": 880,
+            "h": 420
+          },
+          "dock": {
+            "x": 269,
+            "y": 277,
+            "width": 606,
+            "height": 138,
+            "top": 277,
+            "right": 875,
+            "bottom": 415,
+            "left": 269
+          },
+          "height": 340,
+          "scroll": 759,
+          "overflow": "auto"
+        }
+      ]
+    },
+    {
+      "name": "H11 right pane has one straight divider while the drag target remains eight",
+      "status": "passed",
+      "durationMs": 387,
+      "details": {
+        "gap": 1,
+        "rail": {
+          "x": 888,
+          "y": 0,
+          "width": 8,
+          "height": 900,
+          "top": 0,
+          "right": 896,
+          "bottom": 900,
+          "left": 888
+        },
+        "before": 548
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/homepage-2026-10-12T11-10-54.623Z",
+  "contextHoverDebug": {
+    "hover": true,
+    "focused": true,
+    "expanded": "true"
+  },
+  "finishedAt": "2026-10-12T11:11:09.038Z"
+}

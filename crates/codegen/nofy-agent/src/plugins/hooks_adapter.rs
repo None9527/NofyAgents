@@ -9,6 +9,45 @@ use nofy_hooks::event::HookEventName;
 
 use super::manifest::substitute_env_vars;
 
+/// Parse hooks from the enabled, trusted plugins of a session snapshot.
+pub fn active_plugin_hook_specs(registry: &super::PluginRegistry) -> Vec<HookSpec> {
+    let mut specs = Vec::new();
+    for plugin in registry.active_plugins() {
+        let root = plugin.root_str();
+        let data = plugin.data_dir_str();
+        let parsed = [
+            plugin
+                .hooks_path
+                .as_deref()
+                .map(|path| parse_plugin_hooks(path, &plugin.name, &root, &data)),
+            plugin
+                .inline_hooks
+                .as_ref()
+                .map(|value| parse_plugin_hooks_from_value(value, &plugin.name, &root, &data)),
+        ];
+        for (plugin_specs, warnings) in parsed.into_iter().flatten() {
+            for warning in warnings {
+                tracing::warn!("{warning}");
+            }
+            specs.extend(plugin_specs);
+        }
+    }
+    specs
+}
+
+/// Replace only plugin-owned hooks, including clearing disabled/removed plugins.
+pub fn replace_plugin_hooks(
+    base: Option<std::sync::Arc<nofy_hooks::discovery::HookRegistry>>,
+    specs: Vec<HookSpec>,
+) -> Option<std::sync::Arc<nofy_hooks::discovery::HookRegistry>> {
+    let mut registry = base
+        .map(std::sync::Arc::unwrap_or_clone)
+        .unwrap_or_default();
+    registry.remove_by_prefix(nofy_hooks::config::PLUGIN_HOOK_PREFIX);
+    registry.append_specs(specs);
+    (!registry.is_empty()).then(|| std::sync::Arc::new(registry))
+}
+
 /// Read, pre-filter, parse, and env-inject a plugin's hooks file.
 pub fn parse_plugin_hooks(
     hooks_path: &Path,
@@ -171,6 +210,30 @@ fn prefilter_unsupported_events(json_content: &str) -> (String, Vec<String>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plugin_replacement_preserves_project_hooks_and_shared_parent_snapshot() {
+        let value = serde_json::json!({"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"echo test"}]}]}});
+        let (plugin_specs, warnings) =
+            parse_plugin_hooks_from_value(&value, "first", "/root", "/data");
+        assert!(warnings.is_empty());
+        let mut project = plugin_specs[0].clone();
+        project.name = "project-hook".into();
+        project.layer = nofy_hooks::config::HookProvenance::File;
+        let mut registry = nofy_hooks::discovery::HookRegistry::default();
+        registry.append_specs(vec![project]);
+        let parent = std::sync::Arc::new(registry);
+        let fresh = replace_plugin_hooks(Some(parent.clone()), plugin_specs.clone()).unwrap();
+        assert_eq!(fresh.len(), 2);
+        assert_eq!(parent.len(), 1);
+        let reloaded = replace_plugin_hooks(Some(fresh.clone()), plugin_specs).unwrap();
+        assert_eq!(reloaded.len(), 2, "reload must not duplicate plugin hooks");
+        let disabled = replace_plugin_hooks(Some(reloaded), vec![]).unwrap();
+        assert_eq!(disabled.len(), 1);
+        assert_eq!(disabled.all_hooks()[0].name, "project-hook");
+        assert_eq!(fresh.len(), 2, "inherited snapshots remain immutable");
+        assert!(replace_plugin_hooks(None, vec![]).is_none());
+    }
 
     #[test]
     fn prefilter_removes_unsupported_events() {

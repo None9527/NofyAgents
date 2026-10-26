@@ -110,7 +110,7 @@ fn forward_lines<R: BufRead>(mut reader: R, tx: &mpsc::Sender<Vec<u8>>) {
     let mut line = Vec::new();
     loop {
         line.clear();
-        match reader.read_until(b'\n', &mut line) {
+        match read_line_bounded(&mut reader, &mut line, 64 * 1024 * 1024) {
             // EOF or a fatal read error: return, dropping `tx` closes the channel.
             Ok(0) | Err(_) => break,
             Ok(_) => {}
@@ -122,6 +122,61 @@ fn forward_lines<R: BufRead>(mut reader: R, tx: &mpsc::Sender<Vec<u8>>) {
         if tx.blocking_send(normalized).is_err() {
             break;
         }
+    }
+}
+
+/// Enforce the line-reader's 64 MiB contract before allocating peer input.
+fn read_line_bounded(
+    reader: &mut impl BufRead,
+    line: &mut Vec<u8>,
+    limit: usize,
+) -> std::io::Result<usize> {
+    line.clear();
+    loop {
+        let available = reader.fill_buf()?;
+        if available.is_empty() {
+            return Ok(line.len());
+        }
+        let newline = available.iter().position(|&b| b == b'\n');
+        let count = newline.map_or(available.len(), |i| i + 1);
+        if count > limit.saturating_sub(line.len()) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "ACP stdin message exceeds 64 MiB limit",
+            ));
+        }
+        line.extend_from_slice(&available[..count]);
+        reader.consume(count);
+        if newline.is_some() {
+            return Ok(line.len());
+        }
+    }
+}
+
+#[cfg(test)]
+mod bounded_input_tests {
+    use super::*;
+    #[test]
+    fn rejects_oversized_input_before_extending_buffer() {
+        let mut reader = std::io::Cursor::new(b"123456789");
+        let mut line = Vec::new();
+        assert_eq!(
+            read_line_bounded(&mut reader, &mut line, 8)
+                .unwrap_err()
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        assert!(line.is_empty());
+    }
+    #[test]
+    fn exact_limit_and_unterminated_last_line_are_preserved() {
+        let mut reader = std::io::Cursor::new(b"1234567\nlast");
+        let mut line = Vec::new();
+        assert_eq!(read_line_bounded(&mut reader, &mut line, 8).unwrap(), 8);
+        assert_eq!(line, b"1234567\n");
+        assert_eq!(read_line_bounded(&mut reader, &mut line, 8).unwrap(), 4);
+        assert_eq!(line, b"last");
+        assert_eq!(read_line_bounded(&mut reader, &mut line, 8).unwrap(), 0);
     }
 }
 

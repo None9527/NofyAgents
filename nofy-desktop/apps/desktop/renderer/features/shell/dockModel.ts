@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * dockModel —— 终端 dock 的纯模型：tab 集合怎么随内核事实演化。
  *
@@ -97,12 +98,12 @@ export type ExitFacts = { exitCode: number | null; signal: string | null; missin
 
 /** 写进终端正文的那一行（也用于 tab 的 title）。文案说明**事实**，不猜原因。 */
 export function exitNote(f: ExitFacts): string {
-  if (f.missing) return "\r\n[终端已从内核消失：内核重启过，或在别处被关闭]\r\n";
+  if (f.missing) return tr("\r\n[终端已从内核消失：内核重启过，或在别处被关闭]\r\n");
   if (f.signal !== null) {
-    return "\r\n[进程被信号 " + f.signal + " 结束" + (f.exitCode !== null ? " code=" + String(f.exitCode) : "") + "]\r\n";
+    return tr("\r\n[进程被信号 ") + f.signal + tr(" 结束") + (f.exitCode !== null ? " code=" + String(f.exitCode) : "") + "]\r\n";
   }
-  if (f.exitCode !== null) return "\r\n[进程已退出 code=" + String(f.exitCode) + "]\r\n";
-  return "\r\n[进程已退出]\r\n";
+  if (f.exitCode !== null) return tr("\r\n[进程已退出 code=") + String(f.exitCode) + "]\r\n";
+  return tr("\r\n[进程已退出]\r\n");
 }
 
 /**

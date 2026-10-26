@@ -14,6 +14,32 @@ fn default_true() -> bool {
     true
 }
 
+#[cfg(test)]
+mod token_file_config_tests {
+    use super::*;
+    #[test]
+    fn token_file_survives_json_and_acp_http_or_sse_conversion() {
+        for transport in ["http", "sse"] {
+            let value = serde_json::json!({"url":"https://example.com/mcp","type":transport,"bearer_token_file":"/private/token"});
+            let config: McpServerConfig = serde_json::from_value(value).unwrap();
+            assert_eq!(
+                serde_json::to_value(&config).unwrap()["bearer_token_file"],
+                "/private/token"
+            );
+            let server = config.to_acp_mcp_server("rotating").unwrap();
+            let meta = match server {
+                acp::McpServer::Http(s) => s.meta,
+                acp::McpServer::Sse(s) => s.meta,
+                _ => panic!("expected HTTP transport"),
+            };
+            assert_eq!(
+                meta.unwrap()[nofy_mcp::bearer_token_file::BEARER_TOKEN_FILE_META_KEY],
+                "/private/token"
+            );
+        }
+    }
+}
+
 /// Read an MCP OAuth client secret from the named env var. Moved here with
 /// `McpServerConfig` (its only caller).
 fn resolve_oauth_client_secret(env_var: Option<&String>) -> Option<String> {
@@ -54,6 +80,9 @@ pub enum McpServerTransportConfig {
         /// Name of the environment variable to read and set for `Authorization: Bearer <token>`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         bearer_token_env_var: Option<String>,
+        /// Absolute or ~/ path, read on every HTTP request so external rotation is immediate.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bearer_token_file: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         headers: Option<HashMap<String, String>>,
         /// OAuth client ID for providers that don't support Dynamic Client Registration.
@@ -93,6 +122,7 @@ pub struct McpServerConfigProblem {
 pub const KNOWN_MCP_SERVER_FIELDS: &[&str] = &[
     "args",
     "bearer_token_env_var",
+    "bearer_token_file",
     "command",
     "cwd",
     "enabled",
@@ -431,6 +461,7 @@ impl McpServerConfig {
                 url,
                 transport_type,
                 bearer_token_env_var,
+                bearer_token_file,
                 headers,
                 ..
             } => {
@@ -472,11 +503,23 @@ impl McpServerConfig {
 
                 Some(if is_sse {
                     acp::McpServer::Sse(
-                        acp::McpServerSse::new(name, url.clone()).headers(http_headers),
+                        acp::McpServerSse::new(name, url.clone())
+                            .headers(http_headers)
+                            .meta(
+                                bearer_token_file
+                                    .as_deref()
+                                    .map(nofy_mcp::bearer_token_file::bearer_token_file_meta),
+                            ),
                     )
                 } else {
                     acp::McpServer::Http(
-                        acp::McpServerHttp::new(name, url.clone()).headers(http_headers),
+                        acp::McpServerHttp::new(name, url.clone())
+                            .headers(http_headers)
+                            .meta(
+                                bearer_token_file
+                                    .as_deref()
+                                    .map(nofy_mcp::bearer_token_file::bearer_token_file_meta),
+                            ),
                     )
                 })
             }
@@ -611,6 +654,7 @@ mod tests {
                 url: "https://x/mcp".into(),
                 transport_type: Some("http".into()),
                 bearer_token_env_var: Some("TOK".into()),
+                bearer_token_file: None,
                 headers: Some(HashMap::from([("H".into(), "v".into())])),
                 oauth_client_id: Some("id".into()),
                 oauth_client_secret_env_var: Some("SEC".into()),
@@ -718,6 +762,7 @@ mod tests {
                 url: "{{url}}".into(),
                 transport_type: None,
                 bearer_token_env_var: None,
+                bearer_token_file: None,
                 headers: None,
                 oauth_client_id: None,
                 oauth_client_secret_env_var: None,
@@ -776,6 +821,7 @@ mod tests {
                 url: "https://example.com".into(),
                 transport_type: None,
                 bearer_token_env_var: None,
+                bearer_token_file: None,
                 headers: None,
                 oauth_client_id: None,
                 oauth_client_secret_env_var: None,

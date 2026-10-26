@@ -74,6 +74,8 @@ pub(crate) struct TraceTurnPatch {
 /// fresh read, everything else is last-writer-wins on that field alone.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SummaryPatch {
+    pub context_window_selection: Option<Option<std::num::NonZeroU64>>,
+    pub server_context_window: Option<Option<crate::session::persistence::ServerContextWindow>>,
     pub record_activity: bool,
     pub messages: Option<CounterOp>,
     pub chat_messages: Option<CounterOp>,
@@ -118,6 +120,12 @@ impl Summary {
     /// propagate an auto-generated title to remote replicas; every other field
     /// always applies and is not reflected in the return value.
     pub(crate) fn apply_patch(&mut self, patch: &SummaryPatch, now: DateTime<Utc>) -> bool {
+        if let Some(selection) = patch.context_window_selection {
+            self.context_window_selection = selection;
+        }
+        if let Some(cap) = &patch.server_context_window {
+            self.server_context_window.clone_from(cap);
+        }
         if patch.record_activity {
             // Monotonic: a stale concurrent writer can never move it backwards.
             self.last_active_at = Some(
@@ -309,6 +317,74 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
     use tokio::sync::Barrier;
+
+    #[tokio::test]
+    async fn selected_context_window_is_atomically_persisted_and_reset() {
+        let dir = TempDir::new().unwrap();
+        let (adapter, info, _) = new_session(&dir).await;
+        let window = std::num::NonZeroU64::new(256_000).unwrap();
+        let cap = crate::session::persistence::ServerContextWindow {
+            model: "selected-model".into(),
+            window: std::num::NonZeroU64::new(180_000).unwrap(),
+        };
+        adapter
+            .update_current_model_and_context(
+                &info,
+                &acp::ModelId::new("selected-model"),
+                None,
+                None,
+                Some(Some(window)),
+                Some(Some(cap.clone())),
+            )
+            .await
+            .unwrap();
+        let selected = adapter.load_summary(&info).await.unwrap();
+        assert_eq!(selected.current_model_id.0.as_ref(), "selected-model");
+        assert_eq!(selected.context_window_selection, Some(window));
+        assert_eq!(selected.server_context_window, Some(cap));
+        adapter
+            .update_collection_id(&info, "unrelated-update")
+            .await
+            .unwrap();
+        assert_eq!(
+            adapter
+                .load_summary(&info)
+                .await
+                .unwrap()
+                .context_window_selection,
+            Some(window)
+        );
+        adapter
+            .update_current_model_and_context(
+                &info,
+                &acp::ModelId::new("next-model"),
+                None,
+                None,
+                Some(None),
+                Some(None),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            adapter
+                .load_summary(&info)
+                .await
+                .unwrap()
+                .context_window_selection,
+            None
+        );
+        let mut value = serde_json::to_value(selected).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("context_window_selection");
+        assert_eq!(
+            serde_json::from_value::<Summary>(value)
+                .unwrap()
+                .context_window_selection,
+            None
+        );
+    }
 
     fn test_info() -> Info {
         Info {

@@ -187657,6 +187657,84 @@ function OYt({ kinds: e, allowedKinds: t }) {
   let r = new Set(s7(t));
   return n.filter((e) => r.has(e));
 }
+var zzModAll = [`text`, `image`, `video`, `audio`, `pdf`],
+  zzModShown = [`text`, `image`, `video`, `pdf`],
+  zzModLock = Sa(`lock`, [
+    [`rect`, { width: `18`, height: `11`, x: `3`, y: `11`, rx: `2`, ry: `2`, key: `zzlk1` }],
+    [`path`, { d: `M7 11V7a5 5 0 0 1 10 0v4`, key: `zzlk2` }],
+  ]);
+function zzModFilter(e) {
+  let t = new Set(e);
+  return zzModAll.filter((e) => t.has(e));
+}
+function zzModBox({ modality: e, selected: t, locked: n = !1, output: r = !1, onToggle: i }) {
+  let { intl: a } = G();
+  return (0, $.jsxs)(X, {
+    type: `button`,
+    role: `checkbox`,
+    variant: `outline`,
+    size: `lg`,
+    "aria-checked": t,
+    disabled: n,
+    "data-model-input-modality": r ? void 0 : e,
+    "data-model-output-modality": r ? e : void 0,
+    "data-selected": t,
+    className: `gap-2 px-2 disabled:opacity-100`,
+    onClick: i,
+    children: [
+      (0, $.jsx)(`span`, {
+        className: `flex size-4 shrink-0 items-center justify-center`,
+        "data-model-modality-checkbox-container": `true`,
+        children: (0, $.jsx)(`span`, {
+          className: Z(
+            `flex size-3.5 items-center justify-center rounded-sm border border-border bg-input text-transparent transition-colors`,
+            t && `border-primary bg-primary text-primary-foreground`,
+          ),
+          "data-model-modality-checkbox": `true`,
+          children: (0, $.jsx)(M_, { className: `size-3`, "aria-hidden": `true` }),
+        }),
+      }),
+      (0, $.jsx)(`span`, {
+        children: a.formatMessage({ id: `settings.modelProvider.modality.${e}` }),
+      }),
+      n
+        ? (0, $.jsx)(zzModLock, {
+            className: `size-3.5 shrink-0 text-foreground-subtle`,
+            "aria-hidden": `true`,
+          })
+        : null,
+    ],
+  });
+}
+function zzModChips({ value: e, onChange: t }) {
+  let n = new Set(e);
+  return (0, $.jsx)(`div`, {
+    className: `flex flex-wrap gap-2`,
+    children: zzModShown.map((r) => {
+      let i = r === `text`;
+      return (0, $.jsx)(
+        zzModBox,
+        {
+          modality: r,
+          selected: i || n.has(r),
+          locked: i,
+          onToggle: i
+            ? void 0
+            : () => {
+                let n = new Set(e);
+                n.has(r) ? n.delete(r) : n.add(r);
+                n.add(`text`);
+                t(zzModFilter([...n]));
+              },
+        },
+        r,
+      );
+    }),
+  });
+}
+function zzModOut() {
+  return (0, $.jsx)(zzModBox, { modality: `text`, selected: !0, locked: !0, output: !0 });
+}
 function c7(e) {
   return {
     idValue: e.id,
@@ -187664,6 +187742,8 @@ function c7(e) {
     kindsValue: s7(e.kinds),
     contextWindowValue: String(lt(e.id, e.contextWindow)),
     maxOutputTokensValue: e.maxOutputTokens === void 0 ? `` : String(e.maxOutputTokens),
+    inputModalitiesValue: zzModFilter([`text`, ...(e.modalities?.input ?? [])]),
+    modalitiesTouched: !1,
   };
 }
 function kYt(e) {
@@ -187681,9 +187761,10 @@ function AYt({ currentModel: e, draft: t, preferredDefaultKind: n, allowedKinds:
     s = Mn(i) ? lt(i, void 0) : kYt(t.contextWindowValue);
   if (s === null) return { status: `invalid`, field: `contextWindow` };
   let c = t.maxOutputTokensValue.trim() ? kYt(t.maxOutputTokensValue) : void 0;
-  return c === null
-    ? { status: `invalid`, field: `maxOutputTokens` }
-    : {
+  if (c === null) return { status: `invalid`, field: `maxOutputTokens` };
+  let zzM = zzModFilter(t.inputModalitiesValue ?? e.modalities?.input ?? []);
+  return zzM.includes(`text`)
+    ? {
         status: `commit`,
         model: {
           ...e,
@@ -187693,8 +187774,11 @@ function AYt({ currentModel: e, draft: t, preferredDefaultKind: n, allowedKinds:
           defaultKind: o,
           contextWindow: s,
           maxOutputTokens: c,
+          modalities: { input: zzM, output: [`text`] },
+          ...(t.modalitiesTouched === !0 ? { modalitiesConfigured: !0 } : {}),
         },
-      };
+      }
+    : { status: `invalid`, field: `inputModalities` };
 }
 function jYt(e) {
   e.currentTarget.select();
@@ -187810,18 +187894,16 @@ function MYt({
                   }),
                 ],
               }),
-              (0, $.jsxs)(kZ, {
+              (0, $.jsxs)(`div`, {
                 children: [
-                  (0, $.jsxs)(AZ, {
-                    className: `group flex w-full items-center gap-2 rounded-md py-1 text-left text-ui-base font-medium text-foreground-subtle outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand/40 disabled:pointer-events-none disabled:opacity-50`,
+                  (0, $.jsxs)(`div`, {
+                    className: `mb-1 flex items-center gap-2`,
                     children: [
-                      (0, $.jsx)(wa, {
-                        className: `size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-90`,
-                        "aria-hidden": `true`,
-                      }),
-                      (0, $.jsx)(`span`, {
-                        className: `min-w-0 flex-1`,
-                        children: c.formatMessage({ id: `settings.modelProvider.advanced` }),
+                      (0, $.jsx)(`label`, {
+                        className: `block text-ui-base text-foreground-subtle`,
+                        children: c.formatMessage({
+                          id: `settings.modelProvider.maxOutputTokens`,
+                        }),
                       }),
                       h
                         ? (0, $.jsxs)(`span`, {
@@ -187841,38 +187923,50 @@ function MYt({
                         : null,
                     ],
                   }),
-                  (0, $.jsx)(jZ, {
-                    children: (0, $.jsxs)(`div`, {
-                      className: `pt-3`,
-                      children: [
-                        (0, $.jsx)(`label`, {
-                          className: `mb-1 block text-ui-base text-foreground-subtle`,
-                          children: c.formatMessage({
-                            id: `settings.modelProvider.maxOutputTokens`,
-                          }),
-                        }),
-                        (0, $.jsx)(P, {
-                          type: `text`,
-                          inputMode: `numeric`,
-                          pattern: `[0-9]*`,
-                          size: `lg`,
-                          value: n.maxOutputTokensValue,
-                          disabled: g,
-                          "aria-label": c.formatMessage({
-                            id: `settings.modelProvider.maxOutputTokens`,
-                          }),
-                          "aria-busy": h,
-                          onChange: (e) => {
-                            a({ maxOutputTokensValue: e.target.value });
-                          },
-                          onFocus: jYt,
-                          onKeyDown: (e) => {
-                            e.key === `Enter` && (e.preventDefault(), o());
-                          },
-                        }),
-                      ],
+                  (0, $.jsx)(P, {
+                    type: `text`,
+                    inputMode: `numeric`,
+                    pattern: `[0-9]*`,
+                    size: `lg`,
+                    value: n.maxOutputTokensValue,
+                    disabled: g,
+                    "aria-label": c.formatMessage({
+                      id: `settings.modelProvider.maxOutputTokens`,
+                    }),
+                    "aria-busy": h,
+                    onChange: (e) => {
+                      a({ maxOutputTokensValue: e.target.value });
+                    },
+                    onFocus: jYt,
+                    onKeyDown: (e) => {
+                      e.key === `Enter` && (e.preventDefault(), o());
+                    },
+                  }),
+                ],
+              }),
+              (0, $.jsxs)(`div`, {
+                children: [
+                  (0, $.jsx)(`label`, {
+                    className: `mb-1 block text-ui-base text-foreground-subtle`,
+                    children: c.formatMessage({
+                      id: `settings.modelProvider.inputModalities`,
                     }),
                   }),
+                  (0, $.jsx)(zzModChips, {
+                    value: n.inputModalitiesValue ?? [`text`],
+                    onChange: (e) => a({ inputModalitiesValue: e, modalitiesTouched: !0 }),
+                  }),
+                ],
+              }),
+              (0, $.jsxs)(`div`, {
+                children: [
+                  (0, $.jsx)(`label`, {
+                    className: `mb-1 block text-ui-base text-foreground-subtle`,
+                    children: c.formatMessage({
+                      id: `settings.modelProvider.outputModalities`,
+                    }),
+                  }),
+                  (0, $.jsx)(zzModOut, {}),
                 ],
               }),
               r
@@ -187917,6 +188011,21 @@ function PYt({ apiKey: e, onOpenApiKey: t }) {
         }),
       })
     : null;
+}
+var zzVisionCls = `pointer-events-none inline-flex shrink-0 items-center rounded-full border border-border bg-surface px-1 py-px text-ui-xs font-medium leading-normal text-foreground-subtle`;
+function zzHasVision(e) {
+  return (e ?? []).some((e) => e !== `text`);
+}
+function zzVisionBadge({ className: e } = {}) {
+  let { intl: t } = G(),
+    n = t.formatMessage({ id: `model.capability.vision` });
+  return (0, $.jsx)(`span`, {
+    className: Z(zzVisionCls, e),
+    "data-model-input-capability": `vision`,
+    "aria-label": n,
+    title: n,
+    children: n,
+  });
 }
 function FYt({
   model: e,
@@ -188015,7 +188124,10 @@ function FYt({
                 type: `text`,
                 "data-testid": n,
                 size: `lg`,
-                className: `min-w-0 rounded-md pr-20 font-mono`,
+                className: Z(
+                  `min-w-0 rounded-md font-mono`,
+                  zzHasVision(e.modalities?.input) ? `pr-36` : `pr-20`,
+                ),
                 value: p.idValue,
                 placeholder: d.formatMessage({ id: `settings.modelProvider.modelId` }),
                 readOnly: u,
@@ -188027,11 +188139,17 @@ function FYt({
                   !u && e.key === `Enter` && e.target.blur();
                 },
               }),
-              (0, $.jsx)(`span`, {
-                className: `pointer-events-none absolute right-2 top-1/2 inline-flex h-5 max-w-20 -translate-y-1/2 items-center truncate rounded-md border border-border bg-surface px-1.5 font-mono text-ui-sm text-foreground-subtle`,
-                "aria-label": z,
-                title: z,
-                children: R,
+              (0, $.jsxs)(`span`, {
+                className: `pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1`,
+                children: [
+                  zzHasVision(e.modalities?.input) ? (0, $.jsx)(zzVisionBadge, {}) : null,
+                  (0, $.jsx)(`span`, {
+                    className: `inline-flex h-5 max-w-20 items-center truncate rounded-md border border-border bg-surface px-1.5 font-mono text-ui-sm text-foreground-subtle`,
+                    "aria-label": z,
+                    title: z,
+                    children: R,
+                  }),
+                ],
               }),
             ],
           }),

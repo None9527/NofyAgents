@@ -64,8 +64,9 @@ export type TurnUsage = {
  * 本轮因此得到 2 个 agent 块（工具调用前 7 个 chunk、后 7 个 chunk），
  * 中间夹一个 tool-call 块——正是「文本 → 工具 → 文本」的正确脊柱。
  */
+export type ToolEditPreview = { path:string; oldText:string|null; newText:string };
 export type Block =
-  | { kind: "user-message"; id: string; text: string; promptIndex: number | null; modelId: string | null }
+  | { kind: "user-message"; id: string; text: string; promptIndex: number | null; modelId: string | null; source?: { path: string; name: string }; hidden?: boolean }
   | { kind: "agent-message"; id: string; text: string; closed: boolean; usage: SegmentUsage | null }
   | { kind: "agent-thought"; id: string; text: string; closed: boolean }
   | {
@@ -90,6 +91,8 @@ export type Block =
       resultText: string | null;
       /** tool_call_update.rawOutput（task 轮询完成帧的 TaskOutput.Result 在这里，实测 2026-09-11） */
       rawOutput: unknown;
+      /** Structured ACP diff content; retained when later status/output updates omit it. */
+      editPreviews?: ToolEditPreview[];
       /** pending_interaction / interaction_resolved 以 tool_call_id 关联 */
       interactionPending: boolean;
       interactionKind: string | null;
@@ -137,15 +140,18 @@ export type SessionState = {
   agentState: AgentState;
   /** 当前开着的 agent-message 块 id；response_completed 关闭它。 */
   openAgentBlockId: string | null;
+  /** Kernel response identity; independent of user-turn completion. */
+  agentStreamStartMs?: number;
   currentPromptId: string | null;
   turnUsage: TurnUsage | null;
   stopReason: string | null;
   /**
-   * 去重高水位。实测 eventId 形如 \`<sessionId>-<n>\`，故取尾部序号。
+   * 诊断高水位。回放不是递增顺序，去重必须使用 seenEventSeqs 精确判定。
    * **只对带 eventId 的事件生效**（陷阱 T10）：不带的事件（session_info_update、
    * model_changed、queue/roster/mcp…）套去重会被永久丢弃。
    */
   lastEventSeq: number;
+  seenEventSeqs: ReadonlyArray<readonly [number, number]>;
   /**
    * tool_index → toolCallId 映射。
    *
@@ -168,6 +174,18 @@ export type SessionState = {
    * 右上 / composer 后台胶囊靠它消失（agentModel.agentView 的 finished 参）。
    */
   subagentFinished: Record<string, SubagentFinishedInfo>;
+  /**
+   * 后台 bash / monitor。键是 task_id。
+   * 完成帧先到时记 tombstone：后到的 task_backgrounded 只补命令、描述和输出文件，不把行翻回 running。
+   * restoredFromReplay 为真时不得点亮「正在监视」；willWake 只存，不表示仍在监视。
+   */
+  backgroundTasks: Record<string, BackgroundTask>;
+  /** 定时循环。scheduler/delete 与 scheduled_task_deleted 把 deleted 置真；没有创建表单。 */
+  scheduledTasks: Record<string, ScheduledTask>;
+  /** subagent_spawned / subagent_progress / list_running。数字只在进度帧或清单给过之后才有。 */
+  subagentProgress: Record<string, SubagentProgress>;
+  /** subagent/cancel 的 kind。不把 cancelled:false 写成子智能体已结束。 */
+  subagentCancel: Record<string, SubagentCancelOutcome>;
 };
 
 /**
@@ -198,6 +216,8 @@ export type RosterEntry = {
 };
 
 export type ConnectionState = {
+  /** Scopes server request identities across transports, even if two updates share one UI frame. */
+  transportEpoch: number;
   status: "idle" | "connecting" | "ready" | "reconnecting" | "closed";
   agentVersion: string | null;
   /** initialize._meta.modelState；实测 {currentModelId, availableModels[4]}。 */
@@ -275,18 +295,24 @@ export function emptySession(id: string): SessionState {
     turnUsage: null,
     stopReason: null,
     lastEventSeq: 0,
+    seenEventSeqs: [],
     toolIndexToId: {},
     availableCommands: [],
     availableTools: [],
     queueEntries: [],
     turns: [],
     subagentFinished: {},
+    backgroundTasks: {},
+    scheduledTasks: {},
+    subagentProgress: {},
+    subagentCancel: {},
   };
 }
 
 export function initialState(): AppState {
   return {
     connection: {
+      transportEpoch: 0,
       status: "idle",
       agentVersion: null,
       modelState: null,
@@ -307,7 +333,11 @@ export function initialState(): AppState {
   };
 }
 /** 一个回合的本地墙钟区间（「已工作 Ns」turn 头用；内核帧无时间戳，纯本地计时）。 */
-export type TurnRecord = { startedAt: number; endedAt: number | null };
+export type TurnFeedback = {
+  kind: "retrying" | "failed"; message: string; at: number;
+  attempt?: number; maxRetries?: number; errorType?: string;
+};
+export type TurnRecord = { startedAt: number; endedAt: number | null; feedback?: TurnFeedback };
 
 /**
  * SessionUpdate::SubagentFinished（extensions/notification.rs）的桌面侧投影。
@@ -319,3 +349,70 @@ export type SubagentFinishedInfo = {
   durationMs: number | null;
   output: string | null;
 };
+
+/** 与 TUI BgTaskStatus 对齐：exit 0，或既无 exit 也无 signal，才是 completed。 */
+export type BackgroundTaskStatus = "running" | "completed" | "failed";
+
+export type BackgroundTask = {
+  taskId: string;
+  toolCallId: string | null;
+  command: string;
+  displayCommand: string | null;
+  description: string | null;
+  cwd: string | null;
+  outputFile: string | null;
+  isMonitor: boolean;
+  status: BackgroundTaskStatus;
+  /** serde SystemTime 的 unix 毫秒。快照没给或形状不符时为 null，不拿本地现在冒充。 */
+  startTimeMs: number | null;
+  endTimeMs: number | null;
+  exitCode: number | null;
+  signal: string | null;
+  output: string;
+  outputLineCount: number;
+  truncated: boolean;
+  outputTotalBytes: number | null;
+  willWake: boolean;
+  restoredFromReplay: boolean;
+  tombstone: boolean;
+  pendingKill: boolean;
+  /** 本地墙钟。10 秒后允许再发 kill；到点前行仍保持 pending。 */
+  killRequestedAtMs: number | null;
+  /** KillOutcome 原文：killed / already_exited / not_found。未回之前为 null。 */
+  killOutcome: string | null;
+};
+
+export type ScheduledTask = {
+  taskId: string;
+  prompt: string;
+  humanSchedule: string;
+  nextFireAt: string | null;
+  lastSubagentId: string | null;
+  deleted: boolean;
+  restoredFromReplay: boolean;
+};
+
+export type SubagentProgress = {
+  subagentId: string;
+  parentSessionId: string | null;
+  childSessionId: string | null;
+  subagentType: string | null;
+  description: string | null;
+  startedAtEpochMs: number | null;
+  durationMs: number | null;
+  turnCount: number | null;
+  toolCallCount: number | null;
+  tokensUsed: number | null;
+  contextWindowTokens: number | null;
+  contextUsagePct: number | null;
+  toolsUsed: string[];
+  errorCount: number | null;
+  restoredFromReplay: boolean;
+};
+
+/** nofy-shell SubagentCancelOutcomeDto，kind 为 snake_case。 */
+export type SubagentCancelOutcome =
+  | { kind: "cancelled" }
+  | { kind: "already_finished"; status: string }
+  | { kind: "not_found" }
+  | { kind: "unknown" };

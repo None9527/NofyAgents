@@ -54,6 +54,7 @@ fn str_arg<'a>(args: &'a serde_json::Value, keys: &[&str]) -> Option<&'a str> {
 ///
 /// `target_directory` is deliberately omitted — a directory listing isn't an
 /// edit and must not bucket into a file lock.
+#[cfg(test)]
 pub(super) fn lock_path_for_args(args: &serde_json::Value) -> Option<&str> {
     str_arg(args, &["file_path", "path", "target_file"])
 }
@@ -205,6 +206,7 @@ impl SessionActor {
         let tool_input = ToolInput::Bash(BashToolInput {
             command: command.clone(),
             timeout: None,
+            block_until_ms: None,
             description: title_command.clone().into_owned(),
             is_background: false,
         });

@@ -1074,6 +1074,12 @@ impl AgentView {
                 return false;
             }
             if let Some(mut ev) = self.elicitation_view.take() {
+                if !ev.is_url_waiting() {
+                    self.push_unanswered_elicitation_notice(
+                        &ev.server_name,
+                        "closed before it was answered here (timed out or answered elsewhere)",
+                    );
+                }
                 let _ = ev.take_response_tx();
                 self.restore_elicitation_prompt(ev.stashed_prompt);
             }
@@ -1084,7 +1090,11 @@ impl AgentView {
             .as_ref()
             .is_some_and(|(req, _)| req.tool_call_id == tool_call_id)
         {
-            if let Some((_, tx)) = self.pending_elicitation.take() {
+            if let Some((req, tx)) = self.pending_elicitation.take() {
+                self.push_unanswered_elicitation_notice(
+                    &req.server_name,
+                    "closed before it was answered here (timed out or answered elsewhere)",
+                );
                 drop(tx);
             }
             return true;

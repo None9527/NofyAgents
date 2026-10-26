@@ -245,8 +245,10 @@ pub fn update_from_marketplace_entry_transactional(
         .into_iter()
         .find_map(|(key, repo)| {
             repo.marketplace.as_ref().and_then(|mp| {
-                if mp.source_url_or_path == provenance.source_url_or_path
-                    && mp.plugin_subdir == provenance.plugin_subdir
+                if nofy_agent::plugins::source_identity::is_same_source_identity(
+                    &mp.source_url_or_path,
+                    &provenance.source_url_or_path,
+                ) && mp.plugin_subdir == provenance.plugin_subdir
                 {
                     Some((key.to_string(), repo.clone()))
                 } else {
@@ -447,7 +449,10 @@ pub fn find_installed_marketplace_plugin(
 ) -> Option<(String, String)> {
     for (key, repo) in registry.list() {
         if let Some(ref mp) = repo.marketplace
-            && mp.source_url_or_path == source_url_or_path
+            && nofy_agent::plugins::source_identity::is_same_source_identity(
+                &mp.source_url_or_path,
+                source_url_or_path,
+            )
             && mp.plugin_subdir == plugin_subdir
         {
             let version = repo
@@ -1088,6 +1093,55 @@ mod tests {
             git_install::update_repo("repo", &repo, true),
             Ok(git_install::UpdateStatus::Pinned { ref_name }) if ref_name == sha
         ));
+    }
+
+    #[test]
+    fn marketplace_lookup_and_update_match_normalized_remote_source() {
+        with_test_registry(|registry| {
+            let marketplace = tempfile::tempdir().unwrap();
+            write_plugin(marketplace.path(), "demo", "1.0.0", "old");
+            let repo_key = install_test_plugin(registry, marketplace.path(), "demo");
+            registry
+                .get_repo_mut(&repo_key)
+                .unwrap()
+                .marketplace
+                .as_mut()
+                .unwrap()
+                .source_url_or_path = "HTTPS://EXAMPLE.COM/Org/market.git".into();
+            let source = "https://example.com/Org/market";
+            assert_eq!(
+                find_installed_marketplace_plugin(registry, source, "plugins/demo")
+                    .unwrap()
+                    .0,
+                repo_key
+            );
+            assert!(
+                find_installed_marketplace_plugin(
+                    registry,
+                    "https://example.com/org/market",
+                    "plugins/demo"
+                )
+                .is_none()
+            );
+            write_plugin(marketplace.path(), "demo", "2.0.0", "new");
+            let entry = crate::scan_marketplace(marketplace.path())
+                .entries
+                .into_iter()
+                .find(|entry| entry.relative_path == "plugins/demo")
+                .unwrap();
+            let mut updated_provenance = provenance(marketplace.path(), "plugins/demo");
+            updated_provenance.source_url_or_path = source.into();
+            let result = update_from_marketplace_entry_transactional(
+                marketplace.path(),
+                &entry,
+                updated_provenance,
+                registry,
+                false,
+            )
+            .unwrap();
+            assert_eq!(result.repo_key, repo_key);
+            assert_eq!(result.new_version.as_deref(), Some("2.0.0"));
+        });
     }
 
     #[test]

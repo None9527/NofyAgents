@@ -2819,6 +2819,7 @@ pub(crate) fn resolve_model_list(
             let donor = resolved.get(key);
             if let Some(donor) = donor {
                 if entry.info.context_window.get() == default_cw
+                    && entry.info.context_windows.is_empty()
                     && donor.info.context_window.get() != default_cw
                 {
                     tracing::debug!(
@@ -2830,6 +2831,10 @@ pub(crate) fn resolve_model_list(
                         "prefetched model missing context_window, inheriting from hardcoded default"
                     );
                     entry.info.context_window = donor.info.context_window;
+                    entry
+                        .info
+                        .context_windows
+                        .clone_from(&donor.info.context_windows);
                 }
                 if entry.info.agent_type == DEFAULT_AGENT_TYPE {
                     entry.info.agent_type.clone_from(&donor.info.agent_type);
@@ -2929,17 +2934,25 @@ pub(crate) fn resolve_model_list(
     }
     {
         let default_cw = DEFAULT_CONTEXT_WINDOW;
-        let donors: std::collections::HashMap<String, (std::num::NonZeroU64, ApiBackend)> =
-            resolved
-                .values()
-                .filter(|e| e.info.context_window.get() != default_cw)
-                .map(|e| {
+        let donors: std::collections::HashMap<
+            String,
+            (std::num::NonZeroU64, Vec<NonZeroU64>, ApiBackend),
+        > = resolved
+            .values()
+            .filter(|e| {
+                e.info.context_window.get() != default_cw || !e.info.context_windows.is_empty()
+            })
+            .map(|e| {
+                (
+                    e.info.model.clone(),
                     (
-                        e.info.model.clone(),
-                        (e.info.context_window, e.info.api_backend.clone()),
-                    )
-                })
-                .collect();
+                        e.info.context_window,
+                        e.info.context_windows.clone(),
+                        e.info.api_backend.clone(),
+                    ),
+                )
+            })
+            .collect();
         let mut effort_menu_donors: std::collections::HashMap<String, Vec<ReasoningEffortOption>> =
             std::collections::HashMap::new();
         for (key, entry) in &resolved {
@@ -2958,8 +2971,10 @@ pub(crate) fn resolve_model_list(
             }
         }
         for (key, entry) in resolved.iter_mut() {
-            if let Some((donor_cw, donor_backend)) = donors.get(&entry.info.model) {
-                if entry.info.context_window.get() == default_cw {
+            if let Some((donor_cw, donor_choices, donor_backend)) = donors.get(&entry.info.model) {
+                if entry.info.context_window.get() == default_cw
+                    && entry.info.context_windows.is_empty()
+                {
                     tracing::debug!(
                         model = %entry.info.model,
                         from = default_cw,
@@ -2967,6 +2982,7 @@ pub(crate) fn resolve_model_list(
                         "slug-match: inheriting context_window from sibling catalog entry"
                     );
                     entry.info.context_window = *donor_cw;
+                    entry.info.context_windows.clone_from(donor_choices);
                 }
                 if entry.info.api_backend == ApiBackend::default()
                     && *donor_backend != ApiBackend::default()
@@ -3110,7 +3126,9 @@ struct DefaultModelJson {
     model: String,
     name: Option<String>,
     description: Option<String>,
+    notice: Option<nofy_sampling_types::ModelNotice>,
     context_window: Option<NonZeroU64>,
+    context_windows: Option<Vec<NonZeroU64>>,
     max_request_bytes: Option<NonZeroU64>,
     temperature: Option<f32>,
     top_p: Option<f32>,
@@ -3141,6 +3159,60 @@ struct DefaultModelJson {
     #[serde(default)]
     system_prompt_label: Option<String>,
 }
+
+#[cfg(test)]
+mod context_window_catalog_tests {
+    use super::*;
+    fn window(value: u64) -> NonZeroU64 {
+        NonZeroU64::new(value).unwrap()
+    }
+    #[test]
+    fn scalar_and_menu_default_contract_is_backward_compatible() {
+        assert_eq!(
+            context_window_choices(Some(window(200_000)), &[]),
+            Some((window(200_000), vec![]))
+        );
+        assert_eq!(
+            context_window_choices(None, &[window(256_000), window(1_000_000), window(256_000)]),
+            Some((window(256_000), vec![window(256_000), window(1_000_000)]))
+        );
+        assert_eq!(
+            context_window_choices(Some(window(128_000)), &[window(256_000)]),
+            Some((window(128_000), vec![window(128_000), window(256_000)]))
+        );
+        assert!(context_window_choices(None, &[]).is_none());
+    }
+    #[test]
+    fn config_window_menu_and_notice_reach_the_acp_catalog() {
+        let raw: toml::Value = toml::from_str(
+            r#"
+            [model.custom]
+            model = "custom-model"
+            base_url = "https://example.com/v1"
+            context_windows = [256000, 1000000, 256000]
+            notice = { severity = "warning", text = " Deprecated ", label = " legacy " }
+        "#,
+        )
+        .unwrap();
+        let cfg = Config::new_from_toml_cfg(&raw).unwrap();
+        let models = resolve_model_list(&cfg, None);
+        let model = models.get("custom").unwrap();
+        assert_eq!(model.info.context_window.get(), 256_000);
+        assert_eq!(
+            model.info.context_windows,
+            vec![window(256_000), window(1_000_000)]
+        );
+        let acp = to_acp_model_info(&models);
+        let meta = acp
+            .get(&acp::ModelId::new("custom"))
+            .unwrap()
+            .meta
+            .as_ref()
+            .unwrap();
+        assert_eq!(meta["contextWindows"], serde_json::json!([256000, 1000000]));
+        assert_eq!(meta["notice"]["text"], "Deprecated");
+    }
+}
 fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryConfig> {
     let root: serde_json::Value = serde_json::from_str(crate::models::DEFAULT_MODELS_JSON)
         .expect("default_models.json: invalid JSON");
@@ -3163,9 +3235,16 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 m.id
             );
             let key = m.id.clone().unwrap_or_else(|| m.model.clone());
-            let context_window = m
-                .context_window
-                .unwrap_or_else(|| NonZeroU64::new(200_000).expect("200000 is non-zero"));
+            let (context_window, context_windows) = context_window_choices(
+                m.context_window,
+                m.context_windows.as_deref().unwrap_or_default(),
+            )
+            .unwrap_or_else(|| {
+                (
+                    NonZeroU64::new(200_000).expect("200000 is non-zero"),
+                    Vec::new(),
+                )
+            });
             let config = ModelEntryConfig {
                 id: m.id,
                 model: m.model,
@@ -3173,7 +3252,11 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 api_base_url: Some(endpoints.xai_api_base_url.clone()),
                 name: m.name,
                 description: m.description,
+                notice: m
+                    .notice
+                    .and_then(nofy_sampling_types::ModelNotice::normalized),
                 context_window,
+                context_windows,
                 max_request_bytes: m.max_request_bytes,
                 auto_compact_threshold_percent: m.auto_compact_threshold_percent,
                 system_prompt_label: m.system_prompt_label,
@@ -3222,6 +3305,8 @@ pub struct ModelEntryConfig {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notice: Option<nofy_sampling_types::ModelNotice>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_completion_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -3263,6 +3348,8 @@ pub struct ModelEntryConfig {
     /// Used for auto-compact threshold calculations.
     /// Required — BYOK users must explicitly set this in config.toml.
     pub context_window: NonZeroU64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_windows: Vec<NonZeroU64>,
     /// Provider HTTP request-body cap; unset uses the protocol default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_request_bytes: Option<NonZeroU64>,
@@ -3378,6 +3465,7 @@ pub struct ConfigModelOverride {
     pub mtls_cert_dir: Option<PathBuf>,
     pub name: Option<String>,
     pub description: Option<String>,
+    pub notice: Option<nofy_sampling_types::ModelNotice>,
     pub api_key: Option<String>,
     /// Env var name(s) for the provider key — string or array in config.toml.
     pub env_key: Option<EnvKeys>,
@@ -3398,6 +3486,7 @@ pub struct ConfigModelOverride {
     #[serde(default)]
     pub env_http_headers: IndexMap<String, String>,
     pub context_window: Option<u64>,
+    pub context_windows: Option<Vec<NonZeroU64>>,
     pub max_request_bytes: Option<NonZeroU64>,
     /// Per-model auto-compact threshold override (0-100) from `[model.<id>]`.
     /// Read directly by `resolve_auto_compact_threshold_percent`; intentionally
@@ -3481,14 +3570,23 @@ impl ConfigModelOverride {
         if !self.extra_headers.is_empty() {
             entry.info.extra_headers = self.extra_headers.clone();
         }
+        if let Some(notice) = &self.notice {
+            entry.info.notice = notice.clone().normalized();
+        }
         if !self.query_params.is_empty() {
             entry.info.query_params = self.query_params.clone();
         }
         if !self.env_http_headers.is_empty() {
             entry.info.env_http_headers = self.env_http_headers.clone();
         }
-        if let Some(cw) = self.context_window.and_then(NonZeroU64::new) {
-            entry.info.context_window = cw;
+        if self.context_window.is_some() || self.context_windows.is_some() {
+            if let Some((default, choices)) = context_window_choices(
+                self.context_window.and_then(NonZeroU64::new),
+                self.context_windows.as_deref().unwrap_or_default(),
+            ) {
+                entry.info.context_window = default;
+                entry.info.context_windows = choices;
+            }
         }
         if self.max_request_bytes.is_some() {
             entry.info.max_request_bytes = self.max_request_bytes;
@@ -3600,6 +3698,8 @@ pub struct ModelInfo {
     /// to users in either consumer.
     pub name: Option<String>,
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notice: Option<nofy_sampling_types::ModelNotice>,
     pub max_completion_tokens: Option<u32>,
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
@@ -3611,6 +3711,8 @@ pub struct ModelInfo {
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub env_http_headers: IndexMap<String, String>,
     pub context_window: NonZeroU64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_windows: Vec<NonZeroU64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_request_bytes: Option<NonZeroU64>,
     /// Per-model auto-compact threshold (0-100). `None` defers to the
@@ -3678,6 +3780,16 @@ pub struct ModelInfo {
     pub laziness_detector: LazinessDetectorPerModelConfig,
 }
 impl ModelInfo {
+    /// The scalar default and menu form one deduplicated selection contract.
+    pub(crate) fn supported_context_windows(&self) -> Vec<NonZeroU64> {
+        let (_, choices) = context_window_choices(Some(self.context_window), &self.context_windows)
+            .expect("model default is non-zero");
+        if choices.is_empty() {
+            vec![self.context_window]
+        } else {
+            choices
+        }
+    }
     /// Minimal fallback descriptor for an unknown model slug.
     /// Used when a configured model ID isn't found in presets or remote models.
     pub fn fallback(slug: &str) -> Self {
@@ -3688,6 +3800,7 @@ impl ModelInfo {
             base_url: String::new(),
             name: None,
             description: None,
+            notice: None,
             max_completion_tokens: None,
             temperature: None,
             top_p: None,
@@ -3697,6 +3810,7 @@ impl ModelInfo {
             query_params: IndexMap::new(),
             env_http_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
+            context_windows: Vec::new(),
             max_request_bytes: None,
             auto_compact_threshold_percent: None,
             system_prompt_label: None,
@@ -3730,6 +3844,10 @@ impl ModelInfo {
             base_url: entry.base_url.clone(),
             name: entry.name.clone(),
             description: entry.description.clone(),
+            notice: entry
+                .notice
+                .clone()
+                .and_then(nofy_sampling_types::ModelNotice::normalized),
             max_completion_tokens: entry.max_completion_tokens,
             temperature: entry.temperature,
             top_p: entry.top_p,
@@ -3739,6 +3857,7 @@ impl ModelInfo {
             query_params: IndexMap::new(),
             env_http_headers: IndexMap::new(),
             context_window: entry.context_window,
+            context_windows: entry.context_windows.clone(),
             max_request_bytes: entry.max_request_bytes,
             auto_compact_threshold_percent: entry.auto_compact_threshold_percent,
             system_prompt_label: entry.system_prompt_label.clone(),
@@ -3824,6 +3943,23 @@ impl ModelInfo {
     pub(crate) fn visible_for_auth(&self, is_session_auth: bool) -> bool {
         !self.hidden && (is_session_auth || self.supported_in_api)
     }
+}
+/// A legacy scalar remains valid; a menu-only model defaults to its first entry.
+pub(crate) fn context_window_choices(
+    default: Option<NonZeroU64>,
+    listed: &[NonZeroU64],
+) -> Option<(NonZeroU64, Vec<NonZeroU64>)> {
+    let default = default.or_else(|| listed.first().copied())?;
+    if listed.is_empty() {
+        return Some((default, Vec::new()));
+    }
+    let mut choices = listed.to_vec();
+    if !choices.contains(&default) {
+        choices.insert(0, default);
+    }
+    let mut seen = std::collections::HashSet::new();
+    choices.retain(|value| seen.insert(*value));
+    Some((default, choices))
 }
 /// Flat struct so credential and endpoint fields coexist after deep-merge.
 /// Routing reads fields, not provenance.
@@ -4469,6 +4605,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 base_url: endpoints.resolve_inference_base_url(),
                 name: None,
                 description: None,
+                notice: None,
                 max_completion_tokens: None,
                 temperature: None,
                 top_p: None,
@@ -4478,6 +4615,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 query_params: IndexMap::new(),
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(200_000).unwrap(),
+                context_windows: Vec::new(),
                 max_request_bytes: None,
                 auto_compact_threshold_percent: None,
                 system_prompt_label: None,
@@ -4734,6 +4872,19 @@ pub(crate) fn to_acp_model_info(
                     "agentType".to_string(),
                     serde_json::Value::String(info.agent_type.clone()),
                 );
+                if !info.context_windows.is_empty() {
+                    map.insert(
+                        "contextWindows".into(),
+                        serde_json::json!(info.context_windows),
+                    );
+                }
+                if let Some(notice) = info
+                    .notice
+                    .clone()
+                    .and_then(nofy_sampling_types::ModelNotice::normalized)
+                {
+                    map.insert("notice".into(), serde_json::json!(notice));
+                }
                 if !info.input_modalities.is_empty() {
                     map.insert(
                         "inputModalities".to_string(),
@@ -5729,6 +5880,7 @@ reasoning_effort = "low"
                 base_url: base_url.to_string(),
                 name: None,
                 description: None,
+                notice: None,
                 max_completion_tokens: None,
                 temperature: None,
                 top_p: None,
@@ -5738,6 +5890,7 @@ reasoning_effort = "low"
                 query_params: IndexMap::new(),
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(200_000).unwrap(),
+                context_windows: Vec::new(),
                 auto_compact_threshold_percent: None,
                 max_request_bytes: None,
                 system_prompt_label: None,
@@ -6861,6 +7014,7 @@ reasoning_effort = "low"
             base_url: "https://test.api/v1".to_string(),
             name: None,
             description: None,
+            notice: None,
             max_completion_tokens: None,
             temperature: None,
             top_p: None,
@@ -6871,6 +7025,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            context_windows: Vec::new(),
             max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
@@ -7023,6 +7178,7 @@ reasoning_effort = "low"
             base_url: "https://test.api/v1".to_string(),
             name: None,
             description: None,
+            notice: None,
             max_completion_tokens: None,
             temperature: None,
             top_p: None,
@@ -7033,6 +7189,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            context_windows: Vec::new(),
             max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
@@ -7477,6 +7634,7 @@ reasoning_effort = "low"
             base_url: "https://test.api/v1".to_string(),
             name: None,
             description: None,
+            notice: None,
             max_completion_tokens: None,
             temperature: None,
             top_p: None,
@@ -7487,6 +7645,7 @@ reasoning_effort = "low"
             extra_headers: IndexMap::new(),
             context_window: NonZeroU64::new(200_000).unwrap(),
             auto_compact_threshold_percent: None,
+            context_windows: Vec::new(),
             max_request_bytes: None,
             system_prompt_label: None,
             api_base_url: None,
@@ -10606,6 +10765,7 @@ default = "grok-4.5"
                 base_url: "https://test.example.com/v1".to_owned(),
                 name: Some(slug.to_owned()),
                 description: None,
+                notice: None,
                 max_completion_tokens: None,
                 temperature: None,
                 top_p: None,
@@ -10615,6 +10775,7 @@ default = "grok-4.5"
                 query_params: IndexMap::new(),
                 env_http_headers: IndexMap::new(),
                 context_window: NonZeroU64::new(context_window).unwrap(),
+                context_windows: Vec::new(),
                 max_request_bytes: None,
                 use_concise: false,
                 agent_type: default_agent_type(),

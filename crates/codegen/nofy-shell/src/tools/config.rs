@@ -30,6 +30,10 @@ pub struct BashToolConfig {
     /// (milliseconds). `None` → server default 15s; `Some(0)` → no short budget
     /// (auto-bg only at model/default timeout).
     pub foreground_block_budget_ms: Option<u64>,
+    /// Current contract foreground wait; None uses 30 seconds.
+    pub default_block_until_ms: Option<u64>,
+    /// Optional ceiling for positive waits; 0 still starts immediately in background.
+    pub max_block_until_ms: Option<u64>,
     /// Whether to allow a background `&` operator in foreground commands
     /// (default: `true`). Resolution: config.toml (this) > `true`.
     pub allow_background_operator: Option<bool>,
@@ -60,6 +64,12 @@ impl BashToolConfig {
         map.insert("auto_background_on_timeout".into(), auto_bg.into());
         if let Some(ms) = self.foreground_block_budget_ms {
             map.insert("foreground_block_budget_ms".into(), ms.into());
+        }
+        if let Some(ms) = self.default_block_until_ms {
+            map.insert("default_block_until_ms".into(), ms.into());
+        }
+        if let Some(ms) = self.max_block_until_ms {
+            map.insert("max_block_until_ms".into(), ms.into());
         }
         let allow_bg_op = self.allow_background_operator.unwrap_or(true);
         map.insert("allow_background_operator".into(), allow_bg_op.into());

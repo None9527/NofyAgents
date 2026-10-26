@@ -2424,7 +2424,7 @@ impl AgentView {
         }
         if self.auto_flag_visible(effective_plan) {
             mode_flags_vec.push(PromptFlag {
-                text: "auto",
+                text: "auto-review",
                 color: Some(theme.accent_system),
                 bold: false,
             });

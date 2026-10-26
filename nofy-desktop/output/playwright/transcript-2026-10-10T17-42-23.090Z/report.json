@@ -1,0 +1,24 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T17:42:23.091Z",
+  "cases": [
+    {
+      "name": "T01 streaming thought chunks form one readable group",
+      "status": "passed",
+      "durationMs": 1790
+    },
+    {
+      "name": "T02 find stays outside transcript, supports shortcut, navigation and Escape",
+      "status": "passed",
+      "durationMs": 61
+    },
+    {
+      "name": "T03 transcript tools fit dark/light and narrow layouts",
+      "status": "passed",
+      "durationMs": 747
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/transcript-2026-10-10T17-42-23.090Z",
+  "finishedAt": "2026-10-10T17:42:26.374Z"
+}

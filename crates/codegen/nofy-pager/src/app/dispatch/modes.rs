@@ -483,7 +483,9 @@ pub(super) fn permission_mode_toast(kind: crate::app::actions::PermissionModeKin
     use crate::app::actions::PermissionModeKind;
     match kind {
         PermissionModeKind::AlwaysApprove => yolo_toast(true),
-        PermissionModeKind::Auto => "\u{2713} Permission mode: Auto (classifier)".to_string(),
+        PermissionModeKind::Auto => {
+            "\u{2713} Permission mode: Auto-review (classifier)".to_string()
+        }
         PermissionModeKind::Ask => "\u{2713} Permission mode: Ask".to_string(),
         PermissionModeKind::Default => "\u{2713} Permission mode: Default".to_string(),
     }
@@ -679,7 +681,7 @@ fn dispatch_cycle_mode_inner(app: &mut AppView) -> Vec<Effect> {
                     agent.session.yolo_mode = false;
                     app.default_yolo = false;
                     app.current_ui.permission_mode = Some("auto".into());
-                    agent.show_mode_switch_banner("Auto");
+                    agent.show_mode_switch_banner("Auto-review");
                     tracing::info!("Mode cycle (pre-session): Plan → Auto");
                     Some("auto")
                 } else if let Some(warning) = yolo_locked {
@@ -739,7 +741,7 @@ fn dispatch_cycle_mode_inner(app: &mut AppView) -> Vec<Effect> {
                 app.default_yolo = false;
                 if auto_gate && in_auto && !in_yolo {
                     app.current_ui.permission_mode = Some("auto".into());
-                    agent.show_mode_switch_banner("Auto");
+                    agent.show_mode_switch_banner("Auto-review");
                     tracing::info!("Mode cycle (pre-session): Plan+Auto → Auto");
                     Some("auto")
                 } else {
@@ -842,7 +844,7 @@ fn dispatch_cycle_mode_inner(app: &mut AppView) -> Vec<Effect> {
             app.current_ui.permission_mode = Some("auto".into());
             refresh_open_settings_modals(app);
             if let Some(a) = app.agents.get_mut(&id) {
-                a.show_mode_switch_banner("Auto");
+                a.show_mode_switch_banner("Auto-review");
             }
             tracing::info!("Mode cycle: Plan → Auto");
             vec![
@@ -912,7 +914,7 @@ fn dispatch_cycle_mode_inner(app: &mut AppView) -> Vec<Effect> {
             app.current_ui.permission_mode = Some("auto".into());
             refresh_open_settings_modals(app);
             if let Some(a) = app.agents.get_mut(&id) {
-                a.show_mode_switch_banner("Auto");
+                a.show_mode_switch_banner("Auto-review");
             }
             tracing::info!("Mode cycle: Plan+Auto → Auto (exit plan, keep classifier)");
             vec![

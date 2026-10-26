@@ -160,6 +160,7 @@ core-foundation = { workspace = true }
 windows-sys = { version = "0.59", features = ["Win32_System_Console"] }
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
 nofy-pager-render = { path = "../nofy-pager-render", features = ["test-support"] }
 nofy-shell = { workspace = true, features = ["test-support"] }
 nofy-status-line = { workspace = true, features = ["test-support"] }

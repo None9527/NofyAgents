@@ -1320,6 +1320,38 @@ mod platform {
     /// harmless while the lease keeps the shared backend alive.
     const ARBOARD_READ_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
 
+    const ARBOARD_WRITE_WAIT: std::time::Duration = std::time::Duration::from_millis(250);
+
+    /// Windows opens the clipboard exclusively; Linux reads may block forever,
+    /// so never hold a process-wide operation lock across Linux reads.
+    fn run_arboard_exclusive<T>(
+        wait: std::time::Duration,
+        op: impl FnOnce() -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
+        #[cfg(target_os = "windows")]
+        {
+            static ARBOARD_OP_LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+            run_exclusive(&ARBOARD_OP_LOCK, wait, op)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = wait;
+            op()
+        }
+    }
+
+    #[cfg(any(target_os = "windows", test))]
+    fn run_exclusive<T>(
+        lock: &parking_lot::Mutex<()>,
+        wait: std::time::Duration,
+        op: impl FnOnce() -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
+        let Some(_guard) = lock.try_lock_for(wait) else {
+            anyhow::bail!("arboard busy: an earlier clipboard operation is still running");
+        };
+        op()
+    }
+
     fn arboard_read_with_deadline<T: Send + 'static>(
         op: impl FnOnce(&mut arboard::Clipboard) -> anyhow::Result<T> + Send + 'static,
     ) -> anyhow::Result<T> {
@@ -1328,9 +1360,11 @@ mod platform {
             anyhow::bail!("arboard leg disabled (NOFY_CLIPBOARD_NO_DATA_CONTROL)");
         }
         let result = spawn_with_deadline("clipboard-read", ARBOARD_READ_WAIT, move || {
-            arboard::Clipboard::new()
-                .map_err(anyhow::Error::from)
-                .and_then(|mut clipboard| op(&mut clipboard))
+            run_arboard_exclusive(ARBOARD_READ_WAIT, || {
+                arboard::Clipboard::new()
+                    .map_err(anyhow::Error::from)
+                    .and_then(|mut clipboard| op(&mut clipboard))
+            })
         });
         match result {
             Ok(inner) => inner,
@@ -1368,29 +1402,30 @@ mod platform {
     }
 
     fn arboard_set_text(text: &str) -> anyhow::Result<()> {
-        arboard_lease()?.lock().set_text(text)?;
-        Ok(())
+        run_arboard_exclusive(ARBOARD_WRITE_WAIT, || {
+            arboard_lease()?.lock().set_text(text)?;
+            Ok(())
+        })
     }
 
     fn arboard_get_image() -> anyhow::Result<Option<ImageData>> {
-        arboard_read_with_deadline(|clipboard| {
-            let img_data = match clipboard.get_image() {
-                Ok(data) => data,
-                Err(arboard::Error::ContentNotAvailable) => return Ok(None),
-                Err(err) => return Err(err.into()),
-            };
-
-            let png_bytes = encode_rgba_to_png(
-                &img_data.bytes,
-                img_data.width as u32,
-                img_data.height as u32,
-            )?;
-
-            Ok(Some(ImageData {
-                data: png_bytes,
-                mime_type: "image/png".to_owned(),
-            }))
-        })
+        let Some(img_data) = arboard_read_with_deadline(|clipboard| match clipboard.get_image() {
+            Ok(data) => Ok(Some(data)),
+            Err(arboard::Error::ContentNotAvailable) => Ok(None),
+            Err(err) => Err(err.into()),
+        })?
+        else {
+            return Ok(None);
+        };
+        let png_bytes = encode_rgba_to_png(
+            &img_data.bytes,
+            img_data.width as u32,
+            img_data.height as u32,
+        )?;
+        Ok(Some(ImageData {
+            data: png_bytes,
+            mime_type: "image/png".to_owned(),
+        }))
     }
 
     // -- Linux CLI tools ------------------------------------------------------
@@ -2240,6 +2275,28 @@ mod platform {
         use super::*;
         use std::sync::mpsc::RecvTimeoutError;
         use std::time::Duration;
+
+        #[test]
+        fn exclusive_timeout_does_not_run_operation() {
+            let lock = parking_lot::Mutex::new(());
+            let _held = lock.lock();
+            let ran = std::cell::Cell::new(false);
+            let result = run_exclusive(&lock, Duration::from_millis(10), || {
+                ran.set(true);
+                Ok(())
+            });
+            assert!(result.is_err());
+            assert!(!ran.get());
+        }
+
+        #[test]
+        fn exclusive_releases_lock_on_operation_error() {
+            let lock = parking_lot::Mutex::new(());
+            let result: anyhow::Result<()> =
+                run_exclusive(&lock, Duration::ZERO, || anyhow::bail!("read failed"));
+            assert!(result.is_err());
+            assert_eq!(run_exclusive(&lock, Duration::ZERO, || Ok(42)).unwrap(), 42);
+        }
 
         #[test]
         fn fast_closure_returns_value() {

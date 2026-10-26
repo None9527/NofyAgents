@@ -1,5 +1,29 @@
 use super::*;
 
+#[test]
+fn vendor_cleanup_empty_config_advertises_no_models() {
+    let cfg = config::Config::default();
+    let catalog = resolve_model_catalog(&cfg, None);
+    assert!(catalog.is_empty(), "no vendor model may be seeded implicitly");
+    assert!(available_models(&catalog, false).is_empty());
+    let (key, _, _) = resolve_default_model(&cfg, &catalog, false);
+    assert_eq!(key, "__unconfigured__");
+}
+
+#[test]
+fn vendor_cleanup_preserves_explicit_provider_model() {
+    let cfg = config_from_toml(
+        "[models]\ndefault = \"test-model\"\n[model.test-model]\nmodel = \"provider-model\"\nname = \"My Model\"\nbase_url = \"http://127.0.0.1:18080/v1\"\n",
+    );
+    let catalog = resolve_model_catalog(&cfg, None);
+    assert_eq!(catalog.len(), 1);
+    assert_eq!(catalog["test-model"].model, "provider-model");
+    assert_eq!(available_models(&catalog, false).len(), 1);
+    let (key, entry, _) = resolve_default_model(&cfg, &catalog, false);
+    assert_eq!(key, "test-model");
+    assert_eq!(entry.model, "provider-model");
+}
+
 fn test_manager() -> ModelsManager {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -822,7 +846,9 @@ fn spawn_background_refresh_is_noop_when_real_catalog_present() {
 fn from_config_without_prefetch_produces_usable_catalog() {
     let tmp = tempfile::TempDir::new().unwrap();
     let auth_manager = Arc::new(AuthManager::new(tmp.path(), NofyComConfig::default()));
-    let cfg = config::Config::default();
+    let cfg = config_from_toml(
+        "[models]\ndefault = \"local-model\"\n[model.local-model]\nmodel = \"local-model\"\nbase_url = \"http://127.0.0.1:18080/v1\"\n",
+    );
 
     let mgr = ModelsManager::from_config(&cfg, None, auth_manager).unwrap();
 
@@ -830,7 +856,7 @@ fn from_config_without_prefetch_produces_usable_catalog() {
     let catalog = &cat.models;
     assert!(
         !catalog.is_empty(),
-        "zero-network boot must produce at least one model in the internal catalog"
+        "zero-network boot must preserve the explicitly configured model"
     );
     let default = mgr.current_model_id();
     assert!(
@@ -1635,6 +1661,7 @@ fn make_entry_config_with_id(
         base_url: "https://test.api/v1".to_owned(),
         name: name.map(|n| n.to_owned()),
         description: None,
+        notice: None,
         max_completion_tokens: None,
         temperature: None,
         top_p: None,
@@ -1642,6 +1669,7 @@ fn make_entry_config_with_id(
         env_key: None,
         api_backend: Default::default(),
         context_window: std::num::NonZeroU64::new(200_000).unwrap(),
+        context_windows: Vec::new(),
         max_request_bytes: None,
         auto_compact_threshold_percent: None,
         system_prompt_label: None,

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-09",
+  "scope": "Architecture v1.1 MCP/plugin writes and shared controls; not full A1-A6",
+  "verify": {
+    "command": "pnpm verify",
+    "log": "/tmp/nofy-settings-v2-delivery-verify.log",
+    "acpTests": 41,
+    "desktopTests": 300,
+    "newTests": 10,
+    "protocolSmoke": 7,
+    "ptySmoke": 8,
+    "recoverySmoke": 11
+  },
+  "gui": {
+    "report": "output/playwright/2026-10-09T08-09-02.278Z-settings/report.json",
+    "cases": 15,
+    "consoleErrors": 0,
+    "source": "Actual Electron GUI + temporary deterministic ACP emulator; not real services"
+  },
+  "architecture": {
+    "files": 151,
+    "imports": 691,
+    "legacyExceptions": 15,
+    "newExceptions": 0
+  },
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "98712a5e8b49b26e121bdd0753b70d1be3507ab486f06e4a5005c400e85d1f4c",
+    "isolatedLaunchesPassed": 2,
+    "signing": "ad-hoc local only",
+    "kernelBundled": false
+  },
+  "sourceHashes": {
+    "apps/desktop/renderer/core/settings/protocol.ts": "3a3cb9a406b0638872751e5e5132703966a1362be45094cc98dd0d5d5ca1b8a4",
+    "apps/desktop/renderer/application/settings/client.ts": "1ca12120d764c95de337568bd209aa0d88a8bf18d6e13be7ed80f8a299513904",
+    "apps/desktop/renderer/application/settings/useSettingsMutation.ts": "d11fa81705dcbdb9d14414173479c1f46a5d38911c037abdbd11a26a584dcfb5",
+    "apps/desktop/renderer/features/settings/McpSettings.tsx": "92ff66c7244cc04269346ae965a17259db161d1515a81ad4b7590113034dd2a0",
+    "apps/desktop/renderer/features/settings/PluginSettings.tsx": "1fcbb1d3dbad70d04a95c62e9f27418c66b5a39595e43e4b75a000630dee8a70"
+  }
+}

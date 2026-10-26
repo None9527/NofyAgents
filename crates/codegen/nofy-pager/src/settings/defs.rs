@@ -41,7 +41,7 @@ pub(crate) const MAX_THOUGHTS_WIDTH_KEY: &str = "max_thoughts_width";
 const THEME_CHOICES: &[EnumChoice] = &[
     EnumChoice {
         canonical: "auto",
-        display: "Auto",
+        display: "Auto-review",
         description: "Follow system dark/light appearance.",
     },
     EnumChoice {

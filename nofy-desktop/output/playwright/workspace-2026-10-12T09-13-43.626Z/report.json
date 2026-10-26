@@ -1,0 +1,764 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-12T09:13:43.628Z",
+  "cases": [
+    {
+      "name": "W00 shared empty state exposes three supported rows with reset text margins",
+      "status": "passed",
+      "durationMs": 186,
+      "details": {
+        "bar": 48,
+        "hMargin": "0px",
+        "pMargin": "0px",
+        "rows": [
+          56,
+          56,
+          56
+        ]
+      }
+    },
+    {
+      "name": "W01 file reads use the scoped ACP adapter; late A cannot replace B",
+      "status": "passed",
+      "durationMs": 817
+    },
+    {
+      "name": "W02 closing a pending preview prevents it reappearing",
+      "status": "passed",
+      "durationMs": 694
+    },
+    {
+      "name": "W03 session switch invalidates same-root file reads",
+      "status": "passed",
+      "durationMs": 762
+    },
+    {
+      "name": "W04 failed fuzzy open displays the error",
+      "status": "passed",
+      "durationMs": 422
+    },
+    {
+      "name": "W05 preview slot, double-click pinning and resource deduplication",
+      "status": "passed",
+      "durationMs": 925
+    },
+    {
+      "name": "W06 Markdown/source modes retain separate reading positions",
+      "status": "passed",
+      "durationMs": 432
+    },
+    {
+      "name": "W07 tree and outer-panel hiding preserve resource tabs and scroll",
+      "status": "passed",
+      "durationMs": 332
+    },
+    {
+      "name": "W18 one shared resource tab strip, no redundant menu and module switching",
+      "status": "passed",
+      "durationMs": 192,
+      "details": {
+        "head": {
+          "x": 795,
+          "y": 5,
+          "width": 480,
+          "height": 48,
+          "top": 5,
+          "right": 1275,
+          "bottom": 53,
+          "left": 795
+        },
+        "tabs": {
+          "x": 847,
+          "y": 12.5,
+          "width": 316,
+          "height": 32,
+          "top": 12.5,
+          "right": 1163,
+          "bottom": 44.5,
+          "left": 847
+        },
+        "header": {
+          "x": 795,
+          "y": 53,
+          "width": 480,
+          "height": 48,
+          "top": 53,
+          "right": 1275,
+          "bottom": 101,
+          "left": 795
+        },
+        "split": {
+          "x": 795,
+          "y": 101,
+          "width": 480,
+          "height": 754,
+          "top": 101,
+          "right": 1275,
+          "bottom": 855,
+          "left": 795
+        },
+        "oldTabs": 0,
+        "secondary": 0
+      }
+    },
+    {
+      "name": "W19 responsive source and non-overlapping tree at 320/400/548px in both themes",
+      "status": "passed",
+      "durationMs": 1636,
+      "details": [
+        {
+          "size": 320,
+          "theme": "dark",
+          "header": {
+            "x": 1380,
+            "y": 53,
+            "width": 315,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1380
+          },
+          "path": {
+            "x": 1392,
+            "y": 60.5,
+            "width": 119,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1392
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 315,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 320,
+          "theme": "light",
+          "header": {
+            "x": 1380,
+            "y": 53,
+            "width": 315,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1380
+          },
+          "path": {
+            "x": 1392,
+            "y": 60.5,
+            "width": 119,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1392
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 315,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        },
+        {
+          "size": 400,
+          "theme": "dark",
+          "header": {
+            "x": 1300,
+            "y": 53,
+            "width": 395,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1300
+          },
+          "path": {
+            "x": 1312,
+            "y": 60.5,
+            "width": 199,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1312
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 395,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 400,
+          "theme": "light",
+          "header": {
+            "x": 1300,
+            "y": 53,
+            "width": 395,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1300
+          },
+          "path": {
+            "x": 1312,
+            "y": 60.5,
+            "width": 199,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1312
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 395,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        },
+        {
+          "size": 548,
+          "theme": "dark",
+          "header": {
+            "x": 1152,
+            "y": 53,
+            "width": 543,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1152
+          },
+          "path": {
+            "x": 1164,
+            "y": 60.5,
+            "width": 347,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1164
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 543,
+          "background": "rgb(22, 22, 22)",
+          "treeBackground": "rgb(22, 22, 22)"
+        },
+        {
+          "size": 548,
+          "theme": "light",
+          "header": {
+            "x": 1152,
+            "y": 53,
+            "width": 543,
+            "height": 48,
+            "top": 53,
+            "right": 1695,
+            "bottom": 101,
+            "left": 1152
+          },
+          "path": {
+            "x": 1164,
+            "y": 60.5,
+            "width": 347,
+            "height": 32,
+            "top": 60.5,
+            "right": 1511,
+            "bottom": 92.5,
+            "left": 1164
+          },
+          "action": {
+            "x": 1519,
+            "y": 60.5,
+            "width": 164,
+            "height": 32,
+            "top": 60.5,
+            "right": 1683,
+            "bottom": 92.5,
+            "left": 1519
+          },
+          "width": 543,
+          "background": "rgb(248, 248, 248)",
+          "treeBackground": "rgb(248, 248, 248)"
+        }
+      ]
+    },
+    {
+      "name": "W08 session switch restores only its own resource workspace",
+      "status": "passed",
+      "durationMs": 133
+    },
+    {
+      "name": "W09 narrow tree split, themes and closing a non-active tab",
+      "status": "passed",
+      "durationMs": 272
+    },
+    {
+      "name": "W10 draggable inner tree width is independent and survives hide/show",
+      "status": "passed",
+      "durationMs": 280
+    },
+    {
+      "name": "W11 header breadcrumb and copy actions cross real native IPC",
+      "status": "passed",
+      "durationMs": 102
+    },
+    {
+      "name": "W12 default open, failure, app chooser cancellation and reveal use host providers",
+      "status": "passed",
+      "durationMs": 410
+    },
+    {
+      "name": "W13 raster preview crosses bounded native IPC without an ACP text read",
+      "status": "passed",
+      "durationMs": 214
+    },
+    {
+      "name": "W14 unsupported archives offer host opening and never request ACP text",
+      "status": "passed",
+      "durationMs": 231
+    },
+    {
+      "name": "W15 external writes update the selected file through scoped invalidation",
+      "status": "passed",
+      "durationMs": 124
+    },
+    {
+      "name": "W16 deleted files retain last known content with an explicit stale/error state",
+      "status": "passed",
+      "durationMs": 195
+    },
+    {
+      "name": "W17 renderer reload recovers pinned tabs, mode, scroll and tree width without caching content",
+      "status": "passed",
+      "durationMs": 927
+    },
+    {
+      "name": "W20 shared pane controls resolve to consistent dimensions across width and theme",
+      "status": "passed",
+      "durationMs": 992,
+      "details": [
+        {
+          "size": 320,
+          "theme": "dark",
+          "bars": [
+            48,
+            48
+          ],
+          "controls": [
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32
+          ],
+          "tabs": [
+            32
+          ],
+          "search": 32,
+          "rows": [
+            28,
+            28,
+            28,
+            28,
+            28
+          ],
+          "disclosureSlots": 5,
+          "treeRows": 5
+        },
+        {
+          "size": 320,
+          "theme": "light",
+          "bars": [
+            48,
+            48
+          ],
+          "controls": [
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32
+          ],
+          "tabs": [
+            32
+          ],
+          "search": 32,
+          "rows": [
+            28,
+            28,
+            28,
+            28,
+            28
+          ],
+          "disclosureSlots": 5,
+          "treeRows": 5
+        },
+        {
+          "size": 548,
+          "theme": "dark",
+          "bars": [
+            48,
+            48
+          ],
+          "controls": [
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32
+          ],
+          "tabs": [
+            32
+          ],
+          "search": 32,
+          "rows": [
+            28,
+            28,
+            28,
+            28,
+            28
+          ],
+          "disclosureSlots": 5,
+          "treeRows": 5
+        },
+        {
+          "size": 548,
+          "theme": "light",
+          "bars": [
+            48,
+            48
+          ],
+          "controls": [
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32,
+            32
+          ],
+          "tabs": [
+            32
+          ],
+          "search": 32,
+          "rows": [
+            28,
+            28,
+            28,
+            28,
+            28
+          ],
+          "disclosureSlots": 5,
+          "treeRows": 5
+        }
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workspace-2026-10-12T09-13-43.626Z",
+  "positionsW07": [
+    {
+      "phase": "before-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 726,
+      "active": "查看源码",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 726,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-B",
+      "top": 0,
+      "height": 726,
+      "client": 726,
+      "active": "B.ts",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-A",
+      "top": 340,
+      "height": 5040,
+      "client": 726,
+      "active": "A.md",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-outer-reopen",
+      "top": 340,
+      "height": 5040,
+      "client": 726,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-FiapiI/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-12T09:13:55.049Z"
+}

@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * 使用统计面（#7）。块序照活壳使用统计页：五卡 → Token 活动热力（每日/每周/累计）
  * → 时间范围 + 每日 Token 趋势图（按模型拆线）→ 模型用量占比。数据源是本机账本
@@ -75,6 +77,7 @@ function weekStartOf(dateKey: string): string {
 }
 
 export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; todayKey: string }) {
+  useLocale();
   const [unit, setUnit] = useState<"day" | "week" | "month">("day");
   const [range, setRange] = useState<7 | 30>(7);
   const stats = useMemo(() => usageStats(entries, todayKey), [entries, todayKey]);
@@ -87,7 +90,7 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
     return (
       <div className="emptyboard">
         <IconChart className="emptyboard-icon" />
-        <p className="emptyboard-hint">本机账本还没有记录。跑一轮对话，用量就从这里开始攒。</p>
+        <p className="emptyboard-hint">{tr("本机账本还没有记录。跑一轮对话，用量就从这里开始攒。")}</p>
       </div>
     );
   }
@@ -100,29 +103,29 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
       <div className="dash__stats">
         <div className="dash__stat">
           <span className="dash__statvalue">{formatWan(stats.totalTokens)}</span>
-          <span className="dash__statlabel">累计 Token 数</span>
+          <span className="dash__statlabel">{tr("累计 Token 数")}</span>
         </div>
         <div className="dash__stat">
           <span className="dash__statvalue">{formatWan(stats.peakTokens)}</span>
-          <span className="dash__statlabel">峰值 Token 数</span>
+          <span className="dash__statlabel">{tr("峰值 Token 数")}</span>
         </div>
         <div className="dash__stat">
           <span className="dash__statvalue">{formatMinutes(stats.chatMinutes)}</span>
-          <span className="dash__statlabel">累计聊天时长</span>
+          <span className="dash__statlabel">{tr("累计聊天时长")}</span>
         </div>
         <div className="dash__stat">
-          <span className="dash__statvalue">{String(stats.currentStreak)} 天</span>
-          <span className="dash__statlabel">当前连续天数</span>
+          <span className="dash__statvalue">{String(stats.currentStreak)}{tr("天")}</span>
+          <span className="dash__statlabel">{tr("当前连续天数")}</span>
         </div>
         <div className="dash__stat">
-          <span className="dash__statvalue">{String(stats.longestStreak)} 天</span>
-          <span className="dash__statlabel">最长连续天数</span>
+          <span className="dash__statvalue">{String(stats.longestStreak)}{tr("天")}</span>
+          <span className="dash__statlabel">{tr("最长连续天数")}</span>
         </div>
       </div>
 
       <section className="dash__card">
         <div className="dash__cardhead">
-          <h4 className="dash__cardtitle">Token 活动</h4>
+          <h4 className="dash__cardtitle">{tr("Token 活动")}</h4>
           <div className="dash__tabs">
             {(["day", "week", "month"] as const).map((u) => (
               <button
@@ -131,7 +134,7 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
                 className={"dash__tab" + (unit === u ? " dash__tab--on" : "")}
                 onClick={() => setUnit(u)}
               >
-                {u === "day" ? "每日" : u === "week" ? "每周" : "累计"}
+                {u === "day" ? tr("每日") : u === "week" ? tr("每周") : tr("累计")}
               </button>
             ))}
           </div>
@@ -169,7 +172,7 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
 
       <section className="dash__card">
         <div className="dash__cardhead">
-          <h4 className="dash__cardtitle">每日 Token 趋势图</h4>
+          <h4 className="dash__cardtitle">{tr("每日 Token 趋势图")}</h4>
           <div className="dash__tabs">
             {([7, 30] as const).map((r) => (
               <button
@@ -178,7 +181,7 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
                 className={"dash__tab" + (range === r ? " dash__tab--on" : "")}
                 onClick={() => setRange(r)}
               >
-                {r === 7 ? "近 7 日" : "近 30 日"}
+                {r === 7 ? tr("近 7 日") : tr("近 30 日")}
               </button>
             ))}
           </div>
@@ -191,7 +194,7 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
             </span>
           ))}
         </div>
-        <svg className="dash__trend" viewBox="0 0 700 220" role="img" aria-label="每日 Token 趋势">
+        <svg className="dash__trend" viewBox="0 0 700 220" role="img" aria-label={tr("每日 Token 趋势")}>
           {[0, 1, 2, 3].map((i) => (
             <line key={i} className="dash__gridline" x1={10} x2={690} y1={20 + i * 60} y2={20 + i * 60} />
           ))}
@@ -216,9 +219,9 @@ export function UsageDashboard({ entries, todayKey }: { entries: UsageEntry[]; t
       </section>
 
       <section className="dash__card">
-        <h4 className="dash__cardtitle">模型用量</h4>
+        <h4 className="dash__cardtitle">{tr("模型用量")}</h4>
         <div className="dash__models">
-          <svg className="dash__donut" viewBox="0 0 42 42" role="img" aria-label="模型用量占比">
+          <svg className="dash__donut" viewBox="0 0 42 42" role="img" aria-label={tr("模型用量占比")}>
             {(() => {
               let acc = 0;
               return shares.map((s, i) => {

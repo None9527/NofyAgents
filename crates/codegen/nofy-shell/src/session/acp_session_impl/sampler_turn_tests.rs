@@ -137,3 +137,21 @@ mod subagent_sampling_gate_tests {
             .await;
     }
 }
+#[test]
+fn main_turn_partial_length_policy_requires_explicit_opt_in() {
+    use nofy_sampling_types::{ConversationRequest, LengthPolicy};
+    for (opt_in, expected) in [
+        (None, LengthPolicy::CompleteToolCalls),
+        (Some(false), LengthPolicy::CompleteToolCalls),
+        (Some(true), LengthPolicy::CompletePartial),
+    ] {
+        let mut request = ConversationRequest::default();
+        request.length_policy = super::main_turn_length_policy(opt_in);
+        assert_eq!(request.length_policy, expected);
+    }
+    // The environment-derived policy is applied only at main-turn submission.
+    assert_eq!(
+        ConversationRequest::default().length_policy,
+        LengthPolicy::CompleteToolCalls
+    );
+}

@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * permModel —— 权限模式芯片的纯模型（node 下可测）。
  *
@@ -38,10 +39,10 @@ export type PermChoice = { id: PermId; label: string; desc: string; danger: bool
  * 对我们的 auto 轴是过度承诺——危险动作仍会问，描述里写明）。
  */
 export const PERM_CHOICES: PermChoice[] = [
-  { id: "confirm", label: "变更前确认", desc: "改文件前先问我。", danger: false },
-  { id: "autoedit", label: "自动编辑", desc: "安全编辑自动放行，危险动作仍会问。", danger: false },
-  { id: "plan", label: "计划模式", desc: "编辑前先出计划。", danger: false },
-  { id: "full", label: "完全访问", desc: "跳过所有权限询问。", danger: true },
+  { id: "confirm", get label() { return tr("变更前确认"); }, get desc() { return tr("改文件前先问我。"); }, danger: false },
+  { id: "autoedit", get label() { return tr("自动编辑"); }, get desc() { return tr("安全编辑自动放行，危险动作仍会问。"); }, danger: false },
+  { id: "plan", get label() { return tr("计划模式"); }, get desc() { return tr("编辑前先出计划。"); }, danger: false },
+  { id: "full", get label() { return tr("完全访问"); }, get desc() { return tr("跳过所有权限询问。"); }, danger: true },
 ];
 
 export function permLabel(id: PermId): string {
@@ -56,35 +57,5 @@ export function currentPermId(input: { yolo: boolean; auto: boolean; mode: strin
   return "confirm";
 }
 
-export type PermAction = {
-  /** 会话模式轴要发的 session/set_mode modeId；四档都走（full/confirm/autoedit 落 default）。 */
-  modeId: string | null;
-  /** nofy/yolo_mode_changed 的载荷；四档都发（负责清/置 yolo 与 auto）。 */
-  notify: Record<string, unknown>;
-};
-
-/**
- * 选档 → 线路动作。载荷键逐字对齐 acp_agent.rs:1250-1305 的读取面：
- *   full     → yolo_mode:true（内核顺带清 auto）
- *   autoedit → yolo_mode:false + auto_mode:true（内核顺带清 yolo）
- *   其余     → 两键皆 false（双清）+ session/set_mode 切模式轴
- */
-export function permAction(id: PermId): PermAction {
-  const notify = (permission_mode: string, yolo_mode: boolean, auto_mode: boolean): Record<string, unknown> => ({
-    clientIdentifier: PERM_CLIENT_ID,
-    permission_mode,
-    yolo_mode,
-    auto_mode,
-  });
-  switch (id) {
-    case "autoedit":
-      return { modeId: "default", notify: notify("auto", false, true) };
-    case "plan":
-      return { modeId: "plan", notify: notify("default", false, false) };
-    case "full":
-      return { modeId: "default", notify: notify("always-approve", true, false) };
-    default:
-      return { modeId: "default", notify: notify("default", false, false) };
-  }
-}
-
+export { permAction } from "../../core/permissions.ts";
+export type { PermAction } from "../../core/permissions.ts";

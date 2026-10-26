@@ -21,5 +21,9 @@ export function createRuntime(bridge: NofyBridge): Runtime {
     effect: (e) => runEffect(port, store, e),
     bootstrap: () => bridge.bootstrap(),
     pickFiles: () => bridge.pickFiles(),
+    pickDirectory: () => bridge.pickDirectory(),
+    saveText: (content, filename) => bridge.saveText(content, filename),
+    readModelConfig: () => bridge.readModelConfig(),
+    updateModelConfig: (patch) => bridge.updateModelConfig(patch),
   };
 }

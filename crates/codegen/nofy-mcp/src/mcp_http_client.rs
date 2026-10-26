@@ -138,6 +138,7 @@ impl ThrottleState {
 #[derive(Clone)]
 pub struct McpHttpClient<C> {
     inner: C,
+    bearer_token_file: Option<crate::bearer_token_file::BearerTokenFile>,
     server_name: Arc<str>,
     state: Arc<parking_lot::Mutex<ThrottleState>>,
 }
@@ -147,10 +148,34 @@ impl<C> McpHttpClient<C> {
     pub fn new(inner: C, server_name: impl Into<Arc<str>>, warn_budget: WarnBudget) -> Self {
         Self {
             inner,
+            bearer_token_file: None,
             server_name: server_name.into(),
             state: Arc::new(parking_lot::Mutex::new(ThrottleState::with_budget(
                 warn_budget,
             ))),
+        }
+    }
+
+    pub fn with_bearer_token_file(
+        mut self,
+        file: Option<crate::bearer_token_file::BearerTokenFile>,
+    ) -> Self {
+        self.bearer_token_file = file;
+        self
+    }
+
+    async fn request_auth(
+        &self,
+        auth: Option<String>,
+        headers: &mut HashMap<HeaderName, HeaderValue>,
+    ) -> std::io::Result<Option<String>> {
+        match &self.bearer_token_file {
+            Some(file) => {
+                let token = file.read().await?;
+                headers.remove(&http::header::AUTHORIZATION);
+                Ok(Some(token))
+            }
+            None => Ok(auth),
         }
     }
 }
@@ -172,7 +197,7 @@ impl<C: StreamableHttpClient + Sync> StreamableHttpClient for McpHttpClient<C> {
         session_id: Arc<str>,
         last_event_id: Option<String>,
         auth_token: Option<String>,
-        custom_headers: HashMap<HeaderName, HeaderValue>,
+        mut custom_headers: HashMap<HeaderName, HeaderValue>,
     ) -> Result<BoxStream<'static, Result<Sse, SseError>>, StreamableHttpError<Self::Error>> {
         let plan = {
             let mut st = self.state.lock();
@@ -207,6 +232,10 @@ impl<C: StreamableHttpClient + Sync> StreamableHttpClient for McpHttpClient<C> {
             tokio::time::sleep(plan.delay).await;
         }
 
+        let auth_token = self
+            .request_auth(auth_token, &mut custom_headers)
+            .await
+            .map_err(StreamableHttpError::Io)?;
         let result = self
             .inner
             .get_stream(uri, session_id, last_event_id, auth_token, custom_headers)
@@ -223,8 +252,12 @@ impl<C: StreamableHttpClient + Sync> StreamableHttpClient for McpHttpClient<C> {
         message: ClientJsonRpcMessage,
         session_id: Option<Arc<str>>,
         auth_token: Option<String>,
-        custom_headers: HashMap<HeaderName, HeaderValue>,
+        mut custom_headers: HashMap<HeaderName, HeaderValue>,
     ) -> Result<StreamableHttpPostResponse, StreamableHttpError<Self::Error>> {
+        let auth_token = self
+            .request_auth(auth_token, &mut custom_headers)
+            .await
+            .map_err(StreamableHttpError::Io)?;
         self.inner
             .post_message(uri, message, session_id, auth_token, custom_headers)
             .await
@@ -235,8 +268,12 @@ impl<C: StreamableHttpClient + Sync> StreamableHttpClient for McpHttpClient<C> {
         uri: Arc<str>,
         session_id: Arc<str>,
         auth_token: Option<String>,
-        custom_headers: HashMap<HeaderName, HeaderValue>,
+        mut custom_headers: HashMap<HeaderName, HeaderValue>,
     ) -> Result<(), StreamableHttpError<Self::Error>> {
+        let auth_token = self
+            .request_auth(auth_token, &mut custom_headers)
+            .await
+            .map_err(StreamableHttpError::Io)?;
         self.inner
             .delete_session(uri, session_id, auth_token, custom_headers)
             .await

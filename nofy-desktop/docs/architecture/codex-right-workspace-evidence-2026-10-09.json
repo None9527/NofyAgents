@@ -1,0 +1,230 @@
+{
+  "date": "2026-10-09",
+  "bundle": "/Applications/ChatGPT.app",
+  "version": "26.930.51102",
+  "build": "13100",
+  "basis": [
+    "user screenshot",
+    "static installed application resources",
+    "local ZCode 3.14.3 source",
+    "current Nofy desktop source"
+  ],
+  "interactiveVerification": "Blocked: computer-use tool disallows com.openai.codex; no alternate UI automation attempted",
+  "sourceMapsAvailable": false,
+  "offsetMeaning": "Decoded string character offsets in the packaged JS, not original source lines",
+  "records": [
+    {
+      "asarPath": "webview/assets/base-file-tree-d568e9955426.js",
+      "bytes": 29582,
+      "sha256": "169de1b8c3bac0af2a171972964fdd8e040064d71987d5780610aa89a658fef2",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-shared-9d148924be0b.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./use-target-apps-5e4ea140e2a9.js"
+      ],
+      "markerOffsets": {
+        "initialExpandedPaths": 16080,
+        "initialScrollTop": 16103,
+        "onStateChange": 16208,
+        "hostId": 16063,
+        "queryKey": 28187,
+        "onDoubleClick": 16145,
+        "stickyFolders": 22201
+      }
+    },
+    {
+      "asarPath": "webview/assets/review-file-tree-side-pane-7bd111f9609b.js",
+      "bytes": 23868,
+      "sha256": "3eefc8db64665f0d705b9993170a0444a220a01a24bf3442d070812ff20d13ab",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-primary-c0280d43ce72.js",
+        "./app-shared-9d148924be0b.js",
+        "./base-file-tree-d568e9955426.js",
+        "./filter-alt-dd07d5269698.js",
+        "./pull-request-actions-9970f44273f1.js",
+        "./pull-request-comment-bffce9716ee3.js",
+        "./pull-request-detail-model-4120d79e4664.js",
+        "./pull-request-readonly-comment-10c7eb6bbf91.js",
+        "./review-file-tree-pane-99f6e7958391.js",
+        "./review-preferences-model-f4a0b51092b7.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./use-conversation-diff-comments-3d7e27d7da6e.js",
+        "./workspace-directory-entries-query-9c04f2776444.js"
+      ],
+      "markerOffsets": {
+        "initialExpandedPaths": 10818,
+        "initialScrollTop": 10841,
+        "onStateChange": 10927,
+        "isPreview": 8028,
+        "workspaceRoot": 6956,
+        "hostId": 2334,
+        "onDoubleClick": 12781
+      }
+    },
+    {
+      "asarPath": "webview/assets/workspace-directory-entries-query-9c04f2776444.js",
+      "bytes": 1287,
+      "sha256": "561b373bd9a28050586ef812db8b8ec7066e0b30fb7ee34363dc81cb22449527",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-shared-9d148924be0b.js",
+        "./rolldown-runtime-2d059c5e81f4.js"
+      ],
+      "markerOffsets": {
+        "workspaceRoot": 518,
+        "hostId": 464,
+        "queryKey": 709,
+        "queryFn": 777,
+        "FIVE_SECONDS": 882
+      }
+    },
+    {
+      "asarPath": "webview/assets/text-file-editor-tab-content.electron-950588cb929e.js",
+      "bytes": 56402,
+      "sha256": "29c3e492b43b392777fe82178aa7b4de55db620f4884c68be5f4cae3f83e1162",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-primary-c0280d43ce72.js",
+        "./app-shared-9d148924be0b.js",
+        "./artifact-preview-header-156f34360ddd.js",
+        "./dist-334f3b67ae69.js",
+        "./entry-746167ec3ccc.js",
+        "./folders-93c4d22be9d6.js",
+        "./inline-file-diff-review-1dff77155fa4.js",
+        "./pierre-file-editor-ba4d4f8a582c.js",
+        "./read-saved-plan-content-8a7e30c84595.js",
+        "./review-file-source-breadcrumb-f2bfff1d4da3.js",
+        "./review-file-tree-side-pane-7bd111f9609b.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./surface-41c5cf2877eb.js",
+        "./text-file-editor-extensions-b9ed9f7e3af1.js",
+        "./text-file-editor-search-panel-5e8789050bcf.js",
+        "./text-file-storage-48dfda4c96d6.js"
+      ],
+      "markerOffsets": {
+        "initialScrollTop": 4378,
+        "onStateChange": 4536,
+        "isPreview": 51910,
+        "expectedMtimeMs": 13333,
+        "onBeforeClose": 46837,
+        "markdownMode": 51201,
+        "markdownSourceScrollTop": 50976,
+        "saveUntilClean": 6938,
+        "workspaceRoot": 23415,
+        "hostId": 4349
+      }
+    },
+    {
+      "asarPath": "webview/assets/pierre-file-editor-ba4d4f8a582c.js",
+      "bytes": 55501,
+      "sha256": "84802a0034be706cd97370d8a40715878df4b6aff449c3bfe576e0f8ceebadf5",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-primary-c0280d43ce72.js",
+        "./app-shared-9d148924be0b.js",
+        "./artifact-preview-header-156f34360ddd.js",
+        "./codex-diff-css-959e7aee6af6.js",
+        "./editor-ee2eec7c98db.js",
+        "./file-diff-presentation-ee99e928b123.js",
+        "./inline-file-diff-review-1dff77155fa4.js",
+        "./register-pierre-themes-12dd0eb00fc6.js",
+        "./renderFileChildren-371478ccd7af.js",
+        "./review-file-source-breadcrumb-f2bfff1d4da3.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./text-file-storage-48dfda4c96d6.js",
+        "./use-diff-annotations-7f3cbfbb5c49.js"
+      ],
+      "markerOffsets": {
+        "initialScrollTop": 38963,
+        "onStateChange": 26054,
+        "expectedMtimeMs": 23752,
+        "reloadCleanExternalChanges": 25140,
+        "saveUntilClean": 20048,
+        "workspaceRoot": 37843,
+        "hostId": 17336,
+        "FIVE_SECONDS": 13024
+      }
+    },
+    {
+      "asarPath": "webview/assets/review-file-source-breadcrumb-f2bfff1d4da3.js",
+      "bytes": 45341,
+      "sha256": "5b93147b234d09328513cff8e42238c739f843880c3401e5a227759c882ea79e",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-primary-c0280d43ce72.js",
+        "./app-shared-9d148924be0b.js",
+        "./base-file-tree-d568e9955426.js",
+        "./gate-c0654fbd7860.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./workspace-directory-entries-query-9c04f2776444.js",
+        "./workspace-file-context-menu-trigger-51422a709542.js"
+      ],
+      "markerOffsets": {
+        "initialExpandedPaths": 44146,
+        "isPreview": 42746,
+        "workspaceRoot": 18334,
+        "hostId": 18282,
+        "queryKey": 18372,
+        "queryFn": 18237,
+        "FIVE_SECONDS": 18477
+      }
+    },
+    {
+      "asarPath": "webview/assets/artifact-preview-header-156f34360ddd.js",
+      "bytes": 16863,
+      "sha256": "f6f004a0e86005cbd9a7cdbddd44afbae6f556a4b3895e8d29de7183c85e6378",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js",
+        "./app-primary-c0280d43ce72.js",
+        "./app-shared-9d148924be0b.js",
+        "./artifact-originating-turn-341a77ba4935.js",
+        "./open-in-google-drive-menu-item-4db052d5200d.js",
+        "./rolldown-runtime-2d059c5e81f4.js",
+        "./save-cloud-file-copy-3fd33dcd0097.js",
+        "./use-target-apps-5e4ea140e2a9.js"
+      ],
+      "markerOffsets": {
+        "hostId": 1377
+      }
+    },
+    {
+      "asarPath": "webview/assets/open-text-file-editor-side-panel-tab.electron-468f478a2fb0.js",
+      "bytes": 146,
+      "sha256": "f3d2c456cac5ce67fef6a7bf2ef8df71c1438309e60e797e8bb18101382201e4",
+      "imports": [
+        "./app-initial-f9b16fbf8fc7.js"
+      ],
+      "markerOffsets": {}
+    },
+    {
+      "asarPath": "webview/assets/app-initial-f9b16fbf8fc7.js",
+      "bytes": 11173718,
+      "sha256": "22f3ea455585cfc0508e3d3627eac161c80c849c0aace3d76d09fdebaa0aeca3",
+      "imports": [
+        "./app-shared-9d148924be0b.js",
+        "./rolldown-runtime-2d059c5e81f4.js"
+      ],
+      "markerOffsets": {
+        "initialExpandedPaths": 5205930,
+        "onStateChange": 3986259,
+        "isPreview": 1768316,
+        "onBeforeClose": 2460229,
+        "markdownMode": 5617610,
+        "markdownSourceScrollTop": 5611266,
+        "workspaceRoot": 1433981,
+        "hostId": 1304619,
+        "queryKey": 1379613,
+        "queryFn": 1378619,
+        "FIVE_SECONDS": 2021177,
+        "ResizeObserver": 833853,
+        "onDoubleClick": 3719463,
+        "stickyFolders": 5360834,
+        "durableRoute": 2453276,
+        "payloadVersion": 2449327,
+        "dropDestinations": 2452726
+      }
+    }
+  ]
+}

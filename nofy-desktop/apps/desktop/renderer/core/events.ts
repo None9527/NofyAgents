@@ -31,6 +31,7 @@ export type SessionUpdateKind = (typeof SESSION_UPDATE_KINDS)[number];
 /** _nofy/session_notification 的判别值（本轮实测 8 种）。 */
 export const EXT_NOTIFICATION_KINDS = [
   "turn_completed",
+  "retry_state",
   "response_completed",
   "tool_call_delta_chunk",
   "hook_execution",
@@ -44,18 +45,26 @@ export const EXT_NOTIFICATION_KINDS = [
   "subagent_spawned",
   "subagent_progress",
   "subagent_finished",
+  "task_backgrounded",
+  "task_completed",
+  "monitor_event",
+  "scheduled_task_created",
+  "scheduled_task_fired",
+  "scheduled_task_deleted",
 ] as const;
 export type ExtNotificationKind = (typeof EXT_NOTIFICATION_KINDS)[number];
 
 /**
  * session/update 与部分 session_notification 的 _meta 信封。
- * eventId 是去重高水位的键（第一方语义：last_applied_event_seq，replay 豁免）；
+ * eventId 是精确去重的键；回放可能乱序，不能按最大编号丢弃。
  * updateType 是判别值的 PascalCase 镜像（AgentMessageChunk / ToolCall / …）。
  */
 export type EventMeta = {
   eventId?: string;
+  isReplay?: boolean;
   updateType?: string;
   agentTimestampMs?: number;
+  streamStartMs?: number;
   totalTokens?: number;
   updateParams?: unknown;
 };
@@ -103,8 +112,10 @@ function readMeta(p: JsonObject): EventMeta {
   const m = isObj(p["_meta"]) ? p["_meta"] : {};
   const out: EventMeta = {};
   if (typeof m["eventId"] === "string") out.eventId = m["eventId"];
+  if (typeof m["isReplay"] === "boolean") out.isReplay = m["isReplay"];
   if (typeof m["updateType"] === "string") out.updateType = m["updateType"];
   if (typeof m["agentTimestampMs"] === "number") out.agentTimestampMs = m["agentTimestampMs"];
+  if (typeof m["streamStartMs"] === "number" && Number.isFinite(m["streamStartMs"])) out.streamStartMs = m["streamStartMs"];
   if (typeof m["totalTokens"] === "number") out.totalTokens = m["totalTokens"];
   if (m["updateParams"] !== undefined) out.updateParams = m["updateParams"];
   return out;
@@ -112,6 +123,18 @@ function readMeta(p: JsonObject): EventMeta {
 
 function inList<T extends string>(list: readonly T[], v: string): v is T {
   return (list as readonly string[]).includes(v);
+}
+
+function taskEventKind(method: string): ExtNotificationKind | null {
+  switch (method) {
+    case EXT_EVENT.taskBackgrounded: return "task_backgrounded";
+    case EXT_EVENT.taskCompleted: return "task_completed";
+    case EXT_EVENT.monitorEvent: return "monitor_event";
+    case EXT_EVENT.scheduledTaskCreated: return "scheduled_task_created";
+    case EXT_EVENT.scheduledTaskFired: return "scheduled_task_fired";
+    case EXT_EVENT.scheduledTaskDeleted: return "scheduled_task_deleted";
+    default: return null;
+  }
 }
 
 /* ═══════════════════ PTY 帧（生态面 #3 终端面） ═══════════════════
@@ -223,6 +246,18 @@ export function normalizeNotification(method: string, params: unknown): Normaliz
       return { type: "models-update", params: p };
     case EXT_EVENT.settingsUpdate:
       return { type: "settings-update", params: p };
+    case EXT_EVENT.taskBackgrounded:
+    case EXT_EVENT.taskCompleted:
+    case EXT_EVENT.monitorEvent:
+    case EXT_EVENT.scheduledTaskCreated:
+    case EXT_EVENT.scheduledTaskFired:
+    case EXT_EVENT.scheduledTaskDeleted:
+      // 活通知与 `_nofy/session/update` 回放用同一套 update.sessionUpdate。
+      // 方法名必须和判别值一致，避免把别的信封塞进任务表。
+      if (update !== null && disc === taskEventKind(method) && inList(EXT_NOTIFICATION_KINDS, disc)) {
+        return { type: "ext-notification", sessionId, kind: disc, update, meta: readMeta(p), rail: "live" };
+      }
+      return { type: "unknown", method: method + "#" + (disc || "(no discriminator)"), params: p };
     case EXT_EVENT.sessionPromptComplete:
       // legacy 双生（PLAN 陷阱 T5）：仍然归一化，但投影层不得以它为回合结束依据。
       return {

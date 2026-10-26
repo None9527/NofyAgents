@@ -551,6 +551,87 @@ async fn auth_401_emits_failed_immediately_no_retry() {
 // Anthropic Messages API: refusal stop_reason + mid-stream parse failure
 // ---------------------------------------------------------------------------
 
+/// Both public entry points honor the same explicit policy, without retries.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn messages_length_policy_actor_and_direct_collect_matrix() {
+    use nofy_sampling_types::{LengthPolicy, SamplingError, StopReason};
+    for (text, arguments) in [
+        ("", None),
+        ("partial answer", None),
+        ("", Some("{}")),
+        ("", Some("{")),
+    ] {
+        for policy in [
+            LengthPolicy::Fail,
+            LengthPolicy::CompleteToolCalls,
+            LengthPolicy::CompletePartial,
+        ] {
+            let text = text.to_owned();
+            let expected_success = match arguments {
+                Some("{}") => policy != LengthPolicy::Fail,
+                Some(_) => false,
+                None => policy == LengthPolicy::CompletePartial && !text.is_empty(),
+            };
+            let counter = Arc::new(AtomicU32::new(0));
+            let counter_handler = Arc::clone(&counter);
+            let app = Router::new().route(
+                "/v1/messages",
+                post(move || {
+                    let counter = Arc::clone(&counter_handler);
+                    let text = text.clone();
+                    async move {
+                        counter.fetch_add(1, Ordering::SeqCst);
+                        let mut events = sse::messages_api_events(
+                            &text,
+                            "messages-compatible-model",
+                            "max_tokens",
+                        );
+                        if let Some(arguments) = arguments {
+                            events.splice(4..4, [
+                                Event::default().data(json!({"type":"content_block_start","index":1,
+                                    "content_block":{"type":"tool_use","id":"call","name":"test","input":{}}}).to_string()),
+                                Event::default().data(json!({"type":"content_block_delta","index":1,
+                                    "delta":{"type":"input_json_delta","partial_json":arguments}}).to_string()),
+                                Event::default().data(json!({"type":"content_block_stop","index":1}).to_string()),
+                            ]);
+                        }
+                        Sse::new(stream::iter(
+                            events.into_iter().map(Ok::<_, std::convert::Infallible>),
+                        ))
+                    }
+                }),
+            );
+            let server = MockServer::spawn(app).await;
+            let cfg = messages_config(server.base_url());
+            let client = nofy_sampler::SamplingClient::new(cfg.clone()).unwrap();
+            let mut request = user_request("hi");
+            request.length_policy = policy;
+            let direct = client.conversation_collect(request.clone()).await;
+            assert_eq!(direct.is_ok(), expected_success, "{policy:?}: {direct:?}");
+            if let Ok(response) = direct {
+                assert_eq!(response.stop_reason, Some(StopReason::Length));
+            } else {
+                assert!(matches!(direct, Err(SamplingError::MaxTokensTruncation)));
+            }
+            let (event_tx, _event_rx) = mpsc::unbounded_channel();
+            let handle = SamplerActor::spawn(cfg, RetryPolicy::default(), event_tx);
+            let actor = handle
+                .submit_and_collect(RequestId::random(), request)
+                .await;
+            assert_eq!(actor.is_ok(), expected_success, "{policy:?}: {actor:?}");
+            if let Ok((response, _)) = actor {
+                assert_eq!(response.stop_reason, Some(StopReason::Length));
+            }
+            assert_eq!(
+                counter.load(Ordering::SeqCst),
+                2,
+                "truncation is deterministic, no retries"
+            );
+            server.shutdown();
+        }
+    }
+}
+
 fn messages_config(base_url: String) -> SamplerConfig {
     let mut cfg = test_config(base_url, "messages-compatible-model");
     cfg.api_backend = ApiBackend::Messages;

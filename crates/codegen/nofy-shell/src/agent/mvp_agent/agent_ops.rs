@@ -72,16 +72,18 @@ impl MvpAgent {
             .borrow()
             .image_description_model
             .as_deref()
-            .unwrap_or(crate::models::default_image_description_model())
-            .to_owned()
+            .filter(|model| *model != crate::models::default_image_description_model())
+            .map(str::to_owned)
+            .unwrap_or_else(|| self.models_manager.current_model_id().0.to_string())
     }
     fn resolve_session_summary_model(&self) -> String {
         self.cfg
             .borrow()
             .session_summary_model
             .as_deref()
-            .unwrap_or(crate::models::default_session_summary_model())
-            .to_owned()
+            .filter(|model| *model != crate::models::default_session_summary_model())
+            .map(str::to_owned)
+            .unwrap_or_else(|| self.models_manager.current_model_id().0.to_string())
     }
     pub(super) fn build_summary_client(
         &self,
@@ -3264,6 +3266,8 @@ impl MvpAgent {
                     model_id: session_model_id.clone(),
                     agent: crate::session::persistence::PersistedAgent::from(&agent_definition),
                     reasoning_effort: initial_reasoning_effort,
+                    context_window_selection: None,
+                    server_context_window: None,
                 });
             let acp_mcp_servers = crate::session::acp_mcp::parse_acp_mcp_servers(
                 session_meta,

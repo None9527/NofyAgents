@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * SlashPanel —— composer 上方的斜杠命令面板（分组列表）。
  *
@@ -21,9 +23,10 @@ export type SlashPanelProps = {
 };
 
 export function SlashPanel({ view, activeIndex, onHover, onPick }: SlashPanelProps) {
+  useLocale();
   let cursor = -1;
   return (
-    <div className="slash" role="listbox" aria-label="斜杠命令">
+    <div className="slash" role="listbox" aria-label={tr("斜杠命令")}>
       {view.groups.map((g) => (
         <div key={g.id} className="slash__group">
           <div className="slash__grouptitle">{g.label}</div>
@@ -49,9 +52,7 @@ export function SlashPanel({ view, activeIndex, onHover, onPick }: SlashPanelPro
         </div>
       ))}
       {view.hidden > 0 ? (
-        <div className="slash__foot">
-          还有 {String(view.hidden)} 条命中 · ⌘K 看全表
-        </div>
+        <div className="slash__foot">{tr("还有")}{String(view.hidden)}{tr("条命中 · ⌘K 看全表")}</div>
       ) : null}
     </div>
   );

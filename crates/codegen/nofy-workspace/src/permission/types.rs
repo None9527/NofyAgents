@@ -660,6 +660,7 @@ mod tests {
         let input = ToolInput::Bash(BashToolInput {
             command: "cargo test".into(),
             timeout: None,
+            block_until_ms: None,
             description: "run tests".into(),
             is_background: false,
         });

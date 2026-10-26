@@ -120,6 +120,8 @@ async fn create_test_actor(
             threshold_percent: std::cell::Cell::new(threshold_percent),
             force_compact: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context_window_override: None,
+            context_window_selection: std::cell::Cell::new(None),
+            server_context_window: std::cell::RefCell::new(None),
             count: std::sync::atomic::AtomicU64::new(0),
             auto_compact_suppressed: std::sync::atomic::AtomicU8::new(0),
             previous_model: std::cell::Cell::new(None),
@@ -374,6 +376,202 @@ async fn test_context_window_override_to_smaller_triggers_compact() {
         .await;
 }
 /// Response-header downgrade guard: `handle_model_metadata_update`
+#[tokio::test(flavor = "current_thread")]
+async fn selected_context_window_changes_real_compaction_budget_and_persistence() {
+    tokio::task::LocalSet::new()
+        .run_until(async {
+            let (gateway_tx, _gateway_rx) =
+                mpsc::unbounded_channel::<nofy_acp_lib::AcpClientMessage>();
+            let (persistence_tx, mut persistence_rx) = mpsc::unbounded_channel::<PersistenceMsg>();
+            let actor = create_test_actor(86_000, 100_000, 85, gateway_tx, persistence_tx).await;
+            let selected = std::num::NonZeroU64::new(200_000).unwrap();
+            actor
+                .compaction
+                .context_window_selection
+                .set(Some(selected));
+            actor
+                .handle_set_session_model(
+                    nofy_sampler::SamplerConfig {
+                        model: "test".into(),
+                        context_window: 100_000,
+                        ..Default::default()
+                    },
+                    false,
+                    false,
+                    true,
+                    85,
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                actor
+                    .chat_state_handle
+                    .get_sampling_config()
+                    .await
+                    .unwrap()
+                    .context_window,
+                selected
+            );
+            assert!(actor.check_auto_compact_needed().await.is_none());
+            let mut persisted = false;
+            while let Ok(message) = persistence_rx.try_recv() {
+                if let PersistenceMsg::CurrentModel {
+                    context_window_selection,
+                    ..
+                } = message
+                {
+                    assert_eq!(context_window_selection, Some(Some(selected)));
+                    persisted = true;
+                }
+            }
+            assert!(
+                persisted,
+                "selection must be persisted with the selected model"
+            );
+            actor.compaction.context_window_selection.set(None);
+            actor
+                .handle_set_session_model(
+                    nofy_sampler::SamplerConfig {
+                        model: "test".into(),
+                        context_window: 100_000,
+                        ..Default::default()
+                    },
+                    false,
+                    false,
+                    true,
+                    85,
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                actor
+                    .chat_state_handle
+                    .get_sampling_config()
+                    .await
+                    .unwrap()
+                    .context_window
+                    .get(),
+                100_000
+            );
+            assert!(actor.check_auto_compact_needed().await.is_some());
+        })
+        .await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn non_menu_server_cap_survives_effort_restore_and_clears_on_model_change() {
+    tokio::task::LocalSet::new()
+        .run_until(async {
+            let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel();
+            let (persistence_tx, mut persistence_rx) = mpsc::unbounded_channel();
+            let actor = create_test_actor(86_000, 100_000, 85, gateway_tx, persistence_tx).await;
+            let choice = std::num::NonZeroU64::new(200_000).unwrap();
+            let confirmed = std::num::NonZeroU64::new(150_000).unwrap();
+            actor.compaction.context_window_selection.set(Some(choice));
+            // A server-confirmed overflow ceiling is not a user menu choice.
+            *actor.compaction.server_context_window.borrow_mut() =
+                Some(crate::session::persistence::ServerContextWindow {
+                    model: "test".into(),
+                    window: confirmed,
+                });
+            for effort in [
+                nofy_sampling_types::ReasoningEffort::Low,
+                nofy_sampling_types::ReasoningEffort::High,
+            ] {
+                actor
+                    .handle_set_session_model(
+                        nofy_sampler::SamplerConfig {
+                            model: "test".into(),
+                            context_window: 100_000,
+                            reasoning_effort: Some(effort),
+                            ..Default::default()
+                        },
+                        false,
+                        false,
+                        true,
+                        85,
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(
+                    actor.compaction.context_window_selection.get(),
+                    Some(choice)
+                );
+                assert_eq!(
+                    actor
+                        .chat_state_handle
+                        .get_sampling_config()
+                        .await
+                        .unwrap()
+                        .context_window,
+                    confirmed
+                );
+            }
+            let persisted_cap = std::iter::from_fn(|| persistence_rx.try_recv().ok())
+                .find_map(|message| match message {
+                    PersistenceMsg::CurrentModel {
+                        server_context_window: Some(Some(cap)),
+                        ..
+                    } => Some(cap),
+                    _ => None,
+                })
+                .unwrap();
+            let restored =
+                serde_json::from_value(serde_json::to_value(persisted_cap).unwrap()).unwrap();
+            *actor.compaction.server_context_window.borrow_mut() = Some(restored);
+            actor
+                .handle_set_session_model(
+                    nofy_sampler::SamplerConfig {
+                        model: "test".into(),
+                        context_window: 100_000,
+                        reasoning_effort: Some(nofy_sampling_types::ReasoningEffort::High),
+                        ..Default::default()
+                    },
+                    false,
+                    false,
+                    true,
+                    85,
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                actor
+                    .chat_state_handle
+                    .get_sampling_config()
+                    .await
+                    .unwrap()
+                    .context_window,
+                confirmed
+            );
+            actor
+                .handle_set_session_model(
+                    nofy_sampler::SamplerConfig {
+                        model: "other".into(),
+                        context_window: 100_000,
+                        ..Default::default()
+                    },
+                    false,
+                    false,
+                    true,
+                    85,
+                )
+                .await
+                .unwrap();
+            assert!(actor.compaction.server_context_window.borrow().is_none());
+            assert_eq!(
+                actor
+                    .chat_state_handle
+                    .get_sampling_config()
+                    .await
+                    .unwrap()
+                    .context_window,
+                choice
+            );
+        })
+        .await;
+}
+
+/// Response-header downgrade guard: `handle_model_metadata_update`
 /// must reject a smaller context_window from response headers but
 /// accept a larger one.
 #[tokio::test(flavor = "current_thread")]
@@ -530,6 +728,8 @@ async fn create_test_actor_with_memory(
             threshold_percent: std::cell::Cell::new(threshold_percent),
             force_compact: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             context_window_override: None,
+            context_window_selection: std::cell::Cell::new(None),
+            server_context_window: std::cell::RefCell::new(None),
             count: std::sync::atomic::AtomicU64::new(0),
             auto_compact_suppressed: std::sync::atomic::AtomicU8::new(0),
             previous_model: std::cell::Cell::new(None),
@@ -1335,6 +1535,8 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                     threshold_percent: std::cell::Cell::new(85),
                     force_compact: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
                     context_window_override: None,
+                    context_window_selection: std::cell::Cell::new(None),
+                    server_context_window: std::cell::RefCell::new(None),
                     count: std::sync::atomic::AtomicU64::new(0),
                     auto_compact_suppressed: std::sync::atomic::AtomicU8::new(0),
                     previous_model: std::cell::Cell::new(None),

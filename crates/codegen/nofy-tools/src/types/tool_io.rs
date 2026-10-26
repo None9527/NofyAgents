@@ -161,6 +161,7 @@ mod tests {
         let bash: Result<BashToolInput, _> = ToolInput::Bash(BashToolInput {
             command: "ls".into(),
             timeout: None,
+            block_until_ms: None,
             description: "list files".into(),
             is_background: false,
         })

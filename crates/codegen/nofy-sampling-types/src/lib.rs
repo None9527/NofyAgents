@@ -26,6 +26,8 @@ pub use self::error::{
     user_facing_api_error_message,
 };
 pub use self::types::*;
+pub mod model_notice;
+pub use model_notice::{ModelNotice, ModelNoticeSeverity, parse_model_notice_meta};
 
 // Re-export async-openai crate Responses API types under `rs` namespace
 pub use async_openai::types::responses as rs;

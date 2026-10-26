@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * contextModel —— 上下文圆环浮层的视图模型（纯函数，node 下可测）。
  *
@@ -120,15 +121,15 @@ export function localizeDetail(detail: string | null): string | null {
   if (detail === null) return null;
   const m = /^(\d+)\s+(skill|workflow|server)s?$/.exec(detail.trim());
   if (m === null) return detail;
-  const noun = m[2] === "skill" ? "个技能" : m[2] === "workflow" ? "个工作流" : "个服务器";
+  const noun = m[2] === "skill" ? tr("个技能") : m[2] === "workflow" ? tr("个工作流") : tr("个服务器");
   return m[1] + " " + noun;
 }
 
 /** usageCategories 的 label 是内核给的英文显示名；已知三项译中文，未知原样。 */
 export function localizeCategoryLabel(label: string): string {
-  if (label === "Skills") return "技能清单";
-  if (label === "Workflows") return "工作流清单";
-  if (label === "MCP servers") return "MCP 服务器清单";
+  if (label === "Skills") return tr("技能清单");
+  if (label === "Workflows") return tr("工作流清单");
+  if (label === "MCP servers") return tr("MCP 服务器清单");
   return label;
 }
 
@@ -144,16 +145,16 @@ export function contextSegments(ctx: ContextInfo): ContextSegment[] {
   const raw: Array<{ id: string; label: string; tokens: number | null; detail: string | null }> = [
     {
       id: "messages",
-      label: "消息",
+      label: tr("消息"),
       tokens: ctx.messageTokens,
-      detail: ctx.messageCount !== null ? ctx.messageCount + " 条" : null,
+      detail: ctx.messageCount !== null ? ctx.messageCount + tr(" 条") : null,
     },
-    { id: "system_prompt", label: "系统提示", tokens: ctx.systemPromptTokens, detail: null },
+    { id: "system_prompt", label: tr("系统提示"), tokens: ctx.systemPromptTokens, detail: null },
     {
       id: "system_tool_schemas",
-      label: "工具定义",
+      label: tr("工具定义"),
       tokens: ctx.toolDefinitionsTokens,
-      detail: ctx.toolDefinitionsCount !== null ? ctx.toolDefinitionsCount + " 个工具" : null,
+      detail: ctx.toolDefinitionsCount !== null ? ctx.toolDefinitionsCount + tr(" 个工具") : null,
     },
   ];
   const kept = raw.filter((r): r is { id: string; label: string; tokens: number; detail: string | null } =>
@@ -190,20 +191,20 @@ export function tokensToThreshold(ctx: ContextInfo): number | null {
 
 export function contextStats(ctx: ContextInfo): ContextStat[] {
   const out: ContextStat[] = [
-    { id: "free", label: "剩余可用", value: formatTokens(ctx.freeTokens) + " tok", strong: true },
+    { id: "free", label: tr("剩余可用"), value: formatTokens(ctx.freeTokens) + " tok", strong: true },
   ];
   const gap = tokensToThreshold(ctx);
   if (ctx.thresholdPct !== null) {
     out.push({
       id: "threshold",
-      label: "自动压缩阈值",
-      value: ctx.thresholdPct + "%" + (gap !== null ? " · 还剩 " + formatTokens(gap) + " tok" : ""),
+      label: tr("自动压缩阈值"),
+      value: ctx.thresholdPct + "%" + (gap !== null ? tr(" · 还剩 ") + formatTokens(gap) + " tok" : ""),
     });
   }
-  if (ctx.turnCount !== null) out.push({ id: "turns", label: "回合", value: String(ctx.turnCount) });
-  if (ctx.toolCallCount !== null) out.push({ id: "tools", label: "工具调用", value: String(ctx.toolCallCount) });
+  if (ctx.turnCount !== null) out.push({ id: "turns", label: tr("回合"), value: String(ctx.turnCount) });
+  if (ctx.toolCallCount !== null) out.push({ id: "tools", label: tr("工具调用"), value: String(ctx.toolCallCount) });
   if (ctx.compactionCount !== null) {
-    out.push({ id: "compactions", label: "已压缩", value: String(ctx.compactionCount) + " 次" });
+    out.push({ id: "compactions", label: tr("已压缩"), value: String(ctx.compactionCount) + tr(" 次") });
   }
   return out;
 }
@@ -214,20 +215,20 @@ export function cacheStats(cache: CacheView): ContextStat[] {
   return [
     {
       id: "cache-hit",
-      label: "本轮缓存命中",
+      label: tr("本轮缓存命中"),
       value: cache.hit === null ? "—" : String(Math.round(cache.hit * 1000) / 10) + "%",
       strong: true,
     },
     {
       id: "cache-split",
-      label: "缓存 读/建/未缓存",
+      label: tr("缓存 读/建/未缓存"),
       value:
         formatTokens(cache.read) + " / " + formatTokens(cache.creation) + " / " + formatTokens(cache.uncached),
     },
   ];
 }
 
-const EMPTY_LABEL = "上下文用量：等待内核回传（_nofy/session/info 的 context 块）";
+const EMPTY_LABEL = tr("上下文用量：等待内核回传（_nofy/session/info 的 context 块）");
 
 /** ctx=null 也要给一个视图：track 环常亮、arc 0、文案诚实（活壳同行为）。 */
 export function contextView(ctx: ContextInfo | null, turn: TurnUsage | null = null): ContextView {
@@ -235,7 +236,7 @@ export function contextView(ctx: ContextInfo | null, turn: TurnUsage | null = nu
   if (ctx === null) {
     return {
       hasData: false,
-      title: "上下文用量",
+      title: tr("上下文用量"),
       summary: "—",
       ringLabel: EMPTY_LABEL,
       pct: 0,
@@ -253,13 +254,13 @@ export function contextView(ctx: ContextInfo | null, turn: TurnUsage | null = nu
   const warn = ctx.thresholdPct !== null && pct >= ctx.thresholdPct;
   return {
     hasData: true,
-    title: "上下文用量",
+    title: tr("上下文用量"),
     summary: formatTokens(ctx.used) + " / " + formatTokens(ctx.total) + "（" + String(pct) + "%）",
     ringLabel:
-      "上下文已用 " + formatTokens(ctx.used) + " / 总量 " + formatTokens(ctx.total) +
-      "（" + String(pct) + "%，余 " + formatTokens(ctx.freeTokens) + " tok）" +
-      (ctx.thresholdPct !== null ? " · 自动压缩阈值 " + String(ctx.thresholdPct) + "%" : "") +
-      (cache.hit !== null ? " · 本轮缓存命中 " + String(Math.round(cache.hit * 1000) / 10) + "%" : ""),
+      tr("上下文已用 ") + formatTokens(ctx.used) + tr(" / 总量 ") + formatTokens(ctx.total) +
+      "（" + String(pct) + tr("%，余 ") + formatTokens(ctx.freeTokens) + " tok）" +
+      (ctx.thresholdPct !== null ? tr(" · 自动压缩阈值 ") + String(ctx.thresholdPct) + "%" : "") +
+      (cache.hit !== null ? tr(" · 本轮缓存命中 ") + String(Math.round(cache.hit * 1000) / 10) + "%" : ""),
     pct,
     ratio,
     warn,

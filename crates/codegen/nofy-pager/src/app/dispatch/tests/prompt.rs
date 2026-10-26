@@ -2,6 +2,33 @@
 
 use super::*;
 
+#[test]
+fn failed_load_rejects_model_submissions_but_allows_local_recovery() {
+    let mut app = test_app_with_agent();
+    let id = AgentId(0);
+    app.agents.get_mut(&id).unwrap().load_failed = true;
+    app.agents
+        .get_mut(&id)
+        .unwrap()
+        .prompt
+        .set_text("keep draft");
+    for text in ["hello", "/unknown-command"] {
+        let effects = dispatch(Action::SendPrompt(text.into()), &mut app);
+        assert!(effects.is_empty());
+        assert!(app.agents[&id].session.pending_prompts.is_empty());
+    }
+    assert!(
+        super::super::prompt::dispatch_send_bash_command(&mut app, "echo no".into()).is_empty()
+    );
+    assert_eq!(app.agents[&id].prompt.text(), "keep draft");
+    assert!(!dispatch(Action::SendPrompt("/new".into()), &mut app).is_empty());
+    app.agents
+        .get_mut(&id)
+        .unwrap()
+        .bind_session_id(acp::SessionId::new("recovered"));
+    assert!(!app.agents[&id].load_failed);
+}
+
 /// Sending a prompt is a submit: it retires the active ephemeral tip.
 #[test]
 fn send_prompt_clears_active_ephemeral_tip() {

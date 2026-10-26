@@ -1,0 +1,17 @@
+{
+  "source": "isolated Electron + synthetic ACP",
+  "cases": [
+    {
+      "name": "S01 navigation and project tools fit every sidebar width",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: {\"side\":{\"x\":0,\"y\":0,\"width\":200,\"height\":900,\"top\":0,\"right\":200,\"bottom\":900,\"left\":0},\"nav\":{\"x\":0,\"y\":0,\"width\":220,\"height\":56,\"top\":0,\"right\":220,\"bottom\":56,\"left\":0},\"buttons\":[{\"name\":\"切换侧边栏\",\"rect\":{\"x\":96,\"y\":16,\"width\":28,\"height\":28,\"top\":16,\"right\":124,\"bottom\":44,\"left\":96},\"region\":\"none\"},{\"name\":\"后退\",\"rect\":{\"x\":128,\"y\":16,\"width\":28,\"height\":28,\"top\":16,\"right\":156,\"bottom\":44,\"left\":128},\"region\":\"none\"},{\"name\":\"前进\",\"rect\":{\"x\":160,\"y\":16,\"width\":28,\"height\":28,\"top\":16,\"right\":188,\"bottom\":44,\"left\":160},\"region\":\"none\"},{\"name\":\"新建任务\",\"rect\":{\"x\":192,\"y\":16,\"width\":28,\"height\":28,\"top\":16,\"right\":220,\"bottom\":44,\"left\":192},\"region\":\"none\"},{\"name\":\"分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）\",\"rect\":{\"x\":12,\"y\":214,\"width\":55,\"height\":24,\"top\":214,\"right\":67,\"bottom\":238,\"left\":12},\"region\":\"none\"},{\"name\":\"项目：按工作区分组，组内是该工作区的任务\",\"rect\":{\"x\":67,\"y\":214,\"width\":55,\"height\":24,\"top\":214,\"right\":122,\"bottom\":238,\"left\":67},\"region\":\"none\"},{\"name\":\"收起全部\",\"rect\":{\"x\":128,\"y\":214,\"width\":24,\"height\":24,\"top\":214,\"right\":152,\"bottom\":238,\"left\":128},\"region\":\"none\"},{\"name\":\"筛选和排序\",\"rect\":{\"x\":160,\"y\":214,\"width\":24,\"height\":24,\"top\":214,\"right\":184,\"bottom\":238,\"left\":160},\"region\":\"none\"},{\"name\":\"查看归档会话\",\"rect\":{\"x\":188,\"y\":214,\"width\":24,\"height\":24,\"top\":214,\"right\":212,\"bottom\":238,\"left\":188},\"region\":\"none\"}]}"
+    },
+    {
+      "name": "S02 real button collapse keeps a visible reopen button",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: collapse removed the only reopen control\n\n0 !== 1\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/sidebar-2026-10-12T03-26-00.275Z"
+}

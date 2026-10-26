@@ -107,7 +107,7 @@ fn gateway_result_is_error(result: &serde_json::Value) -> bool {
 
 fn gateway_result_to_text(result: serde_json::Value) -> String {
     if let Some(content) = result.get("content").and_then(|v| v.as_array()) {
-        let parts: Vec<String> = content
+        let mut parts: Vec<String> = content
             .iter()
             .filter_map(|item| {
                 if item.get("type").and_then(|v| v.as_str()) == Some("text") {
@@ -128,6 +128,14 @@ fn gateway_result_to_text(result: serde_json::Value) -> String {
                 }
             })
             .collect();
+        if let Some(structured) = crate::util::mcp_structured_content::render_structured_content(
+            result
+                .get("structuredContent")
+                .or_else(|| result.get("structured_content")),
+            parts.iter().map(String::as_str),
+        ) {
+            parts.push(structured);
+        }
         if !parts.is_empty() {
             return parts.join("\n");
         }
@@ -147,6 +155,34 @@ fn normalize_mcp_arguments(input: serde_json::Value) -> serde_json::Value {
         },
         serde_json::Value::Null => serde_json::json!({}),
         other => other,
+    }
+}
+
+#[cfg(test)]
+mod structured_gateway_tests {
+    use super::gateway_result_to_text;
+    #[test]
+    fn summary_does_not_discard_structured_payload() {
+        let rendered = gateway_result_to_text(serde_json::json!({
+            "content":[{"type":"text","text":"Found 2 rows"}],
+            "structuredContent":{"rows":[1,2]}
+        }));
+        assert_eq!(rendered, "Found 2 rows\n{\"rows\":[1,2]}");
+    }
+    #[test]
+    fn inlined_structured_payload_is_not_duplicated() {
+        let rendered = gateway_result_to_text(serde_json::json!({
+            "content":[{"type":"text","text":"Result: {\"rows\":[1,2]}"}],
+            "structured_content":{"rows":[1,2]}
+        }));
+        assert_eq!(rendered, "Result: {\"rows\":[1,2]}");
+    }
+    #[test]
+    fn empty_content_still_carries_structured_scalar() {
+        assert_eq!(
+            gateway_result_to_text(serde_json::json!({"content":[],"structuredContent":false})),
+            "false"
+        );
     }
 }
 

@@ -1159,6 +1159,30 @@ impl StorageAdapter for JsonlStorageAdapter {
         )
         .await
     }
+    async fn update_current_model_and_context(
+        &self,
+        info: &Info,
+        model_id: &acp::ModelId,
+        agent: Option<&crate::session::persistence::PersistedAgent>,
+        reasoning_effort: Option<Option<nofy_sampling_types::ReasoningEffort>>,
+        context_window_selection: Option<Option<std::num::NonZeroU64>>,
+        server_context_window: Option<Option<crate::session::persistence::ServerContextWindow>>,
+    ) -> io::Result<()> {
+        self.apply_summary_patch(
+            info,
+            super::summary_write::SummaryPatch {
+                model: Some(super::summary_write::ModelPatch {
+                    model_id: model_id.clone(),
+                    reasoning_effort,
+                }),
+                agent: agent.cloned(),
+                context_window_selection,
+                server_context_window,
+                ..Default::default()
+            },
+        )
+        .await
+    }
     async fn update_collection_id(&self, info: &Info, collection_id: &str) -> io::Result<()> {
         self.apply_summary_patch(
             info,

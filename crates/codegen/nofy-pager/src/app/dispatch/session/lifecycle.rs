@@ -1059,6 +1059,9 @@ pub(in crate::app::dispatch) fn handle_session_created(
         if let Some(m) = new_models {
             app.models = Some(m).into();
             agent.session.models = app.models.clone();
+            if let Some(notice) = agent.session.models.take_current_notice() {
+                agent.scrollback.push_block(RenderBlock::system(notice));
+            }
         }
         let deferred = apply_deferred_model_switch(agent, app.cli_effort_token.as_deref());
         let deferred_mode = agent.deferred_session_mode.take();
@@ -1153,6 +1156,9 @@ pub(in crate::app::dispatch) fn handle_worktree_session_created(
         if let Some(m) = new_models {
             app.models = Some(m).into();
             agent.session.models = app.models.clone();
+            if let Some(notice) = agent.session.models.take_current_notice() {
+                agent.scrollback.push_block(RenderBlock::system(notice));
+            }
         }
         agent.prompt.file_search.retarget(&session_cwd);
         agent.scrollback.push_block(RenderBlock::system(format!(
@@ -1394,6 +1400,9 @@ pub(in crate::app::dispatch) fn handle_switch_model_complete(
                 let prev_model = agent.session.models.current.clone();
                 let prev_effort = agent.session.models.reasoning_effort;
                 agent.session.models.set_current(model_id.clone(), effort);
+                if let Some(notice) = agent.session.models.take_current_notice() {
+                    agent.scrollback.push_block(RenderBlock::system(notice));
+                }
                 let resolved_effort = agent.session.models.reasoning_effort;
                 let unchanged =
                     prev_model.as_ref() == Some(&model_id) && prev_effort == resolved_effort;

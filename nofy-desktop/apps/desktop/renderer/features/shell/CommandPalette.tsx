@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * CommandPalette —— ⌘K 命令中心（生态面 #1）。
  *
@@ -20,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactElement, ReactNode } from "react";
 import { clearPaletteHistory, loadPaletteHistory, savePaletteHistory } from "../../ui/prefs.ts";
 import {
-  IconBoxes, IconClock, IconEdit, IconFile, IconFolder, IconGear, IconInfo, IconMark,
+  IconBoxes, IconClock, IconEdit, IconFile, IconFolder, IconGear, IconGlobe, IconInfo, IconMark,
   IconMessage, IconPalette, IconPanelRight, IconPlus, IconSearch, IconShield, IconTerminal, IconZap,
 } from "../../ui/icons.tsx";
 import {
@@ -32,13 +34,14 @@ import { SCOPE_LABEL, SCOPE_ORDER } from "./palette.ts";
 const ICONS: Record<IconKey, (p: { size?: number; className?: string }) => ReactElement> = {
   plus: IconPlus, search: IconSearch, gear: IconGear, terminal: IconTerminal, panel: IconPanelRight,
   palette: IconPalette, message: IconMessage, folder: IconFolder, mark: IconMark, edit: IconEdit,
-  info: IconInfo, shield: IconShield, clock: IconClock, boxes: IconBoxes, file: IconFile, zap: IconZap,
+  info: IconInfo, shield: IconShield, clock: IconClock, boxes: IconBoxes, file: IconFile, zap: IconZap, globe: IconGlobe,
 };
 
 const SCOPE_ICON: Record<PaletteScope, IconKey> = { all: "boxes", commands: "zap", sessions: "message" };
 
 /** 查询词高亮（抄 QuickPick :1001 HighlightedText 的行为，自写实现）。 */
 function Highlight({ text, ranges }: { text: string; ranges: Array<{ start: number; end: number }> }) {
+  useLocale();
   if (ranges.length === 0) return <>{text}</>;
   const nodes: ReactNode[] = [];
   let cursor = 0;
@@ -64,6 +67,7 @@ export type CommandPaletteProps = {
 };
 
 export function CommandPalette(props: CommandPaletteProps) {
+  const locale = useLocale();
   const { open, actions, commands, sessions, onClose, onPickCommand, onPickSession } = props;
   const [raw, setRaw] = useState("");
   const [scope, setScope] = useState<PaletteScope>("all");
@@ -76,7 +80,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const view = useMemo(
     () => buildPaletteView({ rawQuery: raw, scope, actions, commands, sessions, expanded }),
-    [raw, scope, actions, commands, sessions, expanded],
+    [raw, scope, actions, commands, sessions, expanded, locale],
   );
 
   // 打开即复位并载入历史（抄 :2255 的 open/close effect）
@@ -177,7 +181,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   return (
     <>
       <div className="palette__overlay" onClick={onClose} />
-      <div className="palette" role="dialog" aria-modal="true" aria-label="命令中心">
+      <div className="palette" role="dialog" aria-modal="true" aria-label={tr("命令中心")}>
         <div className="palette__head">
           <div className="palette__field">
             <IconSearch size={15} className="palette__field-icon" />
@@ -191,12 +195,12 @@ export function CommandPalette(props: CommandPaletteProps) {
               aria-expanded={view.flat.length > 0}
               aria-controls="palette-list"
               aria-activedescendant={view.flat[index] !== undefined ? "palette-row-" + view.flat[index]!.key : undefined}
-              placeholder="搜索命令与会话…（> 命令，# 会话）"
+              placeholder={tr("搜索命令与会话…（> 命令，# 会话）")}
               onChange={(e) => setRaw(e.target.value)}
               onKeyDown={onKeyDown}
             />
           </div>
-          <div className="palette__scopes" role="tablist" aria-label="搜索范围">
+          <div className="palette__scopes" role="tablist" aria-label={tr("搜索范围")}>
             {SCOPE_ORDER.map((s) => {
               const Icon = ICONS[SCOPE_ICON[s]];
               const active = view.scope === s;
@@ -207,7 +211,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                   role="tab"
                   aria-selected={active}
                   className={"palette__scope" + (active ? " palette__scope--active" : "")}
-                  title={s === "all" ? "全部（默认）" : "前缀 " + scopePrefix(s) + " 可直接切到本范围"}
+                  title={s === "all" ? tr("全部（默认）") : tr("前缀 ") + scopePrefix(s) + tr(" 可直接切到本范围")}
                   onClick={() => {
                     setScope(s);
                     // 输入框带显式前缀时，切 tab 同步去掉前缀（抄 :2372 changeScope）
@@ -222,12 +226,12 @@ export function CommandPalette(props: CommandPaletteProps) {
           </div>
         </div>
 
-        <div className="palette__list" id="palette-list" role="listbox" aria-label="结果">
+        <div className="palette__list" id="palette-list" role="listbox" aria-label={tr("结果")}>
           {view.empty ? (
             <p className="palette__empty">
               {view.query.length === 0
-                ? "没有可用的命令或会话。"
-                : "没有匹配「" + view.query + "」的结果。"}
+                ? tr("没有可用的命令或会话。")
+                : tr("没有匹配「") + view.query + tr("」的结果。")}
             </p>
           ) : null}
           {view.groups.map((group) => (
@@ -285,8 +289,8 @@ export function CommandPalette(props: CommandPaletteProps) {
                           <Highlight text={titleOf(row.session)} ranges={findHighlightRanges(titleOf(row.session), view.query)} />
                         </span>
                         {/* 行尾两段小字，抄 QuickPick 的 workspaceLabel + MetaText（:2495-2500） */}
-                        {row.session.loaded ? null : <span className="palette__tag">未加载</span>}
-                        {row.session.active ? <span className="palette__tag palette__tag--on">当前</span> : null}
+                        {row.session.loaded ? null : <span className="palette__tag">{tr("未加载")}</span>}
+                        {row.session.active ? <span className="palette__tag palette__tag--on">{tr("当前")}</span> : null}
                         <span className="palette__meta">
                           {workspaceLabel(row.session.cwd) ?? row.session.activity ?? ""}
                         </span>
@@ -303,9 +307,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                   type="button"
                   className="palette__more"
                   onClick={() => setExpanded((prev) => new Set(prev).add(group.key))}
-                >
-                  更多结果（还有 {String(group.total - group.rows.length)} 条）
-                </button>
+                >{tr("更多结果（还有")}{String(group.total - group.rows.length)}{tr("条）")}</button>
               ) : null}
             </section>
           ))}
@@ -314,7 +316,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         {view.query.length === 0 && history.length > 0 ? (
           <div className="palette__foot">
             <div className="palette__foot-head">
-              <span>最近搜索</span>
+              <span>{tr("最近搜索")}</span>
               <button
                 type="button"
                 className="palette__foot-clear"
@@ -322,9 +324,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                   clearPaletteHistory();
                   setHistory([]);
                 }}
-              >
-                清除
-              </button>
+              >{tr("清除")}</button>
             </div>
             <div className={"palette__chips" + (historyOpen ? " palette__chips--open" : "")}>
               {history.map((entry) => (
@@ -346,18 +346,18 @@ export function CommandPalette(props: CommandPaletteProps) {
               ))}
               {history.length > 6 ? (
                 <button type="button" className="palette__chip-toggle" onClick={() => setHistoryOpen((v) => !v)}>
-                  {historyOpen ? "收起" : "展开"}
+                  {historyOpen ? tr("收起") : tr("展开")}
                 </button>
               ) : null}
             </div>
           </div>
         ) : (
           <div className="palette__foot palette__foot--hints">
-            <span><kbd className="palette__kbd">↑</kbd><kbd className="palette__kbd">↓</kbd> 选择</span>
-            <span><kbd className="palette__kbd">↵</kbd> 执行</span>
-            <span><kbd className="palette__kbd">esc</kbd> 关闭</span>
+            <span><kbd className="palette__kbd">↑</kbd><kbd className="palette__kbd">↓</kbd>{tr("选择")}</span>
+            <span><kbd className="palette__kbd">↵</kbd>{tr("执行")}</span>
+            <span><kbd className="palette__kbd">esc</kbd>{tr("关闭")}</span>
             <span className="palette__spacer" />
-            <span className="palette__count">{String(view.flat.length)} 项</span>
+            <span className="palette__count">{String(view.flat.length)}{tr("项")}</span>
           </div>
         )}
       </div>
@@ -366,6 +366,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 }
 
 function RowIcon({ name }: { name: IconKey }) {
+  useLocale();
   const Icon = ICONS[name];
   return (
     <span className="palette__icon">
@@ -376,5 +377,5 @@ function RowIcon({ name }: { name: IconKey }) {
 
 function titleOf(s: PaletteSession): string {
   const t = s.title?.trim() ?? "";
-  return t.length === 0 ? "未命名会话" : t;
+  return t.length === 0 ? tr("未命名会话") : t;
 }

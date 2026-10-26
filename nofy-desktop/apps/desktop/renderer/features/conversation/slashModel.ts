@@ -1,3 +1,4 @@
+import { tr } from "../../ui/i18n.ts";
 /**
  * slashModel —— composer 斜杠面板的纯模型（node 下可测）。
  *
@@ -80,10 +81,10 @@ export function filterSlashGroups(cmds: CommandInfo[], query: string): SlashView
   const matched = builtins.length + skills.length;
   const groups: SlashGroup[] = [];
   if (shownBuiltins.length > 0) {
-    groups.push({ id: "builtin", label: "命令", rows: shownBuiltins.map((r) => r.cmd) });
+    groups.push({ id: "builtin", label: tr("命令"), rows: shownBuiltins.map((r) => r.cmd) });
   }
   if (shownSkills.length > 0) {
-    groups.push({ id: "skill", label: "技能", rows: shownSkills.map((r) => r.cmd) });
+    groups.push({ id: "skill", label: tr("技能"), rows: shownSkills.map((r) => r.cmd) });
   }
   return {
     open: groups.length > 0,

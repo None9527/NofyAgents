@@ -39,6 +39,7 @@ pub mod observation_store;
 pub mod query_expansion;
 pub mod retention;
 pub mod schema;
+pub mod scope_write_lock;
 pub mod search;
 pub mod service;
 pub mod state;

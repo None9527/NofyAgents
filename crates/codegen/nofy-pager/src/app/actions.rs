@@ -389,6 +389,11 @@ pub enum Action {
         model_id: acp::ModelId,
         effort: Option<ReasoningEffort>,
     },
+    SwitchModelContext {
+        model_id: acp::ModelId,
+        effort: Option<ReasoningEffort>,
+        context_window: Option<u64>,
+    },
     /// Cancel the currently running turn.
     CancelTurn,
     /// User confirmed a cancel-turn choice from the panel.
@@ -1536,6 +1541,13 @@ pub enum Effect {
         prev_model_id: Option<acp::ModelId>,
     },
     /// Persist the hidden announcement ids to disk.
+    SwitchModelContext {
+        agent_id: AgentId,
+        session_id: acp::SessionId,
+        model_id: acp::ModelId,
+        effort: Option<ReasoningEffort>,
+        context_window: Option<u64>,
+    },
     PersistAnnouncementsHidden {
         hidden_ids: std::collections::BTreeSet<String>,
     },
@@ -2312,6 +2324,12 @@ pub enum TaskResult {
         prev_model_id: Option<acp::ModelId>,
     },
     /// Announcements hidden state persisted.
+    SwitchModelContextComplete {
+        agent_id: AgentId,
+        model_id: acp::ModelId,
+        effort: Option<ReasoningEffort>,
+        result: Result<(Option<u64>, Option<u64>), SwitchModelError>,
+    },
     AnnouncementsHiddenPersisted {
         result: Result<(), String>,
     },

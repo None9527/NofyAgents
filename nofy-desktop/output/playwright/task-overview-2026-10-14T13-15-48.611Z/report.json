@@ -1,0 +1,92 @@
+{
+  "source": "isolated Electron with synthetic ACP; no real model requests",
+  "cases": [
+    {
+      "name": "A01 real projection populates task sources and Git summary",
+      "status": "passed"
+    },
+    {
+      "name": "A02 source opens the existing file workspace and details",
+      "status": "passed"
+    },
+    {
+      "name": "A03 pinned overview adapts overlay / shift / gutter and preserves section choice",
+      "status": "passed",
+      "details": [
+        {
+          "width": 900,
+          "mode": "closed",
+          "panel": {
+            "x": 533,
+            "y": 44.5,
+            "width": 298,
+            "height": 180,
+            "top": 44.5,
+            "right": 831,
+            "bottom": 224.5,
+            "left": 533
+          },
+          "overflow": false
+        },
+        {
+          "width": 1440,
+          "mode": "shift",
+          "panel": {
+            "x": 1125,
+            "y": 61,
+            "width": 298,
+            "height": 180,
+            "top": 61,
+            "right": 1423,
+            "bottom": 241,
+            "left": 1125
+          },
+          "overflow": false
+        },
+        {
+          "width": 1920,
+          "mode": "gutter",
+          "panel": {
+            "x": 1605,
+            "y": 61,
+            "width": 298,
+            "height": 180,
+            "top": 61,
+            "right": 1903,
+            "bottom": 241,
+            "left": 1605
+          },
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "A03b short viewport scrolls overview and preserves a visible input",
+      "status": "passed"
+    },
+    {
+      "name": "A03c overview routes to agent and review details",
+      "status": "passed"
+    },
+    {
+      "name": "A04 Git failure is visible and retry restores data",
+      "status": "passed"
+    },
+    {
+      "name": "A05 shared session menu supports keyboard, rename failure and retry",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for getByRole('menuitem', { name: '置顶会话', exact: true })\n"
+    },
+    {
+      "name": "A06 running task cannot fork or archive; another task has no leaked sources",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: '会话操作', exact: true })\n    - locator resolved to <button title=\"会话操作\" type=\"button\" aria-haspopup=\"menu\" aria-expanded=\"true\" class=\"menu__trigger menu__trigger--icon menu__trigger--open\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <span class=\"menu__overlay\"></span> intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    11 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <span class=\"menu__overlay\"></span> intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "name": "A07 280px middle pane retains both task controls without header overflow",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/task-overview-2026-10-14T13-15-48.611Z"
+}

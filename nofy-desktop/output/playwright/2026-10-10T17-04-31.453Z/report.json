@@ -1,0 +1,71 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T17:04:31.454Z",
+  "cases": [
+    {
+      "name": "E01 startup cwd and one kernel",
+      "status": "passed",
+      "durationMs": 1
+    },
+    {
+      "name": "E03 isolated A B A drafts",
+      "status": "passed",
+      "durationMs": 260
+    },
+    {
+      "name": "E02 ordinary prompt via GUI",
+      "status": "passed",
+      "durationMs": 58
+    },
+    {
+      "name": "E04 rename echo",
+      "status": "passed",
+      "durationMs": 155
+    },
+    {
+      "name": "E07 approve plan once",
+      "status": "passed",
+      "durationMs": 328
+    },
+    {
+      "name": "E08 MCP validates then submits flat content",
+      "status": "passed",
+      "durationMs": 500
+    },
+    {
+      "name": "E09 queue edit remove clear",
+      "status": "passed",
+      "durationMs": 261
+    },
+    {
+      "name": "E11 disconnect clears old approval and reissues one fresh request",
+      "status": "passed",
+      "durationMs": 4194
+    },
+    {
+      "name": "M5 IME composition Enter",
+      "status": "passed",
+      "durationMs": 262
+    },
+    {
+      "name": "M5 1000 blocks and input responsiveness",
+      "status": "passed",
+      "durationMs": 1975,
+      "details": {
+        "blocks": 1000,
+        "turns": 500,
+        "loadMs": 1845,
+        "inputAutomationP95Ms": 5,
+        "target": "100ms product target requires native tracing; automation guard 1000ms"
+      }
+    },
+    {
+      "name": "E03 renderer reload restores last session",
+      "status": "passed",
+      "durationMs": 62
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/2026-10-10T17-04-31.453Z",
+  "finishedAt": "2026-10-10T17:04:40.864Z"
+}

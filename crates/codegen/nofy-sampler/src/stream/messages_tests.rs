@@ -452,20 +452,22 @@ async fn model_context_window_exceeded_fails_as_max_tokens_truncation() {
     let raw = stream::iter(events).boxed();
     let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
 
-    assert!(
-        !evs.iter()
-            .any(|e| matches!(e, SamplingEvent::Completed { .. })),
-        "context-window truncation must not complete: {evs:?}"
-    );
     match evs.last().unwrap() {
-        SamplingEvent::Failed { error, .. } => {
-            assert_eq!(
-                error.kind,
-                crate::events::SamplingErrorKind::MaxTokensTruncation
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.stop_reason, Some(StopReason::Length));
+            assert!(matches!(
+                crate::client::apply_length_policy(Default::default(), *response.clone()),
+                Err(SamplingError::MaxTokensTruncation)
+            ));
+            assert!(
+                crate::client::apply_length_policy(
+                    nofy_sampling_types::LengthPolicy::CompletePartial,
+                    *response.clone()
+                )
+                .is_ok()
             );
-            assert!(!error.is_retryable, "truncation is deterministic");
         }
-        other => panic!("expected Failed(MaxTokensTruncation), got {other:?}"),
+        other => panic!("expected Completed(Length), got {other:?}"),
     }
 }
 
@@ -504,8 +506,8 @@ async fn refusal_after_tool_use_blocks_keeps_tool_calls_stop_reason() {
             assert_eq!(response.tool_calls().len(), 1);
             assert_eq!(
                 response.stop_reason,
-                Some(StopReason::ToolCalls),
-                "tool_use blocks must win over the refusal stop_reason"
+                Some(StopReason::ContentFilter),
+                "refusal must remain visible instead of masquerading as tool completion"
             );
         }
         other => panic!("expected Completed, got {other:?}"),
@@ -550,8 +552,8 @@ async fn max_tokens_with_complete_tool_use_completes_instead_of_failing() {
             assert_eq!(response.tool_calls().len(), 1);
             assert_eq!(
                 response.stop_reason,
-                Some(StopReason::ToolCalls),
-                "a complete tool_use block must win over the max_tokens stop"
+                Some(StopReason::Length),
+                "Length must reach the shared policy gate"
             );
             assert!(
                 response.length_truncation_is_actionable(),
@@ -593,19 +595,20 @@ async fn max_tokens_with_truncated_tool_arguments_still_fails() {
     let raw = stream::iter(events).boxed();
     let evs = collect(stream_messages(raw, None, rid(), Duration::from_secs(60))).await;
 
-    assert!(
-        !evs.iter()
-            .any(|e| matches!(e, SamplingEvent::Completed { .. })),
-        "an argument-truncated tool call must not complete: {evs:?}"
-    );
     match evs.last().unwrap() {
-        SamplingEvent::Failed { error, .. } => {
-            assert_eq!(
-                error.kind,
-                crate::events::SamplingErrorKind::MaxTokensTruncation
-            );
+        SamplingEvent::Completed { response, .. } => {
+            assert_eq!(response.stop_reason, Some(StopReason::Length));
+            for policy in [
+                nofy_sampling_types::LengthPolicy::CompleteToolCalls,
+                nofy_sampling_types::LengthPolicy::CompletePartial,
+            ] {
+                assert!(matches!(
+                    crate::client::apply_length_policy(policy, *response.clone()),
+                    Err(SamplingError::MaxTokensTruncation)
+                ));
+            }
         }
-        other => panic!("expected Failed(MaxTokensTruncation), got {other:?}"),
+        other => panic!("expected Completed(Length), got {other:?}"),
     }
 }
 
@@ -816,4 +819,73 @@ async fn pure_cache_hit_with_zero_uncached_still_emits_usage() {
     assert_eq!(usage.prompt_tokens, 2500);
     assert_eq!(usage.cached_prompt_tokens, 2500);
     assert_eq!(usage.total_tokens, 2501);
+}
+
+#[tokio::test]
+async fn seeded_signatures_replace_once_then_append_for_each_reasoning_block() {
+    let mut events = vec![Ok(message_start())];
+    for (index, text, seed, deltas, _) in [
+        (0, "first", "seed", vec!["part-a", "part-b"], "part-apart-b"),
+        (1, "second", "unchanged", vec![], "unchanged"),
+        (2, "", "", vec!["sig-only"], "sig-only"),
+    ] {
+        events.push(Ok(MessageStreamEvent::ContentBlockStart {
+            index,
+            content_block: ContentBlock::Thinking {
+                thinking: text.into(),
+                signature: seed.into(),
+            },
+        }));
+        for delta in deltas {
+            events.push(Ok(MessageStreamEvent::ContentBlockDelta {
+                index,
+                delta: StreamDelta::SignatureDelta {
+                    signature: delta.into(),
+                },
+            }));
+        }
+        events.push(Ok(block_stop(index)));
+    }
+    events.extend([
+        Ok(text_block_start(3)),
+        Ok(text_delta(3, "answer")),
+        Ok(block_stop(3)),
+        Ok(MessageStreamEvent::MessageStop),
+    ]);
+    let evs = collect(stream_messages(
+        stream::iter(events).boxed(),
+        None,
+        rid(),
+        Duration::from_secs(60),
+    ))
+    .await;
+    let signatures: Vec<_> = evs
+        .iter()
+        .filter_map(|event| match event {
+            SamplingEvent::ReasoningCompleted { signature, .. } => Some(signature.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(signatures, ["part-apart-b", "unchanged", "sig-only"]);
+    let SamplingEvent::Completed { response, .. } = evs.last().unwrap() else {
+        panic!("expected completed response");
+    };
+    let reasoning: Vec<_> = response.reasoning_items().collect();
+    assert_eq!(reasoning.len(), 3);
+    assert_eq!(
+        reasoning
+            .iter()
+            .map(|item| item.encrypted_content.as_deref().unwrap())
+            .collect::<Vec<_>>(),
+        signatures
+    );
+    for (item, expected) in reasoning.iter().zip(["first", "second"]) {
+        let rs::SummaryPart::SummaryText(summary) = &item.summary[0];
+        assert_eq!(summary.text, expected);
+    }
+    assert!(reasoning[2].summary.is_empty());
+    assert!(matches!(
+        response.items.last(),
+        Some(ConversationItem::Assistant(_))
+    ));
 }

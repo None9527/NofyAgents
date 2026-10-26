@@ -128,6 +128,10 @@ pub struct CodexReadFileTool;
 // ─── Tests ───────────────────────────────────────────────────────────
 
 impl crate::types::tool_metadata::ToolMetadata for CodexReadFileTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("file_path")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Read
     }

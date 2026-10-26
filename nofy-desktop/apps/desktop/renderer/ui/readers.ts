@@ -1,3 +1,4 @@
+import { tr } from "./i18n.ts";
 /**
  * 载荷读取器 —— 从**未实测/半实测**的 JSON 里安全取值。
  *
@@ -140,7 +141,7 @@ export function preview(value: unknown, max = 400): string {
   } catch {
     text = String(value);
   }
-  return text.length > max ? text.slice(0, max) + " …(截断)" : text;
+  return text.length > max ? text.slice(0, max) + tr(" …(截断)") : text;
 }
 
 /** _nofy/session/info 的 context 块（session-read-shapes.md §2，实测）。 */
@@ -390,6 +391,55 @@ export function readGitStatus(res: unknown): GitStatus {
 
 export function readGitDiffs(res: unknown): GitChange[] {
   return readChanges(asObj(asObj(res)["result"])["files"]);
+}
+
+/** nofy/git/branches ⇒ {result:{currentBranch, repoRoot, branches:[{name,current,remote}]}}。只取这三个字段。 */
+export type GitBranch = { name: string; current: boolean; remote: boolean };
+
+export function readGitBranches(res: unknown): { currentBranch: string | null; branches: GitBranch[] } {
+  const inner = asObj(asObj(res)["result"]);
+  const raw = inner["branches"];
+  const branches: GitBranch[] = [];
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const row = asObj(item);
+      const name = asStr(row["name"]);
+      if (name === null || name === "") continue;
+      branches.push({ name, current: row["current"] === true, remote: row["remote"] === true });
+    }
+  }
+  return { currentBranch: asStr(inner["currentBranch"]), branches };
+}
+
+/**
+ * git 写路径的 ExtMethodResult。成功是 {result:{…}}。
+ * 提交的警告和成功载荷同时在：result 有 commitHash/output，error 是警告原文。
+ * result 为 null 且 error 有字时，error 是失败原文，不翻译。
+ */
+export type GitWriteView = {
+  failure: boolean;
+  detail: string | null;
+  commitHash: string | null;
+  output: string | null;
+};
+
+function readDetail(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() === "" ? null : value;
+  const message = asStr(asObj(value)["message"]);
+  return message !== null && message.trim() !== "" ? message : null;
+}
+
+export function readGitWrite(res: unknown): GitWriteView {
+  const env = asObj(res);
+  const result = env["result"];
+  const body = asObj(result);
+  const missing = result === null || result === undefined;
+  return {
+    failure: missing,
+    detail: readDetail(env["error"]),
+    commitHash: asStr(body["commitHash"]),
+    output: asStr(body["output"]),
+  };
 }
 
 export type GitFileContent = { path: string; version: string | null; content: string | null; isBinary: boolean };
@@ -652,7 +702,7 @@ export function readMcpServers(res: unknown): McpServerRow[] {
     out.push({
       name,
       source: asStr(o["source"]),
-      enabled: o["enabled"] === undefined ? true : asBool(o["enabled"]),
+      enabled: typeof session["enabled"] === "boolean" ? session["enabled"] : o["enabled"] === undefined ? true : asBool(o["enabled"]),
       status: asStr(o["status"]) ?? asStr(session["status"]),
       toolCount: asNum(o["toolCount"]) ?? asNum(session["toolCount"]) ?? tools.length,
       tools,

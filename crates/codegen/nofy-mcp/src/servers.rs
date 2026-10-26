@@ -943,6 +943,7 @@ impl McpState {
                     url: fresh_endpoint.to_string(),
                     headers,
                     local_agent_endpoint: false,
+                    bearer_token_file: None,
                 },
                 None,
                 self.meta_config_map.get(client_name.as_str()),
@@ -1994,6 +1995,7 @@ pub const NOFY_AGENT_ID_HEADER: &str = "X-Nofy-Agent-ID";
 pub struct HttpConfig {
     pub url: String,
     pub headers: Vec<(String, String)>,
+    pub bearer_token_file: Option<crate::bearer_token_file::BearerTokenFile>,
     /// This server is a first-party local app endpoint addressed by
     /// [`NOFY_AGENT_ID_HEADER`]. Set only from the spawn context — never
     /// inferred from caller headers — and it keys the transport hardening
@@ -3865,6 +3867,9 @@ impl McpClient {
     > {
         let mut headers = reqwest::header::HeaderMap::new();
         for (key, value) in &config.headers {
+            if config.bearer_token_file.is_some() && key.eq_ignore_ascii_case("authorization") {
+                continue;
+            }
             match (
                 reqwest::header::HeaderName::from_bytes(key.as_bytes()),
                 value.parse::<reqwest::header::HeaderValue>(),
@@ -3891,7 +3896,8 @@ impl McpClient {
             .build()
             .map_err(|e| McpError::ClientError(format!("Failed to build HTTP client: {e}")))?;
         let mcp_http_client =
-            crate::mcp_http_client::McpHttpClient::new(client, server_name, warn_budget);
+            crate::mcp_http_client::McpHttpClient::new(client, server_name, warn_budget)
+                .with_bearer_token_file(config.bearer_token_file.clone());
         let transport_config = StreamableHttpClientTransportConfig::with_uri(config.url.as_str());
         Ok(StreamableHttpClientTransport::with_client(
             mcp_http_client,
@@ -4470,10 +4476,18 @@ pub async fn start_mcp_server(
             ))
         }
         acp::McpServer::Http(acp::McpServerHttp {
-            name, url, headers, ..
+            name,
+            url,
+            headers,
+            meta,
+            ..
         })
         | acp::McpServer::Sse(acp::McpServerSse {
-            name, url, headers, ..
+            name,
+            url,
+            headers,
+            meta,
+            ..
         }) => {
             if let Some(mc) = meta_config {
                 tracing::info!(server = %name, %url, ?mc, "MCP http: meta config override");
@@ -4487,13 +4501,18 @@ pub async fn start_mcp_server(
             let http_config = HttpConfig {
                 url: url.clone(),
                 headers,
+                bearer_token_file: crate::bearer_token_file::BearerTokenFile::from_meta(
+                    meta.as_ref(),
+                )
+                .map_err(|e| McpError::ClientError(e.to_string()))?,
                 local_agent_endpoint,
             };
 
-            let has_existing_auth = http_config
-                .headers
-                .iter()
-                .any(|(k, _)| k.eq_ignore_ascii_case("authorization"));
+            let has_existing_auth = http_config.bearer_token_file.is_some()
+                || http_config
+                    .headers
+                    .iter()
+                    .any(|(k, _)| k.eq_ignore_ascii_case("authorization"));
 
             let auth_prep = if has_existing_auth {
                 tracing::debug!(
@@ -4655,6 +4674,7 @@ impl McpClient {
                 url: String::new(),
                 headers: Vec::new(),
                 local_agent_endpoint: false,
+                bearer_token_file: None,
             }),
             Some(&overrides),
             None,
@@ -5268,6 +5288,7 @@ mod tests {
                 url: "http://localhost/api/mcp".to_string(),
                 headers: vec![],
                 local_agent_endpoint: false,
+                bearer_token_file: None,
             },
             None,
             None,
@@ -5562,6 +5583,7 @@ mod tests {
                 url: String::new(),
                 headers: vec![],
                 local_agent_endpoint: false,
+                bearer_token_file: None,
             },
             Some(&overrides),
             None,
@@ -5588,6 +5610,7 @@ mod tests {
                 url: String::new(),
                 headers: vec![],
                 local_agent_endpoint: false,
+                bearer_token_file: None,
             },
             Some(&overrides),
             None,
@@ -6431,6 +6454,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -6620,6 +6644,7 @@ mod tests {
                 url: url.to_string(),
                 headers: vec![],
                 local_agent_endpoint: false,
+                bearer_token_file: None,
             },
             Some(&overrides),
             None,
@@ -6839,6 +6864,7 @@ mod tests {
             url: "http://localhost:5000/api/mcp".to_string(),
             headers: vec![("x-token".to_string(), "abc".to_string())],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
         let stored = client
@@ -6868,6 +6894,7 @@ mod tests {
                 ("x-scope".to_string(), "read".to_string()),
             ],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("managed".to_string(), config, None, None);
 
@@ -6905,6 +6932,7 @@ mod tests {
                 ("authorization".to_string(), "Bearer t".to_string()),
             ],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("managed".to_string(), config, None, None);
 
@@ -6941,6 +6969,7 @@ mod tests {
             url: url.to_string(),
             headers: vec![("authorization".to_string(), "Bearer t".to_string())],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         state.owned_clients.insert(
             "managed".to_string(),
@@ -6974,6 +7003,7 @@ mod tests {
             url: url.to_string(),
             headers: vec![("authorization".to_string(), "Bearer old".to_string())],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         state.owned_clients.insert(
             "managed".to_string(),
@@ -7008,6 +7038,7 @@ mod tests {
             url: "http://127.0.0.1:9/api/mcp".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
         assert!(client.reset_transport().await);
@@ -7026,6 +7057,7 @@ mod tests {
             url: "http://127.0.0.1:9/api/mcp".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("example-mcp".to_string(), config, None, None);
 
@@ -7043,6 +7075,7 @@ mod tests {
             url: "http://127.0.0.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("test".to_string(), config, None, None);
 
@@ -7487,6 +7520,7 @@ mod tests {
             url: "http://localhost/api/mcp".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             expose_image_base64: Some(true),
@@ -7550,6 +7584,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -7602,6 +7637,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(1),
@@ -7673,6 +7709,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             startup_timeout_sec: Some(0),
@@ -7705,6 +7742,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let overrides = McpClientTimeoutOverrides {
             // Long enough that the holder is guaranteed to still be
@@ -7899,6 +7937,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         let client = McpClient::new_http("pending".to_string(), config, None, None);
         // `new_http` constructs with `ClientState::Pending(_)`.
@@ -7929,6 +7968,7 @@ mod tests {
             url: "http://192.0.2.1:1/unreachable".to_string(),
             headers: vec![],
             local_agent_endpoint: false,
+            bearer_token_file: None,
         };
         // Force a generous startup timeout — if the predicate
         // regressed to going through ensure_initialized, this test

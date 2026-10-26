@@ -353,6 +353,14 @@ impl AgentView {
             }
             return InputOutcome::Changed;
         }
+        if is_commenting && crate::key!('c', CONTROL).matches(key) && self.prompt.text().is_empty()
+        {
+            if let Some(ref mut pav) = self.plan_approval_view {
+                pav.focus = PlanApprovalFocus::Preview;
+            }
+            self.discard_in_progress_comment();
+            return InputOutcome::Changed;
+        }
         if !is_commenting
             && key.code == KeyCode::Char('a')
             && key.modifiers.is_empty()
@@ -506,14 +514,7 @@ impl AgentView {
             Some(id) => id,
             None => return InputOutcome::Changed,
         };
-        if let Some(ref mut pav) = self.plan_approval_view {
-            pav.comments.retain(|c| c.id != comment_id);
-            let comments = pav.comments.clone();
-            if let Some(ref mut viewer) = self.line_viewer {
-                viewer.rebuild_with_comments(&comments);
-            }
-        }
-        InputOutcome::Changed
+        self.delete_plan_comment_by_id(comment_id)
     }
     /// Enter casual commenting mode from the plan preview.
     ///
@@ -618,6 +619,9 @@ impl AgentView {
     /// identical: Enter saves, Esc cancels, Tab cancels back to the
     /// modal, and everything else routes to the prompt textarea.
     pub(super) fn handle_casual_plan_feedback_key(&mut self, key: &KeyEvent) -> InputOutcome {
+        if crate::key!('c', CONTROL).matches(key) && self.prompt.text().is_empty() {
+            return self.cancel_casual_plan_commenting();
+        }
         if key.code == KeyCode::Esc {
             if self.prompt.file_search_visible() {
                 self.prompt.file_search.clear_context();
@@ -658,8 +662,38 @@ impl AgentView {
             Some(id) => id,
             None => return InputOutcome::Unchanged,
         };
-        self.plan_comments.retain(|c| c.id != comment_id);
-        let comments = self.plan_comments.clone();
+        self.delete_plan_comment_by_id(comment_id)
+    }
+    /// Keyboard and mouse deletion share draft restoration and comment state.
+    pub(super) fn delete_plan_comment_by_id(&mut self, comment_id: u64) -> InputOutcome {
+        if self
+            .plan_approval_view
+            .as_ref()
+            .is_some_and(|pav| pav.editing_comment_id == Some(comment_id))
+        {
+            let stashed = self.plan_approval_view.as_mut().and_then(|pav| {
+                pav.focus = PlanApprovalFocus::Preview;
+                pav.editing_comment_id = None;
+                pav.commenting_range = None;
+                pav.stashed_feedback_prompt.take()
+            });
+            if let Some(stashed) = stashed {
+                self.prompt.restore(stashed);
+            } else {
+                self.prompt.set_text("");
+            }
+        } else if self.plan_approval_view.is_none()
+            && self.casual_editing_comment_id == Some(comment_id)
+        {
+            self.cancel_casual_plan_commenting();
+        }
+        let comments = if let Some(ref mut pav) = self.plan_approval_view {
+            pav.comments.retain(|c| c.id != comment_id);
+            pav.comments.clone()
+        } else {
+            self.plan_comments.retain(|c| c.id != comment_id);
+            self.plan_comments.clone()
+        };
         if let Some(ref mut viewer) = self.line_viewer {
             viewer.rebuild_with_comments(&comments);
         }
@@ -929,6 +963,74 @@ mod plan_approval_enter_tests {
             agent.toast.as_ref().map(|(msg, _)| msg.as_str()),
             Some("Type revision notes, or press a to approve.")
         );
+    }
+
+    #[test]
+    fn ctrl_c_clears_then_cancels_approval_comment_draft() {
+        let mut agent = agent_with_revise_prompt();
+        let pav = agent.plan_approval_view.as_mut().unwrap();
+        pav.focus = PlanApprovalFocus::Commenting;
+        pav.commenting_range = Some(0..1);
+        agent.prompt.set_text("comment draft");
+        let key = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+        agent.handle_plan_feedback_key(&key);
+        assert!(agent.prompt.text().is_empty());
+        assert_eq!(
+            agent.plan_approval_view.as_ref().unwrap().focus,
+            PlanApprovalFocus::Commenting
+        );
+        agent.handle_plan_feedback_key(&key);
+        assert_eq!(
+            agent.plan_approval_view.as_ref().unwrap().focus,
+            PlanApprovalFocus::Preview
+        );
+        assert!(
+            agent
+                .plan_approval_view
+                .as_ref()
+                .unwrap()
+                .commenting_range
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn ctrl_c_clears_then_cancels_casual_comment_and_restores_prompt() {
+        let mut agent = make_agent();
+        agent.prompt.set_text("original prompt");
+        agent.casual_stashed_prompt = Some(agent.prompt.stash());
+        agent.casual_commenting_range = Some(0..1);
+        agent.prompt.set_text("comment draft");
+        let key = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+        agent.handle_casual_plan_feedback_key(&key);
+        assert!(agent.prompt.text().is_empty());
+        assert!(agent.casual_commenting_range.is_some());
+        agent.handle_casual_plan_feedback_key(&key);
+        assert!(agent.casual_commenting_range.is_none());
+        assert_eq!(agent.prompt.text(), "original prompt");
+    }
+
+    #[test]
+    fn deleting_edited_comment_restores_freeform_draft() {
+        let mut agent = agent_with_revise_prompt();
+        agent.prompt.set_text("freeform feedback");
+        let stash = agent.prompt.stash();
+        let pav = agent.plan_approval_view.as_mut().unwrap();
+        pav.comments.push(PlanComment {
+            id: 7,
+            line_range: 0..1,
+            text: "old comment".into(),
+        });
+        pav.editing_comment_id = Some(7);
+        pav.commenting_range = Some(0..1);
+        pav.focus = PlanApprovalFocus::Commenting;
+        pav.stashed_feedback_prompt = Some(stash);
+        agent.prompt.set_text("edited comment");
+        agent.delete_plan_comment_by_id(7);
+        let pav = agent.plan_approval_view.as_ref().unwrap();
+        assert!(pav.comments.is_empty());
+        assert_eq!(pav.focus, PlanApprovalFocus::Preview);
+        assert_eq!(agent.prompt.text(), "freeform feedback");
     }
     #[test]
     fn enter_with_revision_text_requests_changes() {

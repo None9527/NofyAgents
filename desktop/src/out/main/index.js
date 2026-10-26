@@ -1,3 +1,4 @@
+import "./seam/nofy-v2-retire.js"; // nofy：v2 目录退休迁移（必须先于设置/索引路径打开）
 import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET, NODE_BIN, ATTACH_SERVE } from "./seam/kernel-supervisor.js";
 import { registerWorkspaceRegistry } from "./seam/workspace-registry.js"; // WS-ENUM：全量 workspace 枚举 IPC
 import { attachKernelHost } from "./seam/kernel-bridge.js"; // A1-A：host 经 main↔host IPC 使用内核 ACP 单例
@@ -197,7 +198,7 @@ function getConversationWorkspaceDir() {
 }
 s(getConversationWorkspaceDir, "getConversationWorkspaceDir");
 function getAppConfigDir() {
-  return gt(getZCodeDataRootDir(), "v2");
+  return gt(getZCodeDataRootDir(), "desktop"); // nofy：v2 目录废除，桌面状态归 ~/.nofy/desktop
 }
 s(getAppConfigDir, "getAppConfigDir");
 function readEnvValue(e, t) {
@@ -296,8 +297,8 @@ function getProviderWorkspaceZCodeConfigIsolationDir(e, t, n) {
 }
 s(getProviderWorkspaceZCodeConfigIsolationDir, "getProviderWorkspaceZCodeConfigIsolationDir");
 async function copyDataDirectory(e, t) {
-  let n = gt(e, ".nofy", "v2"),
-    o = gt(t, ".nofy", "v2");
+  let n = gt(e, ".nofy", "desktop"),
+    o = gt(t, ".nofy", "desktop");
   await R$(n, o, {
     recursive: !0,
     force: !1,
@@ -2288,7 +2289,7 @@ function resolveUserHomeDir() {
 }
 s(resolveUserHomeDir, "resolveUserHomeDir");
 function getSettingsDir() {
-  return Zm(resolveUserHomeDir(), ".nofy", "v2");
+  return Zm(resolveUserHomeDir(), ".nofy", "desktop");
 }
 s(getSettingsDir, "getSettingsDir");
 function getSettingsFile() {
@@ -16102,7 +16103,7 @@ var W1 = 2,
 import { Buffer as XDe } from "buffer";
 import { createDecipheriv as QDe, randomInt as eLe, randomUUID as tLe } from "crypto";
 function resolveBootstrapSettingsFile(e = JG()) {
-  return XG(e, ".nofy", "v2", "setting.json");
+  return XG(e, ".nofy", "desktop", "setting.json");
 }
 s(resolveBootstrapSettingsFile, "resolveBootstrapSettingsFile");
 function extractBootstrapDataBaseDir(e) {
@@ -16134,7 +16135,7 @@ import { existsSync as tq, readFileSync as nq } from "fs";
 import { homedir as rq } from "os";
 import { join as oq } from "path";
 function resolveChromiumHardwareAccelerationSettingsFile(e = rq()) {
-  return oq(e, ".nofy", "v2", "setting.json");
+  return oq(e, ".nofy", "desktop", "setting.json");
 }
 s(resolveChromiumHardwareAccelerationSettingsFile, "resolveChromiumHardwareAccelerationSettingsFile");
 function extractBootstrapChromiumHardwareAccelerationEnabled(e) {
@@ -33813,7 +33814,7 @@ async function runBrowserCommandOnView(e) {
 s(runBrowserCommandOnView, "runBrowserCommandOnView");
 var Wb = 0,
   a$ = Tr(import.meta.dirname, "../preload/index.cjs"),
-  kte = Tr(hte(), ".nofy", "v2", "setting.json"),
+  kte = Tr(hte(), ".nofy", "desktop", "setting.json"),
   Fi = resolveAppShutdownPolicy("normal", process.platform),
   Rb = null,
   Tb = resolveRemoteHostShutdownPolicy(),

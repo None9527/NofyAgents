@@ -1,6 +1,58 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
     use super::*;
 
+    fn follower_window_app() -> AppView {
+        let mut app = make_app_with_agent("sess-1");
+        let agent = app.agents.get_mut(&AgentId(0)).unwrap();
+        seed_models(agent, "grok-4", &["grok-4"]);
+        agent.session.models.available.get_mut(&acp::ModelId::new("grok-4")).unwrap().meta =
+            serde_json::json!({"totalContextTokens":256000,"contextWindows":[256000,512000]}).as_object().cloned();
+        agent.context_state = Some(nofy_shell::session::ContextInfo::from_notification(1000, 256000));
+        app
+    }
+
+    fn follower_window_notification(selection: Option<u64>, total: Option<u64>) -> acp::ExtNotification {
+        let payload = SessionNotification {
+            session_id: acp::SessionId::new("sess-1"),
+            update: NofySessionUpdate::ModelChanged {
+                model_id: "grok-4".into(), reasoning_effort: None,
+                context_window: selection, context_window_total: total,
+            },
+            meta: None,
+        };
+        acp::ExtNotification::new("nofy/session_notification", std::sync::Arc::from(serde_json::value::to_raw_value(&payload).unwrap()))
+    }
+
+    #[test]
+    fn follower_context_cap_is_distinct_from_menu_selection_and_updates_context_state() {
+        let mut app = follower_window_app();
+        assert!(handle_ext_notification(&follower_window_notification(Some(512000), Some(128000)), &mut app));
+        let agent = &app.agents[&AgentId(0)];
+        assert_eq!(agent.session.models.context_window_selection(), Some(512000));
+        assert_eq!(agent.session.models.get_context_window(), Some(128000));
+        assert_eq!(agent.context_state.as_ref().unwrap().total, 128000);
+    }
+
+    #[test]
+    fn follower_effort_only_legacy_notification_preserves_confirmed_cap() {
+        let mut app = follower_window_app();
+        handle_ext_notification(&follower_window_notification(Some(512000), Some(128000)), &mut app);
+        handle_ext_notification(&model_changed_ext("sess-1", "grok-4", Some("high")), &mut app);
+        assert_eq!(app.agents[&AgentId(0)].session.models.get_context_window(), Some(128000));
+        assert_eq!(app.agents[&AgentId(0)].context_state.as_ref().unwrap().total, 128000);
+    }
+
+    #[test]
+    fn follower_context_default_reset_applies_confirmed_total() {
+        let mut app = follower_window_app();
+        handle_ext_notification(&follower_window_notification(Some(512000), Some(128000)), &mut app);
+        handle_ext_notification(&follower_window_notification(None, Some(96000)), &mut app);
+        let agent = &app.agents[&AgentId(0)];
+        assert_eq!(agent.session.models.context_window_selection(), None);
+        assert_eq!(agent.session.models.get_context_window(), Some(96000));
+        assert_eq!(agent.context_state.as_ref().unwrap().total, 96000);
+    }
+
     /// Regression: a machine-wide `nofy/models/update` broadcast
     /// carries each model's static catalog-default effort (`high`), not the
     /// session's chosen `xhigh`, and must not clobber the per-session choice.
@@ -441,4 +493,3 @@
             "unrelated-session broadcast must not touch this agent's model"
         );
     }
-

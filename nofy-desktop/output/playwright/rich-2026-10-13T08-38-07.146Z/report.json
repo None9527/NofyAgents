@@ -1,0 +1,34 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-13T08:38:07.147Z",
+  "cases": [
+    {
+      "name": "R01 user bubble, icon actions and grouped exploration match the conversation structure",
+      "status": "passed",
+      "durationMs": 289
+    },
+    {
+      "name": "R02 nested Markdown, GFM task list and table cells render as semantic content",
+      "status": "passed",
+      "durationMs": 416
+    },
+    {
+      "name": "R03 code copy and wrapping preserve exact text",
+      "status": "passed",
+      "durationMs": 100
+    },
+    {
+      "name": "R04 table and code downloads use native save dialog and retain original data",
+      "status": "passed",
+      "durationMs": 684
+    },
+    {
+      "name": "R05 dark/light, wide/narrow layouts keep reading surfaces within their viewport",
+      "status": "passed",
+      "durationMs": 793
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/rich-2026-10-13T08-38-07.146Z",
+  "finishedAt": "2026-10-13T08:38:10.600Z"
+}

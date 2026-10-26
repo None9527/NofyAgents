@@ -368,6 +368,8 @@ mod tests {
             agent: Default::default(),
             sandbox_profile: None,
             reasoning_effort: None,
+            context_window_selection: None,
+            server_context_window: None,
             last_turn_summary: None,
             last_turn_summary_prompt_id: None,
         }

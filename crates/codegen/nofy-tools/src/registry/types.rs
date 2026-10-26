@@ -960,6 +960,7 @@ impl ToolRegistryBuilder {
         if !errors.is_empty() {
             return Err(errors);
         }
+        let preset_name = config.behavior_preset.as_deref().unwrap_or("current");
         let mut kind_to_name: HashMap<ToolKind, String> = HashMap::new();
         for tool_config in &config.tools {
             let entry = &self.tools[&tool_config.id];
@@ -970,11 +971,8 @@ impl ToolRegistryBuilder {
         for tool_config in &config.tools {
             let entry = &self.tools[&tool_config.id];
             let map = kind_params.entry(entry.kind).or_default();
-            if let Some(props) = entry
-                .input_schema
-                .get("properties")
-                .and_then(|p| p.as_object())
-            {
+            let advertised = advertised_tool_input_schema(preset_name, entry, tool_config);
+            if let Some(props) = advertised.get("properties").and_then(|p| p.as_object()) {
                 for key in props.keys() {
                     map.entry(key.clone()).or_insert_with(|| key.clone());
                 }
@@ -1111,13 +1109,18 @@ impl ToolRegistryBuilder {
                 .collect();
             let effective_params = compute_effective_params(&entry, tool_config)
                 .map_err(|e| vec![requirement_error_from_param_error(&tool_config.id, e)])?;
+            let advertised = entry.metadata.advertised_input_schema(
+                contract_version.as_deref(),
+                &entry.input_schema,
+                &effective_params,
+            );
             let mut definition = entry.metadata.versioned_definition(
                 contract_version.as_deref(),
                 &client_name,
                 tool_config.description_override.as_deref(),
                 &renderer,
                 &param_map,
-                &entry.input_schema,
+                advertised.as_ref().unwrap_or(&entry.input_schema),
                 &effective_params,
             );
             if let Some(desc) = &definition.function.description {
@@ -1379,6 +1382,42 @@ impl FinalizedToolset {
             .find(|t| t.client_name == tool_name)
             .map(|t| t.metadata.clone())
     }
+    /// Resolve a declared canonical lock parameter to its client-facing name.
+    pub fn lock_path_client_param(&self, tool_name: &str) -> Option<String> {
+        let tools = self.tools.read();
+        let tool = tools.iter().find(|t| t.client_name == tool_name)?;
+        let canonical = tool.metadata.lock_path_param()?;
+        Some(
+            tool.reverse_params
+                .iter()
+                .find_map(|(client, canon)| (canon == canonical).then(|| client.clone()))
+                .unwrap_or_else(|| canonical.to_owned()),
+        )
+    }
+
+    /// Compute a file-lock key using the declared parameter, with legacy
+    /// canonical-name fallback for out-of-tree tool packs.
+    pub fn lock_path_for_call(
+        &self,
+        name: &str,
+        args: &serde_json::Value,
+        cwd: &std::path::Path,
+    ) -> Option<String> {
+        let path = if let Some(param) = self.lock_path_client_param(name) {
+            args.get(&param)?.as_str()?.to_owned()
+        } else {
+            let canonical = self.remap_params(name, args.clone());
+            ["file_path", "path", "target_file"]
+                .iter()
+                .find_map(|key| canonical.get(key)?.as_str())
+                .map(str::to_owned)?
+        };
+        Some(crate::util::lock_path::lock_path_for_path(
+            std::path::Path::new(&path),
+            cwd,
+        ))
+    }
+
     /// Resolve canonical [`ToolIdentity`] (kind, namespace, presentation label)
     /// for a tool by its client-facing wire name. Drives the first-party
     /// `nofy/*` tool `_meta` contract (tool normalization). Returns `None` for
@@ -1898,6 +1937,23 @@ impl FinalizedToolset {
     }
 }
 /// Generate a JSON Schema for type `T`.
+fn advertised_tool_input_schema(
+    preset: &str,
+    entry: &ToolEntry,
+    config: &ToolConfig,
+) -> serde_json::Value {
+    let version =
+        crate::versions::resolve_version(preset, &config.id, config.behavior_version.as_deref())
+            .ok()
+            .flatten();
+    let params = compute_effective_params(entry, config).unwrap_or(serde_json::Value::Null);
+    entry
+        .metadata
+        .advertised_input_schema(version.as_deref(), &entry.input_schema, &params)
+        .unwrap_or_else(|| entry.input_schema.clone())
+}
+
+/// Generate a JSON Schema for type `T`.
 ///
 /// Public so out-of-tree tool packs can
 /// schema-test their tool inputs exactly the way the registry generates
@@ -2129,6 +2185,54 @@ fn requirement_error_from_param_error(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn declared_lock_path_tracks_client_parameter_rename() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let toolset = ToolRegistryBuilder::new()
+            .finalize(
+                ToolServerConfig {
+                    tools: vec![
+                        ToolConfig::from_id("OpenCode:write")
+                            .with_param_rename("file_path", "destination"),
+                    ],
+                    behavior_preset: None,
+                },
+                test_session_context(&tmp),
+            )
+            .unwrap();
+        assert_eq!(
+            toolset.lock_path_client_param("write").as_deref(),
+            Some("destination")
+        );
+        let key = toolset.lock_path_for_call(
+            "write",
+            &serde_json::json!({"destination":"./new.txt", "path":"unrelated"}),
+            tmp.path(),
+        );
+        assert_eq!(
+            key,
+            Some(crate::util::lock_path::lock_path_for_path(
+                &tmp.path().join("new.txt"),
+                tmp.path()
+            ))
+        );
+        assert_eq!(
+            toolset.lock_path_for_call(
+                "write",
+                &serde_json::json!({"path":"unrelated"}),
+                tmp.path()
+            ),
+            None
+        );
+        assert_ne!(
+            key,
+            toolset.lock_path_for_call(
+                "write",
+                &serde_json::json!({"destination":"other.txt"}),
+                tmp.path()
+            )
+        );
+    }
     use std::sync::Arc;
     use tempfile::TempDir;
     /// Build a `SessionContext` for tests using a temp dir and real local
@@ -2459,6 +2563,7 @@ mod tests {
             .expect("toolset should finalize");
         let bash = ToolInput::Bash(crate::implementations::BashToolInput {
             command: "ls".into(),
+            block_until_ms: None,
             timeout: None,
             description: "list files".into(),
             is_background: false,
@@ -2632,11 +2737,63 @@ mod tests {
     /// `TemplateRenderer`. With reminders disabled they name the get-output
     /// tool when one is served.
     #[tokio::test]
+    async fn current_bash_description_uses_only_advertised_parameters() {
+        let mut descriptions = Vec::new();
+        for reminders in [true, false] {
+            let mut builder = ToolRegistryBuilder::new();
+            builder.set_system_reminders_enabled(reminders);
+            let config = ToolServerConfig {
+                tools: [
+                    "NofyBuild:run_terminal_cmd",
+                    "NofyBuild:get_task_output",
+                    "NofyBuild:kill_task",
+                ]
+                .into_iter()
+                .map(|id| ToolConfig::from_id(id.to_owned()))
+                .collect(),
+                behavior_preset: None,
+            };
+            let tmp = TempDir::new().unwrap();
+            let toolset = builder
+                .finalize(config, test_session_context(&tmp))
+                .expect("finalize");
+            let definitions = toolset.tool_definitions();
+            let bash = definitions
+                .iter()
+                .find(|d| d.function.name == "run_terminal_cmd")
+                .unwrap();
+            let description = bash.function.description.as_deref().unwrap();
+            assert!(!description.is_empty());
+            assert!(description.contains("block_until_ms"));
+            assert!(!description.contains("is_background"));
+            assert!(!description.contains("${{"));
+            assert_eq!(description.contains("reported automatically"), reminders);
+            let properties = &bash.function.parameters["properties"];
+            assert!(properties.get("block_until_ms").is_some());
+            assert!(properties.get("timeout").is_none());
+            assert!(properties.get("is_background").is_none());
+            let field = properties["block_until_ms"]["description"]
+                .as_str()
+                .unwrap();
+            assert!(!field.is_empty());
+            assert!(!field.contains("${{"));
+            descriptions.push(description.to_owned());
+        }
+        assert_ne!(descriptions[0], descriptions[1]);
+    }
+
+    #[tokio::test]
     async fn bash_descriptions_track_system_reminders_setting() {
         let config_with = |ids: &[&str]| ToolServerConfig {
             tools: ids
                 .iter()
-                .map(|id| ToolConfig::from_id((*id).to_string()))
+                .map(|id| {
+                    let mut config = ToolConfig::from_id((*id).to_string());
+                    if *id == "NofyBuild:run_terminal_cmd" {
+                        config.behavior_version = Some("pre-block-until-ms".into());
+                    }
+                    config
+                })
                 .collect(),
             behavior_preset: None,
         };
@@ -3808,7 +3965,7 @@ mod tests {
                     name_override: None,
                     params_name_overrides: None,
                     description_override: None,
-                    behavior_version: None,
+                    behavior_version: Some("pre-block-until-ms".into()),
                     kind: None,
                 },
                 ToolConfig {
@@ -3879,7 +4036,8 @@ mod tests {
             name_override: None,
             params_name_overrides: None,
             description_override: None,
-            behavior_version: None,
+            behavior_version: (id == "NofyBuild:run_terminal_cmd")
+                .then(|| "pre-block-until-ms".into()),
             kind: None,
         };
         let config = ToolServerConfig {

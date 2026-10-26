@@ -1,3 +1,4 @@
+import { tr } from "./i18n.ts";
 /**
  * 主题切换 —— 只是往 <html> 上挂一个 class。
  *
@@ -8,25 +9,40 @@
  * 之所以是「挂 class」而不是「运行时注入变量」：令牌已经在 tokens.css 里按作用域
  * 分好组，浏览器自己的层叠就是最省事的主题引擎，我们不需要再造一个。
  */
-export type ThemeName = "light" | "dark";
+import { applyFontSize, loadFontSize } from "./appearancePrefs.ts";
+
+export type ThemeName = "light" | "dark" | "system";
 
 export type Theme = { id: ThemeName; label: string; className: string; dark: boolean };
 
 export const THEMES: readonly Theme[] = [
-  { id: "dark", label: "深色", className: "dark theme-zai-dark", dark: true },
-  { id: "light", label: "浅色", className: "theme-zai-light", dark: false },
+  { id: "system", get label() { return tr("跟随系统"); }, className: "", dark: false },
+  { id: "dark", get label() { return tr("深色"); }, className: "dark theme-zai-dark", dark: true },
+  { id: "light", get label() { return tr("浅色"); }, className: "theme-zai-light", dark: false },
 ] as const;
 
 export const DEFAULT_THEME: ThemeName = "dark";
 
 const STORAGE_KEY = "nofy-desktop:theme";
 
+let stopSystemTheme: (() => void) | null = null;
 export function applyTheme(name: ThemeName): Theme {
-  const theme = THEMES.find((t) => t.id === name) ?? THEMES[0]!;
-  // 活壳 html class 实测带 platform-mac-desktop（mac 专属间距/拖拽区开关靠它）
-  const mac = /Mac/.test(navigator.platform || navigator.userAgent);
-  document.documentElement.className = theme.className + (mac ? " platform-mac-desktop" : "");
-  return theme;
+  stopSystemTheme?.();
+  stopSystemTheme = null;
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const resolve = () => THEMES.find(t => t.id === (name === "system" ? media.matches ? "dark" : "light" : name)) ?? THEMES[1]!;
+  const apply = () => {
+    const theme = resolve();
+    const mac = /Mac/.test(navigator.platform || navigator.userAgent);
+    document.documentElement.className = theme.className + (mac ? " platform-mac-desktop" : "");
+    applyFontSize(loadFontSize());
+  };
+  apply();
+  if (name === "system") {
+    media.addEventListener("change", apply);
+    stopSystemTheme = () => media.removeEventListener("change", apply);
+  }
+  return resolve();
 }
 
 /** 读回上次选择。读不到/坏值一律落回默认，不抛（首屏不该因为 localStorage 挂掉）。 */
@@ -81,4 +97,11 @@ export function resolveTerminalPalette(el: HTMLElement | null): TerminalPalette 
   const background = cs.backgroundColor;
   const foreground = cs.color;
   return { background, foreground, cursor: foreground };
+}
+
+/** Subscribe to actual DOM theme changes, including OS color-scheme flips. */
+export function observeThemeChanges(listener: () => void): () => void {
+  const observer = new MutationObserver(listener);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
 }

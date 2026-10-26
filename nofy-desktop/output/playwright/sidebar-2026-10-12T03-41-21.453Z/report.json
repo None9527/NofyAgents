@@ -1,0 +1,638 @@
+{
+  "source": "isolated Electron + synthetic ACP",
+  "cases": [
+    {
+      "name": "S01 navigation and project tools fit every sidebar width",
+      "status": "passed",
+      "details": [
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 900,
+            "top": 0,
+            "right": 200,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 56,
+            "top": 0,
+            "right": 200,
+            "bottom": 56,
+            "left": 0
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 120,
+                "bottom": 40,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 122,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 146,
+                "bottom": 40,
+                "left": 122
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 148,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 172,
+                "bottom": 40,
+                "left": 148
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 174,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 198,
+                "bottom": 40,
+                "left": 174
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 8,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 63,
+                "bottom": 238,
+                "left": 8
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 63,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 118,
+                "bottom": 238,
+                "left": 63
+              },
+              "region": "none"
+            },
+            {
+              "name": "收起全部",
+              "rect": {
+                "x": 122,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 142,
+                "bottom": 238,
+                "left": 122
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 152,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 172,
+                "bottom": 238,
+                "left": 152
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 174,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 194,
+                "bottom": 238,
+                "left": 174
+              },
+              "region": "none"
+            }
+          ]
+        },
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 224,
+            "height": 900,
+            "top": 0,
+            "right": 224,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 0,
+            "y": 0,
+            "width": 224,
+            "height": 56,
+            "top": 0,
+            "right": 224,
+            "bottom": 56,
+            "left": 0
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 120,
+                "bottom": 40,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 122,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 146,
+                "bottom": 40,
+                "left": 122
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 148,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 172,
+                "bottom": 40,
+                "left": 148
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 174,
+                "y": 16,
+                "width": 24,
+                "height": 24,
+                "top": 16,
+                "right": 198,
+                "bottom": 40,
+                "left": 174
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 8,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 63,
+                "bottom": 238,
+                "left": 8
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 63,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 118,
+                "bottom": 238,
+                "left": 63
+              },
+              "region": "none"
+            },
+            {
+              "name": "收起全部",
+              "rect": {
+                "x": 122,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 142,
+                "bottom": 238,
+                "left": 122
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 176,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 196,
+                "bottom": 238,
+                "left": 176
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 198,
+                "y": 214,
+                "width": 20,
+                "height": 24,
+                "top": 214,
+                "right": 218,
+                "bottom": 238,
+                "left": 198
+              },
+              "region": "none"
+            }
+          ]
+        },
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 264,
+            "height": 900,
+            "top": 0,
+            "right": 264,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 0,
+            "y": 0,
+            "width": 264,
+            "height": 56,
+            "top": 0,
+            "right": 264,
+            "bottom": 56,
+            "left": 0
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 124,
+                "bottom": 44,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 128,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 156,
+                "bottom": 44,
+                "left": 128
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 160,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 188,
+                "bottom": 44,
+                "left": 160
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 192,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 220,
+                "bottom": 44,
+                "left": 192
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 12,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 67,
+                "bottom": 238,
+                "left": 12
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 67,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 122,
+                "bottom": 238,
+                "left": 67
+              },
+              "region": "none"
+            },
+            {
+              "name": "收起全部",
+              "rect": {
+                "x": 128,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 152,
+                "bottom": 238,
+                "left": 128
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 200,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 224,
+                "bottom": 238,
+                "left": 200
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 228,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 252,
+                "bottom": 238,
+                "left": 228
+              },
+              "region": "none"
+            }
+          ]
+        },
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 480,
+            "height": 900,
+            "top": 0,
+            "right": 480,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 0,
+            "y": 0,
+            "width": 480,
+            "height": 56,
+            "top": 0,
+            "right": 480,
+            "bottom": 56,
+            "left": 0
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 124,
+                "bottom": 44,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 128,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 156,
+                "bottom": 44,
+                "left": 128
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 160,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 188,
+                "bottom": 44,
+                "left": 160
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 192,
+                "y": 16,
+                "width": 28,
+                "height": 28,
+                "top": 16,
+                "right": 220,
+                "bottom": 44,
+                "left": 192
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 12,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 67,
+                "bottom": 238,
+                "left": 12
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 67,
+                "y": 214,
+                "width": 55,
+                "height": 24,
+                "top": 214,
+                "right": 122,
+                "bottom": 238,
+                "left": 67
+              },
+              "region": "none"
+            },
+            {
+              "name": "收起全部",
+              "rect": {
+                "x": 128,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 152,
+                "bottom": 238,
+                "left": 128
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 416,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 440,
+                "bottom": 238,
+                "left": 416
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 444,
+                "y": 214,
+                "width": 24,
+                "height": 24,
+                "top": 214,
+                "right": 468,
+                "bottom": 238,
+                "left": 444
+              },
+              "region": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "S02 real button collapse keeps a visible reopen button",
+      "status": "passed"
+    },
+    {
+      "name": "S03 keyboard and renderer reload preserve collapse without losing navigation",
+      "status": "passed"
+    },
+    {
+      "name": "S04 narrow window caps sidebar and keeps controls clickable in both themes",
+      "status": "passed"
+    },
+    {
+      "name": "S05 sidebar drag remains usable and header follows its width",
+      "status": "passed"
+    },
+    {
+      "name": "S06 closed navigation leaves title clear and still creates tasks",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/sidebar-2026-10-12T03-41-21.453Z",
+  "drag": {
+    "width": 200,
+    "focus": true,
+    "prefs": "sidebar-open|aux-closed|w=200|v=projects|s=recent|dock-closed"
+  }
+}

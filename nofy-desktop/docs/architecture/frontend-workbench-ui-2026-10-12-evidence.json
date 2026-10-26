@@ -1,0 +1,51 @@
+{
+  "source": "isolated Electron synthetic ACP, no model calls",
+  "workspaceGui": "output/playwright/workspace-2026-10-12T09-13-43.626Z/report.json",
+  "workspaceCases": 21,
+  "homepageGui": "output/playwright/homepage-2026-10-12T09-13-55.223Z/report.json",
+  "homepageCases": 12,
+  "unitTests": 423,
+  "verifyLog": "/tmp/nofy-workbench-ui-verify.log",
+  "styleOwnershipNegativeFixtures": "both shell right-pane overrides and workspace shared-control overrides rejected",
+  "package": {
+    "application": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "artifact": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "8d4cb482a339043e905ebc160df1d8f17d7448e4787299e1ce1cec483b13dbcd",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "version": "0.1.0",
+    "signing": "ad-hoc local only",
+    "kernelBundled": false
+  },
+  "packageVerification": {
+    "generatedAt": "2026-10-12T09:29:33.611Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "version": "0.1.0",
+    "app": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "results": [
+      {
+        "launch": 1,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-1.png",
+        "screenshotBytes": 142918,
+        "kernelReaped": true
+      },
+      {
+        "launch": 2,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-2.png",
+        "screenshotBytes": 142918,
+        "kernelReaped": true
+      }
+    ],
+    "kernelBundled": false,
+    "signing": "ad-hoc local only",
+    "scope": "Two local executable launches in isolated NOFY_HOME and Electron user-data-dir; no Gatekeeper/notarization, external installation, Windows/Linux or model conversation validation"
+  },
+  "reopenedBundle": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app"
+}

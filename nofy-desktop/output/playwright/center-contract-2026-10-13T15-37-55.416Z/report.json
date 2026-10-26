@@ -1,0 +1,12 @@
+{
+  "source": "isolated Electron + controlled ACP; actual content-axis geometry, lifecycle clock and scoped actions",
+  "cases": [
+    {
+      "name": "C01 table and code align with prose, not merely viewport, at all widths",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: {\"width\":1920,\"prose\":{\"left\":708.5,\"right\":1476.5},\"surfaces\":[{\"type\":\"md-table\",\"left\":644.5,\"right\":1540.5},{\"type\":\"codeblock\",\"left\":644.5,\"right\":1540.5}],\"overflow\":0}"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/center-contract-2026-10-13T15-37-55.416Z"
+}

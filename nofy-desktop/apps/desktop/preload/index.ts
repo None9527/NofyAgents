@@ -3,7 +3,7 @@
  *
  * 安全形状：contextIsolation:true、nodeIntegration:false、sandbox:false。
  * sandbox 关掉只是**为了 ESM preload（.mjs）能加载**，不等于给 renderer node 能力：
- * renderer 能拿到的只有本文件显式暴露的九个方法，没有 require、没有 process、
+ * renderer 能拿到的只有本文件显式放进 bridge 的方法，没有 require、没有 process、
  * 没有 ipcRenderer。任何「再加一个通用 invoke 口子」的提案都等于把这条边界拆了。
  *
  * ## 早到暂存（第二层）
@@ -17,6 +17,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { IpcRendererEvent } from "electron";
 import { BRIDGE_GLOBAL, IPC } from "./contract.ts";
 import type { KernelSignal, NofyBridge, RpcId } from "./contract.ts";
+import { isBrowserHostEvent, isBrowserHostResult, isUserBrowserState } from "../shared/user-browser-contract.ts";
 
 /** 与 KernelSignal 的判别集合同步。多一个少一个都是契约漂移，此处显式拒绝。 */
 const SIGNAL_KINDS: ReadonlySet<string> = new Set(["status", "ready", "notification", "server-request", "malformed"]);
@@ -77,12 +78,55 @@ const bridge: NofyBridge = {
   respond: async (id: RpcId, result: unknown) => {
     await invoke<void>(IPC.respond, id, result);
   },
-  cancel: async (sessionId) => {
-    await invoke<void>(IPC.cancel, sessionId);
+  cancel: async (sessionId, meta) => {
+    await invoke<void>(IPC.cancel, sessionId, meta);
   },
   isReady: () => invoke(IPC.isReady),
   bootstrap: () => invoke(IPC.bootstrap),
   pickFiles: () => invoke(IPC.pickFiles),
+  applyDesktopHost: (settings) => invoke(IPC.desktopHost, settings),
+  pickDirectory: () => invoke(IPC.pickDirectory),
+  validateDirectory: path => invoke(IPC.validateDirectory, path),
+  saveText: (content, filename) => invoke(IPC.saveText, content, filename),
+  copyFilePath: (value) => invoke(IPC.copyFilePath, value),
+  openWorkspacePath: (path, kind) => invoke(IPC.openWorkspacePath, path, kind),
+  readRaster: (root, path) => invoke(IPC.readRaster, root, path),
+  watchFiles: request => invoke(IPC.watchFiles, request),
+  unwatchFiles: id => invoke(IPC.unwatchFiles, id),
+  onFilesChanged: listener => {
+    const receive = (_event: IpcRendererEvent, change: unknown) => {
+      if (!change || typeof change !== "object") return;
+      const value = change as import("../shared/workspace-files-contract.ts").WorkspaceChange;
+      if (typeof value.id === "string" && typeof value.root === "string" && Array.isArray(value.paths) && value.paths.length <= 64 && value.paths.every(path => typeof path === "string")) listener(value);
+    };
+    ipcRenderer.on(IPC.filesChanged,receive);
+    return () => { ipcRenderer.off(IPC.filesChanged,receive); };
+  },
+  readModelConfig: () => invoke(IPC.readModelConfig),
+  updateModelConfig: (patch) => invoke(IPC.updateModelConfig, patch),
+  browserNavigate: (url) => invoke(IPC.browserNavigate, url),
+  browserCommand: (command) => invoke(IPC.browserCommand, command),
+  browserSetBounds: (bounds) => invoke(IPC.browserSetBounds, bounds),
+  browserOpenExternal: (url) => invoke(IPC.browserOpenExternal, url),
+  browserHost: async (request) => {
+    const result: unknown = await invoke(IPC.browserHost, request);
+    if (!isBrowserHostResult(result)) throw new Error("browser host");
+    return result;
+  },
+  onBrowserState: (cb) => {
+    const receive = (_event: IpcRendererEvent, payload: unknown) => {
+      if (isUserBrowserState(payload)) cb(payload);
+    };
+    ipcRenderer.on(IPC.browserState, receive);
+    return () => { ipcRenderer.off(IPC.browserState, receive); };
+  },
+  onBrowserHostEvent: (cb) => {
+    const receive = (_event: IpcRendererEvent, payload: unknown) => {
+      if (isBrowserHostEvent(payload)) cb(payload);
+    };
+    ipcRenderer.on(IPC.browserHostEvent, receive);
+    return () => { ipcRenderer.off(IPC.browserHostEvent, receive); };
+  },
   diagnostics: () => ({
     listeners: listeners.size,
     early: early.length,

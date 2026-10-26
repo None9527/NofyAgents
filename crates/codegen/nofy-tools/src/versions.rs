@@ -117,6 +117,15 @@ const V_LEGACY_BASH: VersionLifecycle = VersionLifecycle {
     source_refs: &[],
     summary: "Trailing-only & detection, legacy error text for background operator",
 };
+const V_PRE_BLOCK_UNTIL_BASH: VersionLifecycle = VersionLifecycle {
+    version: "pre-block-until-ms",
+    lifecycle: BehaviorLifecycle::Active,
+    replacement: Some("current"),
+    deprecation_note: None,
+    cataloged_in: "0.1.220-alpha.4",
+    source_refs: &[],
+    summary: "Separate timeout and is_background knobs before the single foreground wait contract",
+};
 const V_LEGACY_READ_FILE: VersionLifecycle = VersionLifecycle {
     version: "legacy-0.4.10",
     lifecycle: BehaviorLifecycle::Active,
@@ -175,7 +184,7 @@ const V_LEGACY_TASK_OUTPUT: VersionLifecycle = VersionLifecycle {
 pub const TOOL_VERSION_REGISTRY: &[ToolVersionEntry] = &[
     ToolVersionEntry {
         fq_tool_id: "NofyBuild:run_terminal_cmd",
-        versions: &[V_CURRENT, V_LEGACY_BASH],
+        versions: &[V_CURRENT, V_PRE_BLOCK_UNTIL_BASH, V_LEGACY_BASH],
     },
     ToolVersionEntry {
         fq_tool_id: "NofyBuild:read_file",

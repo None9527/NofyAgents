@@ -22,11 +22,35 @@ import {
   setDefaultModel,
   readModelSection,
   readModelsTable,
+  removeProviderSection,
+  upsertRegistryProvider,
 } from "./nofy-config-toml.js"; // P4：设置写路径落盘端（保注释编辑 ~/.nofy/config.toml）
 
-// 与 host/seam/kernel-provider-source.js 的 KERNEL_PROVIDER_ID 同源：内核合成 provider 的
-// 模型即 config.toml 的 [model.*] 段，整 provider 删除等于清空内核模型表，必须拒绝。
+// 与 host/seam/kernel-provider-source.js 的 KERNEL_PROVIDER_ID 同源：未被任何
+// [model_providers.*] 引用的模型的兜底供应商 id。
 const KERNEL_SYNTHETIC_PROVIDER_ID = "nofy-kernel";
+
+// 模型 → 所属供应商 id：config.toml 的 model_provider 引用优先；无引用/供应商段
+// 不存在时落兜底 id（与 host 合成器的分桶规则一致）。
+function providerIdOf(modelId) {
+  const table = readModelsTable();
+  const m = table.models.find((x) => x.id === modelId || x.model === modelId);
+  if (m?.providerId && table.providers.some((p) => p.id === m.providerId)) return m.providerId;
+  return KERNEL_SYNTHETIC_PROVIDER_ID;
+}
+
+// 注册表模型 id（= 上游模型 id，ZCode 语义）→ config 段名；内核 session/set_model
+// 与 [model.*] 写路径按段名寻址。
+function sectionIdOf(modelId) {
+  const t = readModelsTable();
+  return t.models.find((x) => x.model === modelId || x.id === modelId)?.id ?? modelId;
+}
+
+// config 段名 → 上游模型 id；composer/快照编码与注册表一致用上游 id。
+function upstreamIdOf(modelId) {
+  const t = readModelsTable();
+  return t.models.find((x) => x.id === modelId)?.model ?? modelId;
+}
 
 function providerModelSections(p) {
   if (!p || typeof p !== "object") return [];
@@ -48,6 +72,9 @@ function providerModelSections(p) {
   }
   return out;
 }
+
+// 注册表 apiFormat → config.toml api_backend 的映射在 nofy-config-toml.js
+// （API_BACKEND_BY_FORMAT），落盘统一走 upsertRegistryProvider。
 
 function defaultModelIdOf(m) {
   if (typeof m === "string") return m.trim();
@@ -216,9 +243,11 @@ function indexUpsert(s, reason) {
     // D18：模型管理接线——task meta 的 provider/model/mode 种子源（host
     // buildBaselineMetaFromSummary 优先行值）。model 用 renderer 的
     // `${providerId}/${modelId}` 编码，指向内核 config.toml 的真模型。
-    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    provider: providerIdOf(upstreamIdOf(s.modelId || readModelsTable().defaultId)),
     mode: "build",
-    model: `${KERNEL_SYNTHETIC_PROVIDER_ID}/${s.modelId || readModelsTable().defaultId}`,
+    model: `${providerIdOf(upstreamIdOf(s.modelId || readModelsTable().defaultId))}/${upstreamIdOf(
+      s.modelId || readModelsTable().defaultId,
+    )}`,
   });
   emitSessionsIndexDelta(w, [{ op: "session.upserted", session: w.entries.get(s.sessionId) }]);
   log("index upsert", reason, s.sessionId, s.phase, "kind", s.kind, "scope", scopeId);
@@ -226,10 +255,11 @@ function indexUpsert(s, reason) {
 
 // D18：恢复态会话无会话级模型覆盖，索引行元数据取 config default。
 function restoredIndexMeta() {
+  const mid = upstreamIdOf(readModelsTable().defaultId);
   return {
-    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    provider: providerIdOf(mid),
     mode: "build",
-    model: `${KERNEL_SYNTHETIC_PROVIDER_ID}/${readModelsTable().defaultId}`,
+    model: `${providerIdOf(mid)}/${mid}`,
   };
 }
 
@@ -340,9 +370,9 @@ const AVAILABILITY = {
 // 会话级覆盖优先，config default 兜底。
 function configOf(s) {
   const table = readModelsTable();
-  const currentId = s?.modelId || table.defaultId || table.models[0]?.id || "default";
+  const currentId = upstreamIdOf(s?.modelId || table.defaultId || table.models[0]?.id || "default");
   return {
-    provider: KERNEL_SYNTHETIC_PROVIDER_ID,
+    provider: providerIdOf(currentId),
     model: currentId,
     thought: "",
     thoughtLevels: [],
@@ -357,15 +387,21 @@ function configOf(s) {
 // label, providerLabel?, description?}；renderer 用 `${providerId}/${modelId}` 编码 value。
 function nofyModelSettings() {
   const table = readModelsTable();
-  const currentId = table.defaultId || table.models[0]?.id || "default";
+  const currentId = upstreamIdOf(table.defaultId || table.models[0]?.id || "default");
+  const providerNameOf = (mid) => {
+    const pid = providerIdOf(mid);
+    return table.providers.find((p) => p.id === pid)?.name ?? "nofy kernel";
+  };
   return {
-    current: { providerId: KERNEL_SYNTHETIC_PROVIDER_ID, modelId: currentId },
-    available: table.models.map((m) => ({
-      ref: { providerId: KERNEL_SYNTHETIC_PROVIDER_ID, modelId: m.id },
-      label: m.name,
-      providerLabel: "nofy kernel",
-      ...(m.model && m.model !== m.id ? { description: m.model } : {}),
-    })),
+    current: { providerId: providerIdOf(currentId), modelId: currentId },
+    available: table.models.map((m) => {
+      const mid = m.model || m.id;
+      return {
+        ref: { providerId: providerIdOf(mid), modelId: mid },
+        label: m.name,
+        providerLabel: providerNameOf(mid),
+      };
+    }),
   };
 }
 
@@ -440,8 +476,12 @@ function zcodeSessionSnapshot(s, cwdOverride) {
       // D18：占位 {nofy/nofy-kernel} 会让 renderer 的 current 解析不到注册表模型；
       // 回内核真引用（会话级覆盖优先，config default 兜底）。
       model: {
-        providerId: KERNEL_SYNTHETIC_PROVIDER_ID,
-        modelId: s?.modelId || readModelsTable().defaultId || readModelsTable().models[0]?.id || "default",
+        providerId: providerIdOf(
+          upstreamIdOf(s?.modelId || readModelsTable().defaultId || readModelsTable().models[0]?.id || "default"),
+        ),
+        modelId: upstreamIdOf(
+          s?.modelId || readModelsTable().defaultId || readModelsTable().models[0]?.id || "default",
+        ),
       },
       createdAt,
       updatedAt,
@@ -1294,21 +1334,43 @@ async function handleHostFrame(frame) {
       }
       case "workspace/upsertModelProvider": {
         // P4：设置面的模型写必须落到内核唯一真源 ~/.nofy/config.toml（此前空操作 ⇒
-        // 用户改什么都不生效）。models 每条一个 [model.*] 段；合成 provider 不带密钥，
-        // 故入参 api_key/context_window 为空时保留原值，防误抹。
-        for (const sec of providerModelSections(params.provider)) {
-          const existing = readModelSection(sec.id) ?? {};
+        // 用户改什么都不生效）。供应商形配置：连接字段（base_url/api_key/api_backend）
+        // 写 [model_providers.<id>]，模型段只带 model_provider 引用与模型自身覆盖项，
+        // 与用户手写的按供应商结构保持一致；无供应商段的旧形 provider 维持写模型段。
+        const p = params.provider;
+        const pid = String(p?.id ?? "").trim();
+        const table = readModelsTable();
+        if (table.providers.some((x) => x.id === pid)) {
+          upsertRegistryProvider(p);
+          respond(id, workspaceStateResult(params.workspace));
+          return;
+        }
+        for (const sec of providerModelSections(p)) {
+          const sectionId = sectionIdOf(sec.id);
+          const existing = readModelSection(sectionId) ?? {};
           const fields = { ...sec.fields };
+          if (fields.model === sectionId) delete fields.model; // 段名即上游 id，内核默认取段名
           if (!fields.api_key && existing.api_key) fields.api_key = existing.api_key;
           if (fields.context_window === undefined && existing.context_window)
             fields.context_window = Number(existing.context_window);
-          upsertModelSection(sec.id, fields);
+          upsertModelSection(sectionId, fields);
         }
         respond(id, workspaceStateResult(params.workspace));
         return;
       }
       case "workspace/removeModelProvider": {
         const pid = String(params.providerId ?? "");
+        const table = readModelsTable();
+        if (table.providers.some((x) => x.id === pid)) {
+          // 供应商段删除：仍有模型引用时拒绝，避免留下悬空 model_provider。
+          if (table.models.some((m) => m.providerId === pid)) {
+            respondError(id, -32603, `nofy: 供应商 ${pid} 下仍有模型，请先删除或改挂其他供应商`);
+            return;
+          }
+          removeProviderSection(pid);
+          respond(id, workspaceStateResult(params.workspace));
+          return;
+        }
         if (pid === KERNEL_SYNTHETIC_PROVIDER_ID) {
           respondError(
             id,
@@ -1317,7 +1379,7 @@ async function handleHostFrame(frame) {
           );
           return;
         }
-        if (pid) removeModelSection(pid);
+        if (pid) removeModelSection(sectionIdOf(pid));
         respond(id, workspaceStateResult(params.workspace));
         return;
       }
@@ -1358,7 +1420,7 @@ async function handleHostFrame(frame) {
             if (ss0) ss0.modelId = modelId;
           }
           if (modelId)
-            await acp.rpc("session/set_model", { sessionId: sid0, modelId }).catch((e) =>
+            await acp.rpc("session/set_model", { sessionId: sid0, modelId: sectionIdOf(modelId) }).catch((e) =>
               console.error("[acp-adapter] session/set_model failed:", e?.message),
             );
         } else if (sid0 && method === "session/setMode") {

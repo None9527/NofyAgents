@@ -366,12 +366,19 @@ import {
   attachKernelProviderBridge,
 } from "./seam/kernel-provider-source.js"; // A1-B：§2.7 移植钥匙（内核 modelState → provider 注册表）
 import { observeChannelService } from "./seam/agent-service-observer.js"; // P1b probe9：NOFY_OBS_AGENT=1 时录制 renderer→host 通道调用
-import { readModelsTable as readNofyModelsTable } from "../main/seam/nofy-config-toml.js"; // D17：runtime 不在时合成 workspace-config 快照的模型源
+import { readModelsTable as readNofyModelsTable, upsertRegistryProvider as persistRegistryProvider, removeRegistryProvider as dropRegistryProvider } from "../main/seam/nofy-config-toml.js"; // D17：runtime 不在时合成 workspace-config 快照的模型源；nofy：设置面供应商增删改的唯一落盘端（~/.nofy/config.toml 按供应商结构）
 
 // D17：与适配器 nofyConfigOptions 同形（renderer jx() 消费形）；runtime 不在时由 host 补发。
 function syntheticNoRuntimeWorkspaceConfigFrame(workspaceKey, topic, subscriptionId) {
   const table = readNofyModelsTable();
-  const PID = "nofy-kernel";
+  // 模型引用编码 `${providerId}/${modelId}` 必须与注册表/适配器的真供应商 id 一致，
+  // 否则 renderer 的 current 匹配不到菜单项。
+  const pidOf = (mid) => {
+    const m = table.models.find((x) => x.id === mid);
+    return m?.providerId && table.providers.some((p) => p.id === m.providerId) ? m.providerId : "nofy-kernel";
+  };
+  // 编码用上游模型 id（注册表模型 id 语义），与适配器/合成器一致。
+  const uidOf = (mid) => table.models.find((x) => x.id === mid)?.model ?? mid;
   const currentId = table.defaultId || table.models[0]?.id || "";
   return {
     topic,
@@ -392,12 +399,12 @@ function syntheticNoRuntimeWorkspaceConfigFrame(workspaceKey, topic, subscriptio
               name: "Model",
               category: "model",
               type: "select",
-              currentValue: `${PID}/${currentId}`,
+              currentValue: `${pidOf(currentId)}/${uidOf(currentId)}`,
               options: table.models.map((mm) => ({
-                value: `${PID}/${mm.id}`,
+                value: `${pidOf(mm.id)}/${uidOf(mm.id)}`,
                 name: mm.name,
-                modelProviderId: PID,
-                modelProviderName: "nofy kernel",
+                modelProviderId: pidOf(mm.id),
+                modelProviderName: table.providers.find((p) => p.id === pidOf(mm.id))?.name ?? "nofy kernel",
               })),
             },
             {
@@ -769,7 +776,7 @@ function getConversationWorkspaceDir() {
 }
 i(getConversationWorkspaceDir, "getConversationWorkspaceDir");
 function getAppConfigDir() {
-  return Jt(getZCodeDataRootDir(), "v2");
+  return Jt(getZCodeDataRootDir(), "desktop"); // nofy：v2 目录废除，桌面状态归 ~/.nofy/desktop
 }
 i(getAppConfigDir, "getAppConfigDir");
 function readEnvValue(e, t) {
@@ -898,8 +905,8 @@ function getProviderWorkspacePrimaryConfigPath(e, t, n) {
 }
 i(getProviderWorkspacePrimaryConfigPath, "getProviderWorkspacePrimaryConfigPath");
 async function copyDataDirectory(e, t) {
-  let n = Jt(e, ".nofy", "v2"),
-    o = Jt(t, ".nofy", "v2");
+  let n = Jt(e, ".nofy", "desktop"),
+    o = Jt(t, ".nofy", "desktop");
   await B3(n, o, {
     recursive: !0,
     force: !1,
@@ -6191,7 +6198,7 @@ function resolveUserHomeDir() {
 }
 i(resolveUserHomeDir, "resolveUserHomeDir");
 function getSettingsDir() {
-  return mC(resolveUserHomeDir(), ".nofy", "v2");
+  return mC(resolveUserHomeDir(), ".nofy", "desktop");
 }
 i(getSettingsDir, "getSettingsDir");
 function getSettingsFile() {
@@ -18891,10 +18898,16 @@ function settingsToConfigOptions(e) {
   return Bf(e);
 }
 i(settingsToConfigOptions, "settingsToConfigOptions");
-// D18：task 库的 provider 维度在本构建全局硬编码（查询/存储都用 zn）。ZCode 假设
-// 单 provider glm；nofy 环境注册表只有内核 provider，按 glm 过滤模型必空、菜单必空。
-var zn = "nofy-kernel",
-  Pb = [],
+// D18：task 库的 provider 维度在本构建全局硬编码（查询/存储都用同一值）。ZCode 假设
+// 单 provider glm；nofy 环境按 glm 过滤模型必空、菜单必空。
+// nofy：该维度取 config 默认模型所属的真供应商（与适配器写入的 meta.provider 同源），
+// 不再用占位 id，避免 task 库与设置面/注册表的真供应商分裂。
+function nofyTaskProvider() {
+  const t = readNofyModelsTable();
+  const m = t.models.find((x) => x.id === t.defaultId) ?? t.models[0];
+  return m?.providerId && t.providers.some((p) => p.id === m.providerId) ? m.providerId : "nofy-kernel";
+}
+var Pb = [],
   Ge = createServiceLogger("zcode-task-service"),
   Voe = "AskUserQuestion",
   Joe = "ExitPlanMode",
@@ -19615,7 +19628,7 @@ function createZCodeTaskServiceAdapter(e) {
           title: Ne?.title ?? fe.meta.title,
           updatedAt: Ne?.updatedAt ?? fe.meta.updatedAt,
           mode: fe.meta.mode ?? Ne?.mode ?? "default",
-          provider: fe.meta.provider ?? Ne?.provider ?? zn,
+          provider: fe.meta.provider ?? Ne?.provider ?? nofyTaskProvider(),
           status: fe.meta.status ?? Ne?.status ?? "completed",
           lastError: fe.meta.lastError ?? Ne?.lastError,
         },
@@ -19713,7 +19726,7 @@ function createZCodeTaskServiceAdapter(e) {
           mode: fromZCodeMode(f.session.mode),
           model: formatTaskMetaModelRefFromSnapshot(f),
           thoughtLevel: f.settings.thoughtLevel.current,
-          provider: zn,
+          provider: nofyTaskProvider(),
           status: Nf(f),
           lastError: f.projection.lastError
             ? {
@@ -20048,7 +20061,7 @@ function createZCodeTaskServiceAdapter(e) {
           workspacePath: C.workspacePath,
           preparedSessionId: "",
           version: "ZCode Protocol/1",
-          provider: zn,
+          provider: nofyTaskProvider(),
           configOptions: W,
           slashCommands: M.slashCommands ?? Pb,
         }
@@ -20496,14 +20509,14 @@ function createZCodeTaskServiceAdapter(e) {
         await P.listTaskMetas({
           workspacePath: f.workspacePath,
           workspaceIdentity: f.workspaceIdentity,
-          provider: zn,
+          provider: nofyTaskProvider(),
           pinned: !1,
           archived: !1,
         })
       ).map(rememberIndexedTaskMeta);
     },
     async listPinnedTaskIds() {
-      return (await P.listTaskMetas({ provider: zn, pinned: !0, archived: !1 })).map(
+      return (await P.listTaskMetas({ provider: nofyTaskProvider(), pinned: !0, archived: !1 })).map(
         (C) => C.taskId,
       );
     },
@@ -20512,7 +20525,7 @@ function createZCodeTaskServiceAdapter(e) {
         await P.listTaskMetas({
           workspacePath: f.workspacePath,
           workspaceIdentity: f.workspaceIdentity,
-          provider: zn,
+          provider: nofyTaskProvider(),
           pinned: !0,
           archived: !1,
         })
@@ -20522,11 +20535,11 @@ function createZCodeTaskServiceAdapter(e) {
       return P.listDeletedTaskIds({
         workspacePath: f.workspacePath,
         workspaceIdentity: f.workspaceIdentity,
-        provider: zn,
+        provider: nofyTaskProvider(),
       });
     },
     async listTaskList(f) {
-      let C = await P.queryTaskList({ ...f, provider: zn });
+      let C = await P.queryTaskList({ ...f, provider: nofyTaskProvider() });
       return { ...C, items: C.items.map(rememberIndexedTaskMeta) };
     },
     async createTaskGroup(f) {
@@ -20550,7 +20563,7 @@ function createZCodeTaskServiceAdapter(e) {
       return (await runWorkspaceTaskAutoArchive(f.workspaceScopes), P.queryGroupedTaskViewStructure(f));
     },
     async applyGroupedTaskViewOrder(f) {
-      let C = await P.applyGroupedTaskViewOrder({ ...f, provider: zn });
+      let C = await P.applyGroupedTaskViewOrder({ ...f, provider: nofyTaskProvider() });
       for (let M of f.workspaceScopes) emitWorkspaceTaskListChanged(M, void 0, "task_meta_changed");
       return {
         nodes: C.nodes.map((M) =>
@@ -20563,7 +20576,7 @@ function createZCodeTaskServiceAdapter(e) {
         await P.listTaskMetas({
           workspacePath: f.workspacePath,
           workspaceIdentity: f.workspaceIdentity,
-          provider: zn,
+          provider: nofyTaskProvider(),
           archived: !0,
         })
       ).map(rememberIndexedTaskMeta);
@@ -20577,7 +20590,7 @@ function createZCodeTaskServiceAdapter(e) {
       let C = await P.listTaskMetas({
         workspacePath: f.workspacePath,
         workspaceIdentity: f.workspaceIdentity,
-        provider: zn,
+        provider: nofyTaskProvider(),
         archived: !1,
       });
       for (let M of C)
@@ -20593,7 +20606,7 @@ function createZCodeTaskServiceAdapter(e) {
         P.listTaskMetas({
           workspacePath: f.workspacePath,
           workspaceIdentity: f.workspaceIdentity,
-          provider: zn,
+          provider: nofyTaskProvider(),
           archived: !0,
         })
       );
@@ -20892,11 +20905,11 @@ function createZCodeTaskServiceAdapter(e) {
     },
     async getWorkspacePreferredMode(f) {
       let C = await e.zcodeAgentService.readWorkspaceState(normalizeWorkspaceParams(f));
-      return { provider: zn, mode: fromZCodeMode(C.settings.mode.current) };
+      return { provider: nofyTaskProvider(), mode: fromZCodeMode(C.settings.mode.current) };
     },
     async getWorkspacePreferredThoughtLevel(f) {
       let C = await e.zcodeAgentService.readWorkspaceState(normalizeWorkspaceParams(f));
-      return { provider: zn, thoughtLevel: C.settings.thoughtLevel.current ?? null };
+      return { provider: nofyTaskProvider(), thoughtLevel: C.settings.thoughtLevel.current ?? null };
     },
     async setWorkspacePreferredThoughtLevel(f) {
       let C = normalizeWorkspaceParams(f),
@@ -20908,11 +20921,11 @@ function createZCodeTaskServiceAdapter(e) {
       emitWorkspaceConfig(C, M.settings);
     },
     async getWorkspaceProviderConfigFile(f) {
-      return { provider: zn, path: f.workspacePath, exists: !1 };
+      return { provider: nofyTaskProvider(), path: f.workspacePath, exists: !1 };
     },
     async getTaskNativeSessionLogFile() {
       let f = resolveZCodeAgentCurrentLogFilePath();
-      return { provider: zn, path: f, exists: uW(f) };
+      return { provider: nofyTaskProvider(), path: f, exists: uW(f) };
     },
     async getModelTrajectory(f) {
       let C = readModelTrajectory(f.taskId, f.limit);
@@ -37771,15 +37784,11 @@ function buildOpenCodeProviderMap(e, t = {}) {
   return Object.fromEntries(e.map((n) => [n.id, modelProviderToOpenCodeProvider(n, t[n.id])]));
 }
 i(buildOpenCodeProviderMap, "buildOpenCodeProviderMap");
+// nofy：provider 存储（原 ~/.nofy/v2/config.json 按供应商形制副本）废除——内核
+// ~/.nofy/config.toml 为模型唯一真源（§0 单一配置），注册表只读派生（D14/readCachedProviders）。
+// 读恒空 ⇒ readProviders 降级链自然返回 []；写 no-op ⇒ 存储文件永不再生。
 async function readRawZCodeConfigFile() {
-  try {
-    let e = await Jk(getZCodeConfigFilePath(), "utf-8"),
-      t = JSON.parse(e),
-      n = ohe.safeParse(t);
-    return n.success ? n.data : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 i(readRawZCodeConfigFile, "readRawZCodeConfigFile");
 async function readZCodeConfigProviders(e = {}) {
@@ -38105,14 +38114,7 @@ async function restoreLegacyModelProvidersFromBackupIfAvailable() {
 }
 i(restoreLegacyModelProvidersFromBackupIfAvailable, "restoreLegacyModelProvidersFromBackupIfAvailable");
 async function writeProviderStoreFile(e) {
-  let t = getZCodeConfigFilePath(),
-    n = await readRawZCodeConfigFile(),
-    o = n?.provider ?? {},
-    r = omitZCodePrefixedKeys(n ?? void 0);
-  delete r.$schema;
-  let s = e.map(normalizeProviderForStore),
-    a = JSON.stringify({ ...r, provider: buildOpenCodeProviderMap(s, o) }, null, 2);
-  await atomicWriteText(t, a);
+  return; // nofy：provider 存储废除，见 readRawZCodeConfigFile 注
 }
 i(writeProviderStoreFile, "writeProviderStoreFile");
 async function writeProviders(e) {
@@ -38547,7 +38549,7 @@ function createModelProviderService(e = {}) {
     // config.toml [model.*] 兜底 + fs.watch）；存储注册表仅在内核合成拿不到条目时降级兜底，
     // 以免内核短暂不可用时打回「无可用模型」横幅（D3 的原症状）。
     let ee = await synthesizeKernelProviders();
-    if (ee.length === 0) ee = await readProviders({});
+    // Empty native config stays empty; never resurrect the retired provider store.
     return markLocalProvidersUsable(
       applyProviderFamilyDomain(ee, await loadProviderFamilyDomain(), t()),
     );
@@ -38617,6 +38619,9 @@ function createModelProviderService(e = {}) {
           _e = await readProviders({ includeDeletedModels: !0 }),
           ge = _e.findIndex((se) => se.id === ne.id);
         (ge >= 0 ? (_e[ge] = mergeDeletedModelTombstones(ne, _e[ge])) : _e.push(ne), await writeProviders(_e));
+        // nofy：provider 存储已退休（writeProviders 为 no-op），设置面的增改必须落
+        // ~/.nofy/config.toml 的按供应商结构，否则刷新即被内核合成覆盖、用户改动丢失。
+        persistRegistryProvider(ne);
       }),
         K(`save:${ee.id}`));
     },
@@ -38624,6 +38629,8 @@ function createModelProviderService(e = {}) {
       (await enqueueWrite(async () => {
         let _e = (await readProviders({ includeDeletedModels: !0 })).filter((ge) => ge.id !== ee);
         await writeProviders(_e);
+        // nofy：同 save——删除落 config.toml（供应商段+旗下模型段，或单个模型段）。
+        dropRegistryProvider(ee);
       }),
         K(`delete:${ee}`));
     },
@@ -38828,7 +38835,7 @@ function r6(e) {
 }
 i(r6, "isRecord");
 var twe = "_meta.json",
-  s6 = Zt(Xp(), ".nofy", "v2"),
+  s6 = Zt(Xp(), ".nofy", "desktop"),
   k6 = Zt(Xp(), ".nofy", "cli"),
   v6 = Zt(k6, "config.json"),
   nwe = ".git",
@@ -42021,7 +42028,7 @@ function resolveWorkspaceSubagentRoot(e) {
 }
 i(resolveWorkspaceSubagentRoot, "resolveWorkspaceSubagentRoot");
 async function resolveSubagentStateFile(e) {
-  return pm(await resolveZCodeStorageRoot(e), "v2", "agents-state.json");
+  return pm(await resolveZCodeStorageRoot(e), "desktop", "agents-state.json");
 }
 i(resolveSubagentStateFile, "resolveSubagentStateFile");
 async function resolveZCodeStorageRoot(e) {
@@ -48948,7 +48955,7 @@ function buildBaselineMetaFromSummary(e, t) {
     // D18：glm/default 是 ZCode 预设假设；nofy 环境注册表只有内核 provider，
     // 按 glm 过滤模型必空。行带值时优先行值（适配器推内核真引用）。
     mode: t.mode ?? "build",
-    provider: t.provider ?? zn,
+    provider: t.provider ?? nofyTaskProvider(),
     ...(t.model ? { model: t.model } : {}),
     ...(t.parentSessionId ? { forkedFromTaskId: t.parentSessionId } : {}),
     ...(n ? { status: n } : {}),

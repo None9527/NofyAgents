@@ -18298,7 +18298,7 @@ function resolveIntranetDepsBaseUrl(e = readProcessEnv()) {
   return o ? o.replace(/\/+$/, "") : `http://${resolveIntranetMachineHost(e)}:${Af}/zcode/deps`;
 }
 c(resolveIntranetDepsBaseUrl, "resolveIntranetDepsBaseUrl");
-var Mn = "v2",
+var Mn = "desktop", // nofy：v2 目录废除
   DI = "v1",
   zf = "v1";
 function repoSnapshotSchema(e, o) {

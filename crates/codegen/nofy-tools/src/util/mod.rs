@@ -7,6 +7,7 @@ pub mod git_detect;
 pub mod hash;
 pub mod image_compress;
 pub mod image_validate;
+pub mod lock_path;
 pub mod mcp_structured_content;
 pub mod mcp_truncate;
 pub mod nofy_home;

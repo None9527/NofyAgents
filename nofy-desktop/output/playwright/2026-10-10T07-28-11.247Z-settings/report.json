@@ -1,0 +1,103 @@
+{
+  "source": "Actual Electron GUI + temporary deterministic ACP emulator; not real services",
+  "startedAt": "2026-10-10T07:28:11.251Z",
+  "cases": [
+    {
+      "name": "Settings language EN/ZH changes live without losing drafts",
+      "status": "passed"
+    },
+    {
+      "name": "System theme follows media changes; explicit themes override",
+      "status": "passed"
+    },
+    {
+      "name": "Font and language survive renderer reload",
+      "status": "passed"
+    },
+    {
+      "name": "Mounted terminal palette follows system theme changes",
+      "status": "passed",
+      "details": {
+        "light": {
+          "terminal": "oklch(0.269 0 0)",
+          "dock": "oklch(0.269 0 0)"
+        },
+        "dark": {
+          "terminal": "oklch(0.87 0 0)",
+          "dock": "oklch(0.87 0 0)"
+        }
+      }
+    },
+    {
+      "name": "MCP GUI create disable enable authenticate delete readback",
+      "status": "passed"
+    },
+    {
+      "name": "Plugin GUI install disable enable uninstall",
+      "status": "passed"
+    },
+    {
+      "name": "MCP GUI invalid draft is retained without any kernel write",
+      "status": "passed"
+    },
+    {
+      "name": "MCP GUI Setup uses normalized fields and the camel-case submission",
+      "status": "passed"
+    },
+    {
+      "name": "Plugin GUI repository confirmation and required reload are explicit",
+      "status": "passed"
+    },
+    {
+      "name": "MCP GUI A B A navigation discards the previous form completion",
+      "status": "passed"
+    },
+    {
+      "name": "Plugin unsaved exit preserves input on cancel and discards only after confirmation",
+      "status": "passed"
+    },
+    {
+      "name": "MCP unsaved route change protects the draft",
+      "status": "passed"
+    },
+    {
+      "name": "Provider Escape protects changed model fields and leaves only after discard",
+      "status": "passed"
+    },
+    {
+      "name": "Credential draft is protected without serializing the key",
+      "status": "passed"
+    },
+    {
+      "name": "Credential form clears fake input on kernel acceptance",
+      "status": "passed"
+    },
+    {
+      "name": "Provider save refuses pending approval without config or PID changes",
+      "status": "passed",
+      "details": {
+        "configurationUnchanged": true,
+        "kernelPidsUnchanged": true,
+        "inputPreserved": true,
+        "approvalThenResolved": true
+      }
+    },
+    {
+      "name": "Provider native GUI saves isolated config and restarts one kernel",
+      "status": "passed"
+    },
+    {
+      "name": "Provider stale revision refuses overwrite and preserves the form",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取', exact: true }).filter({ has: locator('svg') })\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"重新读取\" type=\"button\" aria-label=\"重新读取\" class=\"iconbtn iconbtn--sm\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "name": "1024x768 dark/light composer and plan approval stay reachable",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^(通用|General)$/ })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"set__item\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" class=\"ui-dialog \" aria-labelledby=\"_r_f_\">…</dialog> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/2026-10-10T07-28-11.247Z-settings",
+  "finishedAt": "2026-10-10T07:28:44.839Z"
+}

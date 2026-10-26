@@ -362,6 +362,27 @@ pub fn question_view(v: &AgentView) -> Option<&QuestionViewState> {
     v.question_view.as_ref()
 }
 
+/// Minimal uses the same card state, response channel and draft as fullscreen.
+pub fn elicitation_view(
+    v: &AgentView,
+) -> Option<&crate::views::elicitation_view::ElicitationViewState> {
+    v.elicitation_view.as_ref()
+}
+
+pub fn render_elicitation(v: &mut AgentView, buf: &mut Buffer, area: Rect, theme: &Theme) {
+    v.elicit_hits.clear();
+    if let Some(state) = v.elicitation_view.as_mut() {
+        crate::views::elicitation_view::render_elicitation_view(
+            buf,
+            area,
+            state,
+            theme,
+            true,
+            Some(&mut v.elicit_hits),
+        );
+    }
+}
+
 /// `AgentView::question_view` (mutable — minimal clamps the scroll offset).
 pub fn question_view_mut(v: &mut AgentView) -> Option<&mut QuestionViewState> {
     v.question_view.as_mut()
@@ -857,6 +878,14 @@ pub fn set_extensions_modal(v: &mut AgentView, val: Option<ExtensionsModalState>
 #[cfg(any(test, feature = "test-support"))]
 pub fn set_question_view(v: &mut AgentView, val: Option<QuestionViewState>) {
     v.question_view = val;
+}
+
+#[cfg(any(test, feature = "test-support"))]
+pub fn set_elicitation_view(
+    v: &mut AgentView,
+    value: crate::views::elicitation_view::ElicitationViewState,
+) {
+    v.elicitation_view = Some(value);
 }
 
 /// Test-only setter for `AgentView::plan_mode_active`.

@@ -15,6 +15,7 @@ pub struct TopicManifest {
 }
 
 pub fn rebuild(scope: &ScopeLayout) -> std::io::Result<TopicManifest> {
+    let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())?;
     let mut paths = Vec::new();
     collect_markdown(&scope.topics_directory(), &mut paths)?;
     let mut topics = BTreeMap::new();

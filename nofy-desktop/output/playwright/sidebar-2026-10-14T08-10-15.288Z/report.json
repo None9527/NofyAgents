@@ -1,0 +1,871 @@
+{
+  "source": "isolated Electron + synthetic ACP",
+  "cases": [
+    {
+      "name": "S01 navigation and project tools fit every sidebar width",
+      "status": "passed",
+      "details": [
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 240,
+            "height": 900,
+            "top": 0,
+            "right": 240,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 96,
+            "y": 10,
+            "width": 124,
+            "height": 28,
+            "top": 10,
+            "right": 220,
+            "bottom": 38,
+            "left": 96
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 124,
+                "bottom": 38,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 128,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 156,
+                "bottom": 38,
+                "left": 128
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 160,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 188,
+                "bottom": 38,
+                "left": 160
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 192,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 220,
+                "bottom": 38,
+                "left": 192
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 12,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 67,
+                "bottom": 174,
+                "left": 12
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 67,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 122,
+                "bottom": 174,
+                "left": 67
+              },
+              "region": "none"
+            },
+            {
+              "name": "展开全部",
+              "rect": {
+                "x": 128,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 152,
+                "bottom": 174,
+                "left": 128
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 176,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 200,
+                "bottom": 174,
+                "left": 176
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 204,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 228,
+                "bottom": 174,
+                "left": 204
+              },
+              "region": "none"
+            }
+          ]
+        },
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 264,
+            "height": 900,
+            "top": 0,
+            "right": 264,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 96,
+            "y": 10,
+            "width": 124,
+            "height": 28,
+            "top": 10,
+            "right": 220,
+            "bottom": 38,
+            "left": 96
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 124,
+                "bottom": 38,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 128,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 156,
+                "bottom": 38,
+                "left": 128
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 160,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 188,
+                "bottom": 38,
+                "left": 160
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 192,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 220,
+                "bottom": 38,
+                "left": 192
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 12,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 67,
+                "bottom": 174,
+                "left": 12
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 67,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 122,
+                "bottom": 174,
+                "left": 67
+              },
+              "region": "none"
+            },
+            {
+              "name": "展开全部",
+              "rect": {
+                "x": 128,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 152,
+                "bottom": 174,
+                "left": 128
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 200,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 224,
+                "bottom": 174,
+                "left": 200
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 228,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 252,
+                "bottom": 174,
+                "left": 228
+              },
+              "region": "none"
+            }
+          ]
+        },
+        {
+          "side": {
+            "x": 0,
+            "y": 0,
+            "width": 480,
+            "height": 900,
+            "top": 0,
+            "right": 480,
+            "bottom": 900,
+            "left": 0
+          },
+          "nav": {
+            "x": 96,
+            "y": 10,
+            "width": 124,
+            "height": 28,
+            "top": 10,
+            "right": 220,
+            "bottom": 38,
+            "left": 96
+          },
+          "buttons": [
+            {
+              "name": "切换侧边栏",
+              "rect": {
+                "x": 96,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 124,
+                "bottom": 38,
+                "left": 96
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "后退",
+              "rect": {
+                "x": 128,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 156,
+                "bottom": 38,
+                "left": 128
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "前进",
+              "rect": {
+                "x": 160,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 188,
+                "bottom": 38,
+                "left": 160
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "新建任务",
+              "rect": {
+                "x": 192,
+                "y": 10,
+                "width": 28,
+                "height": 28,
+                "top": 10,
+                "right": 220,
+                "bottom": 38,
+                "left": 192
+              },
+              "region": "no-drag"
+            },
+            {
+              "name": "分组：全部任务按最近变更排成一条扁平列表（活壳同 tabs 的第一档）",
+              "rect": {
+                "x": 12,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 67,
+                "bottom": 174,
+                "left": 12
+              },
+              "region": "none"
+            },
+            {
+              "name": "项目：按工作区分组，组内是该工作区的任务",
+              "rect": {
+                "x": 67,
+                "y": 150,
+                "width": 55,
+                "height": 24,
+                "top": 150,
+                "right": 122,
+                "bottom": 174,
+                "left": 67
+              },
+              "region": "none"
+            },
+            {
+              "name": "展开全部",
+              "rect": {
+                "x": 128,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 152,
+                "bottom": 174,
+                "left": 128
+              },
+              "region": "none"
+            },
+            {
+              "name": "筛选和排序",
+              "rect": {
+                "x": 416,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 440,
+                "bottom": 174,
+                "left": 416
+              },
+              "region": "none"
+            },
+            {
+              "name": "查看归档会话",
+              "rect": {
+                "x": 444,
+                "y": 150,
+                "width": 24,
+                "height": 24,
+                "top": 150,
+                "right": 468,
+                "bottom": 174,
+                "left": 444
+              },
+              "region": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "S02 real button collapse keeps a visible reopen button",
+      "status": "passed"
+    },
+    {
+      "name": "S03 keyboard and renderer reload preserve collapse without losing navigation",
+      "status": "passed"
+    },
+    {
+      "name": "S04 extreme window and legacy narrow preference collapse instead of shrinking icons",
+      "status": "passed"
+    },
+    {
+      "name": "S05 dragging below minimum folds the sidebar and can reopen at full icon size",
+      "status": "passed"
+    },
+    {
+      "name": "S06 closed navigation leaves title clear and still creates tasks",
+      "status": "passed"
+    },
+    {
+      "name": "S07 history controls perform real session navigation",
+      "status": "passed"
+    },
+    {
+      "name": "S08 footer is one surface and navigation is a plain no-drag island after drag regions",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'0px' !== '1px'\n"
+    },
+    {
+      "name": "S09 fold animates the slot without squeezing sidebar contents",
+      "status": "passed",
+      "details": [
+        {
+          "time": 1,
+          "width": 264,
+          "content": 264,
+          "main": 265,
+          "inert": true
+        },
+        {
+          "time": 9.700000047683716,
+          "width": 264,
+          "content": 264,
+          "main": 265,
+          "inert": true
+        },
+        {
+          "time": 29,
+          "width": 259.0546875,
+          "content": 264,
+          "main": 260.0390625,
+          "inert": true
+        },
+        {
+          "time": 42.200000047683716,
+          "width": 247.1796875,
+          "content": 264,
+          "main": 248.1171875,
+          "inert": true
+        },
+        {
+          "time": 56.5,
+          "width": 222.8125,
+          "content": 264,
+          "main": 223.65625,
+          "inert": true
+        },
+        {
+          "time": 73.80000001192093,
+          "width": 173.84375,
+          "content": 264,
+          "main": 174.5078125,
+          "inert": true
+        },
+        {
+          "time": 90.90000003576279,
+          "width": 120.6015625,
+          "content": 264,
+          "main": 121.0625,
+          "inert": true
+        },
+        {
+          "time": 106.10000002384186,
+          "width": 83.59375,
+          "content": 264,
+          "main": 83.9140625,
+          "inert": true
+        },
+        {
+          "time": 121.30000001192093,
+          "width": 57.1328125,
+          "content": 264,
+          "main": 57.3515625,
+          "inert": true
+        },
+        {
+          "time": 137.60000002384186,
+          "width": 36.859375,
+          "content": 264,
+          "main": 37,
+          "inert": true
+        },
+        {
+          "time": 151.60000002384186,
+          "width": 24.484375,
+          "content": 264,
+          "main": 24.578125,
+          "inert": true
+        },
+        {
+          "time": 166.9000000357628,
+          "width": 14.6171875,
+          "content": 264,
+          "main": 14.671875,
+          "inert": true
+        },
+        {
+          "time": 183.4000000357628,
+          "width": 7.4296875,
+          "content": 264,
+          "main": 7.4609375,
+          "inert": true
+        },
+        {
+          "time": 196.60000002384186,
+          "width": 3.5625,
+          "content": 264,
+          "main": 3.578125,
+          "inert": true
+        },
+        {
+          "time": 211.80000001192093,
+          "width": 0.9765625,
+          "content": 264,
+          "main": 0.984375,
+          "inert": true
+        },
+        {
+          "time": 226.10000002384186,
+          "width": 0.03125,
+          "content": 264,
+          "main": 0.03125,
+          "inert": true
+        },
+        {
+          "time": 240.60000002384186,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        },
+        {
+          "time": 255.10000002384186,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        },
+        {
+          "time": 271.60000002384186,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        },
+        {
+          "time": 288.5,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        },
+        {
+          "time": 304.80000001192093,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        },
+        {
+          "time": 318.7000000476837,
+          "width": 0,
+          "content": 264,
+          "main": 0,
+          "inert": true
+        }
+      ]
+    },
+    {
+      "name": "S10 rapid reversal cancels delayed hiding and reduced motion settles immediately",
+      "status": "passed",
+      "details": {
+        "reversal": "open and interactive",
+        "reducedMotion": "0ms"
+      }
+    },
+    {
+      "name": "S12 project rows come from workspace_list and hide protocol names",
+      "status": "passed",
+      "details": {
+        "opened": true
+      }
+    },
+    {
+      "name": "S11 window threshold preserves the last content width through automatic fold",
+      "status": "passed",
+      "details": [
+        {
+          "time": 5.600000023841858,
+          "width": 440,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 25.5,
+          "width": 440,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 43.40000003576279,
+          "width": 440,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 57.30000001192093,
+          "width": 440,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 74.40000003576279,
+          "width": 394.2421875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 89.60000002384186,
+          "width": 313.421875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 101.10000002384186,
+          "width": 245.671875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 117.40000003576279,
+          "width": 167.34375,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 129.80000001192093,
+          "width": 122.984375,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 143.10000002384186,
+          "width": 87.59375,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 158.30000001192093,
+          "width": 57.5546875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 176.80000001192093,
+          "width": 32.375,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 194.4000000357628,
+          "width": 16.40625,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 211.60000002384186,
+          "width": 6.671875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 228.5,
+          "width": 1.5546875,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 244.5,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 262.2000000476837,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 277.2000000476837,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 294.7000000476837,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 311.80000001192093,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 327.7000000476837,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 342.4000000357628,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 357.5,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 374.60000002384186,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 388.7000000476837,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 402.4000000357628,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 417.30000001192093,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 432.80000001192093,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 445.80000001192093,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 461.4000000357628,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 475.10000002384186,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 489.5,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        },
+        {
+          "time": 501.9000000357628,
+          "width": 0,
+          "content": 440,
+          "preferred": "480px"
+        }
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/sidebar-2026-10-14T08-10-15.288Z"
+}

@@ -1,0 +1,50 @@
+{
+  "source": "isolated Electron + synthetic ACP + local http page; guest webContents inspected in the main process",
+  "cases": [
+    {
+      "name": "B00 empty page disables find print and screenshot",
+      "status": "passed",
+      "details": {
+        "disabled": true
+      }
+    },
+    {
+      "name": "B01 user navigation loads a local page inside the right pane",
+      "status": "passed",
+      "details": {
+        "url": "http://127.0.0.1:63661/",
+        "title": "nofy-browser-first",
+        "bounds": {
+          "x": 874,
+          "y": 92,
+          "width": 406,
+          "height": 768
+        }
+      }
+    },
+    {
+      "name": "B02 file and script URLs are rejected without loading them",
+      "status": "passed",
+      "details": {
+        "stayed": "http://127.0.0.1:63661/"
+      }
+    },
+    {
+      "name": "B04 browser menus run zoom find extensions and clear confirmation",
+      "status": "passed",
+      "details": {
+        "zoom": 1.1
+      }
+    },
+    {
+      "name": "B03 settings and collapsing the pane hide the native view",
+      "status": "passed",
+      "details": {
+        "hidden": false,
+        "restored": "http://127.0.0.1:63661/"
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/browser-2026-10-14T11-02-32.712Z"
+}

@@ -1,0 +1,51 @@
+{
+  "source": "isolated Electron synthetic ACP; no model requests",
+  "beforeGui": "output/playwright/sidebar-2026-10-12T03-26-00.275Z/report.json",
+  "sidebarGui": "output/playwright/sidebar-2026-10-12T03-41-21.453Z/report.json",
+  "sidebarCases": 6,
+  "homepageGui": "output/playwright/homepage-2026-10-12T03-38-50.121Z/report.json",
+  "homepageCases": 12,
+  "unitTests": 423,
+  "verificationLog": "/tmp/nofy-sidebar-verify.log",
+  "package": {
+    "application": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "artifact": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "c8a6fc3d0ce123fbd71d92ab88388b1c8f1f9fd649f44312ccdd5706c515a873",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "version": "0.1.0",
+    "signing": "ad-hoc local only",
+    "kernelBundled": false
+  },
+  "packageVerification": {
+    "generatedAt": "2026-10-12T03:42:59.966Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "version": "0.1.0",
+    "app": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "results": [
+      {
+        "launch": 1,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-1.png",
+        "screenshotBytes": 142943,
+        "kernelReaped": true
+      },
+      {
+        "launch": 2,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-2.png",
+        "screenshotBytes": 142943,
+        "kernelReaped": true
+      }
+    ],
+    "kernelBundled": false,
+    "signing": "ad-hoc local only",
+    "scope": "Two local executable launches in isolated NOFY_HOME and Electron user-data-dir; no Gatekeeper/notarization, external installation, Windows/Linux or model conversation validation"
+  },
+  "reopenedBundle": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app"
+}

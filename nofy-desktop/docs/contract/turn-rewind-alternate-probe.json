@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-10-08T09:56:22.461Z",
+  "version": "0.2.121",
+  "report": {
+    "stage": "session/prompt",
+    "modelId": "qwen3.8-max",
+    "catalog": [
+      {
+        "id": "grok-4.5",
+        "name": "Nofy 4.5"
+      },
+      {
+        "id": "qwen3.8-max",
+        "name": "DashScope qwen3.8-max"
+      },
+      {
+        "id": "qwen3-coder-plus",
+        "name": "DashScope qwen3-coder"
+      },
+      {
+        "id": "glm-5.2",
+        "name": "DashScope GLM-5.2"
+      }
+    ],
+    "kernelErrorClassification": {
+      "code": -32603,
+      "categories": [
+        "unauthorized",
+        "api key"
+      ],
+      "httpStatuses": [
+        "401"
+      ],
+      "dataType": "string"
+    },
+    "failure": {
+      "message": "Internal error",
+      "code": -32603
+    }
+  }
+}

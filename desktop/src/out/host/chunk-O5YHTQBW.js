@@ -13959,6 +13959,7 @@ var $_ = n.object({
   }),
   B_ = n.object({ schemaVersion: n.literal("zcode.model-providers.v1"), providers: n.array(j_) }),
   L_ = uf.extend({
+    modalitiesConfigured: n.boolean().optional(),
     disabledReason: n.string().optional(),
     supportsTools: n.boolean().optional(),
     supportsStructuredOutput: n.boolean().optional(),
@@ -14132,6 +14133,7 @@ function createModelProviderModelConfig(e) {
     kinds: uniqueModelProviderKinds([...(e.kinds ?? [])]),
     ...(e.defaultKind ? { defaultKind: e.defaultKind } : {}),
     modalities: { input: t, output: r },
+    ...e.modalitiesConfigured !== void 0 ? { modalitiesConfigured: e.modalitiesConfigured } : {},
     contextWindow: resolveModelProviderContextWindow(e.id, e.contextWindow),
     ...(e.maxOutputTokens ? { maxOutputTokens: e.maxOutputTokens } : {}),
     ...(e.reasoning ? { reasoning: e.reasoning } : {}),
@@ -19819,7 +19821,7 @@ function resolveInternalOnlyFeatureGateState(e) {
   return { env: r, isIntranet: i, shouldProbe: r === "production" && t.networkEnv === "auto" };
 }
 s(resolveInternalOnlyFeatureGateState, "resolveInternalOnlyFeatureGateState");
-var Hn = "v2",
+var Hn = "desktop", // nofy：v2 目录废除
   cT = "v1",
   Jh = "v1";
 function repoSnapshotSchema(e, t) {

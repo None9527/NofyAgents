@@ -910,62 +910,27 @@ impl SessionActor {
 
         // Reload hooks in the current session
         let t_hooks = std::time::Instant::now();
-        let mut hooks_reloaded = 0usize;
-        if let Some(ref new_registry) = new_registry_snapshot {
-            let mut new_specs = Vec::new();
-            for plugin in new_registry.active_plugins() {
-                // File-based hooks
-                if let Some(ref hooks_path) = plugin.hooks_path {
-                    let (specs, warnings) = nofy_agent::plugins::hooks_adapter::parse_plugin_hooks(
-                        hooks_path,
-                        &plugin.name,
-                        &plugin.root_str(),
-                        &plugin.data_dir_str(),
-                    );
-                    for w in &warnings {
-                        tracing::warn!("{w}");
-                    }
-                    new_specs.extend(specs);
-                }
-                // Inline hooks
-                if let Some(ref inline_value) = plugin.inline_hooks {
-                    let (specs, warnings) =
-                        nofy_agent::plugins::hooks_adapter::parse_plugin_hooks_from_value(
-                            inline_value,
-                            &plugin.name,
-                            &plugin.root_str(),
-                            &plugin.data_dir_str(),
-                        );
-                    for w in &warnings {
-                        tracing::warn!("{w}");
-                    }
-                    new_specs.extend(specs);
-                }
+        let new_specs = new_registry_snapshot
+            .as_deref()
+            .map(nofy_agent::plugins::hooks_adapter::active_plugin_hook_specs)
+            .unwrap_or_default();
+        let hooks_reloaded = new_specs.len();
+        {
+            let mut reg = self.hook_registry.borrow_mut();
+            let mut base = reg.take();
+            if base.is_none() && !new_specs.is_empty() {
+                // Preserve config/file hooks when the first plugin arrives.
+                let git_root =
+                    nofy_workspace::session::git::find_git_root_from_path(session_cwd).ok();
+                let is_trusted = crate::agent::folder_trust::resolve_and_record(session_cwd, false);
+                let (registry, _errors) = crate::util::hooks::discover_hooks(
+                    git_root.as_deref(),
+                    &self.rebuild_spec.compat,
+                    is_trusted,
+                );
+                base = Some(Arc::new(registry));
             }
-            hooks_reloaded = new_specs.len();
-            {
-                let mut reg = self.hook_registry.borrow_mut();
-                if let Some(ref mut arc_reg) = *reg {
-                    let hook_reg = Arc::make_mut(arc_reg);
-                    hook_reg.remove_by_prefix("plugin/");
-                    hook_reg.append_specs(new_specs);
-                } else if !new_specs.is_empty() {
-                    // No registry yet: bootstrap config-layer and file hooks (as
-                    // reload_hooks_impl does), not empty sources, so a plugin-first
-                    // snapshot doesn't drop config hooks.
-                    let git_root =
-                        nofy_workspace::session::git::find_git_root_from_path(session_cwd).ok();
-                    let is_trusted =
-                        crate::agent::folder_trust::resolve_and_record(session_cwd, false);
-                    let (mut new_reg, _errs) = crate::util::hooks::discover_hooks(
-                        git_root.as_deref(),
-                        &self.rebuild_spec.compat,
-                        is_trusted,
-                    );
-                    new_reg.append_specs(new_specs);
-                    *reg = Some(Arc::new(new_reg));
-                }
-            }
+            *reg = nofy_agent::plugins::hooks_adapter::replace_plugin_hooks(base, new_specs);
         }
 
         nofy_telemetry::unified_log::info(

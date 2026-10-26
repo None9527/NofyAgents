@@ -1,3 +1,6 @@
+import { recordRender } from "../../ui/renderDiagnostics.ts";
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * Composer —— 提示输入 + 模式与能力的家。
  *
@@ -94,6 +97,7 @@ const SLASH_CLOSED: SlashView = { open: false, groups: [], flat: [], hidden: 0 }
 type PickerMode = "mention" | "skill";
 
 export type ComposerProps = {
+  permissionOpenToken?: number;
   disabled: boolean;
   running: boolean;
   error: string | null;
@@ -105,7 +109,9 @@ export type ComposerProps = {
   value: string;
   onChange: (text: string) => void;
   /** attach = 本次随 prompt 发出的附加项（resource_link 块，排在文本块前）。 */
-  onSend: (text: string, attach: AttachItem[]) => void;
+  onSend: (text: string, attach: AttachItem[]) => Promise<boolean>;
+  attachments?: AttachItem[];
+  onAttachmentsChange?: (items: AttachItem[]) => void;
   onStop: () => void;
   onModel: (modelId: string) => void;
   /** 推理档选择：session/set_model + _meta.reasoningEffort（内核 pager 同线路）。 */
@@ -154,18 +160,18 @@ export type ComposerProps = {
 };
 
 function attachTitle(caps: ComposerProps["promptCapabilities"]): string {
-  if (caps === null) return "内核能力未知（initialize 未完成）";
+  if (caps === null) return tr("内核能力未知（initialize 未完成）");
   return (
-    "添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文" +
+    tr("添加上下文：选中项以 resource_link 块随 prompt 发出，内核自己展开 @路径 进上下文") +
     "（embeddedContext:" + String(caps?.embeddedContext) + "）；image:" + String(caps?.image) +
-    " audio:" + String(caps?.audio) + " —— 图/音模态内核不支持，不上 UI"
+    " audio:" + String(caps?.audio) + tr(" —— 图/音模态内核不支持，不上 UI")
   );
 }
 
 const MODE_TITLE =
-  "权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；" +
-  "读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。" +
-  "全放行时内核完全不发权限请求（permission-flow-measured.md §0）";
+  tr("权限模式：session/set_mode 管 plan/ask/default，nofy/yolo_mode_changed 管 auto/always-approve；") +
+  tr("读回三源 = roster.yolo、settings 的 auto_permission_mode_enabled、current_mode_update。") +
+  tr("全放行时内核完全不发权限请求（permission-flow-measured.md §0）");
 
 /** 权限菜单行图标：逐档对齐活壳（hand / shield-check / clipboard-list / shield-alert）。 */
 const PERM_ICONS: Record<PermId, ReactNode> = {
@@ -175,12 +181,18 @@ const PERM_ICONS: Record<PermId, ReactNode> = {
   full: <IconShieldAlert size={15} />,
 };
 export function Composer(props: ComposerProps) {
+  recordRender("Composer");
+  const locale = useLocale();
   const {
     disabled, running, error, models, modelId, context, promptCapabilities,
     value, onChange, onSend, onStop, onModel, focusToken,
     onEffort,
   } = props;
   const areaRef = useRef<HTMLTextAreaElement | null>(null);
+  useEffect(() => {
+    if (!props.permissionOpenToken) return;
+    areaRef.current?.closest(".composer")?.querySelector(".perm")?.closest<HTMLButtonElement>("button")?.click();
+  }, [props.permissionOpenToken]);
 
   /* ── 斜杠面板状态（先于选择器块：pickerVisible 要用 slash.open 做互斥） ── */
   const [slashIdx, setSlashIdx] = useState(0);
@@ -190,7 +202,7 @@ export function Composer(props: ComposerProps) {
   const slash = useMemo<SlashView>(() => {
     if (slashQuery === null || slashEscQuery === slashQuery) return SLASH_CLOSED;
     return filterSlashGroups(props.commands, slashQuery);
-  }, [props.commands, slashQuery, slashEscQuery]);
+  }, [props.commands, slashQuery, slashEscQuery, locale]);
   useEffect(() => {
     setSlashIdx(0);
   }, [slashQuery]);
@@ -205,7 +217,14 @@ export function Composer(props: ComposerProps) {
   );
 
   /* ── 附加上下文（「+」）状态：窗口局部，随草稿清空 ── */
-  const [attach, setAttach] = useState<AttachItem[]>([]);
+  const [localAttach, setLocalAttach] = useState<AttachItem[]>([]);
+  const attach = props.attachments ?? localAttach;
+  const setAttach = (change: AttachItem[] | ((items: AttachItem[]) => AttachItem[])): void => {
+    const next = typeof change === "function" ? change(attach) : change;
+    if (props.onAttachmentsChange) props.onAttachmentsChange(next);
+    else setLocalAttach(next);
+  };
+  const [sending, setSending] = useState(false);
   const [pickerIdx, setPickerIdx] = useState(0);
   /** 用户按过 Esc 的触发键（前缀:查询）：在它变化前浮层保持关。 */
   const [pickerEsc, setPickerEsc] = useState<string | null>(null);
@@ -238,7 +257,7 @@ export function Composer(props: ComposerProps) {
       label: m.name,
       sub: attachDisplayPath(m.path, props.cwd),
     }));
-  }, [pickerMode, props.commands, props.attachSearch, trig, props.cwd]);
+  }, [pickerMode, props.commands, props.attachSearch, trig, props.cwd, locale]);
   const closePicker = useCallback(() => {
     setPickerEsc(pickerKey);
     props.attachSearch?.onClose();
@@ -285,10 +304,10 @@ export function Composer(props: ComposerProps) {
 
   const submit = (): void => {
     const trimmed = value.trim();
-    if (trimmed.length === 0 || disabled || running) return;
-    onSend(trimmed, attach);
-    setAttach([]);
-    onChange("");
+    if ((trimmed.length === 0 && attach.length === 0) || disabled || sending) return;
+    setSending(true);
+    // 清草稿由父层按提交版本负责，失败与发送期间的新输入均保留。
+    void onSend(trimmed, attach).finally(() => setSending(false));
   };
 
   const current = models.find((m) => m.id === modelId) ?? null;
@@ -298,8 +317,8 @@ export function Composer(props: ComposerProps) {
   const currentMode = modeChoices.find((m) => m.selected) ?? null;
 
   return (
-    <div className="composer">
-      <div className="composer__inner">
+    <div className="composer" data-input-state={disabled ? "unavailable" : sending ? "submitting" : running ? "busy" : "ready"}>
+      <div className="composer__inner conversation-column">
         {slash.open ? (
           <SlashPanel view={slash} activeIndex={slashIdx} onHover={setSlashIdx} onPick={pickSlash} />
         ) : null}
@@ -311,8 +330,8 @@ export function Composer(props: ComposerProps) {
             onHover={setPickerIdx}
             onPick={pickPickerRow}
             onClose={closePicker}
-            loadingText="正在打开工作区索引（_nofy/search/fuzzy/open）…"
-            emptyText={pickerMode === "skill" ? "没有命中的技能" : "没有命中的文件"}
+            loadingText={tr("正在打开工作区索引（_nofy/search/fuzzy/open）…")}
+            emptyText={pickerMode === "skill" ? tr("没有命中的技能") : tr("没有命中的文件")}
           />
         ) : null}
         {attach.length > 0 ? (
@@ -323,8 +342,8 @@ export function Composer(props: ComposerProps) {
                 <button
                   type="button"
                   className="attach__chipx"
-                  aria-label={"移除附加 " + a.name}
-                  title={"移除附加 " + a.name}
+                  aria-label={tr("移除附加 ") + a.name}
+                  title={tr("移除附加 ") + a.name}
                   onClick={() => setAttach((list) => list.filter((x) => x.path !== a.path))}
                 >
                   ×
@@ -339,8 +358,8 @@ export function Composer(props: ComposerProps) {
           className="composer__input"
           value={value}
           disabled={disabled}
-          title="Enter 发送 · Shift+Enter 换行"
-          placeholder={disabled ? "等待内核就绪…" : running ? "轮次进行中（Enter 已禁用）" : "给 Nofy 一条提示…"}
+          title={tr("Enter 发送 · Shift+Enter 换行")}
+          placeholder={disabled ? tr("等待内核就绪…") : running ? tr("可继续输入，消息由内核排队处理…") : tr("给 Nofy 一条提示…")}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (slash.open) {
@@ -415,40 +434,34 @@ export function Composer(props: ComposerProps) {
             title={attachTitle(promptCapabilities)}
             trigger={<IconPlus size={16} />}
             items={[
-              { id: "attach", icon: <IconPaperclip size={15} />, label: "添加附件" },
+              { id: "attach", icon: <IconPaperclip size={15} />, label: tr("添加附件") },
               {
                 id: "mention",
                 icon: <IconAt size={15} />,
                 label: (
-                  <span className="menu__lab">
-                    使用 <span className="menu__kbd">@</span> 添加上下文
-                  </span>
+                  <span className="menu__lab">{tr("使用")}<span className="menu__kbd">@</span>{tr("添加上下文")}</span>
                 ),
               },
               {
                 id: "slash",
                 icon: <IconSlash size={15} />,
                 label: (
-                  <span className="menu__lab">
-                    使用 <span className="menu__kbd">/</span> 选择能力
-                  </span>
+                  <span className="menu__lab">{tr("使用")}<span className="menu__kbd">/</span>{tr("选择能力")}</span>
                 ),
                 disabled: value.trim().length > 0 && !value.trimStart().startsWith("/"),
                 hint:
                   value.trim().length > 0 && !value.trimStart().startsWith("/")
-                    ? "斜杠只在提示开头生效"
+                    ? tr("斜杠只在提示开头生效")
                     : undefined,
               },
               {
                 id: "skill",
                 icon: <IconDollar size={15} />,
                 label: (
-                  <span className="menu__lab">
-                    使用 <span className="menu__kbd">$</span> 选择技能
-                  </span>
+                  <span className="menu__lab">{tr("使用")}<span className="menu__kbd">$</span>{tr("选择技能")}</span>
                 ),
                 disabled: value.length > 0 && !value.startsWith("$"),
-                hint: value.length > 0 && !value.startsWith("$") ? "技能落在开头斜杠命令" : undefined,
+                hint: value.length > 0 && !value.startsWith("$") ? tr("技能落在开头斜杠命令") : undefined,
               },
             ]}
             onPick={(id) => {
@@ -478,9 +491,9 @@ export function Composer(props: ComposerProps) {
             }}
           />
           {props.perm === null ? (
-            <button type="button" className="toolbtn" disabled title={MODE_TITLE} aria-label="权限模式">
+            <button type="button" className="toolbtn" disabled title={MODE_TITLE} aria-label={tr("权限模式")}>
               <IconShieldAlert size={16} />
-              <span className="toolbtn__label">权限模式</span>
+              <span className="toolbtn__label">{tr("权限模式")}</span>
               <IconChevronDown size={14} className="toolbtn__chev" />
             </button>
           ) : (
@@ -525,12 +538,12 @@ export function Composer(props: ComposerProps) {
             <button
               type="button"
               className="toolbtn toolbtn--on"
-              title="电脑操作已开启（点击关闭）。computer-use 能力由内核声明后此芯片才会出现"
-              aria-label="电脑操作（已开启）"
+              title={tr("电脑操作已开启（点击关闭）。computer-use 能力由内核声明后此芯片才会出现")}
+              aria-label={tr("电脑操作（已开启）")}
               onClick={props.onToggleComputerUse}
             >
               <IconMonitorCog size={16} />
-              <span className="toolbtn__label">电脑操作</span>
+              <span className="toolbtn__label">{tr("电脑操作")}</span>
               <span className="toolbtn__dot" aria-hidden="true" />
             </button>
           ) : null}
@@ -540,8 +553,8 @@ export function Composer(props: ComposerProps) {
             <button
               type="button"
               className="bgworks"
-              title={"后台运行中的子智能体 " + String(props.backgroundAgentCount) + " 个（点击在右侧打开目录）"}
-              aria-label={"后台运行中的子智能体 " + String(props.backgroundAgentCount) + " 个"}
+              title={tr("查看本会话子智能体")}
+              aria-label={tr("后台运行中的子智能体 ") + String(props.backgroundAgentCount) + tr(" 个")}
               onClick={props.onOpenBackgroundWorks}
             >
               <IconBot size={14} />
@@ -555,11 +568,11 @@ export function Composer(props: ComposerProps) {
               up
               variant="plain"
               chevron={false}
-              title="选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）"
+              title={tr("选择模型：数据源是 session/new|load 响应 _meta 的 nofy/sessionConfig.options（category=model 族）")}
               trigger={
                 <>
                   <IconPackage size={16} />
-                  <span className="toolbtn__label">{current?.label ?? "选择模型"}</span>
+                  <span className="toolbtn__label">{current?.label ?? tr("选择模型")}</span>
                   <IconChevronDown size={14} className="toolbtn__chev" />
                 </>
               }
@@ -573,11 +586,11 @@ export function Composer(props: ComposerProps) {
               up
               variant="plain"
               chevron={false}
-              title="推理档：category=mode 族；选中经 session/set_model 的 _meta.reasoningEffort 发出（内核 pager 同线路）"
+              title={tr("推理档：category=mode 族；选中经 session/set_model 的 _meta.reasoningEffort 发出（内核 pager 同线路）")}
               trigger={
                 <>
                   <IconBrain size={16} />
-                  <span className="toolbtn__label">{currentMode?.label ?? "推理档"}</span>
+                  <span className="toolbtn__label">{currentMode?.label ?? tr("推理档")}</span>
                   <IconChevronDown size={14} className="toolbtn__chev" />
                 </>
               }
@@ -590,8 +603,8 @@ export function Composer(props: ComposerProps) {
               onPick={onEffort}
             />
           ) : null}
-          {running ? (
-            <button type="button" className="sendbtn sendbtn--stop" onClick={onStop} title="session/cancel（notification）" aria-label="停止">
+          {running && value.trim().length === 0 && attach.length === 0 ? (
+            <button type="button" className="sendbtn sendbtn--stop" onClick={onStop} title="session/cancel（notification）" aria-label={tr("停止")}>
               <IconStop size={14} />
             </button>
           ) : (
@@ -599,9 +612,9 @@ export function Composer(props: ComposerProps) {
               type="button"
               className="sendbtn"
               onClick={submit}
-              disabled={disabled || value.trim().length === 0}
-              title="发送（Enter）"
-              aria-label="发送"
+              disabled={disabled || sending || (value.trim().length === 0 && attach.length === 0)}
+              title={running ? tr("发送到内核队列（Enter）") : tr("发送（Enter）")}
+              aria-label={tr("发送")}
             >
               <IconSend size={16} />
             </button>

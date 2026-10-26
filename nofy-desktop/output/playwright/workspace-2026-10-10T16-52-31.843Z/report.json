@@ -1,0 +1,94 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T16:52:31.845Z",
+  "cases": [
+    {
+      "name": "W01 file reads use the scoped ACP adapter; late A cannot replace B",
+      "status": "passed",
+      "durationMs": 1082
+    },
+    {
+      "name": "W02 closing a pending preview prevents it reappearing",
+      "status": "passed",
+      "durationMs": 740
+    },
+    {
+      "name": "W03 session switch invalidates same-root file reads",
+      "status": "passed",
+      "durationMs": 726
+    },
+    {
+      "name": "W04 failed fuzzy open displays the error",
+      "status": "passed",
+      "durationMs": 392
+    },
+    {
+      "name": "W05 preview slot, double-click pinning and resource deduplication",
+      "status": "passed",
+      "durationMs": 918
+    },
+    {
+      "name": "W06 Markdown/source modes retain separate reading positions",
+      "status": "passed",
+      "durationMs": 383
+    },
+    {
+      "name": "W07 tree and outer-panel hiding preserve resource tabs and scroll",
+      "status": "passed",
+      "durationMs": 466
+    },
+    {
+      "name": "W08 session switch restores only its own resource workspace",
+      "status": "passed",
+      "durationMs": 107
+    },
+    {
+      "name": "W09 narrow tree drawer, themes and closing a non-active tab",
+      "status": "passed",
+      "durationMs": 513
+    },
+    {
+      "name": "W10 draggable inner tree width is independent and survives hide/show",
+      "status": "passed",
+      "durationMs": 274
+    },
+    {
+      "name": "W11 header breadcrumb and copy actions cross real native IPC",
+      "status": "passed",
+      "durationMs": 306
+    },
+    {
+      "name": "W12 default open, failure, app chooser cancellation and reveal use host providers",
+      "status": "passed",
+      "durationMs": 798
+    },
+    {
+      "name": "W13 raster preview crosses bounded native IPC without an ACP text read",
+      "status": "passed",
+      "durationMs": 222
+    },
+    {
+      "name": "W14 unsupported archives offer host opening and never request ACP text",
+      "status": "passed",
+      "durationMs": 204
+    },
+    {
+      "name": "W15 external writes update the selected file through scoped invalidation",
+      "status": "passed",
+      "durationMs": 380
+    },
+    {
+      "name": "W16 deleted files retain last known content with an explicit stale/error state",
+      "status": "passed",
+      "durationMs": 193
+    },
+    {
+      "name": "W17 renderer reload recovers pinned tabs, mode, scroll and tree width without caching content",
+      "status": "passed",
+      "durationMs": 862
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workspace-2026-10-10T16-52-31.843Z",
+  "finishedAt": "2026-10-10T16:52:42.636Z"
+}

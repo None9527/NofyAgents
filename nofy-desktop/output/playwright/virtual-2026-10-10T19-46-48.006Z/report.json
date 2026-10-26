@@ -1,0 +1,81 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 24,
+        "totalBlocks": 10000
+      }
+    },
+    {
+      "name": "V02 offscreen find mounts and positions the actual matching block",
+      "status": "passed"
+    },
+    {
+      "name": "V03 background append preserves the history-reading anchor",
+      "status": "passed"
+    },
+    {
+      "name": "V04 pinned bottom follows appended stream",
+      "status": "passed"
+    },
+    {
+      "name": "V05 folding process preserves commentary and dynamically measured history",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'Intermediate details', exact: true }) to be visible\u001b[22m\n"
+    },
+    {
+      "name": "V06 find expands a hidden intermediate answer and survives width changes",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'Intermediate details', exact: true }) to be visible\u001b[22m\n"
+    },
+    {
+      "name": "V07 switching sessions cannot reuse another session measurements",
+      "status": "passed"
+    },
+    {
+      "name": "V08 an offscreen rewind dialog remains mounted until explicitly closed",
+      "status": "passed"
+    },
+    {
+      "name": "V09 renderer reload restores kernel history with bounded DOM",
+      "status": "passed"
+    },
+    {
+      "name": "V10 switching back restores an offscreen virtual reading anchor",
+      "status": "passed",
+      "details": {
+        "before": {
+          "x": 399,
+          "y": 76.8984375,
+          "width": 896,
+          "height": 25.1953125
+        },
+        "after": {
+          "x": 399,
+          "y": 76.8984375,
+          "width": 896,
+          "height": 25.1953125
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "dynamicDebug": [
+    {
+      "text": "bench:streamchunk-1 chunk-2 chunk-3 chunk-4 chunk-5 chunk-6 chunk-7 chunk-8 chunk-9# Intermediate details\nExpanded paragraph 0\nExpanded paragraph 1\nExpanded paragraph 2\nExpanded pa",
+      "headings": []
+    },
+    {
+      "text": "bench:dynamic已工作 1 秒Dynamic finalchunk-10",
+      "headings": []
+    }
+  ],
+  "stderr": "Debugger ending on ws://127.0.0.1:52956/70e78bf8-4ba8-453f-ba99-207b32ac80a5\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n[nofy-desktop] kernel child exited pid=62696 code=null signal=SIGTERM\n",
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

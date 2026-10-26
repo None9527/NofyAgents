@@ -593,8 +593,13 @@ impl acp::Agent for MvpAgent {
             .session_handle_waiting_for_load(&arguments.session_id)
             .await
             .ok_or_else(|| acp::Error::invalid_params().data("unknown session id"))?;
-        if self.models_manager.allowlist_excludes_all() {
-            let reason = self.models_manager.allowlist_excludes_all_message();
+        if self.models_manager.models().is_empty() || self.models_manager.allowlist_excludes_all() {
+            let reason = if self.models_manager.models().is_empty() {
+                "No models configured. Configure model_providers in ~/.nofy/config.json or a custom model catalog endpoint, then reload. Nofy does not bundle an inference model."
+                    .to_owned()
+            } else {
+                self.models_manager.allowlist_excludes_all_message()
+            };
             self.send_model_auto_switched(
                     &arguments.session_id,
                     &acp::ModelId::new(String::new()),

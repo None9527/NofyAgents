@@ -12,3 +12,6 @@ docs/fixtures/*.invalid
 # 实机验证轮次里模型写的空文件（一次性产物，不入库）
 /notes.txt
 /新建文本*.txt
+
+# Local packaged applications and installer archives
+/release/

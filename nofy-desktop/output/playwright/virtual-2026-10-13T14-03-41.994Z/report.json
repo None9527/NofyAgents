@@ -1,0 +1,206 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 22,
+        "totalBlocks": 10000
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "samples": [
+    {
+      "time": 440.09999999403954,
+      "mode": "user_follow",
+      "total": "0",
+      "top": 0,
+      "height": 322,
+      "available": 322,
+      "space": ""
+    },
+    {
+      "time": 469.40000000596046,
+      "mode": "user_follow",
+      "total": "0",
+      "top": 0,
+      "height": 322,
+      "available": 322,
+      "space": ""
+    },
+    {
+      "time": 500.69999998807907,
+      "mode": "user_follow",
+      "total": "0",
+      "top": 0,
+      "height": 322,
+      "available": 322,
+      "space": ""
+    },
+    {
+      "time": 529.6999999880791,
+      "mode": "user_follow",
+      "total": "0",
+      "top": 0,
+      "height": 322,
+      "available": 322,
+      "space": ""
+    },
+    {
+      "time": 572.5999999940395,
+      "mode": "prework_watch",
+      "total": "0",
+      "top": 0,
+      "height": 404,
+      "available": 404,
+      "space": "82px"
+    },
+    {
+      "time": 610.4000000059605,
+      "mode": "prework_watch",
+      "total": "515",
+      "top": 60720,
+      "height": 61426,
+      "available": 706,
+      "space": "355px",
+      "first": "Bench reply 248 bold"
+    },
+    {
+      "time": 676,
+      "mode": "user_follow",
+      "total": "515",
+      "top": 60774,
+      "height": 61480,
+      "available": 706,
+      "space": "193px",
+      "first": "Bench reply 248 bold"
+    },
+    {
+      "time": 1739.300000011921,
+      "mode": "user_follow",
+      "total": "3400",
+      "top": 401510,
+      "height": 402216,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 1689 bold"
+    },
+    {
+      "time": 1759.9000000059605,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180398,
+      "height": 1181104,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1789.5999999940395,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180662,
+      "height": 1181368,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1819.800000011921,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180761,
+      "height": 1181467,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1849.800000011921,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180772,
+      "height": 1181478,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1880.699999988079,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180783,
+      "height": 1181489,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1910.0999999940395,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180783,
+      "height": 1181489,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1941,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180794,
+      "height": 1181500,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1970.4000000059605,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180794,
+      "height": 1181500,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 1999.9000000059605,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180794,
+      "height": 1181500,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 2030.800000011921,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180794,
+      "height": 1181500,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    },
+    {
+      "time": 2060.4000000059605,
+      "mode": "user_follow",
+      "total": "10000",
+      "top": 1180794,
+      "height": 1181500,
+      "available": 706,
+      "space": "0px",
+      "first": "Bench reply 4989 bold"
+    }
+  ],
+  "stderr": "Debugger ending on ws://127.0.0.1:55250/faa7d6e2-de58-41e1-9e15-899470c5fc71\nFor help, see: https://nodejs.org/learn/getting-started/debugging\n[nofy-desktop] kernel child exited pid=45214 code=null signal=SIGTERM\n",
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

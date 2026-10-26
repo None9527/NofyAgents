@@ -6,6 +6,72 @@ use nofy_tools::implementations::nofy_build::task::coordinator;
 struct ShellChildRunner {
     agent_ref: LocalRef<MvpAgent>,
 }
+#[cfg(test)]
+mod extension_snapshot_tests {
+    use super::*;
+    #[tokio::test]
+    async fn child_snapshot_uses_reloaded_parent_not_another_project() {
+        let value = serde_json::json!({"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"echo parent"}]}]}});
+        let (specs, _) = nofy_agent::plugins::hooks_adapter::parse_plugin_hooks_from_value(
+            &value, "parent", "/parent", "/data",
+        );
+        let initial = nofy_agent::plugins::hooks_adapter::replace_plugin_hooks(None, specs);
+        let parent_plugins = std::sync::Arc::new(
+            nofy_agent::plugins::PluginRegistry::from_discovered(vec![], &[], &[]),
+        );
+        let other_project = std::sync::Arc::new(
+            nofy_agent::plugins::PluginRegistry::from_discovered(vec![], &[], &[]),
+        );
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let expected = parent_plugins.clone();
+        let serve = async move {
+            let mut hooks = initial;
+            for _ in 0..2 {
+                if let Some(crate::session::SessionCommand::GetExtensionSnapshot { respond_to }) =
+                    rx.recv().await
+                {
+                    let _ = respond_to.send((hooks.clone(), Some(parent_plugins.clone())));
+                    // Reload disabled the plugin before the next child is spawned.
+                    hooks = nofy_agent::plugins::hooks_adapter::replace_plugin_hooks(hooks, vec![]);
+                }
+            }
+        };
+        let observe = async {
+            let (first_hooks, first_plugins) = current_extension_snapshot(&tx).await;
+            assert_eq!(first_hooks.unwrap().len(), 1);
+            assert!(std::sync::Arc::ptr_eq(
+                first_plugins.as_ref().unwrap(),
+                &expected
+            ));
+            assert!(!std::sync::Arc::ptr_eq(
+                first_plugins.as_ref().unwrap(),
+                &other_project
+            ));
+            let (next_hooks, next_plugins) = current_extension_snapshot(&tx).await;
+            assert!(next_hooks.is_none());
+            assert!(std::sync::Arc::ptr_eq(
+                next_plugins.as_ref().unwrap(),
+                &expected
+            ));
+        };
+        tokio::join!(serve, observe);
+    }
+}
+async fn current_extension_snapshot(
+    cmd_tx: &tokio::sync::mpsc::UnboundedSender<crate::session::SessionCommand>,
+) -> (
+    Option<std::sync::Arc<nofy_hooks::discovery::HookRegistry>>,
+    Option<std::sync::Arc<nofy_agent::plugins::PluginRegistry>>,
+) {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    if cmd_tx
+        .send(crate::session::SessionCommand::GetExtensionSnapshot { respond_to: tx })
+        .is_err()
+    {
+        return (None, None);
+    }
+    rx.await.unwrap_or_default()
+}
 impl coordinator::ChildRunner for ShellChildRunner {
     type Control = crate::agent::subagent::ShellChildRuntime;
     type CompletionData = crate::agent::subagent::ShellCompletionData;
@@ -47,6 +113,9 @@ impl coordinator::ChildRunner for ShellChildRunner {
                 this.resident_handle(&parent_sid)
             };
             if let Some(handle) = parent_handle {
+                let (hooks, plugins) = current_extension_snapshot(&handle.cmd_tx).await;
+                ctx.hook_registry = hooks;
+                ctx.plugin_registry = plugins;
                 ctx.parent_mcp_pool = handle.snapshot_mcp_pool().await;
                 ctx.client_hooks = handle.snapshot_client_hooks().await;
                 let mut definitions = handle.snapshot_tool_definitions().await;
@@ -65,7 +134,12 @@ impl coordinator::ChildRunner for ShellChildRunner {
         let agent_ref = self.agent_ref.clone();
         Box::pin(async move {
             let this = agent_ref.get();
-            let ctx = this.build_subagent_validation_context(&parent_session_id);
+            let mut ctx = this.build_subagent_validation_context(&parent_session_id);
+            if let Some(handle) = this.resident_handle(&acp::SessionId::new(parent_session_id)) {
+                ctx.plugin_registry = current_extension_snapshot(&handle.cmd_tx).await.1;
+            } else {
+                ctx.plugin_registry = None;
+            }
             crate::agent::subagent::validate_subagent_type(&subagent_type, &ctx)
         })
     }
@@ -79,11 +153,20 @@ impl coordinator::ChildRunner for ShellChildRunner {
         Box::pin(async move {
             let this = agent_ref.get();
             match this.try_build_subagent_spawn_context(&parent_session_id) {
-                Some(ctx) => crate::agent::subagent::describe_subagent_type(
-                    &subagent_type,
-                    harness_agent_type.as_deref(),
-                    &ctx,
-                ),
+                Some(mut ctx) => {
+                    if let Some(handle) =
+                        this.resident_handle(&acp::SessionId::new(parent_session_id))
+                    {
+                        let (hooks, plugins) = current_extension_snapshot(&handle.cmd_tx).await;
+                        ctx.hook_registry = hooks;
+                        ctx.plugin_registry = plugins;
+                    }
+                    crate::agent::subagent::describe_subagent_type(
+                        &subagent_type,
+                        harness_agent_type.as_deref(),
+                        &ctx,
+                    )
+                }
                 None => {
                     tracing::warn!(
                         parent_session_id,
@@ -120,9 +203,7 @@ impl coordinator::ChildRunner for ShellChildRunner {
 /// crate (dependency cycle through the sampling types).
 fn log_limit_notice(notice: coordinator::SubagentLimitNotice) {
     use coordinator::{LimitedSpawnOrigin, SubagentLimitDecision};
-    use nofy_telemetry::events::{
-        SubagentLimitDisposition, SubagentLimitHit, SubagentOwnerKind,
-    };
+    use nofy_telemetry::events::{SubagentLimitDisposition, SubagentLimitHit, SubagentOwnerKind};
     let (disposition, limit) = match notice.decision {
         SubagentLimitDecision::QueuedAtConcurrentLimit { limit } => {
             (SubagentLimitDisposition::Queued, limit as u64)

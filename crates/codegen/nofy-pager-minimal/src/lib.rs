@@ -89,8 +89,9 @@ use nofy_pager::app::app_view::AppView;
 /// `BeginSynchronizedUpdate` is redundant-but-harmless (DEC 2026 is a mode,
 /// not a counter — the first End closes it).
 pub fn draw(app: &mut AppView, terminal: &mut PagerTerminal) {
-    let _ = terminal.backend_mut().queue(BeginSynchronizedUpdate);
+    terminal.set_width_shrink(nofy_pager::terminal::terminal_context().width_shrink());
     let _ = terminal.autoresize();
+    let _ = terminal.backend_mut().queue(BeginSynchronizedUpdate);
     // Pending permission/question marks are synced ONCE, up front, so the
     // viewport sizing (`sync_viewport` / `tail_height` / `will_commit`) and the
     // commit pass judge committability against the same state (see

@@ -1,0 +1,39 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T18:38:14.913Z",
+  "cases": [
+    {
+      "name": "U01 user actions are 4px below the bubble and only appear on hover/focus",
+      "status": "failed",
+      "error": "Error: page.waitForFunction: Target page, context or browser has been closed"
+    },
+    {
+      "name": "R01 user bubble, icon actions and grouped exploration match the conversation structure",
+      "status": "failed",
+      "error": "Error: locator.boundingBox: Target page, context or browser has been closed"
+    },
+    {
+      "name": "R02 nested Markdown, GFM task list and table cells render as semantic content",
+      "status": "failed",
+      "error": "Error: locator.count: Target page, context or browser has been closed"
+    },
+    {
+      "name": "R03 code copy and wrapping preserve exact text",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed"
+    },
+    {
+      "name": "R04 table and code downloads use native save dialog and retain original data",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed"
+    },
+    {
+      "name": "R05 dark/light, wide/narrow layouts keep reading surfaces within their viewport",
+      "status": "failed",
+      "error": "Error: page.evaluate: Target page, context or browser has been closed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/user-actions-2026-10-10T18-38-14.912Z",
+  "finishedAt": "2026-10-10T18:38:39.429Z"
+}

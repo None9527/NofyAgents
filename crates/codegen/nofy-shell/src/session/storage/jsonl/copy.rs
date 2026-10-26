@@ -536,6 +536,8 @@ fn fork_summary(
         agent: source.agent,
         sandbox_profile: source.sandbox_profile,
         reasoning_effort: source.reasoning_effort,
+        context_window_selection: source.context_window_selection,
+        server_context_window: source.server_context_window.clone(),
         // Full forks keep the parent's last turn. Partial forks
         // (`target_prompt_index`) may drop that turn, so clear the summary
         // rather than showing work that is not in the child conversation.

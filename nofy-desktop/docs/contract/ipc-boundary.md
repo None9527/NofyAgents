@@ -5,6 +5,8 @@
 `main/ipc/register.ts`、`main/ipc/hold.ts`、`preload/index.ts`、
 `renderer/core/ipc-port.ts`。门：`test/ipc-bridge.test.ts`（10 例）。
 
+说明（2026-10-09）：上文“唯一边界”指桌面内部 renderer/main 的传输适配边界；系统还有 main 与独立 Nofy 内核之间的 ACP/stdio 边界。它不表示内核并入前端。宿主能力已扩展，当前完整通道以 preload/contract.ts 为准。
+
 ## 1. 形状：KernelPort → wire → KernelPort
 
 ```
@@ -86,3 +88,14 @@ CSP 由构建注入：生产 `script-src 'self'`，开发额外放开 React Refr
   界面从空脊柱重建。要完整历史得走 P1 的 session/load 冷启动路径。
 - **buffer 溢出**（>20000 条无客户端信号）会丢最旧；`dropped` 计数可见，
   正常启动路径实测为 0。
+
+## 文件工作区宿主能力（2026-10-09）
+
+`copyFilePath(value)` 与 `openWorkspacePath(path, kind)` 使用集中 IPC 常量，经 preload 到 main。kind 仅支持 default/choose/reveal；没有任意 shell/exec 入口。shared/file-host-contract.ts 只保存 DTO 与能力形状。
+
+main 验证绝对路径、存在性、动作类型和原生选择的 .app；复制不要求目标仍然存在。返回结构化成功/取消/错误。选择应用为 macOS 实现，外部启动使用固定 /usr/bin/open 和 argv，不拼接 shell 文本。详见 [工作区工具栏](../architecture/frontend-workspace-header-2026-10-09.md)。
+
+
+## 文件资源与设置命令补充
+
+图片读取和目录变化使用 shared/workspace-files-contract.ts 的专用 typed 通道，经 DesktopClient.host 接入；每窗口限制 watcher 范围，退出清理。设置页面只消费 SettingsClient.models/credentials/catalog/mcp/plugins，不能直接访问 effect/bridge/native 配置写接口；native CAS 与重启仍由 main 保证。详见 [文件资源](../architecture/frontend-file-module-2026-10-10.md)与[架构收口](../architecture/frontend-closeout-2026-10-11.md)。

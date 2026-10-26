@@ -72,6 +72,84 @@ fn setup() -> (tempfile::TempDir, ConsolidationEngine, ConsolidationPlan) {
 }
 
 #[test]
+fn different_consolidation_operations_and_user_write_share_one_scope_gate() {
+    use nofy_memory::access::MemoryAccess;
+    use nofy_memory::scope_write_lock::ScopeWriteGuard;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let (temp, _engine, first) = setup();
+    let root = temp.path().join("memory");
+    let layout = UnifiedMemoryLayout::new(&root);
+    let scope = layout.personal_scope();
+    let guard = ScopeWriteGuard::acquire(scope.root()).unwrap();
+    let second = ConsolidationPlan {
+        operation_id: OperationId::new(),
+        scope: MemoryScope::Personal,
+        evidence: vec![observation(&root)],
+        actions: vec![ConsolidationAction::Create {
+            path: "second.md".into(),
+            content: content("Second operation."),
+        }],
+    };
+    let (started_tx, started_rx) = mpsc::channel();
+    let (done_tx, done_rx) = mpsc::channel();
+    let mut workers = Vec::new();
+    for plan in [first, second] {
+        let root = root.clone();
+        let started = started_tx.clone();
+        let done = done_tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let engine = ConsolidationEngine::new(
+                root,
+                ProjectId::new(),
+                nofy_config_types::MemoryIndexConfig::default(),
+                4,
+            );
+            started.send(()).unwrap();
+            engine
+                .execute(&plan, ConsolidationMode::Active, "worker", 100, None)
+                .unwrap();
+            done.send(()).unwrap();
+        }));
+    }
+    let user_root = root.clone();
+    workers.push(std::thread::spawn(move || {
+        let layout = UnifiedMemoryLayout::new(user_root);
+        let access = MemoryAccess::open(layout.meta_database(), layout.personal_scope()).unwrap();
+        started_tx.send(()).unwrap();
+        access
+            .create_topic(
+                OperationId::new(),
+                std::path::Path::new("user.md"),
+                "User writing during dream.",
+            )
+            .unwrap();
+        done_tx.send(()).unwrap();
+    }));
+    for _ in 0..3 {
+        started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    }
+    assert!(done_rx.recv_timeout(Duration::from_millis(30)).is_err());
+    drop(guard);
+    for _ in 0..3 {
+        done_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+    }
+    for worker in workers {
+        worker.join().unwrap();
+    }
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(scope.manifest_file()).unwrap()).unwrap();
+    assert_eq!(manifest["topics"].as_object().unwrap().len(), 3);
+    assert_eq!(
+        std::fs::read_dir(scope.observations_directory())
+            .unwrap()
+            .count(),
+        0
+    );
+}
+
+#[test]
 fn every_phase_resumes_the_same_frozen_operation() {
     for point in [
         ConsolidationKillPoint::EvidenceClaimed,

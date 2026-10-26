@@ -538,6 +538,68 @@ impl From<ToolDefinition> for ToolSpec {
 // Conversation Request
 // ============================================================================
 
+/// What the sampler does with a completed response whose stop reason is `Length` (max_tokens truncation).
+/// `Length` can arrive far below any client budget.
+/// Callers that can use partial text opt into `CompletePartial`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum LengthPolicy {
+    /// Fail the attempt with `MaxTokensTruncation` (legacy behavior).
+    Fail,
+    /// Complete a response whose tool calls all carry complete arguments; text-only and empty `Length` still fail.
+    /// `Length` is usually context exhaustion (the output budget is the window minus the prompt), so retrying cannot succeed.
+    /// The default: a caller that does not choose gets its tool calls run and its text-only truncation failed.
+    #[default]
+    CompleteToolCalls,
+    /// Additionally complete with partial text; empty `Length` still fails.
+    CompletePartial,
+}
+
+/// Outcome of applying a [`LengthPolicy`] to a completed response.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LengthVerdict {
+    /// The stop reason is not `Length`; the policy does not apply.
+    Pass,
+    /// A `Length` stop delivered with its partial text content.
+    Salvage,
+    /// A `Length` stop delivered with its completed tool calls.
+    SalvageToolCalls,
+    /// A `Length` stop the policy rejects (`MaxTokensTruncation`).
+    Fail,
+}
+
+impl LengthPolicy {
+    /// The fail-vs-salvage decision for a completed response, including the `Length` stop-reason check.
+    pub fn verdict(self, response: &ConversationResponse) -> LengthVerdict {
+        if response.stop_reason != Some(StopReason::Length) {
+            return LengthVerdict::Pass;
+        }
+        let tool_calls = response.tool_calls();
+        if !tool_calls.is_empty() {
+            // Empty arguments are the zero-arg call convention, not proof of truncation
+            // A call cut before its first argument delta also collects as empty
+            // Executing it as `{}` just bounces off tool-argument validation, which is cheaper than failing the turn
+            let all_arguments_complete = tool_calls.iter().all(|tc| {
+                tc.arguments.trim().is_empty()
+                    || serde_json::from_str::<serde::de::IgnoredAny>(&tc.arguments).is_ok()
+            });
+            return match (self, all_arguments_complete) {
+                (LengthPolicy::Fail, _)
+                | (LengthPolicy::CompleteToolCalls | LengthPolicy::CompletePartial, false) => {
+                    LengthVerdict::Fail
+                }
+                (LengthPolicy::CompleteToolCalls | LengthPolicy::CompletePartial, true) => {
+                    LengthVerdict::SalvageToolCalls
+                }
+            };
+        }
+        if self == LengthPolicy::CompletePartial && response.empty_reason().is_none() {
+            LengthVerdict::Salvage
+        } else {
+            LengthVerdict::Fail
+        }
+    }
+}
+
 /// A complete conversation request that can be sent to either API.
 #[derive(Debug, Clone, Default)]
 pub struct ConversationRequest {
@@ -574,6 +636,8 @@ pub struct ConversationRequest {
     pub json_schema: Option<serde_json::Value>,
     /// Sticky routing key for prompt-cache reuse; overrides `x_nofy_conv_id` for routing.
     pub prompt_cache_key: Option<String>,
+    /// How to handle a length-truncated completed response.
+    pub length_policy: LengthPolicy,
 }
 
 impl ConversationRequest {
@@ -2348,6 +2412,86 @@ mod tests {
     use super::test_support::*;
     use super::*;
     use assert_matches::assert_matches;
+
+    #[test]
+    fn length_policy_gate_matrix() {
+        assert_eq!(
+            ConversationRequest::default().length_policy,
+            LengthPolicy::CompleteToolCalls
+        );
+        for stop in [
+            None,
+            Some(StopReason::Stop),
+            Some(StopReason::ContentFilter),
+        ] {
+            let mut response = make_response(ConversationItem::assistant(""));
+            response.stop_reason = stop;
+            for policy in [
+                LengthPolicy::Fail,
+                LengthPolicy::CompleteToolCalls,
+                LengthPolicy::CompletePartial,
+            ] {
+                assert_eq!(policy.verdict(&response), LengthVerdict::Pass);
+            }
+        }
+        for text in ["", "partial"] {
+            let mut response = make_response(ConversationItem::assistant(text));
+            response.stop_reason = Some(StopReason::Length);
+            assert_eq!(LengthPolicy::Fail.verdict(&response), LengthVerdict::Fail);
+            assert_eq!(
+                LengthPolicy::CompleteToolCalls.verdict(&response),
+                LengthVerdict::Fail
+            );
+            assert_eq!(
+                LengthPolicy::CompletePartial.verdict(&response),
+                if text.is_empty() {
+                    LengthVerdict::Fail
+                } else {
+                    LengthVerdict::Salvage
+                }
+            );
+        }
+        for arguments in ["", "{}", "{", "null"] {
+            let mut response =
+                make_response(ConversationItem::assistant_tool_calls(vec![ToolCall {
+                    id: "call".into(),
+                    name: "test".into(),
+                    arguments: arguments.into(),
+                }]));
+            response.stop_reason = Some(StopReason::Length);
+            assert_eq!(LengthPolicy::Fail.verdict(&response), LengthVerdict::Fail);
+            for policy in [
+                LengthPolicy::CompleteToolCalls,
+                LengthPolicy::CompletePartial,
+            ] {
+                assert_eq!(
+                    policy.verdict(&response),
+                    if arguments == "{" {
+                        LengthVerdict::Fail
+                    } else {
+                        LengthVerdict::SalvageToolCalls
+                    }
+                );
+            }
+        }
+        let mut response = make_response(ConversationItem::assistant_tool_calls(vec![
+            ToolCall {
+                id: "one".into(),
+                name: "test".into(),
+                arguments: "{}".into(),
+            },
+            ToolCall {
+                id: "two".into(),
+                name: "test".into(),
+                arguments: "{".into(),
+            },
+        ]));
+        response.stop_reason = Some(StopReason::Length);
+        assert_eq!(
+            LengthPolicy::CompletePartial.verdict(&response),
+            LengthVerdict::Fail
+        );
+    }
 
     /// Keeps `forwards_prompt_cache_key()` honest against each mapping: a key that never reaches the wire looks like a 0% cache hit, not a bug.
     #[test]

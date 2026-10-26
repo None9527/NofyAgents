@@ -1,0 +1,64 @@
+{
+  "source": "Actual Electron GUI with deterministic ACP emulator; native open/save dialog provider stubs only. Actual main IPC, directory validation and fs export write.",
+  "startedAt": "2026-10-10T17:04:31.479Z",
+  "cases": [
+    {
+      "name": "E01 cancelled directory provider preserves draft and session count",
+      "status": "passed",
+      "durationMs": 167
+    },
+    {
+      "name": "E01 valid directory provider routes native IPC and actual cwd",
+      "status": "passed",
+      "durationMs": 87
+    },
+    {
+      "name": "E03 recent project navigation creates isolated task and preserves old drafts",
+      "status": "passed",
+      "durationMs": 275
+    },
+    {
+      "name": "E04 export cancellation writes no file; accepted dialog invokes real fs write",
+      "status": "passed",
+      "durationMs": 273
+    },
+    {
+      "name": "M2 pin and unread current then same-id activate marks read",
+      "status": "passed",
+      "durationMs": 175
+    },
+    {
+      "name": "M2 groups rename and dissolve without modifying sessions",
+      "status": "passed",
+      "durationMs": 162
+    },
+    {
+      "name": "M2 archive filter preserves current session then hides it after navigation",
+      "status": "passed",
+      "durationMs": 353
+    },
+    {
+      "name": "M2 running archive is disabled and does not change metadata",
+      "status": "passed",
+      "durationMs": 360
+    },
+    {
+      "name": "M2 reload persists local organisation and current task",
+      "status": "passed",
+      "durationMs": 192
+    },
+    {
+      "name": "M2 confirmed kernel deletion removes only target local metadata",
+      "status": "passed",
+      "durationMs": 134
+    },
+    {
+      "name": "local organisation sends no invented lifecycle RPCs",
+      "status": "passed",
+      "durationMs": 0
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/project-2026-10-10T17-04-31.478Z",
+  "finishedAt": "2026-10-10T17:04:34.934Z"
+}

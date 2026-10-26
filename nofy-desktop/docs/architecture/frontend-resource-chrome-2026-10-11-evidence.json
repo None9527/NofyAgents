@@ -1,0 +1,51 @@
+{
+  "source": "isolated Electron synthetic ACP; no model API calls",
+  "workspaceReport": "output/playwright/workspace-2026-10-10T20-36-19.015Z/report.json",
+  "workspaceCases": 19,
+  "homepageReport": "output/playwright/homepage-2026-10-10T20-33-58.905Z/report.json",
+  "homepageCases": 10,
+  "unitTests": 423,
+  "verifyLog": "/tmp/nofy-resource-chrome-verify-r2.log",
+  "package": {
+    "application": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "artifact": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "b30b8b739e4edb120d85191f23031d9979b4f531bde8db7c81b5e98d4d69ed0c",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "version": "0.1.0",
+    "signing": "ad-hoc local only",
+    "kernelBundled": false
+  },
+  "packageVerification": {
+    "generatedAt": "2026-10-10T20:37:12.697Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "version": "0.1.0",
+    "app": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+    "results": [
+      {
+        "launch": 1,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-1.png",
+        "screenshotBytes": 142943,
+        "kernelReaped": true
+      },
+      {
+        "launch": 2,
+        "pass": true,
+        "exitCode": 0,
+        "signal": null,
+        "screenshot": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/launch-2.png",
+        "screenshotBytes": 142943,
+        "kernelReaped": true
+      }
+    ],
+    "kernelBundled": false,
+    "signing": "ad-hoc local only",
+    "scope": "Two local executable launches in isolated NOFY_HOME and Electron user-data-dir; no Gatekeeper/notarization, external installation, Windows/Linux or model conversation validation"
+  },
+  "liveAppReopened": "/Users/mac/nofy-build/nofy-desktop/release/mac-arm64/Nofy.app",
+  "screenshot": "output/playwright/workspace-2026-10-10T20-36-19.015Z/unified-source-chrome.png"
+}

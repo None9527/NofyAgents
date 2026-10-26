@@ -248,6 +248,10 @@ static GREP_CAPABILITIES: LazyLock<nofy_tool_protocol::ToolCapabilities> =
 pub struct GrepTool;
 
 impl crate::types::tool_metadata::ToolMetadata for GrepTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("path")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Search
     }

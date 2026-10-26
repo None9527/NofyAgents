@@ -295,6 +295,7 @@ pub enum SessionCommand {
         responds_to: oneshot::Sender<()>,
     },
     SetSessionModel {
+        context_window_selection: Option<std::num::NonZeroU64>,
         sampling_config: nofy_sampler::SamplerConfig,
         use_concise: bool,
         /// When `false`, skip the system prompt rewrite (concise/default swap).
@@ -356,6 +357,15 @@ pub enum SessionCommand {
     },
     GetCurrentModel {
         responds_to: oneshot::Sender<String>,
+    },
+    GetContextWindowSelection {
+        responds_to: oneshot::Sender<Option<std::num::NonZeroU64>>,
+    },
+    RestoreServerContextWindow {
+        cap: crate::session::persistence::ServerContextWindow,
+    },
+    GetContextWindowBudget {
+        responds_to: oneshot::Sender<Option<std::num::NonZeroU64>>,
     },
     GetCurrentPromptMode {
         responds_to: oneshot::Sender<PromptMode>,
@@ -603,6 +613,13 @@ pub enum SessionCommand {
     },
     GetHooksList {
         respond_to: oneshot::Sender<nofy_hooks_plugins_types::HooksListResponse>,
+    },
+    /// Atomically read the actor's current project extension state for a child.
+    GetExtensionSnapshot {
+        respond_to: oneshot::Sender<(
+            Option<std::sync::Arc<nofy_hooks::discovery::HookRegistry>>,
+            Option<std::sync::Arc<nofy_agent::plugins::PluginRegistry>>,
+        )>,
     },
     /// Execute a hooks management action from the pager modal.
     HooksAction {

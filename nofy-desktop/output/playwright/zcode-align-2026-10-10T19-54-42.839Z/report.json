@@ -1,0 +1,34 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T19:54:42.839Z",
+  "cases": [
+    {
+      "name": "T01 streaming thought chunks form one readable group",
+      "status": "passed",
+      "durationMs": 1374
+    },
+    {
+      "name": "T02 find stays outside transcript, supports shortcut, navigation and Escape",
+      "status": "passed",
+      "durationMs": 80
+    },
+    {
+      "name": "T03 transcript tools fit dark/light and narrow layouts",
+      "status": "passed",
+      "durationMs": 804
+    },
+    {
+      "name": "T04 hooks never render and trailing work remains after the final answer",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n"
+    },
+    {
+      "name": "T05 header, panel-local button and shortcut collapse the entire right panel",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '收起侧边面板', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-label=\"收起侧边面板\" class=\"iconbtn iconbtn--on\" title=\"收起侧边面板（⌘⌥B）：roster / 文件\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <button type=\"button\" title=\"收起右侧栏\" aria-label=\"收起右侧栏\" class=\"iconbtn aux__collapse\">…</button> from <div class=\"card__body\" data-pane-mode=\"sheet\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <button type=\"button\" title=\"收起右侧栏\" aria-label=\"收起右侧栏\" class=\"iconbtn aux__collapse\">…</button> from <div class=\"card__body\" data-pane-mode=\"sheet\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    57 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <button type=\"button\" title=\"收起右侧栏\" aria-label=\"收起右侧栏\" class=\"iconbtn aux__collapse\">…</button> from <div class=\"card__body\" data-pane-mode=\"sheet\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/zcode-align-2026-10-10T19-54-42.839Z",
+  "finishedAt": "2026-10-10T19:55:16.579Z"
+}

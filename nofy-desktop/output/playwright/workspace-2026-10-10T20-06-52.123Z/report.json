@@ -1,0 +1,291 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-10T20:06:52.125Z",
+  "cases": [
+    {
+      "name": "W01 file reads use the scoped ACP adapter; late A cannot replace B",
+      "status": "passed",
+      "durationMs": 807
+    },
+    {
+      "name": "W02 closing a pending preview prevents it reappearing",
+      "status": "passed",
+      "durationMs": 674
+    },
+    {
+      "name": "W03 session switch invalidates same-root file reads",
+      "status": "passed",
+      "durationMs": 700
+    },
+    {
+      "name": "W04 failed fuzzy open displays the error",
+      "status": "passed",
+      "durationMs": 360
+    },
+    {
+      "name": "W05 preview slot, double-click pinning and resource deduplication",
+      "status": "passed",
+      "durationMs": 931
+    },
+    {
+      "name": "W06 Markdown/source modes retain separate reading positions",
+      "status": "passed",
+      "durationMs": 385
+    },
+    {
+      "name": "W07 tree and outer-panel hiding preserve resource tabs and scroll",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: Outer close/reopen lost file scroll"
+    },
+    {
+      "name": "GUI setup",
+      "status": "failed",
+      "error": "Error: Stop after W07 to avoid cascading invalid workspace state"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workspace-2026-10-10T20-06-52.123Z",
+  "positionsW07": [
+    {
+      "phase": "before-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 636,
+      "active": "查看源码",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-hide",
+      "top": 340,
+      "height": 5040,
+      "client": 636,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-B",
+      "top": 0,
+      "height": 636,
+      "client": 636,
+      "active": "B.ts",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-A",
+      "top": 340,
+      "height": 5040,
+      "client": 636,
+      "active": "A.md",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    },
+    {
+      "phase": "after-outer-reopen",
+      "top": 0,
+      "height": 5040,
+      "client": 636,
+      "active": "",
+      "prefs": [
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-1\"]",
+          "view": {
+            "tabs": [],
+            "active": null,
+            "expanded": [],
+            "treeOpen": true,
+            "treeWidth": 200
+          }
+        },
+        {
+          "key": "[\"/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces\",\"workspace-2\"]",
+          "view": {
+            "tabs": [
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/B.ts",
+                "pinned": true,
+                "mode": "source",
+                "positions": {
+                  "preview": 0,
+                  "source": 0
+                }
+              },
+              {
+                "path": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+                "pinned": true,
+                "mode": "preview",
+                "positions": {
+                  "preview": 340,
+                  "source": 170
+                }
+              }
+            ],
+            "active": "/var/folders/z6/py_bks2d6914ltdt3rg43yfr0000gn/T/nofy-workspace-e2e-A4Ugkw/项目 A with spaces/A.md",
+            "expanded": [],
+            "treeOpen": false,
+            "treeWidth": 200
+          }
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-10T20:06:57.169Z"
+}

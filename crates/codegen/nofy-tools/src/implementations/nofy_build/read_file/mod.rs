@@ -598,6 +598,10 @@ pub(crate) async fn run_read_file(
 #[derive(Default, Debug)]
 pub struct ReadFileTool;
 impl crate::types::tool_metadata::ToolMetadata for ReadFileTool {
+    fn lock_path_param(&self) -> Option<&'static str> {
+        Some("target_file")
+    }
+
     fn kind(&self) -> ToolKind {
         ToolKind::Read
     }

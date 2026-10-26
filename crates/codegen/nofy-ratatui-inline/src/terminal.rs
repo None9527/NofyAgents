@@ -7,6 +7,7 @@
 use std::io::{self, Write};
 use std::sync::Arc;
 
+use ratatui::style::{Color, Modifier};
 use ratatui::{
     CompletedFrame, Frame, TerminalOptions, Viewport,
     backend::{Backend, ClearType},
@@ -14,6 +15,13 @@ use ratatui::{
     layout::{Position, Rect, Size},
 };
 use unicode_width::UnicodeWidthStr as _;
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum WidthShrink {
+    #[default]
+    Truncates,
+    Rewraps,
+}
 
 /// A hyperlink region on a single screen row, in absolute viewport coordinates.
 ///
@@ -176,6 +184,7 @@ where
     /// Last known position of the cursor. Used to find the new area when the viewport is inlined
     /// and the terminal resized.
     last_known_cursor_pos: Position,
+    width_shrink: WidthShrink,
     /// Number of frames rendered up until current time.
     frame_count: usize,
     /// Per-cell hyperlink id layer (`0` = no link), one per entry in `buffers`
@@ -263,6 +272,7 @@ where
             viewport_area,
             last_known_area: area,
             last_known_cursor_pos: cursor_pos,
+            width_shrink: WidthShrink::default(),
             frame_count: 0,
             link_ids: [vec![0; link_len], vec![0; link_len]],
             link_tables: [Vec::new(), Vec::new()],
@@ -432,14 +442,11 @@ where
             {
                 area
             }
-            Viewport::Inline(height) => {
-                let offset_in_previous_viewport = self
-                    .last_known_cursor_pos
-                    .y
-                    .saturating_sub(self.viewport_area.top());
+            Viewport::Inline(_) => {
+                let offset_in_previous_viewport = self.reflowed_cursor_offset(area.width);
                 compute_inline_size(
                     &mut self.backend,
-                    height,
+                    self.viewport_area.height,
                     area.as_size(),
                     offset_in_previous_viewport,
                 )?
@@ -1265,6 +1272,23 @@ fn emit_frame_with_links<B: Backend + Write>(
     Ok(())
 }
 
+fn row_extent(buf: &Buffer, y: u16) -> u16 {
+    let area = buf.area;
+    (area.left()..area.right())
+        .rev()
+        .find_map(|x| {
+            let cell = buf.cell((x, y))?;
+            let blank = cell.symbol().trim().is_empty()
+                && cell.bg == Color::Reset
+                && !cell
+                    .modifier
+                    .intersects(Modifier::REVERSED | Modifier::UNDERLINED);
+            let width = u16::try_from(cell.symbol().width()).unwrap_or(1).max(1);
+            (!blank).then(|| (x - area.left()).saturating_add(width))
+        })
+        .unwrap_or(0)
+}
+
 fn compute_inline_size<B: Backend>(
     backend: &mut B,
     height: u16,
@@ -1313,6 +1337,33 @@ impl<B: Backend> Terminal<B> {
     /// should read it here for consistency.
     pub fn last_known_area(&self) -> Rect {
         self.last_known_area
+    }
+
+    pub fn record_cursor_position(&mut self, position: Position) {
+        self.last_known_cursor_pos = position;
+    }
+
+    pub fn set_width_shrink(&mut self, width_shrink: WidthShrink) {
+        self.width_shrink = width_shrink;
+    }
+
+    fn reflowed_cursor_offset(&self, new_width: u16) -> u16 {
+        let top = self.viewport_area.top();
+        let cursor = self.last_known_cursor_pos;
+        let rows_above = cursor.y.saturating_sub(top);
+        if self.width_shrink == WidthShrink::Truncates
+            || new_width == 0
+            || new_width >= self.viewport_area.width
+        {
+            return rows_above;
+        }
+        let last_frame = &self.buffers[1 - self.current];
+        let spilled = (top..cursor.y)
+            .map(|y| row_extent(last_frame, y).saturating_sub(1) / new_width)
+            .fold(0, u16::saturating_add);
+        rows_above
+            .saturating_add(spilled)
+            .saturating_add(cursor.x / new_width)
     }
 
     /// Rebuild the terminal for a different [`Viewport`] in place (used by the
@@ -1369,6 +1420,119 @@ mod inline_resize_tests {
     use ratatui::{TerminalOptions, Viewport, layout::Rect};
 
     use super::Terminal;
+
+    fn painted_inline(rows: &[(u16, &str)]) -> Terminal<TestBackend> {
+        let mut terminal = Terminal::with_options(
+            TestBackend::new(80, 24),
+            TerminalOptions {
+                viewport: Viewport::Inline(15),
+            },
+        )
+        .unwrap();
+        terminal.set_viewport_area(Rect::new(0, 10, 80, 4));
+        terminal
+            .draw(|frame| {
+                for (y, text) in rows {
+                    frame
+                        .buffer_mut()
+                        .set_string(0, *y, text, ratatui::style::Style::default());
+                }
+            })
+            .unwrap();
+        terminal
+    }
+
+    #[test]
+    fn inline_resize_sizes_from_live_viewport_height() {
+        use ratatui::backend::Backend;
+        use ratatui::layout::Position;
+        let mut terminal = Terminal::with_options(
+            TestBackend::new(80, 26),
+            TerminalOptions {
+                viewport: Viewport::Inline(15),
+            },
+        )
+        .unwrap();
+        terminal.set_viewport_area(Rect::new(0, 23, 80, 3));
+        terminal.record_cursor_position(Position::new(2, 24));
+        terminal.backend_mut().resize(80, 34);
+        terminal
+            .backend_mut()
+            .set_cursor_position(Position::new(2, 32))
+            .unwrap();
+        terminal.autoresize().unwrap();
+        assert_eq!(Rect::new(0, 31, 80, 3), terminal.viewport_area());
+    }
+
+    #[test]
+    fn inline_resize_anchors_on_recorded_cursor_row() {
+        use ratatui::{backend::Backend, layout::Position};
+        let mut terminal = painted_inline(&[(11, "status"), (12, "> draft"), (13, "info")]);
+        terminal.record_cursor_position(Position::new(7, 12));
+        terminal.backend_mut().resize(80, 20);
+        terminal
+            .backend_mut()
+            .set_cursor_position(Position::new(7, 12))
+            .unwrap();
+        terminal.autoresize().unwrap();
+        assert_eq!(Rect::new(0, 10, 80, 4), terminal.viewport_area());
+    }
+
+    #[test]
+    fn inline_narrowing_tracks_rewrap_and_truncating_terminals() {
+        use ratatui::{backend::Backend, layout::Position};
+        for mode in [super::WidthShrink::Rewraps, super::WidthShrink::Truncates] {
+            let wide = "w".repeat(70);
+            let mut terminal = painted_inline(&[(10, &wide), (11, "status"), (12, "> draft")]);
+            terminal.set_width_shrink(mode);
+            terminal.record_cursor_position(Position::new(7, 12));
+            terminal.backend_mut().resize(40, 24);
+            let row = if mode == super::WidthShrink::Rewraps {
+                13
+            } else {
+                12
+            };
+            terminal
+                .backend_mut()
+                .set_cursor_position(Position::new(7, row))
+                .unwrap();
+            terminal.autoresize().unwrap();
+            assert_eq!(Rect::new(0, 10, 40, 4), terminal.viewport_area());
+        }
+    }
+
+    #[test]
+    fn inline_narrowing_counts_cursor_column_spill() {
+        use ratatui::{backend::Backend, layout::Position};
+        let draft = format!("> {}", "d".repeat(50));
+        let mut terminal = painted_inline(&[(11, "status"), (12, &draft)]);
+        terminal.set_width_shrink(super::WidthShrink::Rewraps);
+        terminal.record_cursor_position(Position::new(52, 12));
+        terminal.backend_mut().resize(40, 24);
+        terminal
+            .backend_mut()
+            .set_cursor_position(Position::new(12, 13))
+            .unwrap();
+        terminal.autoresize().unwrap();
+        assert_eq!(Rect::new(0, 10, 40, 4), terminal.viewport_area());
+    }
+
+    #[test]
+    fn inline_resize_ignores_trailing_blanks_and_widening() {
+        use ratatui::{backend::Backend, layout::Position};
+        for width in [40, 120] {
+            let mut terminal = painted_inline(&[(10, "short"), (11, "status"), (12, "> draft")]);
+            terminal.set_width_shrink(super::WidthShrink::Rewraps);
+            terminal.record_cursor_position(Position::new(7, 12));
+            terminal.backend_mut().resize(width, 24);
+            terminal
+                .backend_mut()
+                .set_cursor_position(Position::new(7, 12))
+                .unwrap();
+            terminal.autoresize().unwrap();
+            assert_eq!(Rect::new(0, 10, width, 4), terminal.viewport_area());
+        }
+    }
 
     fn full_height_inline(width: u16, height: u16) -> Terminal<TestBackend> {
         Terminal::with_options(

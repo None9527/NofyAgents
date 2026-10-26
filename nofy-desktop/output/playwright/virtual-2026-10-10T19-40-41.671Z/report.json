@@ -1,0 +1,63 @@
+{
+  "source": "Production Electron and deterministic ACP corpus; no real model",
+  "cases": [
+    {
+      "name": "V01 10000 blocks mount a bounded viewport at the end",
+      "status": "passed",
+      "details": {
+        "domBlocks": 24,
+        "totalBlocks": 10000
+      }
+    },
+    {
+      "name": "V10 switching back restores an offscreen virtual reading anchor",
+      "status": "failed",
+      "error": "TimeoutError: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Bench 3', { exact: true }).first() to be visible\u001b[22m\n"
+    },
+    {
+      "name": "V02 offscreen find mounts and positions the actual matching block",
+      "status": "failed",
+      "error": "TimeoutError: locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: '查找已加载内容', exact: true })\u001b[22m\n"
+    },
+    {
+      "name": "V03 background append preserves the history-reading anchor",
+      "status": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(await atEnd()>1000)\n"
+    },
+    {
+      "name": "V04 pinned bottom follows appended stream",
+      "status": "passed"
+    },
+    {
+      "name": "V10 switching back restores an offscreen virtual reading anchor",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '下一处', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button disabled title=\"下一处\" type=\"button\" aria-label=\"下一处\" class=\"btn btn--icon btn--ghost\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    23 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not enabled\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "name": "V05 folding process preserves commentary and dynamically measured history",
+      "status": "failed",
+      "error": "Error: locator.fill: Target page, context or browser has been closed"
+    },
+    {
+      "name": "V06 find expands a hidden intermediate answer and survives width changes",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed"
+    },
+    {
+      "name": "V07 switching sessions cannot reuse another session measurements",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed"
+    },
+    {
+      "name": "V08 an offscreen rewind dialog remains mounted until explicitly closed",
+      "status": "failed",
+      "error": "Error: locator.click: Target page, context or browser has been closed"
+    },
+    {
+      "name": "V09 renderer reload restores kernel history with bounded DOM",
+      "status": "failed",
+      "error": "Error: page.reload: Target page, context or browser has been closed"
+    }
+  ],
+  "consoleErrors": []
+}

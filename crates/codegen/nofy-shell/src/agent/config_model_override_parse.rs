@@ -750,6 +750,15 @@ mod tests {
                 .into_iter()
                 .collect(),
             context_window: Some(200_000),
+            context_windows: Some(vec![
+                std::num::NonZeroU64::new(200_000).unwrap(),
+                std::num::NonZeroU64::new(1_000_000).unwrap(),
+            ]),
+            notice: Some(nofy_sampling_types::ModelNotice {
+                severity: nofy_sampling_types::ModelNoticeSeverity::Warning,
+                text: "Large contexts cost more".into(),
+                label: Some("Preview".into()),
+            }),
             max_request_bytes: Some(std::num::NonZeroU64::new(10_000_000).unwrap()),
             auto_compact_threshold_percent: Some(80),
             system_prompt_label: Some("label".into()),

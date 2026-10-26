@@ -1,23 +1,12 @@
-/**
- * 依赖守卫门 —— 把「ZCode 为什么不可改」的反面教训变成编译器之外的第二道闸。
- *
- * ZCode 的本体病是**线路形状抹在几百个组件里**（uiux-reference.md §4）。
- * 我们的守则（ipc-boundary.md / uiux-reference.md）：
- *
- *  1. features/** 不准 import 线路名包（@nofy-desktop/acp）、不准 import main/ 与
- *     seam/（边界代码只准住在 seam/ 与 core/），不准碰 window/document
- *     （组件是 store 的纯函数视图；碰 DOM 就意味着状态漏出了 store 纪律）。
- *  2. core/** 与 seam/** 不准碰 window/document（它们要在 node 下被测试驱动）。
- *  3. main/** 不准 import react、不准碰 window/document。
- *
- * 裁决面分类等「协议知识进界面」的口子统一走 core/interactions.ts。
- * 新增豁免＝改本文件＝一次显式的、可评审的决定，而不是某次顺手 import。
+/** Supplemental DOM/main guard; imports use the same AST reader as architecture:check.
+ * Full layer policy and exact migration exceptions live in architecture-policy.json.
  */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { scanModuleReferences } from "../scripts/architecture/graph.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -34,11 +23,7 @@ function walk(dir: string, out: string[] = []): string[] {
 
 /** 从**源码文本**抽 import 说明符（调用方传原文，不传路径）。 */
 function importsOf(src: string): string[] {
-  const out: string[] = [];
-  const re = /from\s+"([^"]+)"|import\("([^"]+)"\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) out.push(m[1] ?? m[2] ?? "");
-  return out;
+  return scanModuleReferences("guard.tsx", src).references.map(reference => reference.specifier);
 }
 
 function stripComments(src: string): string {

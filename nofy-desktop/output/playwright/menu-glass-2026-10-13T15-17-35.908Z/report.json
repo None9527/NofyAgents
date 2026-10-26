@@ -1,0 +1,24 @@
+{
+  "source": "Electron GUI + deterministic ACP emulator (no real model)",
+  "startedAt": "2026-10-13T15:17:35.909Z",
+  "cases": [
+    {
+      "name": "P01 bottom input menus remain above their triggers and clickable",
+      "status": "passed",
+      "durationMs": 564
+    },
+    {
+      "name": "P02 outside click and keyboard selection keep menu lifecycle intact",
+      "status": "passed",
+      "durationMs": 73
+    },
+    {
+      "name": "P03 dark and light glass keep the sidebar transparent over a translucent shell",
+      "status": "passed",
+      "durationMs": 179
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/menu-glass-2026-10-13T15-17-35.908Z",
+  "finishedAt": "2026-10-13T15:17:37.295Z"
+}

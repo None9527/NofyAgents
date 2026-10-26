@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-10",
+  "scope": "Main window state module; no full AppState subscription; separate conversation/approval/queue/diagnostics and stable navigation/composer boundaries",
+  "verify": {
+    "fullCommand": "pnpm verify",
+    "fullLog": "/tmp/nofy-shell-verify-final.log",
+    "finalTestsLog": "/tmp/nofy-shell-tests-final.log",
+    "finalBuildLog": "/tmp/nofy-shell-build-final.log",
+    "finalTests": 366,
+    "acpTests": 41,
+    "desktopTests": 325,
+    "newSelectorTests": 6,
+    "protocolSmoke": 7,
+    "ptySmoke": 8,
+    "recoverySmoke": 11,
+    "note": "Full verify followed by final test/build after command memo dependency narrowing and sixth selector regression"
+  },
+  "gui": [
+    {
+      "report": "output/playwright/2026-10-09T16-10-26.840Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/project-2026-10-09T16-10-28.132Z/report.json",
+      "passed": 11,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/2026-10-09T16-10-29.301Z-settings/report.json",
+      "passed": 15,
+      "pageErrors": 0
+    },
+    {
+      "report": "output/playwright/virtual-2026-10-09T16-10-30.380Z/report.json",
+      "passed": 9,
+      "pageErrors": 0
+    }
+  ],
+  "performance": {
+    "report": "output/performance/after-shell-2026-10-09T16-09-47.182Z/report.json",
+    "archive": "docs/architecture/benchmarks/2026-10-10-shell-module.json",
+    "assertionsPassed": true,
+    "scope": "Deterministic production Electron, single local sample, no real model or precise memory profile"
+  },
+  "architecture": {
+    "files": 177,
+    "imports": 812,
+    "legacyExceptions": 15
+  },
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "f269498f3894fc3857835caea88a93ccc22a465c7f607f474cfcf8d530c05cc8",
+    "isolatedLaunchesPassed": 2,
+    "kernelBundled": false,
+    "signing": "ad-hoc local only",
+    "log": "/tmp/nofy-shell-package-verify.log"
+  },
+  "sourceHashes": {
+    "apps/desktop/renderer/application/shell/selectors.ts": "edf2e41d9828fcbb84a5b191367ca8ca633f36e99142318a865c076989e16073",
+    "apps/desktop/renderer/features/shell/App.tsx": "d19ebfe598257aa14e59b31ef982c75a5ef080ca3f2c42e62a920dde46f84836",
+    "apps/desktop/renderer/features/shell/SidebarBoundary.tsx": "ea6b5e64b9dd3a2b6d8520ac9398335952bcbd0409ef3f120bee89efdd51c0e6",
+    "apps/desktop/renderer/features/shell/SidebarFoot.tsx": "85d0954f37b5cbd9964ede6b37b4b828e7daf6561b2939400db033e38f6f24dd",
+    "apps/desktop/renderer/features/shell/SessionActionsMenu.tsx": "f90651df7431f7885f846d121a0f7beea3b671e105c63d16e9af3ea3d88434c8",
+    "apps/desktop/renderer/features/conversation/ComposerBoundary.tsx": "861d0117ddceeee91389f02083a9f272bf4d75a1938bd7d044a84354a1868bdd",
+    "apps/desktop/renderer/features/conversation/QueueHost.tsx": "16e87cef23949b0f7d7419983a6aeecf8dc2f5433594c73cb05bfd7d88e6d3ff",
+    "apps/desktop/renderer/features/approvals/ApprovalHost.tsx": "2bf98492b4a554f83c12d4a667d067fc94c111dc6536971fadc0cc48bbe5eb3d",
+    "apps/desktop/renderer/application/sessions/useSessionNavigation.ts": "e734a9202545315fe58eb8e89014ae08631590c071b4b6c3e6fe9f37d7cd887d",
+    "apps/desktop/test/shell-selectors.test.ts": "e1d64499f083faa6cef9af732a2492872d487b0674dfec0917480e62273df910"
+  }
+}

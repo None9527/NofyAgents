@@ -1,0 +1,29 @@
+{
+  "source": "Actual Electron GUI with deterministic ACP emulator; native open/save dialog provider stubs only. Actual main IPC, directory validation and fs export write.",
+  "startedAt": "2026-10-14T08:10:13.220Z",
+  "cases": [
+    {
+      "name": "I01 deleted session cwd blocks prompt, preserves draft and sends no kernel frame",
+      "status": "passed",
+      "durationMs": 226
+    },
+    {
+      "name": "I02 restoring directory permits existing session and real IPC validation",
+      "status": "passed",
+      "durationMs": 101
+    },
+    {
+      "name": "I03 stale selected and last-session paths never create or restore an invalid workspace",
+      "status": "passed",
+      "durationMs": 131
+    },
+    {
+      "name": "I04 choosing a missing recent project cannot create a kernel session",
+      "status": "passed",
+      "durationMs": 210
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/integration-2026-10-14T08-10-13.219Z",
+  "finishedAt": "2026-10-14T08:10:15.182Z"
+}

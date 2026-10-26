@@ -58,7 +58,7 @@ export type KernelBridge = {
   extRequest: (method: string, params?: unknown) => Promise<unknown>;
   notify: (method: string, params?: unknown) => void;
   respond: (id: RpcId, result: unknown) => void;
-  cancel: (sessionId: string) => void;
+  cancel: (sessionId: string, meta?: Record<string, unknown>) => void;
   isReady: () => boolean;
   stats: () => BridgeStats;
   /** 断开对上游 port 的订阅（应用退出时）。 */
@@ -173,13 +173,13 @@ export function createKernelBridge(port: KernelPort): KernelBridge {
       markAnswered(id);
       port.respond(id, result);
     },
-    cancel: (sessionId) => {
+    cancel: (sessionId, meta) => {
       // port.cancel 内部会把该会话所有挂起权限请求应答 cancelled
       // （connection.ts 的既定语义），这里的记账必须跟上，否则会重投僵尸卡。
       for (const [id, sig] of [...outstanding]) {
         if (sessionIdOf(sig) === sessionId) markAnswered(id);
       }
-      port.cancel(sessionId);
+      port.cancel(sessionId, meta);
     },
     isReady: () => port.isReady(),
     stats: () => ({

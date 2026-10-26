@@ -743,6 +743,7 @@ pub(crate) enum AgentDeferredSend {
     Stash,
 }
 pub struct AgentView {
+    pub(crate) load_failed: bool,
     pub session: AgentSession,
     pub(crate) session_binding_epoch: u32,
     pub scrollback: ScrollbackState,

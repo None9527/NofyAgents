@@ -1,12 +1,12 @@
 # Custom Models
 
-Nofy connects to custom model endpoints for alternative providers, self-hosted models, and overriding built-in settings. This guide explains how to select models, configure endpoints, and integrate third-party providers.
+Nofy connects to configured model providers and self-hosted endpoints. This guide explains how to select models, configure endpoints, and integrate third-party providers.
 
 ---
 
 ## Default Models
 
-New sessions start with the built-in default model (`grok-4.5`); the model ID is sent to your configured endpoint. Supply credentials as described in [Authentication](02-authentication.md), then start a session.
+Nofy does not bundle an inference model. New sessions use your configured default or the first available configured model. The picker lists user-configured models and models returned by your configured catalog endpoint. If no model is available, configure a provider before prompting; no vendor model is silently substituted.
 
 List all available models:
 
@@ -21,7 +21,7 @@ nofy models
 ### CLI Flag
 
 ```bash
-nofy -p "Hello" -m nofy-build
+nofy -p "Hello" -m my-model
 ```
 
 ### Slash Command
@@ -29,18 +29,18 @@ nofy -p "Hello" -m nofy-build
 In the TUI, switch models during a session:
 
 ```
-/model nofy-build
+/model my-model
 ```
 
 Or use the alias:
 
 ```
-/m nofy-build
+/m my-model
 ```
 
 ### Model Picker (Ctrl+M)
 
-Press `Ctrl+M` from the scrollback pane to open the model picker. It lists all available models, both built-in and custom, and lets you switch with a single keystroke. With the prompt focused, `Ctrl+M` toggles multiline input instead -- use `/model` to switch without leaving the prompt.
+Press `Ctrl+M` from the scrollback pane to open the model picker. It lists available configured models and lets you switch with a single keystroke. With the prompt focused, `Ctrl+M` toggles multiline input instead -- use `/model` to switch without leaving the prompt.
 
 ### Config Default
 
@@ -48,7 +48,7 @@ Set a persistent default in `~/.nofy/config.toml`:
 
 ```toml
 [models]
-default = "grok-4.5"
+default = "my-model"
 ```
 
 ---

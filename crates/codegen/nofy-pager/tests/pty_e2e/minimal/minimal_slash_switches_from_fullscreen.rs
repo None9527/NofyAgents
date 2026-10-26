@@ -2,10 +2,9 @@
 #[allow(unused_imports)]
 use crate::common::*;
 
-/// `/minimal` from a fullscreen session re-execs the pager with `--minimal
-/// --resume <id>` so the same conversation reopens under scrollback-native
-/// rendering. Proves the end-to-end screen-mode switch path (slash command →
-/// quit → exec → resume in minimal) that unit tests cannot cover.
+/// `/minimal` switches the live resident session in-process and reprints its
+/// conversation exactly once under scrollback-native rendering, without a new
+/// welcome card. The input and next turn remain usable after the transition.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
 async fn minimal_slash_switches_from_fullscreen() {
@@ -13,13 +12,13 @@ async fn minimal_slash_switches_from_fullscreen() {
     let sentinel = turn_sentinel(1);
     content.set_response(format!("{sentinel} fullscreen payload."));
 
-    // Stable project dir so the resumed session is findable by id after re-exec.
+    // Isolated project dir for the resident session and both render modes.
     let project = tempfile::tempdir().expect("create project dir");
     std::fs::create_dir_all(project.path().join(".git")).expect("create .git");
 
     let binary = pager_binary().expect("resolve pager binary");
     // Start fullscreen (default), standalone. Enable query responses *before*
-    // the re-exec so the post-switch minimal probe does not silently downgrade
+    // the transition so the post-switch minimal probe does not silently downgrade
     // to full-height inline.
     let mut harness = PtyHarness::spawn_with_content_in_dir(
         &binary,
@@ -31,12 +30,13 @@ async fn minimal_slash_switches_from_fullscreen() {
     )
     .expect("spawn fullscreen pager");
     harness.set_respond_to_queries(true);
+    let original_pid = harness.child_pid();
 
     harness
         .wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT)
         .expect("welcome text");
 
-    // Establish a real session with content so `--resume` has history to load.
+    // Establish a real session with content to reprint on the main screen.
     harness
         .inject_keys(format!("{PROMPT}\r").as_bytes())
         .expect("submit turn");
@@ -44,7 +44,7 @@ async fn minimal_slash_switches_from_fullscreen() {
         .wait_for_text(&sentinel, Duration::from_secs(30))
         .expect("mock response in fullscreen");
 
-    // Switch: `/minimal` should re-exec into scrollback-native mode with the
+    // Switch: `/minimal` should enter scrollback-native mode with the
     // same session. Pace keystrokes so the slash dropdown opens rather than
     // paste-coalescing, then confirm once the description row is visible.
     inject_keys_paced(&mut harness, b"/minimal");
@@ -57,16 +57,15 @@ async fn minimal_slash_switches_from_fullscreen() {
     harness.update(Duration::from_millis(150));
     harness.inject_keys(b"\r").expect("submit /minimal");
 
-    // After the relaunch the PTY stays live (Unix: same process via `exec`;
-    // Windows: child on the same console with the parent parked in `wait`);
-    // wait for minimal's idle status. A `/minimal` re-exec shows the
+    // The PTY and resident session stay live; wait for minimal's idle status.
+    // A `/minimal` transition shows the
     // switch-back form (`… /fullscreen to go back · /help`), not the cold-start
     // `minimal · /help` sentinel alone.
     harness
         .wait_for_text(MINIMAL_SWITCH_BACK_IDLE_SENTINEL, Duration::from_secs(45))
         .unwrap_or_else(|e| {
             panic!(
-                "/minimal did not reopen session in minimal mode: {e}\nscreen:\n{}",
+                "/minimal did not switch session to minimal mode: {e}\nscreen:\n{}",
                 harness.screen_contents()
             )
         });
@@ -74,23 +73,54 @@ async fn minimal_slash_switches_from_fullscreen() {
         .wait_for_full_text(&sentinel, Duration::from_secs(30))
         .unwrap_or_else(|e| {
             panic!(
-                "prior turn must be present after /minimal resume: {e}\nfull:\n{}",
+                "prior turn must be present after /minimal switch: {e}\nfull:\n{}",
                 harness.full_text()
             )
         });
 
-    // Main-screen clear on relaunch: "Reopening session…" was printed just
-    // before exec and must not remain above the resumed UI (the clear wipes
-    // residual main-buffer detritus so the welcome card sits at the top).
+    // The resident transition must not leak legacy exec/reopen chrome.
     let screen = harness.screen_contents();
     assert!(
         !screen.contains("Reopening session"),
         "main screen should be cleared on /minimal relaunch; leftover reopen text:\n{screen}"
     );
     assert!(
-        screen.contains("Nofy Build") || harness.full_text().contains("Nofy Build"),
-        "welcome card should re-anchor at top after /minimal relaunch\nscreen:\n{screen}"
+        screen.contains("Switched to minimal mode"),
+        "mode switch is visible\n{screen}"
     );
+    assert_eq!(
+        harness.child_pid(),
+        original_pid,
+        "resident mode switch keeps the process"
+    );
+    assert_eq!(
+        harness.full_text().matches(&sentinel).count(),
+        1,
+        "old response is reprinted exactly once"
+    );
+    assert!(
+        !screen.contains("Nofy Build"),
+        "resident switch must not insert another welcome card\n{screen}"
+    );
+    const DRAFT: &str = "after-switch-draft";
+    harness
+        .inject_keys(DRAFT.as_bytes())
+        .expect("type after switch");
+    harness
+        .wait_for_text(DRAFT, Duration::from_secs(10))
+        .expect("draft remains visible in minimal");
+    harness
+        .inject_keys(b"-edited")
+        .expect("edit draft after switch");
+    harness
+        .wait_for_text(&format!("{DRAFT}-edited"), Duration::from_secs(10))
+        .expect("draft remains editable");
+    let next = turn_sentinel(2);
+    content.set_response(format!("{next} minimal next turn."));
+    harness.inject_keys(b"\r").expect("submit preserved draft");
+    harness
+        .wait_for_full_text(&next, Duration::from_secs(30))
+        .expect("same session answers next turn in minimal");
 
     assert!(
         !harness.contains_text("panicked"),

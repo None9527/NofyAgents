@@ -24,7 +24,7 @@ Location: `~/.nofy/config.toml`. If the file is missing, Nofy uses its built-in 
 
 ```toml
 [models]
-default = "grok-4.5"                   # model used for new sessions
+default = "my-model"                   # configured model used for new sessions
 
 # Defaults applied to every model; a per-model [model.<id>] value always wins.
 # See "Custom Models" for the per-model overrides and full details.

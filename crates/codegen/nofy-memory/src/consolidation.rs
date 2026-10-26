@@ -161,6 +161,7 @@ impl ConsolidationEngine {
         let layout = UnifiedMemoryLayout::new(&self.root);
         let scope = layout.scope(&plan.scope);
         std::fs::create_dir_all(scope.root())?;
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())?;
         let hash = plan_hash(plan)?;
         self.freeze_plan(&scope, plan, &hash)?;
         let state = UnifiedState::open(layout.meta_database(), scope.state_database())?;

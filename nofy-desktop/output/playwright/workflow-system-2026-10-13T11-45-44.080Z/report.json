@@ -1,0 +1,77 @@
+{
+  "source": "Controlled multi-stage workflow in isolated Electron; DOM identity and frame measurements",
+  "cases": [
+    {
+      "name": "S01 collapsed reasoning exposes live content; same-line growth preserves node",
+      "status": "passed"
+    },
+    {
+      "name": "S02 new reasoning line rolls with incoming and outgoing frames",
+      "status": "passed",
+      "details": [
+        {
+          "opacity": "0.306907",
+          "transform": "matrix(1, 0, 0, 1, 0, 7.20817)"
+        },
+        {
+          "opacity": "0.465156",
+          "transform": "matrix(1, 0, 0, 1, 0, 5.56237)"
+        },
+        {
+          "opacity": "0.589963",
+          "transform": "matrix(1, 0, 0, 1, 0, 4.26438)"
+        },
+        {
+          "opacity": "0.701084",
+          "transform": "matrix(1, 0, 0, 1, 0, 3.10873)"
+        },
+        {
+          "opacity": "0.779761",
+          "transform": "matrix(1, 0, 0, 1, 0, 2.29048)"
+        },
+        {
+          "opacity": "0.840146",
+          "transform": "matrix(1, 0, 0, 1, 0, 1.66248)"
+        },
+        {
+          "opacity": "0.886864",
+          "transform": "matrix(1, 0, 0, 1, 0, 1.17661)"
+        },
+        {
+          "opacity": "0.922484",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.806171)"
+        },
+        {
+          "opacity": "0.949807",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.522011)"
+        },
+        {
+          "opacity": "0.969794",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.314141)"
+        },
+        {
+          "opacity": "0.984072",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.165654)"
+        },
+        {
+          "opacity": "0.993372",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.0689304)"
+        }
+      ]
+    },
+    {
+      "name": "S03 completed child tools remain one active stage with current command",
+      "status": "passed"
+    },
+    {
+      "name": "S04 arriving prose ends stage and shows live response before completion",
+      "status": "passed"
+    },
+    {
+      "name": "S05 completed answer retains its DOM while work folds, keyboard restores details",
+      "status": "passed"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/workflow-system-2026-10-13T11-45-44.080Z"
+}

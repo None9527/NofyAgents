@@ -20,7 +20,7 @@ function input(over: Partial<SidebarInput> = {}): SidebarInput {
   return { sessions: [], view: "projects", sort: "recent", now: NOW, homeCwd: "/Users/mac", ...over };
 }
 function task(id: string, title: string, at: number | null): SidebarTask {
-  return { key: id, sessionId: id, title, activity: null, loaded: true, active: false, at, time: null };
+  return { key: id, sessionId: id, title, activity: null, loaded: true, active: false, at, time: null, cwd: null };
 }
 
 test("项目视图：按 cwd 成组，本窗口工作区标 home，其余标 folder", () => {
@@ -37,12 +37,12 @@ test("项目视图：按 cwd 成组，本窗口工作区标 home，其余标 fol
   assert.equal(other?.tasks.length, 2);
 });
 
-test("无 cwd 的会话落进 (none) 组，标签是占位而不是空串", () => {
-  const m = buildSidebarModel(input({ sessions: [s("a")] }));
+test("没有目录的会话不进项目，单独进聊天", () => {
+  const m = buildSidebarModel(input({ sessions: [s("a"), s("b", { cwd: "/repo", title: "有目录" })] }));
   assert.equal(m.projects.length, 1);
-  assert.equal(m.projects[0]?.key, "(none)");
-  assert.equal(m.projects[0]?.kind, "none");
-  assert.equal(m.projects[0]?.label, "（无工作区）");
+  assert.equal(m.projects[0]?.key, "/repo");
+  assert.deepEqual(m.chats.map((t) => t.sessionId), ["a"]);
+  assert.equal(m.total, 2);
 });
 
 test("未加载（roster）会话也进列表，且标 loaded=false —— 冷启动可点开的依据", () => {
@@ -67,7 +67,8 @@ test("title 排序：按标题，同标题再按时间降序稳定化", () => {
 
 test("空标题解析成「未命名会话」（与 ⌘K 同一个 resolveTaskTitle 口径）", () => {
   const m = buildSidebarModel(input({ sessions: [s("a", { title: "   " })] }));
-  assert.equal(m.projects[0]?.tasks[0]?.title, "未命名会话");
+  assert.equal(m.chats[0]?.title, "未命名会话");
+  assert.equal(m.projects.length, 0);
 });
 
 test("时间芯片走紧凑档：分 / 小时 / 天（活壳实测文案「57分」「1小时」「6天」）", () => {
@@ -123,6 +124,70 @@ test("projectOrder：自定义拖拽序优先，不在表里的新工作区按�
   assert.deepEqual(def.projects.map((p) => p.key), ["/aaa", "/bbb", "/ccc"], "默认 recent 序");
   const custom = buildSidebarModel(input({ sessions, projectOrder: ["/ccc", "/aaa"] }));
   assert.deepEqual(custom.projects.map((p) => p.key), ["/ccc", "/aaa", "/bbb"], "表内按表序，表外 /bbb 保持默认相对序追加");
+});
+
+test("workspace_list 决定项目目录；名单里还没有的会话仍留在自己的目录", () => {
+  const m = buildSidebarModel(input({
+    sessions: [
+      s("live", { cwd: "/Users/mac/old", title: "roster title", loaded: true, at: NOW - 1000 }),
+      s("fresh", { cwd: "/Users/mac/just", key: "roster:fresh", loaded: false, title: "just created" }),
+    ],
+    workspaces: {
+      sessions: [
+        { sessionId: "live", cwd: "/Users/mac/nofy-build", title: "generated title", at: NOW - 60_000 },
+        { sessionId: "cold", cwd: "/Users/mac/nofy-build", title: "summary only", at: NOW - 120_000 },
+      ],
+    },
+  }));
+  const project = m.projects.find((p) => p.key === "/Users/mac/nofy-build");
+  assert.deepEqual(project?.tasks.map((t) => t.sessionId), ["live", "cold"]);
+  assert.equal(project?.tasks[0]?.title, "generated title");
+  assert.equal(project?.tasks[0]?.loaded, true);
+  assert.equal(project?.tasks[0]?.time, "1分");
+  assert.equal(project?.tasks[1]?.key, "summary:cold");
+  assert.equal(project?.tasks[1]?.loaded, false);
+  assert.equal(project?.tasks[1]?.cwd, "/Users/mac/nofy-build");
+  const fresh = m.projects.find((p) => p.key === "/Users/mac/just");
+  assert.equal(fresh?.tasks[0]?.title, "just created");
+  assert.equal(m.projects.some((p) => p.key === "/Users/mac/old"), false);
+});
+
+test("workspace_list 还没读到时仍按会话目录分组", () => {
+  const m = buildSidebarModel(input({ sessions: [s("a", { cwd: "/Users/mac/old", title: "keep" })] }));
+  assert.equal(m.projects[0]?.key, "/Users/mac/old");
+  assert.equal(m.projects[0]?.tasks[0]?.title, "keep");
+});
+
+test("空的 workspace_list 不造项目，已有会话仍在", () => {
+  const m = buildSidebarModel(input({ sessions: [s("a", { cwd: "/repo", title: "只有会话" })], workspaces: { sessions: [] } }));
+  assert.equal(m.projects.length, 1);
+  assert.equal(m.projects[0]?.label, "repo");
+  assert.equal(m.total, 1);
+});
+
+test("最近打开的文件夹并进同一份项目列表，已有会话的目录不重复，空行沉底", () => {
+  const m = buildSidebarModel(input({
+    sessions: [s("a", { cwd: "/Users/mac/nofy-build", at: NOW - 1000 })],
+    recentCwds: ["/Users/mac/nofy-build", "/Users/mac/empty", "/Users/mac/empty", "", "   "],
+  }));
+  assert.deepEqual(m.projects.map((p) => p.key), ["/Users/mac/nofy-build", "/Users/mac/empty"]);
+  assert.equal(m.projects[0]?.tasks.length, 1);
+  assert.equal(m.projects[1]?.tasks.length, 0);
+  assert.equal(m.projects[1]?.latest, null);
+  assert.equal(m.projects[1]?.kind, "folder");
+  assert.equal(m.projects[1]?.label, "empty");
+  assert.equal(m.total, 1, "空文件夹不是会话");
+});
+
+test("最近文件夹可被 projectOrder 排到有会话的项目前面，本窗口目录标 home", () => {
+  const ranked = buildSidebarModel(input({
+    sessions: [s("a", { cwd: "/aaa", at: NOW })],
+    recentCwds: ["/Users/mac"],
+    projectOrder: ["/Users/mac", "/aaa"],
+  }));
+  assert.deepEqual(ranked.projects.map((p) => p.key), ["/Users/mac", "/aaa"]);
+  assert.equal(ranked.projects[0]?.kind, "home");
+  assert.equal(ranked.projects[0]?.tasks.length, 0);
 });
 
 test("reorderProjects：把 from 插到 to 的位置；同 key / 缺 key 不炸", () => {

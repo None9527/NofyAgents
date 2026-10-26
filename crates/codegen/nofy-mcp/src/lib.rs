@@ -29,6 +29,7 @@
 pub use rmcp;
 
 pub mod acp_transport;
+pub mod bearer_token_file;
 pub mod credentials;
 pub mod elicitation;
 pub mod liveness;

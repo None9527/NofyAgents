@@ -2,6 +2,16 @@
 //! facts/gates and retry, sampler config reconstruction, sampling-failure
 //! recovery, and per-response usage recording.
 use super::*;
+
+/// Keep partial text salvage opt-in at the main-turn boundary; auxiliary
+/// requests keep their own default policy and never read this environment gate.
+fn main_turn_length_policy(opt_in: Option<bool>) -> nofy_sampling_types::LengthPolicy {
+    if opt_in == Some(true) {
+        nofy_sampling_types::LengthPolicy::CompletePartial
+    } else {
+        nofy_sampling_types::LengthPolicy::CompleteToolCalls
+    }
+}
 /// Auth-failure detector for tool errors. Matches strictly on HTTP 401
 /// when the error carries a structured status code, mirroring
 /// `SamplingError::is_auth_error` in nofy-sampling-types: 403 is
@@ -781,8 +791,35 @@ impl SessionActor {
                     && let Some(new_cw) = std::num::NonZeroU64::new(cw)
                     && self.compaction.context_window_override.is_none()
                 {
+                    let model_id = acp::ModelId::new(cfg.model.clone());
+                    let new_cw = self
+                        .compaction
+                        .server_context_window
+                        .borrow()
+                        .as_ref()
+                        .map(|cap| cap.effective_window(&cfg.model, new_cw))
+                        .unwrap_or(new_cw);
                     cfg.context_window = new_cw;
                     self.chat_state_handle.update_sampling_config(cfg);
+                    // A server-confirmed cap wins over a larger selected menu
+                    // value, and remains pinned against later metadata upgrades.
+                    let cap = crate::session::persistence::ServerContextWindow {
+                        model: model_id.0.to_string(),
+                        window: new_cw,
+                    };
+                    *self.compaction.server_context_window.borrow_mut() = Some(cap.clone());
+                    let _ = self
+                        .notifications
+                        .persistence_tx
+                        .send(PersistenceMsg::CurrentModel {
+                            model_id,
+                            agent: crate::session::persistence::PersistedAgent::Named(
+                                self.agent.borrow().definition().name.clone(),
+                            ),
+                            reasoning_effort: None,
+                            context_window_selection: None,
+                            server_context_window: Some(Some(cap)),
+                        });
                 }
                 let trigger_info = compaction::AutoCompactTriggerInfo {
                     tokens_used: total_tokens,
@@ -1060,9 +1097,11 @@ impl SessionActor {
     ///    `send_xai_notification(RetryState::Failed)`.
     pub(crate) async fn run_turn_via_sampler(
         self: &Arc<Self>,
-        request: ConversationRequest,
+        mut request: ConversationRequest,
         budget: &mut RateLimitWaitBudget,
     ) -> Result<SamplerTurnOutcome, acp::Error> {
+        request.length_policy =
+            main_turn_length_policy(nofy_config::env_bool("NOFY_LENGTH_SALVAGE"));
         // DS-#8 fail-closed checkpoint: the journal prefix must be durable
         // before the request is initiated (no stream, not even a first
         // chunk, when it is not). Noop when the runtime journal is off.

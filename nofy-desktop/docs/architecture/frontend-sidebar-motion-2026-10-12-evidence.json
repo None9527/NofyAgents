@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-12",
+  "scope": "Left sidebar presentation and shared continuous content width; no kernel/protocol/persistence format changes",
+  "impact": {
+    "ShellLayout": "UNKNOWN (not indexed)",
+    "manualCallers": [
+      "App"
+    ]
+  },
+  "verify": {
+    "log": "/tmp/nofy-sidebar-motion-verify.log",
+    "unitTests": 423,
+    "passed": true,
+    "architecture": {
+      "files": 204,
+      "imports": 950,
+      "legacyExceptions": 14
+    },
+    "styleOwners": 7,
+    "smoke": [
+      7,
+      8,
+      11
+    ]
+  },
+  "gui": {
+    "sidebar": {
+      "report": "output/playwright/sidebar-2026-10-12T11-13-51.241Z/report.json",
+      "cases": 11,
+      "pageErrors": 0
+    },
+    "homepage": {
+      "report": "output/playwright/homepage-2026-10-12T11-13-59.639Z/report.json",
+      "cases": 13,
+      "pageErrors": 0
+    },
+    "spacing": {
+      "report": "output/playwright/collapsed-spacing-2026-10-12T11-11-09.148Z/report.json",
+      "cases": 1,
+      "pageErrors": 0
+    }
+  },
+  "failedAttempt": "output/playwright/sidebar-2026-10-12T11-09-37.587Z/report.json",
+  "package": {
+    "status": "passed",
+    "log": "/tmp/nofy-sidebar-motion-final-package.log",
+    "verificationLog": "/tmp/nofy-sidebar-motion-final-package-verify.log",
+    "isolatedLaunches": 2,
+    "kernelBundled": false,
+    "signing": "ad-hoc local",
+    "reopened": true,
+    "mainProcesses": 1,
+    "kernelChildren": 1
+  },
+  "motion": {
+    "durationMs": 220,
+    "easing": "shared ease-in-out",
+    "firstFrames": [
+      {
+        "ms": 1,
+        "slotWidth": 264,
+        "contentWidth": 264
+      },
+      {
+        "ms": 13,
+        "slotWidth": 258,
+        "contentWidth": 264
+      },
+      {
+        "ms": 30,
+        "slotWidth": 240,
+        "contentWidth": 264
+      },
+      {
+        "ms": 47,
+        "slotWidth": 203,
+        "contentWidth": 264
+      },
+      {
+        "ms": 63,
+        "slotWidth": 150,
+        "contentWidth": 264
+      },
+      {
+        "ms": 80,
+        "slotWidth": 102,
+        "contentWidth": 264
+      },
+      {
+        "ms": 97,
+        "slotWidth": 68,
+        "contentWidth": 264
+      },
+      {
+        "ms": 113,
+        "slotWidth": 44,
+        "contentWidth": 264
+      },
+      {
+        "ms": 130,
+        "slotWidth": 27,
+        "contentWidth": 264
+      }
+    ],
+    "intermediateFrames": 11,
+    "finalSlotWidth": 0,
+    "immediateInert": true
+  },
+  "readingAnchor": {
+    "before": {
+      "key": "seg:user:e2e-session-1:0",
+      "offset": 24
+    },
+    "folded": {
+      "key": "seg:user:e2e-session-1:0",
+      "offset": 24
+    },
+    "reopened": {
+      "key": "seg:user:e2e-session-1:0",
+      "offset": 24
+    }
+  }
+}

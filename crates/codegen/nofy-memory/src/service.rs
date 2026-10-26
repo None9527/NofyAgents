@@ -330,6 +330,9 @@ impl MemoryService for NofyMemoryService {
 
     async fn remember(&self, request: RememberRequest) -> MemoryServiceResult<RememberReceipt> {
         self.require_enabled()?;
+        let scope_layout = self.scope_layout(&request.area);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())
+            .map_err(internal_error)?;
         let observation = self.observation(&request)?;
         ObservationStore::new(self.config.root.clone())
             .persist(&observation, ObservationStatus::Active)
@@ -373,6 +376,10 @@ impl MemoryService for NofyMemoryService {
     async fn revise(&self, request: ReviseTopicRequest) -> MemoryServiceResult<TopicRevision> {
         self.require_enabled()?;
         reject_secret(&request.replacement)?;
+        let topic = self.locate_topic(&request.target.id)?;
+        let scope_layout = self.scope_layout(&topic.area);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())
+            .map_err(internal_error)?;
         let topic = self.locate_topic(&request.target.id)?;
         require_expected_hash(&request.target, &topic.content_hash)?;
         let old_evidence = topic.metadata.evidence.ok_or_else(|| {
@@ -468,6 +475,10 @@ impl MemoryService for NofyMemoryService {
                 "忘记操作不可撤销，请确认清除范围".to_owned(),
             ));
         }
+        let topic = self.locate_topic(&request.target.id)?;
+        let scope_layout = self.scope_layout(&topic.area);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())
+            .map_err(internal_error)?;
         let topic = self.locate_topic(&request.target.id)?;
         require_expected_hash(&request.target, &topic.content_hash)?;
         let evidence = topic.metadata.evidence.ok_or_else(|| {
@@ -567,8 +578,40 @@ impl MemoryService for NofyMemoryService {
         self.require_enabled()?;
         let operation_id = OperationId::new();
         let scope = self.domain_scope(&request.area);
-        let observations = self.active_observations(&request.area)?;
+        // Selection, validation, canonical commit, archive, and rollback share
+        // one synchronous scope transaction; no async await occurs below.
+        let scope_layout = self.scope_layout(&request.area);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())
+            .map_err(internal_error)?;
+        let mut observations = Vec::new();
+        let mut batch_bytes = 0usize;
+        let mut oversized_notes = 0usize;
+        for observation in self.active_observations(&request.area)? {
+            let bytes = curator_topic_content(&observation).len();
+            if bytes > 16 * 1024 {
+                oversized_notes += 1;
+                // Remains Active but needs an explicit shorter revision/manual
+                // pass; never claim a later automatic batch can shrink it.
+                continue;
+            }
+            if batch_bytes.saturating_add(bytes) > 256 * 1024 {
+                continue; // An eligible note remains Active for the next batch.
+            }
+            batch_bytes += bytes;
+            observations.push(observation);
+            if observations.len() == 20 {
+                break;
+            }
+        }
         let processed = observations.len();
+        if observations.is_empty()
+            && oversized_notes != 0
+            && request.mode != nofy_tools::types::memory_service::ConsolidationMode::RecordOnly
+        {
+            return Err(MemoryServiceError::InvalidRequest(format!(
+                "有 {oversized_notes} 条待整理记忆超过单条 16 KiB 上限；请先手动缩短或拆分内容，再重试整理。原始记忆仍保留，未归档。"
+            )));
+        }
         if request.mode == nofy_tools::types::memory_service::ConsolidationMode::RecordOnly
             || observations.is_empty()
         {

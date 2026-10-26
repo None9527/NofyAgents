@@ -1,0 +1,22 @@
+{
+  "scope": "ZCode source comparison and actual Nofy isolated Electron measurements; no production UI changes or model calls",
+  "referenceCommit": "29628c9acdb81b703bbd4080c207a0e7ce5e276e",
+  "referenceRuntimeMeasured": false,
+  "matrixConfigurations": 28,
+  "layoutReport": "output/playwright/layout-audit-2026-10-10T19-15-54.113Z/report.json",
+  "interactionReport": "output/playwright/interaction-audit-2026-10-10T19-18-24.613Z/report.json",
+  "acceptancePassed": false,
+  "referenceHashes": {
+    "conversationLayout.ts": "13a9986849b51b79be3206bb0d44b1b18c28b93cdb255ad00555b45e9ba6588a",
+    "ConversationTimeline.tsx": "e6cd02d962628dfc66679ec8363482a63151117243abac816ab3154f87fcacb9",
+    "ConversationComposer.tsx": "9bfa3d1365cfa7bf10e45d521a3d7201381aa27697c79b4f33b356cd2f4a3c2d",
+    "ConversationRowView.tsx": "7a59deebd2233684fcac992f2c5ff2d247e480d504dcd1452b7f068cc131644c",
+    "ConversationTurnGroup.tsx": "8faf4a22fdeb885a51553dcefdb12dcaf36549ade25b38bc7b48286597297be6",
+    "ConversationBottomDockTransition.tsx": "f77ffe5129c27941c22a2d6b48bfb01a95d9309e661591f897868ec8756ce770"
+  },
+  "currentHashes": {
+    "foundations.css": "d3d07bc2cd707ebea85744c6debb75131cdc63057c3b8d65a766f82142edfb59",
+    "conversation.css": "3942292a81fca6a0bb1d9957c73950fef1ad9166800f1427ae6069fb7c32c2ef",
+    "styles.css": "d6ffa8c6e11491bc168ecd6f0836bfbcbb7460156d998071c0ad8eee7384c794"
+  }
+}

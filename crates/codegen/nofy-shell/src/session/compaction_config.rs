@@ -188,6 +188,9 @@ pub(crate) struct CompactionConfig {
     pub auto_compact_suppressed: AtomicU8,
     /// Locks the context window when `NOFY_DEBUG_CONTEXT_WINDOW` is set.
     pub context_window_override: Option<std::num::NonZeroU64>,
+    /// Session selection is distinct from the debug override and catalog default.
+    pub context_window_selection: Cell<Option<std::num::NonZeroU64>>,
+    pub server_context_window: RefCell<Option<crate::session::persistence::ServerContextWindow>>,
     pub count: AtomicU64,
     /// Set at turn end; consumed at next turn start for model-switch compaction.
     /// `Cell` because `SessionActor` is `!Send`.

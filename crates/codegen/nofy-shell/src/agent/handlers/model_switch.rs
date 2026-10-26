@@ -22,6 +22,7 @@ pub(crate) async fn apply(
     );
     tracing::debug!("session_session_model::mvp_agent: {:?}", &args);
     let effort_override = parse_reasoning_effort_meta(args.meta.as_ref());
+    let requested_window = parse_context_window_selection(args.meta.as_ref())?;
     let acp::SetSessionModelRequest {
         session_id,
         model_id,
@@ -32,6 +33,19 @@ pub(crate) async fn apply(
         .await
         .ok_or_else(|| acp::Error::invalid_params().data("unknown session id"))?;
     let model = agent.resolve_model_id(&model_id)?;
+    let (selection_tx, selection_rx) = oneshot::channel();
+    handle
+        .cmd_tx
+        .send(SessionCommand::GetContextWindowSelection {
+            responds_to: selection_tx,
+        })
+        .map_err(|_| acp::Error::internal_error().data("session is closed"))?;
+    let previous_selection = selection_rx
+        .await
+        .map_err(|_| acp::Error::internal_error().data("session is closed"))?;
+    let supported = model.info().supported_context_windows();
+    let context_window_selection =
+        resolve_context_window_selection(requested_window, previous_selection, &supported)?;
     let use_concise = model.info().use_concise;
     let session_default = handle
         .session_default_agent_profile
@@ -210,6 +224,7 @@ pub(crate) async fn apply(
     };
     let (tx, rx) = oneshot::channel();
     let _ = handle.cmd_tx.send(SessionCommand::SetSessionModel {
+        context_window_selection,
         sampling_config: model_sampling,
         use_concise,
         apply_prompt_override,
@@ -220,6 +235,16 @@ pub(crate) async fn apply(
     let updated_model = rx
         .await
         .map_err(|_| acp::Error::internal_error().data("failed to set session model"))?;
+    let updated_model = updated_model?;
+    let (budget_tx, budget_rx) = oneshot::channel();
+    let _ = handle.cmd_tx.send(SessionCommand::GetContextWindowBudget {
+        responds_to: budget_tx,
+    });
+    let actual_budget = budget_rx
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(model.info().context_window);
     agent.with_resident_mut(&session_id, |handle| {
         handle.model_id = model_id.clone();
         handle.reasoning_effort = applied_effort;
@@ -231,6 +256,8 @@ pub(crate) async fn apply(
         &session_id,
         model_id.0.as_ref(),
         applied_effort.map(|eff| eff.to_string()),
+        context_window_selection.map(std::num::NonZeroU64::get),
+        actual_budget.get(),
     );
     nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::ModelSwitched {
         session_id: session_id.0.to_string(),
@@ -251,6 +278,8 @@ pub(crate) async fn apply(
     Ok(acp::SetSessionModelResponse::new().meta(
         serde_json::json!({
             "model": updated_model,
+            "contextWindow": context_window_selection.map(std::num::NonZeroU64::get),
+            "contextWindowTotal": actual_budget.get(),
         })
         .as_object()
         .cloned(),
@@ -264,12 +293,16 @@ fn broadcast_model_changed(
     session_id: &acp::SessionId,
     model_id: &str,
     reasoning_effort: Option<String>,
+    context_window: Option<u64>,
+    actual_budget: u64,
 ) {
     let notification = crate::extensions::notification::SessionNotification {
         session_id: session_id.clone(),
         update: crate::extensions::notification::SessionUpdate::ModelChanged {
             model_id: model_id.to_owned(),
             reasoning_effort,
+            context_window,
+            context_window_total: Some(actual_budget),
         },
         meta: None,
     };
@@ -280,5 +313,96 @@ fn broadcast_model_changed(
                 "nofy/session_notification",
                 params.into(),
             ));
+    }
+}
+
+fn parse_context_window_selection(
+    meta: Option<&acp::Meta>,
+) -> Result<Option<Option<std::num::NonZeroU64>>, acp::Error> {
+    let Some(value) = meta.and_then(|meta| meta.get("contextWindow")) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(Some(None));
+    }
+    value
+        .as_u64()
+        .and_then(std::num::NonZeroU64::new)
+        .map(|value| Some(Some(value)))
+        .ok_or_else(|| {
+            acp::Error::invalid_params().data("contextWindow must be a positive integer or null")
+        })
+}
+
+fn resolve_context_window_selection(
+    requested: Option<Option<std::num::NonZeroU64>>,
+    previous: Option<std::num::NonZeroU64>,
+    supported: &[std::num::NonZeroU64],
+) -> Result<Option<std::num::NonZeroU64>, acp::Error> {
+    match requested {
+        Some(Some(value)) if !supported.contains(&value) => {
+            Err(acp::Error::invalid_params().data("contextWindow is not offered by this model"))
+        }
+        Some(selection) => Ok(selection),
+        None => Ok(previous.filter(|value| supported.contains(value))),
+    }
+}
+
+#[cfg(test)]
+mod context_window_tests {
+    use super::*;
+    fn window(value: u64) -> std::num::NonZeroU64 {
+        std::num::NonZeroU64::new(value).unwrap()
+    }
+    #[test]
+    fn selection_is_validated_and_resets_when_the_new_model_cannot_support_it() {
+        let supported = [window(128_000), window(256_000)];
+        assert_eq!(
+            resolve_context_window_selection(Some(Some(window(256_000))), None, &supported)
+                .unwrap(),
+            Some(window(256_000))
+        );
+        assert_eq!(
+            resolve_context_window_selection(None, Some(window(256_000)), &supported).unwrap(),
+            Some(window(256_000))
+        );
+        assert_eq!(
+            resolve_context_window_selection(None, Some(window(1_000_000)), &supported).unwrap(),
+            None
+        );
+        assert_eq!(
+            resolve_context_window_selection(Some(None), Some(window(256_000)), &supported)
+                .unwrap(),
+            None
+        );
+        assert!(
+            resolve_context_window_selection(Some(Some(window(1_000_000))), None, &supported)
+                .is_err()
+        );
+    }
+    #[test]
+    fn selection_metadata_distinguishes_absent_reset_and_invalid_values() {
+        assert_eq!(parse_context_window_selection(None).unwrap(), None);
+        for value in [
+            serde_json::json!(0),
+            serde_json::json!(-1),
+            serde_json::json!("256000"),
+        ] {
+            assert!(
+                parse_context_window_selection(Some(&acp::Meta::from_iter([(
+                    "contextWindow".into(),
+                    value
+                )])))
+                .is_err()
+            );
+        }
+        assert_eq!(
+            parse_context_window_selection(Some(&acp::Meta::from_iter([(
+                "contextWindow".into(),
+                serde_json::Value::Null
+            )])))
+            .unwrap(),
+            Some(None)
+        );
     }
 }

@@ -423,6 +423,7 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "config",
     "config-agents",
     "context",
+    "context-window",
     "copy",
     "cost",
     "dashboard",

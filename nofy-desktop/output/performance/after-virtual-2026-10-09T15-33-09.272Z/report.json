@@ -1,0 +1,85 @@
+{
+  "label": "after-virtual",
+  "source": "Production Electron; deterministic ACP; opt-in numeric render counters; no real model",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "cases": [
+    {
+      "size": 1000,
+      "load": {
+        "counts": {
+          "App": 4,
+          "Spine": 6,
+          "BlockView": 44,
+          "Markdown": 22
+        },
+        "longTasks": [
+          53
+        ],
+        "inputFrames": [],
+        "totalBlocks": 1000,
+        "virtualized": true,
+        "domBlocks": 22,
+        "domNodes": 224,
+        "heapBytes": 11900000,
+        "loadMs": 448
+      },
+      "editing": {
+        "counts": {
+          "App": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          8.100000023841858,
+          7,
+          9.200000047683716,
+          3,
+          7,
+          13,
+          12.299999952316284,
+          11.100000023841858,
+          13.200000047683716,
+          13.199999928474426,
+          12.899999976158142,
+          11,
+          11.099999904632568,
+          14.200000047683716,
+          14,
+          14.299999952316284,
+          13.800000071525574,
+          14,
+          13.700000047683716,
+          13.799999952316284
+        ],
+        "totalBlocks": 1000,
+        "virtualized": true,
+        "domBlocks": 22,
+        "domNodes": 224,
+        "heapBytes": 11900000,
+        "inputToFrameP95Ms": 14.200000047683716
+      },
+      "stream": {
+        "counts": {
+          "App": 24,
+          "Spine": 30,
+          "BlockView": 21,
+          "Markdown": 20
+        },
+        "longTasks": [],
+        "inputFrames": [
+          10.299999952316284,
+          5.5
+        ],
+        "totalBlocks": 1002,
+        "virtualized": true,
+        "domBlocks": 22,
+        "domNodes": 223,
+        "heapBytes": 11900000
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "error": "TimeoutError: page.waitForFunction: Timeout 120000ms exceeded."
+}

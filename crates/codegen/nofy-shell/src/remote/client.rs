@@ -102,12 +102,27 @@ pub(crate) fn parse_remote_model_value(
         .or_else(|| get_string(obj, "base_url"))
         .unwrap_or_else(|| default_base_url.to_owned());
     let name = get_string(obj, "name").or_else(|| Some(model.clone()));
+    let listed_windows = obj
+        .get("contextWindows")
+        .or_else(|| obj.get("context_windows"))
+        .or_else(|| meta.and_then(|m| m.get("contextWindows")))
+        .and_then(|v| v.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_u64().and_then(std::num::NonZeroU64::new))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     let context_window = get_u64(obj, "contextWindow")
         .or_else(|| get_u64(obj, "context_window"))
         .or_else(|| meta.and_then(|m| get_u64(m, "contextWindow")))
         .or_else(|| meta.and_then(|m| get_u64(m, "totalContextTokens")))
+        .or_else(|| listed_windows.first().map(|value| value.get()))
         .unwrap_or(DEFAULT_CONTEXT_WINDOW);
     let context_window = std::num::NonZeroU64::new(context_window)?;
+    let (context_window, context_windows) =
+        crate::agent::config::context_window_choices(Some(context_window), &listed_windows)?;
     let agent_type = get_string(obj, "systemPromptType")
         .or_else(|| get_string(obj, "system_prompt_type"))
         .or_else(|| get_string(obj, "agent_type"))
@@ -130,6 +145,7 @@ pub(crate) fn parse_remote_model_value(
         base_url,
         name,
         description: get_string(obj, "description"),
+        notice: obj.get("notice").or_else(|| meta.and_then(|meta| meta.get("notice"))).and_then(nofy_sampling_types::ModelNotice::from_value),
         max_completion_tokens: get_u64(obj, "maxCompletionTokens")
             .or_else(|| get_u64(obj, "max_completion_tokens"))
             .and_then(|v| u32::try_from(v).ok()),
@@ -139,6 +155,7 @@ pub(crate) fn parse_remote_model_value(
         env_key: get_env_keys(obj, "envKey").or_else(|| get_env_keys(obj, "env_key")),
         api_backend,
         context_window,
+        context_windows,
         max_request_bytes: get_u64(obj, "maxRequestBytes")
             .or_else(|| get_u64(obj, "max_request_bytes"))
             .and_then(std::num::NonZeroU64::new),
@@ -251,6 +268,25 @@ pub(crate) fn parse_remote_model_value(
 }
 fn get_string(obj: &serde_json::Map<String, serde_json::Value>, key: &str) -> Option<String> {
     obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+}
+
+#[cfg(test)]
+mod context_window_tests {
+    use super::*;
+    #[test]
+    fn remote_menu_first_value_is_default_and_invalid_values_are_ignored() {
+        let parsed = parse_remote_model_value(&serde_json::json!({"model":"custom", "contextWindows":[256000,0,"invalid",1000000,256000], "notice":{"text":" New model "}}), "https://example.com/v1").unwrap();
+        assert_eq!(parsed.context_window.get(), 256_000);
+        assert_eq!(
+            parsed
+                .context_windows
+                .iter()
+                .map(|value| value.get())
+                .collect::<Vec<_>>(),
+            vec![256_000, 1_000_000]
+        );
+        assert_eq!(parsed.notice.unwrap().text, "New model");
+    }
 }
 /// Parse `env_key` / `envKey` as a single string or a string array.
 fn get_env_keys(

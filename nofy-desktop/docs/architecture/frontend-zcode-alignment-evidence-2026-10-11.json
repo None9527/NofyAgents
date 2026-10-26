@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-11",
+  "reference": {
+    "repo": "../ref-desktop",
+    "commit": "29628c9acdb81b703bbd4080c207a0e7ce5e276e",
+    "sourceHashes": {
+      "packages/ui/src/quickpick/TaskFindDialog.tsx": "d8a4e85947b48f4594e214c3bd24f42ccf8c78e10739388fcef76d622acab8ce",
+      "packages/ui/src/WorkspaceSidePaneToggleButton.tsx": "0be2e5beb03944f306c3e7cec920346170efa1d87e8f812415cf9adc8547efb1",
+      "packages/ui/src/v4/conversationTurnFlowItems.ts": "270b548d423f1fb30fe6d00244d3b07089ac0fd72248b8eab8256cd079f9a2fe",
+      "packages/ui/src/v4/ConversationTurnGroup.tsx": "8faf4a22fdeb885a51553dcefdb12dcaf36549ade25b38bc7b48286597297be6"
+    }
+  },
+  "verify": {
+    "command": "pnpm verify",
+    "log": "/tmp/nofy-zcode-align-verify.log",
+    "acpTests": 41,
+    "desktopTests": 366,
+    "total": 407
+  },
+  "gui": [
+    {
+      "report": "output/playwright/zcode-align-2026-10-10T17-55-59.957Z/report.json",
+      "passed": 5,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/virtual-2026-10-10T17-55-59.957Z/report.json",
+      "passed": 9,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/workspace-2026-10-10T17-55-59.957Z/report.json",
+      "passed": 17,
+      "consoleErrors": []
+    },
+    {
+      "report": "output/playwright/2026-10-10T17-55-59.957Z/report.json",
+      "passed": 11,
+      "consoleErrors": []
+    }
+  ],
+  "performance": {
+    "report": "output/performance/gate-2026-10-10T17-56-23.594Z/report.json",
+    "summary": [
+      {
+        "size": 1000,
+        "inputSamples": 60,
+        "pooledInputToFrameP95Ms": 14.100000001490116,
+        "trialInputP95Ms": [
+          13.899999998509884,
+          13.699999995529652,
+          14.100000001490116
+        ],
+        "domBlocks": [
+          24,
+          24,
+          24
+        ],
+        "streamAppRenders": [
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "size": 10000,
+        "inputSamples": 60,
+        "pooledInputToFrameP95Ms": 16.399999998509884,
+        "trialInputP95Ms": [
+          13.600000001490116,
+          16.399999998509884,
+          16.399999998509884
+        ],
+        "domBlocks": [
+          24,
+          24,
+          24
+        ],
+        "streamAppRenders": [
+          5,
+          5,
+          5
+        ]
+      }
+    ],
+    "failures": []
+  },
+  "sourceHashes": {
+    "apps/desktop/renderer/features/shell/App.tsx": "6d1c7b81599270df6b370315ff95d438b46439a17d148a657ee96bea544f8a28",
+    "apps/desktop/renderer/features/shell/CardHeader.tsx": "d9d88ce0c0728283d933841cf8de95913124ce9505d5d1a5b8737a42e53ba9df",
+    "apps/desktop/renderer/features/shell/AuxPane.tsx": "642bd421bdc3e5293ffdc913a9e3ccef925c6023575fea119cc3ea26327560a9",
+    "apps/desktop/renderer/features/shell/ShellLayout.tsx": "62683d2a533d9f445ebd67e688463af284fd763f69cdb9fc0478fec58ee74a79",
+    "apps/desktop/renderer/features/conversation/Spine.tsx": "7d8ec2f6ceb71437a02c0b0d7bcb0cc079219c9c8e22fa0cd4792ebbf5533f3e",
+    "apps/desktop/renderer/features/conversation/ConversationPane.tsx": "725b98b371bba39559132aa0d46dfb636fead844e1112850aaee9d759a07f5f2",
+    "apps/desktop/renderer/features/conversation/exportModel.ts": "0d333030acb492a6d69fd58072bdd6d6e06c7c5f893016afad16b0a9d9728c40",
+    "apps/desktop/renderer/application/conversation/turns.ts": "218af53d2b6fb3b5e4b61866550c8d0b81b75446c1c3a3c62dfa4bd4edce0483",
+    "apps/desktop/renderer/application/conversation/turnIndex.ts": "4c0aeecf352578f2bf292a3e8e4beb81a7f9e6e71aaea9583aa8a4aa973da9cb",
+    "apps/desktop/renderer/application/conversation/virtualPolicy.ts": "711bd78b9752214d20838429552853295d1723e46e21ec093947e4e17c5c090b",
+    "apps/desktop/renderer/ui/hotkeys.ts": "04e907d7161befa273b1183dd46eeb5ef1f05d0d1df6a981cc7a24016006117b",
+    "apps/desktop/renderer/ui/styles.css": "d6ffa8c6e11491bc168ecd6f0836bfbcbb7460156d998071c0ad8eee7384c794",
+    "apps/desktop/renderer/ui/conversation.css": "a8d8de3756f17e21013f0eb29ff35007672a9311af083991160322548df1e6aa"
+  },
+  "reproducedRegression": {
+    "viewport": {
+      "width": 880,
+      "height": 560
+    },
+    "failedReport": "output/playwright/zcode-align-2026-10-10T17-53-44.549Z/report.json",
+    "symptom": "File explorer was mounted but hidden with zero content height in bottom 35% aux layout",
+    "fix": "Full-height card-local overlay panel with its own collapse button"
+  },
+  "limits": [
+    "GUI uses isolated ACP emulator, not a real model call.",
+    "Inspected production Electron screenshots; native live app screen capture unavailable."
+  ],
+  "package": {
+    "path": "release/mac-arm64/nofy-desktop-0.1.0-mac-arm64.zip",
+    "sha256": "612e766968f8e975398426f6857550b8919dde9c2626c2fec343ace3bb9279b9",
+    "isolatedLaunchesPassed": 2,
+    "log": "/tmp/nofy-zcode-align-package-verify.log"
+  },
+  "liveApp": {
+    "reopened": true,
+    "pid": "18052",
+    "screenCaptureVerified": false
+  }
+}

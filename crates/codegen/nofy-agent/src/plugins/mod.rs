@@ -19,6 +19,7 @@ pub mod local_refresh;
 pub mod manifest;
 pub mod marketplace;
 pub mod registry;
+pub mod source_identity;
 pub mod trust;
 
 pub use discovery::{

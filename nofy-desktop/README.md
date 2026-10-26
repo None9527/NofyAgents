@@ -2,6 +2,35 @@
 
 给 **nofy 内核**重写的桌面前端。干净树，不从 `desktop/` 继承任何运行期代码。
 
+当前落地结构：[前端架构 v1](docs/architecture/frontend-framework-v1-2026-10-09.md)。应用层、领域公开入口、资源生命周期与局部订阅已接入，剩余迁移以该文档为准。
+
+最新架构收口：[设置命令、窗口编排与三次性能门](docs/architecture/frontend-closeout-2026-10-11.md)。
+
+文件模块：[预览、变化失效与视图恢复](docs/architecture/frontend-file-module-2026-10-10.md)。
+
+设置模块：[路由、资源查询与未保存修改保护](docs/architecture/frontend-settings-module-2026-10-10.md)。
+
+主界面架构模块：[主界面状态与领域订阅](docs/architecture/frontend-shell-module-2026-10-10.md)。
+
+对话列表：[长对话虚拟化第一版](docs/architecture/frontend-conversation-virtualization-2026-10-09.md)。
+
+对话读模型迁移：[局部订阅、稳定行模型与性能基线](docs/architecture/frontend-conversation-read-model-2026-10-09.md)。
+
+工作区补齐：[路径工具栏、复制/打开与独立树宽度](docs/architecture/frontend-workspace-header-2026-10-09.md)。
+
+文件工作区基础：[资源标签与只读阅读 v1.2](docs/architecture/frontend-file-workspace-2026-10-09.md)。
+
+设置迁移：[MCP/插件设置写入服务 v1.1](docs/architecture/frontend-settings-domain-2026-10-09.md)，领域接口与共享控件已接入。
+
+当前模块与边界门：[架构基线](docs/architecture/frontend-baseline-2026-10-09.md)，`pnpm architecture:check` 已接入 verify 与 CI。
+
+架构优化方案：[ZCode 审查与 Nofy 迁移计划](docs/architecture/frontend-optimization-2026-10-09.md)。后续前端结构调整以此为入口；功能验收沿用现有记录。
+
+当前开发入口：[前端完善计划（2026-10-08）](docs/superpowers/plans/2026-10-08-frontend-completion.md)。
+继续完善本树，ZCode 官方源码 `../ref-desktop/` 用作交互参照。
+下方状态列表属于早期施工快照；当前功能状态、实测结果与后续排序以新计划为准。
+最新交付与验证：[验收状态](docs/contract/frontend-acceptance.md)。开发上下文见 [.ai_project.md](.ai_project.md)。
+
 框架计划见 [PLAN.md](./PLAN.md)——三条裁定、通信契约与陷阱表、目录树、施工序、验收门都在那里。
 
 ## 为什么是新树，不是继续改解析产物
@@ -22,8 +51,9 @@
 3. 唯一允许的移植是 PLAN.md §9 白名单里的 seam 左列 2,535 行，
    且移植＝**读其行为、重写为 TypeScript**，不是拷贝 JS。
 4. **内核零改动**：`crates/` 与 `~/.local/bin/nofy` 不动。发现缺口就登记，不擅自改。
-5. **配置单一真源**：只有 `~/.nofy/config.toml`（桌面私有状态写其 `[desktop]` 段）。
-   不引入 setting.json，不引入 `~/.nofy/v2/`。
+5. **配置单一体系**：内核配置优先 `~/.nofy/config.json`，`config.toml` 为遗留回退；
+   模型、权限与 MCP 配置优先经内核写入。现有窗口布局与主题保留 UI 偏好层，
+   不在其中存凭据，不引入 setting.json 或 `~/.nofy/v2/`。
 6. `tsc --strict` 零错误。**不准用 `declare X: any` 或 `: any` 消错**
    （旧工程树有 7,153 处 any，tsc 绿但保真度存疑——那是反面教材）。
 
@@ -94,8 +124,6 @@ NOFY_SCREENSHOT=/tmp/x.png NOFY_SCREENSHOT_DELAY=8000 NOFY_ISOLATED_HOME=1 pnpm 
 
 改视觉：改 `apps/desktop/renderer/ui/themes/zcode.json` → `pnpm tokens` → 看截图；
 `tokens.css` 是生成物，不手改（级联语义的坑见 docs/contract/tokens-measured.md §2）。
-
-
 
 
 

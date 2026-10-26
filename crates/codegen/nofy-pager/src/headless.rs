@@ -33,7 +33,10 @@ use crate::headless::reducer::{
 
 mod ext_protocol;
 mod reducer;
+mod signal_streams;
+mod signals;
 use ext_protocol::{ExtEvent, handle_ext_notification};
+use signals::HeadlessSignals;
 
 mod cli;
 pub use cli::{HeadlessPrompt, OutputFormat, parse_json_schema, parse_permission_rules_lenient};
@@ -816,6 +819,7 @@ pub async fn run_single_turn(
     options: HeadlessOptions,
 ) -> Result<()> {
     // Stamp proxy requests as headless before the agent issues its first request.
+    let signals = HeadlessSignals::install().await?;
     nofy_shell::http::set_process_client_mode_headless();
 
     let cwd = match options.cwd {
@@ -1111,6 +1115,7 @@ pub async fn run_single_turn(
     let t_prompt = Instant::now();
     emitter.mark_prompt_started();
     let mut ttf_logged = false;
+    let deferred_exit = signals.defer_exit();
     let mut prompt_fut = Box::pin(acp_send(request, &acp_tx));
     let mut prompt_result = None;
     // Tracked regardless of wait_for_background so the exit reaper always sees running work.
@@ -1174,6 +1179,7 @@ pub async fn run_single_turn(
 
         tokio::select! {
             biased;
+            () = deferred_exit.signalled() => break,
             msg = acp_rx.recv() => {
                 let Some(msg) = msg else {
                     emitter.on_error("Connection closed unexpectedly", None);
@@ -1227,6 +1233,7 @@ pub async fn run_single_turn(
         }
     }
 
+    let terminated_by_signal = deferred_exit.release();
     // Final drain-to-empty so the reaper sees work buffered right at exit (the timeout path skips draining).
     drain_pending_acp_messages(
         &mut acp_rx,
@@ -1251,6 +1258,10 @@ pub async fn run_single_turn(
     if track_active {
         // Non-blocking flock so a slow/network ~/.nofy can't hang exit.
         let _ = nofy_shell::active_sessions::try_unregister(&session_id);
+    }
+    if let Some(code) = terminated_by_signal {
+        drop(_agent_guard);
+        crate::app::signal_handler::force_exit(code);
     }
     // A mid-turn ACP close already reaped above; return that error before the normal outcome.
     if connection_closed {

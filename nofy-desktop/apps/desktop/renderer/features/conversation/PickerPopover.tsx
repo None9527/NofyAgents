@@ -1,3 +1,5 @@
+import { tr } from "../../ui/i18n.ts";
+import { useLocale } from "../../ui/useLocale.ts";
 /**
  * PickerPopover —— composer 上方的选列浮层（@ 与 $ 两族共用壳）。
  *
@@ -23,10 +25,11 @@ export type PickerPopoverProps = {
 };
 
 export function PickerPopover(props: PickerPopoverProps) {
+  useLocale();
   const { ready, rows, activeIndex, onHover, onPick, loadingText, emptyText } = props;
   return (
-    <div className="pickpop" role="dialog" aria-label="选择器">
-      <div className="pickpop__list" role="listbox" aria-label="候选">
+    <div className="pickpop" role="dialog" aria-label={tr("选择器")}>
+      <div className="pickpop__list" role="listbox" aria-label={tr("候选")}>
         {!ready ? (
           <div className="pickpop__empty">{loadingText}</div>
         ) : rows.length === 0 ? (

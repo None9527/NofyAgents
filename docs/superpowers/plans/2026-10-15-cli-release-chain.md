@@ -42,4 +42,14 @@
 - [x] Document exact tool commands and compatibility change to JSON currentVersion in `docs/cli-release.md`.
 - [x] Run `cargo test --locked -p nofy-release -p nofy-version` with no incremental/debug information; rustfmt only task files; check Git diff and run GitNexus detect_changes before committing task-owned hunks.
 - [x] Build real nofy and verify JSON in an empty configuration directory. Run real snapshot package→verify→isolated install→version check and negative tamper/downgrade paths.
-- [ ] Rebuild from final implementation commit, install through nofy-release with `--reinstall` and verify default nofy hash/version. Record actual local checks; do not claim remote CI or other platforms ran.
+- [x] Rebuild from final implementation commit, install through nofy-release and verify default nofy hash/version. Record actual local checks; do not claim remote CI or other platforms ran.
+
+## Local verification record
+
+- Implementation commit: `0a7535dab34f0151780db802aece6bd1e1bf3eb5`; product `1.0.45+nofy.2`, audited upstream unchanged at `1.0.45` / `2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8`.
+- 44 tests passed: 21 release-tool regressions, 9 shared-version tests, 14 binary tests. Release-tool Clippy with `-D warnings`, task-file rustfmt and diff checks passed.
+- Real native arm64 macOS snapshot: `target/nofy-dist/local-0a7535da/release.json`; package → verify → isolated install → real default install passed. Existing `.1` upgraded to `.2`, so reinstall override was unnecessary.
+- Default `/Users/mac/.local/bin/nofy` and `target/debug/nofy` SHA-256: `ffe844b5186c031472cfdd7b94aae271e941e0cd0ac28cf9ad9ce51adcd78b18`.
+- Prior installed binary preserved at `/Users/mac/.local/bin/.nofy-previous-40156-1792072294382716000-1`.
+- Empty-config JSON query made no configuration directory. Both installed fullscreen/minimal PTYs displayed `.2` and exited cleanly. Actual old `.1` artifact downgrade and corrupted manifest were rejected; original artifact still verified. Temporary corrupt manifest was removed.
+- This is an explicit dirty snapshot because unrelated user changes remain. No public release, tag or push; configured remote CI and other OS targets were not executed locally. Desktop files were not changed by this task.

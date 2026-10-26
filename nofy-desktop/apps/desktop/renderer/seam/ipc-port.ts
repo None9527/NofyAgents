@@ -84,8 +84,8 @@ export function adaptIpcBridge(bridge: NofyBridge, opts: IpcPortOptions = {}): K
         console.error("[nofy] respond 失败 id=" + String(id) + ":", e);
       });
     },
-    cancel: (sessionId: string) => {
-      bridge.cancel(sessionId).catch((e: unknown) => {
+    cancel: (sessionId: string, meta?: Record<string, unknown>) => {
+      bridge.cancel(sessionId, meta).catch((e: unknown) => {
         console.error("[nofy] cancel 失败 " + sessionId + ":", e);
       });
     },

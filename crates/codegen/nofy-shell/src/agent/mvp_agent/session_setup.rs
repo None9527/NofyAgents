@@ -1025,13 +1025,13 @@ impl MvpAgent {
         let Some(handle) = self.resident_handle(session_id) else {
             return;
         };
-        let _ = handle.cmd_tx.send(
-            crate::session::SessionCommand::NoteInterruptedTurn {
+        let _ = handle
+            .cmd_tx
+            .send(crate::session::SessionCommand::NoteInterruptedTurn {
                 trace_turn: turn.trace_turn,
                 prompt_id: turn.prompt_id.clone(),
                 reminder: turn.model_reminder(),
-            },
-        );
+            });
     }
     /// Restore-code phase: check the persisted HEAD out into `cwd`, then
     /// worktree nor the session's own, so it cannot detach a real checkout.
@@ -1364,18 +1364,32 @@ impl MvpAgent {
         );
         {
             let _timer = crate::instrumentation_timer!("session.restore_model");
-            let restore_meta = summary.reasoning_effort.map(|effort| {
-                let mut map = acp::Meta::new();
+            let mut restore_meta = acp::Meta::new();
+            if let Some(cap) = summary.server_context_window.clone()
+                && let Some(handle) = self.resident_handle(&session_id)
+            {
+                let _ = handle
+                    .cmd_tx
+                    .send(crate::session::SessionCommand::RestoreServerContextWindow { cap });
+            }
+            if let Some(effort) = summary.reasoning_effort {
+                let map = &mut restore_meta;
                 map.insert(
                     REASONING_EFFORT_META_KEY.to_string(),
                     reasoning_effort_meta_value(effort),
                 );
-                map
-            });
+            }
+            if let Some(window) = summary.context_window_selection {
+                if let Ok(model) = self.resolve_model_id(&model_id)
+                    && model.info().supported_context_windows().contains(&window)
+                {
+                    restore_meta.insert("contextWindow".into(), serde_json::json!(window.get()));
+                }
+            }
             let _ = crate::agent::handlers::model_switch::apply(
                 self,
                 acp::SetSessionModelRequest::new(session_id.to_owned(), model_id)
-                    .meta(restore_meta),
+                    .meta(Some(restore_meta)),
             )
             .await;
         }
@@ -1444,7 +1458,34 @@ impl MvpAgent {
                 serde_json::json!(running_prompt_id),
             );
         }
-        let model_state = self.model_state(Some(&session_id));
+        let mut model_state = self.model_state(Some(&session_id));
+        if let Some(handle) = self.resident_handle(&session_id) {
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            if handle
+                .cmd_tx
+                .send(crate::session::SessionCommand::GetContextWindowSelection { responds_to: tx })
+                .is_ok()
+                && let Ok(selection) = rx.await
+            {
+                let (budget_tx, budget_rx) = tokio::sync::oneshot::channel();
+                let _ =
+                    handle
+                        .cmd_tx
+                        .send(crate::session::SessionCommand::GetContextWindowBudget {
+                            responds_to: budget_tx,
+                        });
+                let total = budget_rx.await.ok().flatten();
+                let meta = model_state.meta.get_or_insert_with(Default::default);
+                meta.insert(
+                    "contextWindow".into(),
+                    serde_json::json!(selection.map(std::num::NonZeroU64::get)),
+                );
+                meta.insert(
+                    "contextWindowTotal".into(),
+                    serde_json::json!(total.map(std::num::NonZeroU64::get)),
+                );
+            }
+        }
         self.insert_session_config_meta(
             &mut response_meta_map,
             &session_id,

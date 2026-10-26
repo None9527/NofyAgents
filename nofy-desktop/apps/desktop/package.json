@@ -7,10 +7,15 @@
   "description": "nofy desktop: Electron main + preload + renderer. Single kernel child, ACP over stdio.",
   "dependencies": {
     "@nofy-desktop/acp": "workspace:*",
+    "@tanstack/react-virtual": "3.14.13",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "unified": "11.0.5"
   },
   "scripts": {
     "tokens": "node scripts/extract-tokens.ts",
@@ -32,13 +37,19 @@
     "inspect:seq": "node scripts/inspect-eventid-seq.ts",
     "debug:projection": "node scripts/debug-projection.ts",
     "test": "node --test \"test/*.test.ts\"",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.renderer.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.renderer.json",
+    "package:mac": "node scripts/package-app.ts",
+    "verify:package": "node scripts/verify-package.ts",
+    "ui:check": "node scripts/check-ui-styles.ts",
+    "architecture:check": "node scripts/check-architecture.ts",
+    "architecture:report": "node scripts/check-architecture.ts --report ../../docs/architecture/frontend-dependency-baseline.json"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "electron": "^44.2.0",
+    "playwright-core": "1.59.1",
     "vite": "^8.2.2"
   }
 }

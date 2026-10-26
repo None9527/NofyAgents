@@ -41,6 +41,8 @@ nofy-version = { workspace = true }
 nofy-token-estimation = { workspace = true }
 
 [dev-dependencies]
+nofy-tools = { workspace = true }
+serde_json = { workspace = true }
 # The unit tests reuse the pager's test-only view-model constructors
 # (`test_agent_view`, yolo/auto setters), gated behind its test-only
 # helpers.

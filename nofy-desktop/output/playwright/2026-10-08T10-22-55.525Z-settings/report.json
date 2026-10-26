@@ -1,0 +1,39 @@
+{
+  "source": "Actual Electron GUI + temporary deterministic ACP emulator; not real services",
+  "startedAt": "2026-10-08T10:22:55.526Z",
+  "cases": [
+    {
+      "name": "Settings language EN/ZH changes live without losing drafts",
+      "status": "passed"
+    },
+    {
+      "name": "System theme follows media changes; explicit themes override",
+      "status": "passed"
+    },
+    {
+      "name": "Font and language survive renderer reload",
+      "status": "passed"
+    },
+    {
+      "name": "MCP GUI create disable enable authenticate delete readback",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '启用', exact: true })\u001b[22m\n"
+    },
+    {
+      "name": "Plugin GUI install disable enable uninstall",
+      "status": "passed"
+    },
+    {
+      "name": "Credential form clears fake input on kernel acceptance",
+      "status": "passed"
+    },
+    {
+      "name": "1024x768 dark/light composer and plan approval stay reachable",
+      "status": "failed",
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '发送', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"sendbtn\" aria-label=\"发送\" title=\"发送（Enter）\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <path d=\"m6 9 6 6 6-6\"></path> from <span class=\"menu\">…</span> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <path d=\"m6 9 6 6 6-6\"></path> from <span class=\"menu\">…</span> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <path d=\"m6 9 6 6 6-6\"></path> from <span class=\"menu\">…</span> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    }
+  ],
+  "consoleErrors": [],
+  "output": "/Users/mac/nofy-build/nofy-desktop/output/playwright/2026-10-08T10-22-55.525Z-settings",
+  "finishedAt": "2026-10-08T10:24:01.530Z"
+}
