@@ -386,10 +386,8 @@ pub enum ToolType {
     Function,
 }
 
-// Re-export ToolDefinition and FunctionTool from nofy-tools.
-// The canonical definitions now live there; this re-export keeps
-// all existing `crate::sampling::types::ToolDefinition` imports working.
-pub use nofy_tools::types::definition::{FunctionTool, ToolDefinition};
+// Canonical schemas live below the concrete tool implementations.
+pub use nofy_tool_types::{FunctionTool, ToolDefinition};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]

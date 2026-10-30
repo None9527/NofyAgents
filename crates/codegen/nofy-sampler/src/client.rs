@@ -500,6 +500,17 @@ impl SamplingClient {
     /// pre-computes the default request headers. This does not perform
     /// any network I/O.
     pub fn new(config: SamplerConfig) -> Result<Self> {
+        Self::new_with_transport(config, false)
+    }
+
+    /// Fixed-connection SDK transport: no implicit redirect can send a request
+    /// outside the admitted endpoint or add uncounted HTTP attempts. The legacy
+    /// constructor retains its original transport behavior.
+    pub fn new_pinned(config: SamplerConfig) -> Result<Self> {
+        Self::new_with_transport(config, true)
+    }
+
+    fn new_with_transport(config: SamplerConfig, pinned: bool) -> Result<Self> {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         if let Some(ref api_key) = config.api_key {
@@ -612,6 +623,8 @@ impl SamplingClient {
         // still applies to a credentialed model.
         let http = if let Some(cert_dir) = config.mtls_cert_dir.as_deref() {
             crate::shared_http::mtls_client(cert_dir, config.force_http1)?
+        } else if pinned {
+            crate::shared_http::pinned_client(config.force_http1).map_err(SamplingError::Http)?
         } else if config.force_http1 {
             crate::shared_http::client_http1().map_err(SamplingError::Http)?
         } else {

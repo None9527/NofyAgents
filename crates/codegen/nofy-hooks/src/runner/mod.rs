@@ -30,7 +30,7 @@ impl RunContext<'_> {
 }
 
 /// Result of running a single hook (any handler type).
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum HookRunnerResult {
     Decision(HookDecision),
     Stop(StopHookOutcome),
@@ -127,6 +127,30 @@ pub(crate) fn stop_json_to_outcome(
 /// Each runner returns the result, wall-clock duration, and optional HTTP
 /// metadata for enriched scrollback logging.
 pub type HookRunOutput = (HookRunnerResult, Duration, Option<HttpInfo>);
+
+#[async_trait::async_trait]
+pub trait HookExecution: Send + Sync {
+    async fn run(
+        &self,
+        spec: &HookSpec,
+        envelope: &HookEventEnvelope,
+        ctx: &RunContext<'_>,
+        mode: GateKind,
+    ) -> HookRunOutput;
+}
+pub struct NativeHookExecution;
+#[async_trait::async_trait]
+impl HookExecution for NativeHookExecution {
+    async fn run(
+        &self,
+        spec: &HookSpec,
+        envelope: &HookEventEnvelope,
+        ctx: &RunContext<'_>,
+        mode: GateKind,
+    ) -> HookRunOutput {
+        run_hook(spec, envelope, ctx, mode).await
+    }
+}
 
 pub async fn run_hook(
     spec: &HookSpec,

@@ -658,36 +658,6 @@ impl GoalRoleModelFailOpenReason {
     }
 }
 
-/// Bridge `GoalClassifierVerdict` (shell) → `GoalClassifierVerdictTelemetry`.
-/// Mirrors the `GoalPauseReason` → `GoalPauseReasonTelemetry` pattern;
-/// exhaustive match catches drift if either side adds a variant.
-impl From<crate::session::goal_tracker::GoalClassifierVerdict> for GoalClassifierVerdictTelemetry {
-    fn from(verdict: crate::session::goal_tracker::GoalClassifierVerdict) -> Self {
-        use crate::session::goal_tracker::GoalClassifierVerdict;
-        match verdict {
-            GoalClassifierVerdict::Achieved => Self::Achieved,
-            GoalClassifierVerdict::NotAchieved => Self::NotAchieved,
-        }
-    }
-}
-
-/// Bridge `GoalPauseReason` (shell) → `GoalPauseReasonTelemetry`
-/// (`nofy-file-utils`). The two enums are intentional mirrors and live in
-/// different crates due to the orphan rule. The exhaustive `match` here
-/// ensures the compiler catches drift if either side adds a variant.
-impl From<crate::session::goal_tracker::GoalPauseReason> for GoalPauseReasonTelemetry {
-    fn from(reason: crate::session::goal_tracker::GoalPauseReason) -> Self {
-        use crate::session::goal_tracker::GoalPauseReason;
-        match reason {
-            GoalPauseReason::User => Self::User,
-            GoalPauseReason::BackOff => Self::BackOff,
-            GoalPauseReason::NoProgress => Self::NoProgress,
-            GoalPauseReason::Verification => Self::Verification,
-            GoalPauseReason::Infra => Self::Infra,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

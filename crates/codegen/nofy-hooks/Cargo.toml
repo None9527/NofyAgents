@@ -6,6 +6,9 @@ edition.workspace = true
 description = "Runtime hook system for Nofy — file-based discovery, command execution, and policy enforcement"
 
 [dependencies]
+async-trait = { workspace = true }
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime", optional = true }
+chrono = { workspace = true, optional = true }
 fastrand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
@@ -26,3 +29,7 @@ tokio = { workspace = true, features = ["full"] }
 
 [lints]
 workspace = true
+
+[features]
+default = []
+agent-runtime = ["dep:nofy-agent-runtime", "dep:chrono"]

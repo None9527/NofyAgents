@@ -49,6 +49,11 @@ pub struct BudgetState {
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum HostError {
+    #[error("workflow paused: {message}")]
+    Paused {
+        kind: crate::run::PauseKind,
+        message: String,
+    },
     #[error("workflow agent-call quota exceeded: requested {requested}, maximum {maximum}")]
     AgentCallQuotaExceeded { requested: u64, maximum: u64 },
     #[error("workflow token budget exceeded")]

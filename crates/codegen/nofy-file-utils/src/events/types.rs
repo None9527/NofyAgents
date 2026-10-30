@@ -912,3 +912,33 @@ mod tests {
         assert_eq!(obj["reason"], "model_unauthorized");
     }
 }
+
+/// Bridge canonical `GoalClassifierVerdict` → `GoalClassifierVerdictTelemetry`.
+/// Mirrors the `GoalPauseReason` → `GoalPauseReasonTelemetry` pattern;
+/// exhaustive match catches drift if either side adds a variant.
+impl From<nofy_goal::GoalClassifierVerdict> for GoalClassifierVerdictTelemetry {
+    fn from(verdict: nofy_goal::GoalClassifierVerdict) -> Self {
+        use nofy_goal::GoalClassifierVerdict;
+        match verdict {
+            GoalClassifierVerdict::Achieved => Self::Achieved,
+            GoalClassifierVerdict::NotAchieved => Self::NotAchieved,
+        }
+    }
+}
+
+/// Bridge canonical `GoalPauseReason` → `GoalPauseReasonTelemetry`
+/// (`nofy-file-utils`). The two enums are intentional mirrors; the conversion lives with
+/// the telemetry type to satisfy Rust ownership rules. The exhaustive `match` here
+/// ensures the compiler catches drift if either side adds a variant.
+impl From<nofy_goal::GoalPauseReason> for GoalPauseReasonTelemetry {
+    fn from(reason: nofy_goal::GoalPauseReason) -> Self {
+        use nofy_goal::GoalPauseReason;
+        match reason {
+            GoalPauseReason::User => Self::User,
+            GoalPauseReason::BackOff => Self::BackOff,
+            GoalPauseReason::NoProgress => Self::NoProgress,
+            GoalPauseReason::Verification => Self::Verification,
+            GoalPauseReason::Infra => Self::Infra,
+        }
+    }
+}

@@ -85,6 +85,7 @@ members = [
     "crates/codegen/nofy-tty-utils",
     "crates/codegen/nofy-workflow",
     "crates/common/nofy-circuit-breaker",
+    "crates/common/nofy-agent-host",
     "crates/common/nofy-computer-hub-core",
     "crates/common/nofy-computer-hub-mcp-adapter",
     "crates/common/nofy-computer-hub-sdk",

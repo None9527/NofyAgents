@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "name": "portable-business-event",
+  "modules": [
+    {
+      "reference": {"id": "business-events", "version": "1"},
+      "factory": "event.producer",
+      "config": {
+        "events": [{
+          "name": "business.received",
+          "payload_schema": {"type": "object", "required": ["value"], "properties": {"value": {"type": "integer"}}, "additionalProperties": false},
+          "patch": true
+        }]
+      }
+    },
+    {
+      "reference": {"id": "event-code", "version": "1"},
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {"name": "handle_business_event"},
+        "source": "#{decision: \"patch\", payload: #{value: args.payload.value * 2}}"
+      }
+    },
+    {
+      "reference": {"id": "event-handler", "version": "1"},
+      "factory": "hook.executor",
+      "config": {"tool": "handle_business_event"},
+      "dependencies": {"executor": {"id": "event-code", "version": "1"}}
+    },
+    {
+      "reference": {"id": "event-subscription", "version": "1"},
+      "factory": "hook.owned_subscription",
+      "config": {"event": "business.received"},
+      "dependencies": {
+        "producer": {"id": "business-events", "version": "1"},
+        "handler": {"id": "event-handler", "version": "1"}
+      }
+    }
+  ],
+  "programs": {
+    "received": {
+      "kind": "event",
+      "definition": {
+        "schema_version": 1,
+        "host": {"name": "business-event-host", "hooks": [{"id": "event-subscription", "version": "1"}]},
+        "producer": {"id": "business-events", "version": "1"},
+        "event": "business.received",
+        "operation": "receive-v1",
+        "payload": {"value": 7}
+      }
+    }
+  }
+}

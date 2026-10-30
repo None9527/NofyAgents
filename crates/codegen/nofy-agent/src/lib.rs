@@ -27,3 +27,6 @@ pub use config::workspace_nofy_build_toolset;
 pub use error::AgentBuildError;
 pub use prompt::context::{DEFAULT_SYSTEM_PROMPT_LABEL, PromptContext};
 pub use system_reminder::ReminderPolicy;
+
+/// Original coding tools exposed through the composable agent contracts.
+pub mod runtime;

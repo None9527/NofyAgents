@@ -559,7 +559,7 @@ pub(crate) fn shell_dash_c_script(words: &[ShellWord<'_>]) -> InlineShellScript 
     }
 }
 
-fn tool_filter_matches(access: &AccessKind, filter: &ToolFilter) -> bool {
+pub(crate) fn tool_filter_matches(access: &AccessKind, filter: &ToolFilter) -> bool {
     match filter {
         ToolFilter::Any => true,
         ToolFilter::Bash => matches!(access, AccessKind::Bash(_)),

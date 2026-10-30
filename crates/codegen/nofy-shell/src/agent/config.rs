@@ -11297,23 +11297,32 @@ default = "grok-4.5"
     #[test]
     fn resolve_model_list_prefetch_visibility_matches_auth_and_server_list() {
         let cfg = Config::default();
-        let dm = crate::models::default_model();
-        let mut defs = default_model_entries(&EndpointsConfig::default());
-        let mut p = IndexMap::new();
-        if let Some(e) = defs.shift_remove(dm) {
-            p.insert(dm.to_string(), e);
-        }
-        let resolved = resolve_model_list(&cfg, Some(p));
+        // Visibility is server metadata, independent of whichever bundled
+        // model currently happens to be the default.
+        let both = prefetch_model_entry("both-auth", 200000, ApiBackend::default());
+        let mut session = prefetch_model_entry("session-only", 200000, ApiBackend::default());
+        session.info.supported_in_api = false;
+        let mut hidden = prefetch_model_entry("hidden", 200000, ApiBackend::default());
+        hidden.info.hidden = true;
+        let prefetched = IndexMap::from([
+            ("both-auth".to_string(), both),
+            ("session-only".to_string(), session),
+            ("hidden".to_string(), hidden),
+        ]);
+        let resolved = resolve_model_list(&cfg, Some(prefetched));
         let sess: Vec<_> = resolved
             .values()
-            .filter(|e| e.visible_for_auth(true))
+            .filter(|entry| entry.visible_for_auth(true))
+            .map(|entry| entry.info.model.as_str())
             .collect();
         let api: Vec<_> = resolved
             .values()
-            .filter(|e| e.visible_for_auth(false))
+            .filter(|entry| entry.visible_for_auth(false))
+            .map(|entry| entry.info.model.as_str())
             .collect();
-        assert_eq!(sess.len(), 1);
-        assert_eq!(api.len(), 1);
+        assert_eq!(sess, vec!["both-auth", "session-only"]);
+        assert_eq!(api, vec!["both-auth"]);
+        assert!(resolved.contains_key("hidden"));
     }
     #[test]
     fn resolve_model_list_keeps_prefetch_only_entries_and_prunes_defaults() {

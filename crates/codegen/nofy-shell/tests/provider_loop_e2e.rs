@@ -153,7 +153,8 @@ async fn provider_loop_search_and_dispatch_e2e() {
             .unwrap();
 
             // ── Phase 3: shell provider with NOFY_DAEMON_SOCK set ──
-            server.set_response("provider task complete");
+            server.set_response("VERDICT: ACHIEVED\nThe requested task completed.");
+            server.set_agent_turns(["provider task complete".to_string()]);
             let mut provider_sandbox = TestSandbox::new();
             provider_sandbox.set_env("NOFY_HOME", home.to_str().expect("home utf8"));
             provider_sandbox
@@ -192,6 +193,9 @@ async fn provider_loop_search_and_dispatch_e2e() {
 
             // ── Phase 4: drive the control socket ──
             let mut surface = ControlClient::connect(&sock);
+            // Idle after Hello must keep the connection alive on macOS too.
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            assert_eq!(surface.call(&ControlMethod::Ping)["kind"], "pong");
 
             // (a) daemon-routed search returns REAL hits from the shell index.
             // The provider registers asynchronously; retry until it answers
@@ -301,6 +305,20 @@ async fn provider_loop_search_and_dispatch_e2e() {
                 "run must be settled after the provider reported: {settled}"
             );
 
+            // NoPending also describes an already claimed task. Wait for the
+            // journal to prove success, including the acceptance judge pass.
+            let mut task_state = serde_json::Value::Null;
+            for _ in 0..200 {
+                let tasks = surface.call(&ControlMethod::TaskList);
+                task_state = tasks["tasks"].as_array().unwrap().iter()
+                    .find(|task| task["id"] == "t1").map(|task| task["state"].clone())
+                    .unwrap_or_default();
+                if task_state == "settled_ok" || task_state == "settled_failed" { break; }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            assert_eq!(task_state, "settled_ok", "task must actually succeed; provider stderr: {}", provider.stderr());
+            assert!(server.request_bodies().iter().any(|body| body.to_string().contains("<final_answer>")),
+                "the goal acceptance judge must run before success");
             eprintln!(
                 "EVAL provider_loop=pass hits={hits} session={seeded_session_id}"
             );

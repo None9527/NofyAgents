@@ -58,3 +58,6 @@ pub use retry::{
 pub use sampling_log::AuthInfo;
 pub use stream::{collect_response, stream_chat_completions, stream_messages, stream_responses};
 pub use types::RequestId;
+
+#[cfg(feature = "agent-runtime")]
+pub mod agent_model;

@@ -6705,18 +6705,27 @@ dependencies = [
 name = "nofy-agent"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "dirs 6.0.0",
  "dunce",
+ "futures",
  "git2",
  "ignore",
  "minijinja",
+ "nofy-agent-executors",
+ "nofy-agent-runtime",
+ "nofy-compaction",
  "nofy-config",
+ "nofy-goal",
  "nofy-hooks",
  "nofy-token-estimation",
+ "nofy-tool-protocol",
+ "nofy-tool-runtime",
  "nofy-tool-types",
  "nofy-tools",
  "nofy-tty-utils",
+ "parking_lot",
  "regex",
  "serde",
  "serde_json",
@@ -6732,12 +6741,89 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-agent-executors"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "futures",
+ "nofy-agent-runtime",
+ "nofy-sandbox",
+ "nofy-tool-protocol",
+ "nofy-tool-runtime",
+ "nofy-tool-types",
+ "nofy-tty-utils",
+ "reqwest 0.12.24",
+ "rhai",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "nofy-agent-host"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "axum",
+ "clap",
+ "fs2",
+ "futures",
+ "nofy-agent-executors",
+ "nofy-agent-runtime",
+ "nofy-interjection-core",
+ "nofy-sampler",
+ "nofy-test-support",
+ "nofy-tool-runtime",
+ "reqwest 0.12.24",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "nofy-agent-lifecycle"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "nofy-agent-runtime",
+ "serde_json",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "nofy-agent-runtime"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "fs2",
+ "futures",
+ "jsonschema",
+ "nofy-interjection-core",
+ "nofy-orchestra",
+ "nofy-packcore",
+ "nofy-sqlite-journal",
+ "nofy-tool-protocol",
+ "nofy-tool-runtime",
+ "nofy-tool-types",
+ "nofy-workflow",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -6849,6 +6935,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "blake3",
+ "nofy-agent-runtime",
+ "nofy-token-estimation",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -6963,6 +7052,7 @@ dependencies = [
  "agent-client-protocol",
  "indexmap",
  "nofy-config",
+ "nofy-goal",
  "nofy-mcp",
  "serde",
  "serde_json",
@@ -7086,6 +7176,7 @@ dependencies = [
  "gcloud-storage",
  "nofy-auth",
  "nofy-circuit-breaker",
+ "nofy-goal",
  "nofy-version",
  "opentelemetry",
  "opentelemetry_sdk",
@@ -7140,6 +7231,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-goal"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "nofy-governance"
 version = "0.1.0"
 dependencies = [
@@ -7157,7 +7262,10 @@ dependencies = [
 name = "nofy-hooks"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "chrono",
  "fastrand",
+ "nofy-agent-runtime",
  "nofy-config",
  "nofy-tools",
  "regex",
@@ -7276,6 +7384,7 @@ dependencies = [
  "futures",
  "http 1.4.0",
  "libc",
+ "nofy-agent-runtime",
  "nofy-computer-hub-sdk",
  "nofy-config",
  "nofy-extra-ca",
@@ -7316,15 +7425,21 @@ dependencies = [
  "chrono",
  "dunce",
  "filetime",
+ "futures",
  "git2",
  "keyring",
  "nix 0.30.1",
+ "nofy-agent-runtime",
  "nofy-auth",
+ "nofy-compaction",
  "nofy-config-types",
  "nofy-env",
  "nofy-http",
  "nofy-sqlite-journal",
  "nofy-telemetry",
+ "nofy-tool-protocol",
+ "nofy-tool-runtime",
+ "nofy-tool-types",
  "nofy-tools",
  "nofy-version",
  "notify",
@@ -7723,12 +7838,14 @@ version = "0.1.0"
 dependencies = [
  "async-openai",
  "async-stream",
+ "async-trait",
  "axum",
  "blake3",
  "chrono",
  "eventsource-stream",
  "futures-util",
  "indexmap",
+ "nofy-agent-runtime",
  "nofy-auth",
  "nofy-extra-ca",
  "nofy-sampling-types",
@@ -7738,6 +7855,7 @@ dependencies = [
  "reqwest 0.12.24",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tokio-util",
@@ -7754,7 +7872,7 @@ dependencies = [
  "indexmap",
  "nofy-circuit-breaker",
  "nofy-compaction",
- "nofy-tools",
+ "nofy-tool-types",
  "reqwest 0.12.24",
  "serde",
  "serde_json",
@@ -7901,6 +8019,7 @@ dependencies = [
  "nofy-acp-lib",
  "nofy-agent",
  "nofy-agent-lifecycle",
+ "nofy-agent-runtime",
  "nofy-announcements",
  "nofy-auth",
  "nofy-channel",
@@ -7917,6 +8036,7 @@ dependencies = [
  "nofy-file-utils",
  "nofy-fsnotify",
  "nofy-gix-status",
+ "nofy-goal",
  "nofy-hooks",
  "nofy-hooks-plugins-types",
  "nofy-http",
@@ -8458,6 +8578,7 @@ dependencies = [
  "nix 0.30.1",
  "nofy-acp-lib",
  "nofy-agent",
+ "nofy-agent-runtime",
  "nofy-auth",
  "nofy-codebase-graph",
  "nofy-computer-hub-mcp-adapter",

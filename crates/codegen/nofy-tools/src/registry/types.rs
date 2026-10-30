@@ -1515,6 +1515,8 @@ impl FinalizedToolset {
             remap_json_keys(tool_args, &reverse_params)
         };
         let mut ctx = nofy_tool_runtime::ToolCallContext::new(parent_ctx.call_id.clone());
+        ctx.extensions = parent_ctx.extensions.clone();
+        ctx.extensions.remove::<InnerDispatch>();
         ctx.extensions.insert(self.resources.clone());
         ctx.extensions.insert_arc(Arc::clone(&self.renderer));
         if let Some(cancellation) = parent_ctx.get::<nofy_tool_runtime::Cancellation>() {
@@ -1618,6 +1620,49 @@ impl FinalizedToolset {
         cwd_override: Option<std::path::PathBuf>,
         cancellation: Option<tokio_util::sync::CancellationToken>,
     ) -> nofy_tool_runtime::ToolStream<ToolRunResult> {
+        self.call_streaming_with_extensions(
+            tool_name,
+            tool_args,
+            tool_call_id,
+            cwd_override,
+            cancellation,
+            nofy_tool_runtime::TypedExtensions::new(),
+        )
+    }
+
+    /// Preserve per-call capabilities while keeping registry-owned resources,
+    /// renderer, behavior version and inner dispatch authoritative.
+    pub fn call_streaming_with_context(
+        self: &Arc<Self>,
+        tool_name: &str,
+        tool_args: serde_json::Value,
+        context: nofy_tool_runtime::ToolCallContext,
+    ) -> nofy_tool_runtime::ToolStream<ToolRunResult> {
+        let cwd = context
+            .get::<nofy_tool_runtime::Cwd>()
+            .map(|cwd| cwd.0.clone());
+        let cancellation = context
+            .get::<nofy_tool_runtime::Cancellation>()
+            .map(|cancel| cancel.0.clone());
+        self.call_streaming_with_extensions(
+            tool_name,
+            tool_args,
+            context.call_id.as_str(),
+            cwd,
+            cancellation,
+            context.extensions,
+        )
+    }
+
+    fn call_streaming_with_extensions(
+        self: &Arc<Self>,
+        tool_name: &str,
+        tool_args: serde_json::Value,
+        tool_call_id: &str,
+        cwd_override: Option<std::path::PathBuf>,
+        cancellation: Option<tokio_util::sync::CancellationToken>,
+        extensions: nofy_tool_runtime::TypedExtensions,
+    ) -> nofy_tool_runtime::ToolStream<ToolRunResult> {
         use futures::StreamExt;
         let this = Arc::clone(self);
         let tool_name = tool_name.to_owned();
@@ -1638,11 +1683,12 @@ impl FinalizedToolset {
             };
             let DispatchParts {
                 lr_handle,
-                ctx,
+                mut ctx,
                 canonical_params,
                 output_converter,
                 effective_tool_name,
             } = parts;
+            ctx.extensions.merge_defaults(&extensions);
 
             let mut inner = lr_handle.execute(ctx, canonical_params).await;
             while let Some(item) = inner.next().await {
@@ -1920,6 +1966,18 @@ impl FinalizedToolset {
     /// Flush any pending persistence writes. Call on graceful shutdown.
     pub async fn flush_persistence(&self) {
         self.resources_persistence.flush().await;
+    }
+    /// Durable barrier for an explicitly durable adapter. Captures/enqueues
+    /// under the resource lock, then releases it before awaiting IO. A failed
+    /// write is returned to the caller instead of being treated as a receipt.
+    pub async fn save_and_flush_persistence_checked(&self) -> std::io::Result<&std::path::Path> {
+        let response = {
+            let resources = self.resources.lock().await;
+            self.resources_persistence
+                .enqueue_save_and_flush(resources.serialize())?
+        };
+        ResourcesPersistence::await_save_and_flush(response).await?;
+        Ok(self.resources_persistence.state_path())
     }
     /// Serialize current in-memory state, write it to disk, and wait for
     /// the write to complete. Returns the path to the persisted file.
@@ -3261,6 +3319,103 @@ mod tests {
     #[derive(Debug)]
     struct FakeMcpTool {
         description: String,
+    }
+
+    #[derive(Clone)]
+    struct CallerMarker(String);
+    #[derive(Debug)]
+    struct ContextProbe;
+    impl crate::types::tool_metadata::ToolMetadata for ContextProbe {
+        fn kind(&self) -> ToolKind {
+            ToolKind::Other
+        }
+        fn tool_namespace(&self) -> crate::types::tool::ToolNamespace {
+            crate::types::tool::ToolNamespace::MCP
+        }
+        fn description_template(&self) -> &str {
+            "Context probe"
+        }
+    }
+    impl nofy_tool_runtime::Tool for ContextProbe {
+        type Args = serde_json::Value;
+        type Output = String;
+        fn id(&self) -> nofy_tool_protocol::ToolId {
+            nofy_tool_protocol::ToolId::new("context_probe").unwrap()
+        }
+        fn description(
+            &self,
+            _: &nofy_tool_runtime::ListToolsContext,
+        ) -> nofy_tool_types::ToolDescription {
+            nofy_tool_types::ToolDescription::new("context_probe", "Context probe")
+        }
+        async fn run(
+            &self,
+            ctx: nofy_tool_runtime::ToolCallContext,
+            _: serde_json::Value,
+        ) -> Result<String, nofy_tool_runtime::ToolError> {
+            assert_eq!(ctx.get::<CallerMarker>().unwrap().0, "from-parent");
+            assert_eq!(
+                ctx.get::<nofy_tool_runtime::SessionContext>().unwrap().0,
+                "session-parent"
+            );
+            assert!(
+                ctx.get::<nofy_tool_runtime::Cwd>()
+                    .unwrap()
+                    .0
+                    .ends_with("scoped-cwd")
+            );
+            assert!(ctx.get::<nofy_tool_runtime::Cancellation>().is_some());
+            assert!(
+                ctx.get::<crate::types::resources::SharedResources>()
+                    .is_some()
+            );
+            Ok("context-preserved".into())
+        }
+    }
+    #[tokio::test]
+    async fn call_context_preserves_capabilities_directly_and_through_use_tool() {
+        use futures::StreamExt;
+        let tmp = TempDir::new().unwrap();
+        let config = ToolServerConfig {
+            tools: vec![ToolConfig::for_tool::<
+                crate::implementations::use_tool::UseTool,
+            >()],
+            behavior_preset: None,
+        };
+        let toolset = Arc::new(
+            ToolRegistryBuilder::new()
+                .finalize(config, test_session_context(&tmp))
+                .unwrap(),
+        );
+        toolset
+            .register_tool(
+                "test__context".into(),
+                ContextProbe,
+                Some(serde_json::json!({"type":"object"})),
+            )
+            .unwrap();
+        for (name, args) in [
+            ("test__context", serde_json::json!({})),
+            (
+                "use_tool",
+                serde_json::json!({"tool_name":"test__context","tool_input":{}}),
+            ),
+        ] {
+            let mut ctx = nofy_tool_runtime::ToolCallContext::default();
+            ctx.insert(CallerMarker("from-parent".into()));
+            ctx.insert(nofy_tool_runtime::SessionContext("session-parent".into()));
+            ctx.insert(nofy_tool_runtime::Cwd(tmp.path().join("scoped-cwd")));
+            ctx.insert(nofy_tool_runtime::Cancellation(Default::default()));
+            let mut stream = toolset.call_streaming_with_context(name, args, ctx);
+            let mut terminal = false;
+            while let Some(item) = stream.next().await {
+                if let nofy_tool_runtime::ToolStreamItem::Terminal(result) = item {
+                    assert!(result.is_ok(), "{result:?}");
+                    terminal = true;
+                }
+            }
+            assert!(terminal);
+        }
     }
     impl crate::types::tool_metadata::ToolMetadata for FakeMcpTool {
         fn kind(&self) -> ToolKind {

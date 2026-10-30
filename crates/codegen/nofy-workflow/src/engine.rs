@@ -317,6 +317,9 @@ fn host_call<T>(
             )));
         }
         Err(HostError::Cancelled) => return Err(terminated(ControlToken::Cancelled)),
+        Err(HostError::Paused { kind, message }) => {
+            return Err(terminated(ControlToken::Pause(kind, message)));
+        }
         Err(HostError::Unsupported(msg)) => {
             let sentinel = host_error_sentinel(&msg);
             ctx.borrow_mut().record(seq, kind, hash, sentinel)?;
@@ -403,6 +406,9 @@ fn reserve_agent_calls(ctx: &Rc<RefCell<Ctx>>, count: usize) -> ScriptResult<()>
             ))))
         }
         Err(HostError::Cancelled) => Err(terminated(ControlToken::Cancelled)),
+        Err(HostError::Paused { kind, message }) => {
+            Err(terminated(ControlToken::Pause(kind, message)))
+        }
         Err(HostError::BudgetExceeded) => Err(terminated(ControlToken::Budget(
             "workflow agent budget exceeded".into(),
         ))),
@@ -593,6 +599,7 @@ fn register_host_fns(engine: &mut rhai::Engine, ctx: &Rc<RefCell<Ctx>>) {
             let mut terminal_kind: Option<String> = None;
             let mut terminal_error = None;
             let mut resumable_terminal = false;
+            let mut terminal_pause = None;
             for entry in pending {
                 match entry {
                     PendingAgent::Replayed(value) => {
@@ -635,6 +642,11 @@ fn register_host_fns(engine: &mut rhai::Engine, ctx: &Rc<RefCell<Ctx>>) {
                                 resumable_terminal = true;
                                 host_terminal_sentinel(TERMINAL_CANCELLED)
                             }
+                            Ok(Err(HostError::Paused { kind, message })) => {
+                                terminal_pause.get_or_insert((kind, message));
+                                resumable_terminal = true;
+                                serde_json::Value::Null
+                            }
                             Err(_) => {
                                 terminal_kind
                                     .get_or_insert_with(|| TERMINAL_DROPPED_REPLY.to_string());
@@ -670,6 +682,9 @@ fn register_host_fns(engine: &mut rhai::Engine, ctx: &Rc<RefCell<Ctx>>) {
 
             if let Some(kind) = terminal_kind {
                 return Err(host_terminal_error(&kind));
+            }
+            if let Some((kind, message)) = terminal_pause {
+                return Err(terminated(ControlToken::Pause(kind, message)));
             }
             if let Some(error) = terminal_error {
                 return Err(error);

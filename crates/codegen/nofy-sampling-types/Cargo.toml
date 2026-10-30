@@ -15,7 +15,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 nofy-circuit-breaker = { workspace = true }
 nofy-compaction = { path = "../../common/nofy-compaction" }
-nofy-tools = { path = "../nofy-tools" }
+nofy-tool-types = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }

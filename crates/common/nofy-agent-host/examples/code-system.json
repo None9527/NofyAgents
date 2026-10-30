@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "name": "portable-assistant",
+  "modules": [
+    {
+      "reference": {
+        "id": "provider",
+        "version": "1"
+      },
+      "factory": "resource.sampler",
+      "config": {
+        "connection": {
+          "base_url": "http://127.0.0.1:8000/v1",
+          "api_backend": "chat_completions",
+          "auth_scheme": "bearer",
+          "max_retries": 0
+        },
+        "models": [
+          "local-model"
+        ],
+        "credential_ref": "MODEL_TOKEN"
+      }
+    },
+    {
+      "reference": {
+        "id": "model",
+        "version": "1"
+      },
+      "factory": "model.connected",
+      "config": {
+        "model": "local-model"
+      },
+      "dependencies": {
+        "connection": {
+          "id": "provider",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "prompt",
+        "version": "1"
+      },
+      "factory": "prompt.static",
+      "config": {
+        "text": "You are a helpful assistant. Answer clearly and precisely."
+      }
+    },
+    {
+      "reference": {
+        "id": "calculate",
+        "version": "1"
+      },
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {
+          "name": "calculate",
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "value"
+            ],
+            "properties": {
+              "value": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          },
+          "output_schema": {
+            "type": "object",
+            "required": [
+              "result"
+            ],
+            "properties": {
+              "result": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "source": "#{result: args.value * 2}"
+      }
+    },
+    {
+      "reference": {
+        "id": "hook-code",
+        "version": "1"
+      },
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {
+          "name": "hook_method"
+        },
+        "source": "let payload = args.payload; payload.request.messages[0].content = \"code hook one\"; #{decision: \"patch\", payload: payload}"
+      }
+    },
+    {
+      "reference": {
+        "id": "hook-handler",
+        "version": "1"
+      },
+      "factory": "hook.executor",
+      "config": {
+        "tool": "hook_method"
+      },
+      "dependencies": {
+        "executor": {
+          "id": "hook-code",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "before-model",
+        "version": "1"
+      },
+      "factory": "hook.subscription",
+      "config": {
+        "event": "before_model"
+      },
+      "dependencies": {
+        "handler": {
+          "id": "hook-handler",
+          "version": "1"
+        }
+      }
+    }
+  ],
+  "programs": {
+    "chat": {
+      "kind": "agent",
+      "definition": {
+        "name": "assistant",
+        "model": {
+          "id": "model",
+          "version": "1"
+        },
+        "prompt": {
+          "id": "prompt",
+          "version": "1"
+        },
+        "tool_packs": [
+          {
+            "id": "calculate",
+            "version": "1"
+          }
+        ],
+        "hooks": [
+          {
+            "id": "before-model",
+            "version": "1"
+          }
+        ]
+      }
+    },
+    "do_work": {
+      "kind": "tool",
+      "definition": {
+        "name": "code-method-program",
+        "tool_packs": [
+          {
+            "id": "calculate",
+            "version": "1"
+          }
+        ]
+      },
+      "call": {
+        "id": "calculate-root",
+        "name": "calculate",
+        "arguments": {
+          "value": 7
+        }
+      }
+    }
+  }
+}

@@ -27,6 +27,8 @@ use std::time::Duration;
 
 static SHARED_H2: OnceLock<reqwest::Client> = OnceLock::new();
 static SHARED_HTTP1: OnceLock<reqwest::Client> = OnceLock::new();
+static PINNED_H2: OnceLock<reqwest::Client> = OnceLock::new();
+static PINNED_HTTP1: OnceLock<reqwest::Client> = OnceLock::new();
 
 /// Kill switch: `NOFY_SAMPLER_SHARED_CLIENT=0` (or `false`, any case)
 /// restores the old behavior of building a fresh `reqwest::Client` per
@@ -99,6 +101,28 @@ pub(crate) fn pooled_client() -> PooledClient {
 /// is behaviorally identical to building a fresh one.
 pub(crate) fn client_http1() -> Result<reqwest::Client, reqwest::Error> {
     shared(&SHARED_HTTP1, build_http_client_http1, sharing_disabled())
+}
+
+/// Isolated pools for fixed-connection SDK calls; no effect on the original
+/// clients, kill switch, extra roots, HTTP/2 tuning or HTTP/1 fallback.
+pub(crate) fn pinned_client(http1: bool) -> Result<reqwest::Client, reqwest::Error> {
+    if http1 {
+        shared(&PINNED_HTTP1, build_pinned_http1, sharing_disabled())
+    } else {
+        shared(&PINNED_H2, build_pinned_http2, sharing_disabled())
+    }
+}
+fn build_pinned_http2() -> Result<reqwest::Client, reqwest::Error> {
+    nofy_extra_ca::with_extra_root_certificates(
+        configure_http2(reqwest::Client::builder()).redirect(reqwest::redirect::Policy::none()),
+    )
+    .build()
+}
+fn build_pinned_http1() -> Result<reqwest::Client, reqwest::Error> {
+    nofy_extra_ca::with_extra_root_certificates(
+        configure_http1(reqwest::Client::builder()).redirect(reqwest::redirect::Policy::none()),
+    )
+    .build()
 }
 
 /// Apply the shared HTTP/2 + connection-pooling knobs to a builder.

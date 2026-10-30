@@ -58,7 +58,7 @@ pub(crate) const GOAL_CLASSIFIER_DIFF_MAX_BYTES: usize = 256 * 1024;
 /// panel of rich reports runs ~30-40 KB; this ceiling leaves wide
 /// headroom (≈5 large reports) while bounding a pathological skeptic.
 /// Overall cap only — never per-line.
-pub(crate) const GOAL_VERIFIER_PANEL_MAX_BYTES: usize = 512 * 1024;
+pub(crate) const GOAL_VERIFIER_PANEL_MAX_BYTES: usize = nofy_goal::GOAL_VERIFIER_PANEL_MAX_BYTES;
 
 /// Template for the per-attempt details FILE NAME, rooted under the
 /// owner-only (0700) per-goal scratch root by `format_details_path`.

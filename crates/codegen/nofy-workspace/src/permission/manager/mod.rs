@@ -3127,6 +3127,31 @@ fn spawn_permission_manager_with_pin(
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn runtime_permission_adapter_reuses_managed_rules_with_per_call_cwd() {
+        use crate::permission::{
+            runtime::NofyPermissionPolicy,
+            types::{PatternMode, PermissionConfig, PermissionRule, RuleAction, ToolFilter},
+        };
+        use nofy_agent_runtime::{Admission, Policy, RunContext, RunState, ToolCall};
+        tokio::task::LocalSet::new().run_until(async {
+            let parent=tempfile::tempdir().unwrap();let child=tempfile::tempdir().unwrap();
+            std::fs::write(child.path().join("blocked.txt"),"private").unwrap();
+            let cwd=nofy_paths::AbsPathBuf::new(parent.path().to_path_buf()).unwrap();
+            let config=PermissionConfig::new(vec![PermissionRule{action:RuleAction::Deny,tool:ToolFilter::Read,pattern:Some(format!("{}/blocked.txt",child.path().display())),pattern_mode:PatternMode::Glob}]);
+            let (handle,_events)=test_manager_with_config(&cwd,config,false);
+            let policy=NofyPermissionPolicy::new(handle,std::collections::BTreeMap::from([("lookup_file".into(),"read_file".into())]),parent.path().to_path_buf()).unwrap();
+            let mut context=RunContext::new("runtime-session","runtime-run");context.capabilities.insert(nofy_tool_runtime::Cwd(child.path().to_path_buf()));
+            let call=ToolCall{id:"runtime-call".into(),name:"lookup_file".into(),arguments:serde_json::json!({"file_path":"blocked.txt"})};
+            let Admission::Deny(reason)=policy.admit(&call,&RunState::default(),&context).await.unwrap() else {panic!("expected managed policy deny")};
+            assert!(reason.to_lowercase().contains("policy"),"{reason}");
+            let wrapped=ToolCall{id:"wrapped-call".into(),name:"use_tool".into(),arguments:serde_json::json!({"tool_name":"lookup_file","tool_input":{"file_path":"blocked.txt"}})};
+            assert!(matches!(policy.admit(&wrapped,&RunState::default(),&context).await.unwrap(),Admission::Deny(_)));
+            context.cancel.cancel();
+            let _=policy.admit(&call,&RunState::default(),&context).await.unwrap();
+            assert!(context.cancel.is_cancelled());
+        }).await;
+    }
     use super::*;
     use crate::permission::bash_command_splitting::primary_command_from_script;
 

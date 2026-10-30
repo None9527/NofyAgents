@@ -8,8 +8,14 @@ edition.workspace = true
 # Exposes `#[cfg(test)]`-only helpers (`MemoryStorage::with_paths`,
 # `MockEmbeddingProvider`) to downstream crates' test targets.
 test-support = []
+agent-runtime = ["dep:nofy-agent-runtime", "dep:nofy-tool-runtime", "dep:nofy-tool-types", "dep:nofy-tool-protocol", "dep:futures"]
 
 [dependencies]
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime", optional = true }
+nofy-tool-runtime = { path = "../../common/nofy-tool-runtime", optional = true }
+nofy-tool-types = { path = "../../common/nofy-tool-types", optional = true }
+nofy-tool-protocol = { path = "../../common/nofy-tool-protocol", optional = true }
+futures = { workspace = true, optional = true }
 nofy-env = { workspace = true }
 age = { workspace = true }
 arc-swap = { workspace = true }
@@ -50,6 +56,8 @@ nix = { workspace = true }
 windows = { workspace = true, features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
+nofy-compaction = { path = "../../common/nofy-compaction", features = ["agent-runtime"] }
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime", features = ["sqlite"] }
 filetime = { workspace = true }
 tempfile = { workspace = true }
 

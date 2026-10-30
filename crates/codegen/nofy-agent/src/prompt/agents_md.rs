@@ -181,16 +181,38 @@ async fn read_agents_config_with_roots(
     nofy_home: PathBuf,
     home_dir: Option<PathBuf>,
 ) -> Vec<AgentConfigFile> {
-    let cwd = PathBuf::from(working_directory);
-    let git_root = git2::Repository::discover(&cwd)
-        .ok()
+    read_agents_config_in_roots(
+        Some(working_directory),
+        workspace_user_dir,
+        compat,
+        Some(nofy_home),
+        home_dir,
+    )
+    .await
+}
+
+/// Explicit discovery roots. `None` omits that home scope entirely; it never
+/// falls back to the process HOME. The original loader keeps its old defaults.
+pub async fn read_agents_config_in_roots(
+    working_directory: Option<&str>,
+    workspace_user_dir: Option<&Path>,
+    compat: CompatConfig,
+    nofy_home: Option<PathBuf>,
+    home_dir: Option<PathBuf>,
+) -> Vec<AgentConfigFile> {
+    let cwd = working_directory.map(PathBuf::from);
+    let git_root = cwd
+        .as_deref()
+        .and_then(|cwd| git2::Repository::discover(cwd).ok())
         .and_then(|repo| repo.workdir().map(Path::to_path_buf));
     let gitignore = build_gitignore(git_root.as_deref());
     let agent_filenames = compat.agent_filenames();
     let project_rules_dirs = compat.rules_dirs();
 
     let mut home_roots = Vec::new();
-    add_discovery_root(&mut home_roots, nofy_home, true, HOME_RULES_DIRS);
+    if let Some(nofy_home) = nofy_home {
+        add_discovery_root(&mut home_roots, nofy_home, true, HOME_RULES_DIRS);
+    }
     if let Some(home) = home_dir {
         if compat.claude.agents || compat.claude.rules {
             add_discovery_root(
@@ -220,7 +242,7 @@ async fn read_agents_config_with_roots(
 
     let mut project_roots = Vec::new();
     if let Some(ref root) = git_root {
-        let mut current = Some(cwd.as_path());
+        let mut current = cwd.as_deref();
         let mut chain = Vec::new();
         while let Some(dir) = current {
             if !chain.iter().any(|existing| existing == dir) {
@@ -246,7 +268,7 @@ async fn read_agents_config_with_roots(
         for dir in chain {
             add_discovery_root(&mut project_roots, dir, true, &project_rules_dirs);
         }
-    } else {
+    } else if let Some(cwd) = cwd {
         add_discovery_root(&mut project_roots, cwd, true, &project_rules_dirs);
     }
 

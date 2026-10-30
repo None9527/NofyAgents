@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "reference": {
+        "id": "configured-model",
+        "version": "1"
+      },
+      "factory": "host.lookup-model",
+      "config": {}
+    },
+    {
+      "reference": {
+        "id": "configured-tools",
+        "version": "1"
+      },
+      "factory": "host.records",
+      "config": {}
+    },
+    {
+      "reference": {
+        "id": "configured-prompt",
+        "version": "1"
+      },
+      "factory": "prompt.template",
+      "config": {
+        "template": "{{role}} Tools: {{tools}}",
+        "values": {
+          "role": "Business record assistant."
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "external-stage",
+        "version": "1"
+      },
+      "factory": "stage.literal",
+      "config": {
+        "data": {
+          "registered": true
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "external-recipe",
+        "version": "1"
+      },
+      "factory": "runtime.recipe",
+      "config": {
+        "stages": [
+          {
+            "name": "external-stage",
+            "at": "before_model",
+            "stage": "configured-stage"
+          }
+        ]
+      },
+      "dependencies": {
+        "configured-stage": {
+          "id": "external-stage",
+          "version": "1"
+        }
+      }
+    }
+  ],
+  "agent": {
+    "schema_version": 1,
+    "name": "configuration-agent",
+    "model": {
+      "id": "configured-model",
+      "version": "1"
+    },
+    "prompt": {
+      "id": "configured-prompt",
+      "version": "1"
+    },
+    "tool_sources": [
+      {
+        "id": "configured-tools",
+        "version": "1"
+      }
+    ],
+    "settings": {
+      "max_steps": 4,
+      "model": {}
+    },
+    "recipe": {
+      "id": "external-recipe",
+      "version": "1"
+    }
+  }
+}

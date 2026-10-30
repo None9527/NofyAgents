@@ -5,6 +5,8 @@ name = "nofy-agent-lifecycle"
 version = "0.1.0"
 
 [dependencies]
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime", optional = true }
+serde_json = { workspace = true, optional = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 
@@ -13,3 +15,7 @@ tokio = { workspace = true, features = ["macros", "rt"] }
 
 [lints]
 workspace = true
+
+[features]
+default = []
+agent-runtime = ["dep:nofy-agent-runtime", "dep:serde_json"]

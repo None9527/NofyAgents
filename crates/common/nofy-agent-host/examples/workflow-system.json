@@ -1,0 +1,472 @@
+{
+  "schema_version": 1,
+  "name": "portable-assistant",
+  "modules": [
+    {
+      "reference": {
+        "id": "provider",
+        "version": "1"
+      },
+      "factory": "resource.sampler",
+      "config": {
+        "connection": {
+          "base_url": "http://127.0.0.1:8000/v1",
+          "api_backend": "chat_completions",
+          "auth_scheme": "bearer",
+          "max_retries": 0
+        },
+        "models": [
+          "local-model"
+        ],
+        "credential_ref": "MODEL_TOKEN"
+      }
+    },
+    {
+      "reference": {
+        "id": "model",
+        "version": "1"
+      },
+      "factory": "model.connected",
+      "config": {
+        "model": "local-model"
+      },
+      "dependencies": {
+        "connection": {
+          "id": "provider",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "prompt",
+        "version": "1"
+      },
+      "factory": "prompt.static",
+      "config": {
+        "text": "You are a helpful assistant. Answer clearly and precisely."
+      }
+    },
+    {
+      "reference": {
+        "id": "calculate",
+        "version": "1"
+      },
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {
+          "name": "calculate",
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "value"
+            ],
+            "properties": {
+              "value": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          },
+          "output_schema": {
+            "type": "object",
+            "required": [
+              "result"
+            ],
+            "properties": {
+              "result": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "source": "#{result: args.value * 2}"
+      }
+    },
+    {
+      "reference": {
+        "id": "hook-code",
+        "version": "1"
+      },
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {
+          "name": "hook_method"
+        },
+        "source": "let payload = args.payload; payload.request.messages[0].content = \"code hook one\"; #{decision: \"patch\", payload: payload}"
+      }
+    },
+    {
+      "reference": {
+        "id": "before-model",
+        "version": "1"
+      },
+      "factory": "hook.subscription",
+      "config": {
+        "event": "before_model"
+      },
+      "dependencies": {
+        "handler": {
+          "id": "hook-handler",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "calculator-workflow",
+        "version": "1"
+      },
+      "factory": "resource.workflow",
+      "config": {
+        "bindings": {
+          "calculator": "tool_pack"
+        },
+        "document": {
+          "host": {
+            "name": "calculator-flow-host"
+          },
+          "entry": {
+            "id": "main",
+            "version": "1"
+          },
+          "tool_runtimes": [
+            {
+              "reference": {
+                "id": "tools",
+                "version": "1"
+              },
+              "definition": {
+                "name": "calculator-flow-tools",
+                "tool_packs": [
+                  {
+                    "id": "calculate",
+                    "version": "1"
+                  }
+                ]
+              }
+            }
+          ],
+          "workflows": [
+            {
+              "reference": {
+                "id": "main",
+                "version": "1"
+              },
+              "input_schema": {
+                "type": "object",
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "output_schema": true,
+              "nodes": [
+                {
+                  "id": "call",
+                  "input": {
+                    "from": "input"
+                  },
+                  "action": {
+                    "kind": "tool",
+                    "runtime": {
+                      "id": "tools",
+                      "version": "1"
+                    },
+                    "tool": "calculate"
+                  }
+                }
+              ],
+              "output": {
+                "from": "node",
+                "node": "call"
+              }
+            }
+          ]
+        }
+      },
+      "dependencies": {
+        "calculator": {
+          "id": "calculate",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "workflow-tool",
+        "version": "1"
+      },
+      "factory": "tool.workflow_connected",
+      "config": {
+        "name": "run_workflow"
+      },
+      "dependencies": {
+        "workflow": {
+          "id": "calculator-workflow",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "hook-workflow",
+        "version": "1"
+      },
+      "factory": "resource.workflow",
+      "config": {
+        "bindings": {
+          "method": "tool_pack"
+        },
+        "document": {
+          "host": {
+            "name": "hook-flow-host"
+          },
+          "entry": {
+            "id": "main",
+            "version": "1"
+          },
+          "tool_runtimes": [
+            {
+              "reference": {
+                "id": "tools",
+                "version": "1"
+              },
+              "definition": {
+                "name": "hook-flow-tools",
+                "tool_packs": [
+                  {
+                    "id": "hook-code",
+                    "version": "1"
+                  }
+                ]
+              }
+            }
+          ],
+          "workflows": [
+            {
+              "reference": {
+                "id": "main",
+                "version": "1"
+              },
+              "input_schema": {
+                "type": "object"
+              },
+              "output_schema": true,
+              "nodes": [
+                {
+                  "id": "call",
+                  "input": {
+                    "from": "input"
+                  },
+                  "action": {
+                    "kind": "tool",
+                    "runtime": {
+                      "id": "tools",
+                      "version": "1"
+                    },
+                    "tool": "hook_method"
+                  }
+                }
+              ],
+              "output": {
+                "from": "node",
+                "node": "call"
+              }
+            }
+          ]
+        }
+      },
+      "dependencies": {
+        "method": {
+          "id": "hook-code",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "hook-handler",
+        "version": "1"
+      },
+      "factory": "hook.workflow_connected",
+      "config": {},
+      "dependencies": {
+        "workflow": {
+          "id": "hook-workflow",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "agent-workflow",
+        "version": "1"
+      },
+      "factory": "resource.workflow",
+      "config": {
+        "bindings": {
+          "model": "model",
+          "prompt": "prompt"
+        },
+        "document": {
+          "host": {
+            "name": "reusable-agent-flow-host"
+          },
+          "entry": {
+            "id": "main",
+            "version": "1"
+          },
+          "agents": [
+            {
+              "reference": {
+                "id": "child-agent",
+                "version": "1"
+              },
+              "definition": {
+                "name": "child-agent",
+                "model": {
+                  "id": "model",
+                  "version": "1"
+                },
+                "prompt": {
+                  "id": "prompt",
+                  "version": "1"
+                }
+              }
+            }
+          ],
+          "workflows": [
+            {
+              "reference": {
+                "id": "main",
+                "version": "1"
+              },
+              "input_schema": true,
+              "output_schema": true,
+              "nodes": [
+                {
+                  "id": "respond",
+                  "input": {
+                    "from": "literal",
+                    "value": "hello"
+                  },
+                  "action": {
+                    "kind": "agent",
+                    "agent": {
+                      "id": "child-agent",
+                      "version": "1"
+                    }
+                  }
+                }
+              ],
+              "output": {
+                "from": "node",
+                "node": "respond"
+              }
+            }
+          ]
+        }
+      },
+      "dependencies": {
+        "model": {
+          "id": "model",
+          "version": "1"
+        },
+        "prompt": {
+          "id": "prompt",
+          "version": "1"
+        }
+      }
+    },
+    {
+      "reference": {
+        "id": "agent-workflow-tool",
+        "version": "1"
+      },
+      "factory": "tool.workflow_connected",
+      "config": {
+        "name": "delegate_workflow"
+      },
+      "dependencies": {
+        "workflow": {
+          "id": "agent-workflow",
+          "version": "1"
+        }
+      }
+    }
+  ],
+  "programs": {
+    "chat": {
+      "kind": "agent",
+      "definition": {
+        "name": "assistant",
+        "model": {
+          "id": "model",
+          "version": "1"
+        },
+        "prompt": {
+          "id": "prompt",
+          "version": "1"
+        },
+        "tool_packs": [
+          {
+            "id": "workflow-tool",
+            "version": "1"
+          }
+        ],
+        "hooks": [
+          {
+            "id": "before-model",
+            "version": "1"
+          }
+        ]
+      }
+    },
+    "do_work": {
+      "kind": "tool",
+      "definition": {
+        "name": "code-method-program",
+        "tool_packs": [
+          {
+            "id": "workflow-tool",
+            "version": "1"
+          }
+        ]
+      },
+      "call": {
+        "id": "workflow-root",
+        "name": "run_workflow",
+        "arguments": {
+          "input": {
+            "value": 7
+          }
+        }
+      }
+    },
+    "delegate": {
+      "kind": "tool",
+      "definition": {
+        "name": "agent-workflow-program",
+        "tool_packs": [
+          {
+            "id": "agent-workflow-tool",
+            "version": "1"
+          }
+        ]
+      },
+      "call": {
+        "id": "delegate-root",
+        "name": "delegate_workflow",
+        "arguments": {
+          "input": {}
+        }
+      }
+    }
+  }
+}

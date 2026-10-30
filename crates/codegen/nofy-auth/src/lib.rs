@@ -14,3 +14,6 @@ pub use bearer_fragment::{BEARER_SUFFIX_LEN, bearer_suffix};
 #[cfg(feature = "middleware")]
 pub use retry_middleware::{AuthRetryMiddleware, StampedBearerSuffix, execute_with_stamp};
 pub use visibility::HttpAuth;
+
+pub mod session_gate;
+pub use session_gate::{ModelByok, session_token_auth_gate};

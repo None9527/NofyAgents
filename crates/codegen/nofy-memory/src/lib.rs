@@ -42,6 +42,8 @@ pub mod schema;
 pub mod scope_write_lock;
 pub mod search;
 pub mod service;
+#[cfg(feature = "agent-runtime")]
+pub mod runtime;
 pub mod state;
 pub mod storage;
 pub mod text_utils;

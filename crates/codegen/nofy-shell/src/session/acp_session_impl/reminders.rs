@@ -59,83 +59,17 @@ impl CollectedTodoGateInput {
         }
     }
 }
+pub(super) use nofy_agent_runtime::coding::todo::build_todo_gate_reminder;
 /// Inputs to `evaluate_todo_gate`. All fields are deliberately owned
 /// borrows from the gate's call-site so the helper is a pure function.
 ///
 /// The struct itself is `pub` (with `#[doc(hidden)]`) only so the
 /// replay-trace integration test in `tests/trace_replay.rs` can name
 /// the type as `&TodoGateInput<'_>` when calling `evaluate_todo_gate`.
-/// Fields stay crate-private — the test never constructs the struct
-/// directly; it obtains an instance via `CollectedTodoGateInput::as_input()`.
-#[doc(hidden)]
-pub struct TodoGateInput<'a> {
-    pub(super) pending: Vec<&'a str>,
-    pub(super) in_progress_unbacked: Vec<&'a str>,
-    pub(super) in_progress_backed: Vec<&'a str>,
-    pub(super) backing_task_count: usize,
-}
-impl TodoGateReason {
-    /// Wire-string form, byte-identical to a `TODO_GATE_*` const in
-    /// `crate::session::events`.
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            Self::InFlight => crate::session::events::TODO_GATE_IN_FLIGHT,
-        }
-    }
-}
-/// Pure decision function: does the gate fire, and with what reminder?
-///
-/// The function does NOT consult the cap — the caller folds the cap check
-/// in around this function. Keeping cap logic out makes `evaluate_todo_gate`
-/// trivially testable.
-///
-/// Exposed as `pub` solely so the replay-trace integration test in
-/// `tests/trace_replay.rs` can call the gate directly. Not part of the
-/// public API.
-#[doc(hidden)]
-pub fn evaluate_todo_gate(input: &TodoGateInput<'_>) -> TodoGateDecision {
-    if input.pending.is_empty() && input.in_progress_unbacked.is_empty() {
-        return TodoGateDecision::Continue;
-    }
-    TodoGateDecision::Nudge {
-        reminder: build_todo_gate_reminder(&input.pending, &input.in_progress_unbacked),
-        reason: TodoGateReason::InFlight,
-    }
-}
-/// Build the in-flight TodoGate reminder text.
-///
-/// Uses the doubled-`${{{{ tools.by_kind.* }}}}` convention so the
-/// caller's `format!` pass leaves a single `${{ tools.by_kind.* }}`
-/// for `TemplateRenderer` / `render_prompt` to resolve into the
-/// model-facing tool name.
-pub(super) fn build_todo_gate_reminder(pending: &[&str], unbacked_in_progress: &[&str]) -> String {
-    use std::fmt::Write as _;
-    let mut buf =
-        String::from("You have outstanding todos but ended your turn without a tool call.\n\n");
-    if !unbacked_in_progress.is_empty() {
-        buf.push_str("In-progress (no backing background task):\n");
-        for c in unbacked_in_progress {
-            let _ = writeln!(buf, "- {c}");
-        }
-        buf.push('\n');
-    }
-    if !pending.is_empty() {
-        buf.push_str("Pending:\n");
-        for c in pending {
-            let _ = writeln!(buf, "- {c}");
-        }
-        buf.push('\n');
-    }
-    let _ = write!(
-        buf,
-        "Per <task_completion_discipline>, advance the next pending todo \
-         with the appropriate tool call NOW. If you have a genuine external \
-         blocker (missing credential, denied permission, network unreachable), \
-         state it explicitly AND mark the affected todos `cancelled` via \
-         ${{{{ tools.by_kind.plan }}}} with a reason in the same turn."
-    );
-    buf
-}
+/// Fields belong to the public, reusable policy contract. This adapter
+/// obtains its borrowed view via `CollectedTodoGateInput::as_input()`.
+pub use nofy_agent_runtime::coding::todo::{TodoGateInput, evaluate_todo_gate};
+
 /// Resolve the runtime `ReminderPolicy` from the resolved inputs.
 ///
 /// Precedence: CLI `--todo-gate` > built-in default (which is disabled).

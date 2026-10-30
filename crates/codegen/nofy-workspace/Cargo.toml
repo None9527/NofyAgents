@@ -6,6 +6,7 @@ edition.workspace = true
 description = "Core host-local workspace library (FS, VCS, execution, discovery) for nofy-shell and remote sampler"
 
 [dependencies]
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime" }
 anyhow = { workspace = true }
 arc-swap = { workspace = true }
 # Diagnostics HTTP server (in-guest readiness/status endpoint); pinned to the

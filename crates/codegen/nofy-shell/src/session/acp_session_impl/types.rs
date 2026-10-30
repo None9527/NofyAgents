@@ -117,33 +117,7 @@ pub(crate) enum ToolLoop {
     },
 }
 
-/// Why the TodoGate fired. Single variant today; kept as an enum so
-/// any new reason has to go through the same `as_str` → `TODO_GATE_*`
-/// const mapping.
-#[doc(hidden)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TodoGateReason {
-    /// The turn ended with pending or unbacked in-progress todos.
-    InFlight,
-}
-
-/// Outcome of `evaluate_todo_gate`. `Nudge` carries the rendered
-/// reminder text AND the typed reason so the producer can emit
-/// telemetry without re-deriving the reason from the input.
-///
-/// Exposed as `pub` solely so the replay-trace integration test in
-/// `tests/trace_replay.rs` can match against the decision. Not part of
-/// the public API.
-#[doc(hidden)]
-pub enum TodoGateDecision {
-    /// Gate is satisfied — the turn may end.
-    Continue,
-    /// Inject `reminder` as a `<system-reminder>` and force another turn.
-    Nudge {
-        reminder: String,
-        reason: TodoGateReason,
-    },
-}
+pub use nofy_agent_runtime::coding::todo::{TodoGateDecision, TodoGateReason};
 
 /// Closed reason for why `maybe_fire_laziness_check` aborted before
 /// producing a verdict. Maps 1:1 to the `LAZINESS_ABORT_*` telemetry

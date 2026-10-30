@@ -65,7 +65,7 @@ impl SkillDiscoveryReminder {
     /// Files the tool touched, for activating `paths:`-gated skills — including
     /// every file of a multi-file `apply_patch`. Bash/grep paths are excluded
     /// (unparseable / incidental).
-    fn extract_activation_paths(tool_output: &ToolOutput) -> Vec<PathBuf> {
+    pub fn extract_activation_paths(tool_output: &ToolOutput) -> Vec<PathBuf> {
         match tool_output {
             ToolOutput::ApplyPatch(ApplyPatchOutput::Success { files, .. }) => files
                 .iter()

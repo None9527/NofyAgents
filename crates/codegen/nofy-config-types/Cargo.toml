@@ -6,6 +6,7 @@ edition.workspace = true
 description = "Leaf configuration value types for the grok CLI, extracted from nofy-shell for dependency inversion."
 
 [dependencies]
+nofy-goal = { path = "../../common/nofy-goal" }
 agent-client-protocol = { workspace = true }
 indexmap = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

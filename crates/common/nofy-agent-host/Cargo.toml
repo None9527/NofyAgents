@@ -1,0 +1,33 @@
+[package]
+name = "nofy-agent-host"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Resident declarative agent management API over the shared Nofy runtime"
+
+[dependencies]
+nofy-agent-executors = { path = "../nofy-agent-executors", features=["rhai"] }
+nofy-tool-runtime = { path = "../nofy-tool-runtime" }
+async-trait = { workspace = true }
+fs2 = { workspace = true }
+tempfile = { workspace = true }
+nofy-agent-runtime = { path = "../nofy-agent-runtime", features = ["sqlite", "workflow", "control-file"] }
+nofy-sampler = { path = "../../codegen/nofy-sampler", features = ["agent-runtime"] }
+async-stream = { workspace = true }
+axum = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+futures = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+nofy-test-support = { workspace = true }
+nofy-interjection-core = { path = "../nofy-interjection-core" }
+reqwest = { workspace = true, features = ["stream"] }
+
+[lints]
+workspace = true

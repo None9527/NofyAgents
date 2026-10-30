@@ -177,7 +177,16 @@ pub fn run(cfg: DaemonConfig) -> i32 {
                     drop(stream);
                     continue;
                 }
+                // BSD/macOS accept inherits O_NONBLOCK from the listener.
+                // Each connection has a blocking frame-reader thread; an idle
+                // interval after Hello must not be mistaken for a disconnect.
+                if let Err(error) = stream.set_nonblocking(false) {
+                    tracing::warn!(?error, "cannot prepare blocking control connection");
+                    preauth.lock().unwrap().close_connect(&peer);
+                    continue;
+                }
                 let Ok(mut reader) = stream.try_clone() else {
+                    preauth.lock().unwrap().close_connect(&peer);
                     continue;
                 };
                 let mut writer = stream;

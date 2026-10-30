@@ -21,7 +21,7 @@ pub use context::{
     BehaviorVersion, Cancellation, Cwd, ListToolsContext, SessionContext, ToolCallContext,
     TraceContext, TypedExtensions, WorkspaceBindMetadata, WorkspaceViewerContext,
 };
-pub use dispatch::ToolDispatch;
+pub use dispatch::{ResumeInvocation, ToolDispatch};
 pub use error::{ToolError, ToolErrorKind};
 pub use notification::{
     BashExecutionBackgrounded, BashExecutionComplete, BashExecutionFailed, BashExecutionTimeout,

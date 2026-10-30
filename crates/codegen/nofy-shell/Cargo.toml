@@ -19,6 +19,8 @@ default-bazel = [
 ]
 
 [dependencies]
+nofy-goal = { path = "../../common/nofy-goal" }
+nofy-agent-runtime = { path = "../../common/nofy-agent-runtime" }
 nofy-env = { workspace = true }
 dunce = { workspace = true }
 tonic-prost = { workspace = true, optional = true }
@@ -140,7 +142,7 @@ nofy-convergence = { workspace = true }
 nofy-gix-status = { workspace = true }
 gix = { workspace = true, features = ["status", "parallel"] }
 nofy-compaction = { path = "../../common/nofy-compaction" }
-nofy-sampler = { path = "../nofy-sampler" }
+nofy-sampler = { path = "../nofy-sampler", features = ["agent-runtime"] }
 nofy-sqlite-journal = { workspace = true }
 nofy-session-journal = { workspace = true }
 nofy-control-schema = { workspace = true }
@@ -190,6 +192,7 @@ siphasher = { workspace = true }
 windows = { workspace = true }
 
 [dev-dependencies]
+nofy-goal = { path = "../../common/nofy-goal", features = ["test-support"] }
 criterion = { workspace = true }
 # Pre-main unified-log redirect (`test_support::redirect_unified_log_for_tests`).
 ctor = { workspace = true }

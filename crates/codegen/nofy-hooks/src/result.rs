@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 /// The outcome of a blocking (`pre_tool_use`) hook dispatch.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum HookDecision {
     Allow,
     Deny { reason: String, hook_name: String },
@@ -9,7 +9,7 @@ pub enum HookDecision {
 
 /// Parsed output of one `Stop`/`SubagentStop` gate hook. The dispatcher
 /// aggregates these across hooks; `force_stop` overrides blocks.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StopHookOutcome {
     pub block_reason: Option<String>,
     pub additional_context: Option<String>,
@@ -17,7 +17,7 @@ pub struct StopHookOutcome {
 }
 
 /// A `continue: false` force-stop; `reason` is `stopReason`, shown to the user.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StopOverride {
     pub reason: Option<String>,
 }
@@ -31,7 +31,7 @@ impl StopHookOutcome {
 }
 
 /// HTTP execution details for `"http"` hooks, for scrollback enrichment.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct HttpInfo {
     /// Post-expansion target (for SSRF debugging). May contain secrets from
     /// resolved `${VAR}` substitutions, so user-facing display MUST prefer

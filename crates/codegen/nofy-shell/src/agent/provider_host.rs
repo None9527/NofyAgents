@@ -214,67 +214,89 @@ async fn run_provider_task(
 
     let sampler_config = crate::agent::config::provider_task_sampling_config(agent_config);
     let client = nofy_sampler::SamplingClient::new(sampler_config)?;
-    let tools: Vec<nofy_sampling_types::ToolSpec> = agent
-        .tool_bridge()
-        .tool_definitions()
-        .await
-        .into_iter()
-        .map(nofy_sampling_types::ToolSpec::from)
-        .collect();
-    let mut items = vec![
-        nofy_sampling_types::ConversationItem::system(agent.system_prompt().to_string()),
-        nofy_sampling_types::ConversationItem::user(goal.to_string()),
-    ];
-    // W-1: delegated work rides a real tool loop, not one text answer —
-    // the model acts (reads/writes/runs) until it stops calling tools.
-    let mut tool_activity: Vec<String> = Vec::new();
-    let mut final_text: Option<String> = None;
-    for _turn in 0..MAX_TOOL_TURNS {
-        let request = nofy_sampling_types::ConversationRequest {
-            items: items.clone(),
-            tools: tools.clone(),
-            model: None,
-            x_nofy_conv_id: Some(format!("provider-{}", join.task_id)),
-            x_nofy_req_id: Some(format!("provider-{}", join.task_id)),
+    let mut components = nofy_agent_runtime::Components::default();
+    components.models.insert(
+        "provider".into(),
+        Arc::new(nofy_sampler::agent_model::SamplerModel::new(
+            crate::agent::config::provider_task_sampling_config(agent_config),
+        )),
+    );
+    components.prompts.insert(
+        "preset".into(),
+        Arc::new(nofy_agent_runtime::StaticPrompt(
+            agent.system_prompt().to_owned(),
+        )),
+    );
+    components.tool_packs.insert(
+        "preset".into(),
+        nofy_agent::runtime::tool_catalog(&agent).await?,
+    );
+    let runtime_agent = nofy_agent_runtime::AgentBuilder::new("provider")
+        .model("provider")
+        .prompt("preset")
+        .tools("preset")
+        .settings(nofy_agent_runtime::Settings {
+            max_steps: MAX_TOOL_TURNS,
             ..Default::default()
-        };
-        let response = client.conversation_collect(request).await?;
-        let Some(assistant) = response.items.iter().find_map(|item| match item {
-            nofy_sampling_types::ConversationItem::Assistant(a) => Some(a.clone()),
-            _ => None,
-        }) else {
-            anyhow::bail!("provider task got no assistant turn");
-        };
-        if assistant.tool_calls.is_empty() {
-            final_text = Some(assistant.content.to_string());
-            break;
-        }
-        items.push(nofy_sampling_types::ConversationItem::Assistant(
-            assistant.clone(),
-        ));
-        for call in &assistant.tool_calls {
-            let params: serde_json::Value =
-                serde_json::from_str(&call.arguments).unwrap_or_else(|_| serde_json::json!({}));
-            let result = agent.tool_bridge().call(&call.name, params, &call.id).await;
-            let text = match &result {
-                Ok(run) => run.prompt_text.clone(),
-                Err(e) => format!("tool error: {e}"),
-            };
-            tool_activity.push(format!(
-                "{}({}) -> {}",
-                call.name,
-                truncate_for_log(&call.arguments),
-                truncate_for_log(&text),
-            ));
-            items.push(nofy_sampling_types::ConversationItem::tool_result(
-                call.id.to_string(),
-                text,
-            ));
+        })
+        .compile(&components)?;
+    let identity = format!("provider-{}", join.task_id);
+    let outcome = runtime_agent
+        .invoke(
+            nofy_agent_runtime::RunInput::new(goal),
+            nofy_agent_runtime::RunContext::new(identity.clone(), identity),
+        )
+        .await?;
+    let nofy_agent_runtime::RunOutcome::Completed {
+        output: final_text,
+        state,
+    } = outcome
+    else {
+        anyhow::bail!("provider task did not complete: {outcome:?}");
+    };
+    // Keep the acceptance judge's original name(args) -> prompt-text trail.
+    let mut calls = std::collections::HashMap::new();
+    let mut tool_activity = Vec::new();
+    for message in &state.messages {
+        match message {
+            nofy_agent_runtime::Message::Opaque { provider, value }
+                if provider == "nofy-sampler" =>
+            {
+                if let Ok(nofy_sampling_types::ConversationItem::Assistant(assistant)) =
+                    serde_json::from_value(value.clone())
+                {
+                    for call in assistant.tool_calls {
+                        calls.insert(call.id.to_string(), (call.name, call.arguments.to_string()));
+                    }
+                }
+            }
+            nofy_agent_runtime::Message::Tool {
+                call_id, content, ..
+            } => {
+                if let Some((name, args)) = calls.get(call_id) {
+                    let text = content
+                        .get("value")
+                        .and_then(|v| v.get("prompt_text"))
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_owned)
+                        .or_else(|| {
+                            content
+                                .get("error")
+                                .and_then(serde_json::Value::as_str)
+                                .map(|error| format!("tool error: {error}"))
+                        })
+                        .unwrap_or_else(|| content.to_string());
+                    tool_activity.push(format!(
+                        "{}({}) -> {}",
+                        name,
+                        truncate_for_log(args),
+                        truncate_for_log(&text)
+                    ));
+                }
+            }
+            _ => {}
         }
     }
-    let Some(final_text) = final_text else {
-        anyhow::bail!("provider task still calling tools after {MAX_TOOL_TURNS} turns");
-    };
     // W-3: acceptance is goal verification, not non-empty output. A judge
     // pass reads the goal against what actually happened (tool trail +
     // final answer) and settles the task accordingly.
@@ -424,6 +446,68 @@ fn reason_after(answer: &str, verdict_line: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn composed_provider_executes_original_tool_and_keeps_goal_judge() {
+        use nofy_test_support::{MockInferenceServer, ScriptedResponse, SseEvent};
+        let server = MockInferenceServer::start().await.unwrap();
+        let cwd = tempfile::tempdir().unwrap();
+        let fixture = cwd.path().join("fixture.txt");
+        std::fs::write(&fixture, "PROVIDER_ADAPTER_FIXTURE").unwrap();
+        let delta = serde_json::json!({"id":"provider-test","object":"chat.completion.chunk","created":1,"model":"test-model",
+            "choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"provider-read-1","type":"function",
+            "function":{"name":"read_file","arguments":serde_json::json!({"target_file":fixture}).to_string()}}]},"finish_reason":null}]});
+        let finish = serde_json::json!({"id":"provider-test","object":"chat.completion.chunk","created":1,"model":"test-model",
+            "choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]});
+        server.enqueue_response(
+            "/v1/chat/completions",
+            ScriptedResponse::sse(vec![
+                SseEvent::data(delta.to_string()),
+                SseEvent::data(finish.to_string()),
+                SseEvent::data("[DONE]"),
+            ]),
+        );
+        for text in [
+            "fixture read",
+            "VERDICT: ACHIEVED\nFixture evidence verified",
+        ] {
+            server.enqueue_response(
+                "/v1/chat/completions",
+                ScriptedResponse::sse(nofy_test_support::sse::chat_completion_script_exact(
+                    text,
+                    "test-model",
+                )),
+            );
+        }
+        let mut config = AgentConfig::default();
+        config.models.default = Some("test-model".into());
+        config.config_models.insert(
+            "test-model".into(),
+            crate::agent::config::ConfigModelOverride {
+                model: Some("test-model".into()),
+                base_url: Some(server.url()),
+                api_key: Some("local-test".into()),
+                api_backend: Some(crate::sampling::ApiBackend::ChatCompletions),
+                ..Default::default()
+            },
+        );
+        let join = PackJoin {
+            task_id: "adapter-test".into(),
+            pack_id: "test".into(),
+            persona_instructions: Some("PROVIDER_ADAPTER_PERSONA".into()),
+            skill_names: vec![],
+        };
+        let output = run_provider_task(&join, "read fixture", cwd.path().to_str(), &config)
+            .await
+            .unwrap();
+        assert_eq!(output, "fixture read");
+        let bodies = server.request_bodies();
+        assert_eq!(bodies.len(), 3);
+        assert!(bodies[0].to_string().contains("PROVIDER_ADAPTER_PERSONA"));
+        assert!(bodies[1].to_string().contains("PROVIDER_ADAPTER_FIXTURE"));
+        assert!(bodies[2].to_string().contains("read_file("));
+        assert!(bodies[2].to_string().contains("PROVIDER_ADAPTER_FIXTURE"));
+    }
 
     fn row(session_id: &str, title: &str) -> crate::session::storage::search_fts::SessionSearchRow {
         crate::session::storage::search_fts::SessionSearchRow {

@@ -1,0 +1,11 @@
+{
+  "entry": {"id":"model-hook","version":"1"},
+  "host": {"name":"consumer-hook-host"},
+  "workflows": [{
+    "reference":{"id":"model-hook","version":"1"},
+    "input_schema":{"type":"object"},
+    "output_schema":{"type":"object","required":["decision"]},
+    "nodes":[{"id":"decision","input":{"from":"literal","value":{"decision":"continue"}},"action":{"kind":"transform"}}],
+    "output":{"from":"node","node":"decision"}
+  }]
+}

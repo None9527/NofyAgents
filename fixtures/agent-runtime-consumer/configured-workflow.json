@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "modules": [{"reference":{"id":"records","version":"1"},"factory":"host.records","config":{}}],
+  "host": {"name":"record-workflow-host"},
+  "tool_runtimes": [{"reference":{"id":"lookup","version":"1"},"definition":{"name":"record-tools","tool_sources":[{"id":"records","version":"1"}]}}],
+  "entry": {"id":"records-flow","version":"1"},
+  "workflows": [{
+    "reference":{"id":"records-flow","version":"1"},
+    "input_schema":{"type":"object","required":["key"],"properties":{"key":{"type":"string"}}},
+    "output_schema":{"type":"object","required":["record","status","tenant"]},
+    "nodes":[
+      {"id":"lookup","input":{"from":"input"},"action":{"kind":"tool","runtime":{"id":"lookup","version":"1"},"tool":"lookup"},"output_schema":{"type":"object"}},
+      {"id":"summary","needs":["lookup"],"input":{"from":"object","fields":{"record":{"from":"node","node":"lookup","pointer":"/record"},"status":{"from":"node","node":"lookup","pointer":"/status"},"tenant":{"from":"node","node":"lookup","pointer":"/tenant"}}},"action":{"kind":"join"}}
+    ],
+    "output":{"from":"node","node":"summary"}
+  }]
+}

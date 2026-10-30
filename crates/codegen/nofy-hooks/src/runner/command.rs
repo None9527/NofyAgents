@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use nofy_tools::util::ProcessGroup;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 
 use crate::config::HookSpec;
 use crate::event::HookEventEnvelope;
@@ -19,6 +19,32 @@ const MAX_OUTPUT_BYTES: usize = 64 * 1024;
 /// Exit code that a blocking hook uses to signal an explicit deny (PreToolUse)
 /// or block (Stop/SubagentStop, with stderr as the feedback).
 const GATE_EXIT_CODE: i32 = 2;
+
+struct HookTreeGuard {
+    group: Option<Arc<ProcessGroup>>,
+    armed: bool,
+}
+impl Drop for HookTreeGuard {
+    fn drop(&mut self) {
+        if self.armed
+            && let Some(group) = &self.group
+        {
+            let _ = group.kill();
+        }
+    }
+}
+async fn capture_capped(mut reader: impl AsyncRead + Unpin) -> std::io::Result<Vec<u8>> {
+    let mut captured = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        let count = reader.read(&mut chunk).await?;
+        if count == 0 {
+            return Ok(captured);
+        }
+        let retain = count.min((MAX_OUTPUT_BYTES + 1).saturating_sub(captured.len()));
+        captured.extend_from_slice(&chunk[..retain]);
+    }
+}
 
 /// `None` when the group cannot be built, which only costs session reaping, so
 /// the hook still runs.
@@ -186,9 +212,13 @@ pub async fn run_command_hook(
         }
     };
 
-    let mut hook_group = None;
+    let hook_group = hook_process_group(&child);
+    let mut tree_guard = HookTreeGuard {
+        group: hook_group.clone(),
+        armed: true,
+    };
     if let Some(scope) = ctx.process_scope.as_ref()
-        && let Some(group) = hook_process_group(&child)
+        && let Some(group) = &hook_group
     {
         // A closed scope means the session is gone and `register` already killed
         // the child, so stop rather than write stdin to a corpse.
@@ -198,13 +228,14 @@ pub async fn run_command_hook(
                 start.elapsed(),
             );
         }
-        hook_group = Some(group);
     }
 
     // Write stdin concurrently with draining output, under the timeout: a hook
     // that never reads stdin would otherwise block `write_all` on a full pipe
     // buffer, outside the deadline.
     let stdin = child.stdin.take();
+    let stdout = child.stdout.take().expect("hook stdout is piped");
+    let stderr = child.stderr.take().expect("hook stderr is piped");
     let timeout = Duration::from_millis(spec.timeout_ms);
     let result = tokio::time::timeout(timeout, async move {
         let write = async {
@@ -212,10 +243,22 @@ pub async fn run_command_hook(
                 let _ = stdin.write_all(stdin_json.as_bytes()).await;
             }
         };
-        let (_, output) = tokio::join!(write, child.wait_with_output());
-        output
+        let (_, stdout, stderr, status) = tokio::join!(
+            write,
+            capture_capped(stdout),
+            capture_capped(stderr),
+            child.wait()
+        );
+        Ok::<_, std::io::Error>(std::process::Output {
+            status: status?,
+            stdout: stdout?,
+            stderr: stderr?,
+        })
     })
     .await;
+    if matches!(result, Ok(Ok(_))) {
+        tree_guard.armed = false;
+    }
 
     let elapsed = start.elapsed();
 
@@ -918,6 +961,58 @@ mod tests {
             extra_env: std::collections::HashMap::new(),
             layer: crate::config::HookProvenance::File,
         }
+    }
+
+    #[tokio::test]
+    async fn dropping_command_hook_reaps_grandchild_without_a_session_scope() {
+        let root = tempfile::tempdir().unwrap();
+        let ready = root.path().join("ready");
+        let leaked = root.path().join("leaked");
+        let quote =
+            |path: &std::path::Path| format!("'{}'", path.to_string_lossy().replace('\'', "'\\''"));
+        let command = format!(
+            "echo started > {}; (sleep 0.5; echo leaked > {}) & sleep 30",
+            quote(&ready),
+            quote(&leaked)
+        );
+        let spec = make_shell_spec(&command);
+        let envelope = make_envelope();
+        let workspace = root.path().to_string_lossy().into_owned();
+        let task = tokio::spawn(async move {
+            let context = RunContext {
+                session_id: "cancel-test",
+                workspace_root: &workspace,
+                process_scope: None,
+                disabled: Arc::new(crate::trust::DisabledHooks::new(Vec::new(), false)),
+            };
+            run_command_hook(&spec, &envelope, &context, GateKind::Observe).await
+        });
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while !ready.exists() {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        task.abort();
+        let _ = task.await;
+        tokio::time::sleep(Duration::from_millis(650)).await;
+        assert!(!leaked.exists(), "dropping the hook leaked its grandchild");
+    }
+
+    #[tokio::test]
+    async fn capture_remains_bounded_while_draining_output_larger_than_the_limit() {
+        let (mut writer, reader) = tokio::io::duplex(4096);
+        let writing = tokio::spawn(async move {
+            writer
+                .write_all(&vec![b'x'; MAX_OUTPUT_BYTES * 4])
+                .await
+                .unwrap();
+        });
+        let captured = capture_capped(reader).await.unwrap();
+        writing.await.unwrap();
+        assert_eq!(captured.len(), MAX_OUTPUT_BYTES + 1);
+        assert!(truncate_output(&captured).contains("truncated"));
     }
 
     fn make_envelope() -> HookEventEnvelope {

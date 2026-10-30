@@ -225,48 +225,8 @@ impl NofyMemoryService {
 #[async_trait::async_trait]
 impl MemoryService for NofyMemoryService {
     async fn search(&self, request: SearchRequest) -> MemoryServiceResult<SearchPage> {
-        self.require_enabled()?;
-        let mut index = UnifiedMemoryIndex::open(
-            &self.config.root,
-            self.config.project_id,
-            self.config.index.clone(),
-            self.config.embedding_dimensions,
-        )
-        .map_err(internal_error)?;
-        index.refresh().map_err(internal_error)?;
-        let mut config = self.config.search.clone();
-        config.max_results = request.max_results;
-        config.min_score = request.min_score as f32;
-        let results = crate::search::unified_search_with_embedding(
-            &index,
-            None,
-            &request.query,
-            &current_git_context(&self.config.workspace),
-            &config,
-        )
-        .map_err(internal_error)?;
-        let hits = results
-            .into_iter()
-            .filter_map(|result| {
-                let id = result.chunk_id.split(':').nth(1)?.to_owned();
-                let bytes = std::fs::read(&result.path).ok()?;
-                Some(MemoryHit {
-                    target: MemoryTarget {
-                        id,
-                        expected_hash: Some(hash_bytes(&bytes)),
-                    },
-                    area: if result.source.starts_with("personal_") {
-                        MemoryArea::Personal
-                    } else {
-                        MemoryArea::Project
-                    },
-                    summary: result.snippet,
-                    score: result.score,
-                    created_at: result.created_at,
-                })
-            })
-            .collect();
-        Ok(SearchPage { hits })
+        self.search_in(request, &[MemoryArea::Personal, MemoryArea::Project])
+            .await
     }
 
     async fn list(&self, request: ListMemoryRequest) -> MemoryServiceResult<MemoryList> {
@@ -566,9 +526,15 @@ impl MemoryService for NofyMemoryService {
 
     async fn capture(&self, _request: CaptureRequest) -> MemoryServiceResult<CaptureReceipt> {
         self.require_enabled()?;
-        Ok(CaptureReceipt {
-            queued: self.config.automatic_learning_enabled,
-        })
+        if !self.config.automatic_learning_enabled {
+            return Ok(CaptureReceipt { queued: false });
+        }
+        // A string ID is not proof that a successful top-level turn has been
+        // durably committed. Hosts enqueue through CaptureQueue after their
+        // barrier; modular hosts use the runtime-issued durable turn receipt.
+        Err(MemoryServiceError::Unavailable(
+            "capture requires the host durable-turn adapter".into(),
+        ))
     }
 
     async fn consolidate(
@@ -675,11 +641,87 @@ impl MemoryService for NofyMemoryService {
     }
 
     async fn snapshot(&self, request: SnapshotRequest) -> MemoryServiceResult<MemorySnapshot> {
+        self.snapshot_in(request, &[MemoryArea::Personal, MemoryArea::Project])
+            .await
+    }
+}
+
+impl NofyMemoryService {
+    /// Use the canonical scope indexes and ranking; scope filtering happens
+    /// before candidate collection and truncation.
+    pub async fn search_in(
+        &self,
+        request: SearchRequest,
+        areas: &[MemoryArea],
+    ) -> MemoryServiceResult<SearchPage> {
+        self.require_enabled()?;
+        let mut index = UnifiedMemoryIndex::open(
+            &self.config.root,
+            self.config.project_id,
+            self.config.index.clone(),
+            self.config.embedding_dimensions,
+        )
+        .map_err(internal_error)?;
+        index.refresh().map_err(internal_error)?;
+        let mut config = self.config.search.clone();
+        config.max_results = request.max_results;
+        config.min_score = request.min_score as f32;
+        let results = crate::search::unified_search_in_scopes(
+            &index,
+            None,
+            &request.query,
+            &current_git_context(&self.config.workspace),
+            &config,
+            [
+                areas.contains(&MemoryArea::Personal),
+                areas.contains(&MemoryArea::Project),
+            ],
+        )
+        .map_err(internal_error)?;
+        let hits = results
+            .into_iter()
+            .filter_map(|result| {
+                let id = result.chunk_id.split(':').nth(1)?.to_owned();
+                let bytes = std::fs::read(&result.path).ok()?;
+                Some(MemoryHit {
+                    target: MemoryTarget {
+                        id,
+                        expected_hash: Some(hash_bytes(&bytes)),
+                    },
+                    area: if result.source.starts_with("personal_") {
+                        MemoryArea::Personal
+                    } else {
+                        MemoryArea::Project
+                    },
+                    summary: result.snippet,
+                    score: result.score,
+                    created_at: result.created_at,
+                })
+            })
+            .collect();
+        Ok(SearchPage { hits })
+    }
+
+    /// Build a frozen, generation-fenced inference view from admitted areas.
+    pub async fn snapshot_in(
+        &self,
+        request: SnapshotRequest,
+        areas: &[MemoryArea],
+    ) -> MemoryServiceResult<MemorySnapshot> {
         self.require_enabled()?;
         let max_items = request.max_items.max(1);
         for _ in 0..2 {
             let generation = self.current_generation()?;
-            let listed = self.list(ListMemoryRequest { area: None }).await?;
+            let mut listed = MemoryList { items: Vec::new() };
+            for area in [MemoryArea::Personal, MemoryArea::Project] {
+                if areas.contains(&area) {
+                    listed.items.extend(
+                        self.list(ListMemoryRequest { area: Some(area) })
+                            .await?
+                            .items,
+                    );
+                }
+            }
             let mut personal = listed
                 .items
                 .iter()
@@ -700,11 +742,14 @@ impl MemoryService for NofyMemoryService {
                 .filter(|query| !query.trim().is_empty())
             {
                 let ranked = self
-                    .search(SearchRequest {
-                        query: query.clone(),
-                        max_results: max_items,
-                        min_score: 0.0,
-                    })
+                    .search_in(
+                        SearchRequest {
+                            query: query.clone(),
+                            max_results: max_items,
+                            min_score: 0.0,
+                        },
+                        areas,
+                    )
                     .await?;
                 let mut items_by_id = personal
                     .into_iter()
@@ -755,6 +800,50 @@ impl MemoryService for NofyMemoryService {
             }
         }
         Err(MemoryServiceError::Conflict)
+    }
+    pub fn snapshot_generation(&self) -> MemoryServiceResult<u64> {
+        self.require_enabled()?;
+        self.current_generation()
+    }
+
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn runtime_project_id(&self) -> ProjectId {
+        self.config.project_id
+    }
+
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn runtime_resource_identity(&self) -> String {
+        blake3::hash(
+            format!(
+                "{:?}:{:?}:{}",
+                self.config.root,
+                self.config.workspace,
+                self.config.project_id.as_uuid()
+            )
+            .as_bytes(),
+        )
+        .to_hex()
+        .to_string()
+    }
+
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn runtime_capture_root(&self) -> Option<PathBuf> {
+        (self.config.memory_enabled && self.config.automatic_learning_enabled)
+            .then(|| self.config.root.clone())
+    }
+
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn undo_area(&self, token: &UndoToken) -> MemoryServiceResult<MemoryArea> {
+        let undo = self
+            .undo
+            .lock()
+            .map_err(|_| internal_error("memory undo lock poisoned"))?;
+        match undo.get(&token.operation_id) {
+            Some(UndoEntry::Created { area, .. } | UndoEntry::Revised { area, .. }) => {
+                Ok(area.clone())
+            }
+            None => Err(MemoryServiceError::NotFound),
+        }
     }
 }
 

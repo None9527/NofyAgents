@@ -3,6 +3,7 @@ use crate::discovery::HookRegistry;
 use crate::event::{HookEventEnvelope, HookEventName};
 use crate::result::{HookDecision, HookRunResult};
 use crate::runner::{self, GateKind, HookRunnerResult, RunContext};
+use tracing::Instrument;
 
 fn dispatch_span(event: HookEventName, hook_count: usize) -> tracing::Span {
     tracing::info_span!(
@@ -63,6 +64,16 @@ pub async fn dispatch_pre_tool_use(
     envelope: &HookEventEnvelope,
     ctx: &RunContext<'_>,
 ) -> PreToolUseResult {
+    dispatch_pre_tool_use_with_execution(registry, envelope, ctx, &runner::NativeHookExecution)
+        .await
+}
+
+pub async fn dispatch_pre_tool_use_with_execution(
+    registry: &HookRegistry,
+    envelope: &HookEventEnvelope,
+    ctx: &RunContext<'_>,
+    execution: &dyn runner::HookExecution,
+) -> PreToolUseResult {
     let hooks = registry.hooks_for(HookEventName::PreToolUse);
     if hooks.is_empty() {
         return PreToolUseResult {
@@ -72,7 +83,6 @@ pub async fn dispatch_pre_tool_use(
     }
 
     let span = dispatch_span(HookEventName::PreToolUse, hooks.len());
-    let _enter = span.enter();
 
     let match_value = envelope.payload.match_value().map(str::to_string);
     let mut run_results = Vec::new();
@@ -87,15 +97,17 @@ pub async fn dispatch_pre_tool_use(
             continue;
         }
 
-        let _hook_span = tracing::info_span!(
+        let hook_span = tracing::info_span!(
             "hook.run",
             hook_name = %spec.name,
             hook_event = %HookEventName::PreToolUse,
-        )
-        .entered();
+        );
 
-        let (result, elapsed, http_info) =
-            runner::run_hook(spec, envelope, ctx, GateKind::Tool).await;
+        let (result, elapsed, http_info) = execution
+            .run(spec, envelope, ctx, GateKind::Tool)
+            .instrument(hook_span)
+            .instrument(span.clone())
+            .await;
 
         match result {
             HookRunnerResult::Decision(HookDecision::Deny { reason, .. }) => {
@@ -261,6 +273,16 @@ pub async fn dispatch_stop(
     envelope: &HookEventEnvelope,
     ctx: &RunContext<'_>,
 ) -> StopDispatchResult {
+    dispatch_stop_with_execution(registry, event, envelope, ctx, &runner::NativeHookExecution).await
+}
+
+pub async fn dispatch_stop_with_execution(
+    registry: &HookRegistry,
+    event: HookEventName,
+    envelope: &HookEventEnvelope,
+    ctx: &RunContext<'_>,
+    execution: &dyn runner::HookExecution,
+) -> StopDispatchResult {
     if event.traits().gate != GateKind::Stop {
         debug_assert!(false, "dispatch_stop called with non-stop event {event:?}");
         tracing::error!(%event, "dispatch_stop called with a non-stop event; ignoring");
@@ -273,7 +295,6 @@ pub async fn dispatch_stop(
     }
 
     let span = dispatch_span(event, hooks.len());
-    let _enter = span.enter();
 
     let mut out = StopDispatchResult::default();
     let match_value = envelope.payload.match_value().map(str::to_string);
@@ -288,15 +309,17 @@ pub async fn dispatch_stop(
             continue;
         }
 
-        let _hook_span = tracing::info_span!(
+        let hook_span = tracing::info_span!(
             "hook.run",
             hook_name = %spec.name,
             hook_event = %event,
-        )
-        .entered();
+        );
 
-        let (result, elapsed, http_info) =
-            runner::run_hook(spec, envelope, ctx, GateKind::Stop).await;
+        let (result, elapsed, http_info) = execution
+            .run(spec, envelope, ctx, GateKind::Stop)
+            .instrument(hook_span)
+            .instrument(span.clone())
+            .await;
 
         match result {
             HookRunnerResult::Stop(outcome) => {
@@ -371,6 +394,23 @@ pub async fn dispatch_non_blocking(
     envelope: &HookEventEnvelope,
     ctx: &RunContext<'_>,
 ) -> Vec<HookRunResult> {
+    dispatch_non_blocking_with_execution(
+        registry,
+        event,
+        envelope,
+        ctx,
+        &runner::NativeHookExecution,
+    )
+    .await
+}
+
+pub async fn dispatch_non_blocking_with_execution(
+    registry: &HookRegistry,
+    event: HookEventName,
+    envelope: &HookEventEnvelope,
+    ctx: &RunContext<'_>,
+    execution: &dyn runner::HookExecution,
+) -> Vec<HookRunResult> {
     debug_assert!(
         event.traits().gate == GateKind::Observe,
         "dispatch_non_blocking called with gate event {event:?}"
@@ -381,7 +421,6 @@ pub async fn dispatch_non_blocking(
     }
 
     let span = dispatch_span(event, hooks.len());
-    let _enter = span.enter();
 
     let match_value = envelope.payload.match_value().map(str::to_string);
     let mut results = Vec::with_capacity(hooks.len());
@@ -391,15 +430,17 @@ pub async fn dispatch_non_blocking(
             continue;
         }
 
-        let _hook_span = tracing::info_span!(
+        let hook_span = tracing::info_span!(
             "hook.run",
             hook_name = %spec.name,
             hook_event = %event,
-        )
-        .entered();
+        );
 
-        let (result, elapsed, http_info) =
-            runner::run_hook(spec, envelope, ctx, GateKind::Observe).await;
+        let (result, elapsed, http_info) = execution
+            .run(spec, envelope, ctx, GateKind::Observe)
+            .instrument(hook_span)
+            .instrument(span.clone())
+            .await;
 
         match result {
             HookRunnerResult::Success => {

@@ -281,11 +281,27 @@ pub fn unified_search_with_embedding(
     context: &UnifiedSearchContext,
     config: &MemorySearchConfig,
 ) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
+    unified_search_in_scopes(index, query_embedding, query, context, config, [true, true])
+}
+
+/// Scope selection precedes candidate collection, ranking and truncation.
+/// The two slots correspond to personal and current-project memory.
+pub(crate) fn unified_search_in_scopes(
+    index: &UnifiedMemoryIndex,
+    query_embedding: Option<&[f32]>,
+    query: &str,
+    context: &UnifiedSearchContext,
+    config: &MemorySearchConfig,
+    scopes: [bool; 2],
+) -> Result<Vec<SearchResult>, Box<dyn std::error::Error>> {
     let candidate_limit = config.max_results.saturating_mul(3).max(1);
 
     let mut candidates = Vec::new();
     let mut ranking = Vec::new();
-    for scope_index in index.indexes() {
+    for (scope_index, enabled) in index.indexes().into_iter().zip(scopes) {
+        if !enabled {
+            continue;
+        }
         let fts = scope_index
             .search_fts(query, candidate_limit)
             .unwrap_or_default();

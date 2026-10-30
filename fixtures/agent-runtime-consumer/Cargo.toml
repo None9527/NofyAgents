@@ -1,0 +1,17 @@
+[package]
+name = "nofy-independent-consumer"
+version = "0.1.0"
+edition = "2024"
+
+# Deliberately a separate workspace. The verification script relocates this
+# project outside the repository and changes only the dependency paths.
+[workspace]
+
+[dependencies]
+nofy-agent-runtime = { path = "../../crates/common/nofy-agent-runtime", features = ["pack", "workflow", "control-file"] }
+nofy-tool-runtime = { path = "../../crates/common/nofy-tool-runtime" }
+nofy-tool-types = { path = "../../crates/common/nofy-tool-types" }
+nofy-tool-protocol = { path = "../../crates/common/nofy-tool-protocol" }
+async-trait = "0.1"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt"] }

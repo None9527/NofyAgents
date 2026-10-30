@@ -30,6 +30,20 @@ use crate::tool::{ToolStream, ToolStreamItem, TypedToolOutput};
 /// at JSON-RPC wire encode/decode boundaries.
 #[async_trait]
 pub trait ToolDispatch: Send + Sync {
+    /// Opt-in recovery protocol for a durable orchestrator, NOT permission to
+    /// retry an arbitrary side effect. The same call identity must reattach to
+    /// persisted work, including after the caller dies before seeing a result.
+    /// Implementations inspect [`ResumeInvocation`] and own child checkpoints.
+    fn is_resumable(&self) -> bool {
+        false
+    }
+
+    /// Immutable version identity for opted-in recovery implementations. The
+    /// runtime rejects resumable registration without a nonempty identity.
+    fn recovery_identity(&self) -> Option<String> {
+        None
+    }
+
     /// Streaming dispatch. The returned stream MUST end with exactly one
     /// `Terminal` item per the [`ToolStream`] invariant.
     async fn call(
@@ -66,3 +80,7 @@ pub trait ToolDispatch: Send + Sync {
         ))
     }
 }
+
+/// Explicit recovery invocation. Absent/false means a fresh invocation.
+#[derive(Debug, Clone, Copy)]
+pub struct ResumeInvocation(pub bool);

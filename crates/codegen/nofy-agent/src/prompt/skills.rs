@@ -82,13 +82,38 @@ pub async fn list_skills_with_plugins(
     plugins: Option<&crate::plugins::PluginRegistry>,
     compat: CompatConfig,
 ) -> Vec<SkillInfo> {
-    let _skill_discovery_timer = crate::timing::timer("skill_discovery");
     let workspace_user_dir = crate::prompt::workspace_user::optional_workspace_user_dir();
-
-    let mut skills = list_skills_with_options(
+    #[allow(deprecated)]
+    let home_dir = std::env::home_dir();
+    list_skills_from_roots(
         working_directory,
+        config,
+        plugins,
+        compat,
         workspace_user_dir.as_deref(),
-        &nofy_tools::util::nofy_home::nofy_home(),
+        Some(&nofy_tools::util::nofy_home::nofy_home()),
+        home_dir.as_deref(),
+    )
+    .await
+}
+
+/// Explicit roots for reusable modules. No implicit HOME scope is scanned.
+/// Config paths, server/bundled dirs and plugins retain the original precedence.
+pub async fn list_skills_from_roots(
+    working_directory: Option<&str>,
+    config: &SkillsConfig,
+    plugins: Option<&crate::plugins::PluginRegistry>,
+    compat: CompatConfig,
+    workspace_user_dir: Option<&Path>,
+    global_dir: Option<&Path>,
+    home_dir: Option<&Path>,
+) -> Vec<SkillInfo> {
+    let _skill_discovery_timer = crate::timing::timer("skill_discovery");
+    let mut skills = list_skills_in_roots(
+        working_directory,
+        workspace_user_dir,
+        global_dir,
+        home_dir,
         compat,
     )
     .await;
@@ -146,7 +171,26 @@ pub fn collect_skill_config_dirs(
     config_paths: &[String],
     compat: CompatConfig,
 ) -> Vec<PathBuf> {
-    let nofy_home = global_dir.to_path_buf();
+    #[allow(deprecated)]
+    let home = std::env::home_dir();
+    collect_skill_config_dirs_in_roots(
+        cwd,
+        workspace_user_dir,
+        Some(global_dir),
+        home.as_deref(),
+        config_paths,
+        compat,
+    )
+}
+
+pub fn collect_skill_config_dirs_in_roots(
+    cwd: Option<&Path>,
+    workspace_user_dir: Option<&Path>,
+    global_dir: Option<&Path>,
+    home_dir: Option<&Path>,
+    config_paths: &[String],
+    compat: CompatConfig,
+) -> Vec<PathBuf> {
     let git_root = cwd.and_then(|c| {
         git2::Repository::discover(c)
             .ok()
@@ -202,9 +246,10 @@ pub fn collect_skill_config_dirs(
     // Priority 3: Global user dirs. `.nofy` comes from `nofy_home` (which may
     // be overridden), so it's handled separately; `.agents` is always added,
     // while `.claude`/`.cursor` are gated by the skills compat cells.
-    try_add(nofy_home);
-    #[allow(deprecated)]
-    if let Some(home) = std::env::home_dir() {
+    if let Some(global) = global_dir {
+        try_add(global.to_path_buf());
+    }
+    if let Some(home) = home_dir {
         try_add(home.join(".agents"));
         if compat.claude.skills {
             try_add(home.join(".claude"));
@@ -283,10 +328,30 @@ fn collect_discovered_paths(
 /// Skills are collected before commands so they win name collisions via
 /// first-seen-wins dedup. Returns only global skills when `working_directory`
 /// is `None`.
+#[cfg(test)]
 async fn list_skills_with_options(
     working_directory: Option<&str>,
     workspace_user_dir: Option<&Path>,
     global_dir: &Path,
+    compat: CompatConfig,
+) -> Vec<SkillInfo> {
+    #[allow(deprecated)]
+    let home = std::env::home_dir();
+    list_skills_in_roots(
+        working_directory,
+        workspace_user_dir,
+        Some(global_dir),
+        home.as_deref(),
+        compat,
+    )
+    .await
+}
+
+async fn list_skills_in_roots(
+    working_directory: Option<&str>,
+    workspace_user_dir: Option<&Path>,
+    global_dir: Option<&Path>,
+    home_dir: Option<&Path>,
     compat: CompatConfig,
 ) -> Vec<SkillInfo> {
     let cwd = working_directory.map(PathBuf::from);
@@ -297,8 +362,14 @@ async fn list_skills_with_options(
             .and_then(|repo| repo.workdir().map(|p| p.to_path_buf()))
     });
 
-    let config_dirs =
-        collect_skill_config_dirs(cwd.as_deref(), workspace_user_dir, global_dir, &[], compat);
+    let config_dirs = collect_skill_config_dirs_in_roots(
+        cwd.as_deref(),
+        workspace_user_dir,
+        global_dir,
+        home_dir,
+        &[],
+        compat,
+    );
 
     let mut skill_files: Vec<(PathBuf, SkillScope)> = Vec::new();
     let mut seen_canonical_paths = HashSet::new();
@@ -321,13 +392,15 @@ async fn list_skills_with_options(
         );
     }
 
-    let bundled_dir = global_dir.join("bundled");
-    collect_discovered_paths(
-        find_skill_paths(&bundled_dir),
-        SkillScope::Bundled,
-        &mut seen_canonical_paths,
-        &mut skill_files,
-    );
+    if let Some(global_dir) = global_dir {
+        let bundled_dir = global_dir.join("bundled");
+        collect_discovered_paths(
+            find_skill_paths(&bundled_dir),
+            SkillScope::Bundled,
+            &mut seen_canonical_paths,
+            &mut skill_files,
+        );
+    }
 
     parse_skill_files(skill_files)
 }

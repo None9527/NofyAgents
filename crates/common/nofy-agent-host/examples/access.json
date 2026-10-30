@@ -1,0 +1,4 @@
+[
+  {"token_env":"NOFY_KERNEL_ADMIN_TOKEN","scopes":["read","edit","publish","resources","execute"]},
+  {"token_env":"NOFY_KERNEL_VIEW_TOKEN","scopes":["read"]}
+]

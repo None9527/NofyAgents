@@ -4,6 +4,8 @@
 
 pub mod local;
 pub mod send;
+#[cfg(feature="agent-runtime")]
+pub mod runtime;
 
 pub use local::{
     LocalCommandContributor, LocalExtensionRegistry, LocalExtensionRegistryBuilder,
