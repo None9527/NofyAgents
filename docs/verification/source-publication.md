@@ -30,3 +30,12 @@ Rust 共 108 项通过，无失败或忽略；Python 53 项通过。没有重跑
 GitNexus 对共享 router 给出 CRITICAL、33 个直接调用方，主要为 HTTP 测试；本次变更限定在静态页面分支移除，上述接口回归补验覆盖实际权限、运行和会话边界。索引未收录 with_console 和新增客户端目录，未将未命中当作零影响。
 
 [机器记录](source-publication.json) · [检查入口](../../scripts/check-release.sh) · [发布范围](../release-notes.md)
+
+## 发布入口核对
+
+默认分支、Git 提交树与本地工程目录需要分别核对。仅将源码推到研究分支，不代表仓库首页已切到新版本。
+
+- 远端默认分支现为 research/modular-agent-framework；远端 HEAD 与发布提交核对一致。
+- 当前提交树没有 JS／TS／HTML／CSS 前端文件；Host 静态页面服务也已移除。
+- 参考 Agent 仓库保存在工程目录外，不以 .gitignore 代替物理清理。当前源码目录扫描不包含构建产物与本地索引。
+- 代码托管平台的语言统计单独核对；旧分支或历史提交不作为当前发布树的文件清单。

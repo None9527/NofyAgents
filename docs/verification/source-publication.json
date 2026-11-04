@@ -21,5 +21,8 @@
   "frontend_static_host_removed": true,
   "frontend_option_removed": "--console-dir",
   "pi_and_all_module_matrix": "paused, incomplete",
-  "changes_in_operation_catalog": "annotations only; input/output schemas and operation identities unchanged"
+  "changes_in_operation_catalog": "annotations only; input/output schemas and operation identities unchanged",
+  "remote_default_branch": "research/modular-agent-framework",
+  "frontend_source_files_in_published_tree": 0,
+  "reference_repositories_kept_outside_project_tree": true
 }
