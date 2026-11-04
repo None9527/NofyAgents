@@ -3,11 +3,14 @@ use crate::{program::CompiledProgram, registry::ModuleRegistry};
 #[derive(Clone)]
 pub struct ControlPlane {
     store: Arc<dyn CatalogStore>,
-    host: ModuleRegistry,
+    host: Arc<ModuleRegistry>,
 }
 impl ControlPlane {
     pub fn new(store: Arc<dyn CatalogStore>, host: ModuleRegistry) -> Self {
-        Self { store, host }
+        Self {
+            store,
+            host: Arc::new(host),
+        }
     }
     pub fn prepare(&self, document: SystemDocument) -> Result<CompiledSystem> {
         Ok(compile_system(document, &self.host)?)

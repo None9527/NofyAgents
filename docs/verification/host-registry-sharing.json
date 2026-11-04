@@ -1,0 +1,326 @@
+{
+  "stage": "CLEAN5d",
+  "date": "2026-11-03",
+  "status": "registry_clone_defect_fixed_platform_incomplete",
+  "evidence_root": "/tmp/nofy-action-receipt.AGwTbJ",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/clean5d.1yzj1opd",
+  "implementation": {
+    "production_files": {
+      "crates/common/nofy-agent-host/src/lib.rs": {
+        "before_sha256": "68ce9b81ea5ebf5ce66eb048c13c3751ec41d94f14023ab13e64ab70e247c63e",
+        "after_sha256": "2a6b68a43fbdfe766ab2e75d64915def0b3cf7d654c9bd6f682dae957ab40130"
+      },
+      "crates/common/nofy-agent-runtime/src/control/service.rs": {
+        "before_sha256": "e77a2c42d6e4f2f4d7693b026aa106b056b700b55b5a6e81a298a80f4a3e5a22",
+        "after_sha256": "515c6e9fddc8628ba2dd27d3c8e3a9301aafa69cbf9924930b337555a0308d47"
+      }
+    },
+    "change": "Share immutable bootstrap ModuleRegistry through Arc in KernelHost and ControlPlane. Compilation overlays remain independently owned.",
+    "unchanged": [
+      "public constructors",
+      "declaration and snapshot serialization",
+      "database schema and transactions",
+      "approval and budget boundaries",
+      "execution isolation",
+      "15-second receipt deadline",
+      "source-only package and user-managed dependencies"
+    ]
+  },
+  "impact": {
+    "graph_risk": "LOW",
+    "graph_impacted": 0,
+    "manual_risk_reported_before_edit": "HIGH",
+    "limitation": "Rust field ownership and derived Clone edges are absent from this graph.",
+    "scope": [
+      "request state and worker clones",
+      "prepare",
+      "rebind",
+      "publish",
+      "apply"
+    ]
+  },
+  "baseline": {
+    "parallel_4": {
+      "passed": 4,
+      "failed": 0,
+      "seconds": 66.587
+    },
+    "parallel_8": {
+      "passed": 0,
+      "failed": 8,
+      "seconds": 46.447
+    },
+    "parallel_8_cpu": {
+      "passed": 0,
+      "failed": 8,
+      "seconds": 49.177
+    },
+    "sql_commit_milliseconds_for_3144_transactions": 143,
+    "sampled_pcs": 5391,
+    "instrumentation_removed_byte_for_byte": true
+  },
+  "final_validation": {
+    "parallel_8": {
+      "seconds": 19.05,
+      "results": [
+        {
+          "case": 0,
+          "pid": 3276124,
+          "exit_code": 0
+        },
+        {
+          "case": 1,
+          "pid": 3276125,
+          "exit_code": 0
+        },
+        {
+          "case": 2,
+          "pid": 3276126,
+          "exit_code": 0
+        },
+        {
+          "case": 3,
+          "pid": 3276127,
+          "exit_code": 0
+        },
+        {
+          "case": 4,
+          "pid": 3276128,
+          "exit_code": 0
+        },
+        {
+          "case": 5,
+          "pid": 3276129,
+          "exit_code": 0
+        },
+        {
+          "case": 6,
+          "pid": 3276130,
+          "exit_code": 0
+        },
+        {
+          "case": 7,
+          "pid": 3276131,
+          "exit_code": 0
+        }
+      ],
+      "observed_databases": 16,
+      "changed_sources": [],
+      "changed_executables": [],
+      "sampling_seconds": 0.1
+    },
+    "timing_observation": {
+      "observed_actions": 16,
+      "measured_finished": 15,
+      "min_seconds": 0.4309999999999974,
+      "max_seconds": 0.6519999999999992
+    },
+    "matrix": {
+      "entries": 105,
+      "passed": 1555,
+      "failed": 0,
+      "ignored": 1,
+      "doc_passed": 5,
+      "packages": {
+        "nofy-agent-host": {
+          "entries": 7,
+          "passed": 222,
+          "ignored": 0
+        },
+        "nofy-agent-runtime": {
+          "entries": 45,
+          "passed": 377,
+          "ignored": 0
+        },
+        "nofy-agent-executors": {
+          "entries": 3,
+          "passed": 18,
+          "ignored": 0
+        },
+        "nofy-agent-models": {
+          "entries": 3,
+          "passed": 32,
+          "ignored": 0
+        },
+        "nofy-agent-modules": {
+          "entries": 4,
+          "passed": 41,
+          "ignored": 0
+        },
+        "nofy-compaction": {
+          "entries": 2,
+          "passed": 147,
+          "ignored": 0
+        },
+        "nofy-goal": {
+          "entries": 1,
+          "passed": 120,
+          "ignored": 0
+        },
+        "nofy-interjection-core": {
+          "entries": 1,
+          "passed": 14,
+          "ignored": 0
+        },
+        "nofy-memory": {
+          "entries": 19,
+          "passed": 322,
+          "ignored": 1
+        },
+        "nofy-memory-types": {
+          "entries": 1,
+          "passed": 0,
+          "ignored": 0
+        },
+        "nofy-packcore": {
+          "entries": 1,
+          "passed": 6,
+          "ignored": 0
+        },
+        "nofy-sqlite-journal": {
+          "entries": 1,
+          "passed": 19,
+          "ignored": 0
+        },
+        "nofy-test-support": {
+          "entries": 2,
+          "passed": 3,
+          "ignored": 0
+        },
+        "nofy-token-estimation": {
+          "entries": 1,
+          "passed": 16,
+          "ignored": 0
+        },
+        "nofy-tool-protocol": {
+          "entries": 3,
+          "passed": 14,
+          "ignored": 0
+        },
+        "nofy-tool-runtime": {
+          "entries": 9,
+          "passed": 105,
+          "ignored": 0
+        },
+        "nofy-tool-types": {
+          "entries": 1,
+          "passed": 58,
+          "ignored": 0
+        },
+        "nofy-tty-utils": {
+          "entries": 1,
+          "passed": 41,
+          "ignored": 0
+        }
+      }
+    },
+    "http": {
+      "name": "matrix-000-nofy-agent-host-http",
+      "exit_code": 0,
+      "seconds": 603.071
+    },
+    "process_tree": {
+      "name": "matrix-006-nofy-agent-host-process_tree",
+      "exit_code": 0,
+      "seconds": 203.442
+    },
+    "strict_docs": {
+      "name": "strict-docs",
+      "exit_code": 0,
+      "seconds": 17.501
+    },
+    "boundaries": {
+      "name": "boundaries",
+      "exit_code": 0,
+      "seconds": 2.677
+    },
+    "doctests": {
+      "name": "doctests",
+      "exit_code": 0,
+      "seconds": 26.498
+    },
+    "outside_workspace_sdk": {
+      "agents": [
+        "business",
+        "research-pack",
+        "standalone-coding"
+      ],
+      "configuration": true,
+      "declarative_system": true,
+      "delegation": true,
+      "event_program": true,
+      "file_catalog": true,
+      "parallel": true,
+      "program": true,
+      "recipe": true,
+      "status": "passed",
+      "workflow": true,
+      "workflow_hook": true,
+      "workflow_module": true,
+      "outside_workspace": true,
+      "dependency_boundary": "passed"
+    },
+    "source_frozen": {
+      "checked": 623,
+      "changed": []
+    },
+    "executable_frozen": {
+      "checked": 109,
+      "changed": []
+    },
+    "runner": "105 precompiled all-feature workspace executables, each in its package directory, RUST_MIN_STACK=16777216, default harness concurrency; separate Cargo doctests.",
+    "matrix_failed_attempts": 0
+  },
+  "diagnostic_failures_retained": [
+    "Initial private PC sampler compile failure; corrected privately.",
+    "Manual after-benchmark linked inconsistent Tokio instances; standard outside-workspace Cargo build then passed."
+  ],
+  "microbenchmark": {
+    "host_100_clones_milliseconds": [
+      88.641,
+      0.144
+    ],
+    "control_100_clones_milliseconds": [
+      37.539,
+      0.003
+    ],
+    "limitation": "Different linkage methods; supporting evidence only, not a performance guarantee."
+  },
+  "not_repeated": [
+    "historical source archive and Python tests",
+    "real upstream model validation"
+  ],
+  "external_model_calls": 0,
+  "new_dependency_installs": 0,
+  "commits": 0,
+  "pushes": 0,
+  "open_items": [
+    "full live permissions, budget, context, ToolSource and Memory transitions",
+    "memory domain responsibility audit",
+    "new console",
+    "multiple version-locked reference behavior presets",
+    "CI and release",
+    "unknown cleanup kernel error injection"
+  ],
+  "final_index": {
+    "seconds": 11.9,
+    "files": 683,
+    "nodes": 13442,
+    "edges": 35269,
+    "communities": 613,
+    "processes": 300,
+    "embeddings": 0,
+    "actual_graph_file_node_counts_verified": true,
+    "agents_change": "statistics line only"
+  },
+  "final_scope_audit": {
+    "scope": "all cumulative uncommitted changes",
+    "changed_files": 10767,
+    "changed_symbols": 2566,
+    "affected_processes": 196,
+    "risk": "CRITICAL",
+    "reported": true,
+    "stage_production_files": 2,
+    "commit_or_push": false
+  }
+}

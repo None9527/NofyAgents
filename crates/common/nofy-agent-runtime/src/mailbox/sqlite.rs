@@ -115,6 +115,7 @@ impl MailboxSender for SqliteStore {
         let digest = envelope.fingerprint()?;
         let address = envelope.address.key()?;
         let payload = serde_json::to_string(&envelope).map_err(db_error)?;
+        let clock = self.clock.clone();
         self.transaction(move |tx| {
             // Existing receipts remain inspectable/idempotent after a newer turn
             // starts, but no new input may target the superseded run.
@@ -138,7 +139,7 @@ impl MailboxSender for SqliteStore {
             }
             tx.execute("INSERT INTO agent_runtime_mailbox(address,input_id,digest,payload,status) VALUES(?1,?2,?3,?4,'pending')", params![address,envelope.input_id,digest,payload]).map_err(db_error)?;
             let sequence=u64::try_from(tx.last_insert_rowid()).map_err(db_error)?;
-            crate::supervisor::jobs::enqueue_next_turn(tx,&envelope,sequence,&digest)?;
+            crate::supervisor::jobs::enqueue_next_turn(tx,&envelope,sequence,&digest,clock.now_ms())?;
             Ok(MailDelivery { sequence, digest, envelope, status: InputStatus::Pending, reason: None })
         }).await
     }
@@ -204,7 +205,7 @@ impl MailboxSender for SqliteStore {
 #[async_trait::async_trait]
 impl InputInbox for GuardedCheckpointer {
     fn identity(&self) -> String {
-        format!("sqlite-mailbox-v1:{}", self.store.path().display())
+        format!("sqlite-mailbox-v1:{}", self.store.logical_identity())
     }
     fn is_durable(&self) -> bool {
         true

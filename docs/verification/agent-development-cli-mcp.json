@@ -1,0 +1,346 @@
+{
+  "format": "nofy.cli-mcp-verification/v1",
+  "date": "2026-11-04",
+  "state": "implemented-and-accepted",
+  "contract_revision": "0.3",
+  "operations": 68,
+  "mcp_tools": 66,
+  "session_operations": 17,
+  "http_method_paths": 110,
+  "crates": 22,
+  "rust_new_behavior_cases": {
+    "source_project": 8,
+    "client_protocol": 5,
+    "cli_mcp_integration": 3
+  },
+  "coding_preset_regression": 53,
+  "real_output_contracts_checked": 51,
+  "actual_codex": {
+    "version": "0.166.0",
+    "client": "app-server MCP over stdio",
+    "model_turns_in_codex": 0,
+    "distinct_tools_called": 22,
+    "tools": [
+      "nofy_agent_apply",
+      "nofy_agent_build",
+      "nofy_agent_create",
+      "nofy_agent_export",
+      "nofy_agent_module_add",
+      "nofy_agent_module_set",
+      "nofy_agent_plan",
+      "nofy_budget_list",
+      "nofy_describe",
+      "nofy_project_pack",
+      "nofy_run_events",
+      "nofy_run_inspect",
+      "nofy_schema",
+      "nofy_session_binding",
+      "nofy_session_close",
+      "nofy_session_inspect",
+      "nofy_session_reconfigure",
+      "nofy_session_reopen",
+      "nofy_session_start",
+      "nofy_session_turn",
+      "nofy_system_publish",
+      "nofy_system_validate"
+    ],
+    "user_config_unchanged": true
+  },
+  "real_model": {
+    "endpoint": "http://www.none.xz.cn:3002/v1",
+    "requested_model": "gemini-3.8-flash-high",
+    "reported_models": [
+      "gemini-3.8-flash-n",
+      "gemini-3.8-flash-n"
+    ],
+    "mapping_confirmed": false,
+    "requested_model_was_not_substituted": true,
+    "user_context_config_tokens": 262144,
+    "full_context_stress_test": false,
+    "outputs": [
+      "SES-77b2fd38c9c6 42",
+      "SES-77b2fd38c9c6 42"
+    ],
+    "business_model_calls_final_run": 3,
+    "tool_calls_final_run": 1
+  },
+  "session_continuity": {
+    "hard_exit_after_first_completed_run": true,
+    "original_start_replayed_without_redispatch": true,
+    "policy_reconfigured_while_closed": true,
+    "policy_revision": "1",
+    "same_spec": true,
+    "same_created_at": true,
+    "same_deadline": true,
+    "usage_before": {
+      "steps": 2,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "child_calls": 0,
+      "input_tokens": 328,
+      "output_tokens": 180
+    },
+    "usage_after": {
+      "steps": 3,
+      "model_calls": 3,
+      "tool_calls": 1,
+      "child_calls": 0,
+      "input_tokens": 649,
+      "output_tokens": 263
+    }
+  },
+  "source_archive": {
+    "bytes": 7138,
+    "sha256": "92e31eb9ee040a1546fc1ecae290b625699fa18b1e1181d42e7d3ab7ef8ba932",
+    "chunked_through_actual_codex": true
+  },
+  "evidence": "/tmp/nofy-cli-mcp-implementation.ah5qy4es",
+  "real_evidence": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/codex-real",
+  "activation": {
+    "state": "activated",
+    "old_pid": 3738776,
+    "new_pid": 3842064,
+    "endpoint": "http://127.0.0.1:7331",
+    "state_backup": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/resident-state-before",
+    "old_executable_backup": "/tmp/nofy-session-implementation.xmv9h9ie/resident-before",
+    "catalog_unchanged": true,
+    "runtime_identity_unchanged": true,
+    "session_operations": 17,
+    "preset_ids": [
+      "coding"
+    ],
+    "projects": 0,
+    "argv": [
+      "/home/none/nofy-build/target/debug/nofy-agent-host",
+      "--state-dir",
+      "/home/none/.local/state/nofy-build/kernel",
+      "--access-file",
+      "/home/none/.local/state/nofy-build/access.json",
+      "--console-dir",
+      "/home/none/nofy-build/console",
+      "--listen",
+      "127.0.0.1:7331",
+      "--credential-authority",
+      "nofy-build-local",
+      "--preset-dir",
+      "/home/none/nofy-build/presets"
+    ],
+    "global_cli": "/home/none/.local/bin/nofy",
+    "global_cli_sha256": "04235188d9eb958016328b09b6ba890fd1e9a29f9f236f49d30386a9c0be3e26",
+    "cli_source_sha256": "04235188d9eb958016328b09b6ba890fd1e9a29f9f236f49d30386a9c0be3e26",
+    "client_config": "/home/none/.config/nofy/config.toml",
+    "client_config_contains_secret_values": false,
+    "host_source_sha256": "5b9767724a0c01605d526312146b5d598fa990a0189c7ba315df54143faaf354",
+    "final_payload_checks_applied": true
+  },
+  "scope_boundaries": [
+    "frontend paused; source files unchanged from pre-Session stage",
+    "pi reproduction is not delivered by the coding template or this CLI/MCP stage",
+    "official SDK HTTP transport acceptance uses controlled fixtures; actual Codex acceptance uses stdio",
+    "source packaging never checks language syntax or installed external dependencies",
+    "not every native HTTP route is a standalone CLI/MCP operation; the registered 68-operation contract defines this release"
+  ],
+  "failures_and_repairs": [
+    "Initial host stream error type inference fixed before binary build.",
+    "Joint fixture supplied required Session rules, accepted an absent unpublished catalog and used the existing complete SSE/usage fixture.",
+    "Real-client runner first hit its own 64KiB line buffer; Codex had initialized the server. The runner buffer was raised without changing MCP source quotas.",
+    "Actual run inspection exposed missing initial live revision; client now projects native revision zero while leaving live=null in native_json.",
+    "Interrupted real attempt was preserved with its original expired five-minute budget. Fresh isolated final acceptance declared one hour from creation, rather than resetting original usage.",
+    "Client config flag was separated from module config JSON; tests now isolate their connection profile.",
+    "Read-only template loading avoids creating sidecars, and source archives preserve invalid module payloads as bytes."
+  ],
+  "documentation_checks": {
+    "counts": {
+      "json": 3,
+      "schemas": 136,
+      "markdown_links": 74,
+      "shell_blocks": 27,
+      "toml_blocks": 4,
+      "json_blocks": 9,
+      "cli_help": 68
+    },
+    "frontend_files_checked": 15,
+    "deliverable_files_secret_checked": 40,
+    "errors": []
+  },
+  "final_batches": {
+    "matrix-source-flags.json": [
+      {
+        "name": "cli-source-flags",
+        "exit_code": 0,
+        "seconds": 12.12,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-source-flags.log"
+      },
+      {
+        "name": "build-source-flags",
+        "exit_code": 0,
+        "seconds": 7.31,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-source-flags.log"
+      }
+    ],
+    "matrix-byte-payload.json": [
+      {
+        "name": "byte-payload",
+        "exit_code": 0,
+        "seconds": 4.39,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/byte-payload.log"
+      },
+      {
+        "name": "build-byte-payload",
+        "exit_code": 0,
+        "seconds": 10.26,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-byte-payload.log"
+      }
+    ],
+    "matrix-deployed.json": [
+      {
+        "name": "profile-template",
+        "exit_code": 0,
+        "seconds": 25.13,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/profile-template.log"
+      },
+      {
+        "name": "build-deployed",
+        "exit_code": 0,
+        "seconds": 11.17,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-deployed.log"
+      }
+    ],
+    "matrix-cli-config-isolation.json": {
+      "exit_code": 101,
+      "seconds": 13.91,
+      "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-config-isolation.log"
+    },
+    "matrix-version.json": [
+      {
+        "name": "initial-version",
+        "exit_code": 0,
+        "seconds": 4.03,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/initial-version.log"
+      },
+      {
+        "name": "build-version",
+        "exit_code": 0,
+        "seconds": 5.62,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-version.log"
+      }
+    ],
+    "matrix-closeout.json": [
+      {
+        "name": "client-cursors",
+        "exit_code": 0,
+        "seconds": 6.91,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/client-cursors.log"
+      },
+      {
+        "name": "cli-joint-contract",
+        "exit_code": 0,
+        "seconds": 19.01,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-joint-contract.log"
+      },
+      {
+        "name": "build-final",
+        "exit_code": 0,
+        "seconds": 25.0,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-final.log"
+      }
+    ],
+    "matrix-cli-joint-usage.json": {
+      "exit_code": 0,
+      "seconds": 14.09,
+      "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-joint-usage-followup.log"
+    },
+    "matrix-cli-joint.json": {
+      "exit_code": 101,
+      "seconds": 25.9,
+      "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-joint-followup.log"
+    },
+    "matrix-followup.json": [
+      {
+        "name": "project-cli",
+        "exit_code": 101,
+        "seconds": 41.96,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/project-cli-followup.log"
+      }
+    ],
+    "matrix-second.json": [
+      {
+        "name": "build",
+        "exit_code": 0,
+        "seconds": 31.3,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-second.log"
+      },
+      {
+        "name": "project",
+        "exit_code": 0,
+        "seconds": 26.49,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/project-second.log"
+      },
+      {
+        "name": "client",
+        "exit_code": 0,
+        "seconds": 74.57,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/client-second.log"
+      },
+      {
+        "name": "mcp",
+        "exit_code": 0,
+        "seconds": 76.84,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/mcp-second.log"
+      },
+      {
+        "name": "cli",
+        "exit_code": 101,
+        "seconds": 167.72,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/cli-second.log"
+      }
+    ],
+    "matrix-first.json": [
+      {
+        "name": "build",
+        "exit_code": 101,
+        "seconds": 137.02,
+        "log": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/build-first.log"
+      }
+    ],
+    "matrix-first-source.json": {
+      "crates/common/nofy-agent-project/文件说明.md": "69bf9ef0aa1eb9dfe92d27844dcb76de9f96efc5cb29e52837501bcb00a756f4",
+      "crates/common/nofy-agent-project/Cargo.toml": "92f6ee24d0fd1581388364087e2790ba550b71f2b1a779e5c1bdd60d8c9c39e4",
+      "crates/common/nofy-agent-project/tests/source.rs": "d5d1bc36c3b8f95aec37779b36be663beac835adc3c7e2790f0caaf6ba2a03cc",
+      "crates/common/nofy-agent-project/src/store.rs": "4dcdaf773c769d03f30f1fb987d0ffdd5f17e831c45d45ec43c96b076531ec26",
+      "crates/common/nofy-agent-project/src/files.rs": "bfff4696f3f74aa18a465f2d14fe1096e40b2e394d13699fd259fd14351e1296",
+      "crates/common/nofy-agent-project/src/codec.rs": "891a3e4a306820b4cd22383abd8d0e505a6cb5c3b2828897f1f6b572b1d5181c",
+      "crates/common/nofy-agent-project/src/lib.rs": "a8d9402aed51b2f049406d34f69a74d46043c7946804e1c567ddb4028a4abcdb",
+      "crates/common/nofy-agent-project/src/edit.rs": "7965d274812dd49f98edc3d5575ce67c91e22438352e2d5de6af6d8f5ae94277",
+      "crates/common/nofy-agent-project/src/render.rs": "93e77af1ea199f0eeed477abd3149c089a25108abf133b5bb02cf26722993a59",
+      "crates/common/nofy-agent-client/文件说明.md": "59f49a659a43aea8af7765ee569b8cfa1d6fa4c86961ed3cb83f8d3dd5f0a7e0",
+      "crates/common/nofy-agent-client/Cargo.toml": "8b8abef389aac71f3a929f98c490be76e7474e614e4e5300abc13b4df30285d2",
+      "crates/common/nofy-agent-client/contracts/contracts.schema.json": "15aa25b914c509974ce0f9773368d2198bb3e275edff5db6146124935e8ea95e",
+      "crates/common/nofy-agent-client/contracts/operations.json": "afb0f7cd45e5e0b093ffdc23b4aae44db99d72172409902fbe790c9eb4935b95",
+      "crates/common/nofy-agent-client/tests/protocol.rs": "cd0570f503514bbc902d452dfb7c0edc007be1645c605460ae27b05df22715f6",
+      "crates/common/nofy-agent-client/src/contract.rs": "25f6b18b46d717df6f88219664601abbb8cc3321b2d7103b02b8e5df6ae6c65a",
+      "crates/common/nofy-agent-client/src/lib.rs": "c3af6792622624931373313fc7ae634947e2c73a2535b546742de3ef3551c85f",
+      "crates/common/nofy-agent-client/src/projects.rs": "ff9656b585fb699c7e5573be7e1709dc4361ec2ac5ee65e04028f877051afec6",
+      "crates/common/nofy-agent-client/src/transport.rs": "abb215d83dd617ff4cc33de3a0a2f61ed0495b521ff8001102b872eb2ff1ac9a",
+      "crates/common/nofy-agent-client/src/operations.rs": "5e62c4d872ff2c6b6ac827b9d03e6fe8be6cd5b686205a996970726377b24598",
+      "crates/common/nofy-agent-mcp/文件说明.md": "1b09180ae3f721a7ada20f5de8af3f06966cb4c5c788ee131e8a37075071d94d",
+      "crates/common/nofy-agent-mcp/Cargo.toml": "2e2ebfe1ababaf4a5c7c42a1c6187d63414e1218de507e0d710baffe18971fba",
+      "crates/common/nofy-agent-mcp/src/lib.rs": "0690cd64efe12224831c01431da5107a622c259d4fac025cf991b2983822bff6",
+      "crates/common/nofy-cli/文件说明.md": "ceb7b0ef75193195cc5c0592bb3e60449d41fd169c611c0f16dfa083de571019",
+      "crates/common/nofy-cli/Cargo.toml": "88cd788789a79033f7d796ee008a8f33a0469933dfb1855ebeb0bf7325806c3c",
+      "crates/common/nofy-cli/tests/development.rs": "da64742a8a5d61a6aa1fd67d2d5622ef4144554cba3110e8effd46f17399ef60",
+      "crates/common/nofy-cli/src/input.rs": "3c969faaada2343d51f5ffbeb189785f9a6c53081e6422d6c2b91d78deafd1e0",
+      "crates/common/nofy-cli/src/config.rs": "e48499c41deed50491ac84b1efc2dba2fefb07f05b76b47246339397c9ac6cb7",
+      "crates/common/nofy-cli/src/command.rs": "1e458697d46741ea35d76496837fdc9668f1050cc5bbc4d8171198257e26ec90",
+      "crates/common/nofy-cli/src/main.rs": "0687daedbf5866fdae2a1b504cd8c03295235f846f877169d2470da30b5f48b5",
+      "crates/common/nofy-cli/src/output.rs": "e12b2fafba3a66614b2b4c436acf90887ba775188468a64e6c5156dd36f19cdb"
+    }
+  },
+  "source_flag_case": "Different module IDs that normalize to the same readable path keep distinct source payloads.",
+  "source_snapshot": "/tmp/nofy-cli-mcp-implementation.ah5qy4es/source-final.json",
+  "source_files_frozen": 30,
+  "binaries": {
+    "nofy": "04235188d9eb958016328b09b6ba890fd1e9a29f9f236f49d30386a9c0be3e26",
+    "nofy-agent-host": "5b9767724a0c01605d526312146b5d598fa990a0189c7ba315df54143faaf354"
+  }
+}

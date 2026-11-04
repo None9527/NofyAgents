@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-05",
+  "scope": "source publication without frontend",
+  "workspace_crates": 22,
+  "rust_unit_and_integration_tests_passed": 108,
+  "test_breakdown": {
+    "agent_development_cli_mcp": 16,
+    "host_library": 86,
+    "selected_host_http": 6
+  },
+  "coding_python_tests_passed": 53,
+  "cargo_fmt": "passed",
+  "workspace_all_features_all_targets_check": "passed",
+  "dependency_boundaries": "passed",
+  "known_credential_scan": "passed",
+  "rust_test_failures": 0,
+  "rust_tests_ignored": 0,
+  "full_workspace_runtime_tests_repeated": false,
+  "real_model_requests_this_publication": 0,
+  "frontend_removed": true,
+  "frontend_static_host_removed": true,
+  "frontend_option_removed": "--console-dir",
+  "pi_and_all_module_matrix": "paused, incomplete",
+  "changes_in_operation_catalog": "annotations only; input/output schemas and operation identities unchanged"
+}

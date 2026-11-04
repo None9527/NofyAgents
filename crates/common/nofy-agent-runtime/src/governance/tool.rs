@@ -58,7 +58,7 @@ where
     Ok(result)
 }
 
-fn fingerprint(
+pub(crate) fn fingerprint(
     dispatch: &dyn ToolDispatch,
     call: &ToolCall,
     revision: &str,

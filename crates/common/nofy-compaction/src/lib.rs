@@ -45,12 +45,12 @@ pub mod intra_compaction;
 pub mod item;
 pub mod prompt;
 pub mod reminder;
+#[cfg(feature = "agent-runtime")]
+pub mod runtime;
 pub mod sampler;
 pub mod select;
 pub mod steps;
 pub mod token;
-#[cfg(feature = "agent-runtime")]
-pub mod runtime;
 
 /// Shared code default for the dedicated compaction model name.
 ///

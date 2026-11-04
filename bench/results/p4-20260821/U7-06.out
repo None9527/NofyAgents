@@ -1,3 +1,0 @@
-已完成:`src/calc.py` 末尾添加了一行注释 `# audit-probe`。
-
-补充:`pytest -q` 结果 1 failed / 3 passed,但失败的是 `test_sqrt_safe_negative`(`sqrt_safe(-1)` 抛出 ValueError),这是文件中已标注的既有 BUG(代码注释 `# BUG: does not guard negative input`),与本次仅添加注释无关,并非本次改动引入。

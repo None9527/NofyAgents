@@ -1,0 +1,18 @@
+{
+  "type":"object", "additionalProperties":false,
+  "required":["workspace","connection","model"],
+  "properties":{
+    "workspace":{"type":"string","maxLength":4096},
+    "connection":{"type":"object","description":"Native model connection; credentials are references, never literal headers"},
+    "model":{"type":"string","maxLength":256},
+    "profile":{"type":"string","enum":["chat_completions","responses","messages"],"default":"chat_completions"},
+    "system_name":{"type":"string","maxLength":128,"default":"coding"},
+    "terminal_enabled":{"type":"boolean","default":true},
+    "environment":{"type":"object","description":"User-provisioned resource.process_local configuration; no dependency installation or content lock"},
+    "command_environment":{"type":"object","description":"Optional separate local environment for enabled commands"},
+    "process_tree":{"type":"object","description":"Explicit resource.process_tree_limits configuration, required when command execution is enabled"},
+    "max_steps":{"type":"integer","minimum":1,"maximum":4096,"default":64},
+    "model_settings":{"type":"object","default":{"stream":true,"max_output_tokens":4096}},
+    "budget":{"type":"object","default":{"max_model_calls":64,"max_tool_calls":128,"max_child_calls":16,"max_depth":4,"max_duration_ms":3600000}}
+  }
+}

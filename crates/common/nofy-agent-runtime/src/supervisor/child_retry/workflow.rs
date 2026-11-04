@@ -120,7 +120,7 @@ pub(super) async fn graph_route(
         (NodeProgress::Waiting { attempt, .. }, None) => {
             (attempt, true, mode == RecoveryMode::Model)
         }
-        (NodeProgress::Running { attempt, .. }, None) if mode == RecoveryMode::Cancel => {
+        (NodeProgress::Running { attempt, .. }, None) if mode != RecoveryMode::Model => {
             (attempt, true, false)
         }
         _ => {

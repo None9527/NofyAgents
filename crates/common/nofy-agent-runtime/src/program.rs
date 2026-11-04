@@ -205,6 +205,14 @@ impl RunSnapshot {
 pub(crate) struct ExecutionPlan {
     pub agent: Agent,
     pub snapshot: RunSnapshot,
+    pub live: Option<LivePlan>,
+}
+#[cfg(feature = "sqlite")]
+pub(crate) struct LivePlan {
+    pub revision: u64,
+    pub command_id: String,
+    pub agent: Agent,
+    pub snapshot: RunSnapshot,
 }
 #[cfg(feature = "sqlite")]
 impl ExecutionPlan {
@@ -212,13 +220,28 @@ impl ExecutionPlan {
         Self {
             agent: compiled.agent.clone(),
             snapshot: RunSnapshot::Agent(compiled.snapshot.clone()),
+            live: None,
         }
     }
     pub fn program(compiled: &CompiledProgram) -> Self {
         Self {
             agent: compiled.agent.clone(),
             snapshot: RunSnapshot::Program(compiled.snapshot.clone()),
+            live: None,
         }
+    }
+    pub fn runtime_agent(&self) -> &Agent {
+        self.live.as_ref().map_or(&self.agent, |live| &live.agent)
+    }
+    pub fn effective_snapshot(&self) -> &RunSnapshot {
+        self.live
+            .as_ref()
+            .map_or(&self.snapshot, |live| &live.snapshot)
+    }
+    pub fn live_identity(&self) -> Option<(u64, String)> {
+        self.live
+            .as_ref()
+            .map(|live| (live.revision, live.command_id.clone()))
     }
 }
 #[derive(Clone)]

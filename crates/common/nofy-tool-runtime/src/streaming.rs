@@ -1,6 +1,6 @@
 //! Canonical partial-result streaming contract shared by every streaming tool.
 //!
-//! A tool declares a [`StreamingSpec`] in its [`ToolCapabilities`] and emits
+//! A tool declares a [`StreamingSpec`] in its [`crate::ToolCapabilities`] and emits
 //! deltas from `execute` via [`stream_chunk`], which materializes the spec into
 //! a [`PartialResultPayload`] carried by [`ToolProgress::Custom`]. Downstream
 //! layers dispatch on the envelope's `subkind` rather than on the tool's
@@ -14,7 +14,7 @@ use crate::tool::ToolProgress;
 /// Per-frame `delta` byte cap used when [`StreamingSpec::max_delta_bytes`] is
 /// unset. Guards against a single oversized tick flooding the harness in one
 /// frame. Deliberately independent of `ToolCapabilities::max_frame_bytes`,
-/// which caps whole frames (16 MiB ceiling), not deltas.
+/// which declares a whole-frame budget for the execution transport.
 const DEFAULT_MAX_DELTA_BYTES: usize = 16 * 1024;
 
 /// Canonical payload carried by a streaming tool's [`ToolProgress::Custom`].

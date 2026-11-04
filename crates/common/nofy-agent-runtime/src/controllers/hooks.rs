@@ -17,17 +17,7 @@ pub(crate) fn parent_pending(state: &RunState, route: &HookRoute) -> bool {
 }
 
 pub(crate) fn parent_fingerprint(state: &RunState, event: &HookEvent) -> Result<String, Error> {
-    let operation = event_operation(event)?;
-    let mut state = state.clone();
-    state.control_sequence = 0;
-    state.hook_progress.facts.retain(|fact| {
-        !matches!(fact.name.as_str(), "turn_error" | "turn_cancelled")
-            || fact.operation == operation
-    });
-    Ok(format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(&state).map_err(|e| Error::Checkpoint(e.to_string()))?)
-    ))
+    crate::hooks::primitive::parent_fingerprint(state, event)
 }
 fn event_operation(event: &HookEvent) -> Result<String, Error> {
     let (_, _, _, _, operation): (String, String, crate::registry::ModuleRef, String, String) =

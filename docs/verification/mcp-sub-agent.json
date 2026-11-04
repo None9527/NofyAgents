@@ -1,0 +1,60 @@
+{
+  "status": "passed",
+  "completed_at": "2026-11-04T15:33:38.820933+00:00",
+  "executing_sub_agent": "/root/mcp_agent_trial",
+  "transport": "sub agent uses standard stdio MCP tools/call; its inherited tool catalog did not hot-load Nofy",
+  "mcp_protocol": "2025-11-25",
+  "discovered_tools": 66,
+  "mcp_business_calls": 28,
+  "mcp_tools_called": [
+    "nofy_agent_apply",
+    "nofy_agent_build",
+    "nofy_agent_create",
+    "nofy_agent_export",
+    "nofy_agent_module_add",
+    "nofy_agent_plan",
+    "nofy_budget_list",
+    "nofy_project_pack",
+    "nofy_run_events",
+    "nofy_run_inspect",
+    "nofy_schema",
+    "nofy_session_inspect",
+    "nofy_session_start",
+    "nofy_system_validate"
+  ],
+  "configured_model": "gemini-3.8-flash-high",
+  "observed_models": [
+    "gemini-3.8-flash-n"
+  ],
+  "alias_difference": "preserved without substitution",
+  "agent": "mcp-sub-agent",
+  "source_revision": "10",
+  "release": "0e93cb3d32e3bda09bc4ceaeb80216cd6c415013eaeda2167468d5bb8047f750",
+  "generation": "1",
+  "session_id": "mcp-sub-session-20261104",
+  "run_id": "mcp-sub-run-20261104",
+  "execution_status": "completed",
+  "tool": {
+    "name": "double",
+    "arguments": {
+      "value": 21
+    },
+    "result": {
+      "result": 42
+    },
+    "is_error": false
+  },
+  "output": "SUB-cb1d7d541db3 42",
+  "budget_used": {
+    "steps": 2,
+    "model_calls": 2,
+    "tool_calls": 1,
+    "child_calls": 0,
+    "input_tokens": 368,
+    "output_tokens": 108
+  },
+  "archive_bytes": 7300,
+  "archive_sha256": "ac78ce20123609f97d6a05f8e79943d618d62960ca177520be25bfa09bf2068f",
+  "archive_roundtrip_matches_source": true,
+  "archive_files": 6
+}

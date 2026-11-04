@@ -14,7 +14,7 @@ and concrete coding tools. Only public library APIs are used.
 
 The configured consumer also registers a pure stage through `stage.literal`, binds it with `runtime.recipe`, and checks the applied stage data through the public API. The document controls the placement and order; model/tool validation and policy admission remain mandatory.
 
-The configured workflow fixture uses the public WorkflowDocument compiler and frozen restore, runs a model-free lookup Tool node, joins selected output fields, and resumes the completed graph. The workflow feature reuses the existing orchestra DAG and Rhai dependency; the default runtime dependency boundary is checked separately.
+The configured workflow fixture uses the public WorkflowDocument compiler and frozen restore, runs a model-free lookup Tool node, joins selected output fields, and resumes the completed graph. The workflow feature selects the runtime's private DAG implementation; it has no separate Rhai workflow engine or Orchestra product dependency. Both default and all-feature dependency boundaries are checked separately.
 
 The published workflow library is also consumed through tool.workflow and hook.workflow factories. A configured before_model Hook invokes a workflow that returns a typed Continue decision; all handles are installed by the external host and JSON selects only published versions.
 

@@ -1,12 +1,13 @@
 use clap::Parser;
+use nofy_agent_host::loader::deployment::DeploymentFile;
 use nofy_agent_host::{
     KernelHost,
     auth::{AccessKeyReference, Authorizer},
     credentials::FileCredentials,
     native,
 };
-use nofy_agent_runtime::{control::ApplyCommand, system::SystemFile};
-use nofy_sampler::agent_model::declarative::EnvironmentCredentials;
+use nofy_agent_runtime::control::ApplyCommand;
+use nofy_agent_runtime::credentials::EnvironmentCredentials;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
@@ -29,9 +30,28 @@ struct Args {
     /// Import/apply a source or locked system before listening.
     #[arg(long)]
     system_file: Option<PathBuf>,
+    /// Independent trusted source grants; never obtained from a deployment.
+    #[arg(long)]
+    source_policy_file: Option<PathBuf>,
+    /// External versioned source-template registry, containing index.json.
+    #[arg(long)]
+    preset_dir: Option<PathBuf>,
 }
-#[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "linux")]
+    if let Some(code) = nofy_agent_host::loader::process_tree::worker_entry() {
+        std::process::exit(code);
+    }
+    if let Some(code) = nofy_agent_host::loader::isolation::worker_entry() {
+        std::process::exit(code);
+    }
+    tokio::runtime::Builder::new_multi_thread()
+        .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
+        .enable_all()
+        .build()?
+        .block_on(run())
+}
+async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let access: Vec<AccessKeyReference> =
         serde_json::from_slice(&tokio::fs::read(args.access_file).await?)?;
@@ -48,9 +68,19 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let registry = native::registry(credentials.clone())?;
     let host = KernelHost::open(&args.state_dir, registry, auth)
         .await?
-        .with_credentials(credentials);
+        .with_credentials(credentials)
+        .with_loader_helper(&std::env::current_exe()?)?;
+    let host = match args.preset_dir {
+        Some(directory) => host.with_templates(&directory)?,
+        None => host,
+    };
+    if let Some(path) = args.source_policy_file {
+        let sources = host.loader().sources.clone();
+        tokio::task::spawn_blocking(move || sources.bootstrap_file(&path)).await??;
+    }
     if let Some(path) = args.system_file {
-        let file = SystemFile::from_json(&tokio::fs::read(path).await?)?;
+        let deployment = tokio::task::spawn_blocking(move || DeploymentFile::read(&path)).await??;
+        let file = host.loader().prepare_deployment(deployment, true).await?;
         let publication = host.control().install_file(file).await?;
         let bundle = publication.bundle;
         let current = host

@@ -68,6 +68,7 @@ impl RunState {
             || self.recipe_progress.pending.is_some()
             || self.hook_progress.pending_input.is_some()
             || self.hook_progress.prepared_model.is_some()
+            || self.hook_progress.prepared_sources.is_some()
             || self.context_progress.pending.is_some()
             || self.input_progress.pending.is_some()
             || self.input_progress.unacknowledged.is_some()

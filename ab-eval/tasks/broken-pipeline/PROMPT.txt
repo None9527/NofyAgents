@@ -1,5 +1,0 @@
-This project is a small CSV report pipeline: `run_pipeline.sh` should
-normalize data.csv and produce report.txt. It is currently broken in
-several places. Fix it until `bash run_pipeline.sh` succeeds and
-report.txt contains the expected output described in EXPECTED.md.
-Verify by running the pipeline before finishing.

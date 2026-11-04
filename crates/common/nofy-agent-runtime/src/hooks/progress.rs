@@ -12,6 +12,10 @@ pub struct HookProgress {
     pub pending_input: Option<Message>,
     pub prepared_tool: Option<PreparedTool>,
     pub prepared_model: Option<PreparedModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepared_sources: Option<PreparedSources>,
+    #[serde(default, skip_serializing_if = "zero")]
+    pub source_sequence: u64,
     pub facts: VecDeque<HookFact>,
     pub stop_done: bool,
     pub stop_attempts: u32,
@@ -28,12 +32,35 @@ impl HookProgress {
             && self.pending_input.is_none()
             && self.prepared_tool.is_none()
             && self.prepared_model.is_none()
+            && self.prepared_sources.is_none()
+            && self.source_sequence == 0
             && self.facts.is_empty()
             && !self.stop_done
             && self.stop_attempts == 0
             && self.input_start_index.is_none()
             && self.synthetic_inputs.is_empty()
     }
+}
+fn zero(value: &u64) -> bool {
+    *value == 0
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreparedSources {
+    pub protocol: String,
+    pub revisions: Vec<Option<String>>,
+    pub input_digest: String,
+    pub next: usize,
+    pub messages: Vec<Message>,
+    pub pending: Option<PreparedSource>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreparedSource {
+    pub index: usize,
+    pub plan: Value,
+    pub scope: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreparedTool {

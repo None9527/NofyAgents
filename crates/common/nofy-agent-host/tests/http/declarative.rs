@@ -12,7 +12,7 @@ fn config<'a>(value: &'a mut Value, name: &str) -> &'a mut Value {
 fn source(service: &str, provider: &str) -> Value {
     let mut value: Value =
         serde_json::from_str(include_str!("../../examples/http-system.json")).unwrap();
-    config(&mut value, "provider")["connection"]["base_url"] = json!(format!("{provider}/v1"));
+    config(&mut value, "provider")["base_url"] = json!(format!("{provider}/v1/"));
     config(&mut value, "provider")["models"] = json!(["test-model"]);
     config(&mut value, "model")["model"] = json!("test-model");
     config(&mut value, "service")["base_url"] = json!(format!("{service}/api/"));
@@ -81,7 +81,9 @@ async fn system_file_registers_http_tool_and_hook_then_edits_them_without_host_r
     )
     .await
     .unwrap()
-    .with_credentials(credentials);
+    .with_credentials(credentials)
+    .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
+    .unwrap();
     let server = serve(host.router()).await;
     let source = source(&service.url, &provider.url);
     let locked = post(&server, "/api/v1/validate", source.clone()).await;
@@ -94,12 +96,19 @@ async fn system_file_registers_http_tool_and_hook_then_edits_them_without_host_r
         FileCredentials::open(target.path().join("credentials.json"), "http-project", None)
             .unwrap(),
     );
+    let mut portable_registry = native::registry(target_credentials).unwrap();
+    // This assertion is an independent, explicitly trusted SDK restoration;
+    // resident execution below uses the Loader's isolated binding instead.
+    portable_registry
+        .register_factory(Arc::new(
+            nofy_agent_models::declarative::ProtocolFactory::trusted(),
+        ))
+        .unwrap();
+    portable_registry
+        .register_factory(Arc::new(nofy_agent_runtime::artifact::ArtifactFactory))
+        .unwrap();
     assert_eq!(
-        bundle
-            .restore(&native::registry(target_credentials).unwrap())
-            .unwrap()
-            .bundle
-            .digest,
+        bundle.restore(&portable_registry).unwrap().bundle.digest,
         bundle.digest
     );
     let mut unrelated = source.clone();

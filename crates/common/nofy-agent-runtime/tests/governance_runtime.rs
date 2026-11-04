@@ -17,7 +17,7 @@ struct Script {
 }
 #[async_trait::async_trait]
 impl Model for Script {
-    fn request_bound(
+    async fn request_bound(
         &self,
         _: &ModelRequest,
         _: &RunContext,
@@ -149,6 +149,113 @@ fn scope(profile: &GovernanceProfile) -> BudgetScope {
 }
 fn context() -> RunContext {
     RunContext::new("thread", "run")
+}
+
+struct WaitingBound {
+    entered: Arc<Notify>,
+    release: Arc<Notify>,
+    active: Arc<AtomicUsize>,
+    calls: Arc<AtomicUsize>,
+}
+struct BoundGuard(Arc<AtomicUsize>);
+impl Drop for BoundGuard {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+#[async_trait::async_trait]
+impl Model for WaitingBound {
+    async fn request_bound(
+        &self,
+        _: &ModelRequest,
+        _: &RunContext,
+    ) -> Result<model::ModelRequestBound, Error> {
+        self.active.fetch_add(1, Ordering::SeqCst);
+        let _guard = BoundGuard(self.active.clone());
+        self.entered.notify_one();
+        self.release.notified().await;
+        Ok(model::ModelRequestBound {
+            max_calls: 1,
+            max_input_tokens: Some(10),
+            max_output_tokens: Some(10),
+        })
+    }
+    async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(ModelResponse {
+            output: "admitted".into(),
+            input_tokens: 3,
+            output_tokens: 2,
+            ..Default::default()
+        })
+    }
+}
+
+#[tokio::test]
+async fn async_bound_wait_precedes_reservation_and_obeys_cancel_and_total_deadline() {
+    for mode in ["complete", "cancel", "deadline"] {
+        let ledger = Arc::new(InMemoryBudgetStore::default());
+        let p = profile(
+            ledger.clone(),
+            BudgetLimits {
+                max_model_calls: Some(1),
+                max_duration_ms: (mode == "deadline").then_some(100),
+                ..Default::default()
+            },
+            1,
+            0,
+        );
+        let model = Arc::new(WaitingBound {
+            entered: Arc::new(Notify::new()),
+            release: Arc::new(Notify::new()),
+            active: Arc::new(AtomicUsize::new(0)),
+            calls: Arc::new(AtomicUsize::new(0)),
+        });
+        let agent = build(model.clone(), vec![]).with_governance(p.clone());
+        let ctx = context();
+        let cancel = ctx.cancel.clone();
+        let running = tokio::spawn(async move { agent.invoke(RunInput::new("query"), ctx).await });
+        tokio::time::timeout(std::time::Duration::from_secs(2), model.entered.notified())
+            .await
+            .unwrap();
+        let before = ledger.inspect(&scope(&p)).await.unwrap().unwrap();
+        assert_eq!(before.used, BudgetCost::default());
+        assert_eq!(before.reserved, BudgetCost::default());
+        assert_eq!(before.active_operations, 0);
+        assert_eq!(before.operation_count, 0);
+        assert_eq!(model.calls.load(Ordering::SeqCst), 0);
+        if mode == "cancel" {
+            cancel.cancel();
+        } else if mode == "complete" {
+            model.release.notify_one();
+        }
+        let outcome = tokio::time::timeout(std::time::Duration::from_secs(2), running)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(match mode {
+            "complete" => matches!(outcome, RunOutcome::Completed { .. }),
+            "cancel" => matches!(outcome, RunOutcome::Cancelled { .. }),
+            "deadline" => matches!(outcome, RunOutcome::BudgetExceeded { .. }),
+            _ => unreachable!(),
+        });
+        assert_eq!(model.active.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            model.calls.load(Ordering::SeqCst),
+            usize::from(mode == "complete")
+        );
+        assert_eq!(
+            ledger
+                .inspect(&scope(&p))
+                .await
+                .unwrap()
+                .unwrap()
+                .used
+                .model_calls,
+            u64::from(mode == "complete")
+        );
+    }
 }
 
 #[tokio::test]

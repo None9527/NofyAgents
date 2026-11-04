@@ -1,12 +1,24 @@
 use super::*;
 use tokio::io::AsyncBufReadExt;
-async fn binary(
+pub(super) async fn binary(
     directory: &std::path::Path,
     source: &std::path::Path,
 ) -> (Serving, tokio::process::Child) {
+    binary_with_executable(
+        directory,
+        source,
+        std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")),
+    )
+    .await
+}
+pub(super) async fn binary_with_executable(
+    directory: &std::path::Path,
+    source: &std::path::Path,
+    executable: &std::path::Path,
+) -> (Serving, tokio::process::Child) {
     let access = directory.join("access.json");
     tokio::fs::write(&access,serde_json::to_vec(&json!([{"token_env":"NOFY_KERNEL_TEST_ACCESS","scopes":["read","edit","publish","resources","execute"]}])).unwrap()).await.unwrap();
-    let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_nofy-agent-host"))
+    let mut child = tokio::process::Command::new(executable)
         .args(["--listen", "127.0.0.1:0", "--state-dir"])
         .arg(directory)
         .arg("--access-file")
@@ -21,16 +33,58 @@ async fn binary(
         .spawn()
         .unwrap();
     let mut lines = tokio::io::BufReader::new(child.stderr.take().unwrap()).lines();
-    let url = tokio::time::timeout(Duration::from_secs(15), async {
-        while let Some(line) = lines.next_line().await.unwrap() {
-            if let Some(url) = line.strip_prefix("Nofy kernel listening on ") {
-                return url.to_owned();
+    let observed = std::time::Instant::now();
+    let mut diagnostics = std::collections::VecDeque::new();
+    let mut ready = None;
+    // This is a readiness observer, not a product startup SLA. Observe the
+    // same live child after a window expires; never create a replacement.
+    for _ in 0..4 {
+        match tokio::time::timeout(Duration::from_secs(15), async {
+            while let Some(line) = lines.next_line().await.unwrap() {
+                if let Some(url) = line.strip_prefix("Nofy kernel listening on ") {
+                    return Some(url.to_owned());
+                }
+                if diagnostics.len() == 16 {
+                    diagnostics.pop_front();
+                }
+                diagnostics.push_back(line.chars().take(2048).collect::<String>());
+            }
+            None
+        })
+        .await
+        {
+            Ok(Some(url)) => {
+                ready = Some(url);
+                break;
+            }
+            Ok(None) => {
+                let status = child.wait().await.unwrap();
+                panic!("host exited before listening: {status}, diagnostics={diagnostics:?}");
+            }
+            Err(_) => {
+                if let Some(status) = child.try_wait().unwrap() {
+                    panic!(
+                        "host exited during readiness observation: {status}, diagnostics={diagnostics:?}"
+                    );
+                }
+                eprintln!(
+                    "host startup still live: pid={:?}, observed={:?}; continuing the same child",
+                    child.id(),
+                    observed.elapsed()
+                );
             }
         }
-        panic!("host exited before listening");
-    })
-    .await
-    .unwrap();
+    }
+    let url = match ready {
+        Some(url) => url,
+        None => {
+            child.kill().await.unwrap();
+            let status = child.wait().await.unwrap();
+            panic!(
+                "host exceeded the bounded readiness observation: {status}, diagnostics={diagnostics:?}"
+            );
+        }
+    };
     // Retain and drain stderr so diagnostic output cannot block the child.
     let task = tokio::spawn(async move { while lines.next_line().await.unwrap().is_some() {} });
     (Serving { url, task }, child)

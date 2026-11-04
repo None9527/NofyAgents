@@ -1,0 +1,4 @@
+# No third-party Python packages are required by this preset's Python modules.
+# Install a Python 3 interpreter and any project-specific tools yourself.
+# The platform provides the Rhai runtime; GCC, shells and other toolchains are optional.
+# Source packaging does not inspect or install any external dependency.

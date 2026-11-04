@@ -275,7 +275,7 @@ pub fn goal_scratch_root(verifier_id: &str) -> PathBuf {
 /// prompt/log-visible `verifier_id`, so the root itself is the
 /// symlink/squat defense: creation is atomic with mode 0700 (no
 /// default-mode window), and a pre-existing entry is accepted only if
-/// [`verify_owned_real_dir`] passes, then re-pinned to 0700 (safe to
+/// `verify_owned_real_dir` passes, then re-pinned to 0700 (safe to
 /// chmod: the entry is proven ours and the sticky-bit temp parent
 /// prevents swapping it). Callers treat `Err` as "do not write
 /// classifier artifacts here".

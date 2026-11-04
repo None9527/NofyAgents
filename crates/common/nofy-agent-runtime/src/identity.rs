@@ -10,19 +10,27 @@ pub enum IdentityScheme {
     /// Preserves the original recursive JSON identity for existing runs.
     #[default]
     Legacy,
-    /// Fixed-size SHA-256 identity for deeply nested compositions.
+    /// Hashes the initial definition, retaining its original update format.
     HashedV1,
+    /// Folds every composition update as well as its initial definition.
+    HashedV2,
 }
 
 #[derive(Clone)]
 pub(crate) struct IdentityBinding(pub IdentityScheme);
 
 pub(crate) fn composition(scheme: Option<IdentityScheme>, identity: String) -> String {
-    if scheme == Some(IdentityScheme::HashedV1) {
-        format!(
-            "composition-hash-v1:{:x}",
-            Sha256::digest(identity.as_bytes())
-        )
+    let prefix = match scheme {
+        Some(IdentityScheme::HashedV1) => "composition-hash-v1:",
+        Some(IdentityScheme::HashedV2) => "composition-hash-v2:",
+        _ => return identity,
+    };
+    format!("{prefix}{:x}", Sha256::digest(identity.as_bytes()))
+}
+
+pub(crate) fn extend(scheme: Option<IdentityScheme>, identity: String) -> String {
+    if scheme == Some(IdentityScheme::HashedV2) {
+        composition(scheme, identity)
     } else {
         identity
     }
@@ -67,5 +75,6 @@ pub(crate) fn child_id(
             )
         }
         IdentityScheme::HashedV1 => format!("child-hash-v1:{:x}", Sha256::digest(identity)),
+        IdentityScheme::HashedV2 => format!("child-hash-v2:{:x}", Sha256::digest(identity)),
     }
 }

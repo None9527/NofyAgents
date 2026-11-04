@@ -140,6 +140,7 @@ impl Agent {
             agent: self,
             tools: self.tools.clone(),
             context: cleanup,
+            closing: state.complete,
             state,
             key,
             revision,
@@ -309,6 +310,15 @@ impl AgentHost<'_> {
         self.state.completion_info.refusal = Some(reason);
         self.state.hook_progress.pending_input = None;
         self.state.hook_progress.prepared_model = None;
+        if self
+            .state
+            .hook_progress
+            .prepared_sources
+            .as_ref()
+            .is_some_and(|sources| sources.pending.is_none())
+        {
+            self.state.hook_progress.prepared_sources = None;
+        }
         self.state.hook_progress.stop_done = true;
         self.queue_hook(
             "turn_done",
@@ -496,12 +506,14 @@ impl AgentHost<'_> {
     pub(super) async fn model_hook_request(
         &mut self,
     ) -> Result<Result<ModelRequest, Step<RunOutcome>>, Error> {
-        if let Some(control) = self.prepare_context().await? {
-            return Ok(Err(control));
-        }
         // A paused before_model hook may outlive an external forget operation.
         // Never reuse its old retrieved memory just because the hook is done.
         for _ in 0..3 {
+            if self.state.hook_progress.prepared_sources.is_none()
+                && let Some(control) = self.prepare_context().await?
+            {
+                return Ok(Err(control));
+            }
             let revisions = self.context_revisions().await?;
             if self
                 .state
@@ -527,15 +539,10 @@ impl AgentHost<'_> {
                     tools: self.tools.definitions(),
                     settings: self.agent.spec.settings.model.clone(),
                 };
-                for source in &self.agent.context_sources {
-                    request.messages.extend(
-                        crate::governance::await_resource(
-                            &self.context,
-                            source.contribute(&self.state, &self.context),
-                        )
-                        .await?,
-                    );
-                }
+                let Some(messages) = self.context_source_messages(&revisions).await? else {
+                    continue;
+                };
+                request.messages.extend(messages);
                 for middleware in &self.agent.middleware {
                     crate::governance::await_resource(
                         &self.context,

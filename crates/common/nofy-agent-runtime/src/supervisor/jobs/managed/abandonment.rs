@@ -258,6 +258,7 @@ fn apply(
         "UPDATE agent_runtime_managed_actions SET result=?1 WHERE run_id=?2 AND command_id!=?3 AND result IS NULL",
         params![serde_json::to_string(&superseded).map_err(db_error)?, action.run_id, action.command_id],
     ).map_err(db_error)? as u64;
+    parking::abandon(tx, &action.run_id)?;
     let child_count = tx
         .query_row(
             "SELECT COUNT(*) FROM agent_runtime_children WHERE root_id=?1",

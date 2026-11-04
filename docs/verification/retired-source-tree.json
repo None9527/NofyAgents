@@ -1,0 +1,418 @@
+{
+  "stage": "CLEAN5b",
+  "root": "/home/none/nofy-build",
+  "retirement_targets": [
+    ".github/workflows/nofy-cli.yml",
+    ".github/workflows/nofy-desktop.yml",
+    "RTAGENT-INTEGRATION.md",
+    "SANITIZATION_PLAN.md",
+    "SOURCE_REV",
+    "ab-eval",
+    "bench",
+    "bin",
+    "crates/build",
+    "crates/codegen/nofy-acp-lib",
+    "crates/codegen/nofy-agent",
+    "crates/codegen/nofy-agent-lifecycle",
+    "crates/codegen/nofy-agility",
+    "crates/codegen/nofy-announcements",
+    "crates/codegen/nofy-auth",
+    "crates/codegen/nofy-channel",
+    "crates/codegen/nofy-chat-state",
+    "crates/codegen/nofy-codebase-graph",
+    "crates/codegen/nofy-config",
+    "crates/codegen/nofy-config-types",
+    "crates/codegen/nofy-control-schema",
+    "crates/codegen/nofy-crash-handler",
+    "crates/codegen/nofy-daemon",
+    "crates/codegen/nofy-env",
+    "crates/codegen/nofy-extra-ca",
+    "crates/codegen/nofy-fast-worktree",
+    "crates/codegen/nofy-file-utils",
+    "crates/codegen/nofy-fsnotify",
+    "crates/codegen/nofy-gix-status",
+    "crates/codegen/nofy-governance",
+    "crates/codegen/nofy-hooks",
+    "crates/codegen/nofy-hooks-plugins-types",
+    "crates/codegen/nofy-http",
+    "crates/codegen/nofy-hunk-tracker",
+    "crates/codegen/nofy-markdown",
+    "crates/codegen/nofy-markdown-core",
+    "crates/codegen/nofy-marketplace",
+    "crates/codegen/nofy-mcp",
+    "crates/codegen/nofy-mermaid",
+    "crates/codegen/nofy-models",
+    "crates/codegen/nofy-pager",
+    "crates/codegen/nofy-pager-bin",
+    "crates/codegen/nofy-pager-minimal",
+    "crates/codegen/nofy-pager-pty-harness",
+    "crates/codegen/nofy-pager-render",
+    "crates/codegen/nofy-paths",
+    "crates/codegen/nofy-plugin-marketplace",
+    "crates/codegen/nofy-prompt-queue",
+    "crates/codegen/nofy-ratatui-inline",
+    "crates/codegen/nofy-ratatui-textarea",
+    "crates/codegen/nofy-release",
+    "crates/codegen/nofy-runtimecore",
+    "crates/codegen/nofy-sampler",
+    "crates/codegen/nofy-sampling-types",
+    "crates/codegen/nofy-sandbox",
+    "crates/codegen/nofy-scheduler",
+    "crates/codegen/nofy-secrets",
+    "crates/codegen/nofy-session-registry",
+    "crates/codegen/nofy-shared",
+    "crates/codegen/nofy-shell",
+    "crates/codegen/nofy-shell-base",
+    "crates/codegen/nofy-shell-session-support",
+    "crates/codegen/nofy-shell-terminal",
+    "crates/codegen/nofy-status-line",
+    "crates/codegen/nofy-stewardcore",
+    "crates/codegen/nofy-subagent-resolution",
+    "crates/codegen/nofy-surfaces",
+    "crates/codegen/nofy-system-power",
+    "crates/codegen/nofy-telemetry",
+    "crates/codegen/nofy-tools",
+    "crates/codegen/nofy-tools-api",
+    "crates/codegen/nofy-tracing-macros",
+    "crates/codegen/nofy-version",
+    "crates/codegen/nofy-workspace",
+    "crates/codegen/nofy-workspace-client",
+    "crates/codegen/nofy-workspace-types",
+    "crates/codegen/ptyctl",
+    "crates/codegen/ptyctl-cli",
+    "crates/common/nofy-circuit-breaker",
+    "crates/common/nofy-computer-hub-core",
+    "crates/common/nofy-computer-hub-mcp-adapter",
+    "crates/common/nofy-computer-hub-sdk",
+    "crates/common/nofy-convergence",
+    "crates/common/nofy-session-journal",
+    "crates/common/nofy-test-utils",
+    "crates/common/nofy-tracing",
+    "desktop",
+    "nofy-desktop",
+    "prod",
+    "ref-analysis",
+    "ref-desktop",
+    "scripts/check-unified-memory.sh",
+    "scripts/coverage_gate.sh",
+    "scripts/test.sh",
+    "scripts/upstream_diff.sh",
+    "scripts/verify-agent-preset-compat.py",
+    "third_party"
+  ],
+  "retired_package_counts": {
+    "crates/codegen": 69,
+    "crates/common": 8
+  },
+  "retained_packages": [
+    "crates/codegen/nofy-memory",
+    "crates/codegen/nofy-orchestra",
+    "crates/codegen/nofy-packcore",
+    "crates/codegen/nofy-token-estimation",
+    "crates/codegen/nofy-workflow",
+    "crates/common/nofy-agent-executors",
+    "crates/common/nofy-agent-host",
+    "crates/common/nofy-agent-models",
+    "crates/common/nofy-agent-modules",
+    "crates/common/nofy-agent-runtime",
+    "crates/common/nofy-compaction",
+    "crates/common/nofy-goal",
+    "crates/common/nofy-interjection-core",
+    "crates/common/nofy-memory-types",
+    "crates/common/nofy-sqlite-journal",
+    "crates/common/nofy-test-support",
+    "crates/common/nofy-tool-protocol",
+    "crates/common/nofy-tool-runtime",
+    "crates/common/nofy-tool-types",
+    "crates/common/nofy-tty-utils"
+  ],
+  "retained_local_dependency_edges": [
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-tool-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-memory-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-sqlite-journal",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-compaction",
+      "kind": "dev-dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-memory",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dev-dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/codegen/nofy-orchestra",
+      "to": "crates/codegen/nofy-packcore",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-executors",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-executors",
+      "to": "crates/common/nofy-tool-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-executors",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-executors",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-executors",
+      "to": "crates/common/nofy-tty-utils",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-agent-modules",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-agent-models",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/codegen/nofy-memory",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-agent-executors",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-tool-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-tty-utils",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-test-support",
+      "kind": "dev-dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-host",
+      "to": "crates/common/nofy-interjection-core",
+      "kind": "dev-dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-models",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-modules",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-modules",
+      "to": "crates/common/nofy-tool-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-modules",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-modules",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-modules",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dev-dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/common/nofy-sqlite-journal",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/codegen/nofy-packcore",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/codegen/nofy-workflow",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/codegen/nofy-orchestra",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/common/nofy-tool-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-agent-runtime",
+      "to": "crates/common/nofy-interjection-core",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-compaction",
+      "to": "crates/common/nofy-agent-runtime",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-compaction",
+      "to": "crates/codegen/nofy-token-estimation",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-tool-runtime",
+      "to": "crates/common/nofy-tool-protocol",
+      "kind": "dependencies",
+      "platform": null
+    },
+    {
+      "from": "crates/common/nofy-tool-runtime",
+      "to": "crates/common/nofy-tool-types",
+      "kind": "dependencies",
+      "platform": null
+    }
+  ],
+  "entries": 11491,
+  "files": 10425,
+  "symlinks": 0,
+  "source_bytes": 427889399,
+  "archive_root": "/home/none/nofy-build-retired.jdnpc7",
+  "phase": "verified",
+  "evidence_root": "/tmp/nofy-clean5b-retire.SGBmHh",
+  "archive_sha256": "ed88fd1337c368b0db303893f5191811d3fa234cc9cefb7b93f8f4cb9db2feac",
+  "verification": {
+    "snapshot_entries_exact": 11491,
+    "retained_source_files_unchanged": 637,
+    "workspace_packages": 20,
+    "local_dependency_edges": 43,
+    "compiled_test_targets": 107,
+    "host_http_tests_passed": 6,
+    "host_process_tree_tests_passed": 2,
+    "preset_python_tests_passed": 53,
+    "independent_consumer": "passed outside workspace",
+    "staged_index": "unchanged",
+    "index": {
+      "files": 699,
+      "nodes": 14130,
+      "edges": 37116,
+      "clusters": 636,
+      "flows": 300,
+      "embeddings": 0
+    },
+    "remaining_scope": "Public candidate ownership, managed SDK capabilities, full stateful live updates, console and versioned reference presets remain open."
+  }
+}

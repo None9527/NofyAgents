@@ -1,5 +1,7 @@
 # Unified Memory Validation
 
+> 历史原产品验收记录：下文nofy/ACP/Shell及check-unified-memory.sh命令不再在当前工程执行，也不作为新框架前置门槛。原源码与脚本已在CLEAN5b归档移出。当前记忆能力通过统一resource.memory及Host/SDK契约验收，见[记忆模块说明](../../crates/common/nofy-memory/文件说明.md)与[物理移出验收](../verification/retired-source-tree.md)；不把历史测试记作当前已运行。
+
 This report is the release gate for the single Nofy memory system. It maps the
 acceptance sequence to executable tests, keeps fault injection reproducible,
 and records non-flaky performance ceilings rather than machine-specific goals.

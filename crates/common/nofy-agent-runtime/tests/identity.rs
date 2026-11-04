@@ -264,11 +264,28 @@ async fn assert_tree(store: &SqliteStore, depth: usize, scheme: IdentityScheme) 
     assert_eq!(children.len(), depth);
     for child in &children {
         assert_eq!(child.run_id, child.thread_id);
-        if scheme == IdentityScheme::HashedV1 {
-            assert!(child.run_id.starts_with("child-hash-v1:"));
+        match scheme {
+            IdentityScheme::HashedV1 => assert!(child.run_id.starts_with("child-hash-v1:")),
+            IdentityScheme::HashedV2 => {
+                assert!(child.run_id.starts_with("child-hash-v2:"));
+                // This fixture deliberately leaves odd levels' declarations
+                // unspecified. Addresses inherit at runtime; a frozen
+                // component's compile format is selected by its declaration.
+                let level: usize = child
+                    .agent_name
+                    .strip_prefix("level-")
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+                if level % 2 == 0 {
+                    assert!(child.composition.starts_with("composition-hash-v2:"));
+                    assert_eq!(child.composition.len(), "composition-hash-v2:".len() + 64);
+                }
+            }
+            IdentityScheme::Legacy => assert!(child.run_id.starts_with("child:[")),
+        }
+        if scheme != IdentityScheme::Legacy {
             assert_eq!(child.run_id.len(), 78);
-        } else {
-            assert!(child.run_id.starts_with("child:["));
         }
         assert_eq!(child.status, "completed");
     }
@@ -276,152 +293,158 @@ async fn assert_tree(store: &SqliteStore, depth: usize, scheme: IdentityScheme) 
 
 #[tokio::test]
 async fn sixteen_nested_agents_share_budget_and_bounded_addresses_after_binding_clear() {
-    let temp = tempfile::tempdir().unwrap();
-    let path = temp.path().join("runtime.db");
-    let store = SqliteStore::open(&path).unwrap();
-    let fixture = fixture(&store, 16, "done", Some(IdentityScheme::HashedV1), false);
-    let supervisor = RunSupervisor::new(store.clone());
-    assert!(matches!(
-        supervisor
-            .execute(&fixture.compiled, RunInput::new("task"), context())
-            .await
-            .unwrap(),
-        RunOutcome::Completed { .. }
-    ));
-    assert_tree(&store, 16, IdentityScheme::HashedV1).await;
-    let totals = summary(&store, &fixture).await;
-    assert_eq!(totals.used.model_calls, 34);
-    assert_eq!(totals.used.child_calls, 16);
-    assert_eq!(totals.active_children, 0);
-    assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
-    let restored = fixture
-        .compiled
-        .snapshot
-        .restore(&fixture.registry)
-        .unwrap();
-    let reopened = SqliteStore::open(&path).unwrap();
-    assert!(matches!(
-        RunSupervisor::new(reopened)
-            .execute(&restored, RunInput::resume(), context())
-            .await
-            .unwrap(),
-        RunOutcome::Completed { .. }
-    ));
-    assert_eq!(fixture.calls.load(Ordering::SeqCst), 34);
+    for scheme in [IdentityScheme::HashedV1, IdentityScheme::HashedV2] {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("runtime.db");
+        let store = SqliteStore::open(&path).unwrap();
+        let fixture = fixture(&store, 16, "done", Some(scheme), false);
+        let supervisor = RunSupervisor::new(store.clone());
+        assert!(matches!(
+            supervisor
+                .execute(&fixture.compiled, RunInput::new("task"), context())
+                .await
+                .unwrap(),
+            RunOutcome::Completed { .. }
+        ));
+        assert_tree(&store, 16, scheme).await;
+        let totals = summary(&store, &fixture).await;
+        assert_eq!(totals.used.model_calls, 34);
+        assert_eq!(totals.used.child_calls, 16);
+        assert_eq!(totals.active_children, 0);
+        assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
+        let restored = fixture
+            .compiled
+            .snapshot
+            .restore(&fixture.registry)
+            .unwrap();
+        let reopened = SqliteStore::open(&path).unwrap();
+        assert!(matches!(
+            RunSupervisor::new(reopened)
+                .execute(&restored, RunInput::resume(), context())
+                .await
+                .unwrap(),
+            RunOutcome::Completed { .. }
+        ));
+        assert_eq!(fixture.calls.load(Ordering::SeqCst), 34);
+    }
 }
 
 #[tokio::test]
 async fn deep_model_retry_uses_same_frozen_addresses_and_request() {
-    let temp = tempfile::tempdir().unwrap();
-    let path = temp.path().join("runtime.db");
-    let store = SqliteStore::open(&path).unwrap();
-    let fixture = fixture(&store, 12, "fail", Some(IdentityScheme::HashedV1), false);
-    let supervisor = RunSupervisor::new(store.clone());
-    assert!(
-        supervisor
-            .execute(&fixture.compiled, RunInput::new("task"), context())
-            .await
-            .is_err()
-    );
-    let leaf = store
-        .children("root")
-        .await
-        .unwrap()
-        .into_iter()
-        .find(|c| c.agent_name == "level-12")
-        .unwrap();
-    let command = ModelRetryCommand {
-        command_id: "retry-leaf".into(),
-        ticket: supervisor
-            .child_model_retry_ticket("root", &leaf.run_id)
+    for scheme in [IdentityScheme::HashedV1, IdentityScheme::HashedV2] {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("runtime.db");
+        let store = SqliteStore::open(&path).unwrap();
+        let fixture = fixture(&store, 12, "fail", Some(scheme), false);
+        let supervisor = RunSupervisor::new(store.clone());
+        assert!(
+            supervisor
+                .execute(&fixture.compiled, RunInput::new("task"), context())
+                .await
+                .is_err()
+        );
+        let leaf = store
+            .children("root")
             .await
             .unwrap()
-            .unwrap(),
-    };
-    let restored = fixture
-        .compiled
-        .snapshot
-        .restore(&fixture.registry)
-        .unwrap();
-    let reopened = SqliteStore::open(&path).unwrap();
-    assert!(matches!(
-        RunSupervisor::new(reopened)
-            .control(&restored, RunControlCommand::RetryModel(command), context())
-            .await
-            .unwrap(),
-        RunOutcome::Completed { .. }
-    ));
-    assert_tree(&store, 12, IdentityScheme::HashedV1).await;
-    assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
-    let requests = fixture.requests.lock().unwrap();
-    assert_eq!(requests.len(), 3);
-    assert_eq!(
-        serde_json::to_value(&requests[1]).unwrap(),
-        serde_json::to_value(&requests[2]).unwrap()
-    );
-    drop(requests);
-    assert_eq!(summary(&store, &fixture).await.used.model_calls, 27);
-    assert_eq!(summary(&store, &fixture).await.active_children, 0);
+            .into_iter()
+            .find(|c| c.agent_name == "level-12")
+            .unwrap();
+        let command = ModelRetryCommand {
+            command_id: "retry-leaf".into(),
+            ticket: supervisor
+                .child_model_retry_ticket("root", &leaf.run_id)
+                .await
+                .unwrap()
+                .unwrap(),
+        };
+        let restored = fixture
+            .compiled
+            .snapshot
+            .restore(&fixture.registry)
+            .unwrap();
+        let reopened = SqliteStore::open(&path).unwrap();
+        assert!(matches!(
+            RunSupervisor::new(reopened)
+                .control(&restored, RunControlCommand::RetryModel(command), context())
+                .await
+                .unwrap(),
+            RunOutcome::Completed { .. }
+        ));
+        assert_tree(&store, 12, scheme).await;
+        assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
+        let requests = fixture.requests.lock().unwrap();
+        assert_eq!(requests.len(), 3);
+        assert_eq!(
+            serde_json::to_value(&requests[1]).unwrap(),
+            serde_json::to_value(&requests[2]).unwrap()
+        );
+        drop(requests);
+        assert_eq!(summary(&store, &fixture).await.used.model_calls, 27);
+        assert_eq!(summary(&store, &fixture).await.active_children, 0);
+    }
 }
 
 #[tokio::test]
 async fn deep_targeted_cancel_can_be_acknowledged_and_resumed() {
-    let temp = tempfile::tempdir().unwrap();
-    let store = SqliteStore::open(&temp.path().join("runtime.db")).unwrap();
-    let fixture = fixture(&store, 12, "cancel", Some(IdentityScheme::HashedV1), false);
-    let compiled = fixture.compiled.clone();
-    let worker_store = store.clone();
-    let worker = tokio::spawn(async move {
-        RunSupervisor::new(worker_store)
-            .execute(&compiled, RunInput::new("task"), context())
+    for scheme in [IdentityScheme::HashedV1, IdentityScheme::HashedV2] {
+        let temp = tempfile::tempdir().unwrap();
+        let store = SqliteStore::open(&temp.path().join("runtime.db")).unwrap();
+        let fixture = fixture(&store, 12, "cancel", Some(scheme), false);
+        let compiled = fixture.compiled.clone();
+        let worker_store = store.clone();
+        let worker = tokio::spawn(async move {
+            RunSupervisor::new(worker_store)
+                .execute(&compiled, RunInput::new("task"), context())
+                .await
+        });
+        tokio::time::timeout(std::time::Duration::from_secs(30), fixture.stop.notified())
             .await
-    });
-    tokio::time::timeout(std::time::Duration::from_secs(30), fixture.stop.notified())
-        .await
-        .unwrap();
-    let leaf = store
-        .children("root")
-        .await
-        .unwrap()
-        .into_iter()
-        .find(|c| c.agent_name == "level-12")
-        .unwrap();
-    let address = InputAddress {
-        root_run_id: "root".into(),
-        run_id: leaf.run_id,
-        thread_id: leaf.thread_id,
-        agent: leaf.agent_name,
-    };
-    let through = store.cancel(&address, "cancel-leaf").await.unwrap();
-    assert!(matches!(
-        tokio::time::timeout(std::time::Duration::from_secs(30), worker)
+            .unwrap();
+        let leaf = store
+            .children("root")
             .await
             .unwrap()
-            .unwrap()
-            .unwrap(),
-        RunOutcome::Cancelled { .. }
-    ));
-    assert!(matches!(
-        RunSupervisor::new(store.clone())
-            .control(
-                &fixture.compiled,
-                RunControlCommand::ResumeChildCancel(ChildCancelResumeCommand {
-                    command_id: "resume-leaf".into(),
-                    address,
-                    through
-                }),
-                context()
-            )
-            .await
-            .unwrap(),
-        RunOutcome::Completed { .. }
-    ));
-    assert_tree(&store, 12, IdentityScheme::HashedV1).await;
-    assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
-    let totals = summary(&store, &fixture).await;
-    assert_eq!(totals.used.model_calls, 27);
-    assert_eq!(totals.used.child_calls, 12);
-    assert_eq!(totals.active_children, 0);
+            .into_iter()
+            .find(|c| c.agent_name == "level-12")
+            .unwrap();
+        let address = InputAddress {
+            root_run_id: "root".into(),
+            run_id: leaf.run_id,
+            thread_id: leaf.thread_id,
+            agent: leaf.agent_name,
+        };
+        let through = store.cancel(&address, "cancel-leaf").await.unwrap();
+        assert!(matches!(
+            tokio::time::timeout(std::time::Duration::from_secs(30), worker)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap(),
+            RunOutcome::Cancelled { .. }
+        ));
+        assert!(matches!(
+            RunSupervisor::new(store.clone())
+                .control(
+                    &fixture.compiled,
+                    RunControlCommand::ResumeChildCancel(ChildCancelResumeCommand {
+                        command_id: "resume-leaf".into(),
+                        address,
+                        through
+                    }),
+                    context()
+                )
+                .await
+                .unwrap(),
+            RunOutcome::Completed { .. }
+        ));
+        assert_tree(&store, 12, scheme).await;
+        assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
+        let totals = summary(&store, &fixture).await;
+        assert_eq!(totals.used.model_calls, 27);
+        assert_eq!(totals.used.child_calls, 12);
+        assert_eq!(totals.active_children, 0);
+    }
 }
 
 #[tokio::test]

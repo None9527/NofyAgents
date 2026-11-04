@@ -1,0 +1,65 @@
+{
+  "format": "nofy.session-verification/v1",
+  "date": "2026-11-04",
+  "state": "backend-implemented-and-targeted-regressions-passed",
+  "evidence": "/tmp/nofy-session-implementation.xmv9h9ie",
+  "stages": {
+    "runtime-first": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/runtime-first.log",
+      "passed": 426,
+      "failed": 6,
+      "test_targets": 48
+    },
+    "executors-first": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/executors-first.log",
+      "passed": 34,
+      "failed": 0,
+      "test_targets": 7
+    },
+    "host-lib-first": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/host-lib-first.log",
+      "passed": 0,
+      "failed": 0,
+      "test_targets": 0
+    },
+    "host-lib-followup": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/host-lib-followup.log",
+      "passed": 86,
+      "failed": 0,
+      "test_targets": 1
+    },
+    "host-http-followup": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/host-http-followup.log",
+      "passed": 201,
+      "failed": 3,
+      "test_targets": 1
+    },
+    "retention-v2-followup": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/retention-v2-followup.log",
+      "passed": 8,
+      "failed": 0,
+      "test_targets": 1
+    },
+    "session-http-followup": {
+      "log": "/tmp/nofy-session-implementation.xmv9h9ie/session-http-followup.log",
+      "passed": 3,
+      "failed": 0,
+      "test_targets": 1
+    }
+  },
+  "scope": [
+    "SessionPolicy registry and Agent v2 slot",
+    "rules and programmed Loader factories",
+    "atomic start and original command replay",
+    "FIFO turn admission and native ingress guard",
+    "session metadata and lifecycle at quiescent boundary",
+    "closed-session policy closure reconfiguration",
+    "retention scanning of profiles, admissions, operations and v2 Agent snapshots"
+  ],
+  "boundaries": [
+    "frontend paused and reverted to pre-stage files",
+    "CLI/MCP acceptance is recorded separately",
+    "no new real-model call in this Session test wave",
+    "reopen coverage is not a claim of every power-loss or in-flight hot-update case"
+  ]
+}

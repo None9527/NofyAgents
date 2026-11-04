@@ -9,8 +9,8 @@ use nofy_agent_host::{
     auth::{Authorizer, Scope},
     native,
 };
+use nofy_agent_runtime::credentials::CredentialProvider;
 use nofy_agent_runtime::{Error, system::SystemDocument};
-use nofy_sampler::agent_model::declarative::CredentialProvider;
 use serde_json::{Value, json};
 use std::{
     convert::Infallible,
@@ -26,6 +26,28 @@ const ADMIN: &str = "fixture-administrator-token-00000000000001";
 const VIEW: &str = "fixture-viewer-token-000000000000000000001";
 const EDIT: &str = "fixture-editor-token-000000000000000000001";
 const PUBLISH: &str = "fixture-publisher-token-000000000000000001";
+fn session_origin(value: &Value) -> Value {
+    let native: Value = serde_json::from_str(
+        value["native_view_json"]
+            .as_str()
+            .expect("native session JSON"),
+    )
+    .unwrap();
+    native["session"].clone()
+}
+fn session_turn_items(value: &Value) -> Value {
+    Value::Array(
+        value["turns_json"]
+            .as_array()
+            .expect("lossless turn page")
+            .iter()
+            .map(|v| serde_json::from_str(v.as_str().expect("native turn JSON")).unwrap())
+            .collect(),
+    )
+}
+fn session_turn_request(command: Value) -> Value {
+    json!({"session_id":"conversation","expected_session_revision":"0","request_json":serde_json::to_string(&command).unwrap()})
+}
 #[path = "http/abandonment.rs"]
 mod abandonment;
 #[path = "http/approval.rs"]
@@ -36,26 +58,54 @@ mod budget;
 mod code;
 #[path = "http/credentials.rs"]
 mod credentials;
+#[path = "http/deadline.rs"]
+mod deadline;
 #[path = "http/declarative.rs"]
 mod declarative;
+#[path = "support/dependencies.rs"]
+mod dependencies;
 #[path = "http/event.rs"]
 mod event;
+#[path = "http/hook_recovery.rs"]
+mod hook_recovery;
 #[path = "http/human.rs"]
 mod human;
 #[path = "http/human_hook.rs"]
 mod human_hook;
 #[path = "http/lifecycle.rs"]
 mod lifecycle;
+#[path = "http/loader.rs"]
+mod loader;
+#[path = "http/mcp.rs"]
+mod mcp;
+#[path = "http/memory.rs"]
+mod memory;
+#[path = "http/model_program.rs"]
+mod model_program;
 #[path = "http/model_reconciliation.rs"]
 mod model_reconciliation;
+#[path = "http/native_capabilities.rs"]
+mod native_capabilities;
 #[path = "http/parameters.rs"]
 mod parameters;
+#[path = "http/parking.rs"]
+mod parking;
 #[path = "http/process.rs"]
 mod process;
 #[path = "http/reconciliation.rs"]
 mod reconciliation;
 #[path = "http/root_reconciliation.rs"]
 mod root_reconciliation;
+#[path = "http/runtime_history.rs"]
+mod runtime_history;
+#[path = "http/semantic.rs"]
+mod semantic;
+#[path = "http/session_policy.rs"]
+mod session_policy;
+#[path = "http/sessions.rs"]
+mod sessions;
+#[path = "http/transfers.rs"]
+mod transfers;
 #[path = "http/workflow.rs"]
 mod workflow;
 struct Credentials(Arc<AtomicUsize>);
@@ -105,7 +155,7 @@ async fn provider(
 }
 fn document(url: &str) -> SystemDocument {
     let mut value: Value = serde_json::from_str(include_str!("../examples/system.json")).unwrap();
-    value["modules"][0]["config"]["connection"]["base_url"] = json!(format!("{url}/v1"));
+    value["modules"][0]["config"]["base_url"] = json!(format!("{url}/v1/"));
     value["modules"][0]["config"]["models"] = json!(["test-model"]);
     value["modules"][1]["config"]["model"] = json!("test-model");
     value["modules"][2]["config"]["text"] = json!("version one");
@@ -134,6 +184,12 @@ fn auth() -> Authorizer {
     .unwrap()
 }
 async fn host(path: &std::path::Path, reads: Arc<AtomicUsize>) -> KernelHost {
+    unbound_host(path, reads)
+        .await
+        .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
+        .unwrap()
+}
+async fn unbound_host(path: &std::path::Path, reads: Arc<AtomicUsize>) -> KernelHost {
     KernelHost::open(
         path,
         native::registry(Arc::new(Credentials(reads))).unwrap(),
@@ -201,8 +257,11 @@ fn run(release: &str, id: &str) -> Value {
     json!({"run_id":id,"thread_id":id,"system":"portable-assistant","release":release,"program":"chat","input":{"text":"hello","attachments":[]}})
 }
 async fn action_result(server: &Serving, id: &str) -> Value {
+    action_result_within(server, id, Duration::from_secs(15)).await
+}
+async fn action_result_within(server: &Serving, id: &str, deadline: Duration) -> Value {
     let mut last = Value::Null;
-    tokio::time::timeout(Duration::from_secs(15), async {
+    let settled = tokio::time::timeout(deadline, async {
         loop {
             last = request(
                 server,
@@ -219,8 +278,40 @@ async fn action_result(server: &Serving, id: &str) -> Value {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     })
-    .await
-    .unwrap_or_else(|_| panic!("management action did not settle: {last}"))
+    .await;
+    match settled {
+        Ok(receipt) => receipt,
+        Err(_) => {
+            // Collect evidence after the unchanged deadline; do not turn a
+            // late success into a passing assertion or leave diagnostics hung.
+            let run = if let Some(run_id) = last["action"]["run_id"].as_str() {
+                tokio::time::timeout(
+                    Duration::from_secs(2),
+                    request(
+                        server,
+                        reqwest::Method::GET,
+                        &format!("/api/v1/runs/{run_id}"),
+                        ADMIN,
+                        Value::Null,
+                    ),
+                )
+                .await
+                .ok()
+                .map(|(_, value)| value)
+            } else {
+                None
+            };
+            let diagnostic = run.as_ref().map(run_diagnostics).unwrap_or(Value::Null);
+            panic!("management action did not settle: receipt={last}; run={diagnostic}")
+        }
+    }
+}
+
+fn run_diagnostics(value: &Value) -> Value {
+    let outcome = &value["execution"]["outcome"];
+    let pause = &outcome["Paused"]["reason"];
+    let children=value["children"].as_array().into_iter().flatten().map(|child|json!({"id":child["run_id"],"kind":child["kind"],"status":child["status"],"node":child["node_id"],"error":child["error"]})).collect::<Vec<_>>();
+    json!({"queue_status":value["run"]["status"],"execution_status":value["execution"]["status"],"outcome_kind":outcome.as_object().map(|map|map.keys().collect::<Vec<_>>()),"pause_kind":pause["kind"],"event_id":pause["event_id"],"hook_identity_bytes":pause["hook"].as_str().map(str::len),"error":value["execution"]["error"],"children":children,"parking_status":value["parking"]["status"],"live_revision":value["live"]["revision"]})
 }
 
 #[tokio::test]
@@ -298,7 +389,7 @@ async fn real_api_enforces_scopes_and_pure_preview_then_runs_edited_releases_in_
     );
     let mut next = document.clone();
     next.modules[2].config["text"] = json!("version two");
-    next.modules[0].config["connection"]["base_url"] = json!(format!("{}/v1", next_provider.url));
+    next.modules[0].config["base_url"] = json!(format!("{}/v1/", next_provider.url));
     let second = import(&server, &next).await;
     post(&server,"/api/v1/apply",json!({"command_id":"apply-two","system":"portable-assistant","release":second,"expected_generation":1})).await;
     post(&server, "/api/v1/runs", run(&second, "second")).await;

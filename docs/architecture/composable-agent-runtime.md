@@ -1,11 +1,11 @@
-# 可组合 Agent 内核使用与兼容边界
+# Agent SDK 早期演进记录
 
-> 2026-10-29 目标校准：最终产品为控制台驱动的常驻、可装载和执行中可更新内核，见[最新规范](live-agent-console.md)。本文仍描述实际 SDK API；配置编译、冻结快照不等于完整常驻管理或热更新。
+> 2026-11-03：本文保留早期SDK抽取与适配记录，不是当前完整API或旧产品兼容承诺。原Shell/Sampler/CLI及其对照脚本已在CLEAN5b移出，下文涉及它们的验收只代表历史阶段，不再执行或作为施工门槛。现行入口见[框架总览](../../README.md)、[Host说明](../../crates/common/nofy-agent-host/文件说明.md)及[独立SDK消费者](../../fixtures/agent-runtime-consumer/README.md)。配置编译、SDK示例或冻结快照不等于完整常驻平台或执行中更新。
 - Owner：Agent 框架维护者。
-- Read When：创建新用途 Agent、增加组件、修改运行契约或验证原始预设时。
-- Update Trigger：公共 API、依赖、兼容入口或验证结果改变。
-- Validation：下述可执行示例、契约测试、依赖检查和原始预设对照脚本。
-- 状态：2026-10-27，experimental API；实现以 `nofy-agent-runtime` 为公共入口。
+- Read When：研究SDK演进与早期设计依据；现行实现以源码、Rustdoc和当前验收记录为准。
+- Update Trigger：历史归档或替代入口变化。
+- Validation：当前框架使用下述独立SDK/依赖边界入口，不再运行旧产品对照。
+- 状态：2026-10-27起的历史记录；实际公共入口为 `nofy-agent-runtime`。
 
 > 2026-10-29 施工补充：本文描述已实现的 SDK，不代表所有原能力已完成可配置模块化。C1–C6 已通过阶段验收，包括真实自研记忆、Prompt/规则/Skill、上下文策略和原压缩引擎接入。运行配方/会话输入治理、workflow 配置、管理 API 与原始预设全量验收仍按 C7–C10 继续。当前入口为[全能力模块化闭环计划](../superpowers/plans/2026-10-28-agent-modularity-closure.md)的阶段账本；下文旧测试记录仅证明当时所覆盖场景。
 
@@ -235,18 +235,16 @@ SDK 的 SamplingClient 流式路径不经过旧 actor 重试循环，传输重�
 
 ```bash
 cargo test --locked --offline -p nofy-agent-runtime --all-features
-cargo test --locked --offline -p nofy-sampler --features agent-runtime --lib agent_model::tests
-cargo test --locked --offline -p nofy-shell --lib parallel_dispatch_tests
-cargo test --locked --offline -p nofy-shell --test provider_loop_e2e -- --ignored
 python3 scripts/check-agent-runtime-boundaries.py
-python3 scripts/verify-agent-preset-compat.py --binary target/debug/nofy --output /tmp/nofy-preset-check
+python3 scripts/verify-agent-independent-consumer.py --output /tmp/nofy-independent-check
+python3 scripts/verify-framework-boundaries.py
 ```
 
-兼容脚本以隔离 HOME、真实 CLI 和本地 scripted HTTP 模型验证普通对话、真实 read_file、继续会话和 streaming-json；可加 `--baseline /path/to/original/nofy` 比对请求轮数、工具清单/schema、调用结果 ID 和归一化系统提示词。不会使用真实密钥或外部服务。失败证据保存在指定 output。
+独立消费者实际在仓库外构建/运行，不依赖原产品宿主；其确定性模型实现只验证SDK契约，不是外部真实模型验收。常驻Host、Loader、预设、恢复及真实模型证据分别见docs/verification，不用旧CLI输出相同替代新框架能力验证。
 
-本轮基线使用修改前保留的已有 `target/debug/nofy`；它不是此次基线提交重新构建的二进制。对照通过证明这组可执行协议场景兼容，不等于所有真实 provider、外部 MCP 和交互终端流程均已穷举。
+早期兼容脚本和本文件修改前全文已保存在CLEAN5b恢复目录，原始历史证据不改写，也不继续作为当前产品验收目标。
 
-## 本轮验收记录
+## 历史验收记录（非当前完成度）
 
 - 新旧 CLI 四类场景通过，工具 schema、系统提示词、调用结果 ID 和请求轮数一致。
 - 原 shell 十二组定向回归共 253 项通过（含新增 provider 适配测试及策略迁移回归）：工具并行、取消、turn 处理、压缩、provider 单测、排队、空闲恢复、提示词持久化、认证恢复。
@@ -406,11 +404,13 @@ SQLite `children(root)` 现在也返回配置图的 Prompt、transform、conditi
 
 ### 深层组合的标识版本
 
-Agent 的 `settings.scope_identity` 和 ToolRuntimeDefinition 的 `scope_identity` 可显式选择 `"hashed_v1"`。AgentBuilder 对应 `Settings { scope_identity: Some(IdentityScheme::HashedV1), ..Default::default() }`。子调用使用固定78字节的 `child-hash-v1:<sha256>`，摘要输入仍包含父 thread/run、模型序号及 call ID；同名调用不会跨父节点混淆。显式选用该方案的 Agent 编译身份也使用摘要，避免静态多层组合把子定义反复 JSON 转义。深层静态组件可分别选用该方案；未指定的子组件在运行时继承根的 scope 策略。
+Agent的settings.scope_identity及ToolRuntimeDefinition.scope_identity可显式选择hashed_v2；AgentBuilder对应IdentityScheme::HashedV2。它在初始编译和每次能力追加后折叠为84字节composition-hash-v2身份，子地址为78字节child-hash-v2。摘要绑定原声明与追加内容，顺序或内容变化会改变身份。编程预设已采用V2。
 
-默认字段为空且不参与序列化，保留旧 AgentSpec、配置快照、组合身份和 `child:JSON(...)` 地址。方案进入冻结配置；不能通过更换该字段续接旧检查点。根在运行前确定方案，同树后代显式声明冲突会在子 Hook、登记、预算与模型/工具调用前拒绝。ContextBinding 清空扩展也不能移除根的选择。workflow 原有节点、host、控制 marker 的哈希算法保持原样；子模型重试和定点取消确认使用同一根方案核对原父调用。
+编译格式由组件冻结声明选择，地址方案由根在运行前选择并向后代继承。未声明的子组件不在运行时被重编译成V2；显式冲突仍在子Hook、登记、预算和IO前拒绝。ContextBinding清空扩展不能移除根的选择。Legacy/HashedV1保留框架自身已存格式；V1只哈希初始定义，其后追加形式保持原语义。不能通过换scope_identity续接旧检查点，未支持新格式的内核不能据此宣称可读取V2快照。
 
-Agent-as-Tool 通过受父调用拥有的 Tokio 子任务运行，避免深层递归轮询耗尽宿主栈；父 future 丢弃会中止其拥有的后代任务。该中止不会把未取得回执的外部效果或模型请求写成成功取消，仍按原未知效果/对账规则恢复。实际验收含16层 Agent 共享预算完整执行、12层叶子模型失败/定点取消恢复、清空绑定、父 future 中断和无模型 Tool 根继承。
+子组预算不再重复存放完整composition/input，改为79字节child-group/v1摘要。原Child活动、固定child_calls=1且其余字段完全一致的原请求，可按原元组核对摘要；继续使用原reservation，claim/settle不放宽。已claim未知不会因此重派发，原receipt、用量、预留、原操作id和期限保持。
+
+Agent-as-Tool仍由父调用拥有Tokio子任务，父future丢弃会中止后代；未知效果须原对账。V1/V2均验证16层共享预算、12层模型重试及定点取消、清空绑定和快照恢复；原失败Agent＋Hook和V2长输入另有原生HTTP及真实退出证据。详见[设计](bounded-composition-identity.md)和[验收](../verification/bounded-composition-identity.md)。
 
 ### 通用根执行与 ExecutionSnapshot
 

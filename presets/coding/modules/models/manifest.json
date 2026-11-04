@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "chat_completions": {
+      "protocol": {
+        "source": {"kind": "artifact", "entries": ["common.rhai", "chat_completions.rhai"], "settings_schema": "parameters.schema.json"},
+        "capabilities": {"streaming": true, "image_input": true, "structured_output": true},
+        "limits": {"max_requests": 6}
+      },
+      "connection": {"headers": {}, "header_credentials": {"authorization": {"reference": "MODEL_KEY", "prefix": "Bearer "}}}
+    },
+    "responses": {
+      "protocol": {
+        "source": {"kind": "artifact", "entries": ["common.rhai", "responses.rhai"], "settings_schema": "parameters.schema.json"},
+        "capabilities": {"streaming": true, "image_input": true, "structured_output": true},
+        "limits": {"max_requests": 6}
+      },
+      "connection": {"headers": {}, "header_credentials": {"authorization": {"reference": "MODEL_KEY", "prefix": "Bearer "}}}
+    },
+    "messages": {
+      "protocol": {
+        "source": {"kind": "artifact", "entries": ["common.rhai", "messages.rhai"], "settings_schema": "parameters.schema.json"},
+        "capabilities": {"streaming": true, "image_input": true, "structured_output": true},
+        "limits": {"max_requests": 6}
+      },
+      "connection": {"headers": {"anthropic-version": "2023-06-01"}, "header_credentials": {"x-api-key": {"reference": "MODEL_KEY", "prefix": ""}}}
+    }
+  }
+}

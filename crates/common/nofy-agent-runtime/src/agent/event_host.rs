@@ -22,9 +22,11 @@ impl Agent {
             _ => {}
         }
         self = self.with_hooks(HookBus::new(catalog, registrations)?);
-        self.composition =
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
             serde_json::to_string(&(&self.composition, "event-program-v1", identity))
-                .map_err(|e| Error::Composition(e.to_string()))?;
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         self.event_program = Some(event);
         Ok(self)
     }

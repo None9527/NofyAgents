@@ -10,6 +10,7 @@ use std::{
 #[derive(Clone)]
 pub struct FileCatalogStore {
     path: Arc<PathBuf>,
+    admission: Option<Arc<dyn crate::admission::CommitAdmission>>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -23,10 +24,22 @@ fn storage(error: impl std::fmt::Display) -> ControlError {
 }
 impl FileCatalogStore {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
+        Self::open_inner(path.as_ref(), None)
+    }
+    pub fn open_with_admission(
+        path: impl AsRef<Path>,
+        admission: Arc<dyn crate::admission::CommitAdmission>,
+    ) -> Result<Self> {
+        Self::open_inner(path.as_ref(), Some(admission))
+    }
+    fn open_inner(
+        path: &Path,
+        admission: Option<Arc<dyn crate::admission::CommitAdmission>>,
+    ) -> Result<Self> {
         if !cfg!(unix) {
             return Err(ControlError::Invalid("file catalog requires Unix atomic rename and directory fsync; use another CatalogStore on this platform".into()));
         }
-        let path = path.as_ref();
+        crate::admission::marker::check(path, admission.as_deref())?;
         if !path.is_absolute() || path.file_name().is_none() {
             return Err(ControlError::Invalid(
                 "catalog requires an absolute file path".into(),
@@ -36,9 +49,17 @@ impl FileCatalogStore {
             .parent()
             .ok_or_else(|| ControlError::Invalid("catalog parent missing".into()))?;
         std::fs::create_dir_all(parent).map_err(storage)?;
-        Ok(Self {
+        let store = Self {
             path: Arc::new(path.to_owned()),
-        })
+            admission,
+        };
+        let _permit = store.admission.as_ref().map(|p| p.enter()).transpose()?;
+        let _lock = store.lock()?;
+        crate::admission::marker::check(path, store.admission.as_deref())?;
+        if let Some(policy) = &store.admission {
+            crate::admission::marker::install(path, policy.as_ref())?;
+        }
+        Ok(store)
     }
     pub fn path(&self) -> &Path {
         &self.path
@@ -153,11 +174,57 @@ impl CatalogStore for FileCatalogStore {
         data.validate()?;
         let store = self.clone();
         tokio::task::spawn_blocking(move || {
+            let permit = store.admission.as_ref().map(|p| p.enter()).transpose()?;
             let _guard = store.lock()?;
+            crate::admission::marker::check(&store.path, store.admission.as_deref())?;
             let old = store.read()?;
             let actual = old.as_ref().map(|v| v.revision);
             if actual != expected {
                 return Err(ControlError::Conflict { expected, actual });
+            }
+            if let Some(permit) = &permit {
+                let old_data = old.as_ref().map(|v| &v.data);
+                for (id, publication) in &data.publications {
+                    if old_data.is_none_or(|d| !d.publications.contains_key(id)) {
+                        let modules = &publication.bundle.document.modules;
+                        permit.validate("publication", &modules.iter().collect::<Vec<_>>())?;
+                        for program in publication.bundle.document.programs.values() {
+                            if let crate::system::ProgramDefinition::Workflow { document, .. } =
+                                program
+                            {
+                                permit.validate(
+                                    "publication",
+                                    &document.modules.iter().collect::<Vec<_>>(),
+                                )?;
+                            }
+                        }
+                    }
+                }
+                for (id, draft) in &data.drafts {
+                    let changed = match old_data.and_then(|d| d.drafts.get(id)) {
+                        None => true,
+                        Some(previous) => {
+                            previous.revision != draft.revision
+                                || digest(&previous.document)? != digest(&draft.document)?
+                        }
+                    };
+                    if changed {
+                        permit.validate(
+                            "draft",
+                            &draft.document.modules.iter().collect::<Vec<_>>(),
+                        )?;
+                        for program in draft.document.programs.values() {
+                            if let crate::system::ProgramDefinition::Workflow { document, .. } =
+                                program
+                            {
+                                permit.validate(
+                                    "draft",
+                                    &document.modules.iter().collect::<Vec<_>>(),
+                                )?;
+                            }
+                        }
+                    }
+                }
             }
             let revision = actual
                 .unwrap_or(0)

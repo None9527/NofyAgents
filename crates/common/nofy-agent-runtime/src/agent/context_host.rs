@@ -14,8 +14,11 @@ impl Agent {
                 "context policies need unique versioned identities".into(),
             ));
         }
-        self.composition = serde_json::to_string(&(&self.composition, "context_policy", &identity))
-            .map_err(|e| Error::Composition(e.to_string()))?;
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(&self.composition, "context_policy", &identity))
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         self.context_policies.push((identity, policy));
         Ok(self)
     }

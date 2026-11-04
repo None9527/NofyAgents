@@ -1,11 +1,8 @@
-//! Validation rules for every identifier newtype, plus the synthetic
-//! `ServerId` helper invariants.
+//! Tool identity validation and serialization invariants.
 
 use std::str::FromStr;
 
-use nofy_tool_protocol::{
-    ConnectionId, IdError, RequestId, ServerId, SessionId, ToolCallId, ToolId, UserId,
-};
+use nofy_tool_protocol::{IdError, ToolCallId, ToolId};
 
 #[test]
 fn tool_id_accepts_bare_and_namespaced_names() {
@@ -86,89 +83,6 @@ fn tool_id_try_from_string_works() {
 }
 
 #[test]
-fn server_id_accepts_arbitrary_non_empty_strings() {
-    for ok in ["my-uuid-v7", "srv_42", "x", "abc.def"] {
-        let s = ServerId::new(ok).unwrap();
-        assert_eq!(s.as_str(), ok);
-    }
-}
-
-#[test]
-fn server_id_rejects_empty() {
-    assert_eq!(ServerId::new("").unwrap_err(), IdError::Empty);
-}
-
-#[test]
-fn server_id_rejects_reserved_auto_prefix() {
-    for bad in ["auto:my-server", "auto:", "auto:tool:read_file"] {
-        let err = ServerId::new(bad).unwrap_err();
-        assert!(
-            matches!(err, IdError::ReservedPrefix { ref value } if value == bad),
-            "expected ReservedPrefix for {bad:?}, got {err:?}"
-        );
-    }
-}
-
-#[test]
-fn server_id_synthesis_starts_with_auto_prefix() {
-    let conn = ConnectionId::new("conn-abc").unwrap();
-    let bare = ToolId::new("read_file").unwrap();
-    let synth = ServerId::synthesize_for_tool(&conn, &bare);
-    assert_eq!(synth.as_str(), "auto:tool:read_file");
-
-    let namespaced = ToolId::new("NofyBuild:read_file").unwrap();
-    let synth_ns = ServerId::synthesize_for_tool(&conn, &namespaced);
-    assert_eq!(synth_ns.as_str(), "auto:tool:NofyBuild:read_file");
-}
-
-#[test]
-fn server_id_synthesis_is_deterministic() {
-    let conn = ConnectionId::new("conn-abc").unwrap();
-    let tool = ToolId::new("NofyBuild:read_file").unwrap();
-    let a = ServerId::synthesize_for_tool(&conn, &tool);
-    let b = ServerId::synthesize_for_tool(&conn, &tool);
-    assert_eq!(
-        a, b,
-        "synthesis must be a pure function of (connection, tool)"
-    );
-}
-
-#[test]
-fn server_id_synthesis_bypasses_reserved_prefix_check() {
-    // The synthesised id starts with `auto:`; the reserved-prefix rule
-    // only applies to client-supplied values via `ServerId::new`.
-    let conn = ConnectionId::new("conn-abc").unwrap();
-    let tool = ToolId::new("read_file").unwrap();
-    let synth = ServerId::synthesize_for_tool(&conn, &tool);
-    assert!(synth.as_str().starts_with("auto:"));
-
-    let err = ServerId::new(synth.as_str()).unwrap_err();
-    assert!(matches!(err, IdError::ReservedPrefix { .. }));
-}
-
-#[test]
-fn opaque_ids_reject_empty() {
-    assert_eq!(SessionId::new("").unwrap_err(), IdError::Empty);
-    assert_eq!(UserId::new("").unwrap_err(), IdError::Empty);
-    assert_eq!(ConnectionId::new("").unwrap_err(), IdError::Empty);
-    assert_eq!(RequestId::new("").unwrap_err(), IdError::Empty);
-    assert_eq!(ToolCallId::new("").unwrap_err(), IdError::Empty);
-}
-
-#[test]
-fn opaque_ids_accept_arbitrary_non_empty_strings() {
-    assert_eq!(
-        SessionId::new("anything goes").unwrap().as_str(),
-        "anything goes"
-    );
-    assert_eq!(
-        UserId::new("alice@example.com").unwrap().as_str(),
-        "alice@example.com"
-    );
-    assert_eq!(RequestId::new("req-9c4f").unwrap().as_str(), "req-9c4f");
-}
-
-#[test]
 fn tool_call_id_uuid_v7_helper_is_unique_and_valid_uuid() {
     let a = ToolCallId::new_v7();
     let b = ToolCallId::new_v7();
@@ -184,9 +98,27 @@ fn tool_call_id_uuid_v7_helper_is_unique_and_valid_uuid() {
 }
 
 #[test]
-fn opaque_id_display_matches_inner_string() {
-    let s = SessionId::new("sess_abc").unwrap();
-    assert_eq!(format!("{s}"), "sess_abc");
-    let t = ToolId::new("github:list_repos").unwrap();
-    assert_eq!(format!("{t}"), "github:list_repos");
+fn tool_identity_interfaces_and_serde_preserve_values() {
+    let id = ToolId::new("files:read").unwrap();
+    assert_eq!(id.to_string(), "files:read");
+    assert_eq!(id.as_ref(), "files:read");
+    assert_eq!(id.clone().into_inner(), "files:read");
+    let encoded = serde_json::to_string(&id).unwrap();
+    assert_eq!(serde_json::from_str::<ToolId>(&encoded).unwrap(), id);
+    for bad in ["", "files:read:extra", "files/read", "read file", ":read"] {
+        let encoded = serde_json::to_string(bad).unwrap();
+        assert!(serde_json::from_str::<ToolId>(&encoded).is_err());
+    }
+}
+
+#[test]
+fn invocation_identity_is_nonempty_and_serde_validated() {
+    assert_eq!(ToolCallId::new("").unwrap_err(), IdError::Empty);
+    let id = ToolCallId::new("run-1/call-2").unwrap();
+    assert_eq!(id.to_string(), "run-1/call-2");
+    assert_eq!(id.as_ref(), "run-1/call-2");
+    assert_eq!(id.clone().into_inner(), "run-1/call-2");
+    let encoded = serde_json::to_string(&id).unwrap();
+    assert_eq!(serde_json::from_str::<ToolCallId>(&encoded).unwrap(), id);
+    assert!(serde_json::from_str::<ToolCallId>("\"\"").is_err());
 }

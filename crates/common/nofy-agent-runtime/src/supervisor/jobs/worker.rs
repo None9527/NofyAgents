@@ -44,19 +44,11 @@ impl RunSupervisor {
                 })?;
             return replay::cached_outcome(record, &job.submission, &job.digest).map(Some);
         }
-        let host = registry.clone();
-        let submission = job.submission.clone();
-        let managed = self.store.managed_run(run_id).await?.is_some();
-        let compiled = tokio::task::spawn_blocking(move || {
-            let scope = if managed {
-                super::managed::restore_scope(&submission.snapshot, &host)?
-            } else {
-                host
-            };
-            submission.restore(&scope)
-        })
-        .await
-        .map_err(|e| Error::Checkpoint(format!("job restore task failed: {e}")))??;
+        if !self.prepare_session_turn(&job).await? {
+            return Ok(None);
+        }
+        self.prepare_session_policy(run_id, Some(registry)).await?;
+        let compiled = self.restore_job_plan(registry, &job).await?;
         if digest(compiled.agent.composition_identity().as_bytes())
             != job.submission.composition_digest
         {
@@ -91,10 +83,14 @@ impl RunSupervisor {
         let root = job.submission.run_id.clone();
         let lease_check = lease.clone();
         let clock = self.store.clock.clone();
+        let expected = compiled.live_identity();
         let saved=self.store.transaction(move |tx| {
             check_lease(tx,&lease_check,clock.now_ms())?;
+            ensure_not_parked(tx,&lease_check.key)?;
             let (sequence,_,saved,state)=load(tx,&root)?.ok_or_else(||Error::Checkpoint("job disappeared".into()))?;
             if state=="cancelled" || state=="closed" || state=="abandoned" {return Ok(None);}
+            verify_plan(tx,&root,expected.as_ref())?;
+            ensure_live_owner(tx,&lease_check.key,&root,&saved.submission.snapshot)?;
             let head:Option<u64>=tx.query_row("SELECT sequence FROM agent_runtime_jobs WHERE thread_key=?1 AND status NOT IN ('closed','cancelled','abandoned') ORDER BY sequence LIMIT 1",[&lease_check.key],|row|row.get(0)).optional().map_err(db_error)?;
             if head!=Some(sequence){return Ok(None);}
             let active:Option<String>=tx.query_row("SELECT active_run FROM agent_runtime_threads WHERE key=?1",[&lease_check.key],|row|row.get(0)).optional().map_err(db_error)?;

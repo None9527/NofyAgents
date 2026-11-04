@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["grants"],
+  "properties": {
+    "grants": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 256,
+      "propertyNames": {"minLength": 1, "maxLength": 128},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tools"],
+        "properties": {
+          "tools": {
+            "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1, "maxLength": 128}
+          },
+          "path": {
+            "type": "object", "additionalProperties": false,
+            "required": ["argument", "glob"],
+            "properties": {
+              "argument": {"type": "string", "minLength": 1, "maxLength": 128},
+              "glob": {"type": "string", "minLength": 1, "maxLength": 1024}
+            }
+          },
+          "argv_prefix": {
+            "type": "object", "additionalProperties": false,
+            "required": ["argument", "prefix"],
+            "properties": {
+              "argument": {"type": "string", "minLength": 1, "maxLength": 128},
+              "prefix": {
+                "type": "array", "minItems": 1, "maxItems": 128,
+                "items": {"type": "string", "maxLength": 4096}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

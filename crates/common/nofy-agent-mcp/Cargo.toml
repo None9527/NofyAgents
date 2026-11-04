@@ -1,0 +1,24 @@
+[package]
+name = "nofy-agent-mcp"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Inbound stdio and Streamable HTTP MCP adapter for the Nofy kernel"
+
+[dependencies]
+nofy-agent-client = { path = "../nofy-agent-client" }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+axum = { workspace = true }
+anyhow = { workspace = true }
+url = { workspace = true }
+rmcp = { version = "=3.6.0", default-features = false, features = ["server", "transport-io", "transport-streamable-http-server"] }
+
+[dev-dependencies]
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+rmcp = { version = "=3.6.0", default-features = false, features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest", "reqwest"] }
+
+[lints]
+workspace = true

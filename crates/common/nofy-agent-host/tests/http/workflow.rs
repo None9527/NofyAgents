@@ -67,7 +67,7 @@ async fn one_file_loads_reusable_workflow_tools_hooks_and_agents_with_frozen_dep
     let server = serve(host.router()).await;
     let mut source: Value =
         serde_json::from_str(include_str!("../../examples/workflow-system.json")).unwrap();
-    module(&mut source, "provider")["config"]["connection"] = json!({"base_url":format!("{}/v1",provider.url),"api_backend":"chat_completions","auth_scheme":"bearer","max_retries":0});
+    module(&mut source, "provider")["config"]["base_url"] = json!(format!("{}/v1/", provider.url));
     module(&mut source, "provider")["config"]["models"] = json!(["test-model"]);
     module(&mut source, "model")["config"]["model"] = json!("test-model");
     let dependency=post(&server,"/api/v1/modules/dependencies",json!({"factory":"resource.workflow","config":module(&mut source,"calculator-workflow")["config"]})).await;

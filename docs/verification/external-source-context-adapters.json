@@ -1,0 +1,309 @@
+{
+  "stage": "L3c2",
+  "mode": "complete feature block then one related validation wave; only failed checks repeated",
+  "production": {
+    "existing_files": 6,
+    "new_files": 2,
+    "runtime_changes": "public visibility and documentation of two existing functions; original bodies unchanged",
+    "new_dependencies": false,
+    "new_tables": false,
+    "new_execution_loop": false
+  },
+  "factories": [
+    "tool_source.http",
+    "context.programmed"
+  ],
+  "initial_wave": {
+    "stage": "L3c2",
+    "totals": {
+      "passed": 253,
+      "failed": 2,
+      "ignored": 0,
+      "doc_passed": 0
+    },
+    "sources": 660,
+    "executables": 122,
+    "results": [
+      {
+        "name": "build",
+        "exit_code": 0,
+        "seconds": 45.033,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-executors",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--all-targets",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "--message-format=json"
+        ]
+      },
+      {
+        "name": "executors-default-check",
+        "exit_code": 0,
+        "seconds": 35.306,
+        "command": [
+          "cargo",
+          "check",
+          "-p",
+          "nofy-agent-executors",
+          "--no-default-features",
+          "--all-targets",
+          "--locked",
+          "--offline"
+        ]
+      },
+      {
+        "name": "strict-docs",
+        "exit_code": 0,
+        "seconds": 19.008,
+        "command": [
+          "cargo",
+          "doc",
+          "-p",
+          "nofy-agent-runtime",
+          "-p",
+          "nofy-agent-executors",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--no-deps",
+          "--locked",
+          "--offline"
+        ]
+      },
+      {
+        "name": "boundaries",
+        "exit_code": 0,
+        "seconds": 2.602,
+        "command": [
+          "python3",
+          "-B",
+          "scripts/verify-framework-boundaries.py"
+        ]
+      },
+      {
+        "name": "fmt",
+        "exit_code": 0,
+        "seconds": 1.194,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-executors-code",
+        "exit_code": 0,
+        "seconds": 0.158,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/code-7a34c9d4a1f9df02",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-executors-executors",
+        "exit_code": 0,
+        "seconds": 12.01,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/executors-50a90415e231da86",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-executors-http_source",
+        "exit_code": 0,
+        "seconds": 0.071,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http_source-217bfbd431c1fea2",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-executors-nofy_agent_executors",
+        "exit_code": 0,
+        "seconds": 0.007,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/nofy_agent_executors-d76e13d9e32b6e05",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-executors-programmed_context",
+        "exit_code": 0,
+        "seconds": 0.046,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/programmed_context-95da5fbedbb463bb",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-credentials",
+        "exit_code": 0,
+        "seconds": 0.007,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/credentials-491520d9d0b7b1fc",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-http",
+        "exit_code": 101,
+        "seconds": 150.544,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b",
+          "--nocapture",
+          "--skip",
+          "loader::images"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-nofy_agent_host",
+        "exit_code": 0,
+        "seconds": 3.23,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/nofy_agent_host-ca07530f3201f051",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "doctests",
+        "exit_code": 0,
+        "seconds": 3.56,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-executors",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--doc",
+          "--locked",
+          "--offline"
+        ]
+      }
+    ],
+    "excluded": [
+      "unchanged Host process-tree test binary",
+      "Host loader::images suites (unchanged image/cache/build implementation)",
+      "unrelated workspace package tests and duplicate independent consumers"
+    ],
+    "scope": "complete external adapters block, default Host and related regressions"
+  },
+  "initial_wave_session": 73503,
+  "initial_wave_exit_code": 1,
+  "corrections": {
+    "files": [
+      "crates/common/nofy-agent-host/tests/http/parking/modules/external.rs",
+      "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/crashes.rs"
+    ],
+    "production_changed": false,
+    "floor": "permit own after_effect Hook while keeping new business tool denied",
+    "crash_wait": "45-second test wait for existing 30-second fence; production limits unchanged"
+  },
+  "retry": {
+    "passed": 2,
+    "failed": 0,
+    "test_seconds": 62.525,
+    "results": [
+      {
+        "name": "retry-http-build",
+        "exit_code": 0,
+        "seconds": 6.556,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "--message-format=json"
+        ]
+      },
+      {
+        "name": "retry-affected",
+        "exit_code": 0,
+        "seconds": 62.525,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b",
+          "--nocapture",
+          "--exact",
+          "parking::modules::external::live::external_catalog_and_isolated_context_program_update_and_rollback_through_default_host",
+          "parking::modules::budgets::composition::crashes::nested_and_terminal_progress_survive_hard_exit_before_and_after_budget_commit"
+        ]
+      },
+      {
+        "name": "retry-fmt",
+        "exit_code": 0,
+        "seconds": 1.197,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
+      }
+    ],
+    "sources_verified": 660,
+    "new_http_binary": "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b",
+    "new_http_binary_sha256": "65709868755b38d5e3eba57b793f32991c64c3b0fdf60ff7a31ef048976bbc42",
+    "original_wave": "253 passed, 2 failed; preserved in attempt-2",
+    "production_code_changed_after_wave": false,
+    "changes": "test floor admits its own after_effect Hook; crash fixture uses a 45-second wait for the existing 30-second owner fence"
+  },
+  "retry_session": 58412,
+  "retry_exit_code": 0,
+  "final_unique_passed": 255,
+  "final_groups": {
+    "executors": 25,
+    "host_unit": 72,
+    "host_credentials": 5,
+    "host_related_http": 153
+  },
+  "workspace_wide_retested": false,
+  "unchanged_scope_not_rerun": {
+    "host_image_tests": 13,
+    "host_process_tree_tests": 11,
+    "other_workspace_packages": true,
+    "duplicate_sdk_consumer": true
+  },
+  "source_count": 660,
+  "frozen_between_wave_and_retry_changed": [
+    "/home/none/nofy-build/crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/crashes.rs",
+    "/home/none/nofy-build/crates/common/nofy-agent-host/tests/http/parking/modules/external.rs"
+  ],
+  "executable_count": 122,
+  "frozen_between_wave_and_retry_executables_changed": [
+    "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b"
+  ],
+  "actual_host_flows": {
+    "live_update_rollback_permission": 3,
+    "model_sampling_hard_exits": 2,
+    "normal_model_sampling": 1,
+    "malformed_updates": 2
+  },
+  "hard_exit_code": 71,
+  "real_upstream_requests": 0,
+  "production_credentials_read": false,
+  "preset_source_or_python_changed": false,
+  "evidence": "/tmp/nofy-external-adapters.huad2z41",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/external-adapters.i9no6vty",
+  "goal_status": "active",
+  "remaining": [
+    "Memory capture/durable write binding transitions",
+    "other stateful capabilities",
+    "new console",
+    "multiple locked-reference behavior presets",
+    "release acceptance"
+  ]
+}

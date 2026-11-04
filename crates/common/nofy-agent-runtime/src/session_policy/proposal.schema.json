@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nofy:session-policy:SessionPolicyProposal:v1",
+  "$ref": "#/$defs/SessionPolicyProposal",
+  "$defs": {
+    "SessionPolicyProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "ambiguous"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "decision",
+        "reason",
+        "session_id",
+        "display_name",
+        "archive"
+      ]
+    }
+  }
+}

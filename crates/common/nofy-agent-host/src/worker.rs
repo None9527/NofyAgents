@@ -37,6 +37,12 @@ pub(crate) async fn run(
             _=tick.tick()=>{},
         }
         retry.retain(|_, at| *at > Instant::now());
+        let Some(history) = host.runtime_history.execution()? else {
+            continue;
+        };
+        // Refresh trusted metadata outside all module factories. A broken
+        // optional runtime catalog must not terminate unrelated HTTP/SDK work.
+        let _ = host.loader.refresh_async().await;
         let mut cursor = 0;
         while tasks.len() < concurrency {
             let actions = host.store.managed_action_heads(cursor, 256).await?;
@@ -53,12 +59,22 @@ pub(crate) async fn run(
                 }
                 active.insert(run.clone());
                 let host = host.clone();
+                let history = history.clone();
                 tasks.spawn(async move {
-                    let result = host
-                        .supervisor
-                        .execute_managed_action(&host.registry, &command)
-                        .await
-                        .map(|_| ());
+                    let _history = history;
+                    let result = async {
+                        let _memory = host
+                            .loader
+                            .memory_provider
+                            .admit_execution(&host.store, &run, Some(&command))
+                            .await?;
+                        host.supervisor
+                            .execute_managed_action(&host.registry, &command)
+                            .await
+                            .map(|_| ())
+                            .map_err(HostError::from)
+                    }
+                    .await;
                     (run, result)
                 });
             }
@@ -79,12 +95,22 @@ pub(crate) async fn run(
                 }
                 active.insert(id.clone());
                 let host = host.clone();
+                let history = history.clone();
                 tasks.spawn(async move {
-                    let result = host
-                        .supervisor
-                        .execute_submitted(&host.registry, &id)
-                        .await
-                        .map(|_| ());
+                    let _history = history;
+                    let result = async {
+                        let _memory = host
+                            .loader
+                            .memory_provider
+                            .admit_execution(&host.store, &id, None)
+                            .await?;
+                        host.supervisor
+                            .execute_submitted(&host.registry, &id)
+                            .await
+                            .map(|_| ())
+                            .map_err(HostError::from)
+                    }
+                    .await;
                     (id, result)
                 });
             }

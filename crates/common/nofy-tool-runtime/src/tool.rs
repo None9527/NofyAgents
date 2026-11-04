@@ -27,7 +27,7 @@ use nofy_tool_types::ToolDescription;
 
 use crate::context::{ListToolsContext, ToolCallContext};
 use crate::error::ToolError;
-use crate::render::{ToolChatCompletionResponse, ToolOutput};
+use crate::render::ToolOutput;
 
 /// The unified tool trait used by every tool source.
 ///
@@ -38,11 +38,18 @@ pub trait Tool: Send + Sync {
     type Args: for<'de> Deserialize<'de> + JsonSchema + Send + 'static;
 
     /// Typed output. Must implement [`ToolOutput`] which provides
-    /// model-facing content blocks and optional chat-completion
-    /// responses. All methods have defaults, so most output types
+    /// model-facing content blocks. The method has a default, so most output types
     /// just need:
-    /// ```rust,ignore
+    /// ```rust
+    /// use nofy_tool_runtime::ToolOutput;
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// struct MyOutput { answer: u32 }
     /// impl ToolOutput for MyOutput {}
+    ///
+    /// let output = MyOutput { answer: 42 };
+    /// assert!(output.model_output().is_empty());
     /// ```
     type Output: Serialize + ToolOutput + Send + 'static;
 
@@ -230,8 +237,7 @@ where
 /// model-facing content blocks extracted at serialisation time.
 ///
 /// When the `ToolDyn` blanket impl serialises a typed `Tool::Output` to
-/// JSON it also calls [`ToolOutput::model_output`] and
-/// [`ToolOutput::chat_completion_output`], capturing both
+/// JSON it also calls [`ToolOutput::model_output`], capturing the blocks
 /// here so downstream consumers never need to deserialise the `Value`
 /// back into the concrete type.
 ///
@@ -243,6 +249,7 @@ where
 /// content.  Tools that override the method are expected to return at
 /// least one block.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TypedToolOutput {
     /// Identity of the tool that produced this output.
     pub tool_id: ToolId,
@@ -251,14 +258,6 @@ pub struct TypedToolOutput {
     /// Model-facing content blocks. Always contains at least one block
     /// (MCP compliance — see struct-level docs).
     pub model_output: Vec<ContentBlock>,
-    /// Optional chat-completion response frame, extracted from the typed
-    /// output via [`ToolOutput`] at type-erasure time.
-    ///
-    /// `None` for the vast majority of tools. Present when a tool
-    /// produces a frontend-ready chat response (render cards, progress
-    /// reports, etc.).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat_completion_output: Option<ToolChatCompletionResponse>,
 }
 
 impl TypedToolOutput {
@@ -266,38 +265,20 @@ impl TypedToolOutput {
     /// already-serialised `Value` (e.g. at wire decode boundaries).
     ///
     /// `model_output` is derived from the value via
-    /// [`extract_content_blocks`](crate::render::extract_content_blocks);
-    /// `chat_completion_output` is always `None` since the wire format
-    /// does not carry it.
+    /// [`extract_content_blocks`](crate::render::extract_content_blocks).
     pub fn from_value(tool_id: ToolId, value: Value) -> Self {
         let model_output = crate::render::extract_content_blocks(&value);
         Self {
             tool_id,
             value,
             model_output,
-            chat_completion_output: None,
         }
-    }
-
-    /// Override the `chat_completion_output` that [`Self::from_value`]
-    /// leaves `None` — used by wire-decode boundaries that recover the
-    /// frame the plain `from_value` path cannot carry.
-    pub fn with_chat_completion_output(
-        mut self,
-        chat_completion_output: Option<ToolChatCompletionResponse>,
-    ) -> Self {
-        self.chat_completion_output = chat_completion_output;
-        self
     }
 }
 
 impl ToolOutput for TypedToolOutput {
     fn model_output(&self) -> Vec<ContentBlock> {
         self.model_output.clone()
-    }
-
-    fn chat_completion_output(&self) -> Option<ToolChatCompletionResponse> {
-        self.chat_completion_output.clone()
     }
 }
 
@@ -380,12 +361,10 @@ impl<T: Tool> ToolDyn for T {
                             } else {
                                 custom
                             };
-                            let chat_completion_output = out.chat_completion_output();
                             ToolStreamItem::Terminal(Ok(TypedToolOutput {
                                 tool_id: tool_id.clone(),
                                 value,
                                 model_output,
-                                chat_completion_output,
                             }))
                         }
                         Err(e) => ToolStreamItem::Terminal(Err(ToolError::execution(

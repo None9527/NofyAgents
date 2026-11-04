@@ -13,7 +13,7 @@ struct EffectModel {
 }
 #[async_trait::async_trait]
 impl Model for EffectModel {
-    fn request_bound(
+    async fn request_bound(
         &self,
         _: &ModelRequest,
         _: &RunContext,

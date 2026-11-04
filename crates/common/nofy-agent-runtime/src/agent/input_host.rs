@@ -45,6 +45,34 @@ fn validate_view(message: &Message, images: bool) -> Result<(), Error> {
     }
 }
 impl AgentHost<'_> {
+    fn start_mailbox_input(&mut self) -> Result<(), Error> {
+        if self.closing && self.state.complete {
+            // A new completion needs its own hook and capture identity. This
+            // commits with the accepted input, retaining the root's counters.
+            if self.agent.hooks.is_some() {
+                self.state.hook_progress.turn = self
+                    .state
+                    .hook_progress
+                    .turn
+                    .checked_add(1)
+                    .ok_or_else(|| Error::Checkpoint("hook turn ordinal exhausted".into()))?;
+                self.state.hook_progress.stop_attempts = 0;
+            }
+            if self.agent.hooks.is_some()
+                || !self.agent.context_policies.is_empty()
+                || self.agent.recipe.is_some()
+            {
+                self.state.hook_progress.input_start_index = Some(self.state.messages.len());
+                self.state.hook_progress.synthetic_inputs.clear();
+            }
+        }
+        self.state.complete = false;
+        self.state.output.clear();
+        self.state.completion_info = Default::default();
+        self.state.hook_progress.stop_done = false;
+        self.closing = false;
+        Ok(())
+    }
     pub(super) async fn drain_inputs(&mut self) -> Result<Option<Step<RunOutcome>>, Error> {
         // Model-free roots watch their own cancellation channel but cannot
         // turn ordinary Agent mail into extra executable calls.
@@ -152,6 +180,7 @@ impl AgentHost<'_> {
         }
         if matches!(delivery.envelope.input, MailInput::Tool { .. }) {
             let command = UserToolCommand::from_delivery(delivery)?;
+            self.start_mailbox_input()?;
             let index = self.state.messages.len();
             self.state.messages.push(Message::Assistant {
                 content: String::new(),
@@ -161,10 +190,6 @@ impl AgentHost<'_> {
             self.state.pending_tools.push_back(command.call.clone());
             self.state.input_progress.pending = None;
             self.state.input_progress.command = Some(command);
-            self.state.complete = false;
-            self.state.output.clear();
-            self.state.completion_info = Default::default();
-            self.state.hook_progress.stop_done = false;
             self.commit().await?;
             return Ok(Some(Step::Continue));
         }
@@ -219,14 +244,11 @@ impl AgentHost<'_> {
         if let Err(error) = validate_view(&view, self.agent.model_capabilities().image_input) {
             return self.settle_input(delivery, Some(error.to_string())).await;
         }
+        self.start_mailbox_input()?;
         let index = self.state.messages.len();
         self.state.messages.push(view);
         self.state.hook_progress.synthetic_inputs.push(index);
         self.state.input_progress.capture.insert(index, raw);
-        self.state.complete = false;
-        self.state.output.clear();
-        self.state.completion_info = Default::default();
-        self.state.hook_progress.stop_done = false;
         self.settle_input(delivery, None).await
     }
     async fn settle_input(

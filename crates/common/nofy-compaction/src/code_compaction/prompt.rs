@@ -3,8 +3,8 @@
 //! Split out of the crate-root `prompt` module so nofy-build's full-replace
 //! prompt lives alongside the rest of its [`code_compaction`](crate::code_compaction)
 //! subsystem. The Nofy chat's step-level intra prompt
-//! ([`format_compaction_prompt`](crate::prompt::format_compaction_prompt))
-//! stays at the crate root.
+//! ([`format_compaction_prompt`](crate::steps::format_compaction_prompt))
+//! lives in the steps subsystem.
 
 /// Build nofy-build's session-level summarization prompt (no chat history).
 ///
@@ -46,7 +46,7 @@ your response.
 
 /// Which summarization prompt a full-replace pass should send.
 ///
-/// The prompt is owned by the harness's [`CompactionSampler`] impl (it appends
+/// The prompt is owned by the harness's [`CompactionSampler`](crate::CompactionSampler) impl (it appends
 /// the prompt as the final user message before sampling), not by the shared
 /// orchestrator. This enum lets each harness select the right one in one place
 /// so the structured (nofy-build) and short self-summary prompts stay

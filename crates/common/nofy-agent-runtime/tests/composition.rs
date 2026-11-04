@@ -9,6 +9,10 @@ use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
+#[cfg(feature = "workflow")]
+#[path = "support/workflow_contract.rs"]
+mod workflow_graph_contract;
+
 struct Lookup(Arc<AtomicUsize>);
 impl Tool for Lookup {
     type Args = Value;
@@ -465,25 +469,23 @@ async fn optional_memory_context_and_sequence_use_the_same_agent_api() {
 
 #[cfg(feature = "workflow")]
 #[tokio::test]
-async fn existing_rhai_workflow_dispatches_compiled_agents() {
+async fn declarative_workflow_dispatches_compiled_agents() {
     let agent = build(&components(
         Arc::new(Script::default()),
         Arc::new(AtomicUsize::new(0)),
     ));
-    let script = r#"let meta = #{name:"business",description:"test"}; let r=agent("find alice"); complete(r.output);"#;
-    let outcome = nofy_agent_runtime::workflow::run(
-        script.into(),
-        json!({}),
-        nofy_workflow::Journal::new(None),
-        [("default".to_string(), agent)].into(),
-        context("workflow"),
-        2,
-    )
-    .await
-    .unwrap();
-    assert!(
-        matches!(outcome,nofy_workflow::WorkflowOutcome::Completed{result} if result.as_str().unwrap().contains("workflow"))
-    );
+    let graph = workflow_graph_contract::compiled(agent, &["find alice"], true)
+        .with_checkpointer(Arc::new(InMemoryCheckpointer::default()));
+    let outcome = graph
+        .invoke(json!({}), RunInput::default(), context("workflow"))
+        .await
+        .unwrap();
+    assert!(matches!(outcome, RunOutcome::Completed { .. }));
+    let RunOutcome::Completed { state, .. } = outcome else {
+        unreachable!()
+    };
+    assert!(state.messages.iter().any(|message| matches!(message,
+        Message::Tool { content, is_error: false, .. } if content.to_string().contains("workflow"))));
 }
 
 #[tokio::test]

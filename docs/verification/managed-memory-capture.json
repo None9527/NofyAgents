@@ -1,0 +1,730 @@
+{
+  "stage": "L3c3",
+  "factories": [
+    "resource.memory_learning",
+    "hook.memory_capture_connected"
+  ],
+  "production": {
+    "existing_rust_files": 7,
+    "new_rust_files": 1,
+    "runtime_core_changed": false,
+    "new_dependencies": false,
+    "new_tables": false,
+    "new_background_loop": false
+  },
+  "verification_mode": "complete feature block then related validation wave; only affected scope repeated",
+  "initial_wave": {
+    "session": 87498,
+    "exit_code": 1,
+    "totals": {
+      "passed": 556,
+      "failed": 4,
+      "ignored": 1,
+      "doc_passed": 0
+    },
+    "checks": [
+      {
+        "name": "format",
+        "exit_code": 0,
+        "seconds": 1.25,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all"
+        ]
+      },
+      {
+        "name": "build",
+        "exit_code": 0,
+        "seconds": 54.56,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-memory",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--all-targets",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "--message-format=json"
+        ]
+      },
+      {
+        "name": "memory-default-check",
+        "exit_code": 0,
+        "seconds": 46.478,
+        "command": [
+          "cargo",
+          "check",
+          "-p",
+          "nofy-memory",
+          "--no-default-features",
+          "--all-targets",
+          "--locked",
+          "--offline"
+        ]
+      },
+      {
+        "name": "strict-docs",
+        "exit_code": 0,
+        "seconds": 21.276,
+        "command": [
+          "cargo",
+          "doc",
+          "-p",
+          "nofy-memory",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--no-deps",
+          "--locked",
+          "--offline"
+        ]
+      },
+      {
+        "name": "boundaries",
+        "exit_code": 0,
+        "seconds": 2.67,
+        "command": [
+          "python3",
+          "-B",
+          "scripts/verify-framework-boundaries.py"
+        ]
+      },
+      {
+        "name": "fmt",
+        "exit_code": 0,
+        "seconds": 1.31,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-credentials",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/credentials-82c39181417a4a57",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-http",
+        "exit_code": 101,
+        "seconds": 164.236,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http-3ec7e86ecc2afe76",
+          "--nocapture",
+          "--skip",
+          "loader::images"
+        ]
+      },
+      {
+        "name": "tests-nofy-agent-host-nofy_agent_host",
+        "exit_code": 0,
+        "seconds": 3.213,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/nofy_agent_host-b25cb1b522e6d890",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-access_policy",
+        "exit_code": 0,
+        "seconds": 0.008,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/access_policy-1ccad7ee59efd273",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-capture_recovery",
+        "exit_code": 0,
+        "seconds": 0.015,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/capture_recovery-5e726f0e2f01e804",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-consolidation_recovery",
+        "exit_code": 0,
+        "seconds": 0.071,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/consolidation_recovery-44930bde4595eb1b",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-declarative",
+        "exit_code": 0,
+        "seconds": 0.212,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/declarative-6430cfa64bbc23f6",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-durable_undo",
+        "exit_code": 0,
+        "seconds": 0.122,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/durable_undo-55ccdda690e96ba1",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-embedding_failure",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/embedding_failure-f907871c7e9b7aaa",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-embedding_protocol",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/embedding_protocol-9f55d94e95aeefb1",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-forget_and_retention",
+        "exit_code": 0,
+        "seconds": 0.028,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/forget_and_retention-4c8386cb3c3e71ba",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-migration_cutover",
+        "exit_code": 0,
+        "seconds": 0.024,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/migration_cutover-3e421991637c619e",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-model_contract",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/model_contract-374db4da15875d43",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-nofy_memory",
+        "exit_code": 0,
+        "seconds": 0.604,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/nofy_memory-e2ad3b077513ce29",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-performance_baseline",
+        "exit_code": 0,
+        "seconds": 0.001,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/performance_baseline-b95452916764d49f",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-runtime",
+        "exit_code": 0,
+        "seconds": 0.139,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/runtime-b5e53baa1feb2266",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-scope_concurrency",
+        "exit_code": 0,
+        "seconds": 0.048,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/scope_concurrency-103271faea7fcfcb",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-scoped_capture",
+        "exit_code": 0,
+        "seconds": 0.008,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/scoped_capture-c77c0ca0057fabfd",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-snapshot_injection",
+        "exit_code": 0,
+        "seconds": 0.034,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/snapshot_injection-1930c2122f9b2643",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-state_recovery",
+        "exit_code": 0,
+        "seconds": 5.016,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/state_recovery-39528548128468c6",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-undo_recovery",
+        "exit_code": 0,
+        "seconds": 0.123,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/undo_recovery-b2f2fa7a279d737c",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-unified_search",
+        "exit_code": 0,
+        "seconds": 0.022,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/unified_search-09459d818ea601ca",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "tests-nofy-memory-user_experience_contract",
+        "exit_code": 0,
+        "seconds": 0.131,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/user_experience_contract-88c104c141d11151",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "doctests",
+        "exit_code": 0,
+        "seconds": 3.559,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-memory",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--doc",
+          "--locked",
+          "--offline"
+        ]
+      }
+    ]
+  },
+  "production_corrections": [
+    "derive durable model scope from original HookInvocation",
+    "separate capture record time from actual task completion time"
+  ],
+  "affected_retry": {
+    "session": 31382,
+    "exit_code": 1,
+    "passed": 329,
+    "failed": 1,
+    "ignored": 1,
+    "checks": [
+      {
+        "name": "retry-format",
+        "exit_code": 0,
+        "seconds": 1.237,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all"
+        ]
+      },
+      {
+        "name": "retry-build",
+        "exit_code": 0,
+        "seconds": 30.835,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-memory",
+          "-p",
+          "nofy-agent-host",
+          "--all-features",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "--message-format=json"
+        ]
+      },
+      {
+        "name": "retry-host-capture",
+        "exit_code": 101,
+        "seconds": 35.571,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http-3ec7e86ecc2afe76",
+          "parking::modules::memory",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-access_policy",
+        "exit_code": 0,
+        "seconds": 0.008,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/access_policy-1ccad7ee59efd273",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-capture_recovery",
+        "exit_code": 0,
+        "seconds": 0.016,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/capture_recovery-5e726f0e2f01e804",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-consolidation_recovery",
+        "exit_code": 0,
+        "seconds": 0.071,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/consolidation_recovery-44930bde4595eb1b",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-declarative",
+        "exit_code": 0,
+        "seconds": 0.22,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/declarative-6430cfa64bbc23f6",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-durable_undo",
+        "exit_code": 0,
+        "seconds": 0.107,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/durable_undo-55ccdda690e96ba1",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-embedding_failure",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/embedding_failure-f907871c7e9b7aaa",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-embedding_protocol",
+        "exit_code": 0,
+        "seconds": 0.003,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/embedding_protocol-9f55d94e95aeefb1",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-forget_and_retention",
+        "exit_code": 0,
+        "seconds": 0.027,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/forget_and_retention-4c8386cb3c3e71ba",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-migration_cutover",
+        "exit_code": 0,
+        "seconds": 0.022,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/migration_cutover-3e421991637c619e",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-model_contract",
+        "exit_code": 0,
+        "seconds": 0.004,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/model_contract-374db4da15875d43",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-nofy_memory",
+        "exit_code": 0,
+        "seconds": 0.591,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/nofy_memory-e2ad3b077513ce29",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-performance_baseline",
+        "exit_code": 0,
+        "seconds": 0.001,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/performance_baseline-b95452916764d49f",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-runtime",
+        "exit_code": 0,
+        "seconds": 0.128,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/runtime-b5e53baa1feb2266",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-scope_concurrency",
+        "exit_code": 0,
+        "seconds": 0.047,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/scope_concurrency-103271faea7fcfcb",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-scoped_capture",
+        "exit_code": 0,
+        "seconds": 0.008,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/scoped_capture-c77c0ca0057fabfd",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-snapshot_injection",
+        "exit_code": 0,
+        "seconds": 0.036,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/snapshot_injection-1930c2122f9b2643",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-state_recovery",
+        "exit_code": 0,
+        "seconds": 5.016,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/state_recovery-39528548128468c6",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-undo_recovery",
+        "exit_code": 0,
+        "seconds": 0.126,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/undo_recovery-b2f2fa7a279d737c",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-unified_search",
+        "exit_code": 0,
+        "seconds": 0.021,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/unified_search-09459d818ea601ca",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-memory-user_experience_contract",
+        "exit_code": 0,
+        "seconds": 0.131,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/user_experience_contract-88c104c141d11151",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "retry-fmt",
+        "exit_code": 0,
+        "seconds": 1.295,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
+      }
+    ]
+  },
+  "fixture_corrections": [
+    "expect preserved dependency rejection at admission",
+    "use default Worker registry for target frozen versions",
+    "follow canonical consolidation archive instead of reading retired observation path"
+  ],
+  "penultimate_retry": {
+    "session": 90829,
+    "exit_code": 1,
+    "passed": 1,
+    "failed": 1,
+    "build_seconds": 31.822,
+    "test_seconds": 23.636,
+    "collector_error": "reused stale prebuild hashes for three CLI executables; not a demonstrated during-test mutation"
+  },
+  "final_retry": {
+    "session": 16128,
+    "exit_code": 0,
+    "passed": 1,
+    "failed": 0,
+    "results": [
+      {
+        "name": "last-format",
+        "exit_code": 0,
+        "seconds": 1.232,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all"
+        ]
+      },
+      {
+        "name": "last-build",
+        "exit_code": 0,
+        "seconds": 6.778,
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "--all-features",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "--message-format=json"
+        ]
+      },
+      {
+        "name": "last-affected",
+        "exit_code": 0,
+        "seconds": 11.839,
+        "command": [
+          "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b",
+          "--exact",
+          "parking::modules::memory::live::a_closed_memory_resource_pauses_capture_then_reopens_without_resampling",
+          "--nocapture"
+        ]
+      },
+      {
+        "name": "last-fmt",
+        "exit_code": 0,
+        "seconds": 1.246,
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
+      }
+    ],
+    "sources": 666,
+    "executables": 31
+  },
+  "final_unique_passed": 560,
+  "groups": {
+    "memory": 324,
+    "host_unit": 72,
+    "host_credentials": 5,
+    "host_related_http": 159
+  },
+  "ignored": {
+    "count": 1,
+    "reason": "existing release-mode Memory performance baseline"
+  },
+  "doctests_passed": 0,
+  "frozen_sources": 666,
+  "final_executables": 31,
+  "production_changed_after_first_affected_retry": false,
+  "frozen_after_first_retry_changed": [
+    "crates/common/nofy-agent-host/tests/http/parking/modules/memory.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/memory/live.rs"
+  ],
+  "actual_host_flows": {
+    "binding_switch_and_rollback": 2,
+    "close_reopen_and_interrupted_consolidation": 1,
+    "hard_exit_model_reconciliation": 2,
+    "malformed_output_rejection": 2,
+    "pure_declaration_validation": 1
+  },
+  "hard_exit_code": 69,
+  "upstream_model_requests": 0,
+  "production_credentials_read": false,
+  "excluded": [
+    "unchanged Host loader::images 13 tests",
+    "unchanged Host process-tree 11 tests",
+    "Runtime package unit tests and other workspace packages",
+    "duplicate SDK consumers"
+  ],
+  "evidence": "/tmp/nofy-managed-memory.vgyf8f2_",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/managed-memory.5obhc1bd",
+  "remaining": [
+    "cross-backend historical content migration",
+    "remaining stateful capability updates",
+    "Memory domain roles and embedding resource integration",
+    "new console",
+    "multiple locked reference-agent behavior presets",
+    "release acceptance"
+  ],
+  "goal_status": "active",
+  "commit_or_push": false,
+  "git_checks": {
+    "cumulative_git_changes": {
+      "changed_count": 2888,
+      "affected_count": 202,
+      "changed_files": 10792,
+      "risk_level": "critical"
+    },
+    "scope": "whole dirty tree including prior retirements; recovered L3b6 index misses new unindexed symbols",
+    "diff_check": {
+      "chunk_id": "6ca9e2",
+      "wall_time_seconds": 1.798572037,
+      "exit_code": 0,
+      "original_token_count": 44,
+      "output": "warning: exhaustive rename detection was skipped due to too many files.\nwarning: you may want to set your diff.renameLimit variable to at least 10569 and retry the command.\n"
+    },
+    "staged": {
+      "chunk_id": "c64770",
+      "wall_time_seconds": 1.77e-05,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "postdocs": {
+      "chunk_id": "e1fc8a",
+      "wall_time_seconds": 2.03296069,
+      "exit_code": 0,
+      "original_token_count": 69,
+      "output": "{\"sources\": 666, \"executables\": 31, \"post_validation_document_changes\": [\"/home/none/nofy-build/crates/common/nofy-agent-host/文件说明.md\", \"/home/none/nofy-build/crates/common/nofy-memory/文件说明.md\"], \"production_or_tests_changed_after_final_validation\": false}\n"
+    },
+    "goal_status": "active"
+  }
+}

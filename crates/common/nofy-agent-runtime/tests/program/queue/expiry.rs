@@ -166,7 +166,7 @@ async fn cancellation_before_initial_commit_closes_only_that_program_job_and_unb
             .submit_program(submission(&program, "peer"))
             .await
             .unwrap();
-        let sql = rusqlite::Connection::open(store.path()).unwrap();
+        let sql = rusqlite::Connection::open(store.path().unwrap()).unwrap();
         reject_first(&sql, &program);
         assert!(
             supervisor

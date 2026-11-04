@@ -461,7 +461,7 @@ async fn losing_initial_source_ack_keeps_job_waiting_and_never_repeats_initial_i
         .unwrap();
     let input = next(&compiled, "next", "queued", "new input once");
     store.submit(input.clone()).await.unwrap();
-    let fault = rusqlite::Connection::open(store.path()).unwrap();
+    let fault = rusqlite::Connection::open(store.path().unwrap()).unwrap();
     fault.execute_batch("CREATE TRIGGER fail_job_ack BEFORE UPDATE OF status ON agent_runtime_jobs WHEN NEW.status='running' BEGIN SELECT RAISE(ABORT,'lost initial ack'); END;").unwrap();
     assert!(
         supervisor

@@ -49,17 +49,14 @@
 //! // model sees: ContentBlock::Text { text: r#"{"answer":"..."}"# }
 //! ```
 
-use std::sync::Arc;
-
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::tool::ContentBlock;
 
 /// Unified trait for typed tool outputs.
 ///
-/// Combines model-facing content extraction and optional
-/// chat-completion response generation into a single trait.
+/// Extracts model-facing content independently of client presentation.
 pub trait ToolOutput: Serialize {
     /// Returns the model-facing content blocks for this output.
     ///
@@ -68,12 +65,6 @@ pub trait ToolOutput: Serialize {
     /// JSON value instead.
     fn model_output(&self) -> Vec<ContentBlock> {
         Vec::new()
-    }
-
-    /// Build a chat-completion response frame from this tool output (sent to client),
-    /// if applicable.  Returns `None` by default.
-    fn chat_completion_output(&self) -> Option<ToolChatCompletionResponse> {
-        None
     }
 }
 
@@ -84,94 +75,12 @@ impl ToolOutput for Value {}
 /// `String` is a common output type for simple tools.
 impl ToolOutput for String {}
 
-/// Lets `nofy_tool_types::TaskOutputOutput` be used directly as a `Tool::Output`
-/// (handy for stub/test tools and pass-through proxies).
-impl ToolOutput for nofy_tool_types::TaskOutputOutput {}
-
-/// Lets `nofy_tool_types::SubagentCompletedOutput` be used directly as a
-/// `Tool::Output` (the `task` tool's structured completion output).
-impl ToolOutput for nofy_tool_types::SubagentCompletedOutput {}
-
-/// Lets `nofy_tool_types::KillTaskOutput` be used directly as a `Tool::Output`
-/// (the `kill_task` tool's typed result / not-found output).
-impl ToolOutput for nofy_tool_types::KillTaskOutput {}
-
 /// Delegate through `Box<T>` so boxed outputs (e.g. large response
 /// structs) work without a manual impl.
 impl<T: ToolOutput + Serialize + ?Sized> ToolOutput for Box<T> {
     fn model_output(&self) -> Vec<ContentBlock> {
         (**self).model_output()
     }
-
-    fn chat_completion_output(&self) -> Option<ToolChatCompletionResponse> {
-        (**self).chat_completion_output()
-    }
-}
-
-/// Minimal representation of a chat-completion response streamed to the
-/// frontend.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ToolChatCompletionResponse {
-    /// The main completion payload.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result: Option<ToolChatCompletion>,
-    /// Structured stream error (e.g. rate-limit, tool failure).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream_error: Option<ToolStreamError>,
-}
-
-/// Minimal chat completion response for tool result (sent to client).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ToolChatCompletion {
-    /// Always `"assistant"`.
-    #[serde(default)]
-    pub sender: String,
-    /// Text body of the response.
-    #[serde(default)]
-    pub message: String,
-    /// Tag discriminator: `"final"`, `"raw_function_result"`,
-    /// `"tool_usage_card"`, `"tool_partial_output"`, etc.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message_tag: Option<String>,
-    /// Identifies the tool-usage card this result belongs to.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_usage_card_id: Option<String>,
-    /// JSON-encoded card attachment (images, render cards, files).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card_attachment: Option<String>,
-    /// Media generation type: `"image_gen"`, `"video_gen"`, etc.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub media_gen_type: Option<String>,
-    /// Code execution result.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code_execution_result: Option<ToolCodeExecutionResult>,
-    /// Catch-all for additional fields the tool wants to set. Merged
-    /// into the proto `ChatCompletion` by the downstream converter.
-    #[serde(flatten)]
-    pub extra: serde_json::Map<String, Value>,
-}
-
-/// Lightweight code-execution result carried on the completion.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ToolCodeExecutionResult {
-    #[serde(default)]
-    pub stdout: String,
-    #[serde(default)]
-    pub stderr: String,
-    #[serde(default)]
-    pub exit_code: i32,
-    #[serde(default)]
-    pub command_timed_out: bool,
-}
-
-/// Structured stream error returned alongside the completion.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ToolStreamError {
-    pub message: String,
-    /// Opaque typed-error payload. The downstream chat layer
-    /// deserialises this into the concrete proto enum variant.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub typed_error: Option<Value>,
 }
 
 /// Extract MCP-compatible [`ContentBlock`]s from a serialised JSON value.
@@ -202,17 +111,6 @@ pub fn extract_content_blocks(value: &Value) -> Vec<ContentBlock> {
     }
 
     if let Some(obj) = value.as_object() {
-        // nofy-build `ToolRunResult`: the model sees `prompt_text` (reminders
-        // appended), never a JSON dump of the structured result.
-        if let Some(Value::String(prompt_text)) = obj.get("prompt_text")
-            && obj.contains_key("output")
-            && obj.contains_key("effective_tool_name")
-        {
-            return vec![ContentBlock::Text {
-                text: prompt_text.clone(),
-            }];
-        }
-
         // 3. Object with a `"content"` array -> the standard MCP
         //    CallToolResult shape.
         if let Some(Value::Array(arr)) = obj.get("content")
@@ -343,32 +241,6 @@ fn value_to_block(value: &Value) -> ContentBlock {
             Value::String(s) => s.clone(),
             other => other.to_string(),
         },
-    })
-}
-
-// ---------------------------------------------------------------------------
-// Type-erased extractor (used by the toolbox registry)
-// ---------------------------------------------------------------------------
-
-/// Type-erased model output extractor.
-pub type ModelOutputExtractor = Arc<dyn Fn(&Value) -> Option<Vec<ContentBlock>> + Send + Sync>;
-
-/// Build a [`ModelOutputExtractor`] for a concrete output type.
-pub fn extractor_for<T>() -> ModelOutputExtractor
-where
-    T: ToolOutput + serde::de::DeserializeOwned + 'static,
-{
-    Arc::new(|value: &Value| {
-        serde_json::from_value::<T>(value.clone())
-            .ok()
-            .map(|output| {
-                let blocks = output.model_output();
-                if blocks.is_empty() {
-                    extract_content_blocks(value)
-                } else {
-                    blocks
-                }
-            })
     })
 }
 
@@ -710,21 +582,17 @@ mod tests {
         assert!(matches!(&blocks[0], ContentBlock::Text { .. }));
     }
 
-    /// `extract_content_blocks` surfaces a `ToolRunResult`'s `prompt_text` as the
-    /// model content, not a JSON dump of the struct.
     #[test]
-    fn tool_run_result_shape_extracts_prompt_text() {
-        let prompt = "1: a.txt\n2: b.txt\n<system-reminder>\nThe todo_write tool \
-                      hasn't been used recently.\n</system-reminder>";
+    fn business_field_names_do_not_hide_structured_siblings() {
         let v = json!({
-            "output": {"list_dir": {"entries": ["a.txt", "b.txt"]}},
-            "prompt_text": prompt,
+            "output": {"rows": [1, 2]},
+            "prompt_text": "an ordinary business field",
             "effective_tool_name": null,
         });
         assert_eq!(
             extract_content_blocks(&v),
             vec![ContentBlock::Text {
-                text: prompt.to_owned()
+                text: v.to_string()
             }]
         );
     }

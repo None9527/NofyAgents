@@ -21,6 +21,113 @@ fn operation(tx: &Transaction<'_>, root: &str, id: &str) -> Result<Option<Operat
         .map(|payload| serde_json::from_str(&payload).map_err(db_error))
         .transpose()
 }
+
+pub(crate) enum PrimitiveState {
+    Undispatched,
+    Uncertain,
+    Recorded(BudgetReceipt),
+}
+
+/// Observes existing native reservations only; never enrolls or claims work.
+pub(crate) fn inspect_primitive(
+    tx: &Transaction<'_>,
+    scopes: &[BudgetScope],
+    id: &str,
+    fingerprint: &str,
+) -> Result<PrimitiveState, Error> {
+    let mut receipt: Option<BudgetReceipt> = None;
+    let mut claimed = false;
+    let mut missing = false;
+    for scope in scopes {
+        let key = scope.key();
+        let root = summary(tx, &key)?.ok_or_else(|| invalid("Hook original budget missing"))?;
+        if root.version != 1 || root.spec.scope != *scope {
+            return Err(invalid("Hook budget identity changed"));
+        }
+        let Some(op) = operation(tx, &key, id)? else {
+            missing = true;
+            continue;
+        };
+        if op.request.operation_id != id
+            || op.request.fingerprint != fingerprint
+            || op.request.reserve
+                != (BudgetCost {
+                    tool_calls: 1,
+                    ..Default::default()
+                })
+            || op.request.activity != BudgetActivity::Operation
+            || op.request.unbounded_tokens
+        {
+            return Err(invalid("Hook primitive budget request changed"));
+        }
+        claimed |= op.dispatched;
+        if let Some(recorded) = op.receipt {
+            if recorded.used
+                != (BudgetCost {
+                    tool_calls: 1,
+                    ..Default::default()
+                })
+                || receipt.as_ref().is_some_and(|old| old != &recorded)
+            {
+                return Err(invalid("Hook primitive budget receipts disagree"));
+            }
+            receipt = Some(recorded);
+        }
+    }
+    if let Some(receipt) = receipt {
+        if missing {
+            return Err(invalid("Hook receipt lost a reservation floor"));
+        }
+        Ok(PrimitiveState::Recorded(receipt))
+    } else if !missing && claimed {
+        Ok(PrimitiveState::Uncertain)
+    } else {
+        Ok(PrimitiveState::Undispatched)
+    }
+}
+
+/// Settles a reported fact under the caller's original root transaction. The
+/// only claim promotion is atomic with its final receipt and grants no IO.
+pub(crate) fn settle_primitive(
+    tx: &Transaction<'_>,
+    scopes: &[BudgetScope],
+    id: &str,
+    fingerprint: &str,
+    receipt: &BudgetReceipt,
+    operator: bool,
+    now: u64,
+) -> Result<(), Error> {
+    match inspect_primitive(tx, scopes, id, fingerprint)? {
+        PrimitiveState::Recorded(old) if old != *receipt => {
+            return Err(invalid("recorded Hook result cannot be replaced"));
+        }
+        PrimitiveState::Recorded(_) => {}
+        PrimitiveState::Uncertain if operator => {}
+        _ if scopes.is_empty() => return Ok(()),
+        _ => return Err(invalid("Hook effect has no original dispatch claim")),
+    }
+    for scope in scopes {
+        let key = scope.key();
+        let mut op = operation(tx, &key, id)?.ok_or_else(|| invalid("Hook reservation missing"))?;
+        if !op.dispatched {
+            if !operator {
+                return Err(invalid("Hook receipt lacks an original claim"));
+            }
+            op.dispatched = true;
+        }
+        let reservation = BudgetReservation {
+            scope: scope.clone(),
+            request: op.request.clone(),
+        };
+        let root = summary(tx, &key)?.ok_or_else(|| invalid("Hook budget missing"))?;
+        let mut transition = engine::settle(root, op, &reservation, receipt.clone(), now)?;
+        if operator && let Some(event) = transition.event.as_mut() {
+            event.kind = "reconciled".into();
+        }
+        write(tx, &key, id, &transition)?;
+    }
+    Ok(())
+}
 async fn enroll(
     store: &SqliteStore,
     lease: Option<Lease>,
@@ -52,6 +159,18 @@ fn write(tx: &Transaction<'_>, root: &str, id: &str, transition: &Transition) ->
         .map_err(db_error)?;
     }
     Ok(())
+}
+pub(crate) fn amend_in_transaction(
+    tx: &Transaction<'_>,
+    before: &BudgetSpec,
+    limits: &BudgetLimits,
+    command_id: &str,
+    now: u64,
+) -> Result<(), Error> {
+    let key = before.scope.key();
+    let saved = summary(tx, &key)?.ok_or_else(|| invalid("live budget ledger is missing"))?;
+    let transition = engine::amend(saved, before, limits, command_id, now)?;
+    write(tx, &key, command_id, &transition)
 }
 async fn inspect(
     store: &SqliteStore,
@@ -176,7 +295,7 @@ async fn events(
 #[async_trait::async_trait]
 impl BudgetStore for SqliteStore {
     fn storage_identity(&self) -> Option<String> {
-        Some(self.path().to_string_lossy().into_owned())
+        Some(self.logical_identity().to_owned())
     }
     fn is_durable(&self) -> bool {
         true
@@ -216,7 +335,7 @@ impl BudgetStore for SqliteStore {
 #[async_trait::async_trait]
 impl BudgetStore for GuardedCheckpointer {
     fn storage_identity(&self) -> Option<String> {
-        Some(self.store.path().to_string_lossy().into_owned())
+        Some(self.store.logical_identity().to_owned())
     }
     fn is_durable(&self) -> bool {
         true

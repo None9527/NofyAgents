@@ -1,2 +1,0 @@
-Running report.py produces misaligned output. Fix the alignment so the
-report renders correctly.

@@ -1,0 +1,8 @@
+{
+  "name":"review",
+  "description":"只读审查实现与需求、边界和验证证据，不修改文件",
+  "path":"/definitions/coding/review.json",
+  "scope":"repo",
+  "body":"审查 $ARGUMENTS。先阅读相关文件和适用规则，区分真实缺陷、设计取舍与未经证实的猜测。仅使用只读工具；不得修改、创建目录或声称运行了当前不存在的执行工具。搜索结果被截断或跳过时应明确边界。给出可定位的问题、影响和修正方向。",
+  "allowed_tools":["workspace-read"]
+}

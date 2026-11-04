@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nofy:session-policy:SessionPolicyInput:v1",
+  "$ref": "#/$defs/SessionPolicyInput",
+  "$defs": {
+    "Decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "MaybeDecimal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Decimal"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "NativeJson": {
+      "type": "string",
+      "minLength": 1,
+      "contentMediaType": "application/json",
+      "description": "Strict native DTO JSON text. Parse and validate with the actual kernel DTO; retain integer precision."
+    },
+    "SessionLabels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "SessionPolicyInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "nofy.session-policy/v1"
+        },
+        "phase": {
+          "enum": [
+            "create",
+            "admit_turn",
+            "route",
+            "retention"
+          ]
+        },
+        "now_ms": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "idle_since_ms": {
+          "$ref": "#/$defs/MaybeDecimal"
+        },
+        "session": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "session_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "request_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "labels": {
+              "$ref": "#/$defs/SessionLabels"
+            }
+          },
+          "required": [
+            "session_id",
+            "request_digest",
+            "labels"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionSummary"
+          }
+        },
+        "parameters_json": {
+          "$ref": "#/$defs/NativeJson"
+        }
+      },
+      "required": [
+        "protocol",
+        "phase",
+        "now_ms",
+        "idle_since_ms",
+        "session",
+        "request",
+        "candidates",
+        "parameters_json"
+      ]
+    },
+    "SessionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "policy_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "labels": {
+          "$ref": "#/$defs/SessionLabels"
+        },
+        "lifecycle": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "busy": {
+          "type": "boolean"
+        },
+        "has_queued_input": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "session_id",
+        "session_revision",
+        "policy_revision",
+        "display_name",
+        "labels",
+        "lifecycle",
+        "archived",
+        "busy",
+        "has_queued_input"
+      ]
+    }
+  }
+}

@@ -49,6 +49,7 @@ impl AgentHost<'_> {
             if persistent_model {
                 self.state.pending_model = Some(pending.clone());
             }
+            self.state.hook_progress.prepared_sources = None;
             self.commit().await?;
             pending
         };

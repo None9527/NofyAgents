@@ -234,7 +234,7 @@ impl ToolDispatch for ChildAgent {
             }
             let cost = crate::governance::BudgetCost { child_calls: 1, ..Default::default() };
             let operation = if epoch==0 {serde_json::to_string(&("child", &child_context.run_id))}else{serde_json::to_string(&("child", &child_context.run_id,"control",epoch))}.expect("child identity serializes");
-            let fingerprint = serde_json::to_string(&(child.composition_identity(), input)).expect("child fingerprint serializes");
+            let fingerprint = crate::governance::child_fingerprint(child.composition_identity(), input);
             let admission = crate::governance::reserve(&child_context, &operation, &fingerprint, cost,
                 crate::governance::BudgetActivity::Child, false, resume).await;
             let outcome = match admission {

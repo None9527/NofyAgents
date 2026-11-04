@@ -1,0 +1,21 @@
+{
+  "type": ["object", "null"],
+  "additionalProperties": false,
+  "properties": {
+    "stream": {"type": ["boolean", "null"]},
+    "max_output_tokens": {"type": ["integer", "null"], "minimum": 1, "maximum": 4294967295},
+    "temperature": {"type": ["number", "null"], "minimum": 0, "maximum": 2},
+    "top_p": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "reasoning_effort": {"enum": [null, "none", "minimal", "low", "medium", "high", "xhigh", "max"]},
+    "reasoning_summary": {"enum": [null, "none", "auto", "concise", "detailed"]},
+    "prompt_cache_key": {"type": ["string", "null"], "minLength": 1},
+    "tool_choice": {"anyOf": [
+      {"enum": [null, "auto", "none", "required"]},
+      {"type": "object", "required": ["function"], "additionalProperties": false, "properties": {"function": {"type": "string", "minLength": 1}}}
+    ]},
+    "json_schema": {"anyOf": [{"type": "object"}, {"const": true}, {"type": "null"}]},
+    "length_policy": {"enum": [null, "fail", "complete_tool_calls", "complete_partial"]},
+    "structured_output_retries": {"type": ["integer", "null"], "minimum": 0, "maximum": 5},
+    "cache_prompt": {"type": ["boolean", "null"]}
+  }
+}

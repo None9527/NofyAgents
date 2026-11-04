@@ -88,16 +88,20 @@ impl HookBus {
                 event_id: event.id.clone(),
                 hook_identity: registration.identity.clone(),
             });
+            primitive::bind(self, registration, &event, &mut child);
             let record = if let Some(journal) = &journal {
                 Some(
                     journal
                         .0
-                        .begin(&self.identity, registration, &event, context)
+                        .begin(&self.identity, registration, &event, &child)
                         .await?,
                 )
             } else {
                 None
             };
+            if let Some(record) = &record {
+                primitive::bind_record(&mut child, &record.key);
+            }
             let cached = record.as_ref().and_then(|record| record.cached.clone());
             if record.as_ref().is_some_and(|record| record.uncertain) {
                 return Ok(HookResult {
@@ -106,6 +110,31 @@ impl HookBus {
                 });
             }
             let decision = if let Some(cached) = cached {
+                if let Some(command) = primitive::reconciled(&child).await?
+                    && let Some(sink) = context
+                        .capabilities
+                        .get::<crate::events::EventSinkBinding>()
+                {
+                    let key = crate::system::content_digest(&(
+                        "hook-reconciled",
+                        &command,
+                        &event.id,
+                        &registration.identity,
+                    ))?;
+                    sink.0
+                        .record_once(
+                            event.scope.clone(),
+                            crate::events::RunEvent::Hook {
+                                event_id: event.id.clone(),
+                                event_name: event.name.clone(),
+                                hook: registration.identity.clone(),
+                                status: "reconciled".into(),
+                                detail: Some(command),
+                            },
+                            &key,
+                        )
+                        .await?;
+                }
                 cached
             } else {
                 self.audit(&event, registration, "started", None, context)
@@ -114,7 +143,7 @@ impl HookBus {
                     _=context.cancel.cancelled()=>return Err(Error::Cancelled),
                     result=tokio::time::timeout(Duration::from_millis(registration.rule.timeout_ms),registration.handler.handle(&event,&child))=>match result {
                         Ok(result)=>result,
-                        Err(_) if registration.handler.recovery_identity().is_some()=>return Err(Error::GovernancePaused(json!({"kind":"hook_controller_timeout","event_id":event.id,"hook":registration.identity}))),
+                        Err(_) if registration.handler.can_resume(&child)=>return Err(Error::GovernancePaused(json!({"kind":"hook_controller_timeout","event_id":event.id,"hook":registration.identity}))),
                         Err(_)=>Err(Error::Composition("hook timed out".into())),
                     },
                 };

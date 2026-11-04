@@ -1,0 +1,1000 @@
+{
+  "stage": "L7-runtime-history-transfer",
+  "status": "transport_and_control_plane_verified",
+  "overall_goal_status": "active",
+  "workflow": "complete functional block, one verification wave, batch correction, affected checks only",
+  "first_compile": {
+    "exit_code": 101,
+    "finding": "E0505 in a new test; corrected before running suites",
+    "log": "/tmp/nofy-runtime-history.6qltkjb6/compile-first.log"
+  },
+  "compile_after_correction": {
+    "phase": "compile",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "nofy-agent-runtime",
+      "-p",
+      "nofy-agent-host",
+      "--features",
+      "nofy-agent-runtime/sqlite,nofy-agent-runtime/workflow,nofy-agent-runtime/control-file",
+      "--no-run"
+    ],
+    "runner_pid": 3699905,
+    "started": 1793771013.517944,
+    "status": "completed",
+    "pid": 3699906,
+    "exit_code": 0,
+    "ended": 1793771085.620723,
+    "elapsed_seconds": 72.10277891159058
+  },
+  "first_wave": {
+    "runtime": {
+      "reported_counts": {
+        "passed": 424,
+        "failed": 0,
+        "ignored": 0
+      },
+      "reported_targets": [
+        {
+          "target": "unittests src/lib.rs (target/debug/deps/nofy_agent_runtime-09b04fbec4e4499d)",
+          "passed": 52,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/budget_resource.rs (target/debug/deps/budget_resource-93143a7822eb62a4)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/budget_view.rs (target/debug/deps/budget_view-3f1abe88aeaf6f74)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/build_context.rs (target/debug/deps/build_context-764e572a384c7b1f)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/child_cancel.rs (target/debug/deps/child_cancel-bd7a411ab5505c88)",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/child_retry.rs (target/debug/deps/child_retry-0eb944499257a612)",
+          "passed": 19,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/coding.rs (target/debug/deps/coding-ed55395da69ea515)",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/composition.rs (target/debug/deps/composition-75dce9535263af66)",
+          "passed": 19,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/context_policy.rs (target/debug/deps/context_policy-77c81595137e3045)",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/declarative.rs (target/debug/deps/declarative-b0a5b165958b293b)",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/durable.rs (target/debug/deps/durable-2c329a37f615e09f)",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/event_declarative.rs (target/debug/deps/event_declarative-f05e56c4b013a4c6)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/event_program.rs (target/debug/deps/event_program-7533247a4fb74e26)",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/governance.rs (target/debug/deps/governance-15ef606aff9d8836)",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/governance_runtime.rs (target/debug/deps/governance_runtime-24bfc7e471c6a09b)",
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/hook_agent.rs (target/debug/deps/hook_agent-36be12e20590bc7c)",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/hooks.rs (target/debug/deps/hooks-0210acea8fc60ca1)",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/identity.rs (target/debug/deps/identity-fe7eb30f9aa47cd3)",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/invocation.rs (target/debug/deps/invocation-af2be5f6323765ab)",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/jobs.rs (target/debug/deps/jobs-2a6dcb35edefc10f)",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/mailbox.rs (target/debug/deps/mailbox-4cd6d2ad00574fb7)",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/managed.rs (target/debug/deps/managed-e56be6fff204c572)",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/model_journal.rs (target/debug/deps/model_journal-9354928ff16ea96f)",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/model_recovery.rs (target/debug/deps/model_recovery-1441b059f7471a3a)",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/nested_control.rs (target/debug/deps/nested_control-681e001e3eea26ec)",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/pack.rs (target/debug/deps/pack-34fd9f82e0b0655b)",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/parking.rs (target/debug/deps/parking-e2cdede4f0883142)",
+          "passed": 53,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/pipeline.rs (target/debug/deps/pipeline-6607b2104b233e35)",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/policy_floor.rs (target/debug/deps/policy_floor-41c58976d128c03d)",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/policy_selection.rs (target/debug/deps/policy_selection-371032b589183fef)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/prepared_context.rs (target/debug/deps/prepared_context-eb9f05615cf1a878)",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/program.rs (target/debug/deps/program-06bc4ac33eea1593)",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/recipe.rs (target/debug/deps/recipe-4499b6af1960133f)",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/recipe_policies.rs (target/debug/deps/recipe_policies-c3324f0207a409a3)",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/recipe_tasks.rs (target/debug/deps/recipe_tasks-57ea25913b9fdfa7)",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/registry.rs (target/debug/deps/registry-354be745c23ac4f0)",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/resources.rs (target/debug/deps/resources-046ba7fde9a4fb9f)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/run_services.rs (target/debug/deps/run_services-e6b07c525826c6b0)",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/schema_validation.rs (target/debug/deps/schema_validation-03d753ae17b2f63c)",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/session_governance.rs (target/debug/deps/session_governance-db1aa31828a50db1)",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/sessions.rs (target/debug/deps/sessions-f7e981d9f57b4ded)",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/settings.rs (target/debug/deps/settings-d7c22062b63d64b4)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/streaming.rs (target/debug/deps/streaming-a96cb53299b17648)",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/tool_program.rs (target/debug/deps/tool_program-b1d933b75a6d5f08)",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/workflow_graph.rs (target/debug/deps/workflow_graph-8e791c5b4f129dcc)",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/workflow_hooks.rs (target/debug/deps/workflow_hooks-b49b9fbeff07ab82)",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/workflow_resource.rs (target/debug/deps/workflow_resource-e8d39ff0de392e4d)",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "nofy_agent_runtime",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "state": {
+        "phase": "runtime",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-runtime",
+          "--features",
+          "sqlite,workflow,control-file",
+          "--",
+          "--test-threads=4"
+        ],
+        "runner_pid": 3708910,
+        "started": 1793771085.7926595,
+        "status": "completed",
+        "pid": 3708911,
+        "exit_code": 0,
+        "ended": 1793771213.7668686,
+        "elapsed_seconds": 127.97420907020569
+      }
+    },
+    "host": {
+      "reported_counts": {
+        "passed": 281,
+        "failed": 1,
+        "ignored": 0
+      },
+      "reported_targets": [
+        {
+          "target": "unittests src/lib.rs (target/debug/deps/nofy_agent_host-79d08fa87366d49a)",
+          "passed": 85,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "unittests src/main.rs (target/debug/deps/nofy_agent_host-991c37e96ab13e5e)",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "unittests src/bin/nofy-runtime-image.rs (target/debug/deps/nofy_runtime_image-ecdd224b78774b3f)",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "unittests src/bin/nofy-runtime-image-sign.rs (target/debug/deps/nofy_runtime_image_sign-cd1c74753857b647)",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/credentials.rs (target/debug/deps/credentials-582710f77ef0528f)",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "target": "tests/http.rs (target/debug/deps/http-bebb0928824b1ecb)",
+          "passed": 191,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "state": {
+        "phase": "host",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--",
+          "--test-threads=4"
+        ],
+        "runner_pid": 3716773,
+        "started": 1793771213.7899308,
+        "status": "completed",
+        "pid": 3716774,
+        "exit_code": 101,
+        "ended": 1793772212.3235886,
+        "elapsed_seconds": 998.5336577892303
+      }
+    }
+  },
+  "first_wave_failure": {
+    "test": "runtime_history::whole_instance_migration_preserves_real_runs_budgets_queue_and_latest_reverse_data",
+    "line": 109,
+    "observed": 409,
+    "incorrect_expected": 503,
+    "contract": "409/runtime_conflict for a rejected SQLite write, 503/busy for control lock contention"
+  },
+  "batch_corrections": [
+    "Correct rejected-write contract and assert no blocked run was accepted; busy retries require 503/busy",
+    "Use a literal SQLite reserved-name prefix so legitimate sqlitex_extension data gets retirement guards",
+    "Inspect publications and retained execution declarations, excluding incomplete unpublished drafts"
+  ],
+  "repair": {
+    "transport": {
+      "phase": "transport",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-runtime",
+        "--lib",
+        "--features",
+        "sqlite,workflow,control-file",
+        "durable::transport::tests",
+        "--",
+        "--test-threads=4"
+      ],
+      "exit_code": 0,
+      "started": 1793772497.1450236,
+      "ended": 1793772503.701272,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    "native": {
+      "phase": "native",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-host",
+        "--lib",
+        "loader::runtime_history::tests",
+        "--",
+        "--test-threads=4"
+      ],
+      "exit_code": 0,
+      "started": 1793772503.7012775,
+      "ended": 1793772519.1475222,
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    "http": {
+      "phase": "http",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-host",
+        "--test",
+        "http",
+        "runtime_history::",
+        "--",
+        "--test-threads=4"
+      ],
+      "exit_code": 0,
+      "started": 1793772519.147526,
+      "ended": 1793772552.376777,
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "process-tree": {
+      "phase": "process-tree",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-host",
+        "--test",
+        "process_tree",
+        "--",
+        "--test-threads=4"
+      ],
+      "exit_code": 0,
+      "started": 1793772552.3767805,
+      "ended": 1793772759.2024064,
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "final_covered_cases": {
+    "runtime": 424,
+    "host_library": 86,
+    "host_credentials": 5,
+    "host_http": 192,
+    "host_process_tree": 11,
+    "total": 718
+  },
+  "coverage_note": "Coverage combines unchanged first-wave evidence with affected final-source checks; this was not a single full green rerun.",
+  "binary": {
+    "path": "/home/none/nofy-build/target/debug/nofy-agent-host",
+    "sha256": "6f57ad186db6d564b8688c4a22c687b43654d0fd0746253aef0386d655811dd0",
+    "bytes": 164025936
+  },
+  "evidence": "/tmp/nofy-runtime-history.6qltkjb6",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/runtime-history.xu3ksd89",
+  "browser": {
+    "observed_transfers": [
+      {
+        "command": "runtime-history-431528c0-c1b3-486e-8d11-cbf04fd50215",
+        "results": [
+          {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "origin",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": "runtime-history-431528c0-c1b3-486e-8d11-cbf04fd50215",
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 0,
+            "writable": false
+          },
+          {
+            "command_id": "runtime-history-431528c0-c1b3-486e-8d11-cbf04fd50215",
+            "fingerprint": "d6fb9efdc94c911eb40bb35715ee9f87ecd7b8a6f9b50da48638cb8bb1b3ee93",
+            "phase": "prepared",
+            "plan": {
+              "fingerprint": "d6fb9efdc94c911eb40bb35715ee9f87ecd7b8a6f9b50da48638cb8bb1b3ee93",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "id": "default"
+                },
+                "generation": "origin",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 0,
+                "writable": true
+              },
+              "source_revision": 0,
+              "target": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "id": "default"
+              },
+              "generation": "origin",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": "runtime-history-431528c0-c1b3-486e-8d11-cbf04fd50215",
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 0,
+              "writable": false
+            },
+            "target_generation": "75c679b38a832bb2dc341723e35e0d8b8f77f0153baa5a535ab3811d3f5183de"
+          }
+        ]
+      },
+      {
+        "command": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+        "results": [
+          {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "origin",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 1,
+            "writable": false
+          },
+          {
+            "command_id": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+            "phase": "prepared",
+            "plan": {
+              "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "id": "default"
+                },
+                "generation": "origin",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 1,
+                "writable": true
+              },
+              "source_revision": 1,
+              "target": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "id": "default"
+              },
+              "generation": "origin",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 1,
+              "writable": false
+            },
+            "target_generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de"
+          }
+        ]
+      },
+      {
+        "command": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+        "results": [
+          {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "origin",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 1,
+            "writable": false
+          },
+          {
+            "command_id": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+            "phase": "prepared",
+            "plan": {
+              "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "id": "default"
+                },
+                "generation": "origin",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 1,
+                "writable": true
+              },
+              "source_revision": 1,
+              "target": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "id": "default"
+              },
+              "generation": "origin",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 1,
+              "writable": false
+            },
+            "target_generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de"
+          }
+        ]
+      },
+      {
+        "command": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+        "results": [
+          {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "origin",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 1,
+            "writable": false
+          },
+          {
+            "command_id": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+            "phase": "prepared",
+            "plan": {
+              "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "id": "default"
+                },
+                "generation": "origin",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 1,
+                "writable": true
+              },
+              "source_revision": 1,
+              "target": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "id": "default"
+              },
+              "generation": "origin",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 1,
+              "writable": false
+            },
+            "target_generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de"
+          }
+        ]
+      },
+      {
+        "command": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+        "results": [
+          {
+            "backend": {
+              "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+              "id": "external"
+            },
+            "generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": null,
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 2,
+            "writable": true
+          },
+          {
+            "command_id": "runtime-history-7ea3db04-cbaa-406d-970f-362b01046d7c",
+            "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+            "phase": "completed",
+            "plan": {
+              "fingerprint": "dc591ea465aee88f25db3e73acbfc25cda5f1c63918698a9c324e4ac765b8e06",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "id": "default"
+                },
+                "generation": "origin",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 1,
+                "writable": true
+              },
+              "source_revision": 1,
+              "target": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              },
+              "generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": null,
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 2,
+              "writable": true
+            },
+            "target_generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de"
+          }
+        ]
+      },
+      {
+        "command": "runtime-history-10ea4928-700a-4dcd-918b-5b6ba4331163",
+        "results": [
+          {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": null,
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 3,
+            "writable": true
+          },
+          {
+            "command_id": "runtime-history-10ea4928-700a-4dcd-918b-5b6ba4331163",
+            "fingerprint": "5cb7cf31687c2c379f7be7d1714771d66ede873aa3b3741349173dd254ba9a61",
+            "phase": "completed",
+            "plan": {
+              "fingerprint": "5cb7cf31687c2c379f7be7d1714771d66ede873aa3b3741349173dd254ba9a61",
+              "inventory": {
+                "bytes": 35441,
+                "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+                "protocol": "nofy.runtime-snapshot/v1",
+                "rows": 20,
+                "tables": 28
+              },
+              "protocol": "nofy.runtime-history/v1",
+              "source": {
+                "backend": {
+                  "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                  "id": "external"
+                },
+                "generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de",
+                "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+                "preparing": null,
+                "protocol": "nofy.runtime-history/v1",
+                "revision": 2,
+                "writable": true
+              },
+              "source_revision": 2,
+              "target": {
+                "id": "default"
+              }
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "storage": {
+              "backend": {
+                "id": "default"
+              },
+              "generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": null,
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 3,
+              "writable": true
+            },
+            "target_generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b"
+          }
+        ]
+      }
+    ],
+    "returned": {
+      "command": "runtime-history-10ea4928-700a-4dcd-918b-5b6ba4331163",
+      "results": [
+        {
+          "backend": {
+            "id": "default"
+          },
+          "generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b",
+          "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+          "preparing": null,
+          "protocol": "nofy.runtime-history/v1",
+          "revision": 3,
+          "writable": true
+        },
+        {
+          "command_id": "runtime-history-10ea4928-700a-4dcd-918b-5b6ba4331163",
+          "fingerprint": "5cb7cf31687c2c379f7be7d1714771d66ede873aa3b3741349173dd254ba9a61",
+          "phase": "completed",
+          "plan": {
+            "fingerprint": "5cb7cf31687c2c379f7be7d1714771d66ede873aa3b3741349173dd254ba9a61",
+            "inventory": {
+              "bytes": 35441,
+              "fingerprint": "dfe4e77544c5882ce1b483c31124581a3974d570b43113b350ccdd19217757c8",
+              "protocol": "nofy.runtime-snapshot/v1",
+              "rows": 20,
+              "tables": 28
+            },
+            "protocol": "nofy.runtime-history/v1",
+            "source": {
+              "backend": {
+                "directory": "/tmp/nofy-runtime-history.6qltkjb6/browser/external",
+                "id": "external"
+              },
+              "generation": "c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de",
+              "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+              "preparing": null,
+              "protocol": "nofy.runtime-history/v1",
+              "revision": 2,
+              "writable": true
+            },
+            "source_revision": 2,
+            "target": {
+              "id": "default"
+            }
+          },
+          "protocol": "nofy.runtime-history/v1",
+          "storage": {
+            "backend": {
+              "id": "default"
+            },
+            "generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b",
+            "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+            "preparing": null,
+            "protocol": "nofy.runtime-history/v1",
+            "revision": 3,
+            "writable": true
+          },
+          "target_generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b"
+        }
+      ]
+    },
+    "data": {
+      "run_record_unchanged": true,
+      "physical_databases": 4,
+      "business_tables": 28,
+      "business_rows": 20,
+      "all_business_rows_equal": true,
+      "paths": [
+        "/tmp/nofy-runtime-history.6qltkjb6/browser/external/.nofy-runtime-history/536f821518bab3b01d6ac5fce7e930acb2abeeb681c408f5f6960057eb326ce0/75c679b38a832bb2dc341723e35e0d8b8f77f0153baa5a535ab3811d3f5183de/runtime.sqlite",
+        "/tmp/nofy-runtime-history.6qltkjb6/browser/external/.nofy-runtime-history/536f821518bab3b01d6ac5fce7e930acb2abeeb681c408f5f6960057eb326ce0/c7e6d3a4a459563c5fc0caac195c1cbfda078a78b4f61e8c85468e1f612443de/runtime.sqlite",
+        "/tmp/nofy-runtime-history.6qltkjb6/browser/state/runtime-data/.nofy-runtime-history/536f821518bab3b01d6ac5fce7e930acb2abeeb681c408f5f6960057eb326ce0/6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b/runtime.sqlite",
+        "/tmp/nofy-runtime-history.6qltkjb6/browser/state/runtime.sqlite"
+      ],
+      "status": {
+        "protocol": "nofy.runtime-history/v1",
+        "revision": 3,
+        "identity_digest": "c24fcb65ffd74d61ef85e1f9aa68bd9b294dac5d7b97f69fadaf5dcb48acb3ee",
+        "backend": {
+          "id": "default"
+        },
+        "generation": "6c7deba0efb19ea9522a2136a7a8b8e8b2a712330e908675946679a63de2e61b",
+        "writable": true,
+        "preparing": null
+      }
+    },
+    "mobile_width": 390,
+    "mobile_document_width": 390,
+    "keyboard_scroll_before": 0,
+    "keyboard_scroll_after": 376,
+    "full_a11y_violations": 0,
+    "full_a11y_incomplete": 1,
+    "full_a11y_incomplete_reason": "five existing decorative nav icon glyphs require manual color-contrast review",
+    "main_a11y_violations": 0,
+    "main_a11y_incomplete": 0,
+    "cjk_font_missing_in_screenshot": true,
+    "browser_closed": true,
+    "qa_server_stopped": true,
+    "chrome_permissions_restored": "0644"
+  },
+  "boundaries": [
+    "Same-instance whole SQLite placement only; Catalog, Loader, credentials and Memory keep independent ownership",
+    "No user upstream model call in this block; local protocol/transport fixtures are not a real-model acceptance claim",
+    "Whole-store data preservation and existing runtime recovery regressions do not claim that every business recovery branch was separately exercised across a move",
+    "CJK fonts are absent in this browser environment; no complete visual acceptance claim; main accessibility audit is clean, full-page contrast review retains one incomplete decorative-icon rule",
+    "Version-locked reference presets, other state roles, release and broader performance acceptance remain open"
+  ]
+}

@@ -1,9 +1,12 @@
 //! Composable agent execution without application, filesystem or provider defaults.
 //!
 //! Hosts keep ownership of policy and side effects; the driver is shared by
-//! standalone agents and the compatibility host for the original Nofy preset.
+//! standalone agents and the resident declarative platform. Product presets
+//! use that same execution path rather than a second application loop.
 
+pub mod admission;
 pub mod agent;
+pub mod artifact;
 pub mod coding;
 pub mod compile;
 pub mod composition;
@@ -11,6 +14,7 @@ pub mod context;
 pub mod context_policy;
 pub mod control;
 mod controllers;
+pub mod credentials;
 pub mod driver;
 #[cfg(feature = "sqlite")]
 pub mod durable;
@@ -32,6 +36,8 @@ pub mod prompt;
 pub mod recipe;
 mod reconciliation;
 pub mod registry;
+mod schema;
+pub mod session_policy;
 pub mod settings;
 pub mod system;
 pub use identity::IdentityScheme;

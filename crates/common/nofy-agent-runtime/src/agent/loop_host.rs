@@ -13,6 +13,9 @@ impl RunHost for AgentHost<'_> {
         if self.agent.event_program.is_some() {
             return self.advance_event().await;
         }
+        if !self.state.complete {
+            self.closing = false;
+        }
         if self.state.recipe_progress.halted.is_some() {
             return Err(Error::BudgetExceeded);
         }
@@ -51,13 +54,27 @@ impl RunHost for AgentHost<'_> {
         if let Some(call) = self.state.pending_tools.front().cloned() {
             return self.tool(call, false).await;
         }
-        if let Some(control) = self.drain_inputs().await? {
+        #[cfg(feature = "sqlite")]
+        if let Some(parking) = self
+            .context
+            .capabilities
+            .get::<crate::supervisor::jobs::ParkBinding>()
+            && let Some(outcome) = parking
+                .at_boundary(&self.context, &self.state, self.revision)
+                .await?
+        {
+            return Ok(Step::Complete(outcome));
+        }
+        if !self.closing
+            && let Some(control) = self.drain_inputs().await?
+        {
             return Ok(control);
         }
         if self.agent.model.is_none() && !self.state.complete {
             self.finish_direct_tool().await?;
         }
         if self.state.complete {
+            self.closing = true;
             if let Some(control) = self
                 .run_recipe(crate::recipe::Boundary::BeforeStop, None)
                 .await?
@@ -70,6 +87,15 @@ impl RunHost for AgentHost<'_> {
             if let Some(control) = self.before_hook_stop().await? {
                 return Ok(control);
             }
+        }
+        // Finish the original closing boundaries before mailbox input can
+        // replace their output or create another completion producer.
+        if self.closing
+            && let Some(control) = self.drain_inputs().await?
+        {
+            return Ok(control);
+        }
+        if self.state.complete {
             return Ok(Step::Complete(RunOutcome::Completed {
                 output: self.state.output.clone(),
                 state: self.state.clone(),

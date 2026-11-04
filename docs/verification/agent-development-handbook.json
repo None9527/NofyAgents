@@ -1,0 +1,41 @@
+{
+  "kind": "design-documentation-verification",
+  "implementation_tests_run": false,
+  "errors": [],
+  "json_schema_meta_validation": "passed",
+  "design_schema_cases": 13,
+  "native_example": {
+    "state": "accepted-by-running-kernel-validate",
+    "release_digest": "984c7a3bfeecdaf98f87e4f3eae603831fa42f32b70bac73f1af185908af3a84",
+    "published": false,
+    "executed": false,
+    "real_model_requests": 0,
+    "endpoint": "POST /api/v1/validate",
+    "meaning": "Only the native ToolProgram declaration was compiled and accepted; CLI/MCP tools were not executed."
+  },
+  "markdown_files": 6,
+  "relative_links_checked": 34,
+  "json_examples": 2,
+  "toml_examples": 3,
+  "shell_examples_syntax_only": 20,
+  "operations": 56,
+  "mcp_tools": 54,
+  "native_route_method_pairs": 85,
+  "schema_definitions": 51,
+  "rust_source_mismatches": [],
+  "state": "passed",
+  "affected_followup": "Project init empty/preset input shapes; local MCP Schema reference explanation",
+  "recorded_at": "2026-11-04T17:51:08+08:00",
+  "contract_revision": "0.1-design",
+  "implementation_state": "design-only",
+  "exclusions": [
+    "nofy CLI execution",
+    "inbound MCP Server interoperability",
+    "source-project API behavior",
+    "Rust regression tests",
+    "tool execution",
+    "publication and activation",
+    "real model requests"
+  ],
+  "entrypoint_and_record_links_checked": 8
+}

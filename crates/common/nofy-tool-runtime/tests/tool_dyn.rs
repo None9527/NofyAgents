@@ -1,9 +1,8 @@
 //! `ToolDyn` blanket impl + `ToolFamily` lookup.
 //!
 //! Covers the JSON-erased object-safe surface (`ToolDyn`) and the
-//! variant-keyed family lookup (`ToolFamily`). Mirrors the toolbox
-//! `NofyToolDyn` / `NofyToolFamily` tests but against the runtime's
-//! typed `Tool` trait.
+//! variant-keyed family lookup (`ToolFamily`) against the runtime's typed
+//! `Tool` trait, independently of any product registry.
 
 use std::sync::Arc;
 
@@ -15,12 +14,51 @@ use serde_json::json;
 use nofy_tool_protocol::{ToolCapabilities, ToolId};
 use nofy_tool_runtime::{
     ArcTool, ContentBlock, Tool, ToolCallContext, ToolDyn, ToolError, ToolErrorKind, ToolFamily,
-    ToolOutput, ToolProgress, ToolStream, ToolStreamItem, ToolVariant, with_progress,
+    ToolOutput, ToolProgress, ToolStream, ToolStreamItem, ToolVariant, TypedToolOutput,
+    with_progress,
 };
 use nofy_tool_types::ToolDescription;
 
 fn tid(s: &str) -> ToolId {
     ToolId::new(s).expect("test tool ids are well-formed")
+}
+
+#[test]
+fn erased_output_has_only_execution_data_and_round_trips() {
+    let output = TypedToolOutput::from_value(tid("calculate"), json!({"answer": 42}));
+    let encoded = serde_json::to_value(&output).unwrap();
+    assert_eq!(
+        encoded,
+        json!({
+            "tool_id": "calculate", "value": {"answer": 42},
+            "model_output": [{"type": "text", "text": "{\"answer\":42}"}]
+        })
+    );
+    let restored: TypedToolOutput = serde_json::from_value(encoded).unwrap();
+    assert_eq!(restored.tool_id, output.tool_id);
+    assert_eq!(restored.value, output.value);
+    assert_eq!(restored.model_output, output.model_output);
+}
+
+#[test]
+fn erased_output_rejects_unknown_root_fields_instead_of_dropping_them() {
+    let mut encoded = serde_json::to_value(TypedToolOutput::from_value(
+        tid("calculate"),
+        json!({"answer": 42}),
+    ))
+    .unwrap();
+    encoded["chat_completion_output"] = json!({"result": {"message": "display-only"}});
+    let error = serde_json::from_value::<TypedToolOutput>(encoded).unwrap_err();
+    assert!(error.to_string().contains("unknown field"), "{error}");
+}
+
+#[test]
+fn erased_output_does_not_restrict_business_json_fields() {
+    let value = json!({"chat_completion_output": {"custom": true}});
+    let output = TypedToolOutput::from_value(tid("business-data"), value.clone());
+    let restored: TypedToolOutput =
+        serde_json::from_value(serde_json::to_value(output).unwrap()).unwrap();
+    assert_eq!(restored.value, value);
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]

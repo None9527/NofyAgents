@@ -1,0 +1,230 @@
+{
+  "stage": "L4-console",
+  "status": "functional_baseline_verified",
+  "overall_goal": "active",
+  "workflow": "complete functional block, one related verification wave, repair only affected checks",
+  "unique_tests": {
+    "host": 253,
+    "runtime": 15,
+    "javascript": 2,
+    "total": 270,
+    "new_tests": 8
+  },
+  "first_wave": {
+    "host_passed": 252,
+    "host_failed": 1,
+    "runtime_passed": 15,
+    "javascript_passed": 1,
+    "javascript_failed": 1,
+    "host_cargo_exit": 101,
+    "main_tool_session_exit": 143
+  },
+  "rust_wave": [
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "nofy-agent-host",
+        "-p",
+        "nofy-agent-runtime"
+      ],
+      "exit_code": 0,
+      "seconds": 0.916
+    },
+    {
+      "name": "runtime",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-runtime",
+        "--features",
+        "sqlite,workflow,control-file",
+        "--test",
+        "budget_view",
+        "--test",
+        "governance"
+      ],
+      "exit_code": 0,
+      "seconds": 18.281
+    },
+    {
+      "name": "host",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-host",
+        "--lib",
+        "--test",
+        "credentials",
+        "--test",
+        "http"
+      ],
+      "exit_code": 101,
+      "seconds": 679.764
+    }
+  ],
+  "static_wave": [
+    {
+      "name": "javascript",
+      "exit_code": 1,
+      "seconds": 0.111
+    },
+    {
+      "name": "boundaries",
+      "exit_code": 0,
+      "seconds": 3.159
+    },
+    {
+      "name": "whitespace",
+      "exit_code": 0,
+      "seconds": 1.994
+    }
+  ],
+  "repairs": [
+    {
+      "name": "format-final",
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "nofy-agent-host",
+        "-p",
+        "nofy-agent-runtime"
+      ],
+      "exit_code": 0,
+      "seconds": 0.915
+    },
+    {
+      "name": "javascript-repair",
+      "command": [
+        "node",
+        "--test",
+        "console/tests/protocol.test.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.13
+    },
+    {
+      "name": "http-repair",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "nofy-agent-host",
+        "--test",
+        "http",
+        "console::console_must_be_separate_from_state_and_is_opt_in",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "seconds": 7.468
+    },
+    {
+      "name": "format-check",
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "nofy-agent-host",
+        "-p",
+        "nofy-agent-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.928
+    }
+  ],
+  "builds": [
+    {
+      "name": "runtime-default",
+      "exit_code": 0,
+      "seconds": 9.954
+    },
+    {
+      "name": "docs",
+      "exit_code": 0,
+      "seconds": 23.443
+    }
+  ],
+  "browser": {
+    "passed": true,
+    "generation": 3,
+    "history_entries": 3,
+    "model_requests_local_fixture": 3,
+    "real_upstream_requests": 0,
+    "tool_effects": 1,
+    "session_turns": 2,
+    "credential_deleted": true,
+    "module_and_source_edit_published": true
+  },
+  "original_real_records": {
+    "passed": true,
+    "original_records_equal": {
+      "memory-write": true,
+      "memory-recall": true
+    },
+    "original_budget_equal": true,
+    "budget_count": 4,
+    "model_credential_injected": false,
+    "new_upstream_requests": 0,
+    "state_is_copy": true,
+    "original_evidence": "/tmp/nofy-memory-real.yrpg8kyo",
+    "initial_comparison_correction": "budgets-before.json captured only 3 earlier roots; final original SQLite contains 4 including the later no-credential tool root. Compared all original stored summaries directly."
+  },
+  "a11y_run_page": {
+    "inapplicable": 51,
+    "incomplete": 1,
+    "passes": 38,
+    "violations": 0
+  },
+  "limitations": [
+    "test host lacks CJK fonts: glyph typography unverified",
+    "one color-contrast category incomplete on scrollable run page",
+    "not full state migration, Memory roles/embedding, reference presets or release"
+  ],
+  "source_files_frozen": 614,
+  "rust_production_unchanged_since_test_wave": true,
+  "repairs_after_freeze": [
+    "crates/common/nofy-agent-host/tests/http/console.rs",
+    "console/app.js",
+    "console/api.js",
+    "console/dom.js",
+    "console/views/runs.js",
+    "console/views/systems.js"
+  ],
+  "binary_hashes": {
+    "/home/none/nofy-build/target/debug/nofy-agent-host": "fad4c3efece140a7fe32f4ea0a28d46f617202fd430532d24127b5e04aac6e96",
+    "/home/none/nofy-build/target/debug/deps/http-ddd043a4910dcf6b": "14ae981dee34950aa681dd28baa34637b94eefae4e37d926ad106fadefbb7ff6",
+    "/home/none/nofy-build/target/debug/deps/budget_view-80e9c50ac6a01482": "64b31628b95527ebc2a8a86356856f0668bb72a6271786a082e2696f982be6e2",
+    "/home/none/nofy-build/target/debug/deps/governance-3c3546f7ebbda473": "61b7918301692bee3521911002e9e16f09c5137b95350c9a7465dc96ed32724f"
+  },
+  "evidence": "/tmp/nofy-console.il8cpqrp",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/console.c3c7ixs6",
+  "gitnexus": {
+    "files": 10793,
+    "symbols": 2903,
+    "flows": 196,
+    "risk": "CRITICAL",
+    "scope": "cumulative dirty worktree, not console-only"
+  },
+  "real_model_requests_this_block": 0,
+  "earlier_real_model_requests": 26,
+  "commit": false,
+  "push": false,
+  "cleanup": {
+    "stop_signals_sent_to_owned_processes": [
+      3628735,
+      3634386
+    ],
+    "cached_browser_modes_restored": [
+      "/home/none/.agent-browser/browsers/chrome-152.0.7977.54/chrome",
+      "/home/none/.agent-browser/browsers/chrome-152.0.7977.54/chrome_crashpad_handler"
+    ],
+    "browser_session_closed": true
+  }
+}

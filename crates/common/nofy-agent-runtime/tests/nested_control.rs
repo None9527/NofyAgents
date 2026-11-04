@@ -7,6 +7,10 @@ use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
+#[cfg(feature = "workflow")]
+#[path = "support/workflow_contract.rs"]
+mod workflow_graph_contract;
+
 struct Counter(Arc<AtomicUsize>);
 impl Tool for Counter {
     type Args = Value;
@@ -306,12 +310,8 @@ async fn typed_sequence_resumes_the_paused_stage_and_does_not_repeat_completed_s
 
 #[cfg(feature = "workflow")]
 #[tokio::test]
-async fn rhai_sequential_and_parallel_panels_propagate_pause_and_resume_without_repeating_effects()
-{
-    for script in [
-        r#"let a=agent("one"); let b=agent("two"); complete(b.output);"#,
-        r#"let results=parallel([#{prompt:"one"},#{prompt:"two"}]); complete(results[1].output);"#,
-    ] {
+async fn declarative_sequential_and_parallel_graphs_preserve_pause_resume_and_effects() {
+    for sequential in [true, false] {
         let store = Arc::new(InMemoryCheckpointer::default());
         let approved = Arc::new(AtomicBool::new(false));
         let effects = Arc::new(AtomicUsize::new(0));
@@ -323,59 +323,29 @@ async fn rhai_sequential_and_parallel_panels_propagate_pause_and_resume_without_
             Arc::new(AtomicUsize::new(0)),
             8,
         );
-        let directory = tempfile::tempdir().unwrap();
-        let path = directory.path().join("workflow.jsonl");
-        let context = || {
-            let mut context = RunContext::new("workflow-thread", "workflow-run");
-            context
-                .capabilities
-                .insert(nofy_agent_runtime::workflow::WorkflowCheckpointer(
-                    store.clone(),
-                ));
-            context
-        };
-        let agents = || std::collections::BTreeMap::from([("default".into(), agent.clone())]);
-        let paused = nofy_agent_runtime::workflow::run(
-            script.into(),
-            json!({}),
-            nofy_workflow::Journal::new(Some(path.clone())),
-            agents(),
-            context(),
-            4,
-        )
-        .await
-        .unwrap();
-        assert!(matches!(
-            paused,
-            nofy_workflow::WorkflowOutcome::Paused { .. }
-        ));
-        assert_eq!(effects.load(Ordering::SeqCst), 0);
-        let changed = nofy_agent_runtime::workflow::run(
-            format!("{script} "),
-            json!({}),
-            nofy_workflow::Journal::load(path.clone()).unwrap(),
-            agents(),
-            context(),
-            4,
-        )
-        .await;
-        assert!(changed.is_err());
-        approved.store(true, Ordering::SeqCst);
-        for _ in 0..2 {
-            let outcome = nofy_agent_runtime::workflow::run(
-                script.into(),
-                json!({}),
-                nofy_workflow::Journal::load(path.clone()).unwrap(),
-                agents(),
-                context(),
-                4,
-            )
+        let context = || RunContext::new("workflow-thread", "workflow-run");
+        let graph = workflow_graph_contract::compiled(agent.clone(), &["one", "two"], sequential)
+            .with_checkpointer(store.clone());
+        let paused = graph
+            .invoke(json!({}), RunInput::default(), context())
             .await
             .unwrap();
-            assert!(matches!(
-                outcome,
-                nofy_workflow::WorkflowOutcome::Completed { .. }
-            ));
+        assert!(matches!(paused, RunOutcome::Paused { .. }));
+        assert_eq!(effects.load(Ordering::SeqCst), 0);
+        let changed = workflow_graph_contract::compiled(agent, &["one", "different"], sequential)
+            .with_checkpointer(store);
+        let rejected = changed
+            .invoke(json!({}), RunInput::resume(), context())
+            .await;
+        assert!(matches!(rejected, Err(Error::Checkpoint(_))));
+        assert_eq!(effects.load(Ordering::SeqCst), 0);
+        approved.store(true, Ordering::SeqCst);
+        for _ in 0..2 {
+            let outcome = graph
+                .invoke(json!({}), RunInput::resume(), context())
+                .await
+                .unwrap();
+            assert!(matches!(outcome, RunOutcome::Completed { .. }));
             assert_eq!(effects.load(Ordering::SeqCst), 2);
         }
     }

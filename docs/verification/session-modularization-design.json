@@ -1,0 +1,280 @@
+{
+  "kind": "session-modularization-design-verification",
+  "contract_revision": "0.2-design",
+  "implementation_state": "design-only",
+  "implementation_changes": false,
+  "rust_tests_run": false,
+  "native_api_calls": 0,
+  "model_requests": 0,
+  "errors": [],
+  "json_schema_meta_validation": "passed",
+  "schema_cases": [
+    {
+      "name": "label routing rules",
+      "shape": "SessionPolicyRules",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "label routing needs keys",
+      "shape": "SessionPolicyRules",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "explicit routing needs no keys",
+      "shape": "SessionPolicyRules",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "parallel admission rejected",
+      "shape": "SessionPolicyRules",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "numeric archive seconds rejected",
+      "shape": "SessionPolicyRules",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "exact archive seconds",
+      "shape": "SessionPolicyRules",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "program source",
+      "shape": "SessionPolicyProgrammed",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "model sampling not granted",
+      "shape": "SessionPolicyProgrammed",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "complete session module",
+      "shape": "SessionPolicyModule",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "secret dependency rejected",
+      "shape": "SessionPolicyModule",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "session slot alias",
+      "shape": "ModuleAdd",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "canonical session slot",
+      "shape": "ModuleAdd",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "tool shortcut cannot use session slot",
+      "shape": "ToolAdd",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "detach session slot",
+      "shape": "ModuleDetach",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "first root enrollment",
+      "shape": "SessionCreate",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "native create body differs from adapter",
+      "shape": "SessionCreate",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "new session expects absence",
+      "shape": "SessionStart",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "new session cannot target existing revision",
+      "shape": "SessionStart",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "turn session CAS",
+      "shape": "SessionTurn",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "turn needs session CAS",
+      "shape": "SessionTurn",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "numeric session CAS rejected",
+      "shape": "SessionTurn",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "large exact sequence",
+      "shape": "SessionTurns",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "numeric sequence rejected",
+      "shape": "SessionTurns",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "lifecycle command",
+      "shape": "SessionLifecycle",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "lifecycle requires existing revision",
+      "shape": "SessionLifecycle",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "metadata needs a change",
+      "shape": "SessionMetadata",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "clear display name",
+      "shape": "SessionMetadata",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "replace labels",
+      "shape": "SessionMetadata",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "labels have string values",
+      "shape": "SessionMetadata",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "policy change CAS",
+      "shape": "SessionReconfigure",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "policy change needs source proof",
+      "shape": "SessionReconfigure",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "policy switch cannot swap storage",
+      "shape": "SessionReconfigure",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "lifecycle preview",
+      "shape": "SessionPlan",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "delete is outside contract",
+      "shape": "SessionPlan",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "pure policy proposal",
+      "shape": "SessionPolicyProposal",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "proposal cannot rewrite budget",
+      "shape": "SessionPolicyProposal",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "Agent declaration fragment",
+      "shape": "SessionAgentFragment",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "old declaration version is not new support",
+      "shape": "SessionAgentFragment",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "name": "typed command result",
+      "shape": "SessionCommandResult",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "name": "command result validates data",
+      "shape": "SessionCommandResult",
+      "expected_valid": false,
+      "passed": true
+    }
+  ],
+  "schema_case_count": 40,
+  "native_json_transport_checks": 2,
+  "native_dto_execution_validation": "not-run; design only",
+  "session_examples_schema_validated": 5,
+  "markdown_files_checked": 9,
+  "json_examples": 9,
+  "toml_examples": 4,
+  "shell_examples_syntax_only": 26,
+  "rust_sources_compared": 617,
+  "rust_source_changes": [],
+  "operations": 68,
+  "mcp_tools": 66,
+  "session_operations": 17,
+  "schema_definitions": 89,
+  "native_method_path_pairs": 85,
+  "planned_session_routes": 11,
+  "impact_tool_result": "LOW/0; incomplete traversal, not accepted as proof of no dependencies",
+  "future_implementation_risk": "HIGH",
+  "context_callers": {
+    "create_session": 14,
+    "submit_session_turn": 7,
+    "bind_session": [
+      "begin_run"
+    ]
+  },
+  "state": "passed",
+  "relative_links_checked": 75
+}

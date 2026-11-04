@@ -4,11 +4,11 @@ use serde_json::Value;
 /// Validate an explicitly supplied local JSON schema without resolving remote
 /// references or accessing host files.
 pub fn validate_json_schema(schema: &Value) -> Result<(), crate::Error> {
-    crate::tools::validate_schema(schema)
+    crate::schema::compiled(schema).map(|_| ())
 }
 pub fn validate_json_value(schema: &Value, value: &Value) -> Result<(), crate::Error> {
-    validate_json_schema(schema)?;
-    jsonschema::validate(schema, value)
+    crate::schema::compiled(schema)?
+        .validate(value)
         .map_err(|e| crate::Error::Composition(format!("JSON value {}: {e}", e.instance_path)))
 }
 

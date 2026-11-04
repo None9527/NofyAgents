@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "native-capabilities",
+  "modules": [
+    {
+      "reference": {"id":"prompt","version":"1"},
+      "factory":"prompt.document",
+      "config": {
+        "fragments":[
+          {"id":"identity","content":{"kind":"template","text":"Help {{ team }}. Tools: {{ tool_names }}"},"source":{"kind":"definition","reference":"identity","version":"1"}},
+          {"id":"literal","content":{"kind":"literal","text":"Keep {{ literal }} exactly."},"source":{"kind":"rule","reference":"literal","version":"1"}}
+        ],
+        "variable_schema":{"type":"object","additionalProperties":false,"required":["team"],"properties":{"team":{"type":"string"}}},
+        "values":{"team":"support"}
+      }
+    },
+    {
+      "reference":{"id":"rules","version":"1"},
+      "factory":"context.rules",
+      "config":{"files":[{"file_name":"AGENTS.md","file_path":"/definitions/AGENTS.md","content":"Report evidence before conclusions."}]}
+    },
+    {
+      "reference":{"id":"skill-context","version":"1"},
+      "factory":"context.skills",
+      "config":{"skills":[{"name":"review","description":"Review a change using inspectable evidence","path":"/definitions/skills/review/SKILL.md","scope":"repo","body":"Review $ARGUMENTS. Distinguish verified facts from assumptions."}]}
+    },
+    {
+      "reference":{"id":"skills","version":"1"},
+      "factory":"tool.skills",
+      "config":{"skills":[{"name":"review","description":"Review a change using inspectable evidence","path":"/definitions/skills/review/SKILL.md","scope":"repo","body":"Review $ARGUMENTS. Distinguish verified facts from assumptions."}]}
+    }
+  ],
+  "programs": {
+    "load-skill": {
+      "kind":"tool",
+      "definition":{"name":"skill-load","tool_packs":[{"id":"skills","version":"1"}]},
+      "call":{"id":"load-review","name":"skill","arguments":{"skill":"review","args":"the current change"}}
+    }
+  }
+}

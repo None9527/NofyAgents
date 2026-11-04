@@ -71,12 +71,13 @@ impl SqliteStore {
         lease: &Lease,
         record: ExecutionRecord,
         resume: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<String, Error> {
         let lease = lease.clone();
         let clock = self.clock.clone();
         self.transaction(move |tx| {
             check_lease(tx,&lease,clock.now_ms())?;
             jobs::ensure_thread_open(tx,&lease.key)?;
+            jobs::ensure_not_parked(tx,&lease.key)?;
             let previous:Option<String>=tx.query_row("SELECT payload FROM agent_runtime_runs WHERE id=?1",[&record.run_id],|row|row.get(0)).optional().map_err(db_error)?;
             let initializing=jobs::validate_begin(tx,&lease,&record,previous.as_deref(),resume)?;
             if resume {
@@ -97,10 +98,12 @@ impl SqliteStore {
                     }
                 }
             }
+            let ledger_root = jobs::bind_session(tx, &lease, &record, clock.now_ms())?;
             let payload=serde_json::to_string(&record).map_err(db_error)?;
             tx.execute("INSERT INTO agent_runtime_runs(id,thread_key,payload) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload",params![record.run_id,lease.key,payload]).map_err(db_error)?;
             tx.execute("INSERT INTO agent_runtime_threads(key,active_run) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET active_run=excluded.active_run",params![lease.key,record.run_id]).map_err(db_error)?;
-            Ok(())
+            check_lease(tx, &lease, clock.now_ms())?;
+            Ok(ledger_root)
         }).await
     }
     pub(super) async fn finish_run(
@@ -123,6 +126,7 @@ impl SqliteStore {
                 return Err(Error::Checkpoint("missing run receipt".into()));
             }
             jobs::finish(tx, &lease, &record, clock.now_ms())?;
+            jobs::session_finished(tx, &lease.key, clock.now_ms())?;
             Ok(())
         })
         .await

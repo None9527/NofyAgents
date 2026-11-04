@@ -9,6 +9,28 @@ pub use receipt::DurableTurnReceipt;
 
 #[async_trait]
 pub trait ContextSource: Send + Sync {
+    /// Optional pure/local preparation for a source that performs durable
+    /// effects. The runtime freezes this value before calling
+    /// `contribute_prepared`; no model or other external effect belongs here.
+    async fn prepare(
+        &self,
+        _state: &RunState,
+        _context: &RunContext,
+    ) -> Result<Option<serde_json::Value>, Error> {
+        Ok(None)
+    }
+    /// Execute the original persisted plan in its original operation scope.
+    /// A nonterminal error retains that plan for explicit resume/reconciliation.
+    async fn contribute_prepared(
+        &self,
+        _state: &RunState,
+        _plan: &serde_json::Value,
+        _context: &RunContext,
+    ) -> Result<Vec<Message>, Error> {
+        Err(Error::Composition(
+            "context source does not accept a prepared plan".into(),
+        ))
+    }
     /// Dynamic data revision, checked around retrieval and before dispatch.
     /// A change invalidates a prepared request, including a resumed hook gate.
     async fn revision(&self, _context: &RunContext) -> Result<Option<String>, Error> {

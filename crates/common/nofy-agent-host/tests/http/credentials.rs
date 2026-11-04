@@ -35,7 +35,9 @@ async fn live_credential_api_rotates_without_republishing_and_never_exports_valu
     )
     .await
     .unwrap()
-    .with_credentials(credentials.clone());
+    .with_credentials(credentials.clone())
+    .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
+    .unwrap();
     let server = serve(host.router()).await;
     let release = import(&server, &document(&provider.url)).await;
     assert!(!path.exists());

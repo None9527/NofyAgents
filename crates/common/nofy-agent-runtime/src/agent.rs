@@ -8,11 +8,14 @@ mod event_host;
 mod execution;
 mod governance_host;
 mod hook_host;
+#[cfg(test)]
+mod identity_tests;
 mod input_host;
 mod invocation;
 mod loop_host;
 mod model_host;
 mod recipe_host;
+mod source_host;
 mod tool_host;
 use tokio::sync::mpsc;
 
@@ -299,9 +302,118 @@ pub trait Middleware: Send + Sync {
 }
 
 impl Agent {
+    /// Only the fenced live-version loader may separate effective stateless
+    /// handles from the immutable durable namespace. Not a general rebind API.
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn with_live_model_prompt(mut self, target: &Agent) -> Self {
+        self.model = target.model.clone();
+        self.prompt = target.prompt.clone();
+        self.spec.model = target.spec.model.clone();
+        self.spec.prompt = target.spec.prompt.clone();
+        self.spec.settings.model = target.spec.settings.model.clone();
+        self
+    }
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn with_live_modules(
+        mut self,
+        target: &Agent,
+        modules: &crate::supervisor::jobs::LiveModuleState,
+        hook_identities: &BTreeMap<String, String>,
+        context_policy_identities: &BTreeMap<String, String>,
+    ) -> Result<Self, Error> {
+        if modules.tool_catalog {
+            self.tools = target.tools.clone();
+            self.spec.tools = target.spec.tools.clone();
+        }
+        if modules.policy_set {
+            self.policies = target.policies.clone();
+            self.spec.policies = target.spec.policies.clone();
+        }
+        if modules.tool_sources {
+            self.tool_sources = target.tool_sources.clone();
+            self.spec.tool_sources = target.spec.tool_sources.clone();
+        }
+        if modules.context_sources {
+            self.context_sources = target.context_sources.clone();
+            self.spec.context_sources = target.spec.context_sources.clone();
+        }
+        if modules.context_policies {
+            self.context_policies = target
+                .context_policies
+                .iter()
+                .map(|(identity, policy)| {
+                    context_policy_identities
+                        .get(identity)
+                        .cloned()
+                        .map(|identity| (identity, policy.clone()))
+                        .ok_or_else(|| {
+                            Error::Checkpoint("live context policy identity missing".into())
+                        })
+                })
+                .collect::<Result<_, _>>()?;
+        }
+        if let Some(epoch) = modules.hook_epoch.as_deref() {
+            self.hooks = target
+                .hooks
+                .as_ref()
+                .map(|bus| bus.in_execution_namespace(epoch, hook_identities))
+                .transpose()?;
+        }
+        Ok(self)
+    }
+    #[cfg(feature = "sqlite")]
+    pub(crate) async fn validate_live_history(&self, messages: &[Message]) -> Result<(), Error> {
+        self.model
+            .as_ref()
+            .ok_or_else(|| Error::Composition("live target requires a model".into()))?
+            .validate_live_history(messages)
+            .await
+    }
+    /// Pure preflight over the admitted dynamic view; do not poll sources or
+    /// dispatch resources while accepting a configuration change.
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn validate_live_tool_view(&self, revision: &str) -> Result<(), Error> {
+        type View = (
+            String,
+            String,
+            Vec<nofy_tool_types::ToolDefinition>,
+            BTreeMap<String, (bool, Option<String>)>,
+        );
+        let views: Vec<View> = serde_json::from_str(revision)
+            .map_err(|_| Error::Checkpoint("stored dynamic tool view is invalid".into()))?;
+        if views.len() != self.tool_sources.len()
+            || views
+                .iter()
+                .zip(&self.tool_sources)
+                .any(|((id, _, _, _), (expected, _))| id != expected)
+        {
+            return Err(Error::Checkpoint(
+                "stored dynamic tool sources changed".into(),
+            ));
+        }
+        let mut names = self
+            .tools
+            .names()
+            .into_iter()
+            .collect::<std::collections::BTreeSet<_>>();
+        for (_, _, definitions, _) in views {
+            for definition in definitions {
+                if !names.insert(definition.function.name.clone()) {
+                    return Err(Error::Composition(format!(
+                        "updated catalog conflicts with admitted dynamic tool: {}",
+                        definition.function.name
+                    )));
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn with_hooks(mut self, hooks: crate::hooks::HookBus) -> Self {
-        self.composition = serde_json::to_string(&(&self.composition, "hooks", hooks.identity()))
-            .expect("hook identity serializes");
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(&self.composition, "hooks", hooks.identity()))
+                .expect("hook identity serializes"),
+        );
         self.hooks = Some(hooks);
         self
     }
@@ -317,9 +429,11 @@ impl Agent {
                 "host policy identity must be nonempty".into(),
             ));
         }
-        self.composition =
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
             serde_json::to_string(&(&self.composition, "required_policy", &identity))
-                .map_err(|e| Error::Composition(e.to_string()))?;
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         self.required_policies
             .extend(&crate::policy::PolicyFloor(vec![(identity, policy)]));
         Ok(self)
@@ -350,8 +464,11 @@ impl Agent {
         revision: impl Into<String>,
         binding: Arc<dyn crate::context::ContextBinding>,
     ) -> Self {
-        self.composition = serde_json::to_string(&(self.composition, revision.into()))
-            .expect("binding composition contains only strings");
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(self.composition, revision.into()))
+                .expect("binding composition contains only strings"),
+        );
         self.bindings.push(binding);
         self
     }
@@ -385,6 +502,9 @@ struct AgentHost<'a> {
     agent: &'a Agent,
     tools: ToolCatalog,
     context: RunContext,
+    // Restored completions are sealed; live ones can still accept queued
+    // steering before their first closing boundary.
+    closing: bool,
     state: RunState,
     key: String,
     revision: Option<u64>,

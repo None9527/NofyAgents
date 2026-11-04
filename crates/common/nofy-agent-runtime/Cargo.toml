@@ -8,18 +8,17 @@ description = "Host-independent agent execution, component contracts and composi
 [features]
 default = []
 control-file = ["dep:fs2"]
-workflow = ["dep:nofy-workflow", "dep:nofy-orchestra"]
+# Selects the declarative DAG modules; no separate script engine dependency.
+workflow = []
 sqlite = ["dep:rusqlite", "dep:nofy-sqlite-journal"]
 pack = ["dep:nofy-packcore"]
 
 [dependencies]
 sha2 = { workspace = true }
 fs2 = { workspace = true, optional = true }
-rusqlite = { version = "0.37", features = ["bundled"], optional = true }
-nofy-sqlite-journal = { path = "../../codegen/nofy-sqlite-journal", optional = true }
-nofy-packcore = { path = "../../codegen/nofy-packcore", optional = true }
-nofy-workflow = { path = "../../codegen/nofy-workflow", optional = true }
-nofy-orchestra = { path = "../../codegen/nofy-orchestra", optional = true }
+rusqlite = { version = "0.37", features = ["bundled", "backup"], optional = true }
+nofy-sqlite-journal = { path = "../nofy-sqlite-journal", optional = true }
+nofy-packcore = { workspace = true, optional = true }
 jsonschema = { workspace = true }
 async-trait = { workspace = true }
 futures = { workspace = true }

@@ -1,5 +1,6 @@
 //! Stable declarative HTTP factories. Building validates only; native clients
 //! are initialized at execution and all IO uses the existing HTTP dispatch.
+mod source;
 use crate::{
     config::{self, JsonBinding, ToolContract},
     http::{HttpConnection, HttpToolConfig, HttpToolFactory, Method},
@@ -9,6 +10,7 @@ use nofy_agent_runtime::{Error, registry::*};
 use nofy_tool_runtime::{ToolCallContext, ToolDispatch, ToolError, ToolStream, TypedToolOutput};
 use serde::Deserialize;
 use serde_json::{Value, json};
+pub use source::HttpToolSourceFactory;
 use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,

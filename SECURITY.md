@@ -1,7 +1,5 @@
-# Security Policy
+# 安全问题报告
 
-Please report security vulnerabilities via our HackerOne program:
+请先通过代码托管平台联系本仓库维护者，确认私密报告渠道后再提交漏洞细节。当前仓库没有声明独立的漏洞奖励计划或专用报告邮箱。
 
-https://hackerone.com/x
-
-Do not open public GitHub issues for security reports.
+报告应说明受影响版本、复现条件、实际影响及可用的修复建议。不要在公开 Issue、示例或补丁中提交访问令牌、模型密钥、私有会话内容或完整运行状态目录。

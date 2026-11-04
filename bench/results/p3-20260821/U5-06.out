@@ -1,1 +1,0 @@
-已完成。已将 alpha 项目的 `README.md` 复制到 gamma 项目并命名为 `docs-readme.md`（路径：`/tmp/nofy-bench/projects/gamma/docs-readme.md`），内容经 `diff` 校验与源文件完全一致。

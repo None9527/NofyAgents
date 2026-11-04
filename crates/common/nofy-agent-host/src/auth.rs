@@ -78,6 +78,25 @@ impl Authorizer {
     pub(crate) fn authenticate(&self, headers: &HeaderMap) -> Result<()> {
         self.check(headers, None)
     }
+    pub(crate) fn grants(&self, headers: &HeaderMap) -> Result<BTreeSet<Scope>> {
+        let mut granted = BTreeSet::new();
+        for scope in [
+            Scope::Read,
+            Scope::Edit,
+            Scope::Publish,
+            Scope::Resources,
+            Scope::Execute,
+        ] {
+            match self.require(headers, scope) {
+                Ok(()) => {
+                    granted.insert(scope);
+                }
+                Err(HostError::Forbidden) => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(granted)
+    }
     pub(crate) fn require(&self, headers: &HeaderMap, scope: Scope) -> Result<()> {
         self.check(headers, Some(scope))
     }

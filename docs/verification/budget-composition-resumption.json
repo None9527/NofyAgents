@@ -1,0 +1,772 @@
+{
+  "stage": "L3b6",
+  "date_local": "2026-11-04",
+  "goal_status": "active",
+  "evidence": "/tmp/nofy-budget-composition.i5ilpmem",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/budget-composition.xdx2bbe8",
+  "before_sha256": "393b1480ee24252eebb25cf57b0c71f5ad8e9e2fc2483338c64c57d93b39b6f5",
+  "verification": {
+    "totals": {
+      "passed": 1590,
+      "failed": 0,
+      "ignored": 1,
+      "doc_passed": 5
+    },
+    "targets": 105,
+    "sources": 636,
+    "executables": 109,
+    "packages": {
+      "nofy-agent-host": {
+        "passed": 236,
+        "ignored": 0
+      },
+      "nofy-agent-runtime": {
+        "passed": 397,
+        "ignored": 0
+      },
+      "nofy-agent-executors": {
+        "passed": 19,
+        "ignored": 0
+      },
+      "nofy-agent-models": {
+        "passed": 32,
+        "ignored": 0
+      },
+      "nofy-agent-modules": {
+        "passed": 41,
+        "ignored": 0
+      },
+      "nofy-compaction": {
+        "passed": 147,
+        "ignored": 0
+      },
+      "nofy-goal": {
+        "passed": 120,
+        "ignored": 0
+      },
+      "nofy-interjection-core": {
+        "passed": 14,
+        "ignored": 0
+      },
+      "nofy-memory": {
+        "passed": 322,
+        "ignored": 1
+      },
+      "nofy-memory-types": {
+        "passed": 0,
+        "ignored": 0
+      },
+      "nofy-packcore": {
+        "passed": 6,
+        "ignored": 0
+      },
+      "nofy-sqlite-journal": {
+        "passed": 19,
+        "ignored": 0
+      },
+      "nofy-test-support": {
+        "passed": 3,
+        "ignored": 0
+      },
+      "nofy-token-estimation": {
+        "passed": 16,
+        "ignored": 0
+      },
+      "nofy-tool-protocol": {
+        "passed": 14,
+        "ignored": 0
+      },
+      "nofy-tool-runtime": {
+        "passed": 105,
+        "ignored": 0
+      },
+      "nofy-tool-types": {
+        "passed": 58,
+        "ignored": 0
+      },
+      "nofy-tty-utils": {
+        "passed": 41,
+        "ignored": 0
+      }
+    },
+    "results": [
+      {
+        "name": "sqlite-check",
+        "exit_code": 0,
+        "seconds": 16.503
+      },
+      {
+        "name": "sdk",
+        "exit_code": 0,
+        "seconds": 12.982
+      },
+      {
+        "name": "strict-docs",
+        "exit_code": 0,
+        "seconds": 18.232
+      },
+      {
+        "name": "boundaries",
+        "exit_code": 0,
+        "seconds": 2.647
+      },
+      {
+        "name": "fmt",
+        "exit_code": 0,
+        "seconds": 1.208
+      },
+      {
+        "name": "matrix-000-nofy-agent-host-http",
+        "exit_code": 0,
+        "seconds": 603.554
+      },
+      {
+        "name": "matrix-001-nofy-agent-host-credentials",
+        "exit_code": 0,
+        "seconds": 0.005
+      },
+      {
+        "name": "matrix-002-nofy-agent-host-nofy-agent-host",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-003-nofy-agent-host-nofy-runtime-image",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-004-nofy-agent-host-nofy-runtime-image-sign",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-005-nofy-agent-host-nofy_agent_host",
+        "exit_code": 0,
+        "seconds": 3.12
+      },
+      {
+        "name": "matrix-006-nofy-agent-host-process_tree",
+        "exit_code": 0,
+        "seconds": 204.649
+      },
+      {
+        "name": "matrix-007-nofy-agent-runtime-budget_resource",
+        "exit_code": 0,
+        "seconds": 0.062
+      },
+      {
+        "name": "matrix-008-nofy-agent-runtime-build_context",
+        "exit_code": 0,
+        "seconds": 0.029
+      },
+      {
+        "name": "matrix-009-nofy-agent-runtime-child_cancel",
+        "exit_code": 0,
+        "seconds": 2.215
+      },
+      {
+        "name": "matrix-010-nofy-agent-runtime-child_retry",
+        "exit_code": 0,
+        "seconds": 27.916
+      },
+      {
+        "name": "matrix-011-nofy-agent-runtime-coding",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-012-nofy-agent-runtime-composition",
+        "exit_code": 0,
+        "seconds": 0.041
+      },
+      {
+        "name": "matrix-013-nofy-agent-runtime-context_policy",
+        "exit_code": 0,
+        "seconds": 0.02
+      },
+      {
+        "name": "matrix-014-nofy-agent-runtime-declarative",
+        "exit_code": 0,
+        "seconds": 0.234
+      },
+      {
+        "name": "matrix-015-nofy-agent-runtime-durable",
+        "exit_code": 0,
+        "seconds": 2.316
+      },
+      {
+        "name": "matrix-016-nofy-agent-runtime-event_declarative",
+        "exit_code": 0,
+        "seconds": 0.133
+      },
+      {
+        "name": "matrix-017-nofy-agent-runtime-event_program",
+        "exit_code": 0,
+        "seconds": 4.716
+      },
+      {
+        "name": "matrix-018-nofy-agent-runtime-governance",
+        "exit_code": 0,
+        "seconds": 0.023
+      },
+      {
+        "name": "matrix-019-nofy-agent-runtime-governance_runtime",
+        "exit_code": 0,
+        "seconds": 0.108
+      },
+      {
+        "name": "matrix-020-nofy-agent-runtime-hook_agent",
+        "exit_code": 0,
+        "seconds": 0.068
+      },
+      {
+        "name": "matrix-021-nofy-agent-runtime-hooks",
+        "exit_code": 0,
+        "seconds": 0.057
+      },
+      {
+        "name": "matrix-022-nofy-agent-runtime-identity",
+        "exit_code": 0,
+        "seconds": 0.655
+      },
+      {
+        "name": "matrix-023-nofy-agent-runtime-invocation",
+        "exit_code": 0,
+        "seconds": 0.07
+      },
+      {
+        "name": "matrix-024-nofy-agent-runtime-jobs",
+        "exit_code": 0,
+        "seconds": 0.219
+      },
+      {
+        "name": "matrix-025-nofy-agent-runtime-mailbox",
+        "exit_code": 0,
+        "seconds": 0.175
+      },
+      {
+        "name": "matrix-026-nofy-agent-runtime-managed",
+        "exit_code": 0,
+        "seconds": 0.1
+      },
+      {
+        "name": "matrix-027-nofy-agent-runtime-model_journal",
+        "exit_code": 0,
+        "seconds": 0.005
+      },
+      {
+        "name": "matrix-028-nofy-agent-runtime-model_recovery",
+        "exit_code": 0,
+        "seconds": 0.031
+      },
+      {
+        "name": "matrix-029-nofy-agent-runtime-nested_control",
+        "exit_code": 0,
+        "seconds": 0.055
+      },
+      {
+        "name": "matrix-030-nofy-agent-runtime-nofy_agent_runtime",
+        "exit_code": 0,
+        "seconds": 8.815
+      },
+      {
+        "name": "matrix-031-nofy-agent-runtime-pack",
+        "exit_code": 0,
+        "seconds": 0.036
+      },
+      {
+        "name": "matrix-032-nofy-agent-runtime-parking",
+        "exit_code": 0,
+        "seconds": 5.57
+      },
+      {
+        "name": "matrix-033-nofy-agent-runtime-pipeline",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-034-nofy-agent-runtime-policy_floor",
+        "exit_code": 0,
+        "seconds": 0.036
+      },
+      {
+        "name": "matrix-035-nofy-agent-runtime-policy_selection",
+        "exit_code": 0,
+        "seconds": 0.043
+      },
+      {
+        "name": "matrix-036-nofy-agent-runtime-program",
+        "exit_code": 0,
+        "seconds": 0.703
+      },
+      {
+        "name": "matrix-037-nofy-agent-runtime-recipe",
+        "exit_code": 0,
+        "seconds": 0.092
+      },
+      {
+        "name": "matrix-038-nofy-agent-runtime-recipe_policies",
+        "exit_code": 0,
+        "seconds": 0.019
+      },
+      {
+        "name": "matrix-039-nofy-agent-runtime-recipe_tasks",
+        "exit_code": 0,
+        "seconds": 0.068
+      },
+      {
+        "name": "matrix-040-nofy-agent-runtime-registry",
+        "exit_code": 0,
+        "seconds": 0.045
+      },
+      {
+        "name": "matrix-041-nofy-agent-runtime-resources",
+        "exit_code": 0,
+        "seconds": 0.028
+      },
+      {
+        "name": "matrix-042-nofy-agent-runtime-run_services",
+        "exit_code": 0,
+        "seconds": 0.056
+      },
+      {
+        "name": "matrix-043-nofy-agent-runtime-schema_validation",
+        "exit_code": 0,
+        "seconds": 0.08
+      },
+      {
+        "name": "matrix-044-nofy-agent-runtime-session_governance",
+        "exit_code": 0,
+        "seconds": 0.023
+      },
+      {
+        "name": "matrix-045-nofy-agent-runtime-sessions",
+        "exit_code": 0,
+        "seconds": 0.269
+      },
+      {
+        "name": "matrix-046-nofy-agent-runtime-settings",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-047-nofy-agent-runtime-streaming",
+        "exit_code": 0,
+        "seconds": 0.04
+      },
+      {
+        "name": "matrix-048-nofy-agent-runtime-tool_program",
+        "exit_code": 0,
+        "seconds": 0.033
+      },
+      {
+        "name": "matrix-049-nofy-agent-runtime-workflow_graph",
+        "exit_code": 0,
+        "seconds": 0.172
+      },
+      {
+        "name": "matrix-050-nofy-agent-runtime-workflow_hooks",
+        "exit_code": 0,
+        "seconds": 1.087
+      },
+      {
+        "name": "matrix-051-nofy-agent-runtime-workflow_resource",
+        "exit_code": 0,
+        "seconds": 0.072
+      },
+      {
+        "name": "matrix-052-nofy-agent-executors-code",
+        "exit_code": 0,
+        "seconds": 0.167
+      },
+      {
+        "name": "matrix-053-nofy-agent-executors-executors",
+        "exit_code": 0,
+        "seconds": 12.043
+      },
+      {
+        "name": "matrix-054-nofy-agent-executors-nofy_agent_executors",
+        "exit_code": 0,
+        "seconds": 0.007
+      },
+      {
+        "name": "matrix-055-nofy-agent-models-nofy_agent_models",
+        "exit_code": 0,
+        "seconds": 0.059
+      },
+      {
+        "name": "matrix-056-nofy-agent-models-profiles",
+        "exit_code": 0,
+        "seconds": 0.663
+      },
+      {
+        "name": "matrix-057-nofy-agent-models-transport",
+        "exit_code": 0,
+        "seconds": 0.153
+      },
+      {
+        "name": "matrix-058-nofy-agent-modules-nofy_agent_modules",
+        "exit_code": 0,
+        "seconds": 0.006
+      },
+      {
+        "name": "matrix-059-nofy-agent-modules-prompt",
+        "exit_code": 0,
+        "seconds": 0.076
+      },
+      {
+        "name": "matrix-060-nofy-agent-modules-scope_program",
+        "exit_code": 0,
+        "seconds": 0.267
+      },
+      {
+        "name": "matrix-061-nofy-agent-modules-scoped_skills",
+        "exit_code": 0,
+        "seconds": 0.37
+      },
+      {
+        "name": "matrix-062-nofy-compaction-nofy_compaction",
+        "exit_code": 0,
+        "seconds": 0.006
+      },
+      {
+        "name": "matrix-063-nofy-compaction-runtime",
+        "exit_code": 0,
+        "seconds": 0.042
+      },
+      {
+        "name": "matrix-064-nofy-goal-nofy_goal",
+        "exit_code": 0,
+        "seconds": 0.005
+      },
+      {
+        "name": "matrix-065-nofy-interjection-core-nofy_interjection_core",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-066-nofy-memory-access_policy",
+        "exit_code": 0,
+        "seconds": 0.008
+      },
+      {
+        "name": "matrix-067-nofy-memory-capture_recovery",
+        "exit_code": 0,
+        "seconds": 0.016
+      },
+      {
+        "name": "matrix-068-nofy-memory-consolidation_recovery",
+        "exit_code": 0,
+        "seconds": 0.071
+      },
+      {
+        "name": "matrix-069-nofy-memory-declarative",
+        "exit_code": 0,
+        "seconds": 0.212
+      },
+      {
+        "name": "matrix-070-nofy-memory-durable_undo",
+        "exit_code": 0,
+        "seconds": 0.114
+      },
+      {
+        "name": "matrix-071-nofy-memory-embedding_failure",
+        "exit_code": 0,
+        "seconds": 0.004
+      },
+      {
+        "name": "matrix-072-nofy-memory-embedding_protocol",
+        "exit_code": 0,
+        "seconds": 0.003
+      },
+      {
+        "name": "matrix-073-nofy-memory-forget_and_retention",
+        "exit_code": 0,
+        "seconds": 0.026
+      },
+      {
+        "name": "matrix-074-nofy-memory-migration_cutover",
+        "exit_code": 0,
+        "seconds": 0.021
+      },
+      {
+        "name": "matrix-075-nofy-memory-model_contract",
+        "exit_code": 0,
+        "seconds": 0.005
+      },
+      {
+        "name": "matrix-076-nofy-memory-nofy_memory",
+        "exit_code": 0,
+        "seconds": 0.587
+      },
+      {
+        "name": "matrix-077-nofy-memory-performance_baseline",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-078-nofy-memory-runtime",
+        "exit_code": 0,
+        "seconds": 0.132
+      },
+      {
+        "name": "matrix-079-nofy-memory-scope_concurrency",
+        "exit_code": 0,
+        "seconds": 0.047
+      },
+      {
+        "name": "matrix-080-nofy-memory-snapshot_injection",
+        "exit_code": 0,
+        "seconds": 0.035
+      },
+      {
+        "name": "matrix-081-nofy-memory-state_recovery",
+        "exit_code": 0,
+        "seconds": 5.017
+      },
+      {
+        "name": "matrix-082-nofy-memory-undo_recovery",
+        "exit_code": 0,
+        "seconds": 0.134
+      },
+      {
+        "name": "matrix-083-nofy-memory-unified_search",
+        "exit_code": 0,
+        "seconds": 0.021
+      },
+      {
+        "name": "matrix-084-nofy-memory-user_experience_contract",
+        "exit_code": 0,
+        "seconds": 0.143
+      },
+      {
+        "name": "matrix-085-nofy-memory-types-nofy_memory_types",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-086-nofy-packcore-nofy_packcore",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-087-nofy-sqlite-journal-nofy_sqlite_journal",
+        "exit_code": 0,
+        "seconds": 0.333
+      },
+      {
+        "name": "matrix-088-nofy-test-support-nofy_test_support",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-089-nofy-test-support-sse_contract",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-090-nofy-token-estimation-nofy_token_estimation",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-091-nofy-tool-protocol-capabilities",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-092-nofy-tool-protocol-identifier_validation",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-093-nofy-tool-protocol-nofy_tool_protocol",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-094-nofy-tool-runtime-context_extensions",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-095-nofy-tool-runtime-errors",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-096-nofy-tool-runtime-nofy_tool_runtime",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-097-nofy-tool-runtime-search",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-098-nofy-tool-runtime-should_list",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-099-nofy-tool-runtime-tool_blocking",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-100-nofy-tool-runtime-tool_dyn",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-101-nofy-tool-runtime-tool_streaming",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-102-nofy-tool-runtime-trait_object_safety",
+        "exit_code": 0,
+        "seconds": 0.001
+      },
+      {
+        "name": "matrix-103-nofy-tool-types-nofy_tool_types",
+        "exit_code": 0,
+        "seconds": 0.002
+      },
+      {
+        "name": "matrix-104-nofy-tty-utils-nofy_tty_utils",
+        "exit_code": 0,
+        "seconds": 1.009
+      },
+      {
+        "name": "doctests",
+        "exit_code": 0,
+        "seconds": 27.655
+      }
+    ]
+  },
+  "source_sha256": {
+    "crates/common/nofy-agent-runtime/src/supervisor/jobs/managed/parking.rs": "93a3621c905011e63fd2b1e720b30abcbc2d4b13c83588fd996521a43f0d1642",
+    "crates/common/nofy-agent-runtime/src/supervisor/jobs/managed/transition.rs": "bff26ffc69771bc1f36d88811805effc49436905641a5428a990bc3712bc04e6",
+    "crates/common/nofy-agent-runtime/src/hooks.rs": "b395b0a7c3fd802e2efa851ceef1ece7ba380a019afcb69cfafae9b63646af2d",
+    "crates/common/nofy-agent-runtime/src/hooks/emission.rs": "493d8100225812eea5f840eaf7a2f8f006c572b08dde96cb3dbdc980de670e19",
+    "crates/common/nofy-agent-runtime/src/hooks/journal.rs": "21cc2f68761d78ad3fb4d37b4d349753e6ccda6d84acf8029f7ad9a7fe3887fa",
+    "crates/common/nofy-agent-runtime/src/governance.rs": "69975a4f34cd5ff494f976a27e7ac5ea30d208fdccec4eb6eb05baddc7a66990",
+    "crates/common/nofy-agent-executors/src/hooks.rs": "f13c4c415dd389bb74b55c2de56a6d6f4fa5834d9c53532b5a8abd6a63c559cc",
+    "crates/common/nofy-agent-runtime/tests/parking/transitions/modules/budgets.rs": "f0afe66a64c7b160c3b80d401f0afac3a5d3a015ebb645765b8971fccc7a85f3",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets.rs": "4d23cdc797b77ba9a645b1046b6ae6fec802a675ba22eaf49003870a8f29b640",
+    "crates/common/nofy-agent-executors/tests/executors.rs": "6180ef43a573affa81773f7e733c198beb23731f2ccfbe2c90dc7261a000b7c3",
+    "crates/common/nofy-agent-runtime/tests/parking/transitions/modules/budgets/composition.rs": "2007282746cac539e26cb483930c2b93c72438bd8d24895898b2330e52add128",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition.rs": "699d404446a40349766b56487d629b06c7f0b18fb8238cdd5c166cac496adbf3",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/children.rs": "0acbe61828ad0a3c708361e3f55025cf02ef8a1a0d2547dc8f3a9c3c343648f5",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/crashes.rs": "bd159d0d919682f0d64b317db61fdd9ebcc9eaa35b8aafbbab13cb12322dc0ca",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/proof.rs": "246a37b82296a0196c84fc7757cb7122b2294f2b55561c3ae71f428e1ec7b7b8"
+  },
+  "production_files": [
+    "crates/common/nofy-agent-runtime/src/supervisor/jobs/managed/parking.rs",
+    "crates/common/nofy-agent-runtime/src/supervisor/jobs/managed/transition.rs",
+    "crates/common/nofy-agent-runtime/src/hooks.rs",
+    "crates/common/nofy-agent-runtime/src/hooks/emission.rs",
+    "crates/common/nofy-agent-runtime/src/hooks/journal.rs",
+    "crates/common/nofy-agent-runtime/src/governance.rs",
+    "crates/common/nofy-agent-executors/src/hooks.rs"
+  ],
+  "test_files": [
+    "crates/common/nofy-agent-runtime/tests/parking/transitions/modules/budgets.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets.rs",
+    "crates/common/nofy-agent-executors/tests/executors.rs",
+    "crates/common/nofy-agent-runtime/tests/parking/transitions/modules/budgets/composition.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/children.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/crashes.rs",
+    "crates/common/nofy-agent-host/tests/http/parking/modules/budgets/composition/proof.rs"
+  ],
+  "host_focused": {
+    "exit_code": 0,
+    "seconds": 59.219,
+    "sources": 636,
+    "unchanged": true
+  },
+  "initial_unsafe_probe": {
+    "exit_code": 101,
+    "seconds": 4.34
+  },
+  "unsafe_probe_effects_before": 2,
+  "unsafe_probe_effects_after": 1,
+  "interrupted_attempt": {
+    "driver_pid": 3393341,
+    "signal": "SIGINT",
+    "reason": "add persisted original dispatch authority to Hook recovery proof before final acceptance"
+  },
+  "source_proof": {
+    "checked": 636,
+    "changed": []
+  },
+  "binary_proof": {
+    "checked": 109,
+    "changed": []
+  },
+  "physical_host_scenarios": {
+    "normal_management_and_restore": 7,
+    "unknown_http_hard_exit": 1,
+    "public_hook_api_adversarial": 2
+  },
+  "real_upstream_model_calls": 0,
+  "dependency_installs": 0,
+  "committed": false,
+  "pushed": false,
+  "open": [
+    "paused inbox interjection ordering vs terminal hook event identities needs behavior evidence before Context",
+    "native Hook reconciliation management surface still needs audit",
+    "Context/ToolSource/Memory, memory responsibility audit, console, versioned reference presets, CI/release and existing performance/cleanup gaps remain"
+  ],
+  "final_audit_summary": {
+    "changed_count": 2686,
+    "affected_count": 198,
+    "changed_files": 10775,
+    "risk_level": "critical"
+  },
+  "index_recovery": {
+    "snapshot": "/home/none/nofy-build-retired.jdnpc7/budget-composition.xdx2bbe8/index-after-failure",
+    "database_sha256": "83e06490d45b47f893d9a16d05b017ef0303370c3a88ec2378d281c6b1bfdb60",
+    "restored": {
+      "repoPath": "/home/none/nofy-build",
+      "lastCommit": "9742c4e04686fd89a04083158b7fd21ce3f090d5",
+      "indexedAt": "2026-11-03T17:29:14.630Z",
+      "stats": {
+        "files": 708,
+        "nodes": 13652,
+        "edges": 36179,
+        "communities": 616,
+        "processes": 300,
+        "embeddings": 0
+      },
+      "recoveredFromIndexedAt": "2026-11-03T17:19:03.655Z",
+      "recoveryReason": "Restore verified completed graph after failed analyzer retries; not a fresh successful CLI analysis"
+    },
+    "failed_serial_exit_code": 1,
+    "first_cli_exit_code": 134,
+    "retry_failure": "schema assertion and COPY failed for File",
+    "production_source_modified": false
+  },
+  "index_graph_checked": {
+    "nodes": 13652,
+    "files": 708,
+    "query_log": "/tmp/nofy-budget-composition.i5ilpmem/final-audit.json"
+  },
+  "postdoc_verification": {
+    "source_checked": 636,
+    "source_documentation_changes": [
+      "AGENTS.md",
+      "crates/common/nofy-agent-executors/文件说明.md",
+      "crates/common/nofy-agent-host/文件说明.md",
+      "crates/common/nofy-agent-runtime/文件说明.md"
+    ],
+    "binary_checked": 109,
+    "binary_changed": [],
+    "agents_rule_body": "byte_identical_except_statistics",
+    "original_archive_members_checked": 21
+  }
+}

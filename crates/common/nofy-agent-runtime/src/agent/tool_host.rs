@@ -4,6 +4,12 @@ use super::*;
 
 impl Agent {
     pub(crate) fn set_scope_identity(&mut self, scheme: Option<crate::IdentityScheme>) {
+        if scheme == Some(crate::IdentityScheme::HashedV2)
+            && self.spec.settings.scope_identity != scheme
+        {
+            self.composition =
+                crate::identity::extend(scheme, std::mem::take(&mut self.composition));
+        }
         self.spec.settings.scope_identity = scheme;
     }
     pub(super) fn sampled_model(&self) -> Result<&dyn Model, Error> {
@@ -71,8 +77,11 @@ impl Agent {
 
     pub(crate) fn bind_tool_program(&self, call: ToolCall) -> Result<Self, Error> {
         let mut program = self.clone();
-        program.composition = serde_json::to_string(&(&self.composition, &call))
-            .map_err(|e| Error::Composition(e.to_string()))?;
+        program.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(&self.composition, &call))
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         program.direct_tool = Some(call);
         Ok(program)
     }
@@ -80,8 +89,11 @@ impl Agent {
     #[cfg(feature = "workflow")]
     pub(crate) fn add_program_tool(&mut self, entry: crate::ToolEntry) -> Result<(), Error> {
         let identity = (entry.definition.clone(), entry.dispatch.recovery_identity());
-        self.composition = serde_json::to_string(&(&self.composition, "program-tool", identity))
-            .map_err(|e| Error::Composition(e.to_string()))?;
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(&self.composition, "program-tool", identity))
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         self.tools.insert(entry)
     }
 

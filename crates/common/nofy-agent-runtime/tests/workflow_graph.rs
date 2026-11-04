@@ -865,7 +865,7 @@ fn workflow_process_worker() {
 fn real_process_exit_at_human_wait_restores_sqlite_and_executes_remaining_effect_once() {
     let dir = tempfile::Builder::new()
         .prefix("nofy-workflow-restart-")
-        .tempdir_in("/private/tmp")
+        .tempdir()
         .unwrap()
         .keep();
     for (mode, code) in [("pause", 97), ("recover", 0)] {

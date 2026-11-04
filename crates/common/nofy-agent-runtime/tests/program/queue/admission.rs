@@ -51,7 +51,7 @@ async fn program_submission_is_pure_has_no_invented_input_and_keeps_legacy_diges
     .unwrap();
     let saved = supervisor.submit(legacy.clone()).await.unwrap();
     assert_eq!(saved.digest, format!("{:x}", Sha256::digest(&bytes)));
-    let sql = rusqlite::Connection::open(store.path()).unwrap();
+    let sql = rusqlite::Connection::open(store.path().unwrap()).unwrap();
     let payload: String = sql
         .query_row(
             "SELECT payload FROM agent_runtime_jobs WHERE run_id='legacy'",

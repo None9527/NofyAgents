@@ -205,7 +205,14 @@ impl Agent {
                 pending.operation_id == ticket.operation_id && ticket.operation_scope.is_none()
             }) || state.context_progress.pending.as_ref().is_some_and(
                 |pending| ticket.operation_scope.as_deref() == Some(pending.operation.as_str()),
-            );
+            ) || state
+                .hook_progress
+                .prepared_sources
+                .as_ref()
+                .and_then(|sources| sources.pending.as_ref())
+                .is_some_and(|pending| {
+                    ticket.operation_scope.as_deref() == Some(pending.scope.as_str())
+                });
             let completed_replay = state.complete && recovery.accepted(command).await?;
             if (!matches_pending && !completed_replay)
                 || state.in_flight.is_some()
@@ -384,6 +391,7 @@ impl Agent {
             agent: self,
             tools,
             context,
+            closing: state.complete,
             state,
             key,
             revision,

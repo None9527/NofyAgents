@@ -1,0 +1,12 @@
+{
+  "format": "nofy.preset-registry/v1",
+  "presets": [
+    {
+      "id": "coding",
+      "version": "0.1.0",
+      "path": "coding",
+      "status": "source-template",
+      "description": "声明式编程 Agent 基线源码；不代表 pi 或其他参考 Agent 的完整复现。"
+    }
+  ]
+}

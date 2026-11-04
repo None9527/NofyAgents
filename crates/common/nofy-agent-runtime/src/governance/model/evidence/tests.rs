@@ -9,7 +9,7 @@ struct WaitingModel {
 }
 #[async_trait::async_trait]
 impl Model for WaitingModel {
-    fn request_bound(
+    async fn request_bound(
         &self,
         _: &ModelRequest,
         _: &RunContext,

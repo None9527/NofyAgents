@@ -1,16 +1,14 @@
 use crate::Result;
+use nofy_agent_runtime::credentials::CredentialProvider;
 use nofy_agent_runtime::{
     hooks::{EventCatalog, HookFactory},
-    policy::ToolAllowListFactory,
+    policy::{OnToolsFactory, ToolAllowListFactory},
     recipe::{
         LiteralStageFactory, RecipeFactory,
         policies::{LengthStageFactory, RepeatStageFactory},
         tasks::TodoStageFactory,
     },
     registry::{ModuleFactory, ModuleRegistry, StaticPromptFactory},
-};
-use nofy_sampler::agent_model::declarative::{
-    ConnectedModelFactory, CredentialProvider, SamplerResourceFactory,
 };
 use std::sync::Arc;
 pub(crate) struct ApprovalFactory(pub nofy_agent_runtime::durable::SqliteStore);
@@ -41,7 +39,7 @@ impl ModuleFactory for ApprovalFactory {
     }
 }
 
-/// The installed engine set is stable. New sampler resources and module
+/// The installed engine set is stable. New protocol resources and module
 /// definitions are loaded from the same document handled by the API.
 pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegistry> {
     let mut registry = ModuleRegistry::default();
@@ -51,13 +49,28 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
     )?;
     let factories: Vec<Arc<dyn ModuleFactory>> = vec![
         Arc::new(StaticPromptFactory),
+        Arc::new(nofy_agent_runtime::session_policy::RulesFactory),
+        Arc::new(nofy_agent_modules::rules::RulesFactory),
+        Arc::new(nofy_agent_modules::skills::SkillsFactory::context()),
+        Arc::new(
+            nofy_agent_modules::skills::SkillsFactory::tools()
+                .with_substitution_limits(skill_substitution_limits()),
+        ),
+        Arc::new(nofy_agent_modules::bindings::DeclaredCwdFactory),
         Arc::new(nofy_agent_runtime::model_journal::ModelJournalFactory),
-        Arc::new(SamplerResourceFactory::new(credentials)?),
-        Arc::new(ConnectedModelFactory),
+        Arc::new(nofy_agent_models::declarative::ConnectionFactory::new(
+            credentials.clone(),
+        )?),
+        Arc::new(nofy_agent_models::declarative::ProgrammedModelFactory::default()),
         Arc::new(http),
         Arc::new(nofy_agent_executors::declarative::ConnectedHttpToolFactory),
+        Arc::new(nofy_agent_executors::declarative::HttpToolSourceFactory),
+        Arc::new(nofy_agent_executors::mcp::HttpResourceFactory::new(
+            credentials.identity(),
+            Arc::new(HttpCredentials(credentials.clone())),
+        )?),
+        Arc::new(nofy_agent_executors::mcp::ToolSourceFactory),
         Arc::new(nofy_agent_executors::hooks::ExecutorHookFactory),
-        Arc::new(nofy_agent_executors::code::RhaiToolFactory),
         Arc::new(nofy_agent_runtime::workflow::declarative::WorkflowResourceFactory),
         Arc::new(nofy_agent_runtime::workflow::declarative::ConnectedWorkflowToolFactory),
         Arc::new(nofy_agent_runtime::workflow::declarative::ConnectedWorkflowHookFactory),
@@ -65,6 +78,7 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
         Arc::new(nofy_agent_runtime::event_program::declarative::EventProducerFactory),
         Arc::new(nofy_agent_runtime::event_program::declarative::OwnedHookFactory),
         Arc::new(ToolAllowListFactory),
+        Arc::new(OnToolsFactory),
         Arc::new(RecipeFactory),
         Arc::new(LiteralStageFactory),
         Arc::new(LengthStageFactory),
@@ -75,6 +89,13 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
         registry.register_factory(factory)?;
     }
     Ok(registry)
+}
+pub(crate) fn skill_substitution_limits() -> nofy_agent_modules::skills::SubstitutionLimits {
+    nofy_agent_modules::skills::SubstitutionLimits {
+        max_input_bytes: 1024 * 1024,
+        max_output_bytes: 1024 * 1024,
+        max_work_bytes: 64 * 1024 * 1024,
+    }
 }
 struct HttpCredentials(Arc<dyn CredentialProvider>);
 #[async_trait::async_trait]

@@ -62,7 +62,7 @@ fn program_job_process_worker() {
                 assert!(store.execution_record("root").await.unwrap().is_none());
                 std::process::exit(97);
             }
-            let sql = rusqlite::Connection::open(store.path()).unwrap();
+            let sql = rusqlite::Connection::open(store.path().unwrap()).unwrap();
             if phase == "preflight" {
                 reject_first(&sql, &program);
             } else {
@@ -91,7 +91,7 @@ fn program_job_process_worker() {
                     phase == "ack"
                 );
                 assert!(!directory.join("models.log").exists());
-                assert!(!store.path().with_extension("effects").exists());
+                assert!(!store.path().unwrap().with_extension("effects").exists());
                 std::process::exit(97);
             }
             let registry = if phase == "cached" {

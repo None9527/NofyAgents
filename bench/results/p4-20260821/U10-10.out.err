@@ -1,8 +1,0 @@
-Not signed in. To authenticate without a browser, run:
-  nofy login --device-code
-
-Alternatively, set the NOFY_API_KEY environment variable or run `nofy login` on a machine with a browser.
-Error: Not signed in. To authenticate without a browser, run:
-  nofy login --device-code
-
-Alternatively, set the NOFY_API_KEY environment variable or run `nofy login` on a machine with a browser.

@@ -12,7 +12,7 @@ struct FailingModel {
 }
 #[async_trait::async_trait]
 impl Model for FailingModel {
-    fn request_bound(
+    async fn request_bound(
         &self,
         _: &ModelRequest,
         _: &RunContext,

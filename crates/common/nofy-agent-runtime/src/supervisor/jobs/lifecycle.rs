@@ -7,6 +7,7 @@ pub(in crate::supervisor) fn validate_begin(
     previous: Option<&str>,
     resume: bool,
 ) -> Result<bool, Error> {
+    ensure_live_owner(tx, &lease.key, &record.run_id, &record.snapshot)?;
     let job = load(tx, &record.run_id)?;
     let Some((_, hash, saved, state)) = job else {
         if record.submission.is_some() {

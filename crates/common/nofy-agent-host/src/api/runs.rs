@@ -9,6 +9,7 @@ pub(super) fn router() -> Router<KernelHost> {
     Router::new()
         .route("/api/v1/runs", post(submit).get(list))
         .route("/api/v1/runs/{id}", get(inspect))
+        .route("/api/v1/runs/{id}/versions", get(versions))
         .route("/api/v1/runs/{id}/events", get(events))
         .route("/api/v1/runs/{id}/stream", get(stream))
         .route("/api/v1/runs/{id}/approvals", get(approvals).post(decide))
@@ -17,6 +18,7 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/runs/{id}/recovery", get(recovery))
         .route("/api/v1/runs/{id}/recovery/root", get(root_recovery))
         .route("/api/v1/runs/{id}/recovery/models", get(model_recovery))
+        .route("/api/v1/runs/{id}/recovery/hooks", get(hook_recovery))
         .route("/api/v1/actions", post(action))
         .route("/api/v1/actions/{id}", get(action_status))
 }
@@ -43,6 +45,11 @@ async fn submit(
     let system = tokio::task::spawn_blocking(move || bundle.restore(&registry))
         .await
         .map_err(|e| HostError::Unavailable(e.to_string()))??;
+    let _memory = host
+        .loader
+        .memory_provider
+        .admit_program(system.program(&request.program)?)
+        .await?;
     let result = host.supervisor.submit_managed(request, &system).await?;
     host.wake.notify_one();
     Ok((StatusCode::ACCEPTED, Json(result)))
@@ -74,7 +81,35 @@ async fn inspect(
     host.auth.require(&headers, Scope::Read)?;
     let run = managed(&host, &id).await?;
     Ok(Json(
-        json!({"run":run,"execution":host.store.execution_record(&id).await?,"children":host.store.children(&id).await?}),
+        json!({"run":run,"execution":host.store.execution_record(&id).await?,"children":host.store.children(&id).await?,"parking":host.store.parking(&id).await?,"live":host.store.live_execution(&id).await?.map(|live|live.info())}),
+    ))
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct VersionPage {
+    #[serde(default)]
+    after: u64,
+    #[serde(default = "version_limit")]
+    limit: usize,
+}
+fn version_limit() -> usize {
+    16
+}
+async fn versions(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Query(page): Query<VersionPage>,
+) -> Result<Json<Vec<LiveVersionInfo>>> {
+    host.auth.require(&headers, Scope::Read)?;
+    managed(&host, &id).await?;
+    Ok(Json(
+        host.store
+            .live_versions(&id, page.after, page.limit)
+            .await?
+            .iter()
+            .map(LiveExecution::info)
+            .collect(),
     ))
 }
 #[derive(Deserialize)]
@@ -111,6 +146,27 @@ async fn root_recovery(
 #[serde(deny_unknown_fields)]
 struct ModelRecoveryQuery {
     target_run_id: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HookRecoveryQuery {
+    after: Option<String>,
+    #[serde(default = "limit")]
+    limit: usize,
+}
+async fn hook_recovery(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Query(page): Query<HookRecoveryQuery>,
+) -> Result<Json<nofy_agent_runtime::hooks::primitive::HookRecoveryPage>> {
+    host.auth.require(&headers, Scope::Read)?;
+    managed(&host, &id).await?;
+    Ok(Json(
+        host.supervisor
+            .hook_reconciliation_targets(&id, page.after.as_deref(), page.limit)
+            .await?,
+    ))
 }
 async fn model_recovery(
     State(host): State<KernelHost>,
@@ -277,7 +333,26 @@ async fn action(
     Json(action): Json<ManagedAction>,
 ) -> Result<(StatusCode, Json<ManagedActionRecord>)> {
     host.auth.require(&headers, Scope::Execute)?;
-    let record = host.store.enqueue_managed_action(action).await?;
+    let record = if let ManagedCommand::Transition { release, .. }
+    | ManagedCommand::UpdateModules { release, .. } = &action.command
+    {
+        // Exact replays must not require a release to be reactivated/reloaded.
+        if let Some(old) = host.store.managed_action(&action.command_id).await? {
+            if content_digest(&old.action)? != content_digest(&action)? {
+                return Err(HostError::Invalid("management command ID reused".into()));
+            }
+            old
+        } else {
+            let bundle = host.control.export(release).await?;
+            let registry = host.registry.clone();
+            let system = tokio::task::spawn_blocking(move || bundle.restore(&registry))
+                .await
+                .map_err(|e| HostError::Unavailable(e.to_string()))??;
+            host.supervisor.submit_transition(action, &system).await?
+        }
+    } else {
+        host.store.enqueue_managed_action(action).await?
+    };
     host.wake.notify_one();
     Ok((StatusCode::ACCEPTED, Json(record)))
 }

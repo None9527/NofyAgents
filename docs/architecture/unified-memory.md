@@ -1,5 +1,7 @@
 # Unified Memory Architecture
 
+> 历史产品设计参考：本文的Shell/Pager接线及check-unified-memory.sh门控随原产品移出，不是当前框架的构建或发布前提。现行resource.memory装载、授权与恢复边界见[记忆模块说明](../../crates/common/nofy-memory/文件说明.md)和[Host说明](../../crates/common/nofy-agent-host/文件说明.md)。固定的主/子Agent策略属于预设选择，不作为所有Agent的内核硬编码要求。
+
 ## Product boundary
 
 Nofy exposes one memory capability with two user areas: `Personal`（关于我）and `Project`（当前项目）. The main assistant is the sole runtime owner. Tools, Shell lifecycle code, and Pager actions cross one public boundary: `Arc<dyn MemoryService>`. Subagents do not receive the service or memory tools.

@@ -10,10 +10,9 @@ pub(super) fn source(url: &str, child: bool, unmetered: bool) -> Value {
     let mut source: Value =
         serde_json::from_str(include_str!("../../examples/system.json")).unwrap();
     source["name"] = json!("model-evidence");
-    source["modules"][0]["config"]["connection"]["base_url"] = json!(format!("{url}/v1"));
-    source["modules"][0]["config"]["connection"]["max_completion_tokens"] = json!(16);
+    source["modules"][0]["config"]["base_url"] = json!(format!("{url}/v1/"));
     source["modules"][0]["config"]["models"] = json!(["test-model"]);
-    source["modules"][0]["config"]["request_limits"] =
+    source["modules"][0]["config"]["endpoint_limits"] =
         json!({"test-model":{"max_input_tokens":64,"max_output_tokens":32}});
     source["modules"][1]["config"]["model"] = json!("test-model");
     source["required_governance"] = json!([r("quota")]);
@@ -23,7 +22,7 @@ pub(super) fn source(url: &str, child: bool, unmetered: bool) -> Value {
         json!({"reference":r("service"),"factory":"resource.http","config":{"base_url":format!("{url}/"),"methods":["POST"]}}),
         json!({"reference":r("effect"),"factory":"tool.http_connected","config":{"contract":{"name":"effect"},"path":"done","method":"POST"},"dependencies":{"connection":r("service")}})
     ]);
-    let definition = json!({"name":"sampled-agent","model":r("model"),"prompt":r("prompt"),"tool_packs":[r("effect")]});
+    let definition = json!({"name":"evidence-agent","model":r("model"),"prompt":r("prompt"),"tool_packs":[r("effect")],"settings":{"model":{"max_output_tokens":16}}});
     source["programs"] = if child {
         json!({"execute":{"kind":"workflow","input":{},"document":{"host":{"name":"workflow-root"},"entry":r("main"),"agents":[{"reference":r("worker"),"definition":definition}],"tool_runtimes":[{"reference":r("tools"),"definition":{"name":"effects","tool_packs":[r("effect")]}}],"workflows":[{"reference":r("main"),"input_schema":true,"output_schema":true,"nodes":[
             {"id":"agent","input":{"from":"literal","value":"continue"},"action":{"kind":"agent","agent":r("worker")}},

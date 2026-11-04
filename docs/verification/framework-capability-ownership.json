@@ -1,0 +1,466 @@
+{
+  "stage": "CLEAN5c",
+  "status": "implementation complete; grouped functional coverage; concurrent action timeout remains open",
+  "evidence_root": "/tmp/nofy-clean5c-ownership.xyDbvE",
+  "recovery": {
+    "directory": "/home/none/nofy-build-retired.jdnpc7/clean5c.Ya3dAO",
+    "before_archive_sha256": "63c67c8cd174bf56959a33000602f54460b316f8c74d105804179a156523f929",
+    "moves": [
+      {
+        "source": "/home/none/nofy-build/crates/codegen/nofy-memory",
+        "target": "/home/none/nofy-build/crates/common/nofy-memory",
+        "files": 59,
+        "bytes": 731767
+      },
+      {
+        "source": "/home/none/nofy-build/crates/codegen/nofy-token-estimation",
+        "target": "/home/none/nofy-build/crates/common/nofy-token-estimation",
+        "files": 2,
+        "bytes": 10748
+      },
+      {
+        "source": "/home/none/nofy-build/crates/codegen/nofy-packcore",
+        "target": "/home/none/nofy-build/crates/common/nofy-packcore",
+        "files": 2,
+        "bytes": 11242
+      },
+      {
+        "source": "/home/none/nofy-build/crates/codegen/nofy-workflow",
+        "target": "/home/none/nofy-build-retired.jdnpc7/clean5c.Ya3dAO/tree/crates/codegen/nofy-workflow",
+        "files": 9,
+        "bytes": 123684
+      },
+      {
+        "source": "/home/none/nofy-build/crates/codegen/nofy-orchestra",
+        "target": "/home/none/nofy-build-retired.jdnpc7/clean5c.Ya3dAO/tree/crates/codegen/nofy-orchestra",
+        "files": 17,
+        "bytes": 129728
+      }
+    ]
+  },
+  "workspace": {
+    "packages": 18,
+    "local_path_edges": 40,
+    "all_packages_under": "crates/common",
+    "edges": [
+      {
+        "from": "nofy-agent-executors",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-executors",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-executors",
+        "to": "nofy-tool-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-executors",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-executors",
+        "to": "nofy-tty-utils",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-interjection-core",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-packcore",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-sqlite-journal",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-tool-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-runtime",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-tool-runtime",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-tool-runtime",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-agent-executors",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-agent-models",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-agent-modules",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-memory",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-tool-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-tty-utils",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-interjection-core",
+        "kind": "dev",
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-host",
+        "to": "nofy-test-support",
+        "kind": "dev",
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-models",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-modules",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-modules",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-modules",
+        "to": "nofy-tool-runtime",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-modules",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-agent-modules",
+        "to": "nofy-agent-runtime",
+        "kind": "dev",
+        "optional": false
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-memory-types",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-sqlite-journal",
+        "kind": null,
+        "optional": false
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-tool-protocol",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-tool-runtime",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-tool-types",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-agent-runtime",
+        "kind": "dev",
+        "optional": false
+      },
+      {
+        "from": "nofy-memory",
+        "to": "nofy-compaction",
+        "kind": "dev",
+        "optional": false
+      },
+      {
+        "from": "nofy-compaction",
+        "to": "nofy-agent-runtime",
+        "kind": null,
+        "optional": true
+      },
+      {
+        "from": "nofy-compaction",
+        "to": "nofy-token-estimation",
+        "kind": null,
+        "optional": true
+      }
+    ]
+  },
+  "dependency_lock": {
+    "lock_before": 521,
+    "lock_after": 516,
+    "added": [],
+    "removed": [
+      [
+        "nofy-orchestra",
+        "0.1.0",
+        null,
+        null
+      ],
+      [
+        "nofy-workflow",
+        "0.1.0",
+        null,
+        null
+      ],
+      [
+        "serde_spanned",
+        "1.0.4",
+        "registry+https://github.com/rust-lang/crates.io-index",
+        "f8bbf91e5a4d6315eee45e704372590b30e260ee83af6639d64557f51b067776"
+      ],
+      [
+        "toml",
+        "0.9.12+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index",
+        "cf92845e79fc2e2def6a5d828f0801e29a2f8acc037becc5ab08595c7d5e9863"
+      ],
+      [
+        "toml_writer",
+        "1.0.6+spec-1.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index",
+        "ab16f14aed21ee8bfd8ec22513f7287cd4a91aa92e44edfe2c17ddd004e92607"
+      ]
+    ],
+    "rust_unchanged": {
+      "nofy-memory": 54,
+      "nofy-token-estimation": 1
+    }
+  },
+  "validation": {
+    "test_binaries": 105,
+    "successful_unique_tests": 1555,
+    "ignored": 1,
+    "doc_tests_passed": 5,
+    "doc_test_failures": 0,
+    "open_load_issue": true,
+    "packages": {
+      "nofy-agent-host": {
+        "passed": 222,
+        "ignored": 0
+      },
+      "nofy-test-support": {
+        "passed": 3,
+        "ignored": 0
+      },
+      "nofy-agent-models": {
+        "passed": 32,
+        "ignored": 0
+      },
+      "nofy-agent-executors": {
+        "passed": 18,
+        "ignored": 0
+      },
+      "nofy-agent-modules": {
+        "passed": 41,
+        "ignored": 0
+      },
+      "nofy-memory": {
+        "passed": 322,
+        "ignored": 1
+      },
+      "nofy-compaction": {
+        "passed": 147,
+        "ignored": 0
+      },
+      "nofy-goal": {
+        "passed": 120,
+        "ignored": 0
+      },
+      "nofy-tty-utils": {
+        "passed": 41,
+        "ignored": 0
+      },
+      "nofy-agent-runtime": {
+        "passed": 377,
+        "ignored": 0
+      },
+      "nofy-sqlite-journal": {
+        "passed": 19,
+        "ignored": 0
+      },
+      "nofy-tool-runtime": {
+        "passed": 105,
+        "ignored": 0
+      },
+      "nofy-tool-types": {
+        "passed": 58,
+        "ignored": 0
+      },
+      "nofy-tool-protocol": {
+        "passed": 14,
+        "ignored": 0
+      },
+      "nofy-packcore": {
+        "passed": 6,
+        "ignored": 0
+      },
+      "nofy-memory-types": {
+        "passed": 0,
+        "ignored": 0
+      },
+      "nofy-interjection-core": {
+        "passed": 14,
+        "ignored": 0
+      },
+      "nofy-token-estimation": {
+        "passed": 16,
+        "ignored": 0
+      }
+    }
+  },
+  "source_integrity": {
+    "files": 623,
+    "executables": 109,
+    "unexpected_changes_during_tests": [],
+    "expected_test_fix": "crates/common/nofy-agent-host/tests/process_tree/confined.rs"
+  },
+  "source_package": {
+    "files": 26,
+    "source_bytes": 203602,
+    "archive_bytes": 49332,
+    "sha256": "0304b0f0a6620175dd5a2275989c8bd50f6f64d01fda244cbcd20a52949a51a6",
+    "no_external_tools": true
+  },
+  "python_tests": {
+    "passed": 53,
+    "seconds": 2.391
+  },
+  "external_consumer": {
+    "agents": [
+      "business",
+      "research-pack",
+      "standalone-coding"
+    ],
+    "configuration": true,
+    "declarative_system": true,
+    "delegation": true,
+    "event_program": true,
+    "file_catalog": true,
+    "parallel": true,
+    "program": true,
+    "recipe": true,
+    "status": "passed",
+    "workflow": true,
+    "workflow_hook": true,
+    "workflow_module": true,
+    "outside_workspace": true,
+    "dependency_boundary": "passed"
+  },
+  "implementation_audit_before_document_close": {
+    "changed_count": 2546,
+    "affected_count": 184,
+    "changed_files": 10766,
+    "risk_level": "critical"
+  },
+  "open_items": [
+    "HTTP management receipt timed out at the unchanged 15 second test deadline under full concurrency; the same binary passed in isolation in 56.662 seconds; cause unconfirmed",
+    "Memory release performance benchmark remains ignored",
+    "Full live permissions/budget/context/ToolSource/Memory updates, console, multiple locked reference behavior presets, CI/release and earlier fault evidence remain open"
+  ],
+  "followup": {
+    "stage": "CLEAN5d",
+    "report": "docs/verification/host-registry-sharing.json",
+    "concurrent_receipt_issue": "fixed_and_verified_same_deadline_parallel_8_and_full_105_matrix",
+    "historical_failures_preserved": true
+  }
+}

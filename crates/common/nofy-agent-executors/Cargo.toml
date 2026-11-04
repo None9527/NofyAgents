@@ -8,7 +8,6 @@ description = "Explicit HTTP and process adapters for configurable agent tools"
 [features]
 default = []
 rhai = ["dep:rhai"]
-nofy-sandbox = ["dep:nofy-sandbox"]
 
 [dependencies]
 rhai = { workspace = true, optional = true }
@@ -17,7 +16,6 @@ nofy-tool-runtime = { path = "../nofy-tool-runtime" }
 nofy-tool-protocol = { path = "../nofy-tool-protocol" }
 nofy-tool-types = { path = "../nofy-tool-types" }
 nofy-tty-utils = { workspace = true }
-nofy-sandbox = { path = "../../codegen/nofy-sandbox", default-features = false, optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

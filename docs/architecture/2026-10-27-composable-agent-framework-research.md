@@ -1,7 +1,9 @@
+> 历史研究：所引用的旧产品源码已移出交付；历史路径用于溯源，当前源码入口见根文件说明。
+
 # Nofy 可组合 Agent 框架调研
 
 - 日期：2026-10-27。
-- 状态：基线调研已完成；下文保留调研时的设计提案。已实施的 API、模块与限制见[使用指南](composable-agent-runtime.md)，不要将提案包名当成现有包。
+- 状态：历史基线调研；下文保留当时提案。当前工程入口见[框架总览](../../README.md)与[源码归属](framework-source-tree.md)，旧SDK演进记录见[历史参考](composable-agent-runtime.md)。不要将提案包名或旧宿主接线当成现有实现。
 - 基线：`65ed83b8d4a87c9a74ef4ac794a081d22ceed4e1`。
 - 分支：`research/modular-agent-framework`。
 - 范围：Rust 内核及宿主连接边界；不研究或修改 TUI、桌面和 Web 展示。
@@ -33,23 +35,23 @@
 
 | 证据 | 源码 | 含义及处理建议 |
 |---|---|---|
-| Agent 实例明确绑定 session 和 ToolBridge | [agent.rs](../../crates/codegen/nofy-agent/src/agent.rs#L13) | 分开可复用规格、已编译配方和每次运行的状态/能力绑定 |
-| Builder 构造要求 cwd、TerminalBackend、通知句柄，并默认 LocalFs | [builder.rs](../../crates/codegen/nofy-agent/src/builder.rs#L192) | 不能作为无文件系统业务 Agent 的最小入口；保留旧 Builder 为兼容 facade |
-| AgentDefinition 持有具体 ToolServerConfig，文件中还有内置工具预设 | [config.rs](../../crates/codegen/nofy-agent/src/config.rs#L742) | 纯定义与预设装配拆开，核心定义使用组件引用和中立数据 |
-| 主工具循环和会话调度分属两个函数，但仍共享大型 actor | [turn.rs](../../crates/codegen/nofy-shell/src/session/acp_session_impl/turn.rs#L1838)、[run_loop.rs](../../crates/codegen/nofy-shell/src/session/acp_session_impl/run_loop.rs#L253) | 抽取 Run 引擎；排队、会话归属、挂接客户端保留宿主 |
-| daemon provider 还有另一套完整模型—工具循环 | [provider_host.rs](../../crates/codegen/nofy-shell/src/agent/provider_host.rs#L193) | 它是优先迁移的独立消费者；不能继续维护第三套新循环 |
-| sampling-types 直接依赖 nofy-tools | [Cargo.toml](../../crates/codegen/nofy-sampling-types/Cargo.toml)、[types.rs](../../crates/codegen/nofy-sampling-types/src/types.rs#L392) | 原因包括重导出 ToolDefinition/FunctionTool；必须先下移中立 schema 类型，否则模型层仍拉入具体工具 |
-| ConversationItem 暴露 Responses API 的 Reasoning 和后端工具类型 | [conversation.rs](../../crates/codegen/nofy-sampling-types/src/conversation.rs#L77) | 不可称为完全 provider-neutral；短期适配，后续中立事件加不透明 provider payload，保留原始顺序与 round-trip |
-| 提示词使用工具注册表内的 TemplateRenderer | [context.rs](../../crates/codegen/nofy-agent/src/prompt/context.rs#L269) | 已有 render_with_renderer 切口；改用只读目录快照，不依赖执行器 |
+| Agent 实例明确绑定 session 和 ToolBridge | agent.rs（历史路径 `crates/codegen/nofy-agent/src/agent.rs#L13`，源码已移出） | 分开可复用规格、已编译配方和每次运行的状态/能力绑定 |
+| Builder 构造要求 cwd、TerminalBackend、通知句柄，并默认 LocalFs | builder.rs（历史路径 `crates/codegen/nofy-agent/src/builder.rs#L192`，源码已移出） | 不能作为无文件系统业务 Agent 的最小入口；保留旧 Builder 为兼容 facade |
+| AgentDefinition 持有具体 ToolServerConfig，文件中还有内置工具预设 | config.rs（历史路径 `crates/codegen/nofy-agent/src/config.rs#L742`，源码已移出） | 纯定义与预设装配拆开，核心定义使用组件引用和中立数据 |
+| 主工具循环和会话调度分属两个函数，但仍共享大型 actor | turn.rs（历史路径 `crates/codegen/nofy-shell/src/session/acp_session_impl/turn.rs#L1838`，源码已移出）、run_loop.rs（历史路径 `crates/codegen/nofy-shell/src/session/acp_session_impl/run_loop.rs#L253`，源码已移出） | 抽取 Run 引擎；排队、会话归属、挂接客户端保留宿主 |
+| daemon provider 还有另一套完整模型—工具循环 | provider_host.rs（历史路径 `crates/codegen/nofy-shell/src/agent/provider_host.rs#L193`，源码已移出） | 它是优先迁移的独立消费者；不能继续维护第三套新循环 |
+| sampling-types 直接依赖 nofy-tools | Cargo.toml（历史路径 `crates/codegen/nofy-sampling-types/Cargo.toml`，源码已移出）、types.rs（历史路径 `crates/codegen/nofy-sampling-types/src/types.rs#L392`，源码已移出） | 原因包括重导出 ToolDefinition/FunctionTool；必须先下移中立 schema 类型，否则模型层仍拉入具体工具 |
+| ConversationItem 暴露 Responses API 的 Reasoning 和后端工具类型 | conversation.rs（历史路径 `crates/codegen/nofy-sampling-types/src/conversation.rs#L77`，源码已移出） | 不可称为完全 provider-neutral；短期适配，后续中立事件加不透明 provider payload，保留原始顺序与 round-trip |
+| 提示词使用工具注册表内的 TemplateRenderer | context.rs（历史路径 `crates/codegen/nofy-agent/src/prompt/context.rs#L269`，源码已移出） | 已有 render_with_renderer 切口；改用只读目录快照，不依赖执行器 |
 | 统一 Tool / ToolDispatch 已存在 | [tool.rs](../../crates/common/nofy-tool-runtime/src/tool.rs#L37)、[dispatch.rs](../../crates/common/nofy-tool-runtime/src/dispatch.rs#L32) | 复用类型化 authoring 和类型擦除 dispatch，不再发明第二套 Tool trait |
-| 注册器直接导入全部具体工具，并有进程全局 TOOL_PACKS | [registry/types.rs](../../crates/codegen/nofy-tools/src/registry/types.rs#L1) | 抽无默认业务工具的 instance-scoped catalog；旧全局注册仅留兼容层 |
+| 注册器直接导入全部具体工具，并有进程全局 TOOL_PACKS | registry/types.rs（历史路径 `crates/codegen/nofy-tools/src/registry/types.rs#L1`，源码已移出） | 抽无默认业务工具的 instance-scoped catalog；旧全局注册仅留兼容层 |
 | 通用 ToolCallContext 已支持 TypedExtensions、取消扩展 | [context.rs](../../crates/common/nofy-tool-runtime/src/context.rs#L1) | 可承载调用能力；TypeId/Arc 不能被当作可持久化状态，必须分层 |
-| 设置合并与运行时解析分散 | [loader.rs](../../crates/codegen/nofy-config/src/loader.rs#L667)、[agent/config.rs](../../crates/codegen/nofy-shell/src/agent/config.rs#L1952)、[reloader.rs](../../crates/codegen/nofy-shell/src/config/reloader.rs#L17) | 通用配置解析与 Nofy 的磁盘来源、campaign、认证环境分离 |
-| 生命周期贡献者已有 Local / Send 两种接口 | [lifecycle/lib.rs](../../crates/codegen/nofy-agent-lifecycle/src/lib.rs)、[local/registry.rs](../../crates/codegen/nofy-agent-lifecycle/src/local/registry.rs) | 可复用事件和贡献语义，不等于已有完整 middleware；本次检索 shell 未发现 turn_input_contributors 的消费点 |
-| pack manifest 与两个组合投影已经存在 | [packcore/lib.rs](../../crates/codegen/nofy-packcore/src/lib.rs)、[orchestra/compile.rs](../../crates/codegen/nofy-orchestra/src/compile.rs) | 保留 host-plane / pack-plane 分界，通过适配编译到统一 AgentSpec |
-| 实际 provider join 仅应用 audience/persona/skills | [pack_join.rs](../../crates/codegen/nofy-shell/src/agent/pack_join.rs#L43) | 不能把模型路由、工具策略、connector 等声明视为已经完整接到此执行路径 |
-| Rhai workflow 已有预算、暂停、并行、journal/replay | [workflow/engine.rs](../../crates/codegen/nofy-workflow/src/engine.rs)、[workflow/host.rs](../../crates/codegen/nofy-workflow/src/host.rs)、[workflow/journal.rs](../../crates/codegen/nofy-workflow/src/journal.rs) | 复用 workflow host 适配，不先新增图 DSL 或另一套脚本引擎 |
-| 存储存在多种不同语义 | [chat persistence](../../crates/codegen/nofy-chat-state/src/persistence.rs)、[runtime journal](../../crates/codegen/nofy-shell/src/session/runtime_journal.rs#L149)、[rewind checkpoint](../../crates/codegen/nofy-workspace/src/session/checkpoint.rs#L91) | 对话历史、运行投影、工作流结果日志、文件回退不是同一种 checkpoint，不能只改名字统一 |
+| 设置合并与运行时解析分散 | loader.rs（历史路径 `crates/codegen/nofy-config/src/loader.rs#L667`，源码已移出）、agent/config.rs（历史路径 `crates/codegen/nofy-shell/src/agent/config.rs#L1952`，源码已移出）、reloader.rs（历史路径 `crates/codegen/nofy-shell/src/config/reloader.rs#L17`，源码已移出） | 通用配置解析与 Nofy 的磁盘来源、campaign、认证环境分离 |
+| 生命周期贡献者已有 Local / Send 两种接口 | lifecycle/lib.rs（历史路径 `crates/codegen/nofy-agent-lifecycle/src/lib.rs`，源码已移出）、local/registry.rs（历史路径 `crates/codegen/nofy-agent-lifecycle/src/local/registry.rs`，源码已移出） | 可复用事件和贡献语义，不等于已有完整 middleware；本次检索 shell 未发现 turn_input_contributors 的消费点 |
+| pack manifest 与两个组合投影已经存在 | packcore/lib.rs（历史路径 `crates/codegen/nofy-packcore/src/lib.rs`，源码已移出）、orchestra/compile.rs（历史路径 `crates/codegen/nofy-orchestra/src/compile.rs`，源码已移出） | 保留 host-plane / pack-plane 分界，通过适配编译到统一 AgentSpec |
+| 实际 provider join 仅应用 audience/persona/skills | pack_join.rs（历史路径 `crates/codegen/nofy-shell/src/agent/pack_join.rs#L43`，源码已移出） | 不能把模型路由、工具策略、connector 等声明视为已经完整接到此执行路径 |
+| Rhai workflow 已有预算、暂停、并行、journal/replay | workflow/engine.rs（历史路径 `crates/codegen/nofy-workflow/src/engine.rs`，源码已移出）、workflow/host.rs（历史路径 `crates/codegen/nofy-workflow/src/host.rs`，源码已移出）、workflow/journal.rs（历史路径 `crates/codegen/nofy-workflow/src/journal.rs`，源码已移出） | 复用 workflow host 适配，不先新增图 DSL 或另一套脚本引擎 |
+| 存储存在多种不同语义 | chat persistence（历史路径 `crates/codegen/nofy-chat-state/src/persistence.rs`，源码已移出）、runtime journal（历史路径 `crates/codegen/nofy-shell/src/session/runtime_journal.rs#L149`，源码已移出）、rewind checkpoint（历史路径 `crates/codegen/nofy-workspace/src/session/checkpoint.rs#L91`，源码已移出） | 对话历史、运行投影、工作流结果日志、文件回退不是同一种 checkpoint，不能只改名字统一 |
 
 实际依赖链：`nofy-sampler -> nofy-sampling-types -> nofy-tools -> 具体工具与执行环境`。这是第一优先级的编译边界问题。
 

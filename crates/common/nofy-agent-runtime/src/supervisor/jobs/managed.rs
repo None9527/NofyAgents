@@ -7,7 +7,10 @@ pub use abandonment::Abandonment;
 pub(in crate::supervisor) use abandonment::ensure_thread_open;
 #[cfg(feature = "workflow")]
 mod human;
+pub(super) mod parking;
 mod query;
+pub(super) mod sessions;
+pub(in crate::supervisor) mod transition;
 use crate::system::{CompiledSystem, bounded_name, content_digest};
 
 /// A system may add constraints beyond the host floor. Only accepted managed
@@ -85,6 +88,27 @@ pub struct ManagedRun {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ManagedCommand {
+    /// Stop at a durable root Agent boundary after admitted work settles.
+    Park,
+    /// Release this exact request without implicitly resuming execution.
+    Unpark {
+        park_command_id: String,
+    },
+    /// Atomically install a compatible published configuration while parked.
+    Transition {
+        park_command_id: String,
+        expected_revision: u64,
+        release: String,
+        program: String,
+    },
+    /// Explicit capability replacement at a certified safe root boundary.
+    UpdateModules {
+        park_command_id: String,
+        expected_revision: u64,
+        release: String,
+        program: String,
+        update: transition::ModuleUpdate,
+    },
     /// Seal this thread without inventing a result for unresolved effects.
     Abandon {
         reason: String,
@@ -92,6 +116,9 @@ pub enum ManagedCommand {
     },
     ReconcileModel {
         receipt: crate::governance::ModelReconciliation,
+    },
+    ReconcileHook {
+        receipt: crate::hooks::primitive::HookReconciliation,
     },
     ReconcileRootTool {
         receipt: crate::supervisor::RootToolReconciliation,
@@ -216,6 +243,7 @@ impl RunSupervisor {
             &request.run_id,
             request.input.clone(),
         )?;
+        let now = self.store.clock.now_ms();
         self.store.transaction(move |tx| {
             if let Some(previous) = read_request(tx, &request.run_id)? {
                 if request_digest(&previous)? != hash {
@@ -229,7 +257,7 @@ impl RunSupervisor {
                     return Err(Error::Checkpoint("run ID belongs to an unmanaged job".into()));
                 }
             }
-            let job = insert(tx, Saved {submission:submission.stored(),source:None})?;
+            let job = insert(tx, Saved {submission:submission.stored(),source:None}, now)?;
             tx.execute("INSERT INTO agent_runtime_managed_runs(run_id,digest,payload) VALUES(?1,?2,?3) ON CONFLICT(run_id) DO NOTHING",
                 params![request.run_id,hash,serde_json::to_string(&request).map_err(db_error)?]).map_err(db_error)?;
             Ok(ManagedRun {sequence:job.sequence,request,status:job.status})

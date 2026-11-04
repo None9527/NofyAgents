@@ -13,6 +13,7 @@ pub(crate) struct BudgetEntry {
 #[derive(Clone, Default)]
 pub(crate) struct BudgetControl {
     pub entries: Vec<BudgetEntry>,
+    pub aliases: std::collections::BTreeMap<String, String>,
     pub retry: ModelRetryPolicy,
     pub expired: Arc<AtomicBool>,
     pub depth: u32,
@@ -20,6 +21,8 @@ pub(crate) struct BudgetControl {
 #[derive(Clone)]
 pub(crate) struct SupervisedBudgetBackend {
     pub root_run_id: String,
+    /// Set only by the supervisor after fenced session membership admission.
+    pub ledger_root_run_id: String,
     pub store: Arc<dyn BudgetStore>,
 }
 pub(crate) struct RunBudgetGuard(Option<tokio::task::JoinHandle<()>>);
@@ -56,6 +59,7 @@ pub(crate) async fn prepare(
     );
     for profile in profiles {
         let mut store = profile.resource.store.clone();
+        let mut ledger_root = root.clone();
         if let Some(supervised) = context.capabilities.get::<SupervisedBudgetBackend>() {
             if supervised.root_run_id != root
                 || store.storage_identity().is_none()
@@ -66,22 +70,55 @@ pub(crate) async fn prepare(
                 ));
             }
             store = supervised.store.clone();
+            ledger_root = supervised.ledger_root_run_id.clone();
         }
         if durable_run && !store.is_durable() {
             return Err(Error::Composition(
                 "durable run requires a durable budget ledger".into(),
             ));
         }
+        let ledger_identity = control
+            .aliases
+            .get(&profile.identity)
+            .cloned()
+            .unwrap_or_else(|| profile.ledger_identity.clone());
+        if profile.ledger_identity != profile.identity && profile.ledger_identity != ledger_identity
+        {
+            return Err(Error::Composition(
+                "inherited live budget binding changed".into(),
+            ));
+        }
+        for alias in &profile.profile_aliases {
+            if control
+                .aliases
+                .get(alias)
+                .is_some_and(|old| old != &ledger_identity)
+            {
+                return Err(Error::Composition(
+                    "budget aliases would merge distinct ledgers".into(),
+                ));
+            }
+            control
+                .aliases
+                .insert(alias.clone(), ledger_identity.clone());
+        }
         let spec = BudgetSpec {
             scope: BudgetScope {
-                root_run_id: root.clone(),
-                identity: profile.identity.clone(),
+                root_run_id: ledger_root,
+                identity: ledger_identity,
             },
             limits: profile.limits.clone(),
         };
-        if !control.entries.iter().any(|entry| entry.spec == spec) {
-            control.entries.push(BudgetEntry { store, spec });
+        // An inherited ledger's current specification is authoritative. A
+        // frozen descendant cannot reopen it with pre-transition limits.
+        if control
+            .entries
+            .iter()
+            .any(|entry| entry.spec.scope == spec.scope)
+        {
+            continue;
         }
+        control.entries.push(BudgetEntry { store, spec });
         control.retry.max_attempts = control.retry.max_attempts.min(profile.retry.max_attempts);
         control.retry.base_delay_ms = control.retry.base_delay_ms.max(profile.retry.base_delay_ms);
         control.retry.max_delay_ms = control.retry.max_delay_ms.min(profile.retry.max_delay_ms);

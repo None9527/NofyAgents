@@ -1,8 +1,62 @@
 use super::*;
+
+// A pending park is observed by the live driver. On recovery it must yield to
+// evidence and other ordinary controls; it cannot strand their original FIFO.
+const READY_ACTION: &str = "a.result IS NULL
+    AND (json_extract(a.payload,'$.command.kind')!='park' OR EXISTS(
+        SELECT 1 FROM agent_runtime_jobs j WHERE j.run_id=a.run_id
+        AND j.status NOT IN ('running','initializing')))
+    AND NOT EXISTS(
+        SELECT 1 FROM agent_runtime_managed_actions p
+        WHERE p.run_id=a.run_id AND p.result IS NULL AND p.command_id!=a.command_id
+        AND json_extract(p.payload,'$.command.kind')!='park'
+        AND ((json_extract(a.payload,'$.command.kind')='abandon'
+              AND json_extract(p.payload,'$.command.kind')='abandon' AND p.sequence<a.sequence)
+            OR json_extract(a.payload,'$.command.kind')='park'
+            OR (json_extract(a.payload,'$.command.kind') NOT IN ('abandon','park')
+                AND (p.sequence<a.sequence OR json_extract(p.payload,'$.command.kind')='abandon'))))";
 pub(super) fn action_digest(action: &ManagedAction) -> Result<String, Error> {
     bounded_name(&action.command_id)?;
     bounded_name(&action.run_id)?;
     match &action.command {
+        ManagedCommand::Unpark { park_command_id } => bounded_name(park_command_id)?,
+        ManagedCommand::Transition {
+            park_command_id,
+            expected_revision,
+            release,
+            program,
+        }
+        | ManagedCommand::UpdateModules {
+            park_command_id,
+            expected_revision,
+            release,
+            program,
+            ..
+        } => {
+            bounded_name(park_command_id)?;
+            bounded_name(program)?;
+            if *expected_revision >= 32
+                || release.len() != 64
+                || !release.bytes().all(|b| b.is_ascii_hexdigit())
+            {
+                return Err(Error::Composition(
+                    "transition requires an exact release digest and revision below 32".into(),
+                ));
+            }
+            if let ManagedCommand::UpdateModules { update, .. } = &action.command
+                && !update.tool_catalog
+                && !update.hook_subscriptions
+                && !update.policy_set
+                && !update.budget_limits
+                && !update.context_sources
+                && !update.context_policies
+                && !update.tool_sources
+            {
+                return Err(Error::Composition(
+                    "module update requires an explicit capability selection".into(),
+                ));
+            }
+        }
         ManagedCommand::Abandon {
             reason,
             acknowledge_unresolved,
@@ -12,6 +66,7 @@ pub(super) fn action_digest(action: &ManagedAction) -> Result<String, Error> {
             }
         }
         ManagedCommand::ReconcileModel { receipt } => receipt.validate()?,
+        ManagedCommand::ReconcileHook { receipt } => receipt.validate()?,
         ManagedCommand::ReconcileRootTool { receipt } => {
             crate::tool_program::validate_call(&receipt.call)?;
         }
@@ -100,7 +155,8 @@ impl SqliteStore {
         }
         let after = i64::try_from(after).map_err(db_error)?;
         self.transaction(move|tx| {
-            let mut s=tx.prepare("SELECT a.sequence,a.run_id,a.command_id FROM agent_runtime_managed_actions a WHERE a.sequence>?1 AND a.result IS NULL AND NOT EXISTS(SELECT 1 FROM agent_runtime_managed_actions p WHERE p.run_id=a.run_id AND p.result IS NULL AND ((json_extract(a.payload,'$.command.kind')='abandon' AND json_extract(p.payload,'$.command.kind')='abandon' AND p.sequence<a.sequence) OR (json_extract(a.payload,'$.command.kind')!='abandon' AND (p.sequence<a.sequence OR json_extract(p.payload,'$.command.kind')='abandon')))) ORDER BY a.sequence LIMIT ?2").map_err(db_error)?;
+            let sql=format!("SELECT a.sequence,a.run_id,a.command_id FROM agent_runtime_managed_actions a WHERE a.sequence>?1 AND {READY_ACTION} ORDER BY a.sequence LIMIT ?2");
+            let mut s=tx.prepare(&sql).map_err(db_error)?;
             s.query_map(params![after,limit],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(db_error)?.collect::<Result<Vec<_>,_>>().map_err(db_error)
         }).await
     }
@@ -108,23 +164,8 @@ impl SqliteStore {
         &self,
         action: ManagedAction,
     ) -> Result<ManagedActionRecord, Error> {
-        let hash = action_digest(&action)?;
-        self.transaction(move|tx|{
-            if let Some(old)=read(tx,&action.command_id)? {
-                if action_digest(&old.action)?!=hash {return Err(Error::Checkpoint("management command ID reused".into()));}
-                return Ok(old);
-            }
-            if read_request(tx,&action.run_id)?.is_none() {return Err(Error::Checkpoint("managed run not found".into()));}
-            let job_state:String=tx.query_row("SELECT status FROM agent_runtime_jobs WHERE run_id=?1",[&action.run_id],|r|r.get(0)).map_err(db_error)?;
-            if job_state=="abandoned" && !matches!(action.command, ManagedCommand::Abandon { .. }) {return Err(Error::Checkpoint("run was abandoned; its thread is sealed".into()));}
-            let exists:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_runs WHERE id=?1)",[&action.run_id],|r|r.get(0)).map_err(db_error)?;
-            if !exists {return Err(Error::Checkpoint("managed run has not initialized".into()));}
-            let count:u64=tx.query_row("SELECT COUNT(*) FROM agent_runtime_managed_actions",[],|r|r.get(0)).map_err(db_error)?;
-            if count>=32768 {return Err(Error::Checkpoint("management command capacity exceeded".into()));}
-            tx.execute("INSERT INTO agent_runtime_managed_actions(command_id,run_id,digest,payload) VALUES(?1,?2,?3,?4)",
-                params![action.command_id,action.run_id,hash,serde_json::to_string(&action).map_err(db_error)?]).map_err(db_error)?;
-            read(tx,&action.command_id)?.ok_or_else(||Error::Checkpoint("management command disappeared".into()))
-        }).await
+        self.transaction(move |tx| enqueue(tx, &action, false))
+            .await
     }
     pub async fn managed_action(&self, id: &str) -> Result<Option<ManagedActionRecord>, Error> {
         let id = id.to_owned();
@@ -140,11 +181,72 @@ impl SqliteStore {
             ));
         }
         self.transaction(move|tx|{
-            let mut s=tx.prepare("SELECT a.command_id FROM agent_runtime_managed_actions a WHERE result IS NULL AND NOT EXISTS(SELECT 1 FROM agent_runtime_managed_actions p WHERE p.run_id=a.run_id AND p.result IS NULL AND ((json_extract(a.payload,'$.command.kind')='abandon' AND json_extract(p.payload,'$.command.kind')='abandon' AND p.sequence<a.sequence) OR (json_extract(a.payload,'$.command.kind')!='abandon' AND (p.sequence<a.sequence OR json_extract(p.payload,'$.command.kind')='abandon')))) ORDER BY sequence LIMIT ?1").map_err(db_error)?;
+            let sql=format!("SELECT a.command_id FROM agent_runtime_managed_actions a WHERE {READY_ACTION} ORDER BY a.sequence LIMIT ?1");
+            let mut s=tx.prepare(&sql).map_err(db_error)?;
             let ids=s.query_map([limit],|r|r.get::<_,String>(0)).map_err(db_error)?.collect::<Result<Vec<_>,_>>().map_err(db_error)?;
             ids.into_iter().map(|id|read(tx,&id)?.ok_or_else(||Error::Checkpoint("management command disappeared".into()))).collect()
         }).await
     }
+}
+pub(super) fn enqueue(
+    tx: &rusqlite::Transaction<'_>,
+    action: &ManagedAction,
+    trusted_transition: bool,
+) -> Result<ManagedActionRecord, Error> {
+    let hash = action_digest(action)?;
+    if let Some(old) = read(tx, &action.command_id)? {
+        if action_digest(&old.action)? != hash {
+            return Err(Error::Checkpoint("management command ID reused".into()));
+        }
+        return Ok(old);
+    }
+    if transition::selection(&action.command).is_some() && !trusted_transition {
+        return Err(Error::Composition(
+            "transition requires submit_transition with a published system".into(),
+        ));
+    }
+    if read_request(tx, &action.run_id)?.is_none() {
+        return Err(Error::Checkpoint("managed run not found".into()));
+    }
+    let job_state: String = tx
+        .query_row(
+            "SELECT status FROM agent_runtime_jobs WHERE run_id=?1",
+            [&action.run_id],
+            |r| r.get(0),
+        )
+        .map_err(db_error)?;
+    if job_state == "abandoned" && !matches!(action.command, ManagedCommand::Abandon { .. }) {
+        return Err(Error::Checkpoint(
+            "run was abandoned; its thread is sealed".into(),
+        ));
+    }
+    let exists: bool = tx
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM agent_runtime_runs WHERE id=?1)",
+            [&action.run_id],
+            |r| r.get(0),
+        )
+        .map_err(db_error)?;
+    if !exists {
+        return Err(Error::Checkpoint("managed run has not initialized".into()));
+    }
+    let count: u64 = tx
+        .query_row(
+            "SELECT COUNT(*) FROM agent_runtime_managed_actions",
+            [],
+            |r| r.get(0),
+        )
+        .map_err(db_error)?;
+    if count >= 32768 {
+        return Err(Error::Checkpoint(
+            "management command capacity exceeded".into(),
+        ));
+    }
+    parking::admit(tx, action)?;
+    tx.execute("INSERT INTO agent_runtime_managed_actions(command_id,run_id,digest,payload) VALUES(?1,?2,?3,?4)",
+                params![action.command_id,action.run_id,hash,serde_json::to_string(&action).map_err(db_error)?]).map_err(db_error)?;
+    read(tx, &action.command_id)?
+        .ok_or_else(|| Error::Checkpoint("management command disappeared".into()))
 }
 impl RunSupervisor {
     /// Claim the original root lease before dispatch and persist the command
@@ -181,15 +283,25 @@ impl RunSupervisor {
         {
             return self.administrative_action(&job, &record).await;
         }
+        if matches!(
+            record.action.command,
+            ManagedCommand::Park | ManagedCommand::Unpark { .. }
+        ) {
+            return self.parking_action(&job, &record).await;
+        }
+        if transition::selection(&record.action.command).is_some() {
+            return self.transition_action(registry, &job, &record).await;
+        }
         let registry = restore_scope(&job.submission.snapshot, registry)?;
-        let host = registry.clone();
-        let submission = job.submission.clone();
-        let compiled = tokio::task::spawn_blocking(move || submission.restore(&host))
-            .await
-            .map_err(|e| Error::Checkpoint(format!("action restore task failed: {e}")))??;
+        let compiled = self.restore_job_plan(&registry, &job).await?;
         let prepared = PreparedAction {
             #[cfg(feature = "workflow")]
-            human: human::prepare(&compiled.snapshot, &record.action.command, &registry).await,
+            human: human::prepare(
+                compiled.effective_snapshot(),
+                &record.action.command,
+                &registry,
+            )
+            .await,
         };
         let lease = self
             .store
@@ -222,10 +334,13 @@ impl RunSupervisor {
         let id = record.action.command_id.clone();
         let check = lease.clone();
         let clock = self.store.clock.clone();
+        let expected = compiled.live_identity();
         let current=self.store.transaction(move|tx|{
             check_lease(tx,&check,clock.now_ms())?;
             let current=read(tx,&id)?.ok_or_else(||Error::Checkpoint("management command disappeared".into()))?;
-            let earlier:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE run_id=?1 AND (sequence<?2 OR json_extract(payload,'$.command.kind')='abandon') AND result IS NULL)",params![current.action.run_id,current.sequence],|r|r.get(0)).map_err(db_error)?;
+            if current.finished { return Ok(current); }
+            verify_plan(tx,&current.action.run_id,expected.as_ref())?;
+            let earlier:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE run_id=?1 AND (sequence<?2 OR json_extract(payload,'$.command.kind')='abandon') AND result IS NULL AND json_extract(payload,'$.command.kind')!='park')",params![current.action.run_id,current.sequence],|r|r.get(0)).map_err(db_error)?;
             if earlier {return Err(Error::Checkpoint("earlier management command is pending".into()));}
             Ok(current)
         }).await?;
@@ -234,7 +349,8 @@ impl RunSupervisor {
         }
         let result = async {
             if matches!(job.status, JobStatus::Closed)
-                && self.model_command_accepted(&current.action).await?
+                && (self.model_command_accepted(&current.action).await?
+                    || self.hook_command_accepted(&current.action).await?)
             {
                 let root = self
                     .store
@@ -249,10 +365,19 @@ impl RunSupervisor {
                 .transaction(move |tx| {
                     check_lease(tx, &check, clock.now_ms())?;
                     ensure_thread_open(tx, &check.key)
+                        .and_then(|()| ensure_not_parked(tx, &check.key))
                 })
                 .await?;
             let mut context = RunContext::new(&job.submission.thread_id, &job.submission.run_id);
             let input = match &current.action.command {
+                ManagedCommand::Park
+                | ManagedCommand::Unpark { .. }
+                | ManagedCommand::Transition { .. }
+                | ManagedCommand::UpdateModules { .. } => {
+                    return Err(Error::Checkpoint(
+                        "park must use its fenced control path".into(),
+                    ));
+                }
                 ManagedCommand::Abandon { .. } => {
                     return Err(Error::Checkpoint(
                         "abandon must use the administrative path".into(),
@@ -274,6 +399,17 @@ impl RunSupervisor {
                         compiled,
                         &context,
                         receipt.clone(),
+                        lease,
+                    )
+                    .await?;
+                    RunInput::resume()
+                }
+                ManagedCommand::ReconcileHook { receipt } => {
+                    self.accept_hook_reconciliation_leased(
+                        compiled,
+                        &context,
+                        receipt.clone(),
+                        &current.action.command_id,
                         lease,
                     )
                     .await?;

@@ -1,4 +1,4 @@
-use nofy_agent_runtime::{Error, governance::*};
+use nofy_agent_runtime::governance::*;
 use serde_json::json;
 use std::sync::{
     Arc,
@@ -352,6 +352,7 @@ async fn depth_and_child_slots_are_distinct_from_primitive_concurrency() {
 #[cfg(feature = "sqlite")]
 mod sqlite {
     use super::*;
+    use nofy_agent_runtime::Error;
     use nofy_agent_runtime::durable::{Clock, SqliteStore};
     use std::time::Duration;
     struct TestClock(AtomicU64);
@@ -443,7 +444,7 @@ mod sqlite {
         granted(store.reserve(&spec, &legacy).await.unwrap());
         let key = serde_json::to_string(&spec.scope).unwrap();
         {
-            let db = rusqlite::Connection::open(store.path()).unwrap();
+            let db = rusqlite::Connection::open(store.path().unwrap()).unwrap();
             let payload: String = db.query_row("SELECT payload FROM agent_runtime_budget_operations WHERE root_key=?1 AND operation_key=?2",rusqlite::params![&key,&legacy.operation_id],|row| row.get(0)).unwrap();
             let mut payload: serde_json::Value = serde_json::from_str(&payload).unwrap();
             payload.as_object_mut().unwrap().remove("dispatched");

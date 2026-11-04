@@ -64,6 +64,42 @@ async fn queued_cancel_and_disconnected_event_client_do_not_lose_or_duplicate_li
         .unwrap();
     assert!(String::from_utf8_lossy(&first).contains("event: runtime"));
     drop(frames);
+    // A live model has no native-process lease. Maintenance must still allow
+    // its views, cancellation, inherited checkpoints and budget settlement.
+    // Provider activity and the first SSE frame are not a commit-quiescence
+    // barrier. The fence is intentionally nonblocking; transient checkpoint
+    // commits may still be finishing while the model remains live.
+    let maintenance = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            match host.loader().commits.exclusive() {
+                Ok(lease) => break lease,
+                Err(nofy_agent_host::HostError::Unavailable(message))
+                    if message == "loader commits are in use or undergoing maintenance" =>
+                {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+                Err(error) => panic!("unexpected maintenance failure: {error}"),
+            }
+        }
+    })
+    .await
+    .expect("commit fence did not quiesce while the model remained active");
+    let record = host
+        .store()
+        .execution_record("live-cancel")
+        .await
+        .unwrap()
+        .unwrap();
+    let accepted = post(
+        &server,
+        "/api/v1/runs/live-cancel/inputs",
+        json!({"address":{"root_run_id":"live-cancel","run_id":"live-cancel",
+            "thread_id":record.thread_id,"agent":record.snapshot.name()},
+            "input_id":"mail-during-maintenance","input":{"kind":"tool",
+                "call":{"id":"","name":"maintenance-input","arguments":{}}}}),
+    )
+    .await;
+    assert!(accepted["sequence"].as_u64().unwrap() > 0);
     assert_eq!(
         request(
             &server,
@@ -88,6 +124,7 @@ async fn queued_cancel_and_disconnected_event_client_do_not_lose_or_duplicate_li
         "cancelled"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+    drop(maintenance);
     let cursor = host
         .store()
         .events("live-cancel", 0, 1000)

@@ -112,7 +112,8 @@ where
         }
         return collect(model, request, context, &mut emit).await;
     };
-    let bound = model.request_bound(&request, context)?;
+    let bound =
+        crate::governance::await_resource(context, model.request_bound(&request, context)).await?;
     if bound.max_calls == 0 {
         return Err(Error::Composition(
             "model request bound must include at least one call".into(),

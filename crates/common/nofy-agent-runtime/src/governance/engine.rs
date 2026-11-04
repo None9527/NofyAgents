@@ -187,7 +187,7 @@ pub(super) fn reserve(
     }
     let mut summary = enroll(spec, old, now)?;
     if let Some(operation) = operation {
-        if operation.request != *request {
+        if !super::fingerprint::same_child_request(&operation.request, request) {
             return Err(invalid(
                 "budget operation identity reused with changed request",
             ));
@@ -196,7 +196,7 @@ pub(super) fn reserve(
             || {
                 BudgetDecision::Uncertain(BudgetReservation {
                     scope: spec.scope.clone(),
-                    request: request.clone(),
+                    request: operation.request.clone(),
                 })
             },
             BudgetDecision::Replay,
@@ -319,6 +319,33 @@ pub(super) fn claim(
             BudgetClaim::Denied(blocked.clone())
         } else if summary.deadline_ms.is_some_and(|deadline| now >= deadline) {
             BudgetClaim::Denied(denial("deadline_exceeded", "duration"))
+        } else if let Some(denied) =
+            exceeds(&summary.spec.limits, summary.used.add(summary.reserved)?)?
+        {
+            BudgetClaim::Denied(denied)
+        } else if summary
+            .spec
+            .limits
+            .max_depth
+            .is_some_and(|limit| operation.request.depth > limit)
+        {
+            BudgetClaim::Denied(denial("limit_exceeded", "depth"))
+        } else if operation.request.activity == BudgetActivity::Operation
+            && summary
+                .spec
+                .limits
+                .max_concurrent_operations
+                .is_some_and(|limit| summary.active_operations > limit)
+        {
+            BudgetClaim::Denied(denial("limit_exceeded", "concurrent_operations"))
+        } else if operation.request.activity == BudgetActivity::Child
+            && summary
+                .spec
+                .limits
+                .max_active_children
+                .is_some_and(|limit| summary.active_children > limit)
+        {
+            BudgetClaim::Denied(denial("limit_exceeded", "active_children"))
         } else {
             operation.dispatched = true;
             event = Some(BudgetEvent {
@@ -341,6 +368,52 @@ pub(super) fn claim(
         },
         decision,
     ))
+}
+#[cfg(feature = "sqlite")]
+pub(super) fn amend(
+    mut summary: BudgetSummary,
+    before: &BudgetSpec,
+    limits: &BudgetLimits,
+    command_id: &str,
+    now: u64,
+) -> Result<Transition, Error> {
+    if summary.version != 1 || summary.spec != *before {
+        return Err(invalid("live budget specification changed"));
+    }
+    summary.deadline_ms = limits
+        .max_duration_ms
+        .map(|duration| {
+            summary
+                .created_at_ms
+                .checked_add(duration)
+                .ok_or_else(|| invalid("budget deadline overflow"))
+        })
+        .transpose()?;
+    summary.spec.limits = limits.clone();
+    // A new cap may resolve a quota denial, while a violated usage bound is
+    // an integrity fact that increasing the allowance must never clear.
+    if summary
+        .blocked
+        .as_ref()
+        .is_some_and(|denied| denied.reason == "limit_exceeded")
+    {
+        summary.blocked = exceeds(limits, summary.used.add(summary.reserved)?)?;
+    }
+    summary.last_seen_ms = now.max(summary.last_seen_ms);
+    let time_ms = summary.last_seen_ms;
+    Ok(Transition {
+        summary,
+        operation: None,
+        decision: None,
+        event: Some(BudgetEvent {
+            cursor: 0,
+            time_ms,
+            operation_id: command_id.into(),
+            kind: "limits_amended".into(),
+            cost: BudgetCost::default(),
+            denial: None,
+        }),
+    })
 }
 pub(super) fn settle(
     mut summary: BudgetSummary,

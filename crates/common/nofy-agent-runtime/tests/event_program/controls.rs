@@ -210,7 +210,7 @@ async fn owned_and_session_sources_route_explicit_model_retry_without_repeating_
                 .unwrap()
                 .unwrap(),
         };
-        let reopened = RunSupervisor::new(SqliteStore::open(store.path()).unwrap());
+        let reopened = RunSupervisor::new(SqliteStore::open(&store.path().unwrap()).unwrap());
         let outcome = reopened
             .control_program(
                 &program,

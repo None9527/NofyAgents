@@ -9,7 +9,9 @@ use std::{
 
 #[derive(Clone)]
 pub(crate) struct JournalModels;
-pub(crate) fn enabled(context: &RunContext) -> bool {
+/// Whether the caller explicitly installed model journaling. Actual sampling
+/// still verifies its original recovery/checkpointer capability before IO.
+pub fn enabled(context: &RunContext) -> bool {
     context.capabilities.get::<JournalModels>().is_some()
 }
 pub struct ModelJournalBinding;

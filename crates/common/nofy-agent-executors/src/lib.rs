@@ -6,6 +6,7 @@ pub mod config;
 pub mod declarative;
 pub mod hooks;
 pub mod http;
+pub mod mcp;
 pub mod process;
 pub mod resources;
 

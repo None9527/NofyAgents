@@ -1,7 +1,7 @@
 //! Versioned graph contracts. Validation is pure and precedes factory builds.
-//! DAG scheduling is provided by the existing nofy-orchestra implementation.
+//! Dependency validation and scheduling use the framework's private DAG core.
+use super::dag::Dag;
 use crate::{Error, registry::ModuleRef};
-use nofy_orchestra::dag::{Dag, DagTask, OnFailPolicy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -234,7 +234,7 @@ pub struct WorkflowSpec {
 #[derive(Clone)]
 pub struct ValidatedWorkflow {
     pub(crate) spec: WorkflowSpec,
-    pub(crate) dag: Dag,
+    dag: Dag,
 }
 impl ValidatedWorkflow {
     pub fn spec(&self) -> &WorkflowSpec {
@@ -246,7 +246,7 @@ impl ValidatedWorkflow {
         running: &BTreeSet<String>,
     ) -> Vec<String> {
         self.dag
-            .dispatch_batch(settled, &BTreeSet::new(), running, self.spec.parallelism)
+            .dispatch_batch(settled, running, self.spec.parallelism)
     }
 }
 impl WorkflowSpec {
@@ -319,11 +319,7 @@ impl WorkflowSpec {
         let dag = Dag::build(
             self.nodes
                 .iter()
-                .map(|n| DagTask {
-                    id: n.id.clone(),
-                    needs: n.needs.clone(),
-                    on_fail: OnFailPolicy::Escalate,
-                })
+                .map(|n| (n.id.clone(), n.needs.clone()))
                 .collect(),
         )
         .map_err(|e| invalid(format!("invalid workflow DAG: {e:?}")))?;

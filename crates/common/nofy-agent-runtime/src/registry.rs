@@ -25,6 +25,7 @@ pub enum ModuleKind {
     ToolSource,
     ContextSource,
     ContextPolicy,
+    SessionPolicy,
     Governance,
     Stage,
     StageSource,

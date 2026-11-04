@@ -1,1 +1,0 @@
-{"code": "INTERNAL", "detail": "manifest rejected: orchestration: UnknownPack { task: \"u403\", pack: \"not-declared\" }"}

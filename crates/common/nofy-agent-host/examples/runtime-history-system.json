@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "runtime-history",
+  "required_governance": [{"id":"quota","version":"1"}],
+  "modules": [
+    {"reference":{"id":"default-history","version":"1"},"factory":"resource.runtime_store","config":{"backend":{"id":"default"}}},
+    {"reference":{"id":"external-history","version":"1"},"factory":"resource.runtime_store","config":{"backend":{"id":"external","directory":"/data/agent-history"}}},
+    {"reference":{"id":"ledger","version":"1"},"factory":"resource.budget","config":{}},
+    {"reference":{"id":"quota","version":"1"},"factory":"governance.budget_connected","config":{"limits":{"max_tool_calls":2,"max_model_calls":0}},"dependencies":{"budget":{"id":"ledger","version":"1"}}},
+    {"reference":{"id":"compute","version":"1"},"factory":"tool.rhai","config":{"contract":{"name":"compute"},"source":"#{result: args.value * 2}"}}
+  ],
+  "programs": {
+    "compute": {"kind":"tool","definition":{"name":"compute-program","tool_packs":[{"id":"compute","version":"1"}]},"call":{"id":"compute-root","name":"compute","arguments":{"value":7}}}
+  }
+}

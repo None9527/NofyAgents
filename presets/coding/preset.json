@@ -1,0 +1,74 @@
+{
+  "format": "nofy.preset/v1",
+  "system": {
+    "schema_version": 1,
+    "name": {"$parameter":"/system_name"},
+    "required_policies": [{"$module":"floor"},{"$module":"write-approval"}],
+    "required_governance": [{"$module":"quota"}],
+    "modules": [
+      {"reference":{"$module":"provider"},"factory":"resource.model_connection","config":{"$parameter":"/connection"}},
+      {"reference":{"$module":"protocol-code"},"factory":"resource.artifact","config":{"bundle":{"schema_version":1,"files":{
+        "common.rhai":{"$file":"modules/models/common.rhai"},
+        "chat_completions.rhai":{"$file":"modules/models/chat_completions.rhai"},
+        "responses.rhai":{"$file":"modules/models/responses.rhai"},
+        "messages.rhai":{"$file":"modules/models/messages.rhai"},
+        "parameters.schema.json":{"$file":"modules/models/parameters.schema.json"}
+      }}}},
+      {"reference":{"$module":"protocol"},"factory":"resource.model_protocol","config":{"$parameter":"/protocol_config"},"dependencies":{"artifact":{"$module":"protocol-code"}}},
+      {"reference":{"$module":"model"},"factory":"model.programmed","config":{"model":{"$parameter":"/model"}},"dependencies":{"connection":{"$module":"provider"},"protocol":{"$module":"protocol"}}},
+      {"reference":{"$module":"prompt"},"factory":"prompt.document","config":{
+        "fragments":[{"id":"coding","content":{"kind":"literal","text":{"$file":"prompt.md"}},"source":{"kind":"definition","reference":"coding/prompt.md","version":"1"}}],
+        "variable_schema":{"type":"object","additionalProperties":false},"values":{}
+      }},
+      {"reference":{"$module":"rules"},"factory":"context.rules","config":{"files":[{"file_name":"coding-rules.md","file_path":"/definitions/coding/rules.md","content":{"$file":"rules.md"}}]}},
+      {"reference":{"$module":"cwd"},"factory":"binding.cwd","config":{"cwd":{"$parameter":"/workspace"}}},
+      {"reference":{"$module":"project-read"},"factory":"resource.directory","config":{"path":{"$parameter":"/workspace"},"access":"read_only"}},
+      {"reference":{"$module":"project-write"},"factory":"resource.directory","config":{"path":{"$parameter":"/workspace"},"access":"read_write"}},
+      {"reference":{"$module":"runtime"},"factory":{"$parameter":"/runtime_factory"},"config":{"$parameter":"/runtime_config"}},
+      {"$when":{"parameter":"/terminal_enabled","value":{"reference":{"$module":"terminal-runtime"},"factory":{"$parameter":"/terminal_runtime_factory"},"config":{"$parameter":"/terminal_runtime_config"}}}},
+      {"$when":{"parameter":"/terminal_enabled","value":{"reference":{"$module":"process-tree"},"factory":"resource.process_tree_limits","config":{"$parameter":"/process_tree"}}}},
+      {"$when":{"parameter":"/terminal_enabled","value":{"reference":{"$module":"project-execute"},"factory":"resource.directory","config":{"path":{"$parameter":"/workspace"},"access":"read_write_execute"}}}},
+      {"$when":{"parameter":"/terminal_enabled","value":{"reference":{"$module":"command-code"},"factory":"resource.artifact","config":{"bundle":{"schema_version":1,"files":{
+        "command.py":{"$file":"modules/command/command.py"},"manifest.json":{"$file":"modules/command/manifest.json"}
+      }}}}}},
+      {"$when":{"parameter":"/terminal_enabled","value":{"reference":{"$module":"command"},"factory":"tool.process_tree_artifact","config":{"$json":{"path":"modules/command/manifest.json","pointer":"/tool"}},"dependencies":{"environment":{"$module":"terminal-runtime"},"artifact":{"$module":"command-code"},"tree":{"$module":"process-tree"},"workspace":{"$module":"project-execute"}}}}},
+      {"reference":{"$module":"files-code"},"factory":"resource.artifact","config":{"bundle":{"schema_version":1,"files":{
+        "files.py":{"$file":"modules/files/files.py"},
+        "workspace.py":{"$file":"modules/files/workspace.py"},
+        "manifest.json":{"$file":"modules/files/manifest.json"}
+      }}}},
+      {"reference":{"$module":"approval"},"factory":"policy.approval","config":{}},
+      {"reference":{"$module":"write-approval"},"factory":"policy.on_tools","config":{"tools":{"$parameter":"/write_tools"}},"dependencies":{"policy":{"$module":"approval"}}},
+      {"reference":{"$module":"floor"},"factory":"policy.tool_scope","config":{"allowed":{"$parameter":"/all_tools"}}},
+      {"reference":{"$module":"ledger"},"factory":"resource.budget","config":{}},
+      {"reference":{"$module":"quota"},"factory":"governance.budget_connected","config":{"limits":{"$parameter":"/budget"}},"dependencies":{"budget":{"$module":"ledger"}}},
+      {"reference":{"$module":"scope-code"},"factory":"resource.artifact","config":{"bundle":{"schema_version":1,"files":{
+        "scope.rhai":{"$file":"modules/scopes/scope.rhai"},
+        "parameters.schema.json":{"$file":"modules/scopes/parameters.schema.json"}
+      }}}},
+      {"reference":{"$module":"scope"},"factory":"resource.scope_program","config":{
+        "source":{"kind":"artifact","entries":["scope.rhai"],"parameters_schema":"parameters.schema.json"},
+        "cwd":{"$parameter":"/workspace"},"parameters":{"grants":{"workspace-read":{"tools":{"$parameter":"/read_tools"}}}}
+      },"dependencies":{"artifact":{"$module":"scope-code"}}},
+      {"reference":{"$module":"file-read"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/read_file"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-read"}}},
+      {"reference":{"$module":"file-write"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/write_file"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-write"}}},
+      {"reference":{"$module":"file-edit"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/edit_file"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-write"}}},
+      {"reference":{"$module":"directory-create"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/make_directory"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-write"}}},
+      {"reference":{"$module":"file-list"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/list_files"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-read"}}},
+      {"reference":{"$module":"file-search"},"factory":"tool.process_artifact","config":{"$json":{"path":"modules/files/manifest.json","pointer":"/tools/search_files"}},"dependencies":{"environment":{"$module":"runtime"},"artifact":{"$module":"files-code"},"workspace":{"$module":"project-read"}}},
+      {"reference":{"$module":"skill-context"},"factory":"context.skills","config":{"skills":[{"$json":{"path":"skills/review.json"}}]}},
+      {"reference":{"$module":"skills"},"factory":"tool.skills_scoped","config":{
+        "scope":"scope","skills":[{"$json":{"path":"skills/review.json"}}],
+        "execution":{"default_model":"model","tool_packs":["read","list","search"],"context_sources":["rules"],"model_settings":{"$parameter":"/model_settings"},"max_steps":16}
+      },"dependencies":{"scope":{"$module":"scope"},"model":{"$module":"model"},"read":{"$module":"file-read"},"list":{"$module":"file-list"},"search":{"$module":"file-search"},"rules":{"$module":"rules"}}}
+    ],
+    "programs": {
+      "chat": {"kind":"agent","definition":{
+        "schema_version":1,"name":"coding","model":{"$module":"model"},"prompt":{"$module":"prompt"},
+        "tool_packs":[{"$module":"file-read"},{"$module":"file-write"},{"$module":"file-edit"},{"$module":"directory-create"},{"$module":"file-list"},{"$module":"file-search"},{"$module":"skills"},{"$when":{"parameter":"/terminal_enabled","value":{"$module":"command"}}}],
+        "context_sources":[{"$module":"rules"},{"$module":"skill-context"}],"bindings":[{"$module":"cwd"}],
+        "settings":{"scope_identity":"hashed_v2","max_steps":{"$parameter":"/max_steps"},"model":{"$parameter":"/model_settings"}}
+      }}
+    }
+  }
+}

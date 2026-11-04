@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "name": "declared-memory",
+  "modules": [
+    {
+      "reference": {"id":"memory-store","version":"1"},
+      "factory":"resource.memory",
+      "config": {
+        "backend": {
+          "namespace":"project-notes",
+          "project_id":"37a9b2ac-9dca-4aae-9235-aed6ac68d141",
+          "undo_limits":{"max_pending":1024,"max_bytes":67108864},
+          "search":{"min_score":0,"text_weight":1,"vector_weight":0}
+        },
+        "grants":{"read":["project"],"write":["project"],"child_read":["project"]}
+      }
+    },
+    {
+      "reference":{"id":"memory-tools","version":"1"},
+      "factory":"tool.memory_connected",
+      "config":{"read":["project"],"write":["project"],"child_read":["project"],"operations":["search","list","get","explain","remember","revise","forget","undo","snapshot"]},
+      "dependencies":{"connection":{"id":"memory-store","version":"1"}}
+    },
+    {
+      "reference":{"id":"memory-context","version":"1"},
+      "factory":"context.memory_connected",
+      "config":{"read":["project"],"child_read":["project"],"max_items":10},
+      "dependencies":{"connection":{"id":"memory-store","version":"1"}}
+    }
+  ],
+  "programs": {
+    "remember": {
+      "kind":"tool",
+      "definition":{"name":"remember-project-note","tool_packs":[{"id":"memory-tools","version":"1"}]},
+      "call":{"id":"remember-note","name":"memory","arguments":{"operation":"remember","request":{"area":"project","statement":"Deployment uses a blue release channel.","confirm_sensitive":false}}}
+    },
+    "list": {
+      "kind":"tool",
+      "definition":{"name":"list-project-notes","tool_packs":[{"id":"memory-tools","version":"1"}]},
+      "call":{"id":"list-notes","name":"memory","arguments":{"operation":"list","request":{"area":"project"}}}
+    }
+  }
+}

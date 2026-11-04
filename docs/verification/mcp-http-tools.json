@@ -1,0 +1,262 @@
+{
+  "stage": "L9-mcp-http-tools",
+  "status": "accepted-local-protocol-and-original-host-path",
+  "previous_turn_classification": "progress",
+  "complete_product": false,
+  "protocol": "2025-11-25",
+  "transports": [
+    "Streamable HTTP JSON",
+    "Streamable HTTP SSE"
+  ],
+  "first_attempt": {
+    "status": "compile-failed-before-behavior-tests",
+    "error": "E0382: test assertion borrowed a moved Value",
+    "log": "/tmp/nofy-mcp-http.xdlmnf12/first-compile.log",
+    "source_archive": "/home/none/nofy-build-retired.jdnpc7/mcp-http.i9_g6951/pre-wave.tar.gz",
+    "sha256": "a9eaa5b98565df686c30fe077c3af1b4115671d1dde62f4bf69584514c3a461c"
+  },
+  "repair": {
+    "production_changed": false,
+    "files": [
+      "crates/common/nofy-agent-executors/tests/mcp_http.rs",
+      "crates/common/nofy-agent-executors/tests/mcp_http/service.rs"
+    ],
+    "changes": [
+      "Clone test config before formatting it in a failure message",
+      "Make repeated-cursor negative actually traverse an empty second page"
+    ],
+    "source_archive": "/home/none/nofy-build-retired.jdnpc7/mcp-http.i9_g6951/compile-repaired.tar.gz"
+  },
+  "verification": {
+    "reported_passed": 135,
+    "failed": 0,
+    "ignored": 0,
+    "new_behavior_checks": 11,
+    "known_noop_helper_entries": [
+      "parking::modules::external::sampling::context_sampling_crash_process"
+    ],
+    "excluded_helpers": [
+      "mcp::uncertain_mcp_process",
+      "root_reconciliation::uncertain_root_process"
+    ],
+    "groups": {
+      "executors": {
+        "exit": 0,
+        "passed": 33,
+        "failed": 0,
+        "ignored": 0
+      },
+      "host-lib": {
+        "exit": 0,
+        "passed": 86,
+        "failed": 0,
+        "ignored": 0
+      },
+      "credentials": {
+        "exit": 0,
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      "mcp": {
+        "exit": 0,
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      "declarative": {
+        "exit": 0,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "approval": {
+        "exit": 0,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "source-updates": {
+        "exit": 0,
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      "root-recovery": {
+        "exit": 0,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "commands": [
+      {
+        "name": "executors",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-executors",
+          "--features",
+          "rhai",
+          "--",
+          "--test-threads=4"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/executors.log"
+      },
+      {
+        "name": "host-lib",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--lib",
+          "--",
+          "--test-threads=4"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/host-lib.log"
+      },
+      {
+        "name": "credentials",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "credentials",
+          "--",
+          "--test-threads=4"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/credentials.log"
+      },
+      {
+        "name": "mcp",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "mcp::",
+          "--",
+          "--skip",
+          "mcp::uncertain_mcp_process",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/mcp.log"
+      },
+      {
+        "name": "declarative",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "declarative::",
+          "--",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/declarative.log"
+      },
+      {
+        "name": "approval",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "approval::",
+          "--",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/approval.log"
+      },
+      {
+        "name": "source-updates",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "parking::modules::external::",
+          "--",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/source-updates.log"
+      },
+      {
+        "name": "root-recovery",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "nofy-agent-host",
+          "--test",
+          "http",
+          "root_reconciliation::",
+          "--",
+          "--skip",
+          "root_reconciliation::uncertain_root_process",
+          "--test-threads=2"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/nofy-mcp-http.xdlmnf12/root-recovery.log"
+      }
+    ],
+    "frozen_sources_during_wave": 718,
+    "source_mismatches": [],
+    "rustfmt_files": 11
+  },
+  "evidence": "/tmp/nofy-mcp-http.xdlmnf12",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/mcp-http.i9_g6951",
+  "before_archive_sha256": "7b86949eda19bc35edb907da0baaa3355f357dd7409c1e4718a524fa140fe869",
+  "binary": {
+    "path": "/home/none/nofy-build-retired.jdnpc7/mcp-http.i9_g6951/nofy-agent-host.verified",
+    "sha256": "a2ddd4b1b6fdf21c6d8f64a8adecbe2625068ed5597ac4adbe16bff2a17b3920",
+    "bytes": 164640864
+  },
+  "network": {
+    "test_services": "loopback-only protocol services; official protocol documents read for implementation",
+    "real_model_requests": 0,
+    "independent_mcp_implementations": 0
+  },
+  "recovery_evidence": {
+    "process_exit_code": 79,
+    "server_business_effects_after_reconciliation": 1,
+    "source_of_recovered_result": "actual result recorded by local protocol service; original operator-authoritative reconcile_root_tool command",
+    "automatic_business_reposts": 0
+  },
+  "boundaries": [
+    "No Runtime, existing HTTP/process dispatch, database, dependency, preset or Agent loop changes",
+    "Returned transport/protocol failures retain ordinary error receipts; they do not prove the remote effect was absent",
+    "Interrupted durable intent recovery was exercised by actual process exit; adapter never automatically resends business POST",
+    "Catalog is rechecked before call, without a remote atomic version lock; check-to-call race remains",
+    "Session ID is volatile and excluded from durable catalog identity"
+  ],
+  "open": [
+    "stdio",
+    "SSE resumability",
+    "independent GET notifications",
+    "OAuth",
+    "resources/prompts/sampling/elicitation/tasks",
+    "multi-implementation interoperability",
+    "full cross-role state migration",
+    "versioned reference Agent presets"
+  ]
+}

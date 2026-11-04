@@ -14,6 +14,20 @@ use crate::mailbox::{
     MailInput,
 };
 pub(in crate::supervisor) use managed::ensure_thread_open;
+pub(crate) use managed::parking::ParkBinding;
+pub(in crate::supervisor) use managed::parking::ensure_not_parked;
+pub use managed::parking::{ParkReceipt, ParkRecord, ParkStatus};
+pub(in crate::supervisor) use managed::sessions::bind_session;
+pub(in crate::supervisor) use managed::sessions::profiles::admission::finish as session_finished;
+pub use managed::sessions::{
+    SessionChange, SessionCommand, SessionCommandError, SessionPlan, SessionPlanView,
+    SessionPolicyEpoch, SessionPolicySelection, SessionReceipt, SessionRecord, SessionRequest,
+    SessionRoute, SessionRouteView, SessionSeedInfo, SessionStart, SessionState, SessionTurn,
+    SessionTurnAdmission, SessionTurnCommand, SessionTurnInput, SessionView,
+};
+pub(in crate::supervisor) use managed::transition::ensure_live_owner;
+pub(in crate::supervisor) use managed::transition::verify_plan;
+pub use managed::transition::{LiveExecution, LiveModuleState, LiveVersionInfo, ModuleUpdate};
 pub use managed::{
     Abandonment, ManagedAction, ManagedActionRecord, ManagedCommand, ManagedRun, ManagedRunRequest,
 };
@@ -65,7 +79,11 @@ fn status(value: &str) -> Result<JobStatus, Error> {
         _ => Err(Error::Checkpoint("unknown job status".into())),
     }
 }
-fn insert(tx: &rusqlite::Transaction<'_>, saved: Saved) -> Result<ExecutionJobRecord, Error> {
+fn insert(
+    tx: &rusqlite::Transaction<'_>,
+    saved: Saved,
+    now: u64,
+) -> Result<ExecutionJobRecord, Error> {
     saved.submission.validate()?;
     let hash = saved.digest()?;
     let submission = &saved.submission;
@@ -136,6 +154,7 @@ fn insert(tx: &rusqlite::Transaction<'_>, saved: Saved) -> Result<ExecutionJobRe
             "thread job queue capacity exceeded".into(),
         ));
     }
+    managed::sessions::profiles::admission::enqueue(tx, &saved, now)?;
     tx.execute("INSERT INTO agent_runtime_jobs(run_id,thread_key,digest,payload,status,source_sequence) VALUES(?1,?2,?3,?4,'queued',?5)",params![submission.run_id,thread,hash,payload,saved.source.as_ref().map(|source|source.sequence)]).map_err(db_error)?;
     Ok(JobRecord {
         sequence: u64::try_from(tx.last_insert_rowid()).map_err(db_error)?,
@@ -149,6 +168,7 @@ pub(crate) fn enqueue_next_turn(
     envelope: &MailEnvelope,
     sequence: u64,
     input_digest: &str,
+    now: u64,
 ) -> Result<(), Error> {
     let MailInput::NextTurn {
         run_id,
@@ -185,12 +205,14 @@ pub(crate) fn enqueue_next_turn(
                 digest: input_digest.into(),
             }),
         },
+        now,
     )?;
     Ok(())
 }
 impl RunSupervisor {
     pub async fn submit(&self, submission: JobSubmission) -> Result<JobRecord, Error> {
         submission.validate()?;
+        let now = self.store.clock.now_ms();
         self.store
             .transaction(move |tx| {
                 insert(
@@ -199,6 +221,7 @@ impl RunSupervisor {
                         submission: submission.stored(),
                         source: None,
                     },
+                    now,
                 )
             })
             .await?
@@ -209,6 +232,7 @@ impl RunSupervisor {
         submission: ProgramSubmission,
     ) -> Result<ProgramJobRecord, Error> {
         submission.validate()?;
+        let now = self.store.clock.now_ms();
         self.store
             .transaction(move |tx| {
                 insert(
@@ -217,6 +241,7 @@ impl RunSupervisor {
                         submission: submission.stored(),
                         source: None,
                     },
+                    now,
                 )
             })
             .await?

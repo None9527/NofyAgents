@@ -62,6 +62,10 @@ struct ExecutorHandler {
 }
 #[async_trait::async_trait]
 impl HookHandler for ExecutorHandler {
+    fn resume_identity(&self, context: &RunContext) -> Option<String> {
+        governance::receipt_identity(context)
+            .or_else(|| hooks::primitive::recovery_identity(context))
+    }
     async fn handle(&self, event: &HookEvent, context: &RunContext) -> Result<HookDecision, Error> {
         // Keep call IDs bounded even though an event's durable identity is a
         // canonical tuple. The complete event identity remains in the payload.
@@ -73,11 +77,20 @@ impl HookHandler for ExecutorHandler {
                 .map_err(|e| Error::Composition(e.to_string()))?,
         };
         settings::validate_json_value(&self.definition.function.parameters, &call.arguments)?;
+        if let Some(result) =
+            hooks::primitive::replay(context, &call, "hook.executor:1", self.dispatch.as_ref())
+                .await?
+        {
+            let output = result.map_err(|error| Error::Tool(error.to_string()))?;
+            return serde_json::from_value(output.value)
+                .map_err(|error| Error::Composition(format!("invalid hook decision: {error}")));
+        }
         match policy::admit_required(&call, &RunState::default(), context).await? {
             Admission::Allow => {}
             Admission::Deny(reason) => return Ok(HookDecision::Deny { reason }),
             Admission::Pause(reason) => return Ok(HookDecision::Pause { reason }),
         }
+        hooks::primitive::start(context, &call, "hook.executor:1", self.dispatch.as_ref()).await?;
         let output = governance::dispatch_tool(
             self.dispatch.as_ref(),
             &call,
@@ -87,8 +100,16 @@ impl HookHandler for ExecutorHandler {
             false,
             |_| async { Ok(()) },
         )
-        .await?
-        .map_err(|e| Error::Tool(e.to_string()))?;
+        .await?;
+        hooks::primitive::complete(
+            context,
+            &call,
+            "hook.executor:1",
+            self.dispatch.as_ref(),
+            &output,
+        )
+        .await?;
+        let output = output.map_err(|e| Error::Tool(e.to_string()))?;
         serde_json::from_value(output.value)
             .map_err(|e| Error::Composition(format!("invalid hook decision: {e}")))
     }

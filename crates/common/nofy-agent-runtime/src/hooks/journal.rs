@@ -8,20 +8,23 @@ pub struct HookJournal {
 #[derive(Clone)]
 pub struct HookJournalBinding(pub HookJournal);
 pub(crate) struct Record {
-    key: String,
+    pub(super) key: String,
+    resume: Option<String>,
     pub revision: u64,
     pub cached: Option<HookDecision>,
     pub uncertain: bool,
 }
 #[derive(Serialize, Deserialize)]
-struct Saved {
-    event: HookEvent,
-    hook: String,
-    decision: Option<HookDecision>,
-    error: Option<String>,
-    resolved: bool,
+pub(super) struct Saved {
+    pub(super) event: HookEvent,
+    pub(super) hook: String,
+    pub(super) decision: Option<HookDecision>,
+    pub(super) error: Option<String>,
+    pub(super) resolved: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    controller: Option<String>,
+    pub(super) controller: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) resume: Option<String>,
 }
 impl HookJournal {
     pub fn new(store: Arc<dyn Checkpointer>) -> Self {
@@ -43,6 +46,7 @@ impl HookJournal {
         context: &RunContext,
     ) -> Result<Record, Error> {
         let key = Self::key(registration, event);
+        let resume = registration.handler.resume_identity(context);
         #[cfg(feature = "workflow")]
         let key = if let Some(controller) = context
             .capabilities
@@ -53,8 +57,6 @@ impl HookJournal {
         } else {
             self.active_key(identity, &key, None).await?
         };
-        #[cfg(not(feature = "workflow"))]
-        let _ = context;
         if let Some(checkpoint) = self.store.load(&key).await? {
             let saved: Saved = serde_json::from_value(checkpoint.state.data)
                 .map_err(|e| Error::Checkpoint(e.to_string()))?;
@@ -74,6 +76,7 @@ impl HookJournal {
                     FailurePolicy::Open => {
                         return Ok(Record {
                             key,
+                            resume: saved.resume,
                             revision: checkpoint.revision,
                             cached: Some(HookDecision::Continue),
                             uncertain: false,
@@ -81,22 +84,32 @@ impl HookJournal {
                     }
                 }
             }
-            if saved.controller.is_some()
-                && !saved.resolved
+            if !saved.resolved
                 && (saved.decision.is_none()
                     || matches!(saved.decision, Some(HookDecision::Pause { .. })))
             {
-                return Ok(Record {
-                    key,
-                    revision: checkpoint.revision,
-                    cached: None,
-                    uncertain: false,
-                });
+                // Existing installed controllers already recorded their frozen
+                // contract. Other handlers need an original authority proof.
+                if let Some(expected) = saved.resume.as_ref().or(saved.controller.as_ref()) {
+                    if resume.as_ref() != Some(expected) {
+                        return Err(Error::Checkpoint("hook recovery authority changed".into()));
+                    }
+                    if registration.handler.can_resume(context) {
+                        return Ok(Record {
+                            key,
+                            resume: saved.resume,
+                            revision: checkpoint.revision,
+                            cached: None,
+                            uncertain: false,
+                        });
+                    }
+                }
             }
             let uncertain = saved.decision.is_none();
             let cached=saved.decision.unwrap_or_else(||HookDecision::Pause{reason:json!({"kind":"uncertain_hook","event_id":event.id,"hook":registration.identity})});
             return Ok(Record {
                 key,
+                resume: saved.resume,
                 revision: checkpoint.revision,
                 cached: Some(cached),
                 uncertain,
@@ -113,11 +126,13 @@ impl HookJournal {
                 error: None,
                 resolved: false,
                 controller: registration.handler.recovery_identity(),
+                resume: resume.clone(),
             },
         )
         .await?;
         Ok(Record {
             key,
+            resume,
             revision: 1,
             cached: None,
             uncertain: false,
@@ -143,6 +158,7 @@ impl HookJournal {
                 error,
                 resolved: false,
                 controller: registration.handler.recovery_identity(),
+                resume: record.resume.clone(),
             },
         )
         .await

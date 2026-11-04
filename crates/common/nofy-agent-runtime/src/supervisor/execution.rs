@@ -16,7 +16,12 @@ impl RunSupervisor {
         Self {
             store,
             ttl: Duration::from_secs(30),
+            session_registry: None,
         }
+    }
+    pub fn with_session_registry(mut self, registry: crate::registry::ModuleRegistry) -> Self {
+        self.session_registry = Some(Arc::new(registry));
+        self
     }
     pub fn with_lease_ttl(mut self, ttl: Duration) -> Result<Self, Error> {
         if ttl < Duration::from_millis(30) {
@@ -53,11 +58,11 @@ impl RunSupervisor {
     ) -> Result<RunOutcome, Error> {
         if context.run_id.is_empty()
             || context.thread_id.is_empty()
-            || (compiled.snapshot.is_agent()
+            || (compiled.effective_snapshot().is_agent()
                 && !input.resume
                 && input.prompt.is_none()
                 && input.content.is_none())
-            || (!compiled.snapshot.is_agent()
+            || (!compiled.effective_snapshot().is_agent()
                 && (input.prompt.is_some() || input.content.is_some()))
             || (input.resume && (input.prompt.is_some() || input.content.is_some()))
         {
@@ -107,6 +112,16 @@ impl RunSupervisor {
         mut context: RunContext,
         lease: &Lease,
     ) -> Result<RunOutcome, Error> {
+        let check = lease.clone();
+        let root = context.run_id.clone();
+        let expected = compiled.live_identity();
+        let clock = self.store.clock.clone();
+        self.store
+            .transaction(move |tx| {
+                check_lease(tx, &check, clock.now_ms())?;
+                jobs::verify_plan(tx, &root, expected.as_ref())
+            })
+            .await?;
         let cancel_request = context
             .capabilities
             .remove::<control::PendingChildCancel>()
@@ -144,6 +159,8 @@ impl RunSupervisor {
         let submission = self
             .attach_job(compiled, &input, &mut context, lease)
             .await?;
+        self.prepare_session_policy(&context.run_id, self.session_registry.as_deref())
+            .await?;
         let mut record = RunRecord {
             submission,
             run_id: context.run_id.clone(),
@@ -154,7 +171,8 @@ impl RunSupervisor {
             outcome: None,
             error: None,
         };
-        self.store
+        let ledger_root_run_id = self
+            .store
             .begin_run(lease, record.clone(), input.resume)
             .await?;
         let identity = SupervisedIdentity {
@@ -162,6 +180,13 @@ impl RunSupervisor {
             lease: lease.clone(),
         };
         context.capabilities.insert(identity.clone());
+        if compiled.effective_snapshot().is_agent() {
+            context.capabilities.insert(jobs::ParkBinding::new(
+                self.store.clone(),
+                lease.clone(),
+                &context,
+            ));
+        }
         context.capabilities.insert(crate::events::RunLineage {
             root_run_id: context.run_id.clone(),
             parent_run_id: None,
@@ -200,11 +225,19 @@ impl RunSupervisor {
         let guarded = Arc::new(self.store.guarded(lease));
         context
             .capabilities
+            .insert(crate::hooks::primitive::NativeControl::new(
+                guarded.as_ref().clone(),
+                &context.run_id,
+                compiled.agent.composition_identity(),
+            ));
+        context
+            .capabilities
             .insert(crate::mailbox::RequiredMailbox(guarded.clone()));
         context
             .capabilities
             .insert(crate::governance::SupervisedBudgetBackend {
                 root_run_id: context.run_id.clone(),
+                ledger_root_run_id,
                 store: guarded.clone(),
             });
         let controllers = crate::controllers::ControllerBinding::new(
@@ -263,7 +296,7 @@ impl RunSupervisor {
             Ok(()) => {
                 context.capabilities.insert(controllers);
                 compiled
-                    .agent
+                    .runtime_agent()
                     .clone()
                     .with_checkpointer(guarded)
                     .invoke(input, context)

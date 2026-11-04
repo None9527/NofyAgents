@@ -6,8 +6,22 @@ use serde_json::{Value, json};
 fn config(source: &str) -> Value {
     json!({"contract":{"name":"method"},"source":source})
 }
+#[tokio::test]
+async fn pure_methods_cannot_read_the_ambient_clock_directly_or_through_fn() {
+    for source in ["timestamp()", "let clock=Fn(\"timestamp\");clock.call()"] {
+        let entry = build(config(source)).unwrap();
+        let error = call(&entry, json!({}), Default::default())
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("wall clock unavailable"),
+            "{error}"
+        );
+    }
+}
 fn build(value: Value) -> Result<ToolEntry, nofy_agent_runtime::Error> {
-    let ModuleInstance::ToolPack(catalog) = RhaiToolFactory.build(&value, &Default::default())?
+    let ModuleInstance::ToolPack(catalog) =
+        RhaiToolFactory::trusted().build(&value, &Default::default())?
     else {
         panic!("not tool pack")
     };
@@ -155,7 +169,7 @@ fn cancelled_and_dropped_calls_release_the_blocking_worker() {
         .build()
         .unwrap();
     runtime.block_on(async {
-        let mut source = config("loop {let value = \"x\" * 10000;}");
+        let mut source = config("loop {for n in 0..1000 {let square=n*n;}}");
         source["max_operations"] = json!(10000000);
         source["contract"]["timeout_ms"] = json!(600000);
         let entry = build(source).unwrap();
@@ -180,4 +194,55 @@ fn cancelled_and_dropped_calls_release_the_blocking_worker() {
             42
         );
     });
+}
+
+#[tokio::test]
+async fn pure_build_does_not_fold_source_expressions_or_execute_completion() {
+    let source = "let value = 1 / 0; complete(value);";
+    let entry = build(config(source)).unwrap();
+    let error = call(&entry, json!({}), Default::default())
+        .await
+        .unwrap_err();
+    assert_eq!(error.details.as_ref().unwrap()["code"], "script_error");
+    let literal = build(config("complete(#{value: 42}); throw \"unreachable\";")).unwrap();
+    assert_eq!(
+        call(&literal, json!({}), Default::default()).await.unwrap(),
+        json!({"value":42})
+    );
+}
+
+#[tokio::test]
+async fn execution_request_preserves_limits_and_reports_typed_errors() {
+    use nofy_agent_executors::code::{Executor, Request, Trusted};
+    let request = || Request {
+        source: "args".into(),
+        input: json!({"n":7}),
+        max_operations: 100_000,
+        timeout_ms: 30_000,
+        max_input_bytes: 1_048_576,
+        max_output_bytes: 1_048_576,
+    };
+    assert_eq!(
+        Trusted
+            .evaluate(request(), Default::default())
+            .await
+            .unwrap(),
+        json!({"n":7})
+    );
+    let mut invalid = request();
+    invalid.timeout_ms = 600_001;
+    assert!(invalid.validate().is_err());
+    let mut largest = request();
+    largest.timeout_ms = 600_000;
+    largest.max_input_bytes = 16_777_216;
+    largest.max_output_bytes = 16_777_216;
+    largest.max_operations = 10_000_000;
+    largest.validate().unwrap();
+    let mut limited = request();
+    limited.max_output_bytes = 1;
+    let error = Trusted
+        .evaluate(limited, Default::default())
+        .await
+        .unwrap_err();
+    assert_eq!(error.details.as_ref().unwrap()["code"], "output_limit");
 }

@@ -173,6 +173,21 @@ async fn check_group_boundary(
     current: &ChildRunRecord,
     mode: RecoveryMode,
 ) -> Result<(), Error> {
+    if mode == RecoveryMode::Effect {
+        return if matches!(
+            current.status.as_str(),
+            "paused" | "running" | "budget_exceeded" | "cancelled"
+        ) && !binding
+            .settled_failure(&current.run_id, &current.composition)
+            .await?
+        {
+            Ok(())
+        } else {
+            Err(Error::Checkpoint(
+                "Hook source is no longer an unsettled descendant".into(),
+            ))
+        };
+    }
     if binding
         .settled_failure(&current.run_id, &current.composition)
         .await?
@@ -190,6 +205,7 @@ async fn check_group_boundary(
 pub(super) enum RecoveryMode {
     Model,
     Cancel,
+    Effect,
 }
 pub(super) struct RecoveryPath {
     pub runs: Vec<String>,

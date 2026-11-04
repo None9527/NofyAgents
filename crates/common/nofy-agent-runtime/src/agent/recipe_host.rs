@@ -8,8 +8,11 @@ impl Agent {
                 "an agent may only install one runtime recipe".into(),
             ));
         }
-        self.composition = serde_json::to_string(&(&self.composition, "recipe", recipe.identity()))
-            .map_err(|e| Error::Composition(e.to_string()))?;
+        self.composition = crate::identity::extend(
+            self.spec.settings.scope_identity,
+            serde_json::to_string(&(&self.composition, "recipe", recipe.identity()))
+                .map_err(|e| Error::Composition(e.to_string()))?,
+        );
         self.recipe = Some(recipe);
         Ok(self)
     }

@@ -1,9 +1,10 @@
 //! Versioned event subscriptions with typed gates and a side-effect journal.
 //! Event declarations are installed by producers; subscriptions do not emit
-//! events themselves. The original host adapters own their legacy fire sites.
+//! events themselves. Producers own their durable emission boundaries.
 mod emission;
 mod factory;
 mod journal;
+pub mod primitive;
 pub mod progress;
 pub use factory::HookFactory;
 pub use journal::{HookJournal, HookJournalBinding};
@@ -162,6 +163,18 @@ pub trait HookHandler: Send + Sync {
     /// frozen identity is part of the bus manifest; JSON cannot supply it.
     fn recovery_identity(&self) -> Option<String> {
         None
+    }
+
+    /// Reentry must preserve every effect's identity and durable dispatch
+    /// evidence. Unknown primitive effects still require reconciliation.
+    fn can_resume(&self, context: &RunContext) -> bool {
+        self.resume_identity(context).is_some()
+    }
+
+    /// Recorded before dispatch and matched before reentering pending work.
+    /// A new authority cannot retroactively certify an old unknown effect.
+    fn resume_identity(&self, _context: &RunContext) -> Option<String> {
+        self.recovery_identity()
     }
 
     async fn handle(&self, event: &HookEvent, context: &RunContext) -> Result<HookDecision, Error>;
@@ -331,6 +344,30 @@ pub struct HookResult {
     pub control: HookDecision,
 }
 impl HookBus {
+    /// A live subscription generation owns only future events. Its receipts
+    /// must never collide with a previous bus on a stable lifecycle event ID.
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn in_execution_namespace(
+        &self,
+        namespace: &str,
+        identities: &BTreeMap<String, String>,
+    ) -> Result<Self, Error> {
+        let registrations = self
+            .registrations
+            .iter()
+            .map(|registration| {
+                let stable = identities.get(registration.identity()).ok_or_else(|| {
+                    Error::Composition("live Hook dependency identity missing".into())
+                })?;
+                registration.versioned(crate::system::content_digest(&(
+                    "live-hook-v2",
+                    namespace,
+                    stable,
+                ))?)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::new(self.catalog.clone(), registrations)
+    }
     pub fn new(
         mut catalog: EventCatalog,
         mut registrations: Vec<Arc<HookRegistration>>,

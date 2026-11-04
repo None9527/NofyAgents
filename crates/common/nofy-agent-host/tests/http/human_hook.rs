@@ -19,13 +19,16 @@ async fn human_response_resumes_original_model_hook_before_any_model_dispatch() 
     graph["workflows"][0]["nodes"][1]["input"] =
         json!({"from":"literal","value":{"question":"continue"}});
     graph["workflows"][0]["nodes"][1]["action"]["response_schema"] = decision;
+    let model_source = serde_json::to_value(document(&provider.url)).unwrap();
     source["modules"].as_array_mut().unwrap().extend([
-        json!({"reference":human::r("provider"),"factory":"resource.sampler","config":{"connection":{"base_url":format!("{}/v1",provider.url),"api_backend":"chat_completions","auth_scheme":"bearer","max_retries":0},"models":["test-model"],"credential_ref":"MODEL_TOKEN"}}),
-        json!({"reference":human::r("model"),"factory":"model.connected","config":{"model":"test-model"},"dependencies":{"connection":human::r("provider")}}),
+        model_source["modules"][0].clone(),
+        model_source["modules"][1].clone(),
+        model_source["modules"][3].clone(),
+        model_source["modules"][4].clone(),
         json!({"reference":human::r("prompt"),"factory":"prompt.static","config":{"text":"approved after human"}}),
         json!({"reference":human::r("hook-resource"),"factory":"resource.workflow","config":{"document":graph,"bindings":{"effects":"tool_pack"}},"dependencies":{"effects":human::r("effect")}}),
         json!({"reference":human::r("hook-handler"),"factory":"hook.workflow_connected","config":{},"dependencies":{"workflow":human::r("hook-resource")}}),
-        json!({"reference":human::r("before-model"),"factory":"hook.subscription","config":{"event":"before_model"},"dependencies":{"handler":human::r("hook-handler")}}),
+        json!({"reference":human::r("before-model"),"factory":"hook.subscription","config":{"event":"before_model","timeout_ms":30000},"dependencies":{"handler":human::r("hook-handler")}}),
     ]);
     source["programs"]["chat"] = json!({"kind":"agent","definition":{"name":"human-hook-agent","model":human::r("model"),"prompt":human::r("prompt"),"hooks":[human::r("before-model")]}});
     let dir = tempfile::tempdir().unwrap();
@@ -52,11 +55,20 @@ async fn human_response_resumes_original_model_hook_before_any_model_dispatch() 
     );
     command["command"]["value"] = json!({"decision":"continue"});
     post(&server, "/api/v1/actions", command.clone()).await;
-    let receipt = action_result(&server, "hook-human-answer").await;
+    // This multi-stage durable workflow owns its declared 30s controller
+    // budget plus preparation/settlement; it is not a default-timeout test.
+    let receipt = action_result_within(&server, "hook-human-answer", Duration::from_secs(45)).await;
     assert!(receipt["error"].is_null(), "{receipt}");
+    let resumed = outcome(&server, "human-hook").await;
     assert_eq!(
-        outcome(&server, "human-hook").await["execution"]["outcome"]["Completed"]["output"],
-        "approved after human"
+        resumed["execution"]["outcome"]["Completed"]["output"],
+        "approved after human",
+        "receipt_finished={}; receipt_error={}; resumed={}; effects={}; model_requests={}",
+        receipt["finished"],
+        receipt["error"],
+        run_diagnostics(&resumed),
+        calls.load(Ordering::SeqCst),
+        requests.lock().unwrap().len(),
     );
     assert_eq!(post(&server, "/api/v1/actions", command).await, receipt);
     assert_eq!(calls.load(Ordering::SeqCst), 2);

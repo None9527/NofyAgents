@@ -2,6 +2,8 @@ use crate::{Error, RunContext, RunState, ToolCall};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+mod selection;
+pub use selection::OnToolsFactory;
 
 /// Private runtime capability: descendants may add policies, never replace the
 /// inherited floor. Identity includes the host implementation's version.

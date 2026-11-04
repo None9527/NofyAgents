@@ -186,10 +186,13 @@ async fn business_event_workflow_human_response_keeps_original_owned_source_and_
     post(&server, "/api/v1/actions", command.clone()).await;
     let receipt = action_result(&server, "event-answer").await;
     assert!(receipt["error"].is_null(), "{receipt}");
-    assert_eq!(
-        result(&outcome(&server, "human-event").await)["payload"],
-        json!({"value":17})
+    let completed = outcome(&server, "human-event").await;
+    assert!(
+        completed["execution"]["outcome"]["Completed"].is_object(),
+        "business human event did not complete: receipt={receipt}; state={}",
+        run_diagnostics(&completed)
     );
+    assert_eq!(result(&completed)["payload"], json!({"value":17}));
     assert_eq!(post(&server, "/api/v1/actions", command).await, receipt);
     stop.cancel();
     worker.await.unwrap();

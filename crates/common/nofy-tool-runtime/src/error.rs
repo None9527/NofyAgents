@@ -5,14 +5,15 @@
 //! provide a human-readable explanation of what went wrong, since this text
 //! is sent back to the model to inform its next action.
 //!
-//! The wire boundary is bridged by `From<ToolError> for ToolErrorWire`.
+//! Serialization preserves this contract directly; there is no parallel
+//! transport-specific error hierarchy.
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use nofy_tool_protocol::{ToolErrorWire, ToolId};
+use nofy_tool_protocol::ToolId;
 
 /// Discriminator for tool errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -41,8 +42,6 @@ pub enum ToolErrorKind {
     Execution,
     /// Requested behavior version not supported.
     BehaviorVersionUnsupported,
-    /// Render-card budget exceeded.
-    RenderLimited,
     /// Terminal subprocess failure.
     TerminalError,
     /// Forward-compat catch-all.
@@ -65,7 +64,6 @@ impl ToolErrorKind {
             Self::NetworkError => "network_error",
             Self::Execution => "execution",
             Self::BehaviorVersionUnsupported => "behavior_version_unsupported",
-            Self::RenderLimited => "render_limited",
             Self::TerminalError => "terminal_error",
             Self::Custom => "custom",
         }
@@ -91,7 +89,7 @@ pub struct ToolError {
     #[serde(skip)]
     source: Option<anyhow::Error>,
     /// Optional structured metadata (e.g. per-field validation errors,
-    /// `retry_after` hints, `tool_id`, `card_id`).
+    /// `retry_after` hints, `tool_id`, business error codes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub details: Option<Value>,
 }
@@ -222,249 +220,5 @@ impl ToolError {
 impl From<serde_json::Error> for ToolError {
     fn from(value: serde_json::Error) -> Self {
         Self::invalid_arguments(value.to_string())
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Wire bridge
-// ---------------------------------------------------------------------------
-
-/// Carry a [`ToolError`]'s structured `details` onto a `Custom` wire variant
-/// while keeping the round-trip recognizable: the decoder
-/// (`tool_error_from_wire`) replaces the `{"code": <subcode>}` object that
-/// `ToolError::custom` installs with the wire `details` verbatim, so the
-/// subcode is merged into object-shaped details (without clobbering an
-/// existing `code` key). Non-object details pass through unchanged.
-fn custom_details_with_code(details: Option<Value>, code: &str) -> Option<Value> {
-    match details {
-        Some(Value::Object(mut map)) => {
-            map.entry("code")
-                .or_insert_with(|| Value::String(code.to_owned()));
-            Some(Value::Object(map))
-        }
-        other => other,
-    }
-}
-
-impl From<ToolError> for ToolErrorWire {
-    fn from(err: ToolError) -> Self {
-        // Extract structured fields from `details` when the wire shape needs
-        // them. The `detail` string is always the model-facing message.
-        let details_val = err.details.as_ref();
-
-        match err.kind {
-            ToolErrorKind::NotImplemented => Self::Custom {
-                subcode: "not_implemented".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "not_implemented"),
-            },
-            ToolErrorKind::InvalidArguments => Self::InvalidArguments {
-                message: err.detail,
-                details: err.details,
-            },
-            ToolErrorKind::NotFound => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                Self::ToolNotFound { tool_id }
-            }
-            ToolErrorKind::PermissionDenied => Self::PermissionDenied { reason: err.detail },
-            ToolErrorKind::Unauthorized => Self::Custom {
-                subcode: "unauthorized".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "unauthorized"),
-            },
-            ToolErrorKind::Timeout => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                let elapsed_ms = details_val
-                    .and_then(|d| d.get("elapsed_ms"))
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
-                Self::Timeout {
-                    tool_id,
-                    elapsed_ms,
-                }
-            }
-            ToolErrorKind::Cancelled => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                Self::Cancelled { tool_id }
-            }
-            ToolErrorKind::RateLimited => Self::Custom {
-                subcode: "rate_limited".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "rate_limited"),
-            },
-            ToolErrorKind::ServiceUnavailable => Self::Custom {
-                subcode: "service_unavailable".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "service_unavailable"),
-            },
-            ToolErrorKind::NetworkError => Self::Custom {
-                subcode: "network_error".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "network_error"),
-            },
-            ToolErrorKind::Execution => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                Self::Execution {
-                    tool_id,
-                    message: err.detail,
-                }
-            }
-            ToolErrorKind::BehaviorVersionUnsupported => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                let requested = details_val
-                    .and_then(|d| d.get("requested"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_owned();
-                Self::BehaviorVersionUnsupported { tool_id, requested }
-            }
-            ToolErrorKind::RenderLimited => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                let card_id = details_val
-                    .and_then(|d| d.get("card_id"))
-                    .and_then(|v| v.as_str())
-                    .map(str::to_owned);
-                Self::RenderLimited {
-                    tool_id,
-                    card_id,
-                    reason: err.detail,
-                }
-            }
-            ToolErrorKind::TerminalError => {
-                let tool_id = details_val
-                    .and_then(|d| d.get("tool_id"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| ToolId::new(s).ok())
-                    .unwrap_or_else(|| ToolId::new("unknown").unwrap());
-                Self::TerminalError {
-                    tool_id,
-                    message: err.detail,
-                }
-            }
-            ToolErrorKind::Custom => {
-                let subcode = details_val
-                    .and_then(|d| d.get("code"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("custom")
-                    .to_owned();
-                Self::Custom {
-                    subcode,
-                    message: err.detail,
-                    details: err.details,
-                }
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod wire_bridge_tests {
-    use super::*;
-
-    #[test]
-    fn service_unavailable_details_survive_wire_projection() {
-        // Structured details used to be dropped (`details: None`) for the
-        // Custom-mapped kinds; they must now ride the wire with the subcode
-        // merged in so recognizers keying on `details.code` keep working.
-        let err = ToolError::service_unavailable("sandbox not ready")
-            .with_details(serde_json::json!({ "retry_after_ms": 1500 }));
-        let wire = ToolErrorWire::from(err);
-        let ToolErrorWire::Custom {
-            subcode,
-            message,
-            details,
-        } = wire
-        else {
-            panic!("expected Custom");
-        };
-        assert_eq!(subcode, "service_unavailable");
-        assert_eq!(message, "sandbox not ready");
-        let details = details.expect("details preserved");
-        assert_eq!(
-            details.get("retry_after_ms").and_then(|v| v.as_u64()),
-            Some(1500)
-        );
-        assert_eq!(
-            details.get("code").and_then(|v| v.as_str()),
-            Some("service_unavailable"),
-            "subcode merged into details for round-trip recognizability",
-        );
-    }
-
-    #[test]
-    fn rate_limit_kind_merges_subcode_uniformly() {
-        // Same property as service_unavailable, applied to the Custom-mapped
-        // rate-limit kind: object details without a `code` key gain the
-        // subcode, so decode-side recognizers keying on `details.code` can
-        // still classify the error.
-        let err = ToolError::rate_limited("slow down")
-            .with_details(serde_json::json!({ "retry_after_ms": 250 }));
-        let ToolErrorWire::Custom {
-            subcode: got,
-            details,
-            ..
-        } = ToolErrorWire::from(err)
-        else {
-            panic!("expected Custom for rate_limited");
-        };
-        assert_eq!(got, "rate_limited");
-        let details = details.expect("details preserved");
-        assert_eq!(
-            details.get("code").and_then(|v| v.as_str()),
-            Some("rate_limited"),
-            "subcode merged for rate_limited",
-        );
-        assert_eq!(
-            details.get("retry_after_ms").and_then(|v| v.as_u64()),
-            Some(250),
-        );
-    }
-
-    #[test]
-    fn custom_details_with_code_does_not_clobber_existing_code() {
-        let merged = custom_details_with_code(
-            Some(serde_json::json!({ "code": "workspace_unavailable", "retryable": true })),
-            "service_unavailable",
-        )
-        .expect("details kept");
-        assert_eq!(
-            merged.get("code").and_then(|v| v.as_str()),
-            Some("workspace_unavailable"),
-            "an existing code key must win",
-        );
-    }
-
-    #[test]
-    fn custom_details_with_code_passes_none_and_non_objects_through() {
-        assert_eq!(custom_details_with_code(None, "network_error"), None);
-        let arr = serde_json::json!([1, 2, 3]);
-        assert_eq!(
-            custom_details_with_code(Some(arr.clone()), "network_error"),
-            Some(arr),
-        );
     }
 }

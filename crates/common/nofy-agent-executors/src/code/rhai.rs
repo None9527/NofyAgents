@@ -1,5 +1,5 @@
 use nofy_tool_runtime::ToolError;
-use rhai::{Dynamic, Engine, EvalAltResult, Position};
+use rhai::{Dynamic, Engine, EvalAltResult, OptimizationLevel, Position};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 #[derive(Clone)]
@@ -10,6 +10,7 @@ enum Terminal {
 fn engine(operations: u64, cancel: CancellationToken) -> Engine {
     let mut engine = Engine::new();
     engine
+        .set_optimization_level(OptimizationLevel::None)
         .set_max_operations(operations)
         .set_max_call_levels(16)
         .set_max_expr_depths(128, 64)
@@ -20,6 +21,14 @@ fn engine(operations: u64, cancel: CancellationToken) -> Engine {
         .set_max_functions(128);
     engine.set_module_resolver(rhai::module_resolvers::DummyModuleResolver::new());
     engine.disable_symbol("eval");
+    // The standard package exposes an ambient clock. Pure methods use frozen
+    // input time; overriding the zero-argument constructor also closes Fn calls.
+    engine.register_fn("timestamp", || -> Result<Dynamic, Box<EvalAltResult>> {
+        Err(Box::new(EvalAltResult::ErrorRuntime(
+            "wall clock unavailable in pure JSON methods".into(),
+            Position::NONE,
+        )))
+    });
     engine.on_print(|_| {});
     engine.on_debug(|_, _, _| {});
     engine.on_progress(move |_| {

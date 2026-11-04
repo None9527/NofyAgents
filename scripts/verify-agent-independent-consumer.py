@@ -49,7 +49,7 @@ def main():
         (args.output / "dependencies.txt").write_text(tree.stdout)
         names = {line.split()[0] for line in tree.stdout.splitlines() if line.strip()}
         forbidden = {"nofy-shell", "nofy-tools", "nofy-agent", "nofy-daemon", "nofy-pager",
-                     "nofy-workspace", "nofy-acp", "nofy-sandbox"}
+                     "nofy-workspace", "nofy-acp", "nofy-sandbox", "nofy-workflow", "nofy-orchestra"}
         assert not names & forbidden, names & forbidden
         report.update({"outside_workspace": True, "dependency_boundary": "passed"})
         (args.output / "result.json").write_text(json.dumps(report, indent=2))

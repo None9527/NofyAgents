@@ -1,0 +1,34 @@
+{
+  "stage": "L3c4-real-memory",
+  "passed": true,
+  "requested_model": "gemini-3.8-flash-high",
+  "alias_mapping_confirmed": false,
+  "context_256k_verified": false,
+  "upstream_identity_verified": false,
+  "credential_persisted": false,
+  "goal_status": "active",
+  "release": "9f9e38589ddbfdb4117d1826779c65136652f6f03c5ed9cffe26263e0db7d336",
+  "acceptance_channel": "amber-2637b481750a7dfd36b9",
+  "automatic_capture_and_consolidation": true,
+  "independent_thread_recall": true,
+  "question_does_not_duplicate_fact": true,
+  "recall_output": "amber-2637b481750a7dfd36b9",
+  "reported_models": [
+    "gemini-3.8-flash-n"
+  ],
+  "model_name_difference": true,
+  "physical_requests": 4,
+  "input_tokens": 486,
+  "output_tokens": 1049,
+  "credential_free_restore_identical": true,
+  "credential_free_memory_read": true,
+  "canonical_files": {
+    "memory/1e97746bcdfb09d2911b8d3059f97433b037909d3fdc49fbc9660d41be10e524/projects/37a9b2ac-9dca-4aae-9235-aed6ac68d141/archive/observations/9ebb5bcb-30ba-506f-b3fb-d83850ec1b50.md": "0adc1bad1c0f24e96449ed117d8b2049a88290f6071fa2277cde2fcb6815e882",
+    "memory/1e97746bcdfb09d2911b8d3059f97433b037909d3fdc49fbc9660d41be10e524/projects/37a9b2ac-9dca-4aae-9235-aed6ac68d141/topics/curated-9ebb5bcb-30ba-506f-b3fb-d83850ec1b50.md": "261c7a3bf3e63a17705f8630a6e3904d5f6f4c28dec9e9e0f4abd935c58e0a13"
+  },
+  "binaries_unchanged": true,
+  "evidence": "/tmp/nofy-memory-real.yrpg8kyo",
+  "production_source_changed": false,
+  "host_session": 64928,
+  "host_session_exit_code": 0
+}

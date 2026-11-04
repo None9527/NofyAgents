@@ -2,7 +2,7 @@
 //! Reads never return values through management DTOs or parsing diagnostics.
 use crate::{HostError, Result};
 use nofy_agent_runtime::control::ControlError;
-use nofy_sampler::agent_model::declarative::CredentialProvider;
+use nofy_agent_runtime::credentials::CredentialProvider;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,

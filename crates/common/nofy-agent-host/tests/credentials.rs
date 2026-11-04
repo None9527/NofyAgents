@@ -1,6 +1,6 @@
 use nofy_agent_host::{HostError, credentials::FileCredentials};
 use nofy_agent_runtime::control::ControlError;
-use nofy_sampler::agent_model::declarative::CredentialProvider;
+use nofy_agent_runtime::credentials::CredentialProvider;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},

@@ -1,3 +1,4 @@
+use crate::loader::deployment::DeploymentFile;
 use crate::{auth::Scope, *};
 use axum::{
     Json, Router,
@@ -14,13 +15,31 @@ use nofy_agent_runtime::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+mod budgets;
+mod cache;
 mod credentials;
+mod loader;
+mod memory;
+mod projects;
+mod prompts;
+mod references;
 mod runs;
+mod runtime_history;
+mod sessions;
+mod sources;
+mod unload;
 
 impl IntoResponse for HostError {
     fn into_response(self) -> Response {
         use nofy_agent_runtime::control::ControlError;
         let (status, code) = match &self {
+            Self::Source(e) => match e.code.as_str() {
+                "conflict" => (StatusCode::CONFLICT, "conflict"),
+                "not_found" => (StatusCode::NOT_FOUND, "not_found"),
+                "local_io" => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
+                "incomplete" => (StatusCode::UNPROCESSABLE_ENTITY, "incomplete"),
+                _ => (StatusCode::UNPROCESSABLE_ENTITY, "invalid"),
+            },
             Self::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
             Self::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
             Self::NotFound | Self::Control(ControlError::NotFound(_)) => {
@@ -36,6 +55,31 @@ impl IntoResponse for HostError {
                 | ControlError::CompileTask(_),
             )
             | Self::Unavailable(_) => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
+            Self::Runtime(nofy_agent_runtime::Error::Composition(message))
+                if message.starts_with("policy_invalid:") =>
+            {
+                (StatusCode::UNPROCESSABLE_ENTITY, "policy_invalid")
+            }
+            Self::Runtime(nofy_agent_runtime::Error::Composition(message))
+                if message.starts_with("policy_rejected:") =>
+            {
+                (StatusCode::UNPROCESSABLE_ENTITY, "policy_rejected")
+            }
+            Self::Runtime(nofy_agent_runtime::Error::Composition(message))
+                if message == "session_closed" =>
+            {
+                (StatusCode::CONFLICT, "session_closed")
+            }
+            Self::Runtime(nofy_agent_runtime::Error::Composition(message))
+                if message == "session_archived" =>
+            {
+                (StatusCode::CONFLICT, "session_archived")
+            }
+            Self::Runtime(nofy_agent_runtime::Error::Checkpoint(message))
+                if message.starts_with("session busy:") =>
+            {
+                (StatusCode::CONFLICT, "busy")
+            }
             Self::Runtime(nofy_agent_runtime::Error::Checkpoint(_)) => {
                 (StatusCode::CONFLICT, "runtime_conflict")
             }
@@ -61,6 +105,7 @@ async fn authenticate(
 }
 pub(crate) fn router(host: KernelHost) -> Router {
     Router::new()
+        .route("/api/v1/access", get(access))
         .route("/api/v1/catalog", get(catalog))
         .route("/api/v1/modules", get(modules))
         .route("/api/v1/modules/dependencies", post(dependencies))
@@ -78,10 +123,28 @@ pub(crate) fn router(host: KernelHost) -> Router {
         .route("/api/v1/systems/{name}/history", get(history))
         .route("/api/v1/systems/{name}/active", get(active))
         .merge(runs::router())
+        .merge(runtime_history::router())
+        .merge(prompts::router())
+        .merge(projects::router())
+        .merge(memory::router())
+        .merge(budgets::router())
+        .merge(cache::router())
+        .merge(references::router())
+        .merge(sessions::router())
+        .merge(sources::router())
+        .merge(unload::router())
         .merge(credentials::router())
+        .merge(loader::router())
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
+        .layer(middleware::from_fn_with_state(
+            host.clone(),
+            loader::resource_backpressure,
+        ))
         .layer(middleware::from_fn_with_state(host.clone(), authenticate))
         .with_state(host)
+}
+async fn access(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Json<Value>> {
+    Ok(Json(json!({"scopes":host.auth.grants(&headers)?})))
 }
 fn resources(host: &KernelHost, headers: &HeaderMap, document: &SystemDocument) -> Result<()> {
     let descriptors = host.registry.descriptors();
@@ -152,9 +215,10 @@ async fn dependencies(
 async fn validate(
     State(host): State<KernelHost>,
     headers: HeaderMap,
-    Json(file): Json<SystemFile>,
+    Json(file): Json<DeploymentFile>,
 ) -> Result<Json<SystemBundle>> {
     host.auth.require(&headers, Scope::Read)?;
+    let file = host.loader.prepare_deployment(file, false).await?;
     let registry = host.registry.clone();
     let system = tokio::task::spawn_blocking(move || file.prepare(&registry))
         .await
@@ -164,14 +228,14 @@ async fn validate(
 async fn import(
     State(host): State<KernelHost>,
     headers: HeaderMap,
-    Json(file): Json<SystemFile>,
+    Json(file): Json<DeploymentFile>,
 ) -> Result<Json<Publication>> {
     host.auth.require(&headers, Scope::Publish)?;
-    let document = match &file {
-        SystemFile::Source(d) => d,
-        SystemFile::Locked(b) => &b.document,
-    };
-    resources(&host, &headers, document)?;
+    resources(&host, &headers, file.document())?;
+    if file.carries_images() {
+        host.auth.require(&headers, Scope::Resources)?;
+    }
+    let file = host.loader.prepare_deployment(file, true).await?;
     Ok(Json(host.control.install_file(file).await?))
 }
 #[derive(Deserialize)]
@@ -188,9 +252,16 @@ async fn save_draft(
 ) -> Result<Json<Draft>> {
     host.auth.require(&headers, Scope::Edit)?;
     resources(&host, &headers, &request.document)?;
+    let SystemFile::Source(document) = host
+        .loader
+        .resolve_file(SystemFile::Source(request.document))
+        .await?
+    else {
+        unreachable!("source resolver preserves source");
+    };
     Ok(Json(
         host.control
-            .save_draft(&name, request.expected_revision, request.document)
+            .save_draft(&name, request.expected_revision, document)
             .await?,
     ))
 }

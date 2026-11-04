@@ -52,6 +52,10 @@ pub(crate) struct RunServices {
     program: Option<std::sync::Arc<crate::program::ProgramRoot>>,
     #[cfg(feature = "sqlite")]
     supervisor: Option<std::sync::Arc<crate::supervisor::SupervisedIdentity>>,
+    #[cfg(feature = "sqlite")]
+    parking: Option<std::sync::Arc<crate::supervisor::jobs::ParkBinding>>,
+    #[cfg(feature = "sqlite")]
+    hook_effects: Option<std::sync::Arc<crate::hooks::primitive::NativeControl>>,
 }
 impl RunServices {
     pub fn capture(context: &RunContext) -> Self {
@@ -66,6 +70,10 @@ impl RunServices {
             program: context.capabilities.get(),
             #[cfg(feature = "sqlite")]
             supervisor: context.capabilities.get(),
+            #[cfg(feature = "sqlite")]
+            parking: context.capabilities.get(),
+            #[cfg(feature = "sqlite")]
+            hook_effects: context.capabilities.get(),
         }
     }
     pub fn restore(self, context: &mut RunContext) -> Result<(), crate::Error> {
@@ -91,6 +99,14 @@ impl RunServices {
         #[cfg(feature = "sqlite")]
         if let Some(supervisor) = self.supervisor {
             context.capabilities.insert_arc(supervisor);
+        }
+        #[cfg(feature = "sqlite")]
+        if let Some(parking) = self.parking {
+            context.capabilities.insert_arc(parking);
+        }
+        #[cfg(feature = "sqlite")]
+        if let Some(effects) = self.hook_effects {
+            context.capabilities.insert_arc(effects);
         }
         if changed {
             return Err(crate::Error::Composition(

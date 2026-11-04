@@ -1,0 +1,39 @@
+[package]
+name = "nofy-cli"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Nofy declarative Agent development CLI and MCP entry point"
+
+[[bin]]
+name = "nofy"
+path = "src/main.rs"
+
+[dependencies]
+nofy-agent-client = { path = "../nofy-agent-client" }
+nofy-agent-project = { path = "../nofy-agent-project" }
+nofy-agent-mcp = { path = "../nofy-agent-mcp" }
+clap = { workspace = true, features = ["string"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+toml = "0.5"
+zeroize = "=1.8.2"
+tempfile = { workspace = true }
+base64 = { workspace = true }
+sha2 = { workspace = true }
+uuid = { workspace = true }
+libc = { workspace = true }
+
+[dev-dependencies]
+futures = { workspace = true }
+tokio-util = { workspace = true }
+nofy-agent-host = { path = "../nofy-agent-host" }
+nofy-agent-runtime = { path = "../nofy-agent-runtime", features = ["sqlite","workflow","control-file"] }
+nofy-test-support = { workspace = true }
+axum = { workspace = true }
+reqwest = { workspace = true }
+rmcp = { version = "=3.6.0", default-features = false, features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest", "reqwest"] }
+
+[lints]
+workspace = true

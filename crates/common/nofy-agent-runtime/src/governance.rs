@@ -5,9 +5,15 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod engine;
+mod fingerprint;
+pub(crate) use fingerprint::child_fingerprint;
 mod memory;
 mod model;
 pub use model::{operation_context, operation_scope, sample_model};
+#[cfg(feature = "sqlite")]
+mod view;
+#[cfg(feature = "sqlite")]
+pub use view::BudgetPage;
 pub mod declarative;
 mod profile;
 mod recovery;
@@ -22,12 +28,53 @@ pub use profile::{GovernanceFactory, GovernanceProfile, InstalledBudget, ModelRe
 pub(crate) use runtime::{BudgetControl, SupervisedBudgetBackend};
 pub(crate) use runtime::{GroupAdmission, reserve, settle};
 pub(crate) use runtime::{cancellation as cancellation_error, prepare as runtime_prepare};
+#[cfg(feature = "sqlite")]
+pub(crate) use tool::fingerprint as primitive_fingerprint;
 pub(crate) use tool::reconcile_tool;
 pub use tool::{dispatch_tool, tool_operation};
 pub fn is_governed(context: &crate::RunContext) -> bool {
     context.capabilities.get::<BudgetControl>().is_some()
 }
-pub(crate) async fn await_resource<T>(
+/// Every effect must consult a nonempty durable ledger before dispatch.
+/// This permits replaying its receipts, never bypassing an uncertain claim.
+pub fn has_durable_receipts(context: &crate::RunContext) -> bool {
+    context
+        .capabilities
+        .get::<BudgetControl>()
+        .is_some_and(|control| {
+            !control.entries.is_empty()
+                && control.entries.iter().all(|entry| entry.store.is_durable())
+        })
+}
+/// Stable dispatch authority, independent of mutable limits and lease epochs.
+pub fn receipt_identity(context: &crate::RunContext) -> Option<String> {
+    if !has_durable_receipts(context) {
+        return None;
+    }
+    let control = context.capabilities.get::<BudgetControl>()?;
+    let mut ledgers = control
+        .entries
+        .iter()
+        .map(|entry| {
+            entry
+                .store
+                .storage_identity()
+                .filter(|identity| !identity.is_empty())
+                .map(|identity| (entry.spec.scope.clone(), identity))
+        })
+        .collect::<Option<Vec<_>>>()?;
+    ledgers.sort();
+    let value = serde_json::to_value(("budget.receipts/v1", ledgers))
+        .expect("budget receipt identities serialize");
+    Some(format!(
+        "budget.receipts/v1:{}",
+        profile::digest(&value).expect("budget receipt identity hashes")
+    ))
+}
+/// Await an adapter's resource work with the original cancellation rail.
+/// Budget-triggered cancellation retains its typed budget outcome. This does
+/// not admit business effects; use the model/tool boundary for those calls.
+pub async fn await_resource<T>(
     context: &crate::RunContext,
     future: impl std::future::Future<Output = Result<T, Error>>,
 ) -> Result<T, Error> {
@@ -37,8 +84,22 @@ pub(crate) async fn await_resource<T>(
     }
 }
 #[cfg(feature = "sqlite")]
-mod sqlite;
+pub(crate) mod sqlite;
 pub use memory::InMemoryBudgetStore;
+#[cfg(feature = "sqlite")]
+pub(crate) use sqlite::amend_in_transaction;
+
+/// A fenced configuration transition preserves this ledger while changing
+/// the declarative profile. Historical aliases also constrain descendants.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct BudgetLedgerBinding {
+    pub reference: crate::registry::ModuleRef,
+    pub profile_identity: String,
+    pub ledger_identity: String,
+    pub resource_identity: String,
+    pub profile_aliases: std::collections::BTreeSet<String>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]

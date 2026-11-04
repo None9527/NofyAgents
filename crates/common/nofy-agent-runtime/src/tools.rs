@@ -118,30 +118,7 @@ impl ToolCatalog {
 }
 
 pub(crate) fn validate_schema(schema: &serde_json::Value) -> Result<(), Error> {
-    // Composition must not resolve remote schemas or read host files.
-    fn local_refs(value: &serde_json::Value) -> bool {
-        match value {
-            serde_json::Value::Object(fields) => fields.iter().all(|(key, value)| {
-                if matches!(key.as_str(), "$ref" | "$dynamicRef" | "$recursiveRef") {
-                    value
-                        .as_str()
-                        .is_some_and(|reference| reference.starts_with('#'))
-                } else {
-                    local_refs(value)
-                }
-            }),
-            serde_json::Value::Array(values) => values.iter().all(local_refs),
-            _ => true,
-        }
-    }
-    if !local_refs(schema) {
-        return Err(Error::Composition(
-            "tool schema requires external references; inline it before registration".into(),
-        ));
-    }
-    jsonschema::validator_for(schema)
-        .map_err(|e| Error::Composition(format!("invalid tool schema: {e}")))?;
-    Ok(())
+    crate::schema::compiled(schema).map(|_| ())
 }
 
 pub fn call_context(id: &str, context: &RunContext) -> Result<ToolCallContext, Error> {

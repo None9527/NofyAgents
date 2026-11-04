@@ -3,7 +3,7 @@
 import subprocess
 
 forbidden = {"nofy-tools", "nofy-shell", "nofy-agent", "nofy-daemon", "nofy-pager",
-             "nofy-workspace", "nofy-acp", "nofy-sandbox", "nofy-workflow"}
+             "nofy-workspace", "nofy-acp", "nofy-sandbox", "nofy-workflow", "nofy-orchestra"}
 result = subprocess.run(["cargo", "tree", "--locked", "--offline", "-p", "nofy-agent-runtime",
                          "--edges", "normal", "--prefix", "none", "--no-dedupe"],
                         check=True, text=True, capture_output=True)

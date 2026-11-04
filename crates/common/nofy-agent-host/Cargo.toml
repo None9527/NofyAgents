@@ -4,15 +4,26 @@ version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 description = "Resident declarative agent management API over the shared Nofy runtime"
+default-run = "nofy-agent-host"
 
 [dependencies]
+nofy-agent-project = { path = "../nofy-agent-project" }
+nofy-agent-modules = { path = "../nofy-agent-modules" }
+nofy-agent-models = { path = "../nofy-agent-models" }
+nofy-memory = { path = "../nofy-memory", features = ["agent-runtime"] }
+minijinja = { version = "=2.18.0", features = ["custom_syntax", "fuel", "unstable_machinery"] }
 nofy-agent-executors = { path = "../nofy-agent-executors", features=["rhai"] }
 nofy-tool-runtime = { path = "../nofy-tool-runtime" }
+nofy-tool-types = { path = "../nofy-tool-types" }
+nofy-tool-protocol = { path = "../nofy-tool-protocol" }
+nofy-tty-utils = { workspace = true }
 async-trait = { workspace = true }
+base64 = { workspace = true }
+ed25519-dalek = "=2.2.0"
+flate2 = { workspace = true }
 fs2 = { workspace = true }
 tempfile = { workspace = true }
 nofy-agent-runtime = { path = "../nofy-agent-runtime", features = ["sqlite", "workflow", "control-file"] }
-nofy-sampler = { path = "../../codegen/nofy-sampler", features = ["agent-runtime"] }
 async-stream = { workspace = true }
 axum = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
@@ -23,11 +34,20 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-util = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
+url = { workspace = true }
+zeroize = "=1.8.2"
+rusqlite = { version = "0.37", features = ["bundled"] }
+nofy-sqlite-journal = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = "=0.4.4"
+libc = { workspace = true }
 
 [dev-dependencies]
 nofy-test-support = { workspace = true }
+nofy-memory-types = { path = "../nofy-memory-types" }
 nofy-interjection-core = { path = "../nofy-interjection-core" }
-reqwest = { workspace = true, features = ["stream"] }
 
 [lints]
 workspace = true

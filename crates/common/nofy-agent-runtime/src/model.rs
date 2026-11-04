@@ -169,6 +169,20 @@ impl std::error::Error for ModelFailure {}
 
 #[async_trait]
 pub trait Model: Send + Sync {
+    /// Validate retained history without provider IO or discarding native data.
+    /// Async execution permits an isolated evaluator; callers must not hold a
+    /// storage transaction while awaiting it. Opaque data is rejected by default.
+    async fn validate_live_history(&self, messages: &[Message]) -> Result<(), Error> {
+        if messages
+            .iter()
+            .any(|message| matches!(message, Message::Opaque { .. }))
+        {
+            return Err(Error::Composition(
+                "live transition requires an explicit provider-native history validator".into(),
+            ));
+        }
+        Ok(())
+    }
     /// Pure binding for an explicit scoped model selection. Provider adapters
     /// may remove an inherited connection override; this never mutates the
     /// parent context and must not perform IO.
@@ -180,7 +194,9 @@ pub trait Model: Send + Sync {
     fn calls_used(&self, _response: &ModelResponse) -> Option<u64> {
         None
     }
-    fn request_bound(
+    /// Compute admission before reserving budget or dispatching provider IO.
+    /// Implementations may await an isolated evaluator, not a provider request.
+    async fn request_bound(
         &self,
         _request: &ModelRequest,
         _context: &RunContext,

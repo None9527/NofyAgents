@@ -1,0 +1,18 @@
+{
+  "parameters": {
+    "protocol_profile": {"$lookup": {"value": {"$json": {"path": "modules/models/manifest.json", "pointer": "/profiles"}}, "key": {"$setting": "/profile"}}},
+    "connection": {"$merge": [{"$parameter": "/protocol_profile/connection"}, {"$setting": "/connection"}]},
+    "protocol_config": {"$parameter": "/protocol_profile/protocol"},
+    "runtime_factory": "resource.process_local",
+    "runtime_config": {"$setting": "/environment"},
+    "terminal_runtime_factory": "resource.process_local",
+    "terminal_runtime_config": {"$coalesce": [{"$setting": "/command_environment"}, {"$setting": "/environment"}]},
+    "tools": {"$concat": [
+      {"$values": {"$json": {"path": "modules/files/manifest.json", "pointer": "/tools"}}},
+      {"$if": {"condition": {"$setting": "/terminal_enabled"}, "then": [{"$json": {"path": "modules/command/manifest.json", "pointer": "/tool"}}], "else": []}}
+    ]},
+    "read_tools": {"$select": {"items": {"$parameter": "/tools"}, "field": "/contract/effect", "equals": "read_only", "value": "/contract/name"}},
+    "write_tools": {"$select": {"items": {"$parameter": "/tools"}, "field": "/contract/effect", "not_equals": "read_only", "value": "/contract/name"}},
+    "all_tools": {"$concat": [{"$select": {"items": {"$parameter": "/tools"}, "value": "/contract/name"}}, ["skill"]]}
+  }
+}

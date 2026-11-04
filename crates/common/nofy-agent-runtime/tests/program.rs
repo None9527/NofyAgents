@@ -117,7 +117,7 @@ fn setup(store: &SqliteStore, approval: bool, wait: bool, fail: bool, no_models:
             count: effects.clone(),
             started: started.clone(),
             wait,
-            path: store.path().with_extension("effects"),
+            path: store.path().unwrap().with_extension("effects"),
         }))
         .unwrap();
     install(&mut registry, "effects", ModuleInstance::ToolPack(tools));

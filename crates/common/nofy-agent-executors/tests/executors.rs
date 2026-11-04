@@ -463,27 +463,45 @@ async fn process_timeout_cancel_and_dropped_future_kill_descendants() {
     }
 }
 
-#[cfg(feature = "nofy-sandbox")]
 #[tokio::test]
-async fn original_sandbox_adapter_fails_closed_when_host_has_no_enforcement() {
+async fn a_host_guard_refusal_never_launches_the_installed_process() {
+    struct UnavailableGuard(Arc<AtomicUsize>);
+    impl EnvironmentGuard for UnavailableGuard {
+        fn revision(&self) -> &str {
+            "fixture-unavailable-guard-v1"
+        }
+        fn prepare(&self, _: &mut tokio::process::Command) -> Result<(), ToolError> {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Err(ToolError::custom(
+                "sandbox_unavailable",
+                "host confinement is unavailable",
+            ))
+        }
+    }
     let root = tempfile::tempdir().unwrap();
-    let program = InstalledProgram::load(Path::new("/bin/cat"), None).unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let program = InstalledProgram::load(Path::new("/usr/bin/touch"), None).unwrap();
     let environment = ProcessEnvironment::install(
         root.path(),
-        BTreeMap::from([("cat".into(), program)]),
+        BTreeMap::from([("touch".into(), program)]),
         BTreeMap::new(),
-        Arc::new(NofySandboxGuard),
+        Arc::new(UnavailableGuard(calls.clone())),
     )
     .unwrap();
     let factory = ProcessToolFactory::new("sandbox-v1", environment).unwrap();
-    let entry = build(&factory, json!({"contract":{"name":"cat"},"program":"cat"}));
-    assert!(
-        call(&entry, json!({}), Default::default())
-            .await
-            .unwrap_err()
-            .to_string()
-            .contains("sandbox must already be enforced")
+    let entry = build(
+        &factory,
+        json!({"contract":{"name":"touch"},"program":"touch", "args":["must-not-exist"]}),
     );
+    let error = call(&entry, json!({}), Default::default())
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.details.as_ref().unwrap()["code"],
+        "sandbox_unavailable"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert!(!root.path().join("must-not-exist").exists());
 }
 
 struct ToolModel;
@@ -702,5 +720,128 @@ async fn executor_hooks_obey_host_policy_and_budget_even_when_failure_is_open() 
             .unwrap()
             .unwrap();
         assert_eq!(summary.used.tool_calls, expected as u64);
+    }
+}
+
+struct LostHookAck {
+    inner: InMemoryCheckpointer,
+    fail: std::sync::atomic::AtomicBool,
+}
+#[async_trait::async_trait]
+impl Checkpointer for LostHookAck {
+    async fn load(&self, key: &str) -> Result<Option<Checkpoint>, Error> {
+        self.inner.load(key).await
+    }
+    async fn save(
+        &self,
+        key: &str,
+        expected: Option<u64>,
+        checkpoint: Checkpoint,
+    ) -> Result<(), Error> {
+        if checkpoint.state.data.get("hook").is_some()
+            && checkpoint
+                .state
+                .data
+                .get("decision")
+                .is_some_and(|value| !value.is_null())
+            && self.fail.swap(false, Ordering::SeqCst)
+        {
+            return Err(Error::Checkpoint("lost hook completion ack".into()));
+        }
+        self.inner.save(key, expected, checkpoint).await
+    }
+}
+
+#[tokio::test]
+async fn executor_hook_without_durable_budget_receipts_never_replays_an_unknown_effect() {
+    use nofy_agent_executors::hooks::ExecutorHookFactory;
+    use nofy_agent_runtime::{governance::*, hooks::*};
+    for governed in [false, true] {
+        let server = server().await;
+        let factory = http_factory(&server, Arc::new(Secret(AtomicUsize::new(0))));
+        let mut config = http_config();
+        config["contract"]["input_schema"] = json!({"type":"object"});
+        let entry = build(&factory, config);
+        let name = entry.definition.function.name.clone();
+        let mut tools = ToolCatalog::new();
+        tools.insert(entry).unwrap();
+        let ModuleInstance::HookHandler(handler) = ExecutorHookFactory
+            .build(
+                &json!({"tool":name}),
+                &BTreeMap::from([("executor".into(), ModuleInstance::ToolPack(tools))]),
+            )
+            .unwrap()
+        else {
+            panic!("handler")
+        };
+        let registration = Arc::new(
+            HookRegistration::new(
+                "volatile-hook".into(),
+                EventCatalog::runtime().get("before_model").unwrap().clone(),
+                HookRule {
+                    event: "before_model".into(),
+                    priority: 0,
+                    timeout_ms: 3000,
+                    failure: FailurePolicy::Closed,
+                    matches: None,
+                },
+                handler,
+            )
+            .unwrap(),
+        );
+        let bus = HookBus::new(EventCatalog::runtime(), vec![registration]).unwrap();
+        let mut components = Components::default();
+        components
+            .models
+            .insert("model".into(), Arc::new(ToolModel));
+        components
+            .prompts
+            .insert("prompt".into(), Arc::new(StaticPrompt("test".into())));
+        let checkpoint = Arc::new(LostHookAck {
+            inner: InMemoryCheckpointer::default(),
+            fail: std::sync::atomic::AtomicBool::new(true),
+        });
+        let mut agent = AgentBuilder::new("volatile-hook-agent")
+            .model("model")
+            .prompt("prompt")
+            .compile(&components)
+            .unwrap()
+            .with_hooks(bus)
+            .with_checkpointer(checkpoint);
+        if governed {
+            let resource = InstalledBudget::install(
+                Arc::new(InMemoryBudgetStore::default()),
+                BudgetLimits::default(),
+                "volatile",
+                1,
+            )
+            .unwrap();
+            agent = agent.with_governance(Arc::new(
+                GovernanceProfile::new(
+                    Arc::new(resource),
+                    BudgetLimits::default(),
+                    ModelRetryPolicy::default(),
+                )
+                .unwrap(),
+            ));
+        }
+        assert!(
+            agent
+                .invoke(RunInput::new("go"), RunContext::new("thread", "run"))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("lost hook completion ack")
+        );
+        assert_eq!(server.calls.load(Ordering::SeqCst), 1);
+        let outcome = agent
+            .invoke(RunInput::resume(), RunContext::new("thread", "run"))
+            .await
+            .unwrap();
+        let RunOutcome::Paused { reason, .. } = outcome else {
+            panic!("{outcome:?}")
+        };
+        assert_eq!(reason["kind"], "uncertain_hook");
+        assert_eq!(server.calls.load(Ordering::SeqCst), 1);
     }
 }

@@ -1,9 +1,0 @@
-Found all references. Now making the changes完成。已将 `mean` 重命名为 `average` 并验证通过:
-
-**改动内容**
-- `src/calc.py`:函数 `mean` → `average`,错误信息同步改为 `"average of empty list"`
-- `tests/test_calc.py`:测试函数 `test_mean` → `test_average`,`calc.mean` → `calc.average`(未删除任何测试)
-
-**验证结果**
-- `pytest -q`:**9 passed**,全部通过
-- 代码库中已无任何 `mean` 残留引用

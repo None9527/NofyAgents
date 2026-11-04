@@ -164,7 +164,8 @@ pub(crate) fn descriptor(
     }
 }
 
-pub(crate) fn contract_schema() -> Value {
+/// Shared wire schema for external executable adapters.
+pub fn contract_schema() -> Value {
     json!({"type":"object","additionalProperties":false,"required":["name"],"properties":{
         "name":{"type":"string","minLength":1},"description":{"type":"string"},"effect":{"enum":["unknown","read_only","idempotent","non_idempotent"]},
         "input_schema":{"type":["object","boolean"]},"output_schema":{"type":["object","boolean"]},
@@ -173,7 +174,8 @@ pub(crate) fn contract_schema() -> Value {
     }})
 }
 
-pub(crate) fn binding_schema() -> Value {
+/// Shared JSON input mapping schema; adapters retain the same semantics.
+pub fn binding_schema() -> Value {
     json!({"oneOf":[
         {"type":"object","required":["kind"],"additionalProperties":false,"properties":{"kind":{"const":"input"},"pointer":{"type":"string"}}},
         {"type":"object","required":["kind","value"],"additionalProperties":false,"properties":{"kind":{"const":"literal"},"value":{}}},

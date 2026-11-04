@@ -1,12 +1,18 @@
 //! Optional pure JSON source methods. Workflow/Agent orchestration remains a
 //! separate capability; this profile installs no external host functions.
+mod context;
+mod session;
+pub use session::SessionPolicyFactory;
+mod execution;
 mod rhai;
 use crate::config::{self, JsonBinding, ToolContract};
+pub use context::ContextPolicyFactory;
+pub use execution::{Executor, Request, Trusted};
 use nofy_agent_runtime::{Error, registry::*};
 use nofy_tool_runtime::{ToolCallContext, ToolDispatch, ToolStream, TypedToolOutput};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc};
 use tokio_util::sync::CancellationToken;
 fn max_ops() -> u64 {
     100000
@@ -21,7 +27,18 @@ struct Config {
     #[serde(default = "max_ops")]
     max_operations: u64,
 }
-pub struct RhaiToolFactory;
+pub struct RhaiToolFactory {
+    executor: Arc<dyn Executor>,
+}
+impl RhaiToolFactory {
+    pub fn new(executor: Arc<dyn Executor>) -> Self {
+        Self { executor }
+    }
+    /// No OS confinement: only an explicitly trusted SDK caller may select it.
+    pub fn trusted() -> Self {
+        Self::new(Arc::new(Trusted))
+    }
+}
 impl ModuleFactory for RhaiToolFactory {
     fn descriptor(&self) -> ModuleDescriptor {
         config::descriptor(
@@ -53,11 +70,17 @@ impl ModuleFactory for RhaiToolFactory {
         let contract = config.contract.clone();
         Ok(ModuleInstance::ToolPack(crate::catalog(
             &contract,
-            Arc::new(Dispatch(config)),
+            Arc::new(Dispatch {
+                config,
+                executor: self.executor.clone(),
+            }),
         )?))
     }
 }
-struct Dispatch(Config);
+struct Dispatch {
+    config: Config,
+    executor: Arc<dyn Executor>,
+}
 struct CancelOnDrop(CancellationToken);
 impl Drop for CancelOnDrop {
     fn drop(&mut self) {
@@ -73,12 +96,13 @@ impl ToolDispatch for Dispatch {
         context: ToolCallContext,
     ) -> ToolStream<TypedToolOutput> {
         let operation = async {
-            crate::validate_input(&self.0.contract, &args)?;
-            let input = self.0.input.render(&args)?;
+            let config = &self.config;
+            crate::validate_input(&config.contract, &args)?;
+            let input = config.input.render(&args)?;
             if serde_json::to_vec(&input)
                 .map_err(|_| crate::tool_error("input_mapping", "script input is not JSON"))?
                 .len()
-                > self.0.contract.max_input_bytes
+                > config.contract.max_input_bytes
             {
                 return Err(crate::tool_error(
                     "input_limit",
@@ -90,29 +114,31 @@ impl ToolDispatch for Dispatch {
                 .map(|c| c.0.child_token())
                 .unwrap_or_default();
             let _guard = CancelOnDrop(cancel.clone());
-            let source = self.0.source.clone();
-            let ops = self.0.max_operations;
-            let engine_cancel = cancel.clone();
-            let mut task =
-                tokio::task::spawn_blocking(move || rhai::run(&source, input, ops, engine_cancel));
-            let result = tokio::select! {biased;
-                _=cancel.cancelled()=>Err(crate::tool_error("cancelled","script method cancelled")),
-                result=tokio::time::timeout(Duration::from_millis(self.0.contract.timeout_ms),&mut task)=>match result {
-                    Ok(result)=>result.map_err(|_|crate::tool_error("script_task","script task failed"))?,
-                    Err(_)=>Err(crate::tool_error("timeout","script method timed out")),
-                },
-            }?;
+            let result = self
+                .executor
+                .evaluate(
+                    Request {
+                        source: config.source.clone(),
+                        input,
+                        max_operations: config.max_operations,
+                        timeout_ms: config.contract.timeout_ms,
+                        max_input_bytes: config.contract.max_input_bytes,
+                        max_output_bytes: config.contract.max_output_bytes,
+                    },
+                    cancel,
+                )
+                .await?;
             if serde_json::to_vec(&result)
                 .map_err(|_| crate::tool_error("invalid_output", "script result is not JSON"))?
                 .len()
-                > self.0.contract.max_output_bytes
+                > config.contract.max_output_bytes
             {
                 return Err(crate::tool_error(
                     "output_limit",
                     "script result exceeds byte limit",
                 ));
             }
-            crate::output(&self.0.contract, result)
+            crate::output(&config.contract, result)
                 .map(|value| TypedToolOutput::from_value(id, value))
         };
         nofy_tool_runtime::terminal_only(operation.await)

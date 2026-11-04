@@ -1,0 +1,278 @@
+{
+  "stage": "L6-memory-history-transfer",
+  "date": "2026-11-04",
+  "status": "accepted-scoped-functional-block",
+  "overall_goal_status": "active",
+  "contract": "docs/architecture/memory-history-transfer.md",
+  "evidence": "/tmp/nofy-memory-transfer.k5a1ge7c",
+  "recovery": "/home/none/nofy-build-retired.jdnpc7/memory-transfer.g60_vlzk",
+  "source_archive": "/home/none/nofy-build-retired.jdnpc7/memory-transfer.g60_vlzk/after-audit.tar.gz",
+  "test_totals": {
+    "memory": 334,
+    "host_library": 78,
+    "host_credentials": 5,
+    "host_http": 188,
+    "unique_passed": 605,
+    "existing_memory_performance_ignored": 1
+  },
+  "wave_history": {
+    "memory_initial": {
+      "passed": 225,
+      "failed": 2
+    },
+    "host_library_initial": {
+      "passed": 76,
+      "failed": 2
+    },
+    "host_http_initial": {
+      "observed_passed": 169,
+      "observed_failed": 9,
+      "without_terminal_receipt": 10,
+      "observer_exit": 143,
+      "complete_suite_receipt": false,
+      "cause": "not established"
+    },
+    "host_http_repair": {
+      "passed": 19,
+      "failed": 0,
+      "filtered": 169
+    },
+    "failure_record": "/tmp/nofy-memory-transfer.k5a1ge7c/failures.json",
+    "final_path_audit": {
+      "memory": 6,
+      "host_library": 6,
+      "host_http": 5,
+      "new_unique_tests": 1,
+      "source_delta": [
+        "crates/common/nofy-memory/src/transport/database.rs",
+        "crates/common/nofy-memory/src/transport/tests.rs"
+      ],
+      "checks": "/tmp/nofy-memory-transfer.k5a1ge7c/audit-wave.json"
+    }
+  },
+  "checks": {
+    "host-http-repair": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "-p",
+        "nofy-agent-host",
+        "--test",
+        "http",
+        "--",
+        "deadline::declared_action_deadline_never_accepts_unfinished_work",
+        "event::business_event_workflow_human_response_keeps_original_owned_source_and_payload",
+        "human::human_acceptance_survives_actual_process_exit_and_continues_only_remaining_effect",
+        "human::human_commands_bind_frozen_root_or_resource_and_preserve_completed_http_effects",
+        "human::nested_resource_path_reaches_only_the_matching_frozen_human_graph",
+        "human_hook::human_response_resumes_original_model_hook_before_any_model_dispatch",
+        "loader::images::directories::directory_preview_is_pure_and_schema_bindings_and_persistent_preflight_are_strict",
+        "loader::images::directories::external_directory_writes_update_and_roll_back_without_restarting_or_repeating_success_after_reopen",
+        "loader::images::directories::losing_a_directory_after_a_real_write_does_not_prevent_its_success_receipt",
+        "loader::images::directories::real_helper_enforces_per_tool_read_write_authority_without_ambient_project_or_process_access",
+        "loader::images::directories::reserved_runtime_environment_cannot_forge_directory_authority",
+        "loader::images::locked_image_preflight_is_pure_and_portable_deployment_runs_without_local_runtime_install",
+        "loader::images::packaging_cli_uses_explicit_definition_and_refuses_overwriting_output",
+        "loader::images::shipped_binary_selects_new_dependency_images_in_same_pid_and_keeps_old_release",
+        "parking::modules::live_tools_hooks_and_new_human_graph_run_after_same_process_update_or_hard_restart",
+        "semantic::recovery::real_binary_exit_reconciles_the_original_embedding_plan_with_and_without_budget",
+        "transfers::ordinary_tool_payloads_are_not_treated_as_memory_definitions",
+        "transfers::queued_roots_block_migration_and_abort_reopens_only_original_ownership",
+        "workflow::one_file_loads_reusable_workflow_tools_hooks_and_agents_with_frozen_dependencies",
+        "--nocapture"
+      ],
+      "exit": 0
+    },
+    "memory-default": {
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "-p",
+        "nofy-memory",
+        "--no-default-features"
+      ],
+      "exit": 0
+    },
+    "docs": {
+      "command": [
+        "cargo",
+        "doc",
+        "--offline",
+        "--no-deps",
+        "--all-features",
+        "-p",
+        "nofy-agent-runtime",
+        "-p",
+        "nofy-memory",
+        "-p",
+        "nofy-agent-host"
+      ],
+      "exit": 0
+    },
+    "format-final": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    },
+    "diff-final": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0
+    },
+    "audit-memory": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "-p",
+        "nofy-memory",
+        "--all-features",
+        "--lib",
+        "transport::tests"
+      ],
+      "exit": 0
+    },
+    "audit-host-library": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "-p",
+        "nofy-agent-host",
+        "--lib",
+        "loader::memory::transfer::tests"
+      ],
+      "exit": 0
+    },
+    "audit-host-http": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "-p",
+        "nofy-agent-host",
+        "--test",
+        "http",
+        "transfers::"
+      ],
+      "exit": 0
+    },
+    "audit-memory-default": {
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "-p",
+        "nofy-memory",
+        "--no-default-features"
+      ],
+      "exit": 0
+    },
+    "audit-docs": {
+      "command": [
+        "cargo",
+        "doc",
+        "--offline",
+        "--no-deps",
+        "--all-features",
+        "-p",
+        "nofy-agent-runtime",
+        "-p",
+        "nofy-memory",
+        "-p",
+        "nofy-agent-host"
+      ],
+      "exit": 0
+    },
+    "audit-format-check": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    }
+  },
+  "dependency_boundaries": {
+    "exit": 0,
+    "log": "/tmp/nofy-memory-transfer.k5a1ge7c/boundaries-repair.log",
+    "lock_delta": "three references to existing Host dependencies only; no external version update"
+  },
+  "source_protection": {
+    "frozen": 675,
+    "manifest": "/tmp/nofy-memory-transfer.k5a1ge7c/audit-freeze.json",
+    "artifact_manifest": "/tmp/nofy-memory-transfer.k5a1ge7c/final-artifacts.json"
+  },
+  "browser": {
+    "actual_default_cli": true,
+    "actual_prepare_abort_forward_reverse": true,
+    "physical_canonical_files_equal": true,
+    "original_command_recovery_after_view_recreation": true,
+    "after_actual_host_restart_receipt_read": true,
+    "mobile": {
+      "focusable": true,
+      "overflow": false,
+      "recordId": "memory-transfer-8e2fff81-7ef2-4fd5-abea-f20cd0562e08",
+      "recordPhase": "completed",
+      "scrollWidth": 390,
+      "tokenPersisted": false,
+      "width": 390
+    },
+    "keyboard": {
+      "clientHeight": 430,
+      "focused": true,
+      "scrollHeight": 1612,
+      "scrollTop": 270
+    },
+    "axe": {
+      "inapplicable": 50,
+      "incomplete": 0,
+      "passes": 39,
+      "violations": 0
+    },
+    "chinese_glyph_rendering": "unverified: local environment lacks CJK fonts",
+    "initial_navigation_race": "QA wrapper initially used the stopped host URL; retried after readiness with the new URL; not a product failure"
+  },
+  "models": {
+    "trained_embedding_or_external_upstream_requests": 0,
+    "local_protocol_fixtures_are_not_trained_model_acceptance": true,
+    "prior_requested_vs_returned_model_difference": "unchanged; alias relationship and 256k upstream capacity remain unverified"
+  },
+  "gitnexus": {
+    "scope": "all cumulative worktree",
+    "changed_files": 10797,
+    "changed_symbols": 2959,
+    "affected_processes": 217,
+    "risk": "critical",
+    "stage_entrypoint_impact": "previously reported CRITICAL for execute_submitted and execute_managed_action; controlled scope and recovery archives retained",
+    "index_refreshed": false,
+    "stale_warning": false
+  },
+  "not_repeated": [
+    "Runtime 424 tests from prior unchanged source evidence",
+    "full 18-package workspace regression",
+    "independent consumers without new impact",
+    "already passed cases without a new affected branch"
+  ],
+  "open": [
+    "Runtime checkpoints and budget/history backends across stores or hosts",
+    "other stateful roles",
+    "real trained embedding provider acceptance",
+    "version-locked reference Agent behavior presets and release"
+  ],
+  "commit": false,
+  "push": false,
+  "prior_source_archive": "/home/none/nofy-build-retired.jdnpc7/memory-transfer.g60_vlzk/after.tar.gz"
+}

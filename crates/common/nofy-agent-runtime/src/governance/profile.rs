@@ -99,6 +99,8 @@ pub struct GovernanceProfile {
     pub(super) limits: BudgetLimits,
     pub(super) retry: ModelRetryPolicy,
     pub(super) identity: String,
+    pub(super) ledger_identity: String,
+    pub(super) profile_aliases: std::collections::BTreeSet<String>,
 }
 impl GovernanceProfile {
     pub fn new(
@@ -144,6 +146,8 @@ impl GovernanceProfile {
             resource,
             limits,
             retry,
+            ledger_identity: identity.clone(),
+            profile_aliases: [identity.clone()].into(),
             identity,
         })
     }
@@ -152,6 +156,28 @@ impl GovernanceProfile {
     }
     pub fn identity(&self) -> &str {
         &self.identity
+    }
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn resource_identity(&self) -> &str {
+        &self.resource.identity
+    }
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn storage_identity(&self) -> Option<String> {
+        self.resource.store.storage_identity()
+    }
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn with_ledger_binding(&self, binding: &BudgetLedgerBinding) -> Result<Self, Error> {
+        if binding.profile_identity != self.identity
+            || binding.resource_identity != self.resource.identity
+            || !binding.profile_aliases.contains(&binding.profile_identity)
+            || !binding.profile_aliases.contains(&binding.ledger_identity)
+        {
+            return Err(Error::Composition("live budget binding changed".into()));
+        }
+        let mut profile = self.clone();
+        profile.ledger_identity = binding.ledger_identity.clone();
+        profile.profile_aliases = binding.profile_aliases.clone();
+        Ok(profile)
     }
     pub fn is_durable(&self) -> bool {
         self.resource.store.is_durable()

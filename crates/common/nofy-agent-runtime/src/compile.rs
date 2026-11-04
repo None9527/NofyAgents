@@ -42,6 +42,8 @@ pub struct AgentDefinition {
     pub name: String,
     pub model: ModuleRef,
     pub prompt: ModuleRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_policy: Option<ModuleRef>,
     #[serde(default)]
     pub tool_packs: Vec<ModuleRef>,
     #[serde(default)]
@@ -159,7 +161,9 @@ pub fn compile_agent(
             definition.policies.push(reference.clone());
         }
     }
-    if definition.schema_version != 1 {
+    if !matches!(definition.schema_version, 1 | 2)
+        || definition.schema_version == 1 && definition.session_policy.is_some()
+    {
         return Err(Error::Composition(format!(
             "unsupported agent schema version: {}",
             definition.schema_version
@@ -209,6 +213,13 @@ pub fn compile_agent(
             .iter()
             .cloned()
             .map(|reference| (reference, ModuleKind::Checkpointer)),
+    );
+    roots.extend(
+        definition
+            .session_policy
+            .iter()
+            .cloned()
+            .map(|reference| (reference, ModuleKind::SessionPolicy)),
     );
     let resolved = registry.resolve_typed(&roots)?;
     let get = |reference: &ModuleRef, expected: ModuleKind| -> Result<&ModuleInstance, Error> {

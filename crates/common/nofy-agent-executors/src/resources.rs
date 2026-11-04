@@ -34,34 +34,6 @@ pub trait EnvironmentGuard: Send + Sync {
     fn prepare(&self, command: &mut tokio::process::Command) -> Result<(), ToolError>;
 }
 
-#[cfg(feature = "nofy-sandbox")]
-pub struct NofySandboxGuard;
-#[cfg(feature = "nofy-sandbox")]
-impl EnvironmentGuard for NofySandboxGuard {
-    fn revision(&self) -> &str {
-        "nofy-existing-confinement-v1"
-    }
-    fn prepare(&self, command: &mut tokio::process::Command) -> Result<(), ToolError> {
-        if !nofy_sandbox::is_active() {
-            return Err(crate::tool_error(
-                "sandbox_unavailable",
-                "Nofy sandbox must already be enforced by the host",
-            ));
-        }
-        #[cfg(target_os = "linux")]
-        if nofy_sandbox::should_restrict_child_network() {
-            // SAFETY: the existing Nofy child filter only installs kernel BPF
-            // rules and returns an io error; no locks or allocation after fork.
-            unsafe {
-                command.pre_exec(|| nofy_sandbox::child_net::install_child_network_filter());
-            }
-        }
-        #[cfg(not(target_os = "linux"))]
-        let _ = command;
-        Ok(())
-    }
-}
-
 #[derive(Clone)]
 pub struct InstalledProgram {
     pub(crate) path: PathBuf,
@@ -89,6 +61,17 @@ impl InstalledProgram {
             script_flag,
         })
     }
+    /// Retain the caller's absolute invocation path while verifying its bytes.
+    /// Toolchains may derive installation prefixes from this spelling (e.g. a
+    /// virtual environment symlink). The host must separately grant the path.
+    pub fn load_preserving_path(
+        path: &Path,
+        script_flag: Option<String>,
+    ) -> Result<Self, ToolError> {
+        let mut program = Self::load(path, script_flag)?;
+        program.path = path.to_owned();
+        Ok(program)
+    }
     pub(crate) async fn verify(&self) -> Result<(), ToolError> {
         let bytes = tokio::fs::read(&self.path).await.map_err(|_| {
             crate::tool_error("program_unavailable", "installed program cannot be read")
@@ -103,6 +86,38 @@ impl InstalledProgram {
     }
 }
 
+#[cfg(all(test, unix))]
+mod installed_program_tests {
+    use super::*;
+    #[tokio::test]
+    async fn invocation_alias_is_retained_without_losing_content_verification() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("runtime");
+        let alias = directory.path().join("invocation");
+        std::fs::copy("/usr/bin/true", &target).unwrap();
+        std::os::unix::fs::symlink(&target, &alias).unwrap();
+        let original = InstalledProgram::load(&alias, None).unwrap();
+        let retained = InstalledProgram::load_preserving_path(&alias, None).unwrap();
+        assert_eq!(original.path, target);
+        assert_eq!(retained.path, alias);
+        assert_eq!(original.digest, retained.digest);
+        retained.verify().await.unwrap();
+        use std::io::Write;
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(&target)
+            .unwrap()
+            .write_all(b"changed")
+            .unwrap();
+        assert!(retained.verify().await.is_err());
+        InstalledProgram::load_preserving_path(&alias, None)
+            .unwrap()
+            .verify()
+            .await
+            .unwrap();
+    }
+}
+
 #[derive(Clone)]
 pub struct ProcessEnvironment {
     pub(crate) root: PathBuf,
@@ -112,6 +127,37 @@ pub struct ProcessEnvironment {
     pub(crate) identity: String,
 }
 impl ProcessEnvironment {
+    /// Pure binding of already verified host resources. The caller owns the
+    /// absolute root and logical contract; paths never enter portable identity.
+    pub fn bind(
+        root: PathBuf,
+        programs: BTreeMap<String, InstalledProgram>,
+        env: BTreeMap<String, String>,
+        guard: Arc<dyn EnvironmentGuard>,
+        logical_identity: &str,
+    ) -> Result<Self, ToolError> {
+        if !root.is_absolute()
+            || logical_identity.is_empty()
+            || logical_identity.len() > 8192
+            || guard.revision().trim().is_empty()
+            || programs.is_empty()
+        {
+            return Err(crate::tool_error(
+                "environment",
+                "invalid trusted process binding",
+            ));
+        }
+        let identity =
+            serde_json::to_vec(&("logical-process-v1", logical_identity, guard.revision()))
+                .map_err(|_| crate::tool_error("environment", "invalid process identity"))?;
+        Ok(Self {
+            root,
+            programs,
+            env,
+            guard,
+            identity: format!("{:x}", Sha256::digest(identity)),
+        })
+    }
     /// Workspace, programs and environment are host-owned. HOME/PATH and all
     /// other ambient variables are cleared; no inherited current directory.
     pub fn install(

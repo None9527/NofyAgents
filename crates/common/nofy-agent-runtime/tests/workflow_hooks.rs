@@ -205,6 +205,98 @@ struct LoseCommit {
     identity: String,
     lose: AtomicBool,
 }
+
+struct HoldCompletedWorkflow {
+    inner: Arc<dyn HookHandler>,
+    armed: AtomicBool,
+}
+#[async_trait::async_trait]
+impl HookHandler for HoldCompletedWorkflow {
+    fn recovery_identity(&self) -> Option<String> {
+        self.inner
+            .recovery_identity()
+            .map(|id| format!("test-completed-gate:{id}"))
+    }
+    async fn handle(&self, event: &HookEvent, context: &RunContext) -> Result<HookDecision, Error> {
+        let decision = self.inner.handle(event, context).await?;
+        if matches!(decision, HookDecision::Continue) && self.armed.swap(false, Ordering::SeqCst) {
+            // The real workflow has committed its complete result; only its
+            // parent acknowledgement is held across the controller deadline.
+            std::future::pending::<()>().await;
+        }
+        Ok(decision)
+    }
+}
+
+#[tokio::test]
+async fn human_workflow_completed_before_hook_timeout_resumes_without_repeating_successful_effects()
+{
+    let (mut registry, flow, _, effects, models) = setup(true, None);
+    let resolved = registry.resolve(&[r("handler")]).unwrap();
+    let ModuleInstance::HookHandler(inner) = &resolved.instances[&r("handler")] else {
+        panic!("handler")
+    };
+    let handler = install(
+        &mut registry,
+        "completed-gate",
+        ModuleInstance::HookHandler(Arc::new(HoldCompletedWorkflow {
+            inner: inner.clone(),
+            armed: AtomicBool::new(true),
+        })),
+    );
+    registry
+        .define(ModuleDefinition {
+            reference: r("bounded-hook"),
+            factory: "hook.subscription".into(),
+            config: json!({"event":"user_input","timeout_ms":1000}),
+            dependencies: BTreeMap::from([("handler".into(), handler)]),
+        })
+        .unwrap();
+    let agent=nofy_agent_runtime::compile::compile_agent(serde_json::from_value(json!({"name":"bounded-parent","model":r("model"),"prompt":r("prompt"),"hooks":[r("bounded-hook")]})).unwrap(),&registry).unwrap().agent;
+    let store = Arc::new(InMemoryCheckpointer::default());
+    let agent = agent.with_checkpointer(store.clone());
+    let RunOutcome::Paused { reason, .. } = agent
+        .invoke(RunInput::new("question"), context())
+        .await
+        .unwrap()
+    else {
+        panic!("human pause")
+    };
+    assert_eq!(reason["kind"], "hook_workflow_paused");
+    let waiting = &reason["reason"];
+    flow.respond(
+        store.as_ref(),
+        HumanResponse {
+            command_id: "approve".into(),
+            thread_id: waiting["thread_id"].as_str().unwrap().into(),
+            run_id: waiting["run_id"].as_str().unwrap().into(),
+            workflow_identity: flow.identity().into(),
+            reference: r("flow"),
+            node: "human".into(),
+            expected_request: json!("confirm"),
+            value: json!(true),
+        },
+    )
+    .await
+    .unwrap();
+    let RunOutcome::Paused { reason, .. } =
+        agent.invoke(RunInput::resume(), context()).await.unwrap()
+    else {
+        panic!("controller deadline")
+    };
+    assert_eq!(reason["kind"], "hook_controller_timeout");
+    assert_eq!(effects.load(Ordering::SeqCst), 1);
+    assert_eq!(models.load(Ordering::SeqCst), 0);
+    assert!(matches!(
+        agent.invoke(RunInput::resume(), context()).await.unwrap(),
+        RunOutcome::Completed { .. }
+    ));
+    assert_eq!(effects.load(Ordering::SeqCst), 1);
+    assert_eq!(models.load(Ordering::SeqCst), 1);
+    agent.invoke(RunInput::resume(), context()).await.unwrap();
+    assert_eq!(effects.load(Ordering::SeqCst), 1);
+    assert_eq!(models.load(Ordering::SeqCst), 1);
+}
 #[async_trait::async_trait]
 impl Checkpointer for LoseCommit {
     async fn load(&self, key: &str) -> Result<Option<Checkpoint>, Error> {

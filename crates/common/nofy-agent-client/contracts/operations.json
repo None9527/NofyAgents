@@ -1,0 +1,1471 @@
+{
+  "format": "nofy.operation-catalog/v1",
+  "contract_revision": "0.3",
+  "implementation_state": "implemented",
+  "protocol": "nofy.kernel/v1",
+  "mcp_protocol_baseline": "2025-11-25",
+  "scope_hints_are_authorization": false,
+  "notes": [
+    "CLI and inbound MCP share the Rust operation engine and contract schemas. See docs/verification/agent-development-cli-mcp.md for actual acceptance scope.",
+    "Resource-bearing native deployment actions can require additional resources permission at the kernel; source edits only save data.",
+    "NativeJson fields preserve original DTO JSON text; explicit refs preserve native control integers in decimal strings within the native u64 range.",
+    "Managed source projects accept incomplete Agents and use the same pure editing engine as local CLI files.",
+    "SessionPolicy, Agent v2 and nofy.session-control/v1 are implemented; the frontend is paused.",
+    "CAS means local compare-before-update, not a commercial product or external authentication service."
+  ],
+  "operations": [
+    {
+      "operation": "describe",
+      "cli": "nofy describe",
+      "mcp_tool": "nofy_describe",
+      "input_schema": "contracts.schema.json#/$defs/Describe",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-protocol-discovery",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/access"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "schema",
+      "cli": "nofy schema",
+      "mcp_tool": "nofy_schema",
+      "input_schema": "contracts.schema.json#/$defs/Schema",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-protocol-discovery",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/dependencies"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "project.template",
+      "cli": "nofy project init",
+      "mcp_tool": "nofy_project_template",
+      "input_schema": "contracts.schema.json#/$defs/ProjectTemplate",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/presets/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "project.inspect",
+      "cli": "nofy project inspect",
+      "mcp_tool": "nofy_project_inspect",
+      "input_schema": "contracts.schema.json#/$defs/ProjectSource",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "project.build",
+      "cli": "nofy project build",
+      "mcp_tool": "nofy_project_build",
+      "input_schema": "contracts.schema.json#/$defs/ProjectSource",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "project.pack",
+      "cli": "nofy project pack",
+      "mcp_tool": "nofy_project_pack",
+      "input_schema": "contracts.schema.json#/$defs/ProjectSource",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/source-archives"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.create",
+      "cli": "nofy agent create",
+      "mcp_tool": "nofy_agent_create",
+      "input_schema": "contracts.schema.json#/$defs/AgentCreate",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/projects"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.list",
+      "cli": "nofy agent list",
+      "mcp_tool": "nofy_agent_list",
+      "input_schema": "contracts.schema.json#/$defs/Page",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.inspect",
+      "cli": "nofy agent inspect",
+      "mcp_tool": "nofy_agent_inspect",
+      "input_schema": "contracts.schema.json#/$defs/AgentRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.export",
+      "cli": "nofy agent export",
+      "mcp_tool": "nofy_agent_export",
+      "input_schema": "contracts.schema.json#/$defs/AgentRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.build",
+      "cli": "nofy agent build",
+      "mcp_tool": "nofy_agent_build",
+      "input_schema": "contracts.schema.json#/$defs/AgentRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.plan",
+      "cli": "nofy agent plan",
+      "mcp_tool": "nofy_agent_plan",
+      "input_schema": "contracts.schema.json#/$defs/AgentRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.apply",
+      "cli": "nofy agent apply",
+      "mcp_tool": "nofy_agent_apply",
+      "input_schema": "contracts.schema.json#/$defs/AgentApply",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "publish"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.list",
+      "cli": "nofy agent module list",
+      "mcp_tool": "nofy_agent_module_list",
+      "input_schema": "contracts.schema.json#/$defs/AgentRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.inspect",
+      "cli": "nofy agent module inspect",
+      "mcp_tool": "nofy_agent_module_inspect",
+      "input_schema": "contracts.schema.json#/$defs/ModuleRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.add",
+      "cli": "nofy agent module add",
+      "mcp_tool": "nofy_agent_module_add",
+      "input_schema": "contracts.schema.json#/$defs/ModuleAdd",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.set",
+      "cli": "nofy agent module set",
+      "mcp_tool": "nofy_agent_module_set",
+      "input_schema": "contracts.schema.json#/$defs/ModuleSet",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.bind",
+      "cli": "nofy agent module bind",
+      "mcp_tool": "nofy_agent_module_bind",
+      "input_schema": "contracts.schema.json#/$defs/ModuleBind",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.detach",
+      "cli": "nofy agent module detach",
+      "mcp_tool": "nofy_agent_module_detach",
+      "input_schema": "contracts.schema.json#/$defs/ModuleDetach",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.module.remove",
+      "cli": "nofy agent module remove",
+      "mcp_tool": "nofy_agent_module_remove",
+      "input_schema": "contracts.schema.json#/$defs/ModuleRemove",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "agent.tool.add",
+      "cli": "nofy agent tool add",
+      "mcp_tool": "nofy_agent_tool_add",
+      "input_schema": "contracts.schema.json#/$defs/ToolAdd",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "notes": "Same module-add engine; default slot=tools and accept only tool_pack/tool_source kinds.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/projects/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+    },
+    {
+      "operation": "draft.get",
+      "cli": "nofy draft get",
+      "mcp_tool": "nofy_draft_get",
+      "input_schema": "contracts.schema.json#/$defs/DraftRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/catalog"
+        }
+      ],
+      "notes": "Select the named existing draft from catalog; no native GET drafts/{name} route is invented.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "draft.put",
+      "cli": "nofy draft put",
+      "mcp_tool": "nofy_draft_put",
+      "input_schema": "contracts.schema.json#/$defs/DraftPut",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "PUT",
+          "path": "/api/v1/drafts/{name}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "draft.delete",
+      "cli": "nofy draft delete",
+      "mcp_tool": "nofy_draft_delete",
+      "input_schema": "contracts.schema.json#/$defs/DraftDelete",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "DELETE",
+          "path": "/api/v1/drafts/{name}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.validate",
+      "cli": "nofy system validate",
+      "mcp_tool": "nofy_system_validate",
+      "input_schema": "contracts.schema.json#/$defs/Document",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/validate"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.publish",
+      "cli": "nofy system publish",
+      "mcp_tool": "nofy_system_publish",
+      "input_schema": "contracts.schema.json#/$defs/Publish",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "publish"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/import"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/publish"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.plan",
+      "cli": "nofy system plan",
+      "mcp_tool": "nofy_system_plan",
+      "input_schema": "contracts.schema.json#/$defs/Plan",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/plan"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.apply",
+      "cli": "nofy system apply",
+      "mcp_tool": "nofy_system_apply",
+      "input_schema": "contracts.schema.json#/$defs/Apply",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "publish"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/apply"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.active",
+      "cli": "nofy system active",
+      "mcp_tool": "nofy_system_active",
+      "input_schema": "contracts.schema.json#/$defs/System",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/systems/{name}/active"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.history",
+      "cli": "nofy system history",
+      "mcp_tool": "nofy_system_history",
+      "input_schema": "contracts.schema.json#/$defs/System",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/systems/{name}/history"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.export",
+      "cli": "nofy system export",
+      "mcp_tool": "nofy_system_export",
+      "input_schema": "contracts.schema.json#/$defs/Release",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/releases/{release}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.rollback",
+      "cli": "nofy system rollback",
+      "mcp_tool": "nofy_system_rollback",
+      "input_schema": "contracts.schema.json#/$defs/Apply",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "publish"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/plan"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/apply"
+        }
+      ],
+      "notes": "Composite plan/apply toward an older release; creates a new generation, without undoing business effects.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "system.programs",
+      "cli": "nofy system programs",
+      "mcp_tool": "nofy_system_programs",
+      "input_schema": "contracts.schema.json#/$defs/Release",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/releases/{release}/programs"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.start",
+      "cli": "nofy run start",
+      "mcp_tool": "nofy_run_start",
+      "input_schema": "contracts.schema.json#/$defs/Request",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.list",
+      "cli": "nofy run list",
+      "mcp_tool": "nofy_run_list",
+      "input_schema": "contracts.schema.json#/$defs/Page",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/runs"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.inspect",
+      "cli": "nofy run inspect",
+      "mcp_tool": "nofy_run_inspect",
+      "input_schema": "contracts.schema.json#/$defs/Run",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.events",
+      "cli": "nofy run events",
+      "mcp_tool": "nofy_run_events",
+      "input_schema": "contracts.schema.json#/$defs/Events",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/events"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.approvals",
+      "cli": "nofy run approvals",
+      "mcp_tool": "nofy_run_approvals",
+      "input_schema": "contracts.schema.json#/$defs/Run",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/approvals"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.decide",
+      "cli": "nofy run decide",
+      "mcp_tool": "nofy_run_decide",
+      "input_schema": "contracts.schema.json#/$defs/Decision",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs/{id}/approvals"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.cancel",
+      "cli": "nofy run cancel",
+      "mcp_tool": "nofy_run_cancel",
+      "input_schema": "contracts.schema.json#/$defs/Cancel",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs/{id}/cancel"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.input",
+      "cli": "nofy run input",
+      "mcp_tool": "nofy_run_input",
+      "input_schema": "contracts.schema.json#/$defs/RunInput",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs/{id}/inputs"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.control",
+      "cli": "nofy run control",
+      "mcp_tool": "nofy_run_control",
+      "input_schema": "contracts.schema.json#/$defs/Control",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/actions"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "run.recovery",
+      "cli": "nofy run recovery",
+      "mcp_tool": "nofy_run_recovery",
+      "input_schema": "contracts.schema.json#/$defs/Recovery",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery/root"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery/models"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery/hooks"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "action.inspect",
+      "cli": "nofy action inspect",
+      "mcp_tool": "nofy_action_inspect",
+      "input_schema": "contracts.schema.json#/$defs/Action",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/actions/{id}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.list",
+      "cli": "nofy session list",
+      "mcp_tool": "nofy_session_list",
+      "input_schema": "contracts.schema.json#/$defs/SessionList",
+      "output_schema": "contracts.schema.json#/$defs/SessionListResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions"
+        }
+      ],
+      "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.inspect",
+      "cli": "nofy session inspect",
+      "mcp_tool": "nofy_session_inspect",
+      "input_schema": "contracts.schema.json#/$defs/Session",
+      "output_schema": "contracts.schema.json#/$defs/SessionStateResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}"
+        }
+      ],
+      "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.create",
+      "cli": "nofy session create",
+      "mcp_tool": "nofy_session_create",
+      "input_schema": "contracts.schema.json#/$defs/SessionCreate",
+      "output_schema": "contracts.schema.json#/$defs/SessionStateResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions"
+        }
+      ],
+      "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.turn",
+      "cli": "nofy session turn",
+      "mcp_tool": "nofy_session_turn",
+      "input_schema": "contracts.schema.json#/$defs/SessionTurn",
+      "output_schema": "contracts.schema.json#/$defs/SessionAdmissionResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/turns"
+        }
+      ],
+      "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.turns",
+      "cli": "nofy session turns",
+      "mcp_tool": "nofy_session_turns",
+      "input_schema": "contracts.schema.json#/$defs/SessionTurns",
+      "output_schema": "contracts.schema.json#/$defs/SessionTurnsResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}/turns"
+        }
+      ],
+      "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "resource.list",
+      "cli": "nofy resource list",
+      "mcp_tool": "nofy_resource_list",
+      "input_schema": "contracts.schema.json#/$defs/ResourceList",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/artifacts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runtimes"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runtime-images"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runtime-sources"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "resource.inspect",
+      "cli": "nofy resource inspect",
+      "mcp_tool": "nofy_resource_inspect",
+      "input_schema": "contracts.schema.json#/$defs/ResourceInspect",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/artifacts/{digest}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runtime-images/{digest}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runtime-sources/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/memory/resources/inspect"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/loader/references"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/loader/cache"
+        }
+      ],
+      "notes": "Some selections, including memory inspection, additionally require resources permission. Kernel authorization remains authoritative.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "resource.apply",
+      "cli": "nofy resource apply",
+      "mcp_tool": "nofy_resource_apply",
+      "input_schema": "contracts.schema.json#/$defs/ResourceApply",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "resources"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/artifacts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/runtimes"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/runtime-images"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/runtime-sources/{id}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/memory/resources/apply"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "budget.list",
+      "cli": "nofy budget list",
+      "mcp_tool": "nofy_budget_list",
+      "input_schema": "contracts.schema.json#/$defs/Page",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/budgets"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "credential.list",
+      "cli": "nofy credential list",
+      "mcp_tool": "nofy_credential_list",
+      "input_schema": "contracts.schema.json#/$defs/Empty",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "resources"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/credentials"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "credential.put",
+      "cli": "nofy credential put",
+      "mcp_tool": null,
+      "input_schema": "contracts.schema.json#/$defs/CredentialPut",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "resources"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "PUT",
+          "path": "/api/v1/credentials/{reference}"
+        }
+      ],
+      "notes": "Private CLI stdin/file injection only; no secret value is exposed through MCP.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "credential.delete",
+      "cli": "nofy credential delete",
+      "mcp_tool": null,
+      "input_schema": "contracts.schema.json#/$defs/CredentialDelete",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": [
+        "resources"
+      ],
+      "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
+      "native_routes": [
+        {
+          "method": "DELETE",
+          "path": "/api/v1/credentials/{reference}"
+        }
+      ],
+      "notes": "Private credential-management entry, separate from ordinary MCP development tools.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.start",
+      "cli": "nofy session start",
+      "mcp_tool": "nofy_session_start",
+      "input_schema": "contracts.schema.json#/$defs/SessionStart",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/start"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.route",
+      "cli": "nofy session route",
+      "mcp_tool": "nofy_session_route",
+      "input_schema": "contracts.schema.json#/$defs/SessionRoute",
+      "output_schema": "contracts.schema.json#/$defs/SessionRouteResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/route"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.plan",
+      "cli": "nofy session plan",
+      "mcp_tool": "nofy_session_plan",
+      "input_schema": "contracts.schema.json#/$defs/SessionPlan",
+      "output_schema": "contracts.schema.json#/$defs/SessionPlanResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/plan"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.policy",
+      "cli": "nofy session policy",
+      "mcp_tool": "nofy_session_policy",
+      "input_schema": "contracts.schema.json#/$defs/Session",
+      "output_schema": "contracts.schema.json#/$defs/SessionPolicyResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}/policy"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.metadata",
+      "cli": "nofy session metadata",
+      "mcp_tool": "nofy_session_metadata",
+      "input_schema": "contracts.schema.json#/$defs/SessionMetadata",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "PATCH",
+          "path": "/api/v1/sessions/{id}/metadata"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.close",
+      "cli": "nofy session close",
+      "mcp_tool": "nofy_session_close",
+      "input_schema": "contracts.schema.json#/$defs/SessionLifecycle",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/close"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.reopen",
+      "cli": "nofy session reopen",
+      "mcp_tool": "nofy_session_reopen",
+      "input_schema": "contracts.schema.json#/$defs/SessionLifecycle",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/reopen"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.archive",
+      "cli": "nofy session archive",
+      "mcp_tool": "nofy_session_archive",
+      "input_schema": "contracts.schema.json#/$defs/SessionLifecycle",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/archive"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.unarchive",
+      "cli": "nofy session unarchive",
+      "mcp_tool": "nofy_session_unarchive",
+      "input_schema": "contracts.schema.json#/$defs/SessionLifecycle",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/unarchive"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.reconfigure",
+      "cli": "nofy session reconfigure",
+      "mcp_tool": "nofy_session_reconfigure",
+      "input_schema": "contracts.schema.json#/$defs/SessionReconfigure",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "read",
+        "execute"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/{id}/reconfigure"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.command",
+      "cli": "nofy session command",
+      "mcp_tool": "nofy_session_command",
+      "input_schema": "contracts.schema.json#/$defs/SessionCommand",
+      "output_schema": "contracts.schema.json#/$defs/SessionCommandResult",
+      "interface_state": "implemented",
+      "capability_origin": "new-session-policy-and-lifecycle-api",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}/commands/{command_id}"
+        }
+      ],
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "session.binding",
+      "cli": "nofy session binding",
+      "mcp_tool": "nofy_session_binding",
+      "input_schema": "contracts.schema.json#/$defs/SessionBinding",
+      "output_schema": "contracts.schema.json#/$defs/SessionAdmissionResult",
+      "interface_state": "implemented",
+      "capability_origin": "implemented-native-session-policy-control",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "kernel authorizes session actions and enforces original leases, budgets, identities and recovery",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}/turns/{run}"
+        }
+      ],
+      "notes": "Implemented binding query preserves native binding identity, session revision and frozen policy version fields.",
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    }
+  ]
+}

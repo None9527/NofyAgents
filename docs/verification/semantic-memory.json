@@ -1,0 +1,785 @@
+{
+  "stage": "L5-semantic-memory",
+  "status": "related_acceptance_passed",
+  "overall_goal": "active",
+  "workflow": "complete functional block, one related wave, batch fixes and affected checks only",
+  "final_unique_tests": {
+    "runtime": 424,
+    "memory": 328,
+    "host": 260,
+    "total": 1012,
+    "memory_existing_performance_not_run": 1,
+    "doctests_run": 0
+  },
+  "first_wave": {
+    "passed": 1004,
+    "failed": 6,
+    "memory_ignored": 1,
+    "runtime_memory_seconds": 148.97295142896473,
+    "host_including_build_seconds": 686.4038431239314,
+    "host_http_seconds": 628.31
+  },
+  "rounds": [
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/runtime-memory.log",
+      "passed": 750,
+      "failed": 0,
+      "ignored": 1,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 49,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 19,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 19,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 53,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 222,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host.log",
+      "passed": 254,
+      "failed": 6,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 72,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "FAILED",
+          "passed": 177,
+          "failed": 6,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/runtime-related.log",
+      "passed": 21,
+      "failed": 0,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-semantic.log",
+      "passed": 4,
+      "failed": 3,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "FAILED",
+          "passed": 4,
+          "failed": 3,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-semantic-2.log",
+      "passed": 1,
+      "failed": 2,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "FAILED",
+          "passed": 1,
+          "failed": 2,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-semantic-3.log",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/runtime-retry.log",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "result": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-known-retry.log",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "compile_error": true,
+      "target_results": []
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-known-retry-final.log",
+      "passed": 0,
+      "failed": 1,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "log": "/tmp/nofy-semantic-memory.cef9gux_/host-known-retry-settled.log",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "compile_error": false,
+      "target_results": [
+        {
+          "result": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    }
+  ],
+  "defects_fixed": [
+    "embedding protocol admission used zero output bound; now reserves one, settles actual zero",
+    "completed source work was retained on before_model refusal; now retired without discarding unknown pending effects",
+    "embedding operation IDs were not namespaced by persisted source scope; now receipts cannot cross source epochs or embedding model updates",
+    "known failed source-model tickets were absent from existing pending-operation retry matching; exact current source scope now participates"
+  ],
+  "fixture_corrections": [
+    "initial malformed-vector negative passed at admission; now requires actual wire input and exact authorized retry success",
+    "default CLI fixture configures ADMIN only; VIEW is unauthenticated (401), actual in-process VIEW retry remains forbidden (403)",
+    "closed root resume is an immutable cancellation readback; continuation uses a new root on the same thread",
+    "test checkpointer needed Arc<dyn Checkpointer>, initial E0308 compile failure retained",
+    "ordinary 15 s action observer expired before the existing 30 s Worker failure backoff; new known-failure observer explicitly allows 60 s, production backoff and lease unchanged"
+  ],
+  "verified_behaviors": [
+    "pure declaration/import without memory root creation or credential read",
+    "real loader/API/worker local HTTP embeddings with reverse indices and actual fixture usage",
+    "semantic candidate without query keyword overlap, cache hits and per-model space rotation",
+    "Personal/Project admission filters before model inputs; forgotten/stale work cannot resurrect canonical chunks",
+    "forget during held embedding settles old plan and excludes old text from primary inference",
+    "budget max_model_calls 1 to 3 keeps original run state, completed embedding and ledger identity",
+    "same-host embedding model update and rollback keep run state and one prior effect; actual physical model names and request counts checked",
+    "known cancellation retires plan; closed root readback emits no new model IO; new root on same thread continues",
+    "default CLI SIGKILL after accepted embedding, restart, exact original receipt reconciliation in governed and unmetered modes; document embedding not resent",
+    "exact known-failure source ticket through original managed control command, denied VIEW, successful resumed plan and idempotent repeat",
+    "generic source owner loss, revision change, refusal cleanup, non-durable rejection and exact retry identity on SQLite"
+  ],
+  "checks": {
+    "static": [
+      {
+        "phase": "boundaries",
+        "exit": 0,
+        "seconds": 4.210049387998879
+      },
+      {
+        "phase": "format-check",
+        "exit": 0,
+        "seconds": 1.3679292909801006
+      },
+      {
+        "phase": "diff-check",
+        "exit": 0,
+        "seconds": 1.9981720979558304
+      }
+    ],
+    "finish": [
+      {
+        "phase": "runtime-retry",
+        "command": [
+          "cargo",
+          "test",
+          "--offline",
+          "-p",
+          "nofy-agent-runtime",
+          "--all-features",
+          "--test",
+          "prepared_context",
+          "--test",
+          "model_recovery",
+          "--test",
+          "context_policy"
+        ],
+        "exit": 0,
+        "seconds": 8.903088776045479
+      },
+      {
+        "phase": "runtime-default",
+        "command": [
+          "cargo",
+          "check",
+          "--offline",
+          "-p",
+          "nofy-agent-runtime",
+          "--no-default-features"
+        ],
+        "exit": 0,
+        "seconds": 4.7937594699906185
+      },
+      {
+        "phase": "docs",
+        "command": [
+          "cargo",
+          "doc",
+          "--offline",
+          "--no-deps",
+          "--all-features",
+          "-p",
+          "nofy-agent-runtime",
+          "-p",
+          "nofy-memory",
+          "-p",
+          "nofy-agent-host"
+        ],
+        "exit": 0,
+        "seconds": 24.116526448982768
+      },
+      {
+        "phase": "format-final",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit": 0,
+        "seconds": 1.288097427925095
+      }
+    ]
+  },
+  "source_proof": {
+    "tested": "/tmp/nofy-semantic-memory.cef9gux_/tested-source-freeze.json",
+    "final": "/tmp/nofy-semantic-memory.cef9gux_/accepted-source-freeze.json",
+    "count": 658,
+    "post_test_change": {
+      "path": "crates/common/nofy-agent-host/tests/http/semantic.rs",
+      "change": "comment_only: worker backoff rather than lease",
+      "before": "061929cb7bc239e948a571d4af6aa6e2f4c0228b48351f746c70841d5a72828f",
+      "after": "906c7496a73255914c4b79c703eab8a3c252b3efc963545688222a17c19c1d6f",
+      "exact_reconstruction_matches_tested_file": true
+    }
+  },
+  "impact": {
+    "hybrid_search_merge_scoped": "HIGH,24 affected,2 direct,4 modules",
+    "has_pending_work": "CRITICAL,41 affected,12 direct,14 flows,7 modules",
+    "ContextSource": "LOW,11 affected,4 direct,2 modules",
+    "model_hook_request": "LOW,2 affected",
+    "refuse_hook": "LOW,4 affected",
+    "run_inner": "LOW,1 direct graph edge; actual generic retry path manually checked",
+    "loader_register": "exact file context; same-name tty impact discarded",
+    "index": "L3b6 recovered; no stale warning and no reindex claimed",
+    "cumulative_detect": {
+      "changed_files": 10797,
+      "changed_symbols": 2959,
+      "affected": 209,
+      "risk": "critical",
+      "scope": "all accumulated dirty worktree, not this block alone"
+    }
+  },
+  "artifacts": {
+    "evidence": "/tmp/nofy-semantic-memory.cef9gux_",
+    "recovery": "/home/none/nofy-build-retired.jdnpc7/semantic-memory.d270s9o3",
+    "before_sha256": "38025598b95fa112f30d4282b3ebdf374dda74e8c9b57f498bdd31cb7db4d5fd",
+    "supplement_before": {
+      "path": "crates/common/nofy-agent-runtime/src/agent/execution.rs",
+      "archive": "supplement-before.tar.gz",
+      "sha256": "382f171ef82290891dd78feaa64584445b19b9cdb8e73f209f618625eaa06547"
+    },
+    "after": "/home/none/nofy-build-retired.jdnpc7/semantic-memory.d270s9o3/after.tar.gz",
+    "after_checksum_file": "/home/none/nofy-build-retired.jdnpc7/semantic-memory.d270s9o3/after.sha256",
+    "final_proof": "/tmp/nofy-semantic-memory.cef9gux_/final-proof.json"
+  },
+  "limits": {
+    "real_upstream_embedding_requests": 0,
+    "local_vectors": "deterministic protocol fixtures, not trained embedding inference",
+    "child_embedding_e2e": "not independently run; existing child_read selection reused",
+    "other_workspace_packages": "not retested",
+    "host_process_tree_tests": "implementation unchanged; previous evidence retained, not counted here",
+    "release_performance": "not run",
+    "remaining": [
+      "explicit cross-backend historical content migration",
+      "further programmable memory roles and other state capabilities",
+      "version-locked reference-agent behavior presets",
+      "final release"
+    ]
+  },
+  "side_effects": {
+    "new_dependencies": false,
+    "dependency_install": false,
+    "production_model_credentials_read": false,
+    "new_source_package_quota": false,
+    "new_legacy_host": false,
+    "commit": false,
+    "push": false
+  }
+}

@@ -1,4 +1,7 @@
 use super::*;
+#[cfg(target_os = "linux")]
+#[path = "code/isolation.rs"]
+mod isolation;
 #[tokio::test]
 async fn source_code_from_one_file_runs_as_tool_and_hook_then_changes_in_the_same_kernel() {
     let requests = Arc::new(Mutex::new(vec![]));
@@ -25,8 +28,8 @@ async fn source_code_from_one_file_runs_as_tool_and_hook_then_changes_in_the_sam
     module(
         &mut source,
         "provider",
-        "connection",
-        json!({"base_url":format!("{}/v1",provider.url),"api_backend":"chat_completions","auth_scheme":"bearer","max_retries":0}),
+        "base_url",
+        json!(format!("{}/v1/", provider.url)),
     );
     module(&mut source, "provider", "models", json!(["test-model"]));
     module(&mut source, "model", "model", json!("test-model"));
