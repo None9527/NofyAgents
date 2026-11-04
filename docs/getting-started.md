@@ -1,6 +1,6 @@
 # 从源码启动 CLI 与 MCP
 
-[返回首页](../README.md) · [完整手册](manual/README.md) · [English](getting-started.en.md)
+[返回首页](../README.zh-CN.md) · [完整手册](manual/README.md) · [English](getting-started.en.md)
 
 主要体验环境为 Linux。Rust 工具链见 [rust-toolchain.toml](../rust-toolchain.toml)。模型服务和外部业务模块的依赖自行准备。当前发布不包含前端。
 

@@ -1,6 +1,6 @@
 # Build and start CLI/MCP
 
-[Home](../README.en.md) · [Handbook](manual/README.md) · [简体中文](getting-started.md)
+[Home](../README.md) · [Handbook](manual/README.md) · [简体中文](getting-started.md)
 
 Linux is the primary evaluation platform. Use the [pinned Rust toolchain](../rust-toolchain.toml). Supply model services and external dependencies separately. This release contains no frontend.
 
