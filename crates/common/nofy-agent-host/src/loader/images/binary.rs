@@ -30,11 +30,21 @@ pub(super) fn needed(data: &[u8]) -> Result<Vec<String>> {
     let mut segments = Vec::new();
     let mut dynamic = None;
     for index in 0..count {
-        let header = offset + index * stride;
+        // The program header table offset comes from the untrusted image, so
+        // every derived address is checked like the rest of this parser.
+        let header = index
+            .checked_mul(stride)
+            .and_then(|delta| offset.checked_add(delta))
+            .ok_or_else(|| invalid("ELF program header offset overflow"))?;
+        let field = |delta: u64| {
+            header
+                .checked_add(delta)
+                .ok_or_else(|| invalid("ELF program header offset overflow"))
+        };
         let kind = u32::from_le_bytes(bytes(data, header, 4)?.try_into().unwrap());
-        let file_offset = u64_at(data, header + 8)?;
-        let virtual_address = u64_at(data, header + 16)?;
-        let size = u64_at(data, header + 32)?;
+        let file_offset = u64_at(data, field(8)?)?;
+        let virtual_address = u64_at(data, field(16)?)?;
+        let size = u64_at(data, field(32)?)?;
         if kind == 1 {
             segments.push((virtual_address, file_offset, size));
         }
@@ -104,4 +114,36 @@ pub(super) fn needed(data: &[u8]) -> Result<Vec<String>> {
                 .map_err(|_| invalid("ELF dependency name is not UTF-8"))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod overflow_tests {
+    use super::*;
+
+    fn image(table_offset: u64, count: u16, stride: u16) -> Vec<u8> {
+        let mut data = vec![0u8; 64];
+        data[..4].copy_from_slice(b"\x7fELF");
+        data[4] = 2;
+        data[5] = 1;
+        data[16..18].copy_from_slice(&3u16.to_le_bytes());
+        data[32..40].copy_from_slice(&table_offset.to_le_bytes());
+        data[54..56].copy_from_slice(&stride.to_le_bytes());
+        data[56..58].copy_from_slice(&count.to_le_bytes());
+        data
+    }
+
+    #[test]
+    fn hostile_program_header_offsets_are_rejected_without_overflow() {
+        // offset + index * stride and the field deltas must not wrap.
+        for (offset, count, stride) in [
+            (u64::MAX, 2, 56),
+            (u64::MAX - 10, 1, 56),
+            (u64::MAX - 100, 3, 56),
+        ] {
+            assert!(
+                needed(&image(offset, count, stride)).is_err(),
+                "{offset} {count} {stride}"
+            );
+        }
+    }
 }

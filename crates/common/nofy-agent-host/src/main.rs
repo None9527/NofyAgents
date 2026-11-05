@@ -21,6 +21,11 @@ struct Args {
     access_file: PathBuf,
     #[arg(long, default_value = "127.0.0.1:7331")]
     listen: SocketAddr,
+    /// The kernel API is plain HTTP and carries Bearer tokens, so a
+    /// non-loopback listener is refused unless this is passed explicitly.
+    /// Put it behind a TLS-terminating proxy or tunnel when you do.
+    #[arg(long)]
+    allow_non_loopback: bool,
     #[arg(long, default_value = "local")]
     credential_authority: String,
     #[arg(long, default_value = "NOFY_SECRET_")]
@@ -110,6 +115,7 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 .await?;
         }
     }
+    check_listen(args.listen, args.allow_non_loopback)?;
     let listener = tokio::net::TcpListener::bind(args.listen).await?;
     eprintln!("Nofy kernel listening on http://{}", listener.local_addr()?);
     let shutdown = CancellationToken::new();
@@ -126,4 +132,38 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         result=tokio::signal::ctrl_c()=>{result?;host.shutdown();shutdown.cancel();let (s,w)=tokio::join!(server,worker);s?;w?;}
     }
     Ok(())
+}
+
+fn check_listen(address: SocketAddr, allow_non_loopback: bool) -> Result<(), String> {
+    if address.ip().is_loopback() {
+        return Ok(());
+    }
+    if !allow_non_loopback {
+        return Err(format!(
+            "refusing to listen on non-loopback address {address}: the kernel API is plain HTTP \
+             with Bearer tokens; pass --allow-non-loopback only behind TLS termination or a tunnel"
+        ));
+    }
+    eprintln!(
+        "warning: kernel API listening on non-loopback {address} without TLS; \
+         access tokens are sent in clear text unless a TLS proxy or tunnel protects this port"
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod listen_tests {
+    use super::check_listen;
+
+    #[test]
+    fn loopback_is_always_allowed_and_other_addresses_need_the_flag() {
+        for loopback in ["127.0.0.1:7331", "[::1]:7331", "127.0.0.2:1"] {
+            assert!(check_listen(loopback.parse().unwrap(), false).is_ok());
+        }
+        for exposed in ["0.0.0.0:7331", "[::]:7331", "192.168.1.5:7331"] {
+            let address = exposed.parse().unwrap();
+            assert!(check_listen(address, false).is_err(), "{exposed}");
+            assert!(check_listen(address, true).is_ok(), "{exposed}");
+        }
+    }
 }

@@ -80,6 +80,13 @@ nofy-tool-protocol = { path = "crates/common/nofy-tool-protocol" }
 nofy-tool-types = { path = "crates/common/nofy-tool-types" }
 nofy-tty-utils = { path = "crates/common/nofy-tty-utils" }
 
+# Fail-stop policy: a panic aborts the whole process instead of unwinding.
+# The kernel keeps durable checkpoints, leases and budget ledgers, and recovers
+# from them on restart, so a crash is safe; unwinding would instead leave
+# poisoned std locks behind (many `lock().expect(..)` sites) and half-applied
+# in-memory state. Consequence: `catch_unwind` has no effect in release/dev
+# builds (see runtime `tasks.rs`), so code on untrusted-input paths must return
+# errors, never panic.
 [profile.release]
 incremental = true
 panic = "abort"
@@ -100,17 +107,6 @@ codegen-units = 1
 strip = false
 debug = 1
 split-debuginfo = "off"
-
-# Production profile for latency-sensitive x-product services (VF, home-mixer).
-# Thin LTO gives ~90% of full LTO benefit at significantly faster link time.
-# Keeps symbols + line tables for prod debuggability (perf, flamegraph, stack traces).
-[profile.x-prod]
-inherits = "release"
-lto = "thin"
-strip = false
-codegen-units = 1
-debug = "line-tables-only"
-panic = "unwind"
 
 # Desktop release profile. Functionally identical to release-dist — kept as a
 # named alias so the desktop workflow can reference it without coupling to the
