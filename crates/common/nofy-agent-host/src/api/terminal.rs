@@ -20,6 +20,7 @@ async fn execute(
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Execute)?;
     host.auth.require(&headers, Scope::Resources)?;
+    valid_owner(&request.owner)?;
     #[cfg(target_os = "linux")]
     {
         nofy_agent_runtime::settings::validate_json_value(
@@ -57,5 +58,49 @@ async fn execute(
         Err(HostError::Unavailable(
             "terminal requires the Linux namespace backend".into(),
         ))
+    }
+}
+
+/// The owner label is stored in session records and audit output, so it is a
+/// short printable token. It is only ever used under the reserved
+/// `operator:` namespace and never selects another principal's sessions.
+fn valid_owner(owner: &str) -> Result<()> {
+    if owner.is_empty()
+        || owner.len() > 128
+        || !owner
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._:@-".contains(&b))
+    {
+        return Err(HostError::Invalid(
+            "terminal owner must be 1..128 characters from [A-Za-z0-9._:@-]".into(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod owner_tests {
+    use super::valid_owner;
+
+    #[test]
+    fn owner_labels_are_bounded_printable_tokens() {
+        for ok in [
+            "development",
+            "operator-test",
+            "alice@host:1",
+            &"a".repeat(128),
+        ] {
+            assert!(valid_owner(ok).is_ok(), "{ok}");
+        }
+        for bad in [
+            "",
+            "has space",
+            "line\nbreak",
+            "ctl\u{7}",
+            "中文",
+            &"a".repeat(129),
+        ] {
+            assert!(valid_owner(bad).is_err(), "{bad:?}");
+        }
     }
 }

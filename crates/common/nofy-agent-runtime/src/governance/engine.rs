@@ -210,7 +210,8 @@ pub(super) fn reserve(
     }
     let now = now.max(summary.last_seen_ms);
     summary.last_seen_ms = now;
-    let projected = summary.used.add(summary.reserved)?.add(request.reserve)?;
+    // Projection arithmetic runs only after every cheap denial, so an already
+    // blocked scope reports its recorded denial instead of an overflow error.
     let denied = if let Some(blocked) = &summary.blocked {
         Some(blocked.clone())
     } else if summary.deadline_ms.is_some_and(|deadline| now >= deadline) {
@@ -238,6 +239,7 @@ pub(super) fn reserve(
     {
         Some(denial("limit_exceeded", "active_children"))
     } else {
+        let projected = summary.used.add(summary.reserved)?.add(request.reserve)?;
         exceeds(&spec.limits, projected)?
     };
     if let Some(denied) = denied {
@@ -506,5 +508,61 @@ pub(super) fn page_limit(limit: usize) -> Result<(), Error> {
         Ok(())
     } else {
         Err(invalid("budget event limit must be 1..=1000"))
+    }
+}
+
+#[cfg(test)]
+mod reserve_order_tests {
+    use super::*;
+
+    fn spec() -> BudgetSpec {
+        BudgetSpec {
+            scope: BudgetScope {
+                root_run_id: "root".into(),
+                identity: "scope".into(),
+            },
+            limits: BudgetLimits {
+                max_tool_calls: Some(10),
+                ..Default::default()
+            },
+        }
+    }
+    fn request() -> BudgetRequest {
+        BudgetRequest {
+            operation_id: "op".into(),
+            fingerprint: "fp".into(),
+            reserve: BudgetCost {
+                tool_calls: 1,
+                ..Default::default()
+            },
+            depth: 0,
+            activity: BudgetActivity::Operation,
+            unbounded_tokens: false,
+        }
+    }
+
+    #[test]
+    fn blocked_scope_with_saturated_usage_denies_instead_of_overflowing() {
+        let spec = spec();
+        let mut summary = enroll(&spec, None, 0).unwrap();
+        summary.used.tool_calls = u64::MAX;
+        summary.reserved.tool_calls = 1;
+        summary.blocked = Some(denial("actual_usage_exceeded_reservation", "usage_bound"));
+        let transition = reserve(&spec, Some(summary), None, &request(), 1).unwrap();
+        match transition.decision {
+            Some(BudgetDecision::Denied(denied)) => {
+                assert_eq!(denied.reason, "actual_usage_exceeded_reservation")
+            }
+            other => panic!("expected recorded denial, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unblocked_projection_overflow_is_still_an_error() {
+        let spec = spec();
+        let mut summary = enroll(&spec, None, 0).unwrap();
+        summary.used.tool_calls = u64::MAX;
+        summary.reserved.tool_calls = 1;
+        assert!(reserve(&spec, Some(summary), None, &request(), 1).is_err());
     }
 }

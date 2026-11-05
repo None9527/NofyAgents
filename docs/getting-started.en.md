@@ -84,4 +84,4 @@ Reload MCP configuration in the client, then discover tools and call `nofy_descr
 - Source archives contain source and ordinary dependency lists. Users install interpreters, compilers, and libraries; archives have no package-size quota.
 - Terminal tools that spawn processes require an explicit [cgroup delegation environment](architecture/process-tree-contract.md).
 
-Access scopes cover the instance; multi-tenant isolation is not provided. This guide uses a loopback listener. Shared source must not contain kernel tokens or model keys.
+Access scopes cover the instance; multi-tenant isolation is not provided. This guide uses a loopback listener. The kernel speaks plain HTTP with Bearer tokens, so it refuses a non-loopback `--listen` unless `--allow-non-loopback` is passed; do that only behind TLS termination or a tunnel. Shared source must not contain kernel tokens or model keys.

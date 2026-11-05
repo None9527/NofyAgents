@@ -87,5 +87,6 @@ codex mcp add nofy -- "$PWD/target/debug/nofy" mcp serve \
 - [完整系统示例](../crates/common/nofy-agent-host/examples)展示原生系统；[操作目录](manual/operations.json)提供可发现输入／输出契约。
 - 源码归档只交付源码和普通依赖清单，不安装或打包 Python、GCC、库，也不设置包体配额。
 - 可派生进程的终端工具需要显式 [cgroup 委派环境](architecture/process-tree-contract.md)；普通文件工具与 Bash 进程树各有运行前提。
+- 内核 API 是明文 HTTP 并携带 Bearer 令牌，因此 `--listen` 为非回环地址时默认拒绝启动，需显式传 `--allow-non-loopback`；仅应在 TLS 终结代理或隧道之后这样做。
 
 访问作用域覆盖实例，当前没有多租户隔离。此指南使用本机监听；配置分享不包含访问令牌或模型密钥。

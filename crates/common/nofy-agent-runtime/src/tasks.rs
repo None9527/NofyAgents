@@ -249,6 +249,9 @@ impl Scope {
                         }),
                     }
                 })
+                // Effective only in unwinding builds (tests). Release and dev use
+                // `panic = "abort"` (see the workspace Cargo.toml), where a panic
+                // here ends the process and recovery restarts from checkpoints.
                 .catch_unwind()
                 .await;
                 let outcome = run.unwrap_or_else(|_| {
