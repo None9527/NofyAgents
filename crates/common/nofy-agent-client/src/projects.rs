@@ -530,12 +530,13 @@ fn percent_decode(s: &str) -> Result<String> {
     let mut i = 0;
     while i < b.len() {
         if b[i] == b'%' {
-            if i + 2 >= b.len() {
+            // Work on bytes: slicing the `str` here would panic when a
+            // multi-byte character follows the `%`.
+            let digit = |at: usize| b.get(at).and_then(|d| char::from(*d).to_digit(16));
+            let (Some(high), Some(low)) = (digit(i + 1), digit(i + 2)) else {
                 return Err(Error::new("local_input", "invalid URI escaping"));
-            }
-            let byte = u8::from_str_radix(&s[i + 1..i + 3], 16)
-                .map_err(|_| Error::new("local_input", "invalid URI escaping"))?;
-            out.push(byte);
+            };
+            out.push((high * 16 + low) as u8);
             i += 3;
         } else {
             out.push(b[i]);
@@ -543,4 +544,23 @@ fn percent_decode(s: &str) -> Result<String> {
         }
     }
     String::from_utf8(out).map_err(|_| Error::new("local_input", "URI component must be UTF-8"))
+}
+
+#[cfg(test)]
+mod percent_decode_tests {
+    use super::percent_decode;
+
+    #[test]
+    fn decodes_valid_escapes_including_at_the_end() {
+        assert_eq!(percent_decode("a%20b").unwrap(), "a b");
+        assert_eq!(percent_decode("%41").unwrap(), "A");
+        assert_eq!(percent_decode("%e4%b8%ad").unwrap(), "中");
+    }
+
+    #[test]
+    fn malformed_escapes_error_instead_of_panicking() {
+        for bad in ["%", "%4", "%zz", "%+f", "%aé", "%é", "x%中", "%4é", "é%"] {
+            assert!(percent_decode(bad).is_err(), "{bad:?}");
+        }
+    }
 }
