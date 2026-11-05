@@ -1,6 +1,6 @@
 # CLI 使用手册
 
-版本：`0.3`。`nofy` 由 Rust CLI、共用操作客户端与源码引擎实现；构建和连接方式见[总入口](README.md)。
+版本：`0.6`。`nofy` 由 Rust CLI、共用操作客户端与源码引擎实现；构建和连接方式见[总入口](README.md)。
 
 ## 连接与通用选项
 
@@ -192,7 +192,7 @@ nofy session turns "$SESSION_ID" --after "$SEQUENCE"
 
 `create` 接纳已有首根；`session start` 原子创建首根 Job 与会话。turn.json 为公共 SessionTurn 输入，包含 expected_session_revision 和存放原 SessionTurnCommand 的 request_json，保留源运行 revision、绑定 revision 与先后顺序。
 
-[Session 专册](sessions.md)给出全部 17 项会话 CLI/MCP 操作及规则/源码模块例子：路由、元数据、生命周期、策略查询/切换、原命令与轮次绑定查询。`session plan` 是只读预览；reconfigure 首期仅在轮次间静止边界生效。先用 describe 确认连接的是新版内核。
+[Session 专册](sessions.md)给出全部 20 项会话 CLI/MCP 操作及规则/源码模块例子：路由、元数据、生命周期、策略查询/切换、原命令与轮次绑定查询。`session plan` 是只读预览；reconfigure 首期仅在轮次间静止边界生效。先用 describe 确认连接的是新版内核。
 
 ## 审批、取消、更新与恢复
 
@@ -286,3 +286,5 @@ nofy credential put MODEL_KEY --expected-revision none \
 本机开发安装已将 nofy 指向新版 Rust CLI；默认 local profile 只引用既有 console-token 文件，连接 http://127.0.0.1:7331。stdio 身份需要环境变量时明确传 --token-env，避免 profile 的令牌文件引用优先于环境。运行尚无 live 更新记录时，run inspect 的 refs.live_revision 返回 "0"；预算及运行资源来源的 next_cursor 保留内核原值。resource list --kind runtimes 返回完整清单，不接受分页。
 
 --config PATH 专用于客户端连接配置；模块参数通过 --config-json、--set/--set-json 或 --input 内的 config 对象提供，两种配置含义分开。
+
+模块仓库操作及 `agent.module.use/unuse` 见[模块仓库手册](repositories.md)。声明保存固定版本引用，导出收齐源码；运行依赖由用户提供。

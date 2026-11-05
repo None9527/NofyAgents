@@ -13,17 +13,17 @@
 - **创建并组合 Agent。** 从空声明开始，配置模型、提示词、工具、上下文、策略、预算和会话。CLI 与 MCP 操作同一源码事实源。
 - **接入外部实现。** 工具可以使用 Rhai、独立脚本／程序、HTTP 或外部 MCP 服务。常规业务能力无需修改内核 Rust。
 - **构建、发布与恢复。** 将声明构建为完整系统，检查差异、激活 generation，观察运行事件、审批、取消及恢复。
-- **保留会话状态。** 通过 17 项会话操作管理接纳、续轮、元数据、归档和轮次间策略切换。
+- **保留会话状态。** 通过 20 项会话操作管理接纳、续轮、元数据、归档和轮次间策略切换。
 - **交付可移植源码。** 源码包包含声明、模块源码与普通依赖清单；凭据单独注入，解释器、编译器及外部库由使用者安装。
 
-开发协议为 `nofy.kernel/v1`，当前契约修订 `0.3`：68 项操作，其中 66 项通过 MCP 开放。密钥正文注入使用独立的本地私有入口。
+开发协议为 `nofy.kernel/v1`，当前契约修订 `0.4`：79 项操作，其中 77 项通过 MCP 开放。密钥正文注入使用独立的本地私有入口。
 
 ## 核心概念：目标（Goal）与递归自我改进（RSI）
 
 本框架的递归自我改进不是运行时改写内核，而是一个受控的声明式闭环：
 
 1. **目标驱动。** 给 Agent 一个目标后，宿主通过 Goal 状态模块跨轮跟踪：状态编码、生命周期、快照与恢复、预算与停顿检测（`nofy-goal`）；规划模型与编排由宿主接入，目标状态本身持久、可暂停、可恢复。
-2. **声明式改进。** Agent 通过 CLI／MCP 的 68 项操作把改进落成数据——创建源码工程、组合模块与依赖、构建校验、发布激活、运行验证、导出源码。改进对象是声明、模块与预设制品；常规能力更改不修改内核 Rust，每次调用由内核重新检查授权。
+2. **声明式改进。** Agent 通过 CLI／MCP 的 79 项操作把改进落成数据——创建源码工程、组合模块与依赖、构建校验、发布激活、运行验证、导出源码。改进对象是声明、模块与预设制品；常规能力更改不修改内核 Rust，每次调用由内核重新检查授权。
 3. **递归结构。** 被开发的 Agent 与开发它们的 Agent 走同一 Loader 与执行路径；[coding 预设](presets/coding/文件说明.md)本身就是框架上的一份可编辑声明。Agent 可以用同一套操作开发其他 Agent，也可以改进自己这类预设与模块，形成「Agent 开发 Agent、Agent 改进 Agent」的递归。
 
 边界：内核授权、审批、预算与取消是改进循环的强制边界。闭环各步骤分别有验证记录（[真实模型修复](docs/verification/coding-real-model-build.md)、[MCP sub-agent 端到端](docs/verification/mcp-sub-agent.md)），完整的自主改进闭环尚未整体验收。
@@ -107,7 +107,7 @@ nofy run events "$RUN_ID" --after "$CURSOR" --follow      # 事件有原 cursor�
 nofy run approvals "$RUN_ID"                     # decide 提交刚读到的完整原请求 + allow
 nofy run cancel "$RUN_ID" --command-id "$CANCEL_ID"
 
-nofy session start --input session.json          # 原子创建首根会话；17 项 session 操作见专册
+nofy session start --input session.json          # 原子创建首根会话；20 项 session 操作见专册
 nofy session turn --input turn.json
 ```
 
@@ -123,7 +123,7 @@ nofy system rollback coder --release "$OLD_RELEASE" \
 
 ## MCP 接入方法
 
-完整协议说明见 [MCP 手册](docs/manual/mcp.md)。入站 MCP Server 与 CLI 共用操作契约，`tools/list` 固定公开 66 项已实现操作；密钥正文注入不走 MCP，保留为独立本地私有入口。
+完整协议说明见 [MCP 手册](docs/manual/mcp.md)。入站 MCP Server 与 CLI 共用操作契约，`tools/list` 固定公开 77 项已实现操作；密钥正文注入不走 MCP，保留为独立本地私有入口。
 
 stdio（Codex 等本地客户端）：
 

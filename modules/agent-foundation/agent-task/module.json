@@ -1,0 +1,68 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "agent-task",
+  "version": "0.1.0",
+  "description": "A model-callable resumable child Agent using existing scoped skill execution and inherited parent floors.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "max_steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4096,
+        "default": 32
+      },
+      "instructions": {
+        "type": "string",
+        "default": "Complete $ARGUMENTS using the declared tools. Return actual results and any remaining blockers."
+      }
+    }
+  },
+  "inputs": {
+    "model": "model",
+    "tools": "tool_pack"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "task"
+      },
+      "factory": "tool.skills",
+      "config": {
+        "skill_tool_name": "task",
+        "skills": [
+          {
+            "name": "delegate",
+            "description": "Delegate a bounded task to a child Agent with explicit model and tools.",
+            "path": "/definitions/foundation/delegate.json",
+            "scope": "task",
+            "body": {
+              "$parameter": "/instructions"
+            }
+          }
+        ],
+        "execution": {
+          "default_model": "model",
+          "tool_packs": [
+            "tools"
+          ],
+          "max_steps": {
+            "$parameter": "/max_steps"
+          }
+        }
+      },
+      "dependencies": {
+        "model": {
+          "$input": "model"
+        },
+        "tools": {
+          "$input": "tools"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "task": "task"
+  }
+}

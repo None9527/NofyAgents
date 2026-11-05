@@ -97,7 +97,7 @@ pub async fn persist_output(
             .ok_or_else(|| Error::new("unsupported_protocol", "archive digest missing"))?;
         return download(engine, digest, path, replace).await;
     }
-    if op == "agent.export" {
+    if matches!(op, "agent.export" | "module.export") {
         let source: Source = serde_json::from_value(output.data["source"].clone())?;
         return save(path, replace, |f| {
             nofy_agent_project::pack_to(&source, f)?;

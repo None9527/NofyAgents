@@ -6,9 +6,11 @@ use std::collections::{BTreeMap, BTreeSet};
 enum Node {
     Data(Value),
     Ref(String),
+    InputRef(String),
     Array(Vec<Node>),
     Object(BTreeMap<String, Node>),
     Overlay(Box<Node>, BTreeMap<String, Value>),
+    Remove(Box<Node>, Vec<String>),
 }
 struct Renderer<'a> {
     source: &'a Source,
@@ -227,6 +229,15 @@ impl<'a> Renderer<'a> {
                             .into(),
                     ));
                 }
+                "$input" => {
+                    return Ok(Node::InputRef(
+                        arg.as_str()
+                            .ok_or_else(|| {
+                                Error::new("local_input", "package input name required")
+                            })?
+                            .into(),
+                    ));
+                }
                 "$when" => {
                     return Err(Error::new(
                         "local_input",
@@ -362,6 +373,26 @@ impl<'a> Renderer<'a> {
                     }
                     return Ok(Node::Data(json!(out)));
                 }
+                "$remove" => {
+                    let base = self.expand(
+                        arg.get("base")
+                            .ok_or_else(|| Error::new("local_input", "remove base missing"))?,
+                        depth + 1,
+                    )?;
+                    let pointers = arg["pointers"]
+                        .as_array()
+                        .ok_or_else(|| {
+                            Error::new("local_input", "remove pointers must be an array")
+                        })?
+                        .iter()
+                        .map(|p| {
+                            p.as_str().map(str::to_owned).ok_or_else(|| {
+                                Error::new("local_input", "remove requires JSON Pointers")
+                            })
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    return Ok(Node::Remove(Box::new(base), pointers));
+                }
                 "$configure" => {
                     let sets = arg
                         .get("set")
@@ -451,6 +482,9 @@ fn materialize(node: &Node, state: &mut Versions) -> Result<Value> {
     match node {
         Node::Data(v) => Ok(v.clone()),
         Node::Ref(id) => version(id, state),
+        Node::InputRef(_) => Err(Error::incomplete(
+            "package input used outside a resolved module import",
+        )),
         Node::Array(items) => Ok(Value::Array(
             items
                 .iter()
@@ -470,9 +504,29 @@ fn materialize(node: &Node, state: &mut Versions) -> Result<Value> {
             }
             Ok(value)
         }
+        Node::Remove(base, pointers) => {
+            let mut value = materialize(base, state)?;
+            for pointer in pointers {
+                crate::edit::removal::pointer_remove(&mut value, pointer)?;
+            }
+            Ok(value)
+        }
     }
 }
 fn render(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
+    let expanded;
+    let doc = source.json(&source.declaration)?;
+    let source = if doc
+        .get("system")
+        .unwrap_or(&doc)
+        .get("module_imports")
+        .is_some()
+    {
+        expanded = crate::repository::expand_cached(source, kinds)?;
+        &expanded
+    } else {
+        source
+    };
     let mut r = Renderer::new(source)?;
     let document = source.json(&source.declaration)?;
     let template = if document.get("format").and_then(Value::as_str) == Some("nofy.preset/v1") {
@@ -523,6 +577,82 @@ fn render(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
     let mut system = materialize(&tree, &mut versions)?;
     normalize_tools(&mut system, kinds)?;
     Ok(system)
+}
+pub(crate) fn evaluate_parameters(source: &Source, expression: &Value) -> Result<Value> {
+    Renderer::new(source)?.data(expression, 0)
+}
+pub(crate) fn package_modules(
+    source: &Source,
+    manifest: &crate::repository::PackageManifest,
+    alias: &str,
+    parameters: Value,
+    inputs: &BTreeMap<String, Value>,
+) -> Result<Vec<Value>> {
+    let mut settings = defaults(&manifest.parameters_schema);
+    if !settings.is_object() {
+        settings = json!({});
+    }
+    merge(&mut settings, parameters);
+    if !settings.is_object() {
+        return Err(Error::new(
+            "local_input",
+            "module parameters must be an object",
+        ));
+    }
+    let validator = crate::repository::parameter_validator(&manifest.parameters_schema)?;
+    if let Some(error) = validator.iter_errors(&settings).next() {
+        let mut e = Error::incomplete(format!(
+            "module parameters do not match the package interface at {}",
+            error.instance_path
+        ));
+        e.details = json!({"alias":alias,"path":error.instance_path.to_string()});
+        return Err(e);
+    }
+    let mut renderer = Renderer {
+        source,
+        settings,
+        bindings: Default::default(),
+        ready: Default::default(),
+        active: Default::default(),
+    };
+    fn expression(node: Node, alias: &str, inputs: &BTreeMap<String, Value>) -> Result<Value> {
+        Ok(match node {
+            // Materialized business data must not be interpreted as template code again.
+            Node::Data(v) => json!({"$literal":v}),
+            Node::Ref(id) => json!({"$module":format!("{alias}.{id}")}),
+            Node::InputRef(port) => inputs.get(&port).cloned().ok_or_else(|| {
+                Error::incomplete(format!("module input {alias}.{port} is not bound"))
+            })?,
+            Node::Array(items) => Value::Array(
+                items
+                    .into_iter()
+                    .map(|n| expression(n, alias, inputs))
+                    .collect::<Result<_>>()?,
+            ),
+            Node::Object(items) => Value::Object(
+                items
+                    .into_iter()
+                    .map(|(k, n)| Ok((k, expression(n, alias, inputs)?)))
+                    .collect::<Result<_>>()?,
+            ),
+            Node::Overlay(base, sets) => {
+                json!({"$configure":{"base":expression(*base,alias,inputs)?,"set":sets}})
+            }
+            Node::Remove(base, pointers) => {
+                json!({"$remove":{"base":expression(*base,alias,inputs)?,"pointers":pointers}})
+            }
+        })
+    }
+    let modules = renderer.expand(&json!(manifest.modules), 0)?;
+    expression(modules, alias, inputs)?
+        .as_array()
+        .cloned()
+        .ok_or_else(|| {
+            Error::new(
+                "local_input",
+                "module package did not produce a module list",
+            )
+        })
 }
 fn normalize_tools(system: &mut Value, kinds: &crate::FactoryKinds) -> Result<()> {
     let factory_by_ref: BTreeMap<String, String> = system

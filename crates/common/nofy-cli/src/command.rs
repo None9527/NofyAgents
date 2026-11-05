@@ -91,6 +91,24 @@ fn leaf(mut cmd: Command, o: &Operation) -> Command {
                 .value_name("NATIVE_MODULE_FILE"),
         );
     }
+    if o.operation == "repository.add" {
+        for key in ["host-directory", "git-url", "git-ref", "subdirectory"] {
+            cmd = cmd.arg(Arg::new(key).long(key).num_args(1));
+        }
+    }
+    if o.operation == "module.publish" {
+        cmd = cmd.arg(Arg::new("directory").long("directory").num_args(1));
+    }
+    if o.operation == "agent.configure" {
+        for key in ["set", "set-json"] {
+            cmd = cmd.arg(
+                Arg::new(key)
+                    .long(key)
+                    .action(ArgAction::Append)
+                    .num_args(1),
+            );
+        }
+    }
     cmd.arg(Arg::new("arg1").index(1))
         .arg(Arg::new("arg2").index(2))
 }

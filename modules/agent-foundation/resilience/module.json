@@ -1,0 +1,70 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "resilience",
+  "version": "0.1.0",
+  "description": "Wire native length salvage and repeat-loop detection into the existing runtime recipe.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "max_continues": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 16,
+        "default": 2
+      }
+    }
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "reference": {
+        "$module": "length"
+      },
+      "factory": "stage.length",
+      "config": {
+        "max_continues": {
+          "$parameter": "/max_continues"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "repeat"
+      },
+      "factory": "stage.repeat",
+      "config": {}
+    },
+    {
+      "reference": {
+        "$module": "recipe"
+      },
+      "factory": "runtime.recipe",
+      "config": {
+        "stages": [
+          {
+            "name": "length",
+            "at": "before_stop",
+            "stage": "length"
+          },
+          {
+            "name": "repeat",
+            "at": "after_tool",
+            "stage": "repeat"
+          }
+        ]
+      },
+      "dependencies": {
+        "length": {
+          "$module": "length"
+        },
+        "repeat": {
+          "$module": "repeat"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "recipe": "recipe"
+  }
+}

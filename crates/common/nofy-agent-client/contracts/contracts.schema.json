@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nofy.local/contracts/nofy.kernel.v1.schema.json",
   "title": "Nofy CLI/MCP contracts including SessionPolicy",
-  "description": "Contract revision 0.3. Shared Rust CLI/MCP operation inputs and results; NativeJson remains subject to native kernel DTO validation.",
+  "description": "Contract revision 0.6. Self-describing Agent assembly, scoped collaboration, process sessions, branches, permissions and lifecycle operations.",
   "oneOf": [
     {
       "$ref": "#/$defs/Result"
@@ -27,7 +27,7 @@
       "type": "string",
       "minLength": 1,
       "contentMediaType": "application/json",
-      "description": "Strict native DTO JSON text. Parse and validate with the actual kernel DTO; retain integer precision."
+      "description": "Serialized native DTO JSON text, not a nested object. Resolve guide bindings, JSON-serialize native_json_body and place that string in the specified NativeJson field. Native kernel validation remains authoritative; preserve integer precision."
     },
     "ModuleRef": {
       "type": "object",
@@ -197,6 +197,11 @@
         "group": {
           "type": "string",
           "minLength": 1
+        },
+        "include_details": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return full operation/factory descriptors. The default summary names exact schema selectors."
         }
       },
       "required": []
@@ -230,6 +235,35 @@
           },
           "required": [
             "factory"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "preset"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "package": {
+              "$ref": "#/$defs/PackageRead"
+            }
+          },
+          "required": [
+            "package"
           ]
         }
       ]
@@ -344,10 +378,63 @@
         },
         "expected_revision": {
           "$ref": "#/$defs/MaybeDecimal"
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
         }
       },
       "required": [
         "agent"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "source",
+              "target"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "target"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "preset"
+                  ]
+                },
+                {
+                  "required": [
+                    "preset_version"
+                  ]
+                },
+                {
+                  "required": [
+                    "empty"
+                  ]
+                },
+                {
+                  "required": [
+                    "project_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "expected_revision"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "AgentRead": {
@@ -452,6 +539,11 @@
         "replace_slot": {
           "type": "boolean",
           "default": false
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
         }
       },
       "required": [
@@ -636,13 +728,39 @@
             "minLength": 1
           },
           "description": "JSON Pointer to a package-relative UTF-8 source file; explicit file inclusion, never implicit template evaluation."
+        },
+        "unset": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "description": "Remove exact keys/array entries after set; null remains a literal value. Root removal is forbidden."
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
         }
       },
       "required": [
         "target",
         "agent",
-        "module",
-        "set"
+        "module"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "set"
+          ]
+        },
+        {
+          "required": [
+            "unset"
+          ]
+        }
       ]
     },
     "ModuleBind": {
@@ -673,6 +791,25 @@
               }
             ]
           }
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
+        },
+        "replace_dependencies": {
+          "type": "boolean",
+          "default": false,
+          "description": "Replace the complete module dependency map; false merges named wires."
+        },
+        "remove_dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Remove exact dependency slot names after applying the map."
         }
       },
       "required": [
@@ -717,6 +854,11 @@
             "session_policy",
             "tool_packs"
           ]
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
         }
       },
       "required": [
@@ -740,6 +882,11 @@
         "module": {
           "type": "string",
           "minLength": 1
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
         }
       },
       "required": [
@@ -769,6 +916,11 @@
         },
         "expected_generation": {
           "$ref": "#/$defs/MaybeDecimal"
+        },
+        "include_publication": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include the complete original publication DTO. By default return its identity and system.export read instruction."
         }
       },
       "required": [
@@ -1067,7 +1219,9 @@
             "root",
             "child",
             "model",
-            "hook"
+            "hook",
+            "human",
+            "retry"
           ]
         },
         "target_run_id": {
@@ -2767,6 +2921,1329 @@
             }
           }
         }
+      ]
+    },
+    "RepositoryOrigin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "managed"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "directory"
+            },
+            "host_path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Canonical absolute directory on the kernel host, outside private host state."
+            }
+          },
+          "required": [
+            "kind",
+            "host_path"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "git"
+            },
+            "url": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1,
+              "default": "HEAD"
+            },
+            "subdirectory": {
+              "type": "string",
+              "default": ""
+            },
+            "timeout_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 180000,
+              "default": 30000
+            }
+          },
+          "required": [
+            "kind",
+            "url"
+          ]
+        }
+      ]
+    },
+    "RepositoryView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "origin": {
+          "$ref": "#/$defs/RepositoryOrigin"
+        },
+        "source_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "package_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "origin",
+        "source_revision",
+        "package_count"
+      ]
+    },
+    "PackageManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "nofy.module-package/v1"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "description": {
+          "type": "string",
+          "default": ""
+        },
+        "parameters_schema": {
+          "type": [
+            "object",
+            "boolean"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "exports": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,128}$",
+            "not": {
+              "enum": [
+                ".",
+                ".."
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "format",
+        "name",
+        "version",
+        "modules",
+        "exports"
+      ]
+    },
+    "PackageView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "manifest": {
+          "$ref": "#/$defs/PackageManifest"
+        },
+        "source_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "repository",
+        "name",
+        "version",
+        "digest",
+        "manifest",
+        "source_revision"
+      ]
+    },
+    "ModuleImport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ModuleRef"
+          }
+        },
+        "exports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,128}$",
+            "not": {
+              "enum": [
+                ".",
+                ".."
+              ]
+            }
+          }
+        },
+        "factories": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "repository",
+        "name",
+        "version",
+        "digest",
+        "exports",
+        "factories"
+      ]
+    },
+    "RepositoryAdd": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "origin": {
+          "$ref": "#/$defs/RepositoryOrigin"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/MaybeDecimal"
+        }
+      },
+      "required": [
+        "repository",
+        "origin",
+        "expected_revision"
+      ]
+    },
+    "RepositoryRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        }
+      },
+      "required": [
+        "repository"
+      ]
+    },
+    "RepositoryWrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Decimal"
+        }
+      },
+      "required": [
+        "repository",
+        "expected_revision"
+      ]
+    },
+    "ModulePublish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "required": [
+        "repository",
+        "expected_revision",
+        "source"
+      ]
+    },
+    "ModuleList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "after": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "default": 32
+        }
+      },
+      "required": []
+    },
+    "PackageRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        }
+      },
+      "required": [
+        "repository",
+        "name",
+        "version"
+      ]
+    },
+    "ModuleUse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/WriteTarget"
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "alias": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "default": {}
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/ModuleRef"
+              }
+            ]
+          }
+        },
+        "export": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "slot": {
+          "enum": [
+            "model",
+            "prompt",
+            "tools",
+            "tool_sources",
+            "context",
+            "context_sources",
+            "context_policies",
+            "policies",
+            "governance",
+            "recipe",
+            "middleware",
+            "checkpointer",
+            "bindings",
+            "hooks",
+            "session",
+            "session_policy",
+            "tool_packs"
+          ]
+        },
+        "replace_import": {
+          "type": "boolean",
+          "default": false
+        },
+        "replace_slot": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
+        }
+      },
+      "required": [
+        "target",
+        "agent",
+        "repository",
+        "name",
+        "version",
+        "alias"
+      ],
+      "dependentRequired": {
+        "export": [
+          "slot"
+        ],
+        "slot": [
+          "export"
+        ]
+      }
+    },
+    "ModuleUnuse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/WriteTarget"
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          }
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
+        }
+      },
+      "required": [
+        "target",
+        "agent",
+        "alias"
+      ]
+    },
+    "AgentConfigure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "$ref": "#/$defs/WriteTarget"
+        },
+        "settings": {
+          "type": "object"
+        },
+        "set": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "unset": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "description": "Remove exact keys/array entries after set; null remains a literal value. Root removal is forbidden."
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
+        }
+      },
+      "required": [
+        "agent",
+        "target"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "settings"
+          ]
+        },
+        {
+          "required": [
+            "set"
+          ]
+        },
+        {
+          "required": [
+            "unset"
+          ]
+        }
+      ]
+    },
+    "AssemblyGuide": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "nofy.assembly-guide/v1"
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "operation",
+                "factory",
+                "preset",
+                "package"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "availability": {
+          "type": "object"
+        },
+        "slots": {
+          "type": [
+            "object",
+            "array"
+          ]
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pitfalls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recovery": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "subject",
+        "summary",
+        "availability",
+        "slots",
+        "prerequisites",
+        "examples",
+        "steps",
+        "pitfalls",
+        "recovery"
+      ],
+      "additionalProperties": true
+    },
+    "SchemaResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Result"
+        },
+        {
+          "properties": {
+            "data": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "guide": {
+                      "$ref": "#/$defs/AssemblyGuide"
+                    }
+                  },
+                  "required": [
+                    "guide"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "TerminalStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "module_ref",
+        "owner",
+        "start_id"
+      ],
+      "properties": {
+        "release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "module_ref": {
+          "$ref": "#/$defs/ModuleRef"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 480
+        },
+        "start_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "TerminalPoll": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "module_ref",
+        "owner",
+        "session_id"
+      ],
+      "properties": {
+        "release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "module_ref": {
+          "$ref": "#/$defs/ModuleRef"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 480
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "stdout_cursor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stderr_cursor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "wait_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000
+        }
+      }
+    },
+    "TerminalWrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "module_ref",
+        "owner",
+        "session_id",
+        "command_id"
+      ],
+      "properties": {
+        "release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "module_ref": {
+          "$ref": "#/$defs/ModuleRef"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 480
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "eof": {
+          "type": "boolean"
+        }
+      }
+    },
+    "TerminalResize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "module_ref",
+        "owner",
+        "session_id",
+        "rows",
+        "columns"
+      ],
+      "properties": {
+        "release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "module_ref": {
+          "$ref": "#/$defs/ModuleRef"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 480
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "TerminalClose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "module_ref",
+        "owner",
+        "session_id"
+      ],
+      "properties": {
+        "release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "module_ref": {
+          "$ref": "#/$defs/ModuleRef"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 480
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "SessionFork": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_session_revision": {
+          "type": "null"
+        },
+        "request_json": {
+          "$ref": "#/$defs/NativeJson"
+        },
+        "labels": {
+          "$ref": "#/$defs/SessionLabels"
+        },
+        "source_session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "source_run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expected_source_session_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "expected_source_revision": {
+          "$ref": "#/$defs/Decimal"
+        }
+      },
+      "required": [
+        "session_id",
+        "command_id",
+        "expected_session_revision",
+        "request_json",
+        "source_session_id",
+        "source_run_id",
+        "expected_source_session_revision",
+        "expected_source_revision"
+      ]
+    },
+    "SessionRewind": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_session_revision": {
+          "type": "null"
+        },
+        "request_json": {
+          "$ref": "#/$defs/NativeJson"
+        },
+        "labels": {
+          "$ref": "#/$defs/SessionLabels"
+        },
+        "source_session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "source_run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expected_source_session_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "expected_source_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "through_message": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "session_id",
+        "command_id",
+        "expected_session_revision",
+        "request_json",
+        "source_session_id",
+        "source_run_id",
+        "expected_source_session_revision",
+        "expected_source_revision",
+        "through_message"
+      ]
+    },
+    "SessionTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "session_id"
+      ]
+    },
+    "CommandAnalyze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": [
+            "string",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1024,
+          "maxLength": 65536
+        }
+      }
+    },
+    "PermissionGrants": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "include_revoked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PermissionRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grant_id",
+        "expected_revision",
+        "command_id"
+      ],
+      "properties": {
+        "grant_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "ProjectDelete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Decimal"
+        }
+      },
+      "required": [
+        "project_id",
+        "expected_revision"
+      ]
+    },
+    "AgentDelete": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "$ref": "#/$defs/WriteTarget"
+        },
+        "entry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "include_source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Return complete source bytes for a managed edit. Default returns identities and inspection; explicit source targets always return their transformed source."
+        }
+      },
+      "required": [
+        "agent",
+        "target"
+      ]
+    },
+    "ModuleYank": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Decimal"
+        },
+        "yanked": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "repository",
+        "name",
+        "version",
+        "expected_revision"
+      ]
+    },
+    "ModuleGC": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dry_run": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": []
+    },
+    "RunMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root_run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thread_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attachments": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "root_run_id",
+        "run_id",
+        "thread_id",
+        "agent",
+        "input_id",
+        "text"
+      ]
+    },
+    "RunInspect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "view": {
+          "enum": [
+            "status",
+            "full"
+          ],
+          "default": "status",
+          "description": "status is bounded polling with an explicit output preview. full returns the original transcript, snapshots and children."
+        }
+      },
+      "required": [
+        "run_id"
       ]
     }
   }

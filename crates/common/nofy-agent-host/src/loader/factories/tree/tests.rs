@@ -164,6 +164,7 @@ fn exact_wire_boundary_uses_encoded_bytes_not_raw_argument_lengths() {
         environment: BTreeMap::new(),
         cwd: "/".into(),
         sandbox: None,
+        session: None,
     };
     profile.arguments.push(String::new());
     let padding = 65536 - profile.encode().unwrap().len();
@@ -204,6 +205,7 @@ fn pure_wire_bound_covers_actual_random_names_pid_width_and_escaped_paths() {
         environment: launch.environment.clone(),
         cwd: "/nofy/scratch".into(),
         sandbox: Some(sandbox),
+        session: None,
     };
     let maximum = profile(u32::MAX, sandbox.clone()).encode().unwrap().len();
     for _ in 0..8 {

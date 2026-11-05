@@ -409,7 +409,7 @@ async fn cli_and_official_stdio_client_share_source_publish_run_and_session_stat
         ProtocolVersion::V_2025_11_25
     );
     let tools = client.list_all_tools().await.unwrap();
-    assert_eq!(tools.len(), 66);
+    assert_eq!(tools.len(), 95);
     assert!(!tools.iter().any(|t| t.name == "nofy_credential_put"));
     let inspect = mcp_call(
         &client,
@@ -541,7 +541,12 @@ async fn http_mcp_forwards_each_identity_and_rejects_untrusted_origins() {
         StreamableHttpClientTransportConfig::with_uri(url).auth_header(ADMIN),
     );
     let admin = client_info().serve(transport).await.unwrap();
-    let created = mcp_call(&admin, "nofy_agent_create", json!({"agent":"http-agent"})).await;
+    let created = mcp_call(
+        &admin,
+        "nofy_agent_create",
+        json!({"agent":"http-agent","include_source":true}),
+    )
+    .await;
     let source = created["data"]["source"].clone();
     let archive = mcp_call(&admin, "nofy_project_pack", json!({"source":source})).await;
     let uri = archive["data"]["uri"].as_str().unwrap();
@@ -568,3 +573,9 @@ async fn http_mcp_forwards_each_identity_and_rejects_untrusted_origins() {
     reader.cancel().await.unwrap();
     admin.cancel().await.unwrap();
 }
+
+#[path = "development/repositories.rs"]
+mod repositories;
+
+#[path = "development/assembly.rs"]
+mod assembly;

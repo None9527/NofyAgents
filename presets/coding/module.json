@@ -1,0 +1,216 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "workspace-files",
+  "version": "0.1.0",
+  "description": "Six workspace file tools, with host runtime supplied through an explicit resource port.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "workspace"
+    ],
+    "properties": {
+      "workspace": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "inputs": {
+    "environment": "resource"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "project-read"
+      },
+      "factory": "resource.directory",
+      "config": {
+        "path": {
+          "$parameter": "/workspace"
+        },
+        "access": "read_only"
+      }
+    },
+    {
+      "reference": {
+        "$module": "project-write"
+      },
+      "factory": "resource.directory",
+      "config": {
+        "path": {
+          "$parameter": "/workspace"
+        },
+        "access": "read_write"
+      }
+    },
+    {
+      "reference": {
+        "$module": "files-code"
+      },
+      "factory": "resource.artifact",
+      "config": {
+        "bundle": {
+          "schema_version": 1,
+          "files": {
+            "files.py": {
+              "$file": "modules/files/files.py"
+            },
+            "workspace.py": {
+              "$file": "modules/files/workspace.py"
+            },
+            "manifest.json": {
+              "$file": "modules/files/manifest.json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "file-read"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/read_file"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-read"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "file-write"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/write_file"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-write"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "file-edit"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/edit_file"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-write"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "directory-create"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/make_directory"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-write"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "file-list"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/list_files"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-read"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "file-search"
+      },
+      "factory": "tool.process_artifact",
+      "config": {
+        "$json": {
+          "path": "modules/files/manifest.json",
+          "pointer": "/tools/search_files"
+        }
+      },
+      "dependencies": {
+        "environment": {
+          "$input": "environment"
+        },
+        "artifact": {
+          "$module": "files-code"
+        },
+        "workspace": {
+          "$module": "project-read"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "read": "file-read",
+    "write": "file-write",
+    "edit": "file-edit",
+    "mkdir": "directory-create",
+    "list": "file-list",
+    "search": "file-search"
+  }
+}

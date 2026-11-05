@@ -34,6 +34,9 @@ nofy-test-support = { workspace = true }
 axum = { workspace = true }
 reqwest = { workspace = true }
 rmcp = { version = "=3.6.0", default-features = false, features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest", "reqwest"] }
+jsonschema = { workspace = true }
+tar = { workspace = true }
+flate2 = { workspace = true }
 
 [lints]
 workspace = true

@@ -55,6 +55,9 @@ pub enum MailInput {
     Interject {
         message: PendingInterjection<InputPart>,
     },
+    FollowUp {
+        message: PendingInterjection<InputPart>,
+    },
     NextTurn {
         run_id: String,
         snapshot: CompilationSnapshot,
@@ -68,6 +71,7 @@ pub enum MailInput {
 #[serde(rename_all = "snake_case")]
 pub enum InputKind {
     Interject,
+    FollowUp,
     NextTurn,
     Tool,
 }
@@ -75,6 +79,7 @@ impl MailInput {
     pub fn kind(&self) -> InputKind {
         match self {
             Self::Interject { .. } => InputKind::Interject,
+            Self::FollowUp { .. } => InputKind::FollowUp,
             Self::NextTurn { .. } => InputKind::NextTurn,
             Self::Tool { .. } => InputKind::Tool,
         }
@@ -96,7 +101,9 @@ impl MailEnvelope {
             ));
         }
         match &self.input {
-            MailInput::Interject { message } => validate_message(message)?,
+            MailInput::Interject { message } | MailInput::FollowUp { message } => {
+                validate_message(message)?
+            }
             MailInput::NextTurn {
                 run_id,
                 snapshot,
@@ -244,6 +251,10 @@ pub(crate) struct RequiredMailbox(pub Arc<dyn InputInbox>);
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct InputProgress {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steering_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub follow_up_sequence: Option<u64>,
     #[serde(default)]
     pub initial: Option<InitialInputProof>,
     pub backend: Option<String>,

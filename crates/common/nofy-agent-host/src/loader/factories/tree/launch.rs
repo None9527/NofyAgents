@@ -10,26 +10,44 @@ const SCRATCH_PREFIX: &str = ".tree-";
 const SCRATCH_RANDOM: usize = 16;
 
 #[derive(Clone)]
-pub(super) struct GuestLaunch {
+pub(in crate::loader) struct GuestLaunch {
     pub program: PathBuf,
     pub arguments: Vec<String>,
     pub environment: BTreeMap<String, String>,
 }
 impl GuestLaunch {
-    pub fn from_runtime(runtime: &RuntimeSource, config: &ToolConfig) -> Result<Self> {
+    pub(in crate::loader::factories) fn from_runtime(
+        runtime: &RuntimeSource,
+        config: &ToolConfig,
+    ) -> Result<Self> {
+        Self::from_entry(
+            runtime,
+            &config.entrypoint,
+            &config.args,
+            &config.directories,
+        )
+    }
+    pub(in crate::loader) fn from_entry(
+        runtime: &RuntimeSource,
+        entrypoint: &str,
+        args: &[String],
+        directories: &BTreeMap<String, String>,
+    ) -> Result<Self> {
         match runtime {
-            RuntimeSource::Locked(manifest) => Self::build(manifest, config),
+            RuntimeSource::Locked(manifest) => {
+                Self::build_entry(manifest, entrypoint, args, directories)
+            }
             RuntimeSource::Local(local) => {
                 let mut environment = local.env.clone();
-                for alias in config.directories.keys() {
+                for alias in directories.keys() {
                     environment.insert(
                         format!("{ENV_PREFIX}{alias}"),
                         format!("/nofy/directories/{alias}"),
                     );
                 }
                 let mut arguments = local.prefix_args.clone();
-                arguments.push(format!("/nofy/artifact/{}", config.entrypoint));
-                arguments.extend(config.args.clone());
+                arguments.push(format!("/nofy/artifact/{entrypoint}"));
+                arguments.extend_from_slice(args);
                 Ok(Self {
                     program: local.executable.clone(),
                     arguments,
@@ -41,7 +59,24 @@ impl GuestLaunch {
             )),
         }
     }
-    pub fn build(manifest: &ImageManifest, config: &ToolConfig) -> Result<Self> {
+    #[cfg(test)]
+    pub(in crate::loader::factories) fn build(
+        manifest: &ImageManifest,
+        config: &ToolConfig,
+    ) -> Result<Self> {
+        Self::build_entry(
+            manifest,
+            &config.entrypoint,
+            &config.args,
+            &config.directories,
+        )
+    }
+    fn build_entry(
+        manifest: &ImageManifest,
+        entrypoint: &str,
+        args: &[String],
+        directories: &BTreeMap<String, String>,
+    ) -> Result<Self> {
         image_layout(manifest)?;
         if manifest.env.keys().any(|k| k.starts_with(ENV_PREFIX)) {
             return Err(HostError::Invalid(
@@ -49,7 +84,7 @@ impl GuestLaunch {
             ));
         }
         let mut environment = manifest.environment(Path::new("/"))?;
-        for alias in config.directories.keys() {
+        for alias in directories.keys() {
             environment.insert(
                 format!("{ENV_PREFIX}{alias}"),
                 format!("/nofy/directories/{alias}"),
@@ -74,8 +109,8 @@ impl GuestLaunch {
             PathBuf::from(guest(&manifest.executable))
         };
         arguments.extend(manifest.prefix_args.clone());
-        arguments.push(format!("/nofy/artifact/{}", config.entrypoint));
-        arguments.extend(config.args.clone());
+        arguments.push(format!("/nofy/artifact/{entrypoint}"));
+        arguments.extend_from_slice(args);
         Ok(Self {
             program,
             arguments,
@@ -135,12 +170,13 @@ impl GuestLaunch {
             environment: self.environment.clone(),
             cwd: "/nofy/scratch".into(),
             sandbox: Some(sandbox.clone()),
+            session: None,
         }
         .encode()?;
         Ok(sandbox)
     }
 }
-pub(super) fn scratch(parent: &Path) -> Result<tempfile::TempDir> {
+pub(in crate::loader) fn scratch(parent: &Path) -> Result<tempfile::TempDir> {
     let directory = tempfile::Builder::new()
         .prefix(SCRATCH_PREFIX)
         .rand_bytes(SCRATCH_RANDOM)

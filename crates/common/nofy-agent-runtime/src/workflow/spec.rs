@@ -150,6 +150,9 @@ pub enum JoinMode {
     #[default]
     AllSucceeded,
     AllSettled,
+    /// Materialize each dependency's persisted NodeProgress, including skipped
+    /// and failed records. This avoids guessing failure from business output.
+    AllSettledRecords,
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

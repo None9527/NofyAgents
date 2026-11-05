@@ -1,4 +1,5 @@
 use crate::*;
+mod cleanup;
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -93,6 +94,12 @@ impl ProjectStore {
                 "project record failed integrity verification",
             ));
         }
+        if self
+            .deleted(id)?
+            .is_some_and(|d| d.revision.parse::<u64>().ok() >= view.revision.parse::<u64>().ok())
+        {
+            return Ok(None);
+        }
         Ok(Some(view))
     }
     pub fn get(&self, id: &str) -> Result<ProjectView> {
@@ -129,7 +136,15 @@ impl ProjectStore {
                 .ok()
                 .and_then(|v| v.checked_add(1))
                 .ok_or_else(|| Error::new("conflict", "project revision exhausted"))?,
-            None => 0,
+            None => match self.deleted(id)? {
+                Some(view) => view
+                    .revision
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(|r| r.checked_add(1))
+                    .ok_or_else(|| Error::new("conflict", "project revision exhausted"))?,
+                None => 0,
+            },
         };
         let view = ProjectView {
             project_id: id.into(),
@@ -163,10 +178,18 @@ impl ProjectStore {
             }
         }
         ids.sort();
-        ids.into_iter()
-            .take(limit)
-            .map(|id| self.get(&id))
-            .collect()
+        let mut views = vec![];
+        for id in ids {
+            match self.get(&id) {
+                Ok(view) => views.push(view),
+                Err(e) if e.code == "not_found" => continue,
+                Err(e) => return Err(e),
+            }
+            if views.len() == limit {
+                break;
+            }
+        }
+        Ok(views)
     }
     pub fn archive(&self, source: &Source) -> Result<Value> {
         let bytes = pack(source)?;

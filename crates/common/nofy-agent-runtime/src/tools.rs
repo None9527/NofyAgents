@@ -1,4 +1,5 @@
 //! Instance-scoped catalog over the existing tool dispatch contract.
+pub mod compose;
 use crate::{Error, RunContext};
 use nofy_tool_runtime::{
     Tool, ToolCallContext, ToolDispatch, ToolDyn, ToolStream, TypedToolOutput,

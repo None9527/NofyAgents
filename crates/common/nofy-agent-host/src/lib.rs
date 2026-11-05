@@ -54,6 +54,7 @@ pub struct KernelHost {
     pub(crate) loader: loader::Loader,
     pub(crate) runtime_history: Arc<loader::runtime_history::Control>,
     pub(crate) projects: nofy_agent_project::ProjectStore,
+    pub(crate) module_library: nofy_agent_project::repository::ModuleStore,
     pub(crate) templates: Option<nofy_agent_project::TemplateRegistry>,
 }
 impl KernelHost {
@@ -71,6 +72,7 @@ impl KernelHost {
         }
         let directory = directory.to_path_buf();
         let project_directory = directory.join("projects");
+        let module_directory = directory.join("module-repositories");
         let (catalog, store, loader, runtime_history) =
             tokio::task::spawn_blocking(move || -> Result<_> {
                 std::fs::create_dir_all(&directory)
@@ -111,6 +113,7 @@ impl KernelHost {
         loader.register(&mut registry)?;
         Ok(Self {
             projects: nofy_agent_project::ProjectStore::open(&project_directory)?,
+            module_library: nofy_agent_project::repository::ModuleStore::open(&module_directory)?,
             templates: None,
             control: ControlPlane::new(Arc::new(catalog), registry.clone()),
             supervisor: Arc::new(
@@ -135,6 +138,36 @@ impl KernelHost {
         let registry = nofy_agent_project::TemplateRegistry::open(directory)?;
         registry.list()?;
         self.templates = Some(registry);
+        Ok(self)
+    }
+    /// Explicit operator registration; package discovery never guesses paths
+    /// or acquires external dependencies.
+    pub fn with_module_directory(self, repository: &str, directory: &Path) -> Result<Self> {
+        use nofy_agent_project::repository::{RepositoryOrigin, load_repository_directory};
+        let directory = directory
+            .canonicalize()
+            .map_err(|e| HostError::Unavailable(e.to_string()))?;
+        let origin = RepositoryOrigin::Directory {
+            host_path: directory.clone(),
+        };
+        let previous = match self.module_library.get(repository) {
+            Ok(v) => Some(v),
+            Err(e) if e.code == "not_found" => None,
+            Err(e) => return Err(e.into()),
+        };
+        if previous.as_ref().is_some_and(|v| v.origin != origin) {
+            return Err(HostError::Invalid(
+                "module directory repository already has another origin".into(),
+            ));
+        }
+        let view = self.module_library.put(
+            repository,
+            previous.as_ref().map(|v| v.revision.as_str()),
+            origin,
+        )?;
+        let (sources, revision) = load_repository_directory(&directory)?;
+        self.module_library
+            .synchronize(repository, &view.revision, sources, revision)?;
         Ok(self)
     }
     pub fn with_loader_helper(self, path: &Path) -> Result<Self> {
@@ -169,12 +202,17 @@ impl KernelHost {
         self.shutdown();
         #[cfg(target_os = "linux")]
         let trees = self.loader.process_trees.drain();
+        #[cfg(target_os = "linux")]
+        let sessions = self.loader.process_sessions.drain();
+        #[cfg(not(target_os = "linux"))]
+        let sessions = std::future::ready(Ok::<(), HostError>(()));
         #[cfg(not(target_os = "linux"))]
         let trees = std::future::ready(Ok::<(), HostError>(()));
         // Complete every independent drain even when one owner is unknown;
         // an early `?` must not skip waiting for the other resource classes.
-        let (trees, prompts, scopes, models, code, memory) = tokio::join!(
+        let (trees, sessions, prompts, scopes, models, code, memory) = tokio::join!(
             trees,
+            sessions,
             self.loader.drain_prompt_workers(),
             self.loader.drain_scope_workers(),
             self.loader.drain_model_workers(),
@@ -182,6 +220,7 @@ impl KernelHost {
             self.loader.memory.drain(),
         );
         trees?;
+        sessions?;
         prompts?;
         scopes?;
         models?;

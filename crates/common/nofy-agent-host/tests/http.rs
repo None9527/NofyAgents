@@ -66,6 +66,8 @@ mod declarative;
 mod dependencies;
 #[path = "http/event.rs"]
 mod event;
+#[path = "http/foundation.rs"]
+mod foundation;
 #[path = "http/hook_recovery.rs"]
 mod hook_recovery;
 #[path = "http/human.rs"]
@@ -90,12 +92,16 @@ mod native_capabilities;
 mod parameters;
 #[path = "http/parking.rs"]
 mod parking;
+#[path = "http/permissions.rs"]
+mod permissions;
 #[path = "http/process.rs"]
 mod process;
 #[path = "http/reconciliation.rs"]
 mod reconciliation;
 #[path = "http/root_reconciliation.rs"]
 mod root_reconciliation;
+#[path = "http/run_status.rs"]
+mod run_status;
 #[path = "http/runtime_history.rs"]
 mod runtime_history;
 #[path = "http/semantic.rs"]

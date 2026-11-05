@@ -201,6 +201,20 @@ type Source = (
 );
 const SOURCES: &[Source] = &[
     (
+        "approval_grant",
+        "agent_runtime_approval_grants",
+        "grant_id",
+        "grant_id",
+        &["$"],
+    ),
+    (
+        "session_branch",
+        "agent_runtime_session_branches",
+        "session_id",
+        "session_id",
+        &["$"],
+    ),
+    (
         "session_profile",
         "agent_runtime_session_profiles",
         "session_id",
@@ -427,6 +441,7 @@ fn schema(tx: &Transaction<'_>) -> Result<(), Error> {
         "reconciliations",
         "jobs",
         "approvals",
+        "approval_grants",
         "managed_runs",
         "managed_actions",
         "abandoned_runs",
@@ -440,6 +455,7 @@ fn schema(tx: &Transaction<'_>) -> Result<(), Error> {
         "session_profiles",
         "session_admissions",
         "session_ops",
+        "session_branches",
         "retained_owners",
     ];
     let mut statement = tx

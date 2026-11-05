@@ -7,7 +7,7 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/presets", get(presets))
         .route("/api/v1/presets/{id}", get(template))
         .route("/api/v1/projects", get(list).post(create))
-        .route("/api/v1/projects/{id}", get(inspect))
+        .route("/api/v1/projects/{id}", get(inspect).delete(delete_project))
         .route("/api/v1/projects/{id}/edits", post(edit))
         .route("/api/v1/projects/{id}/build", post(build))
         .route("/api/v1/projects/{id}/preview", post(preview))
@@ -32,8 +32,40 @@ fn kinds(host: &KernelHost) -> FactoryKinds {
         })
         .collect()
 }
-fn view(project: ProjectView, kinds: &FactoryKinds) -> Result<Value> {
-    let inspection = nofy_agent_project::inspect(&project.source, kinds)?;
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeleteProject {
+    expected_revision: String,
+}
+async fn delete_project(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(q): Json<DeleteProject>,
+) -> Result<Json<Value>> {
+    host.auth.require(&headers, Scope::Edit)?;
+    let store = host.projects.clone();
+    Ok(Json(
+        blocking(move || Ok(store.delete(&id, &q.expected_revision)?)).await?,
+    ))
+}
+fn view(
+    project: ProjectView,
+    kinds: &FactoryKinds,
+    library: &nofy_agent_project::repository::ModuleStore,
+) -> Result<Value> {
+    let resolved = library.hydrate(&project.source);
+    let mut inspection = match resolved {
+        Ok(source) => nofy_agent_project::inspect(&source, kinds)?,
+        Err(error) => {
+            let mut inspection = nofy_agent_project::inspect(&project.source, kinds)?;
+            inspection["status"] = json!("incomplete");
+            inspection["issue"] =
+                json!({"code":error.code,"message":error.message,"details":error.details});
+            inspection
+        }
+    };
+    inspection["source_digest"] = json!(project.source_digest);
     Ok(
         json!({"project_id":project.project_id,"revision":project.revision,"source_digest":project.source_digest,"source":project.source,"inspection":inspection}),
     )
@@ -91,6 +123,7 @@ async fn list(
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
     let kinds = kinds(&host);
+    let library = host.module_library.clone();
     Ok(Json(
         blocking(move || {
             let page = store.list(&q.after, q.limit)?;
@@ -101,7 +134,7 @@ async fn list(
             };
             let items = page
                 .into_iter()
-                .map(|p| view(p, &kinds))
+                .map(|p| view(p, &kinds, &library))
                 .collect::<Result<Vec<_>>>()?;
             Ok(json!({"projects":items,"next_cursor":cursor}))
         })
@@ -127,6 +160,7 @@ async fn create(
     let store = host.projects.clone();
     let templates = host.templates.clone();
     let kinds = kinds(&host);
+    let library = host.module_library.clone();
     if q.source.is_some() && q.preset.is_some() {
         return Err(HostError::Invalid("choose source or preset".into()));
     }
@@ -150,6 +184,7 @@ async fn create(
             view(
                 store.put(&q.project_id, q.expected_revision.as_deref(), source)?,
                 &kinds,
+                &library,
             )
         })
         .await?,
@@ -163,7 +198,10 @@ async fn inspect(
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
     let kinds = kinds(&host);
-    Ok(Json(blocking(move || view(store.get(&id)?, &kinds)).await?))
+    let library = host.module_library.clone();
+    Ok(Json(
+        blocking(move || view(store.get(&id)?, &kinds, &library)).await?,
+    ))
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -181,15 +219,20 @@ async fn edit(
     host.auth.require(&headers, Scope::Edit)?;
     let store = host.projects.clone();
     let kinds = kinds(&host);
+    let library = host.module_library.clone();
     if !matches!(
         q.operation.as_str(),
         "agent.create"
+            | "agent.delete"
+            | "agent.configure"
             | "agent.module.add"
             | "agent.tool.add"
             | "agent.module.set"
             | "agent.module.bind"
             | "agent.module.detach"
             | "agent.module.remove"
+            | "agent.module.use"
+            | "agent.module.unuse"
     ) {
         return Err(HostError::Invalid("unregistered project edit".into()));
     }
@@ -213,10 +256,44 @@ async fn edit(
                         let modules: Vec<Value> = serde_json::from_value(imported.clone())?;
                         nofy_agent_project::import_modules(&mut source, &modules)?;
                     }
-                    nofy_agent_project::edit(&mut source, &q.operation, &q.input, &kinds)?;
+                    match q.operation.as_str() {
+                        "agent.module.use" => {
+                            let package = library.package(
+                                nofy_agent_project::text(&q.input, "repository")?,
+                                nofy_agent_project::text(&q.input, "name")?,
+                                nofy_agent_project::text(&q.input, "version")?,
+                            )?;
+                            nofy_agent_project::repository::use_package(
+                                &mut source,
+                                &package,
+                                &q.input,
+                                &kinds,
+                            )?;
+                        }
+                        "agent.module.unuse" => {
+                            let agent = nofy_agent_project::text(&q.input, "agent")?;
+                            if !nofy_agent_project::agent_names(&source)?
+                                .iter()
+                                .any(|a| a == agent)
+                            {
+                                return Err(nofy_agent_project::Error::new(
+                                    "not_found",
+                                    "Agent not found",
+                                ));
+                            }
+                            nofy_agent_project::repository::unuse_package(
+                                &mut source,
+                                nofy_agent_project::text(&q.input, "alias")?,
+                            )?;
+                        }
+                        _ => {
+                            nofy_agent_project::edit(&mut source, &q.operation, &q.input, &kinds)?;
+                        }
+                    }
                     Ok(source)
                 })?,
                 &kinds,
+                &library,
             )
         })
         .await?,
@@ -239,10 +316,12 @@ async fn build(
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
     let kinds = kinds(&host);
+    let library = host.module_library.clone();
     Ok(Json(
         blocking(move || {
             let p = store.get(&id)?;
-            let mut result = nofy_agent_project::build(&p.source, &kinds)?;
+            let mut result = nofy_agent_project::build(&library.hydrate(&p.source)?, &kinds)?;
+            result["source_digest"] = json!(p.source_digest);
             result["project_id"] = json!(p.project_id);
             result["revision"] = json!(p.revision);
             Ok(result)
@@ -258,8 +337,14 @@ async fn preview(
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
     let kinds = kinds(&host);
-    let built =
-        blocking(move || Ok(nofy_agent_project::build(&store.get(&id)?.source, &kinds)?)).await?;
+    let library = host.module_library.clone();
+    let built = blocking(move || {
+        let project = store.get(&id)?;
+        let mut result = nofy_agent_project::build(&library.hydrate(&project.source)?, &kinds)?;
+        result["source_digest"] = json!(project.source_digest);
+        Ok(result)
+    })
+    .await?;
     let file =
         DeploymentFile::from_json(built["deployment_json"].as_str().unwrap_or("").as_bytes())?;
     let file = host.loader.prepare_deployment(file, false).await?;
@@ -286,8 +371,9 @@ async fn archive(
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
+    let library = host.module_library.clone();
     Ok(Json(
-        blocking(move || Ok(store.archive(&store.get(&id)?.source)?)).await?,
+        blocking(move || Ok(store.archive(&library.hydrate(&store.get(&id)?.source)?)?)).await?,
     ))
 }
 #[derive(Deserialize)]
@@ -302,7 +388,10 @@ async fn pack_source(
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
     let store = host.projects.clone();
-    Ok(Json(blocking(move || Ok(store.archive(&q.source)?)).await?))
+    let library = host.module_library.clone();
+    Ok(Json(
+        blocking(move || Ok(store.archive(&library.hydrate(&q.source)?)?)).await?,
+    ))
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -19,6 +19,11 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/runs/{id}/recovery/root", get(root_recovery))
         .route("/api/v1/runs/{id}/recovery/models", get(model_recovery))
         .route("/api/v1/runs/{id}/recovery/hooks", get(hook_recovery))
+        .route("/api/v1/runs/{id}/recovery/humans", get(human_recovery))
+        .route(
+            "/api/v1/runs/{id}/recovery/model-retry",
+            get(model_retry_ticket),
+        )
         .route("/api/v1/actions", post(action))
         .route("/api/v1/actions/{id}", get(action_status))
 }
@@ -73,13 +78,34 @@ async fn list(
     host.auth.require(&headers, Scope::Read)?;
     Ok(Json(host.store.managed_runs(page.after, page.limit).await?))
 }
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum RunView {
+    Status,
+    #[default]
+    Full,
+}
+#[derive(Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct InspectQuery {
+    view: RunView,
+}
 async fn inspect(
     State(host): State<KernelHost>,
     headers: HeaderMap,
     Path(id): Path<String>,
+    Query(query): Query<InspectQuery>,
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
     let run = managed(&host, &id).await?;
+    if matches!(query.view, RunView::Status) {
+        let mut result = host.store.execution_status(&id).await?;
+        result["format"] = json!("nofy.run-status/v1");
+        result["run"] = json!({"sequence":run.sequence,"status":run.status,"request":{"run_id":run.request.run_id,"thread_id":run.request.thread_id,"system":run.request.system,"release":run.request.release,"program":run.request.program}});
+        result["details_read"] =
+            json!({"operation":"run.inspect","arguments":{"run_id":id,"view":"full"}});
+        return Ok(Json(result));
+    }
     Ok(Json(
         json!({"run":run,"execution":host.store.execution_record(&id).await?,"children":host.store.children(&id).await?,"parking":host.store.parking(&id).await?,"live":host.store.live_execution(&id).await?.map(|live|live.info())}),
     ))
@@ -141,6 +167,28 @@ async fn root_recovery(
     host.auth.require(&headers, Scope::Read)?;
     managed(&host, &id).await?;
     Ok(Json(host.store.root_recovery_target(&id).await?))
+}
+async fn human_recovery(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<HumanRecoveryPage>> {
+    host.auth.require(&headers, Scope::Read)?;
+    managed(&host, &id).await?;
+    Ok(Json(
+        host.supervisor
+            .human_recovery_targets(&host.registry, &id)
+            .await?,
+    ))
+}
+async fn model_retry_ticket(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Option<nofy_agent_runtime::governance::ModelRetryTicket>>> {
+    host.auth.require(&headers, Scope::Read)?;
+    managed(&host, &id).await?;
+    Ok(Json(host.supervisor.root_model_retry_ticket(&id).await?))
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -255,6 +303,8 @@ async fn approvals(
 struct Decision {
     request: ApprovalRequest,
     allow: bool,
+    #[serde(default)]
+    scope: nofy_agent_runtime::supervisor::ApprovalScope,
 }
 async fn decide(
     State(host): State<KernelHost>,
@@ -276,7 +326,9 @@ async fn decide(
             "approval is outside this run tree".into(),
         ));
     }
-    host.store.decide(&decision.request, decision.allow).await?;
+    host.store
+        .decide_scoped(&decision.request, decision.allow, decision.scope)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[derive(Deserialize)]

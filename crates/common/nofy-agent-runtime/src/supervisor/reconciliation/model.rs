@@ -11,6 +11,33 @@ struct Target {
     checkpoint_key: String,
 }
 impl RunSupervisor {
+    /// Read a settled root failure ticket. Unknown attempts remain in the
+    /// reconciliation view and cannot acquire retry authority here.
+    pub async fn root_model_retry_ticket(
+        &self,
+        root: &str,
+    ) -> Result<Option<crate::governance::ModelRetryTicket>, Error> {
+        crate::system::bounded_name(root)?;
+        let record = self
+            .store
+            .execution_record(root)
+            .await?
+            .ok_or_else(|| Error::Checkpoint("model retry root not found".into()))?;
+        let target = self.model_target(&record, root).await?;
+        let checkpoint = self
+            .store
+            .load(&target.checkpoint_key)
+            .await?
+            .ok_or_else(|| Error::Checkpoint("model retry checkpoint missing".into()))?;
+        validate(&checkpoint, &target)?;
+        ModelRecovery::new(
+            Arc::new(self.store.clone()),
+            &target.composition,
+            &target.context,
+        )
+        .failure_ticket()
+        .await
+    }
     async fn model_target(&self, root: &ExecutionRecord, target: &str) -> Result<Target, Error> {
         if target == root.run_id {
             if !root.snapshot.is_agent() {

@@ -1,0 +1,261 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "execution-escalation",
+  "version": "0.1.0",
+  "description": "Run the declared narrower tool, and request explicit human consent before a known failure can use the separately declared wider tool. Unknown effects pause for reconciliation.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "normal_tool",
+      "elevated_tool"
+    ],
+    "properties": {
+      "normal_tool": {
+        "type": "string",
+        "minLength": 1
+      },
+      "elevated_tool": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "inputs": {
+    "normal": "tool_pack",
+    "elevated": "tool_pack"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "workflow"
+      },
+      "factory": "resource.workflow",
+      "config": {
+        "document": {
+          "host": {
+            "name": "execution-escalation-host"
+          },
+          "entry": {
+            "id": "main",
+            "version": "1"
+          },
+          "tool_runtimes": [
+            {
+              "reference": {
+                "id": "normal-runtime",
+                "version": "1"
+              },
+              "definition": {
+                "name": "normal-runtime",
+                "tool_packs": [
+                  {
+                    "$input": "normal"
+                  }
+                ]
+              }
+            },
+            {
+              "reference": {
+                "id": "elevated-runtime",
+                "version": "1"
+              },
+              "definition": {
+                "name": "elevated-runtime",
+                "tool_packs": [
+                  {
+                    "$input": "elevated"
+                  }
+                ]
+              }
+            }
+          ],
+          "workflows": [
+            {
+              "reference": {
+                "id": "main",
+                "version": "1"
+              },
+              "input_schema": {
+                "type": "object"
+              },
+              "output_schema": {
+                "type": "object"
+              },
+              "nodes": [
+                {
+                  "id": "normal",
+                  "needs": [],
+                  "input": {
+                    "from": "input",
+                    "pointer": ""
+                  },
+                  "action": {
+                    "kind": "tool",
+                    "runtime": {
+                      "id": "normal-runtime",
+                      "version": "1"
+                    },
+                    "tool": {
+                      "$parameter": "/normal_tool"
+                    }
+                  },
+                  "on_error": {
+                    "exhausted": "continue"
+                  }
+                },
+                {
+                  "id": "settled",
+                  "needs": [
+                    "normal"
+                  ],
+                  "input": {
+                    "from": "input",
+                    "pointer": ""
+                  },
+                  "action": {
+                    "kind": "join",
+                    "mode": "all_settled_records"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "needs": [
+                    "settled"
+                  ],
+                  "input": {
+                    "from": "object",
+                    "fields": {
+                      "question": {
+                        "from": "literal",
+                        "value": "The narrower execution failed. Permit the explicitly configured wider profile? Acknowledge that prior partial effects may exist."
+                      },
+                      "arguments": {
+                        "from": "input",
+                        "pointer": ""
+                      },
+                      "failure": {
+                        "from": "node",
+                        "node": "settled",
+                        "pointer": ""
+                      }
+                    }
+                  },
+                  "action": {
+                    "kind": "human",
+                    "response_schema": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "allow",
+                        "acknowledge_partial_effects"
+                      ],
+                      "properties": {
+                        "allow": {
+                          "type": "boolean"
+                        },
+                        "acknowledge_partial_effects": {
+                          "const": true
+                        }
+                      }
+                    }
+                  },
+                  "when": {
+                    "value": {
+                      "from": "node",
+                      "node": "settled",
+                      "pointer": "/normal/status"
+                    },
+                    "equals": "failed"
+                  }
+                },
+                {
+                  "id": "elevated",
+                  "needs": [
+                    "consent"
+                  ],
+                  "input": {
+                    "from": "input",
+                    "pointer": ""
+                  },
+                  "action": {
+                    "kind": "tool",
+                    "runtime": {
+                      "id": "elevated-runtime",
+                      "version": "1"
+                    },
+                    "tool": {
+                      "$parameter": "/elevated_tool"
+                    }
+                  },
+                  "when": {
+                    "value": {
+                      "from": "node",
+                      "node": "consent",
+                      "pointer": ""
+                    },
+                    "equals": {
+                      "allow": true,
+                      "acknowledge_partial_effects": true
+                    }
+                  }
+                },
+                {
+                  "id": "result",
+                  "needs": [
+                    "normal",
+                    "consent",
+                    "elevated"
+                  ],
+                  "input": {
+                    "from": "input",
+                    "pointer": ""
+                  },
+                  "action": {
+                    "kind": "join",
+                    "mode": "all_settled_records"
+                  }
+                }
+              ],
+              "output": {
+                "from": "node",
+                "node": "result",
+                "pointer": ""
+              }
+            }
+          ]
+        },
+        "bindings": {
+          "normal": "tool_pack",
+          "elevated": "tool_pack"
+        }
+      },
+      "dependencies": {
+        "normal": {
+          "$input": "normal"
+        },
+        "elevated": {
+          "$input": "elevated"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "tool"
+      },
+      "factory": "tool.workflow_connected",
+      "config": {
+        "name": "execution_escalation",
+        "description": "Run the declared narrower tool, and request explicit human consent before a known failure can use the separately declared wider tool. Unknown effects pause for reconciliation."
+      },
+      "dependencies": {
+        "workflow": {
+          "$module": "workflow"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "tool": "tool"
+  }
+}

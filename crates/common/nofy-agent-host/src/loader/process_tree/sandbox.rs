@@ -133,6 +133,13 @@ impl Sandbox {
         super::super::lifecycle::shared_file(&self.private_root.join("loader/lifecycle/lease.lock"))
     }
     pub(super) fn apply(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        self.apply_session(false, false)
+    }
+    pub(in crate::loader) fn apply_session(
+        &self,
+        terminal: bool,
+        network: bool,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         use landlock::{
             ABI, Access, AccessFs, CompatLevel, Compatible, PathBeneath, PathFd, Ruleset,
             RulesetAttr, RulesetCreatedAttr, RulesetStatus,
@@ -268,6 +275,24 @@ impl Sandbox {
             None,
         )?;
         attributes(&null_target, false, true, false)?;
+        if terminal {
+            use std::os::unix::fs::OpenOptionsExt;
+            let tty = std::fs::OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_PATH | libc::O_CLOEXEC)
+                .open("/dev/tty")?;
+            let meta = tty.metadata()?;
+            if !meta.file_type().is_char_device()
+                || libc::major(meta.rdev()) != 5
+                || libc::minor(meta.rdev()) != 0
+            {
+                return Err("unexpected controlling-terminal device".into());
+            }
+            let target = self.root.join("dev/tty");
+            File::create(&target)?;
+            mount(Some(&fd_path(&tty)), &target, None, libc::MS_BIND, None)?;
+            attributes(&target, false, true, false)?;
+        }
         // Root scaffold is immutable. Only explicit child mounts remain RW.
         mount(
             None,
@@ -309,6 +334,12 @@ impl Sandbox {
             PathFd::new("/dev/null")?,
             AccessFs::ReadFile | AccessFs::WriteFile,
         ))?;
+        if terminal {
+            rules = rules.add_rule(PathBeneath::new(
+                PathFd::new("/dev/tty")?,
+                AccessFs::ReadFile | AccessFs::WriteFile,
+            ))?;
+        }
         for (alias, grant) in &self.directories {
             if !matches!(grant.access, super::super::directories::Access::ReadOnly) {
                 rules = rules.add_rule(PathBeneath::new(
@@ -320,7 +351,11 @@ impl Sandbox {
         if rules.restrict_self()?.ruleset != RulesetStatus::FullyEnforced {
             return Err("guest Landlock was not fully enforced".into());
         }
-        super::filter::apply()?;
+        if network || terminal {
+            super::filter::apply_network(network, terminal)?;
+        } else {
+            super::filter::apply()?;
+        }
         Ok(())
     }
 }

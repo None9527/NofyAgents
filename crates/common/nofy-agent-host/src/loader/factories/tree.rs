@@ -2,7 +2,7 @@
 use super::*;
 use crate::loader::launch::RuntimeSource;
 use crate::loader::process_tree::{self, sandbox::Sandbox};
-mod launch;
+pub(in crate::loader) mod launch;
 use launch::GuestLaunch;
 #[cfg(all(test, target_arch = "x86_64"))]
 mod tests;
@@ -12,7 +12,7 @@ impl ModuleFactory for TreeArtifactFactory {
     fn descriptor(&self) -> ModuleDescriptor {
         let mut descriptor = ProcessArtifactFactory.descriptor();
         descriptor.factory = "tool.process_tree_artifact".into();
-        descriptor.revision = "confined-process-tree-v1".into();
+        descriptor.revision = "confined-process-tree-v2".into();
         descriptor
             .dependencies
             .insert("tree".into(), ModuleKind::Resource);
@@ -63,10 +63,17 @@ impl ModuleFactory for TreeArtifactFactory {
         if !artifact.files.contains_key(&config.entrypoint) {
             return Err(error("artifact entrypoint missing"));
         }
-        let limits = resource("tree")?
-            .get::<process_tree::Config>()
-            .ok_or_else(|| error("tree limits resource required"))?;
-        limits.validate().map_err(error)?;
+        let limits_resource = resource("tree")?;
+        let limits = if let Some(limits) = limits_resource.get::<process_tree::Config>() {
+            limits.validate().map_err(error)?;
+            ExecutionLimits::Cgroup(limits)
+        } else if let Some(limits) = limits_resource.get::<super::super::process_sessions::Limits>()
+        {
+            limits.validate().map_err(error)?;
+            ExecutionLimits::Namespace(limits)
+        } else {
+            return Err(error("cgroup or namespace limits resource required"));
+        };
         let mut directories = BTreeMap::new();
         for (alias, slot) in &config.directories {
             let directory = resource(slot)?
@@ -107,10 +114,14 @@ struct TreeDispatch {
     config: ToolConfig,
     env: Arc<Environment>,
     artifact: Arc<ArtifactBundle>,
-    limits: Arc<process_tree::Config>,
+    limits: ExecutionLimits,
     directories: BTreeMap<String, Arc<super::super::directories::Directory>>,
     launch: GuestLaunch,
     sandbox: Sandbox,
+}
+enum ExecutionLimits {
+    Cgroup(Arc<process_tree::Config>),
+    Namespace(Arc<super::super::process_sessions::Limits>),
 }
 #[async_trait::async_trait]
 impl ToolDispatch for TreeDispatch {
@@ -206,14 +217,7 @@ impl ToolDispatch for TreeDispatch {
             }
             // Execution owns its cleanup independently of the caller's future.
             // Do not wrap this await in a timeout that can abandon that owner.
-            let output = self
-                .env
-                .loader
-                .process_trees
-                .supervise_confined(
-                    (*self.limits).clone(),
-                    helper,
-                    process_tree::Invocation {
+            let invocation = process_tree::Invocation {
                         program: launch.program,
                         arguments: launch.arguments,
                         environment: launch.environment,
@@ -221,13 +225,11 @@ impl ToolDispatch for TreeDispatch {
                         input: bytes,
                         timeout: remaining,
                         output_limit: self.config.contract.max_output_bytes,
-                    },
-                    cancel,
-                    hold,
-                    sandbox,
-                )
-                .await
-                .map_err(tool_error)?;
+                    };
+            let output = match &self.limits {
+                ExecutionLimits::Cgroup(limits) => self.env.loader.process_trees.supervise_confined((**limits).clone(), helper, invocation, cancel, hold, sandbox).await,
+                ExecutionLimits::Namespace(limits) => self.env.loader.process_sessions.supervise_namespace(helper, invocation, cancel, hold, sandbox, (**limits).clone()).await,
+            }.map_err(tool_error)?;
             if !output.status.success() {
                 return Err(tool_error(format!(
                     "tree process failed (code {:?}): {}",

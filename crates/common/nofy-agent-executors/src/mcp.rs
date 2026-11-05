@@ -4,9 +4,11 @@ mod http;
 mod session;
 mod source;
 mod sse;
+mod transport;
 
 pub use http::HttpResourceFactory;
 pub use source::ToolSourceFactory;
+pub use transport::{Connection, StdioChannel, StdioProvider};
 
 use nofy_agent_runtime::{Error, registry::*};
 use nofy_tool_runtime::ToolError;

@@ -20,6 +20,67 @@ use tokio::sync::Notify;
 fn context() -> RunContext {
     RunContext::new("thread", "run")
 }
+#[tokio::test]
+async fn steering_and_follow_up_have_independent_all_and_single_delivery_modes() {
+    for (mode, expected_calls) in [("all", 3), ("one_at_a_time", 5)] {
+        let dir = tempfile::tempdir().unwrap();
+        let store = SqliteStore::open(&dir.path().join("runtime.db")).unwrap();
+        let gate = Arc::new(Notify::new());
+        let (model, requests, started) = scripted(Some(gate.clone()), false, false);
+        let mut registry = ModuleRegistry::default();
+        registry
+            .register_factory(Arc::new(StaticPromptFactory))
+            .unwrap();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "test.model",
+                "1",
+                ModuleInstance::Model(model),
+            )))
+            .unwrap();
+        let compiled=compile_document(serde_json::from_value(json!({"modules":[{"reference":{"id":"m","version":"1"},"factory":"test.model","config":{}},{"reference":{"id":"p","version":"1"},"factory":"prompt.static","config":{"text":"system"}}],"agent":{"name":"mail","model":{"id":"m","version":"1"},"prompt":{"id":"p","version":"1"},"settings":{"input_delivery":{"steering":mode,"follow_up":mode}}}})).unwrap(),&registry).unwrap();
+        let worker = tokio::spawn({
+            let store = store.clone();
+            async move {
+                RunSupervisor::new(store)
+                    .execute(&compiled, RunInput::new("query"), context())
+                    .await
+            }
+        });
+        started.notified().await;
+        for (id, text, follow) in [
+            ("follow-one", "follow one", true),
+            ("follow-two", "follow two", true),
+            ("steer-one", "steer one", false),
+            ("steer-two", "steer two", false),
+        ] {
+            let mut input = envelope(id, text);
+            if follow {
+                input.input = MailInput::FollowUp {
+                    message: PendingInterjection {
+                        text: text.into(),
+                        attachments: vec![],
+                    },
+                };
+            }
+            store.submit(input).await.unwrap();
+        }
+        gate.notify_one();
+        let result = tokio::time::timeout(Duration::from_secs(10), worker)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(matches!(result, RunOutcome::Completed { .. }), "{result:?}");
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), expected_calls, "{mode}");
+        let text = |request: &ModelRequest| serde_json::to_string(&request.messages).unwrap();
+        assert!(text(&requests[1]).contains("steer one"));
+        assert!(!text(&requests[1]).contains("follow one"));
+        let last = text(requests.last().unwrap());
+        assert!(last.contains("follow one") && last.contains("follow two"));
+    }
+}
 fn address() -> InputAddress {
     InputAddress::for_run("mail", &context())
 }

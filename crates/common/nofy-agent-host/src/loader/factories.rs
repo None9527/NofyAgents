@@ -11,7 +11,11 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, process::Stdio, time::Duration};
 #[cfg(target_os = "linux")]
-mod tree;
+pub(crate) mod sessions;
+#[cfg(target_os = "linux")]
+pub(in crate::loader) mod tree;
+#[cfg(target_os = "linux")]
+pub(super) use sessions::{SessionFactory, StdioFactory, TerminalFactory};
 #[cfg(target_os = "linux")]
 pub(super) use tree::TreeArtifactFactory;
 

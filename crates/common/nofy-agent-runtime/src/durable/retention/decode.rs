@@ -142,6 +142,27 @@ pub(super) fn record(
     mut visit: impl FnMut(&RetentionOrigin, &[&ModuleDefinition]) -> Result<(), Error>,
 ) -> Result<(), Error> {
     match kind {
+        "approval_grant" => {
+            let row: crate::supervisor::ApprovalGrant = decode(payload)?;
+            if row.protocol != "nofy.approval-grant/v1"
+                || row.grant_id.len() != 64
+                || row.policy_id.len() != 64
+                || row.rule_key.len() != 64
+            {
+                return Err(failure("invalid retained approval grant"));
+            }
+        }
+        "session_branch" => {
+            let row: crate::supervisor::jobs::SessionBranch = decode(payload)?;
+            if row.protocol != "nofy.session-branch/v1"
+                || row.session_id == row.parent_session_id
+                || row.seed_digest.len() != 64
+                || row.source_execution_digest.len() != 64
+                || row.through_message == 0
+            {
+                return Err(failure("invalid retained session lineage"));
+            }
+        }
         "session_profile" => {
             let row: SessionProfile = decode(payload)?;
             if row.protocol != "nofy.session-profile/v1" {

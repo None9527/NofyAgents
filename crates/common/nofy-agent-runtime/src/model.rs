@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+pub mod image_fallback;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

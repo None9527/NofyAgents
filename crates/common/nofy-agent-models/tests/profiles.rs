@@ -160,6 +160,179 @@ fn request(settings: Value) -> ModelRequest {
 fn chat(text: &str) -> Value {
     json!({"id":"chat_1","model":"model","choices":[{"index":0,"message":{"role":"assistant","content":text},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2}})
 }
+#[tokio::test]
+async fn native_hosted_tools_preserve_wire_items_and_messages_continue_pause_turn() {
+    let mut native = response("answer");
+    native["output"].as_array_mut().unwrap().insert(0,json!({"type":"web_search_call","id":"search-1","status":"completed","action":{"type":"search","query":"query"}}));
+    let server = server(vec![Wire::Json(native)]).await;
+    let response = model(&server.url, "responses")
+        .complete(
+            request(json!({"stream":false,"hosted_tools":[{"type":"web_search"}]})),
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert!(response.tool_calls.is_empty());
+    assert!(
+        serde_json::to_string(&response.messages)
+            .unwrap()
+            .contains("web_search_call")
+    );
+    assert_eq!(
+        server.capture.requests.lock().unwrap()[0].1["tools"][0]["type"],
+        "web_search"
+    );
+    let paused = json!({"id":"pause-1","role":"assistant","type":"message","content":[{"type":"server_tool_use","id":"search-1","name":"web_search","input":{"query":"query"}},{"type":"web_search_tool_result","tool_use_id":"search-1","content":[]}],"stop_reason":"pause_turn","usage":{"input_tokens":3,"output_tokens":2}});
+    let server = self::server(vec![Wire::Json(paused), Wire::Json(message("answer"))]).await;
+    let model = model(&server.url, "messages");
+    let req = request(
+        json!({"stream":false,"hosted_tools":[{"type":"web_search_20250305","name":"web_search"}],"hosted_tool_rounds":1}),
+    );
+    assert_eq!(
+        model
+            .request_bound(&req, &RunContext::default())
+            .await
+            .unwrap()
+            .max_calls,
+        2
+    );
+    let response = model.complete(req, &RunContext::default()).await.unwrap();
+    assert!(response.tool_calls.is_empty());
+    assert_eq!(response.input_tokens, 6);
+    assert_eq!(response.output_tokens, 4);
+    assert!(
+        serde_json::to_string(&response.messages)
+            .unwrap()
+            .contains("server_tool_use")
+    );
+    let requests = server.capture.requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(
+        requests[1].1["messages"][1]["content"][0]["type"],
+        "server_tool_use"
+    );
+}
+#[tokio::test]
+async fn image_fallback_reserves_two_attempts_and_preserves_original_input() {
+    let server = server(vec![
+        Wire::Error(
+            415,
+            json!({"error":{"code":"unsupported_image","message":"image rejected"}}),
+        ),
+        Wire::Json(response("text answer")),
+    ])
+    .await;
+    let wrapped = nofy_agent_runtime::model::image_fallback::ImageFallbackFactory
+        .build(
+            &json!({}),
+            &BTreeMap::from([(
+                "model".into(),
+                ModuleInstance::Model(model(&server.url, "responses")),
+            )]),
+        )
+        .unwrap();
+    let ModuleInstance::Model(wrapped) = wrapped else {
+        panic!("model")
+    };
+    let mut req = request(json!({"stream":false}));
+    req.messages = vec![Message::UserParts {
+        content: vec![
+            nofy_agent_runtime::InputPart::Text {
+                text: "describe".into(),
+            },
+            nofy_agent_runtime::InputPart::Image {
+                url: "https://example.invalid/image.png".into(),
+            },
+        ],
+    }];
+    assert_eq!(
+        wrapped
+            .request_bound(&req, &RunContext::default())
+            .await
+            .unwrap()
+            .max_calls,
+        2
+    );
+    let result = wrapped
+        .complete(req.clone(), &RunContext::default())
+        .await
+        .unwrap();
+    assert_eq!(wrapped.calls_used(&result), Some(2));
+    assert_eq!(result.info.provider["_image_fallback"]["removed_images"], 1);
+    assert!(matches!(req.messages[0], Message::UserParts { .. }));
+    let requests = server.capture.requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(
+        requests[0].1["input"][0]["content"][1]["type"],
+        "input_image"
+    );
+    assert_eq!(
+        requests[1].1["input"][0]["content"][1]["type"],
+        "input_text"
+    );
+}
+#[tokio::test]
+async fn confirmed_context_overflow_retries_one_tail_view_without_mutating_history() {
+    let server = server(vec![
+        Wire::Error(400, json!({"error":{"code":"context_length_exceeded"}})),
+        Wire::Json(response("recovered")),
+    ])
+    .await;
+    let ModuleInstance::Model(wrapped) =
+        nofy_agent_runtime::model::image_fallback::ContextFallbackFactory
+            .build(
+                &json!({"keep_turns":1}),
+                &BTreeMap::from([(
+                    "model".into(),
+                    ModuleInstance::Model(model(&server.url, "responses")),
+                )]),
+            )
+            .unwrap()
+    else {
+        panic!("model")
+    };
+    let mut req = request(json!({"stream":false}));
+    req.messages = vec![
+        Message::System {
+            content: "system invariant".into(),
+        },
+        Message::User {
+            content: "old turn".repeat(100),
+        },
+        Message::Assistant {
+            content: "old answer".into(),
+            tool_calls: vec![],
+        },
+        Message::User {
+            content: "current turn".into(),
+        },
+    ];
+    assert_eq!(
+        wrapped
+            .request_bound(&req, &RunContext::default())
+            .await
+            .unwrap()
+            .max_calls,
+        2
+    );
+    let out = wrapped
+        .complete(req.clone(), &RunContext::default())
+        .await
+        .unwrap();
+    assert_eq!(out.output, "recovered");
+    assert_eq!(wrapped.calls_used(&out), Some(2));
+    assert_eq!(
+        out.info.provider["_context_fallback"]["removed_messages"],
+        2
+    );
+    assert_eq!(req.messages.len(), 4);
+    let requests = server.capture.requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    let retry = requests[1].1["input"].to_string();
+    assert!(retry.contains("system invariant") && retry.contains("current turn"));
+    assert!(!retry.contains("old turn"));
+    assert!(retry.contains("omitted"));
+}
 fn response(text: &str) -> Value {
     json!({"id":"resp_1","status":"completed","output":[{"type":"message","id":"msg_1","role":"assistant","content":[{"type":"output_text","text":text,"annotations":[]}]}],"usage":{"input_tokens":3,"output_tokens":2}})
 }

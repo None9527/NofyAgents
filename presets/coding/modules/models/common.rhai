@@ -10,6 +10,14 @@ fn try_json(text) {
 fn settings(request) { request.settings ?? #{} }
 fn admit(request, backend, endpoint) {
     let s = settings(request);
+    if (s.hosted_tools ?? []).len() > 0 && backend == "chat_completions" {
+        reject("hosted_tools", "This Chat Completions preset has no provider-native hosted tool contract; select an explicit Responses or Messages protocol.");
+    }
+    for tool in s.hosted_tools ?? [] {
+        if tool.type == () || tool.type == "function" || tool.type == "custom" {
+            reject("hosted_tools", "hosted_tools requires provider-native server tools, not local function definitions");
+        }
+    }
     if backend != "responses" && (s.reasoning_summary != () || s.prompt_cache_key != ()) {
         reject("invalid_settings", "reasoning_summary and prompt_cache_key require the Responses protocol");
     }
@@ -36,10 +44,11 @@ fn admit(request, backend, endpoint) {
     if type_of(s.tool_choice) == "map" && !names.contains(s.tool_choice.function) {
         reject("tool_choice", "selected tool is not available in this request");
     }
-    if s.tool_choice == "required" && names.len() == 0 {
+    if s.tool_choice == "required" && names.len() == 0 && (s.hosted_tools ?? []).len() == 0 {
         reject("tool_choice", "required tool choice has no available tool");
     }
-    let calls = if s.json_schema == () { 1 } else { 1 + (s.structured_output_retries ?? 2) };
+    let calls = (if s.json_schema == () { 1 } else { 1 + (s.structured_output_retries ?? 2) })
+        + (if backend == "messages" && (s.hosted_tools ?? []).len() > 0 { s.hosted_tool_rounds ?? 2 } else { 0 });
     let output = s.max_output_tokens ?? endpoint?.max_output_tokens;
     if output == () && backend == "messages" { output = 4096; }
     #{max_requests: calls, max_output_tokens: output}
@@ -173,6 +182,7 @@ fn finish(state, response) {
         state.trail += repair;
         state.request.messages += repair;
         let next = make_exchange(state.model, state.request, state.trail, state.attempt + 1, state.admission);
+        next.state.hosted_rounds = state.hosted_rounds ?? 0;
         return #{next: next, input_tokens: response.input_tokens, output_tokens: response.output_tokens};
     }
     response.messages = state.trail + response.messages;

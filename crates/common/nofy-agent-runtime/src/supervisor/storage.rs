@@ -1,4 +1,5 @@
 use super::*;
+mod status;
 
 impl SqliteStore {
     /// Ordered, durable replay for an authorized root run. Tokens and controls
@@ -158,31 +159,7 @@ impl SqliteStore {
     /// Decisions are idempotent but cannot be changed or applied to a different
     /// tool name/argument/step. Access control belongs to the management host.
     pub async fn decide(&self, request: &ApprovalRequest, allow: bool) -> Result<(), Error> {
-        let key = request.key()?;
-        let call = serde_json::to_string(&request.call).map_err(db_error)?;
-        self.transaction(move |tx| {
-            let row: Option<(String, Option<bool>)> = tx
-                .query_row(
-                    "SELECT call_json,decision FROM agent_runtime_approvals WHERE key=?1",
-                    [&key],
-                    |row| Ok((row.get(0)?, row.get(1)?)),
-                )
-                .optional()
-                .map_err(db_error)?;
-            let (original, decision) =
-                row.ok_or_else(|| Error::Checkpoint("no matching pending approval".into()))?;
-            if original != call || decision.is_some_and(|previous| previous != allow) {
-                return Err(Error::Checkpoint(
-                    "approval decision conflicts with recorded call/decision".into(),
-                ));
-            }
-            tx.execute(
-                "UPDATE agent_runtime_approvals SET decision=?1 WHERE key=?2",
-                params![allow, key],
-            )
-            .map_err(db_error)?;
-            Ok(())
-        })
-        .await
+        self.decide_scoped(request, allow, ApprovalScope::Once)
+            .await
     }
 }

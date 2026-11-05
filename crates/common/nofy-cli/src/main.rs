@@ -61,7 +61,17 @@ async fn run(op: &str, m: &clap::ArgMatches) -> Result<i32> {
             "--wait requires run start, session start or session turn",
         ));
     }
-    let prepared = input::prepare(op, m, engine).await?;
+    let mut prepared = input::prepare(op, m, engine).await?;
+    if op == "project.pack" && prepared.value.get("source").is_some() {
+        if m.get_one::<String>("output").is_none() {
+            return Err(Error::new(
+                "local_input",
+                "local project pack requires --output",
+            ));
+        }
+        let source = serde_json::from_value(prepared.value["source"].clone())?;
+        prepared.value["source"] = serde_json::to_value(engine.resolve_source(&source).await?)?;
+    }
     if m.get_flag("follow") {
         if op != "run.events" {
             return Err(Error::new(

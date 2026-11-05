@@ -160,6 +160,7 @@ impl Manager {
             environment: invocation.environment,
             cwd: invocation.cwd,
             sandbox,
+            session: None,
         };
         let wire = profile.encode()?;
         let (sender, receiver) = oneshot::channel();

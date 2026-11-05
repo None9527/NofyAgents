@@ -17,6 +17,7 @@ tar = { workspace = true }
 flate2 = { workspace = true }
 cap-std = "3.4"
 libc = { workspace = true }
+jsonschema = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "1", features = ["fs"] }

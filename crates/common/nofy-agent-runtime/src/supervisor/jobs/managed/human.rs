@@ -1,6 +1,7 @@
 //! A logical control-tree target selects a frozen graph. Client data never
 //! grants access to an arbitrary checkpoint or a different root's decision.
 use super::*;
+mod targets;
 use crate::{
     program::ProgramSnapshot,
     registry::{ModuleInstance, ModuleKind, ModuleRef, ModuleRegistry, ResolvedModule},
@@ -9,6 +10,7 @@ use crate::{
         graph::{HumanResponse, NodeProgress},
     },
 };
+pub use targets::{HumanRecoveryPage, HumanRecoveryTarget};
 #[cfg(test)]
 mod tests;
 

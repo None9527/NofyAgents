@@ -1,0 +1,63 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "agent-collaboration",
+  "version": "0.1.0",
+  "description": "Structured asynchronous children and root-scoped message board; uses the original child dispatch and budget.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "inputs": {
+    "children": "tool_pack"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "tasks"
+      },
+      "factory": "resource.agent_tasks",
+      "config": {},
+      "dependencies": {
+        "children": {
+          "$input": "children"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "binding"
+      },
+      "factory": "binding.agent_tasks",
+      "config": {},
+      "dependencies": {
+        "tasks": {
+          "$module": "tasks"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "tools"
+      },
+      "factory": "tool.agent_tasks",
+      "config": {},
+      "dependencies": {
+        "tasks": {
+          "$module": "tasks"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "messages"
+      },
+      "factory": "tool.agent_messages",
+      "config": {}
+    }
+  ],
+  "exports": {
+    "binding": "binding",
+    "tools": "tools",
+    "messages": "messages"
+  }
+}

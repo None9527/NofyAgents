@@ -52,7 +52,7 @@ async fn declared_rules_and_session_http_controls_share_exact_replay_and_quiesce
             .as_array()
             .unwrap()
             .len(),
-        17
+        20
     );
     let command = start(&release, "start");
     let first = post(&server, "/api/v1/sessions/start", command.clone()).await;

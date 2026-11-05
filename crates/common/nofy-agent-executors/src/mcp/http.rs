@@ -69,12 +69,12 @@ impl ModuleFactory for HttpResourceFactory {
             nofy_agent_runtime::system::content_digest(&(REVISION, &self.authority, value))?;
         Ok(ModuleInstance::Resource(Arc::new(ResourceHandle::new(
             identity,
-            Arc::new(Connection {
+            Arc::new(transport::Connection::http(Arc::new(Connection {
                 endpoint,
                 credential_ref: config.credential_ref,
                 credentials: self.credentials.clone(),
                 client: Default::default(),
-            }),
+            }))),
         )?)))
     }
 }

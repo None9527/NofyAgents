@@ -1,0 +1,508 @@
+{
+  "format": "nofy.kernel-gaps-verification/v1",
+  "date": "2026-11-05",
+  "scope": "报告中确认缺失的能力全部落地；CLI/MCP 自描述装配",
+  "state": "implemented_and_verified_with_declared_limits",
+  "contracts": {
+    "revision": "0.6",
+    "operations": 97,
+    "mcp_tools": 95,
+    "session_operations": 20,
+    "http_routes": 130
+  },
+  "packages": [
+    {
+      "name": "context-compaction",
+      "version": "0.2.0",
+      "source": "modules/agent-foundation/context-compaction"
+    },
+    {
+      "name": "agent-task",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/agent-task"
+    },
+    {
+      "name": "plan",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/plan"
+    },
+    {
+      "name": "agent-collaboration",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/agent-collaboration"
+    },
+    {
+      "name": "ask-user",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/ask-user"
+    },
+    {
+      "name": "execution-escalation",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/execution-escalation"
+    },
+    {
+      "name": "resilience",
+      "version": "0.1.0",
+      "source": "modules/agent-foundation/resilience"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "K1",
+      "state": "implemented",
+      "capability": "无 cgroup 的 namespace 执行",
+      "evidence": [
+        "process-sessions-final"
+      ]
+    },
+    {
+      "id": "K2",
+      "state": "implemented",
+      "capability": "stderr 与结构化工具失败",
+      "evidence": [
+        "e-host-loader-final",
+        "real-parent-child-effects"
+      ]
+    },
+    {
+      "id": "K3",
+      "state": "implemented",
+      "capability": "会话 fork/rewind/tree",
+      "evidence": [
+        "e-sessions-latest",
+        "e-branches-native",
+        "real-session-branches"
+      ]
+    },
+    {
+      "id": "K4",
+      "state": "implemented",
+      "capability": "压力/手动压缩与溢出恢复",
+      "evidence": [
+        "e-context-controls"
+      ]
+    },
+    {
+      "id": "K5",
+      "state": "implemented",
+      "capability": "父拥有的异步子任务与消息",
+      "evidence": [
+        "runtime-final",
+        "real-parent-child-effects"
+      ]
+    },
+    {
+      "id": "K6",
+      "state": "implemented",
+      "capability": "问询、计划、hosted 透传、PTY、stdio MCP",
+      "evidence": [
+        "e-human-paths-final",
+        "e-context-controls",
+        "process-sessions-final"
+      ]
+    },
+    {
+      "id": "K7",
+      "state": "implemented",
+      "capability": "规则权限、命令分析、范围审批与撤销",
+      "evidence": [
+        "runtime-final",
+        "host-lib-final"
+      ]
+    },
+    {
+      "id": "K8",
+      "state": "implemented",
+      "capability": "文件模式、强制代理与显式升级",
+      "evidence": [
+        "process-sessions-final",
+        "e-human-paths-final"
+      ]
+    },
+    {
+      "id": "K9",
+      "state": "implemented",
+      "capability": "steering/follow_up 批量/逐条模式",
+      "evidence": [
+        "runtime-final"
+      ]
+    },
+    {
+      "id": "K10",
+      "state": "implemented",
+      "capability": "重试/阶段接线、回退与原票据恢复",
+      "evidence": [
+        "runtime-final",
+        "e-context-controls",
+        "real-session-branches"
+      ]
+    },
+    {
+      "id": "M1",
+      "state": "implemented",
+      "capability": "顶层参数 Schema 与版本核对",
+      "evidence": [
+        "e-client-complete",
+        "e-cli-complete",
+        "real-guided-factory"
+      ],
+      "desktop_cached_bridge_revalidation": false
+    },
+    {
+      "id": "M2",
+      "state": "implemented",
+      "capability": "删除、yank、孤儿 GC",
+      "evidence": [
+        "e-cli-complete",
+        "source-project-tests"
+      ]
+    },
+    {
+      "id": "M3",
+      "state": "implemented",
+      "capability": "source/target 歧义拒绝",
+      "evidence": [
+        "e-client-complete"
+      ]
+    },
+    {
+      "id": "M4",
+      "state": "implemented",
+      "capability": "unset、结构依赖替换/移除",
+      "evidence": [
+        "source-project-tests",
+        "e-cli-complete"
+      ]
+    },
+    {
+      "id": "M5",
+      "state": "implemented",
+      "capability": "字符串引用与原生 ModuleRef 分型",
+      "evidence": [
+        "e-client-complete",
+        "e-cli-complete"
+      ]
+    },
+    {
+      "id": "M6",
+      "state": "implemented",
+      "capability": "字段诊断、NativeJson 模板与恢复指南",
+      "evidence": [
+        "e-client-complete",
+        "real-guided-factory"
+      ]
+    },
+    {
+      "id": "M7",
+      "state": "implemented",
+      "capability": "事件/MCP 保留工具失败现场",
+      "evidence": [
+        "e-host-loader-final",
+        "real-parent-child-effects"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "runtime-final",
+      "passed": true,
+      "tests": 154,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/runtime-final.log"
+    },
+    {
+      "id": "e-context-controls",
+      "passed": true,
+      "tests": 21,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-context-controls.log"
+    },
+    {
+      "id": "e-client-complete",
+      "passed": true,
+      "tests": 10,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-client-complete.log"
+    },
+    {
+      "id": "e-cli-complete",
+      "passed": true,
+      "tests": 6,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-cli-complete.log"
+    },
+    {
+      "id": "e-host-loader-final",
+      "passed": true,
+      "tests": 40,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-host-loader-final.log"
+    },
+    {
+      "id": "process-sessions-final",
+      "passed": true,
+      "tests": 4,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/process-sessions-final.log"
+    },
+    {
+      "id": "host-lib-final",
+      "passed": true,
+      "tests": 86,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/host-lib-final.log"
+    },
+    {
+      "id": "e-human-paths-final",
+      "passed": true,
+      "tests": 2,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-human-paths-final.log"
+    },
+    {
+      "id": "e-run-status",
+      "passed": true,
+      "tests": 1,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-run-status.log"
+    },
+    {
+      "id": "e-sessions-latest",
+      "passed": true,
+      "tests": 16,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-sessions-latest.log"
+    },
+    {
+      "id": "e-branches-native",
+      "passed": true,
+      "tests": 1,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-branches-native.log"
+    },
+    {
+      "id": "model-examples-final",
+      "passed": true,
+      "tests": 1,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/model-examples-final.log"
+    },
+    {
+      "id": "semantic-recovery-final",
+      "passed": true,
+      "tests": 1,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/semantic-recovery-final.log"
+    },
+    {
+      "id": "e-host-session-recheck",
+      "passed": true,
+      "tests": 1,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-host-session-recheck.log"
+    },
+    {
+      "id": "e-workspace-final-complete",
+      "passed": true,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-workspace-final-complete.log"
+    },
+    {
+      "id": "e-format-final-complete",
+      "passed": true,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-format-final-complete.log"
+    },
+    {
+      "id": "e-boundaries-complete",
+      "passed": true,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-boundaries-complete.log"
+    },
+    {
+      "id": "e-framework-complete",
+      "passed": true,
+      "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-framework-complete.log"
+    }
+  ],
+  "source_project_tests": {
+    "passed": 14,
+    "private_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/d-final-project.log",
+    "wire_recovery_log": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/e-wire-recovery.log"
+  },
+  "real_guided_factory": {
+    "passed": true,
+    "agent": "guided-7e2a1a80",
+    "run_id": "guided-75d6dbf808",
+    "system": "guided-7e2a1a80",
+    "release": "e09f0ecad23e97348d67d27985b4111ca56e22cf61d569b7c2a6d9d82b911630",
+    "rounds": 20,
+    "mcp_calls": 20,
+    "calls": [
+      "nofy_describe",
+      "nofy_schema",
+      "nofy_schema",
+      "nofy_schema",
+      "nofy_schema",
+      "nofy_schema",
+      "nofy_agent_create",
+      "nofy_agent_configure",
+      "nofy_agent_module_add",
+      "nofy_agent_inspect",
+      "nofy_agent_module_add",
+      "nofy_agent_inspect",
+      "nofy_agent_plan",
+      "nofy_agent_apply",
+      "nofy_agent_inspect",
+      "nofy_schema",
+      "nofy_run_start",
+      "nofy_run_inspect",
+      "nofy_run_inspect",
+      "nofy_run_events"
+    ],
+    "usage": {
+      "input_tokens": 666154,
+      "output_tokens": 5920
+    },
+    "requested_model": "gemini-3.8-flash-high",
+    "reported_models": [
+      "gemini-3.8-flash-n"
+    ],
+    "agent_reported_model": "gemini-3.8-flash-n",
+    "proof_sha256": "4132a38e997f77f90d2bbf8568a4036a392130da181b06fa5b4a13984561be1f",
+    "seed_file": "guide-seed-3fda53c6.txt",
+    "raw_mcp_results": true,
+    "framework_sources_provided": false
+  },
+  "real_parent_child_effects": {
+    "run_id": "verified-cc97b9f30a",
+    "release": "6418cda3ff3a6c8deb9b14efcaf301c33737c7abc26a78f4b97152165378d697",
+    "execution_status": "completed",
+    "children": 1,
+    "file_bytes": {
+      "parent.txt": 17,
+      "delegated.txt": 17
+    },
+    "all_actions_model_originated": false,
+    "note": "模型装配发布后由确定性 MCP 操作者继续运行；完整无辅助创建运行另见 real_guided_factory"
+  },
+  "real_session_branches": {
+    "passed": true,
+    "source_session_id": "branch-source-0e9666e9",
+    "source_run_id": "verified-cc97b9f30a",
+    "branches": [
+      {
+        "kind": "fork",
+        "session_id": "fork-session-7a719f7e",
+        "run_id": "fork-7a719f7e",
+        "seed_messages": 21,
+        "final_messages": 23,
+        "status": "completed",
+        "children": 0
+      },
+      {
+        "kind": "rewind",
+        "session_id": "rewind-session-7a719f7e",
+        "run_id": "rewind-7a719f7e",
+        "seed_messages": 2,
+        "final_messages": 4,
+        "status": "completed",
+        "children": 0
+      }
+    ],
+    "tree": {
+      "branches": [
+        {
+          "command_id": "create-fork-7a719f7e",
+          "created_at_ms": 1793887026140,
+          "parent_session_id": "branch-source-0e9666e9",
+          "protocol": "nofy.session-branch/v1",
+          "root_run_id": "fork-7a719f7e",
+          "seed_digest": "fd70ab9946ccff0aa07f0f9dc70465b1986b3654aadfcea39f50c1b49bfbabf8",
+          "session_id": "fork-session-7a719f7e",
+          "source_execution_digest": "cb05d5d7d63b91e7d5fe6b6047771cfbe118c6e2d1a4dc9202e2aac4043f1b23",
+          "source_revision": 0,
+          "source_run_id": "verified-cc97b9f30a",
+          "through_message": 21
+        },
+        {
+          "command_id": "create-rewind-7a719f7e",
+          "created_at_ms": 1793887034635,
+          "parent_session_id": "branch-source-0e9666e9",
+          "protocol": "nofy.session-branch/v1",
+          "root_run_id": "rewind-7a719f7e",
+          "seed_digest": "0e84511f31708608ac12bda22d69815fb50d1333bee92f3fba3f7c9adc4e3a27",
+          "session_id": "rewind-session-7a719f7e",
+          "source_execution_digest": "cb05d5d7d63b91e7d5fe6b6047771cfbe118c6e2d1a4dc9202e2aac4043f1b23",
+          "source_revision": 0,
+          "source_run_id": "verified-cc97b9f30a",
+          "through_message": 2
+        }
+      ],
+      "budget": "each operator-created branch has an independent root; original ledger is unchanged",
+      "protocol": "nofy.session-tree/v1",
+      "rewind_effects": "preserved",
+      "root_session_id": "branch-source-0e9666e9",
+      "selected_session_id": "branch-source-0e9666e9"
+    },
+    "original_effects_unchanged": true,
+    "original_outcome_unchanged": true,
+    "model_retries": [
+      {
+        "command_id": "branch-transport-7a719f7e-0",
+        "generation": 0,
+        "error": null
+      }
+    ],
+    "partial_opaque_boundary_rejected": true
+  },
+  "mcp_result_sizes": {
+    "encoding": "json.dumps default JSON encoding bytes; same serializer before/after",
+    "before": {
+      "nofy_describe": 158612,
+      "nofy_agent_apply": 477898,
+      "nofy_run_inspect": 166687
+    },
+    "after": {
+      "nofy_describe": 58765,
+      "nofy_agent_apply": 8538,
+      "nofy_run_inspect": 897
+    }
+  },
+  "gitnexus": {
+    "summary": {
+      "changed_count": 1350,
+      "affected_count": 120,
+      "changed_files": 110,
+      "risk_level": "critical"
+    },
+    "actual_paths_verified_separately": true,
+    "note": "全工作区差异含既有模块仓库工作；同名符号/文件存在静态图误关联。未提交。",
+    "same_name_path_false_associations": [
+      "crates/common/nofy-test-support/README.md"
+    ]
+  },
+  "private_evidence": [
+    {
+      "path": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/live-flat/guided-factory.ndjson",
+      "sha256": "b30d98eb53677cc2b0d0ff538b4a705a0e213722cfd385b659bbbd635f88327b"
+    },
+    {
+      "path": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/live-flat/operator.ndjson",
+      "sha256": "975e1fd724402bb2578516f8607655b6f0f3323b4610a619eca35815ee2dfb25"
+    },
+    {
+      "path": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/live-flat/session-branches-result.json",
+      "sha256": "a9e04f562dd295aa9c24167b90f9331d7da4afdaa0099d89fd35ef18d6124d9b"
+    },
+    {
+      "path": "/home/none/.local/state/nofy-build/self-describing-mcp-20261105-160258/live-flat/binaries-latest.json",
+      "sha256": "5cb2e725c0d72030defb7adf03a5e29e65fca319a9978976972820618f99ef33"
+    }
+  ],
+  "declared_limits": [
+    "OS namespace/PTY/代理实测为本机 Linux；无 cgroup 后端不提供整树聚合 CPU/内存配额。",
+    "hosted 工具验收为协议与本地 HTTP 帧，未调用真实服务端 web_search。",
+    "Opaque rewind 采用完整用户轮次边界，原始历史保留，不解析 provider 内部格式。",
+    "原 Host HTTP 202 项有 9 失败，按原因修复并复验相关组，未重跑新增后的全部 205 项。",
+    "常驻 7331 与旧 MCP 缓存未重启；完整四参考产品复刻和无限组合矩阵不是本记录结论。",
+    "未提交或推送；源码与依赖清单交付，不安装/打包外部依赖，不设源码包体配额。"
+  ],
+  "source_integrity": {
+    "baseline_files": 946,
+    "missing_baseline_files": [],
+    "head_unchanged": true,
+    "original_report_unchanged": true,
+    "actual_modified_files": 110,
+    "actual_untracked_files": 98,
+    "unexpected_paths": [],
+    "markdown_checked": 39,
+    "broken_links": [],
+    "credential_literal_files": [],
+    "signature_literal_files": []
+  }
+}

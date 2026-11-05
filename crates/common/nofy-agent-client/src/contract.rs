@@ -67,23 +67,177 @@ pub fn schema(name: &str) -> Result<Value> {
             (name, value)
         })
         .collect();
-    Ok(
-        json!({"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","allOf":[reference],"$defs":defs}),
-    )
+    let mut result = SCHEMAS["$defs"][name].clone();
+    let (properties, required) = exposed_fields(&result, &mut Default::default());
+    if !properties.is_empty() {
+        result["properties"] = Value::Object(properties);
+    }
+    if !required.is_empty() {
+        result["required"] = json!(required);
+    }
+    if result.get("type").is_none() {
+        result["type"] = json!("object");
+    }
+    result["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
+    result["$defs"] = Value::Object(defs);
+    Ok(result)
+}
+// Model gateways commonly read only top-level properties. Surface the union
+// of admissible fields while keeping the original combinators authoritative.
+fn exposed_fields(
+    value: &Value,
+    seen: &mut std::collections::BTreeSet<String>,
+) -> (
+    serde_json::Map<String, Value>,
+    std::collections::BTreeSet<String>,
+) {
+    let mut fields = value
+        .get("properties")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let mut required = value
+        .get("required")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut merge = |more: serde_json::Map<String, Value>| {
+        for (key, schema) in more {
+            if let Some(previous) = fields.get(&key) {
+                if previous != &schema {
+                    fields.insert(key, json!({"anyOf":[previous,schema]}));
+                }
+            } else {
+                fields.insert(key, schema);
+            }
+        }
+    };
+    if let Some(name) = value
+        .get("$ref")
+        .and_then(Value::as_str)
+        .and_then(|r| r.strip_prefix("#/$defs/"))
+        && seen.insert(name.into())
+    {
+        let (more, keys) = exposed_fields(&SCHEMAS["$defs"][name], seen);
+        merge(more);
+        required.extend(keys);
+        seen.remove(name);
+    }
+    for mode in ["allOf", "oneOf", "anyOf"] {
+        if let Some(branches) = value.get(mode).and_then(Value::as_array) {
+            let mut common: Option<std::collections::BTreeSet<String>> = None;
+            for branch in branches {
+                let (more, keys) = exposed_fields(branch, seen);
+                merge(more);
+                if mode == "allOf" {
+                    required.extend(keys);
+                } else {
+                    common = Some(match common {
+                        None => keys,
+                        Some(old) => old.intersection(&keys).cloned().collect(),
+                    });
+                }
+            }
+            if let Some(common) = common {
+                required.extend(common);
+            }
+        }
+    }
+    (fields, required)
 }
 pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
     let operation = operation(operation_name)?;
     let schema = schema(&operation.input_schema)?;
     let validator = jsonschema::validator_for(&schema)
         .map_err(|_| Error::new("local_input", "invalid embedded operation Schema"))?;
-    if let Some(error) = validator.iter_errors(input).next() {
+    if validator.iter_errors(input).next().is_some() {
+        fn issue(error: &jsonschema::ValidationError<'_>, prefix: &str) -> Value {
+            let mut path = format!("{prefix}{}", error.instance_path);
+            let message = if let jsonschema::error::ValidationErrorKind::Required { property } =
+                &error.kind
+            {
+                if let Some(name) = property.as_str() {
+                    path.push('/');
+                    path.push_str(&name.replace('~', "~0").replace('/', "~1"));
+                }
+                "required field is missing".to_owned()
+            } else if let jsonschema::error::ValidationErrorKind::AdditionalProperties {
+                unexpected,
+            } = &error.kind
+            {
+                format!("unknown fields: {}", unexpected.join(", "))
+            } else {
+                format!(
+                    "value violates {}",
+                    error
+                        .schema_path
+                        .to_string()
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or("contract")
+                )
+            };
+            json!({"path":path,"schema_path":error.schema_path.to_string(),"message":message})
+        }
+        let mut issues = validator
+            .iter_errors(input)
+            .take(8)
+            .map(|error| issue(&error, ""))
+            .collect::<Vec<_>>();
+        if issues.iter().any(|i| i["path"] == "/target") {
+            if let Some(target) = input.get("target") {
+                let mode = target["kind"].as_str();
+                let write = target.get("expected_revision").is_some()
+                    || target.get("expected_digest").is_some()
+                    || matches!(
+                        operation_name,
+                        "agent.configure"
+                            | "agent.create"
+                            | "agent.module.add"
+                            | "agent.module.set"
+                            | "agent.module.bind"
+                            | "agent.module.detach"
+                            | "agent.module.remove"
+                            | "agent.module.use"
+                            | "agent.module.unuse"
+                            | "agent.tool.add"
+                    );
+                let name = if write { "WriteTarget" } else { "ReadTarget" };
+                if let Some(branch) =
+                    SCHEMAS["$defs"][name]["oneOf"]
+                        .as_array()
+                        .and_then(|branches| {
+                            branches
+                                .iter()
+                                .find(|b| b["properties"]["kind"]["const"].as_str() == mode)
+                        })
+                {
+                    let target_schema = json!({"allOf":[branch],"$defs":SCHEMAS["$defs"]});
+                    if let Ok(check) = jsonschema::validator_for(&target_schema) {
+                        let exact = check
+                            .iter_errors(target)
+                            .take(8)
+                            .map(|error| issue(&error, "/target"))
+                            .collect::<Vec<_>>();
+                        if !exact.is_empty() {
+                            issues.retain(|i| i["path"] != "/target");
+                            issues.extend(exact);
+                        }
+                    }
+                }
+            }
+        }
+        let path = issues
+            .first()
+            .and_then(|v| v["path"].as_str())
+            .unwrap_or("");
         return Err(Error {
             code: "local_input".into(),
-            message: format!(
-                "input does not match {} at {}",
-                operation.operation, error.instance_path
-            ),
-            details: json!({"origin":"adapter","schema":operation.input_schema,"path":error.instance_path.to_string()}),
+            message: format!("input does not match {} at {}", operation.operation, path),
+            details: json!({"origin":"adapter","schema":operation.input_schema,"path":path,"issues":issues}),
             unconfirmed: false,
             refs: Default::default(),
         });

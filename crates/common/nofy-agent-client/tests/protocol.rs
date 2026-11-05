@@ -182,3 +182,36 @@ async fn original_run_without_a_live_update_exposes_native_revision_zero() {
     let native: Value = serde_json::from_str(result.data["native_json"].as_str().unwrap()).unwrap();
     assert!(native["live"].is_null());
 }
+
+#[tokio::test]
+async fn extractor_rejections_expose_missing_native_fields_without_echoing_values() {
+    #[derive(serde::Deserialize)]
+    struct RequiredCommand {
+        command: Value,
+    }
+    let server = serve(axum::Router::new()
+        .route("/api/v1/actions", axum::routing::post(|axum::Json(body): axum::Json<RequiredCommand>| async move { axum::Json(body.command) }))
+        .route("/api/v1/access", axum::routing::get(|| async {
+            (axum::http::StatusCode::UNPROCESSABLE_ENTITY, "Failed to deserialize the JSON body into the target type: unknown variant `private-business-value`")
+        }))).await;
+    let client = KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap();
+    let engine = Engine::new(client.clone());
+    let result = engine
+        .execute(
+            "run.control",
+            json!({"action_json":"{\"unknown\":\"private-business-value\"}"}),
+        )
+        .await;
+    assert!(result.is_error());
+    let error = result.error.as_ref().unwrap();
+    assert_eq!(error["code"], "invalid");
+    assert_eq!(error["details"]["missing_field"], "command");
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("private-business-value")
+    );
+    let error = client.authorize().await.unwrap_err();
+    assert_eq!(error.message, "kernel rejected request");
+    assert!(!error.message.contains("private-business-value"));
+}

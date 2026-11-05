@@ -4,7 +4,7 @@ use nofy_agent_runtime::{Error, registry::*, system::content_digest};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 #[cfg(target_os = "linux")]
-mod bootstrap;
+pub(in crate::loader) mod bootstrap;
 #[cfg(target_os = "linux")]
 mod cgroup;
 #[cfg(target_os = "linux")]

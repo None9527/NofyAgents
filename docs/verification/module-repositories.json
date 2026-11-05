@@ -1,0 +1,165 @@
+{
+  "mcp_protocol": "2025-11-25",
+  "tool_count": 77,
+  "package_digest": "bad0bcff051d34dad4defdb2e763a20290d9b9cb14ab26958dc82db3ad53cb3c",
+  "repository_revision": "1",
+  "runs": [
+    {
+      "agent": "repo-one",
+      "run_id": "repo-one-files",
+      "release": "7c840d4afa7a3eb557779e144f58809003c64d4230978ec254e26e72400031fa",
+      "status": "completed",
+      "file_effect_verified": true,
+      "tool_names": [
+        "read_file",
+        "write_file"
+      ],
+      "offline_deployment_equal": true,
+      "project_revision": "2",
+      "marker_sha256": "9c154ae3bf910dfc500984f375d4600c8d842c4314ca4b605750dd9ce686505e",
+      "model_completed": 3,
+      "tool_completed": 2,
+      "events_sha256": "7b3e2d914e7de370a486b7bde0611cd834b7bc44ddbd629596f5cf3c14832c6d",
+      "reported_models": [
+        "gemini-3.8-flash-n"
+      ],
+      "usage_observations": [
+        {
+          "completion_tokens": 88,
+          "completion_tokens_details": {
+            "reasoning_tokens": 70
+          },
+          "prompt_tokens": 453,
+          "total_tokens": 541
+        },
+        {
+          "completion_tokens": 191,
+          "completion_tokens_details": {
+            "reasoning_tokens": 142
+          },
+          "prompt_tokens": 672,
+          "total_tokens": 863
+        },
+        {
+          "completion_tokens": 18,
+          "completion_tokens_details": {
+            "reasoning_tokens": 17
+          },
+          "prompt_tokens": 971,
+          "total_tokens": 989
+        }
+      ]
+    },
+    {
+      "agent": "repo-two",
+      "run_id": "repo-two-files",
+      "release": "bc4ec3c1e3b224ebd3e3d51335387f03197875867775ee9e1a9562e26d5dc5e1",
+      "status": "completed",
+      "file_effect_verified": true,
+      "tool_names": [
+        "read_file",
+        "write_file"
+      ],
+      "offline_deployment_equal": true,
+      "project_revision": "2",
+      "marker_sha256": "2d5e1138705748a610dfd1f59dfc807dfbe83d47a7a40ba17f14c4f60e33e6ec",
+      "model_completed": 3,
+      "tool_completed": 2,
+      "events_sha256": "4ac38d009bd2bedbee59c972451bdb2481aec210dac9b0cb5bdf99b166d99e2b",
+      "reported_models": [
+        "gemini-3.8-flash-n"
+      ],
+      "usage_observations": [
+        {
+          "completion_tokens": 89,
+          "completion_tokens_details": {
+            "reasoning_tokens": 71
+          },
+          "prompt_tokens": 453,
+          "total_tokens": 542
+        },
+        {
+          "completion_tokens": 136,
+          "completion_tokens_details": {
+            "reasoning_tokens": 88
+          },
+          "prompt_tokens": 672,
+          "total_tokens": 808
+        },
+        {
+          "completion_tokens": 18,
+          "completion_tokens_details": {
+            "reasoning_tokens": 17
+          },
+          "prompt_tokens": 916,
+          "total_tokens": 934
+        }
+      ]
+    }
+  ],
+  "shared_blob_count": 1,
+  "next_digest": "03d5345596de35e596670e2693cea2328f4d760abdb73ffc54c5b5bed040cfde",
+  "existing_pins_unchanged_after_new_version": true,
+  "isolated_host_restart_recovery": true,
+  "requested_model": "gemini-3.8-flash-high",
+  "reported_models": [
+    "gemini-3.8-flash-n"
+  ],
+  "model_mapping": "Record gateway identity as observed; no substitution.",
+  "success": true,
+  "artifact_root": "/home/none/.local/state/nofy-build/module-repositories-20261105-023643",
+  "successful_live_probe": "/home/none/.local/state/nofy-build/module-repositories-20261105-023643/live-3",
+  "source_head": "2d455df24f10ac4acd4440e1aee740f3b611c890",
+  "date": "2026-11-05",
+  "contract_revision": "0.4",
+  "operations": 79,
+  "http_method_path_pairs": 119,
+  "verification": {
+    "workspace_all_features_all_targets": "passed final, no compiler warnings",
+    "project_source_and_repository_tests": 12,
+    "client_protocol_tests": 5,
+    "cli_and_official_mcp_tests": 5,
+    "host_library_tests": 86,
+    "host_http_tests": 1,
+    "host_session_policy_tests": 3,
+    "coding_python_tests": 53,
+    "dependency_boundaries": "passed",
+    "final_module_repository_cli_mcp_tests": 2
+  },
+  "first_failures": [
+    {
+      "scope": "CLI regression",
+      "count": 3,
+      "cause": "Local pack bypassed operation engine, output path expected server archive; one new directory test used Agent-only directory loader.",
+      "resolution": "Resolve source pins before local packing, preserve local archive path; correct module fixture update."
+    },
+    {
+      "scope": "live observer",
+      "cause": "Queued execution was null before dispatch.",
+      "resolution": "Observer handles queued state."
+    },
+    {
+      "scope": "live model run",
+      "cause": "First isolated model call returned model protocol transport failure. Root cause not established.",
+      "resolution": "Separate readiness request succeeded; new isolated run used private credential injection and passed. No causal claim that credential injection fixed transport."
+    }
+  ],
+  "not_claimed": [
+    "Public Host 7331 upgrade or restart",
+    "Full pi replication or all-module crossing matrix",
+    "Automatic dependency installation or bundled runtimes",
+    "Implicit Git acquisition during build",
+    "Automatic garbage collection of published packages"
+  ],
+  "scope_audit": {
+    "gitnexus_risk": "CRITICAL",
+    "affected_flows": 32,
+    "changed_tracked_files": 39,
+    "new_files": 17,
+    "deleted_files": 0,
+    "unexpected_paths": [],
+    "runtime_loop_and_session_format_modified": false,
+    "new_frontend_sources": false,
+    "notes": "GitNexus includes coarse parent/file matches and same-basename Markdown matches. Source hashes and actual git paths bound the implementation scope; new files are checked separately."
+  }
+}

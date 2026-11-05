@@ -203,7 +203,10 @@ impl AgentHost<'_> {
                 serde_json::to_value(output).map_err(|e| Error::Tool(e.to_string()))?,
                 false,
             ),
-            Err(error) => (json!({"error":error.to_string()}), true),
+            Err(error) => (
+                json!({"error":error.to_string(),"details":error.details}),
+                true,
+            ),
         };
         self.state.messages.push(Message::Tool {
             call_id: call.id.clone(),

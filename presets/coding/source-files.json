@@ -27,5 +27,8 @@
   "tests/test_build.py",
   "tests/test_files.py",
   "tests/test_command.py",
-  "tests/test_source_package.py"
+  "tests/test_source_package.py",
+  "module.json",
+  "module-files.json",
+  "module-repository.json"
 ]

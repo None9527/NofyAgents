@@ -49,6 +49,7 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
     )?;
     let factories: Vec<Arc<dyn ModuleFactory>> = vec![
         Arc::new(StaticPromptFactory),
+        Arc::new(nofy_agent_runtime::tools::compose::ComposeFactory),
         Arc::new(nofy_agent_runtime::session_policy::RulesFactory),
         Arc::new(nofy_agent_modules::rules::RulesFactory),
         Arc::new(nofy_agent_modules::skills::SkillsFactory::context()),
@@ -62,6 +63,8 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
             credentials.clone(),
         )?),
         Arc::new(nofy_agent_models::declarative::ProgrammedModelFactory::default()),
+        Arc::new(nofy_agent_runtime::model::image_fallback::ImageFallbackFactory),
+        Arc::new(nofy_agent_runtime::model::image_fallback::ContextFallbackFactory),
         Arc::new(http),
         Arc::new(nofy_agent_executors::declarative::ConnectedHttpToolFactory),
         Arc::new(nofy_agent_executors::declarative::HttpToolSourceFactory),
@@ -78,6 +81,11 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
         Arc::new(nofy_agent_runtime::event_program::declarative::EventProducerFactory),
         Arc::new(nofy_agent_runtime::event_program::declarative::OwnedHookFactory),
         Arc::new(ToolAllowListFactory),
+        Arc::new(nofy_agent_runtime::policy::ToolRulesFactory),
+        Arc::new(nofy_agent_runtime::tasks::declarative::TasksResourceFactory),
+        Arc::new(nofy_agent_runtime::tasks::declarative::TasksBindingFactory),
+        Arc::new(nofy_agent_runtime::tasks::declarative::TasksToolFactory),
+        Arc::new(nofy_agent_runtime::tasks::declarative::MessagesToolFactory),
         Arc::new(OnToolsFactory),
         Arc::new(RecipeFactory),
         Arc::new(LiteralStageFactory),

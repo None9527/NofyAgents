@@ -1,0 +1,84 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "plan",
+  "version": "0.1.0",
+  "description": "A validated plan tool whose results are preserved by the original run event/checkpoint path.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "reference": {
+        "$module": "plan"
+      },
+      "factory": "tool.rhai",
+      "config": {
+        "contract": {
+          "name": "update_plan",
+          "description": "Record an explicit plan and statuses in the durable tool result history. The latest successful result is the current plan for this run.",
+          "effect": "read_only",
+          "input_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "steps"
+            ],
+            "properties": {
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step",
+                    "status"
+                  ],
+                  "properties": {
+                    "step": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "enum": [
+                        "pending",
+                        "in_progress",
+                        "completed"
+                      ]
+                    }
+                  }
+                }
+              },
+              "explanation": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "plan",
+              "explanation"
+            ],
+            "properties": {
+              "plan": {
+                "type": "array"
+              },
+              "explanation": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "source": "let active = 0; for step in args.steps { if step.status == \"in_progress\" { active += 1; } } if active > 1 { throw \"at most one plan step may be in_progress\"; } #{plan:args.steps,explanation:if args.contains(\"explanation\") { args.explanation } else { \"\" }}"
+      }
+    }
+  ],
+  "exports": {
+    "plan": "plan"
+  }
+}

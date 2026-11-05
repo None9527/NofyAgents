@@ -7,6 +7,8 @@ mod worker;
 use initial::{reject_stale, settle_source};
 pub(super) use lifecycle::{finish, validate_begin};
 mod managed;
+#[cfg(feature = "workflow")]
+pub use managed::{HumanRecoveryPage, HumanRecoveryTarget};
 mod replay;
 mod submission;
 use crate::mailbox::{
@@ -20,10 +22,11 @@ pub use managed::parking::{ParkReceipt, ParkRecord, ParkStatus};
 pub(in crate::supervisor) use managed::sessions::bind_session;
 pub(in crate::supervisor) use managed::sessions::profiles::admission::finish as session_finished;
 pub use managed::sessions::{
-    SessionChange, SessionCommand, SessionCommandError, SessionPlan, SessionPlanView,
-    SessionPolicyEpoch, SessionPolicySelection, SessionReceipt, SessionRecord, SessionRequest,
-    SessionRoute, SessionRouteView, SessionSeedInfo, SessionStart, SessionState, SessionTurn,
-    SessionTurnAdmission, SessionTurnCommand, SessionTurnInput, SessionView,
+    ForkSource, SessionBranch, SessionChange, SessionCommand, SessionCommandError, SessionFork,
+    SessionPlan, SessionPlanView, SessionPolicyEpoch, SessionPolicySelection, SessionReceipt,
+    SessionRecord, SessionRequest, SessionRoute, SessionRouteView, SessionSeedInfo, SessionStart,
+    SessionState, SessionTurn, SessionTurnAdmission, SessionTurnCommand, SessionTurnInput,
+    SessionView,
 };
 pub(in crate::supervisor) use managed::transition::ensure_live_owner;
 pub(in crate::supervisor) use managed::transition::verify_plan;

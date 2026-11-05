@@ -340,7 +340,8 @@ async fn reserved_runtime_environment_cannot_forge_directory_authority() {
     .await;
     assert_completed(&record);
     let result = output(&record);
-    assert_eq!(result.as_object().unwrap().len(), 1, "{result}");
+    assert_eq!(result.as_object().unwrap().len(), 2, "{result}");
+    assert_eq!(result["details"]["code"], "process_loader");
     assert!(
         result["error"]
             .as_str()

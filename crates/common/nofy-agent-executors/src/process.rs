@@ -143,6 +143,79 @@ async fn read_bounded(
         bytes.extend_from_slice(&buffer[..count]);
     }
 }
+
+/// Drain diagnostics even after the retained window fills so an erroring
+/// worker cannot deadlock on stderr while its original exit is being observed.
+async fn read_diagnostic(mut reader: impl AsyncRead + Unpin) -> Result<(Vec<u8>, bool), ToolError> {
+    let mut kept = Vec::new();
+    let mut truncated = false;
+    let mut buffer = [0u8; 4096];
+    loop {
+        let count = reader
+            .read(&mut buffer)
+            .await
+            .map_err(|_| crate::tool_error("process_io", "failed to read process diagnostics"))?;
+        if count == 0 {
+            return Ok((kept, truncated));
+        }
+        let remaining = 8192usize.saturating_sub(kept.len());
+        kept.extend_from_slice(&buffer[..count.min(remaining)]);
+        truncated |= count > remaining;
+    }
+}
+fn exit_error(
+    status: std::process::ExitStatus,
+    stderr: (Vec<u8>, bool),
+    env: &BTreeMap<String, String>,
+) -> ToolError {
+    // Environment secrets are deliberately not diagnostic output. Replace
+    // longer values first so overlapping values cannot expose a secret suffix.
+    let mut secrets: Vec<_> = env
+        .iter()
+        .filter(|(key, value)| {
+            !value.is_empty() && {
+                let key = key.to_ascii_uppercase();
+                [
+                    "KEY",
+                    "TOKEN",
+                    "SECRET",
+                    "PASSWORD",
+                    "AUTHORIZATION",
+                    "CREDENTIAL",
+                ]
+                .iter()
+                .any(|word| key.contains(word))
+            }
+        })
+        .map(|(_, value)| value)
+        .collect();
+    secrets.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    let mut redacted = Vec::new();
+    let mut cursor = 0;
+    while cursor < stderr.0.len() {
+        let remaining = &stderr.0[cursor..];
+        if let Some(secret) = secrets.iter().find(|secret| {
+            remaining.starts_with(secret.as_bytes())
+                || (stderr.1 && secret.as_bytes().starts_with(remaining))
+        }) {
+            redacted.extend_from_slice(b"[redacted]");
+            cursor += secret.len().min(remaining.len());
+        } else {
+            redacted.push(stderr.0[cursor]);
+            cursor += 1;
+        }
+    }
+    let text = String::from_utf8_lossy(&redacted).into_owned();
+    #[cfg(unix)]
+    let signal = {
+        use std::os::unix::process::ExitStatusExt;
+        status.signal()
+    };
+    #[cfg(not(unix))]
+    let signal: Option<i32> = None;
+    crate::tool_error("process_exit", format!("process exited unsuccessfully (code {:?})",status.code()))
+        .with_details(json!({"code":"process_exit","exit_code":status.code(),"signal":signal,"stderr":text,"stderr_truncated":stderr.1}))
+}
 #[async_trait::async_trait]
 impl ToolDispatch for ProcessDispatch {
     async fn call(
@@ -212,18 +285,19 @@ impl ToolDispatch for ProcessDispatch {
                     .await
                     .map_err(|_| crate::tool_error("process_wait", "process wait failed"))
             };
-            let (_, stdout, _stderr, status) = tokio::try_join!(
+            let (written, stdout, stderr, status) = tokio::join!(
                 write,
                 read_bounded(stdout, self.config.contract.max_output_bytes),
-                read_bounded(stderr, 65536),
+                read_diagnostic(stderr),
                 wait
-            )?;
+            );
+            let status = status?;
             if !status.success() {
-                return Err(crate::tool_error(
-                    "process_exit",
-                    format!("process exited unsuccessfully (code {:?})", status.code()),
-                ));
+                return Err(exit_error(status, stderr?, &self.environment.env));
             }
+            written?;
+            stderr?;
+            let stdout = stdout?;
             let value = serde_json::from_slice(&stdout)
                 .map_err(|_| crate::tool_error("invalid_output", "process stdout is not JSON"))?;
             crate::output(&self.config.contract, value)

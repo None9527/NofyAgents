@@ -14,6 +14,9 @@ impl Agent {
         let mut budget_guard = None;
         let mut driver_started = false;
         let mut mailbox_cancel = None;
+        let inherited_board = context.capabilities.get::<crate::tasks::Board>();
+        let mut task_owner = None;
+        let mut task_scope = None;
         let mut result = async {
             crate::identity::bind(&mut context, self.spec.settings.scope_identity)?;
             let inherited_budget = context
@@ -212,10 +215,38 @@ impl Agent {
             if context.cancel.is_cancelled() {
                 return Err(crate::governance::cancellation_error(&context));
             }
+            let board = match inherited_board {
+                Some(board) => board,
+                None => Arc::new(
+                    crate::tasks::Board::open(&context, self.checkpoint.clone(), &self.composition)
+                        .await?,
+                ),
+            };
+            context.capabilities.insert_arc(board);
+            let (scope, owner) =
+                crate::tasks::Scope::open(&context, self.checkpoint.clone(), &self.composition)
+                    .await?;
+            context.capabilities.insert(scope.clone());
+            task_owner = Some(owner);
+            task_scope = Some(scope.clone());
+            if input.resume {
+                scope.recover().await?;
+            }
             self.run_inner(input, context.clone(), events.clone(), &mut driver_started)
                 .await
         }
         .await;
+        if matches!(&result, Ok(RunOutcome::Completed { .. }))
+            && let Some(scope) = task_scope
+        {
+            if let Err(error) = scope.finish().await {
+                result = Err(error);
+            }
+        }
+        // Drop every owned future before the caller can release the root lease.
+        if let Some(owner) = task_owner {
+            owner.shutdown().await;
+        }
         if let Some(error) = mailbox_cancel.as_ref().and_then(|watch| watch.failure()) {
             result = Err(Error::Checkpoint(format!(
                 "mailbox control monitoring failed: {error}"

@@ -43,6 +43,11 @@ impl Engine {
                 for (k, v) in initial {
                     e.refs.entry(k).or_insert(v);
                 }
+                if !e.details.is_object() {
+                    e.details = json!({"cause":e.details});
+                }
+                e.details["recovery"] =
+                    crate::guides::recovery(&e.code, operation_name, &input, e.unconfirmed);
                 Envelope::failed(operation_name, e)
             }
         }
@@ -68,10 +73,45 @@ impl Engine {
         if op.starts_with("session.") {
             return self.session_operation(op, input).await;
         }
+        if op.starts_with("repository.") || op.starts_with("module.") {
+            return self.repository_operation(op, input).await;
+        }
         match op {
+            "run.steer" | "run.follow_up" => {
+                let kind = if op == "run.steer" { "interject" } else { "follow_up" };
+                let envelope = json!({"address":{"root_run_id":input["root_run_id"],"run_id":input["run_id"],"thread_id":input["thread_id"],"agent":input["agent"]},"input_id":input["input_id"],"input":{"kind":kind,"message":{"text":input["text"],"attachments":input.get("attachments").cloned().unwrap_or(json!([]))}}});
+                native(op,self.client.send("POST", &["api","v1","runs",text(input,"root_run_id")?,"inputs"], &envelope).await?)
+            }
+            "permission.grants"=>{
+                let mut query=page(input);if let Some(value)=input.get("include_revoked"){query.push(("include_revoked".into(),value.to_string()));}
+                let response=self.client.request("GET",&["api","v1","approval-grants"],&query,None).await?;let value=response.value()?;let mut output=native(op,response)?;output.next_cursor=value.as_array().and_then(|items|items.last()).and_then(|item|identity(&item["grant_id"]));Ok(output)
+            }
+            "permission.revoke"=>native(op,self.client.send("POST",&["api","v1","approval-grants",text(input,"grant_id")?,"revoke"],&json!({"command_id":text(input,"command_id")?,"expected_revision":text(input,"expected_revision")?})).await?),
+            "command.analyze"=>native(op,self.client.send("POST",&["api","v1","command-analysis"],input).await?),
+            "terminal.start" | "terminal.poll" | "terminal.write" | "terminal.resize"
+            | "terminal.close" => {
+                let mut action = input.clone();
+                let object = action.as_object_mut().expect("validated terminal input");
+                for key in ["release", "module_ref", "owner"] {
+                    object.remove(key);
+                }
+                object.insert("op".into(), json!(op.trim_start_matches("terminal.")));
+                native(op,self.client.send("POST",&["api","v1","terminal"],&json!({"release":text(input,"release")?,"module_ref":input["module_ref"],"owner":text(input,"owner")?,"action":action})).await?)
+            }
             "describe" => {
                 let access = self.client.authorize().await?;
                 let factories = self.client.factories().await?;
+                let server_revision = factories
+                    .pointer("/development/contract_revision")
+                    .and_then(Value::as_str);
+                if server_revision != CATALOG["contract_revision"].as_str() {
+                    let mut error = Error::new(
+                        "unsupported_protocol",
+                        "client and kernel development contracts differ; start a matching kernel before composing agents",
+                    );
+                    error.details = json!({"client_contract_revision":CATALOG["contract_revision"],"kernel_contract_revision":server_revision,"remedy":"Use the kernel built with this operation catalog, then reconnect MCP and call describe again."});
+                    return Err(error);
+                }
                 let templates = match &self.templates {
                     Some(t) => t.list()?,
                     None => self.client.get(&["api", "v1", "presets"]).await?.value()?,
@@ -81,7 +121,12 @@ impl Engine {
                     .get(&["api", "v1", "sessions", "capabilities"])
                     .await?
                     .value()?;
-                let operations: Vec<_> = CATALOG["operations"]
+                let repositories = self
+                    .client
+                    .get(&["api", "v1", "module-repositories"])
+                    .await?
+                    .value()?;
+                let mut operations: Vec<_> = CATALOG["operations"]
                     .as_array()
                     .into_iter()
                     .flatten()
@@ -97,51 +142,25 @@ impl Engine {
                     })
                     .cloned()
                     .collect();
-                Ok(Envelope::ok(
-                    op,
-                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"operations":operations,"access":access,"factories":factories["factories"],"presets":templates["presets"],"session_control":sessions,"native_json":"Original DTO JSON is returned as data.native_json; refs contain exact public identities."}),
-                ))
-            }
-            "schema" => {
-                if let Some(name) = input.get("operation").and_then(Value::as_str) {
-                    let o = operation(name)?;
-                    return Ok(Envelope::ok(
-                        op,
-                        json!({"operation":name,"input":schema(&o.input_schema)?,"output":schema(&o.output_schema)?}),
-                    ));
+                let mut inventory = factories["factories"].clone();
+                if input["include_details"] != true {
+                    for operation in &mut operations {
+                        if let Some(fields) = operation.as_object_mut() {
+                            fields.retain(|name, _| matches!(name.as_str(), "operation"|"cli"|"mcp_tool"|"summary"|"scope_hint"|"input_schema"|"output_schema"));
+                        }
+                    }
+                    for factory in inventory.as_array_mut().into_iter().flatten() {
+                        if let Some(fields) = factory.as_object_mut() {
+                            fields.retain(|name, _| matches!(name.as_str(), "factory"|"revision"|"kind"|"dependencies"|"required_capabilities"));
+                        }
+                    }
                 }
-                let factory = text(input, "factory")?;
-                let factories = self.client.factories().await?;
-                let descriptor = factories["factories"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .find(|d| d["factory"] == factory)
-                    .cloned()
-                    .ok_or_else(|| Error::new("not_found", "factory is not installed"))?;
-                let deps = if let Some(config) = input.get("config_json") {
-                    let config: Value =
-                        serde_json::from_str(config.as_str().ok_or_else(|| {
-                            Error::new("local_input", "config_json must be a string")
-                        })?)?;
-                    Some(
-                        self.client
-                            .send(
-                                "POST",
-                                &["api", "v1", "modules", "dependencies"],
-                                &json!({"factory":factory,"config":config}),
-                            )
-                            .await?
-                            .value()?,
-                    )
-                } else {
-                    None
-                };
                 Ok(Envelope::ok(
                     op,
-                    json!({"descriptor":descriptor,"configured_dependencies":deps}),
+                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::bootstrap(),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
                 ))
             }
+            "schema" => self.schema_result(input).await,
             "draft.get" => {
                 let catalog = self.client.get(&["api", "v1", "catalog"]).await?.value()?;
                 let draft = catalog
@@ -277,7 +296,8 @@ impl Engine {
                 } else {
                     vec!["api", "v1", "runs", id, "approvals"]
                 };
-                native(op, self.client.get(&path).await?)
+                let query = if op == "run.inspect" { vec![("view".into(),input.get("view").and_then(Value::as_str).unwrap_or("status").into())] } else { vec![] };
+                native(op, self.client.request("GET", &path, &query, None).await?)
             }
             "run.events" => self.events(op, input).await,
             "run.decide" => native(
@@ -338,6 +358,8 @@ impl Engine {
                         }
                     }
                     "hook" => path.push("hooks"),
+                    "human" => path.push("humans"),
+                    "retry" => path.push("model-retry"),
                     _ => return Err(Error::new("local_input", "invalid recovery kind")),
                 }
                 native(op, self.client.request("GET", &path, &query, None).await?)
@@ -477,6 +499,29 @@ impl Engine {
             ));
         }
         let kind = op.strip_prefix("session.").unwrap_or("");
+        let body = if matches!(kind, "fork" | "rewind") {
+            let mut start = input.clone();
+            let start = start.as_object_mut().expect("validated session fork input");
+            let mut source = serde_json::Map::new();
+            for key in [
+                "source_session_id",
+                "expected_source_session_revision",
+                "source_run_id",
+                "expected_source_revision",
+                "through_message",
+            ] {
+                if let Some(value) = start.remove(key) {
+                    source.insert(key.into(), value);
+                }
+            }
+            source.insert(
+                "expected_source_revision".into(),
+                exact(&source["expected_source_revision"])?,
+            );
+            json!({"start":start,"source":source})
+        } else {
+            input.clone()
+        };
         let mut query = vec![];
         let (method, path) = match kind {
             "list" => {
@@ -488,10 +533,12 @@ impl Engine {
             }
             "create" => ("POST", vec!["api", "v1", "sessions"]),
             "start" | "route" => ("POST", vec!["api", "v1", "sessions", kind]),
+            "fork" | "rewind" => ("POST", vec!["api", "v1", "sessions", "fork"]),
             _ => {
                 let id = text(input, "session_id")?;
                 match kind {
                     "inspect" => ("GET", vec!["api", "v1", "sessions", id]),
+                    "tree" => ("GET", vec!["api", "v1", "sessions", id, "tree"]),
                     "turns" => {
                         query = page(input);
                         ("GET", vec!["api", "v1", "sessions", id, "turns"])
@@ -535,7 +582,7 @@ impl Engine {
                 if method == "GET" {
                     None
                 } else {
-                    Some(serde_json::to_string(input)?)
+                    Some(serde_json::to_string(&body)?)
                 },
             )
             .await?;
@@ -702,6 +749,7 @@ pub(crate) fn native(op: &str, response: Native) -> Result<Envelope> {
             ("sequence", "/sequence"),
         ],
         "credential.put" | "credential.delete" => &[("credential_revision", "/revision")],
+        "permission.revoke" => &[("grant_id", "/grant_id"), ("grant_revision", "/revision")],
         _ => &[],
     };
     for (k, p) in paths {
@@ -729,6 +777,9 @@ pub fn refs_from_input(input: &Value) -> BTreeMap<String, Option<String>> {
         "expected_generation",
         "expected_session_revision",
         "reference",
+        "repository",
+        "alias",
+        "expected_revision",
     ] {
         if let Some(v) = input.get(key) {
             refs.insert(key.into(), identity(v));

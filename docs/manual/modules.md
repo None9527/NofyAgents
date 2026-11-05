@@ -1,6 +1,6 @@
 # 模块、工具与声明手册
 
-版本：`0.3`。模块类型、CLI/MCP 编辑与 SessionPolicy 使用统一 Runtime、Loader 与源码引擎。
+版本：`0.6`。模块类型、CLI/MCP 编辑与 SessionPolicy 使用统一 Runtime、Loader 与源码引擎。
 
 ## 一个模块包含什么
 
@@ -146,3 +146,9 @@ CLI 新建的源码模块在 build 时根据工厂、配置及依赖内容生成
 - 同一个模型/Prompt 插槽只保留明确绑定的单值；多个工具包则合并目录并检查同名冲突。
 - output_schema 描述输出形状。工具自己的 ok、isError、退出码或业务字段仍需按其契约解释；不能把根任务 completed 当成业务成功。
 - 凭据、目录和外部环境是显式前提。源码包和可移植声明不含访问令牌与模型密钥。
+
+模块仓库操作及 `agent.module.use/unuse` 见[模块仓库手册](repositories.md)。声明保存固定版本引用，导出收齐源码；运行依赖由用户提供。
+
+多个工具包组合到一个输入端口时使用 tool.compose：config.packs 列出依赖槽位，按同名依赖提供各 ToolPack。它保持原 dispatch 和恢复身份，重名工具明确拒绝。可用于将文件工具、计划和消息板接入子 Agent 的单个 tools 端口。
+
+接线修复：agent.module.bind 默认合并；replace_dependencies:true 提交完整替换映射，remove_dependencies:["旧端口"] 删除已有端口。module.set 的 JSON Pointer 仅修改 config，不能通过 /dependencies 删除结构接线。编译错误会给出工厂、期望和实际端口，按 schema(factory,config_json) 校正。

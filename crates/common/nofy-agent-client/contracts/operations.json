@@ -1,6 +1,6 @@
 {
   "format": "nofy.operation-catalog/v1",
-  "contract_revision": "0.3",
+  "contract_revision": "0.6",
   "implementation_state": "implemented",
   "protocol": "nofy.kernel/v1",
   "mcp_protocol_baseline": "2025-11-25",
@@ -10,8 +10,9 @@
     "Resource-bearing native deployment actions can require additional resources permission at the kernel; source edits only save data.",
     "NativeJson fields preserve original DTO JSON text; explicit refs preserve native control integers in decimal strings within the native u64 range.",
     "Managed source projects accept incomplete Agents and use the same pure editing engine as local CLI files.",
-    "SessionPolicy, Agent v2 and nofy.session-control/v1 are implemented; the frontend is paused.",
-    "CAS means local compare-before-update, not a commercial product or external authentication service."
+    "SessionPolicy, Agent v2 and nofy.session-control/v1 are implemented; the frontend is not included.",
+    "CAS means local compare-before-update, not a commercial product or external authentication service.",
+    "Module repositories store immutable source packages; Agent declarations retain pinned imports and bindings. Export includes referenced source bytes without installing external dependencies."
   ],
   "operations": [
     {
@@ -34,16 +35,21 @@
         {
           "method": "GET",
           "path": "/api/v1/access"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Discover actual kernel versions, installed capabilities, presets, packages and the MCP assembly workflow."
     },
     {
       "operation": "schema",
       "cli": "nofy schema",
       "mcp_tool": "nofy_schema",
       "input_schema": "contracts.schema.json#/$defs/Schema",
-      "output_schema": "contracts.schema.json#/$defs/Result",
+      "output_schema": "contracts.schema.json#/$defs/SchemaResult",
       "interface_state": "implemented",
       "capability_origin": "new-protocol-discovery",
       "scope_hint": [
@@ -56,7 +62,8 @@
           "path": "/api/v1/modules/dependencies"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Return exact contracts plus actionable assembly guidance for an operation, installed factory, preset or pinned package."
     },
     {
       "operation": "project.template",
@@ -74,7 +81,8 @@
           "path": "/api/v1/presets/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "project.inspect",
@@ -86,7 +94,8 @@
       "capability_origin": "new-source-project-or-pure-project-component",
       "scope_hint": [],
       "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "project.build",
@@ -98,7 +107,8 @@
       "capability_origin": "new-source-project-or-pure-project-component",
       "scope_hint": [],
       "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "project.pack",
@@ -116,7 +126,8 @@
           "path": "/api/v1/source-archives"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.create",
@@ -140,7 +151,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Create an empty Agent, instantiate a preset, upload source, or create within an existing source target."
     },
     {
       "operation": "agent.list",
@@ -160,7 +172,8 @@
           "path": "/api/v1/projects"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.inspect",
@@ -180,7 +193,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.export",
@@ -200,7 +214,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.build",
@@ -220,7 +235,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Render the current complete declaration without executing project scripts."
     },
     {
       "operation": "agent.plan",
@@ -240,7 +256,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Validate and compare the candidate with the active generation without activation."
     },
     {
       "operation": "agent.apply",
@@ -260,7 +277,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Build, publish and activate with explicit generation CAS and a fixed command ID."
     },
     {
       "operation": "agent.module.list",
@@ -280,7 +298,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.module.inspect",
@@ -300,7 +319,8 @@
           "path": "/api/v1/projects/{id}"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.module.add",
@@ -324,7 +344,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Declare a factory or reference, bind named dependencies and attach a compatible Agent slot."
     },
     {
       "operation": "agent.module.set",
@@ -348,7 +369,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.module.bind",
@@ -372,7 +394,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.module.detach",
@@ -396,7 +419,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.module.remove",
@@ -420,7 +444,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "agent.tool.add",
@@ -445,7 +470,8 @@
           "path": "/api/v1/projects/{id}/edits"
         }
       ],
-      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
+      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
     },
     {
       "operation": "draft.get",
@@ -466,7 +492,8 @@
         }
       ],
       "notes": "Select the named existing draft from catalog; no native GET drafts/{name} route is invented.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "draft.put",
@@ -486,7 +513,8 @@
           "path": "/api/v1/drafts/{name}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "draft.delete",
@@ -506,7 +534,8 @@
           "path": "/api/v1/drafts/{name}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.validate",
@@ -526,7 +555,8 @@
           "path": "/api/v1/validate"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.publish",
@@ -550,7 +580,8 @@
           "path": "/api/v1/publish"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.plan",
@@ -570,7 +601,8 @@
           "path": "/api/v1/plan"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.apply",
@@ -590,7 +622,8 @@
           "path": "/api/v1/apply"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.active",
@@ -610,7 +643,8 @@
           "path": "/api/v1/systems/{name}/active"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.history",
@@ -630,7 +664,8 @@
           "path": "/api/v1/systems/{name}/history"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.export",
@@ -650,7 +685,8 @@
           "path": "/api/v1/releases/{release}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.rollback",
@@ -675,7 +711,8 @@
         }
       ],
       "notes": "Composite plan/apply toward an older release; creates a new generation, without undoing business effects.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "system.programs",
@@ -695,7 +732,8 @@
           "path": "/api/v1/releases/{release}/programs"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.start",
@@ -715,7 +753,8 @@
           "path": "/api/v1/runs"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Submit one durable run; inspect the actual execution and tool effects afterward."
     },
     {
       "operation": "run.list",
@@ -735,13 +774,14 @@
           "path": "/api/v1/runs"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.inspect",
       "cli": "nofy run inspect",
       "mcp_tool": "nofy_run_inspect",
-      "input_schema": "contracts.schema.json#/$defs/Run",
+      "input_schema": "contracts.schema.json#/$defs/RunInspect",
       "output_schema": "contracts.schema.json#/$defs/Result",
       "interface_state": "implemented",
       "capability_origin": "existing-native-api-adapter",
@@ -755,7 +795,8 @@
           "path": "/api/v1/runs/{id}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Inspect a run: default view=status provides bounded polling and explicit output previews; view=full returns original snapshots, transcript and children."
     },
     {
       "operation": "run.events",
@@ -775,7 +816,8 @@
           "path": "/api/v1/runs/{id}/events"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.approvals",
@@ -795,7 +837,8 @@
           "path": "/api/v1/runs/{id}/approvals"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.decide",
@@ -815,7 +858,8 @@
           "path": "/api/v1/runs/{id}/approvals"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.cancel",
@@ -835,7 +879,8 @@
           "path": "/api/v1/runs/{id}/cancel"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.input",
@@ -855,7 +900,8 @@
           "path": "/api/v1/runs/{id}/inputs"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Submit a durable Interject, NextTurn or user tool input to the original recipient."
     },
     {
       "operation": "run.control",
@@ -875,7 +921,8 @@
           "path": "/api/v1/actions"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "run.recovery",
@@ -905,9 +952,18 @@
         {
           "method": "GET",
           "path": "/api/v1/runs/{id}/recovery/hooks"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery/humans"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/runs/{id}/recovery/model-retry"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "action.inspect",
@@ -927,7 +983,8 @@
           "path": "/api/v1/actions/{id}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.list",
@@ -948,7 +1005,8 @@
         }
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.inspect",
@@ -969,7 +1027,8 @@
         }
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.create",
@@ -990,7 +1049,8 @@
         }
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.turn",
@@ -1011,7 +1071,8 @@
         }
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.turns",
@@ -1032,7 +1093,8 @@
         }
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "resource.list",
@@ -1064,7 +1126,8 @@
           "path": "/api/v1/runtime-sources"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "resource.inspect",
@@ -1105,7 +1168,8 @@
         }
       ],
       "notes": "Some selections, including memory inspection, additionally require resources permission. Kernel authorization remains authoritative.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "resource.apply",
@@ -1141,7 +1205,8 @@
           "path": "/api/v1/memory/resources/apply"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "budget.list",
@@ -1161,7 +1226,8 @@
           "path": "/api/v1/budgets"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "credential.list",
@@ -1181,7 +1247,8 @@
           "path": "/api/v1/credentials"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "credential.put",
@@ -1202,7 +1269,8 @@
         }
       ],
       "notes": "Private CLI stdin/file injection only; no secret value is exposed through MCP.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "credential.delete",
@@ -1223,7 +1291,8 @@
         }
       ],
       "notes": "Private credential-management entry, separate from ordinary MCP development tools.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.start",
@@ -1243,7 +1312,8 @@
           "path": "/api/v1/sessions/start"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.route",
@@ -1263,7 +1333,8 @@
           "path": "/api/v1/sessions/route"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.plan",
@@ -1283,7 +1354,8 @@
           "path": "/api/v1/sessions/{id}/plan"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.policy",
@@ -1303,7 +1375,8 @@
           "path": "/api/v1/sessions/{id}/policy"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.metadata",
@@ -1323,7 +1396,8 @@
           "path": "/api/v1/sessions/{id}/metadata"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.close",
@@ -1343,7 +1417,8 @@
           "path": "/api/v1/sessions/{id}/close"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.reopen",
@@ -1363,7 +1438,8 @@
           "path": "/api/v1/sessions/{id}/reopen"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.archive",
@@ -1383,7 +1459,8 @@
           "path": "/api/v1/sessions/{id}/archive"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.unarchive",
@@ -1403,7 +1480,8 @@
           "path": "/api/v1/sessions/{id}/unarchive"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.reconfigure",
@@ -1424,7 +1502,8 @@
           "path": "/api/v1/sessions/{id}/reconfigure"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.command",
@@ -1444,7 +1523,8 @@
           "path": "/api/v1/sessions/{id}/commands/{command_id}"
         }
       ],
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
     },
     {
       "operation": "session.binding",
@@ -1465,7 +1545,632 @@
         }
       ],
       "notes": "Implemented binding query preserves native binding identity, session revision and frozen policy version fields.",
-      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
+      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+    },
+    {
+      "operation": "repository.add",
+      "cli": "nofy repository add",
+      "mcp_tool": "nofy_repository_add",
+      "input_schema": "contracts.schema.json#/$defs/RepositoryAdd",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "PUT",
+          "path": "/api/v1/module-repositories/{repository}"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "repository.list",
+      "cli": "nofy repository list",
+      "mcp_tool": "nofy_repository_list",
+      "input_schema": "contracts.schema.json#/$defs/Empty",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "repository.inspect",
+      "cli": "nofy repository inspect",
+      "mcp_tool": "nofy_repository_inspect",
+      "input_schema": "contracts.schema.json#/$defs/RepositoryRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories/{repository}"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "repository.sync",
+      "cli": "nofy repository sync",
+      "mcp_tool": "nofy_repository_sync",
+      "input_schema": "contracts.schema.json#/$defs/RepositoryWrite",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "edit",
+        "resources"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/module-repositories/{repository}/sync"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "repository.remove",
+      "cli": "nofy repository remove",
+      "mcp_tool": "nofy_repository_remove",
+      "input_schema": "contracts.schema.json#/$defs/RepositoryWrite",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "DELETE",
+          "path": "/api/v1/module-repositories/{repository}"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "module.publish",
+      "cli": "nofy module publish",
+      "mcp_tool": "nofy_module_publish",
+      "input_schema": "contracts.schema.json#/$defs/ModulePublish",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "publish"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/module-repositories/{repository}/packages"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Publish a complete immutable module source package and ordinary dependency lists."
+    },
+    {
+      "operation": "module.list",
+      "cli": "nofy module list",
+      "mcp_tool": "nofy_module_list",
+      "input_schema": "contracts.schema.json#/$defs/ModuleList",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-packages"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "module.inspect",
+      "cli": "nofy module inspect",
+      "mcp_tool": "nofy_module_inspect",
+      "input_schema": "contracts.schema.json#/$defs/PackageRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "module.export",
+      "cli": "nofy module export",
+      "mcp_tool": "nofy_module_export",
+      "input_schema": "contracts.schema.json#/$defs/PackageRead",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/module-packages/{digest}"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "agent.module.use",
+      "cli": "nofy agent module use",
+      "mcp_tool": "nofy_agent_module_use",
+      "input_schema": "contracts.schema.json#/$defs/ModuleUse",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "read",
+        "edit"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Pin an immutable package, supply its parameters and bind its public input ports."
+    },
+    {
+      "operation": "agent.module.unuse",
+      "cli": "nofy agent module unuse",
+      "mcp_tool": "nofy_agent_module_unuse",
+      "input_schema": "contracts.schema.json#/$defs/ModuleUnuse",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "module-source-repository",
+      "scope_hint": [
+        "edit"
+      ],
+      "authority": "Kernel authorizes domain actions. Directory and Git acquisition also require resources.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
+      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+    },
+    {
+      "operation": "agent.configure",
+      "cli": "nofy agent configure",
+      "mcp_tool": "nofy_agent_configure",
+      "input_schema": "contracts.schema.json#/$defs/AgentConfigure",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "scope_hint": [
+        "edit"
+      ],
+      "interface_state": "implemented",
+      "capability_origin": "public-preset-configuration",
+      "summary": "Set public preset parameters through structured settings or JSON Pointer with the original source CAS.",
+      "authority": "Kernel authorizes managed edits; explicit Source edits require source digest CAS.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Uses the same pure source editor and settings file for CLI, MCP and HTTP."
+    },
+    {
+      "operation": "terminal.start",
+      "cli": "nofy terminal start",
+      "mcp_tool": "nofy_terminal_start",
+      "input_schema": "contracts.schema.json#/$defs/TerminalStart",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "namespace-process-session",
+      "scope_hint": [
+        "execute",
+        "resources"
+      ],
+      "authority": "Kernel authorizes an explicit published resource; owner and resource identities are checked on every operation.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/terminal"
+        }
+      ],
+      "mapping_note": "Native process session receipts remain authoritative; input IDs prevent repeat delivery.",
+      "summary": "Start or inspect the original start_id of a published interactive process resource."
+    },
+    {
+      "operation": "terminal.poll",
+      "cli": "nofy terminal poll",
+      "mcp_tool": "nofy_terminal_poll",
+      "input_schema": "contracts.schema.json#/$defs/TerminalPoll",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "namespace-process-session",
+      "scope_hint": [
+        "execute",
+        "resources"
+      ],
+      "authority": "Kernel authorizes an explicit published resource; owner and resource identities are checked on every operation.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/terminal"
+        }
+      ],
+      "mapping_note": "Native process session receipts remain authoritative; input IDs prevent repeat delivery.",
+      "summary": "Read retained output using explicit byte cursors, optional bounded wait and actual EOF."
+    },
+    {
+      "operation": "terminal.write",
+      "cli": "nofy terminal write",
+      "mcp_tool": "nofy_terminal_write",
+      "input_schema": "contracts.schema.json#/$defs/TerminalWrite",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "namespace-process-session",
+      "scope_hint": [
+        "execute",
+        "resources"
+      ],
+      "authority": "Kernel authorizes an explicit published resource; owner and resource identities are checked on every operation.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/terminal"
+        }
+      ],
+      "mapping_note": "Native process session receipts remain authoritative; input IDs prevent repeat delivery.",
+      "summary": "Deliver stdin once per command_id; uncertain receipt must be inspected without replay."
+    },
+    {
+      "operation": "terminal.resize",
+      "cli": "nofy terminal resize",
+      "mcp_tool": "nofy_terminal_resize",
+      "input_schema": "contracts.schema.json#/$defs/TerminalResize",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "namespace-process-session",
+      "scope_hint": [
+        "execute",
+        "resources"
+      ],
+      "authority": "Kernel authorizes an explicit published resource; owner and resource identities are checked on every operation.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/terminal"
+        }
+      ],
+      "mapping_note": "Native process session receipts remain authoritative; input IDs prevent repeat delivery.",
+      "summary": "Resize an owned PTY and notify the foreground process."
+    },
+    {
+      "operation": "terminal.close",
+      "cli": "nofy terminal close",
+      "mcp_tool": "nofy_terminal_close",
+      "input_schema": "contracts.schema.json#/$defs/TerminalClose",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "namespace-process-session",
+      "scope_hint": [
+        "execute",
+        "resources"
+      ],
+      "authority": "Kernel authorizes an explicit published resource; owner and resource identities are checked on every operation.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/terminal"
+        }
+      ],
+      "mapping_note": "Native process session receipts remain authoritative; input IDs prevent repeat delivery.",
+      "summary": "Kill and wait the namespace process tree, then return its durable terminal state."
+    },
+    {
+      "operation": "session.fork",
+      "cli": "nofy session fork",
+      "mcp_tool": "nofy_session_fork",
+      "input_schema": "contracts.schema.json#/$defs/SessionFork",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "durable-session-branch",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "Explicit operator starts a new budget root after source identity checks and ordinary SessionPolicy creation admission.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/fork"
+        }
+      ],
+      "mapping_note": "Source histories and effect ledgers are preserved. A rewind creates a branch at a valid message boundary.",
+      "summary": "Create a new durable session from a closed turn with its complete validated history."
+    },
+    {
+      "operation": "session.rewind",
+      "cli": "nofy session rewind",
+      "mcp_tool": "nofy_session_rewind",
+      "input_schema": "contracts.schema.json#/$defs/SessionRewind",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "durable-session-branch",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "Explicit operator starts a new budget root after source identity checks and ordinary SessionPolicy creation admission.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/sessions/fork"
+        }
+      ],
+      "mapping_note": "Source histories and effect ledgers are preserved. A rewind creates a branch at a valid message boundary.",
+      "summary": "Create a new durable session at an earlier message boundary without undoing effects."
+    },
+    {
+      "operation": "session.tree",
+      "cli": "nofy session tree",
+      "mcp_tool": "nofy_session_tree",
+      "input_schema": "contracts.schema.json#/$defs/SessionTree",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "durable-session-branch",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel read authorization.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/sessions/{id}/tree"
+        }
+      ],
+      "mapping_note": "Flat immutable lineage edges identify parents, source turns, boundaries and branch roots.",
+      "summary": "Inspect the durable branch tree containing a selected session."
+    },
+    {
+      "operation": "command.analyze",
+      "cli": "nofy command analyze",
+      "mcp_tool": "nofy_command_analyze",
+      "input_schema": "contracts.schema.json#/$defs/CommandAnalyze",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "declarative-permission-rules",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel scopes and original compiled rule identities remain authoritative.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/command-analysis"
+        }
+      ],
+      "mapping_note": "Rules narrow inherited floors; remembered scopes are anchored by original supervised identities.",
+      "summary": "Analyze explicit argv or a POSIX command conservatively, without executing it."
+    },
+    {
+      "operation": "permission.grants",
+      "cli": "nofy permission grants",
+      "mcp_tool": "nofy_permission_grants",
+      "input_schema": "contracts.schema.json#/$defs/PermissionGrants",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "declarative-permission-rules",
+      "scope_hint": [
+        "read"
+      ],
+      "authority": "Kernel scopes and original compiled rule identities remain authoritative.",
+      "native_routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/approval-grants"
+        }
+      ],
+      "mapping_note": "Rules narrow inherited floors; remembered scopes are anchored by original supervised identities.",
+      "summary": "List durable rule-scoped approval grants and their exact revocation revisions."
+    },
+    {
+      "operation": "permission.revoke",
+      "cli": "nofy permission revoke",
+      "mcp_tool": "nofy_permission_revoke",
+      "input_schema": "contracts.schema.json#/$defs/PermissionRevoke",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "declarative-permission-rules",
+      "scope_hint": [
+        "execute"
+      ],
+      "authority": "Kernel scopes and original compiled rule identities remain authoritative.",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/approval-grants/{id}/revoke"
+        }
+      ],
+      "mapping_note": "Rules narrow inherited floors; remembered scopes are anchored by original supervised identities.",
+      "summary": "Revoke one approval grant by exact ID and revision, with a stable command receipt."
+    },
+    {
+      "operation": "project.delete",
+      "cli": "nofy project delete",
+      "mcp_tool": "nofy_project_delete",
+      "input_schema": "contracts.schema.json#/$defs/ProjectDelete",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "edit"
+      ],
+      "summary": "Delete a managed source project at an exact revision, retaining a tombstone against stale requests.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "DELETE",
+          "path": "/api/v1/projects/{id}"
+        }
+      ],
+      "mapping_note": "Delete a managed source project at an exact revision, retaining a tombstone against stale requests."
+    },
+    {
+      "operation": "agent.delete",
+      "cli": "nofy agent delete",
+      "mcp_tool": "nofy_agent_delete",
+      "input_schema": "contracts.schema.json#/$defs/AgentDelete",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "edit"
+      ],
+      "summary": "Remove one Agent declaration; keep its modules and published releases.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/projects/{id}/edits"
+        }
+      ],
+      "mapping_note": "Remove one Agent declaration; keep its modules and published releases."
+    },
+    {
+      "operation": "module.yank",
+      "cli": "nofy module yank",
+      "mcp_tool": "nofy_module_yank",
+      "input_schema": "contracts.schema.json#/$defs/ModuleYank",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "publish"
+      ],
+      "summary": "Withdraw or restore selection of an immutable version; existing digest pins remain available.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}/yank"
+        }
+      ],
+      "mapping_note": "Withdraw or restore selection of an immutable version; existing digest pins remain available."
+    },
+    {
+      "operation": "module.gc",
+      "cli": "nofy module gc",
+      "mcp_tool": "nofy_module_gc",
+      "input_schema": "contracts.schema.json#/$defs/ModuleGC",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "publish"
+      ],
+      "summary": "Preview or reclaim orphan module source uploads; published versions and pins retain their bytes.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/module-packages/gc"
+        }
+      ],
+      "mapping_note": "Preview or reclaim orphan module source uploads; published versions and pins retain their bytes."
+    },
+    {
+      "operation": "run.steer",
+      "cli": "nofy run steer",
+      "mcp_tool": "nofy_run_steer",
+      "input_schema": "contracts.schema.json#/$defs/RunMessage",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "execute"
+      ],
+      "summary": "Queue steering input for the next safe boundary, preserving the original run recipient.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs/{id}/inputs"
+        }
+      ],
+      "mapping_note": "Queue steering input for the next safe boundary, preserving the original run recipient."
+    },
+    {
+      "operation": "run.follow_up",
+      "cli": "nofy run follow-up",
+      "mcp_tool": "nofy_run_follow_up",
+      "input_schema": "contracts.schema.json#/$defs/RunMessage",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "scope_hint": [
+        "execute"
+      ],
+      "summary": "Queue follow-up input for after the current response completes.",
+      "authority": "Kernel authorization remains authoritative.",
+      "capability_origin": "declarative-agent-development",
+      "native_routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/runs/{id}/inputs"
+        }
+      ],
+      "mapping_note": "Queue follow-up input for after the current response completes."
     }
   ]
 }

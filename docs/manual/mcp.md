@@ -1,6 +1,6 @@
 # 内核控制 MCP 使用手册
 
-版本：`0.3`。入站 MCP Server 使用官方 rmcp 3.6.0，复用共用客户端和源码引擎；与 Agent 调用外部服务的出站 MCP 工具源分别管理。
+版本：`0.6`。入站 MCP Server 使用官方 rmcp 3.6.0，复用共用客户端和源码引擎；与 Agent 调用外部服务的出站 MCP 工具源分别管理。
 
 ## 用途与工具发现
 
@@ -8,7 +8,7 @@ Codex 等外部 Agent 通过标准 MCP 操作内核中的源码工程、模块�
 
 完整工具及参数入口见 [operations.json](operations.json) 和 [contracts.schema.json](contracts.schema.json)。普通开发操作在 CLI 与 MCP 中一一对应；密钥正文注入保留为独立的私有本地入口，不向模型提供读取密钥值的工具。
 
-MCP `tools/list` 返回明确的 name、description、inputSchema、结果对象 Schema 及可用注解；工具目录固定公开 66 项已实现适配操作；describe 读取实际内核工厂、权限和 Session 能力，调用时以内核授权为准。每个调用仍由内核重新检查权限。操作目录中的权限提示和工具注解不代替授权。
+MCP `tools/list` 返回明确的 name、description、inputSchema、结果对象 Schema 及可用注解；工具目录固定公开 77 项已实现适配操作；describe 读取实际内核工厂、权限和 Session 能力，调用时以内核授权为准。每个调用仍由内核重新检查权限。操作目录中的权限提示和工具注解不代替授权。
 
 机器目录中的 Schema 文件引用用于维护契约；实际 tools/list 会内联工具需要的本地 `$defs`，不会要求客户端读取服务端文件路径。客户端可配置工具允许列表来控制暴露范围，完整目录仍可通过 describe/schema 查询。
 
@@ -103,7 +103,7 @@ MCP 直接提供结构化参数，通常不需要先手写 JSON 文件。若实�
 | nofy_session_close / reopen / archive / unarchive | 静止边界的接纳状态与展示变更 |
 | nofy_session_reconfigure / command | 轮次间策略切换及原命令回执查询 |
 
-17 项操作的完整输入、规则/源码模块示例和结果字段见[Session 手册](sessions.md)，每项专用 inputSchema/outputSchema 见[操作目录](operations.json)。源码 revision、会话 revision、policy revision、源运行 live revision、轮次 binding revision 互相独立。MCP 返回精确字符串；原 DTO 放入 NativeJson，不改写业务数据。
+20 项操作的完整输入、规则/源码模块示例和结果字段见[Session 手册](sessions.md)，每项专用 inputSchema/outputSchema 见[操作目录](operations.json)。源码 revision、会话 revision、policy revision、源运行 live revision、轮次 binding revision 互相独立。MCP 返回精确字符串；原 DTO 放入 NativeJson，不改写业务数据。
 
 Session 调用先核对 /sessions/capabilities，再使用专用会话输入和结果；连接旧内核或缺少能力时报告错误，不降级为旧会话线格式。
 
@@ -155,3 +155,5 @@ HTTP 桥接不读取 stdio 的固定令牌文件。每次请求验证 Bearer，�
 HTTP 使用无状态 Streamable HTTP，不保留跨身份的 MCP 传输 session；SDK 负责握手、JSON/SSE、版本和取消。支持的最高协议为 2025-11-25，未协商的 sampling、roots、elicitation 不开放。
 
 `nofy_project_pack` 返回 sha256、精确字节数、uri 与下载路径。resources/read 返回 base64 块及 offset、next_offset、total、eof 和归档摘要；按 next_offset 读取至 eof=true 后校验摘要。默认 64KiB，单次最大 1MiB 仅约束传输块，不限制归档总大小。不要将第一块当成完整包。登记归档也可用带同一身份的 GET /api/v1/source-archives/<digest> 流式下载。
+
+模块仓库操作及 `agent.module.use/unuse` 见[模块仓库手册](repositories.md)。声明保存固定版本引用，导出收齐源码；运行依赖由用户提供。

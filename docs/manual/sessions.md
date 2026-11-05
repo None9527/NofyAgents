@@ -1,6 +1,6 @@
 # Session 会话与策略手册
 
-版本：`0.3`。SessionPolicy、Agent v2 声明、原生 HTTP、CLI 与 MCP 使用统一内核会话实现。验证范围见[Session 实现记录](../verification/session-modularization.md)与[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)。当前发布不包含前端。
+版本：`0.6`。SessionPolicy、Agent v2 声明、原生 HTTP、CLI 与 MCP 使用统一内核会话实现。验证范围见[Session 实现记录](../verification/session-modularization.md)与[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)。当前发布不包含前端。
 
 ## 对象与职责
 
@@ -107,8 +107,10 @@ ABI 固定为 `nofy.session-policy/v1`，输入 `SessionPolicyInput`，输出 `S
 | archive / unarchive | session_id、command_id、expected_session_revision；归档或恢复展示 |
 | reconfigure | session_id、command_id、expected_session_revision、source_run_id、expected_source_revision、policy |
 | command | session_id、command_id；查询原命令准备/已应用/已拒绝回执 |
+| fork / rewind | 来源会话与 turn 的精确版本、新会话/根请求；复制完整或指定前缀历史，不重放工具效果 |
+| tree | session_id；查询父子 lineage 与根身份，调用方显式选择分支 |
 
-本轮实现提供全部 17 项原生会话操作，适配器状态仍分别标注。现有 HTTP 索引只记录真实路由；操作目录的 native_api_state 与 interface_state 区分内核和 CLI/MCP。
+本轮实现提供全部 20 项原生会话操作，适配器状态仍分别标注。现有 HTTP 索引只记录真实路由；操作目录的 native_api_state 与 interface_state 区分内核和 CLI/MCP。
 
 ### 创建、观察和续轮
 
@@ -211,7 +213,7 @@ plan 不预留版本或锁；提交仍检查全部条件。reconfigure 仅在源
 }
 ```
 
-expected_session_revision 使用精确字符串；request_json 中保留原 DTO 字节与数值。示例里的三种版本都须替换为实际查询结果。MCP 工具名、输入与结果 Schema 逐项列在[机器目录](operations.json)；Session 操作共 17 项，传输 JSON-RPC id 不作为业务幂等键。
+expected_session_revision 使用精确字符串；request_json 中保留原 DTO 字节与数值。示例里的三种版本都须替换为实际查询结果。MCP 工具名、输入与结果 Schema 逐项列在[机器目录](operations.json)；Session 操作共 20 项，传输 JSON-RPC id 不作为业务幂等键。
 
 ## 结果、权限与排错
 

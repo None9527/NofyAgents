@@ -15,6 +15,11 @@ fn default_steps() -> usize {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DefinitionSettings {
+    #[serde(
+        default,
+        skip_serializing_if = "crate::settings::InputDelivery::is_default"
+    )]
+    pub input_delivery: crate::settings::InputDelivery,
     #[serde(default = "default_steps")]
     pub max_steps: usize,
     #[serde(default)]
@@ -25,6 +30,7 @@ pub struct DefinitionSettings {
 impl Default for DefinitionSettings {
     fn default() -> Self {
         Self {
+            input_delivery: Default::default(),
             max_steps: default_steps(),
             model: Default::default(),
             scope_identity: None,
@@ -248,6 +254,7 @@ pub fn compile_agent(
         .model(definition.model.key())
         .prompt(definition.prompt.key())
         .settings(Settings {
+            input_delivery: definition.settings.input_delivery.clone(),
             max_steps: definition.settings.max_steps,
             model: Value::Object(definition.settings.model.clone()),
             scope_identity: definition.settings.scope_identity,

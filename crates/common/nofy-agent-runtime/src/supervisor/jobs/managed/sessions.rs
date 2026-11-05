@@ -1,7 +1,9 @@
 //! Explicit, immutable thread enrollment. Current ownership remains in the
 //! original thread table; only the fenced private backend gets a ledger alias.
 use super::*;
+pub(super) mod branches;
 pub(super) mod handoff;
+pub use branches::{ForkSource, SessionBranch, SessionFork};
 pub(in crate::supervisor) mod profiles;
 pub use handoff::{SessionSeedInfo, SessionTurnAdmission, SessionTurnCommand, SessionTurnInput};
 pub use profiles::admission::SessionPolicyEpoch;

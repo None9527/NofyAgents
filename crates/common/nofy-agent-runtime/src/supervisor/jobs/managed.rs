@@ -7,6 +7,8 @@ pub use abandonment::Abandonment;
 pub(in crate::supervisor) use abandonment::ensure_thread_open;
 #[cfg(feature = "workflow")]
 mod human;
+#[cfg(feature = "workflow")]
+pub use human::{HumanRecoveryPage, HumanRecoveryTarget};
 pub(super) mod parking;
 mod query;
 pub(super) mod sessions;

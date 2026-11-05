@@ -24,7 +24,7 @@ fn check_components(dir: &Dir, path: &str) -> Result<()> {
     }
     Ok(())
 }
-fn read_file(dir: &Dir, path: &str) -> Result<File> {
+pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
     check_components(dir, path)?;
     let file = dir.open(path)?.into_std();
     let metadata = file.metadata()?;
@@ -397,6 +397,7 @@ pub fn complete(source: &Source) -> Result<()> {
 pub fn pack_to(source: &Source, output: impl Write) -> Result<()> {
     let source = effective(source)?;
     complete(&source)?;
+    crate::repository::verify_package_sources(&source)?;
     let gzip = GzBuilder::new()
         .mtime(0)
         .write(output, Compression::default());

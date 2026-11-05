@@ -16,14 +16,14 @@ Give a coding agent a goal, let it create and test an agent through CLI or MCP, 
 - **Keep session state.** Seventeen session operations cover admission, subsequent turns, metadata, archives, and policy changes between turns.
 - **Share portable source.** Archives contain declarations, module source, and ordinary dependency lists. Credentials are injected separately; users install interpreters, compilers, and external libraries.
 
-Development protocol: `nofy.kernel/v1`, contract revision `0.3`. There are 68 operations, including 66 inbound MCP tools. Secret values use a separate private local entry point.
+Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 97 operations, including 95 inbound MCP tools. Secret values use a separate private local entry point.
 
 ## Core concept: goals and recursive self-improvement (RSI)
 
 Recursive self-improvement in this framework does not rewrite the kernel at runtime. It is a controlled, declarative loop:
 
 1. **Goal-driven.** Once an agent is given a goal, the host tracks it across turns through the Goal state module: state encoding, lifecycle, snapshots and recovery, budgets, and stall detection (`nofy-goal`). Planning models and orchestration are provided by the host; the goal state itself is persistent, pausable, and recoverable.
-2. **Declarative improvement.** Agents turn improvements into data through the 68 CLI/MCP operations — creating source projects, composing modules and dependencies, building and validating, publishing and activating, running and verifying, and exporting source. What gets improved are declarations, modules, and preset artifacts; ordinary capability changes do not modify the kernel Rust, and every call is re-authorized by the kernel.
+2. **Declarative improvement.** Agents turn improvements into data through the 79 CLI/MCP operations — creating source projects, composing modules and dependencies, building and validating, publishing and activating, running and verifying, and exporting source. What gets improved are declarations, modules, and preset artifacts; ordinary capability changes do not modify the kernel Rust, and every call is re-authorized by the kernel.
 3. **Recursive structure.** Agents under development and the agents developing them run on the same Loader and execution path. The [coding preset](presets/coding/文件说明.md) is itself an editable declaration on this framework. Agents can use the same operations to build other agents — or to improve the very presets and modules they themselves run on — forming a loop of agents building agents and agents improving agents.
 
 Boundaries: kernel authorization, approvals, budgets, and cancellation are enforced boundaries of this loop. Each step has its own verification records ([real-model repair](docs/verification/coding-real-model-build.md), [MCP sub-agent end-to-end](docs/verification/mcp-sub-agent.md)); the complete autonomous improvement loop has not yet been accepted end-to-end.
@@ -107,7 +107,7 @@ nofy run events "$RUN_ID" --after "$CURSOR" --follow      # Events carry the ori
 nofy run approvals "$RUN_ID"                     # decide submits the complete original request exactly as read, plus allow
 nofy run cancel "$RUN_ID" --command-id "$CANCEL_ID"
 
-nofy session start --input session.json          # Atomically creates the first root session; all 17 session operations are in the handbook
+nofy session start --input session.json          # Atomically creates the first root session; all 20 session operations are in the handbook
 nofy session turn --input turn.json
 ```
 
@@ -123,7 +123,7 @@ You can also edit a project in the same format in a local directory: `nofy proje
 
 ## MCP integration
 
-Full protocol details are in the [MCP handbook](docs/manual/mcp.md) (Chinese). The inbound MCP server shares the operation contract with the CLI, and `tools/list` exposes a fixed catalog of 66 implemented operations. Secret value injection does not go through MCP; it remains a separate local private entry point.
+Full protocol details are in the [MCP handbook](docs/manual/mcp.md) (Chinese). The inbound MCP server shares the operation contract with the CLI, and `tools/list` exposes a fixed catalog of 77 implemented operations. Secret value injection does not go through MCP; it remains a separate local private entry point.
 
 stdio (local clients such as Codex):
 

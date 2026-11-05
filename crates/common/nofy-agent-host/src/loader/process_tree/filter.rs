@@ -1,6 +1,9 @@
 //! Inherited by all guest descendants, never installed in the resident host.
 use std::io;
 pub(super) fn apply() -> io::Result<()> {
+    apply_network(false, false)
+}
+pub(super) fn apply_network(network: bool, terminal: bool) -> io::Result<()> {
     use libc::{sock_filter, sock_fprog};
     #[cfg(target_arch = "x86_64")]
     const ARCH: u32 = 0xc000003e;
@@ -88,20 +91,57 @@ pub(super) fn apply() -> io::Result<()> {
         stmt(libc::BPF_RET | libc::BPF_K, DENY),
         stmt(libc::BPF_RET | libc::BPF_K, ALLOW),
     ]);
-    // FIONBIO only toggles an existing descriptor's blocking mode, which is
-    // already available through fcntl(F_SETFL). Keep device requests and any
-    // alternate high request bits denied; do not allow ioctl wholesale.
+    // Linux consumes ioctl's fd and request as 32-bit values. Compare that
+    // kernel interpretation; unused upper register bits are not authority.
+    let ioctl_start = filter.len();
     filter.extend([
-        eq(libc::SYS_ioctl as u32, 0, 8),
-        stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 28),
-        eq(0, 1, 0),
-        stmt(libc::BPF_RET | libc::BPF_K, DENY),
+        eq(libc::SYS_ioctl as u32, 0, 0),
         stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 24),
-        eq(libc::FIOCLEX as u32, 2, 0),
-        eq(libc::FIONBIO as u32, 1, 0),
-        stmt(libc::BPF_RET | libc::BPF_K, DENY),
-        stmt(libc::BPF_RET | libc::BPF_K, ALLOW),
+        eq(libc::FIOCLEX as u32, 0, 0),
+        eq(libc::FIONBIO as u32, 0, 0),
     ]);
+    if !terminal {
+        filter.extend([
+            stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 16),
+            sock_filter {
+                code: (libc::BPF_JMP | libc::BPF_JGT | libc::BPF_K) as u16,
+                jt: 0,
+                jf: 1,
+                k: 2,
+            },
+            stmt(libc::BPF_RET | libc::BPF_K, DENY),
+        ]);
+    }
+    filter.extend([stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 24)]);
+    // TIOCSTI, TIOCSCTTY and arbitrary device requests remain forbidden.
+    for request in [
+        libc::TCGETS,
+        libc::TCSETS,
+        libc::TCSETSW,
+        libc::TCSETSF,
+        libc::TIOCGWINSZ,
+        libc::TIOCSWINSZ,
+        libc::TIOCGPGRP,
+        libc::TIOCSPGRP,
+        libc::TCFLSH,
+        libc::TCSBRK,
+        libc::TCGETS2,
+        libc::TCSETS2,
+        libc::TCSETSW2,
+        libc::TCSETSF2,
+    ] {
+        filter.extend([
+            eq(request as u32, 0, 1),
+            stmt(libc::BPF_RET | libc::BPF_K, ALLOW),
+        ]);
+    }
+    filter.push(stmt(libc::BPF_RET | libc::BPF_K, DENY));
+    let allow = filter.len();
+    filter.push(stmt(libc::BPF_RET | libc::BPF_K, ALLOW));
+    filter[ioctl_start].jf = (filter.len() - ioctl_start - 1) as u8;
+    for index in [ioctl_start + 2, ioctl_start + 3] {
+        filter[index].jt = (allow - index - 1) as u8;
+    }
     let denied = [
         libc::SYS_socket,
         libc::SYS_socketpair,
@@ -159,8 +199,31 @@ pub(super) fn apply() -> io::Result<()> {
         438, // pidfd signal/getfd; no escape through outside descriptors
     ];
     for syscall in denied {
+        if network && syscall == libc::SYS_socket {
+            continue;
+        }
         filter.extend([
             eq(syscall as u32, 0, 1),
+            stmt(libc::BPF_RET | libc::BPF_K, DENY),
+        ]);
+    }
+    if network {
+        // Only TCP-family descriptors in this fresh, loopback-only network
+        // namespace. UNIX/raw/datagram sockets remain forbidden.
+        filter.extend([
+            eq(libc::SYS_socket as u32, 0, 10),
+            stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 16),
+            eq(libc::AF_INET as u32, 1, 0),
+            eq(libc::AF_INET6 as u32, 0, 6),
+            stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 24),
+            stmt(
+                libc::BPF_ALU | libc::BPF_AND | libc::BPF_K,
+                !(libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK) as u32,
+            ),
+            eq(libc::SOCK_STREAM as u32, 0, 3),
+            stmt(libc::BPF_RET | libc::BPF_K, ALLOW),
+            stmt(libc::BPF_RET | libc::BPF_K, DENY),
+            stmt(libc::BPF_RET | libc::BPF_K, DENY),
             stmt(libc::BPF_RET | libc::BPF_K, DENY),
         ]);
     }

@@ -52,6 +52,7 @@ fn make_exchange(model, request, trail, attempt, admission) {
         if tool.function.description != () { mapped.description = tool.function.description; }
         tools.push(mapped);
     }
+    for tool in s.hosted_tools ?? [] { tools.push(tool); }
     if tools.len() > 0 { body.tools = tools; }
     let output = s.max_output_tokens ?? admission.max_output_tokens;
     if output != () { body.max_output_tokens = output; }

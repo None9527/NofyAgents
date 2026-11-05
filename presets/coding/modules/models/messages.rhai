@@ -84,6 +84,7 @@ fn make_exchange(model, request, trail, attempt, admission) {
             if tool.function.description != () { mapped.description = tool.function.description; }
             tools.push(mapped);
         }
+        for tool in s.hosted_tools ?? [] { tools.push(tool); }
     }
     if s.json_schema != () {
         if s.tool_choice != "none" {
@@ -159,7 +160,7 @@ fn event(state, frame) {
         }
         let block = state.blocks[data.index];
         if kind == "content_block_stop" {
-            if block.type == "tool_use" && state.arguments[data.index] != "" {
+            if (block.type == "tool_use" || block.type == "server_tool_use") && state.arguments[data.index] != "" {
                 let parsed = try_json(state.arguments[data.index]);
                 if !parsed.ok { reject("tool_arguments", "Messages tool input is not complete JSON"); }
                 block.input = parsed.value;
@@ -169,7 +170,7 @@ fn event(state, frame) {
             let delta = data.delta;
             if (delta.type == "text_delta" || delta.type == "citations_delta") && block.type != "text"
                 || (delta.type == "thinking_delta" || delta.type == "signature_delta") && block.type != "thinking"
-                || delta.type == "input_json_delta" && block.type != "tool_use" {
+                || delta.type == "input_json_delta" && block.type != "tool_use" && block.type != "server_tool_use" {
                 reject("content_block_type", "Messages delta does not match its open content block");
             }
             switch delta.type {
@@ -178,7 +179,8 @@ fn event(state, frame) {
                 "signature_delta" => { block.signature = (block.signature ?? "") + delta.signature; }
                 "input_json_delta" => {
                     state.arguments[data.index] += delta.partial_json;
-                    deltas.push(#{kind: "tool_call", index: data.index, id: (), name: (), arguments: delta.partial_json});
+                    if block.type == "tool_use" { deltas.push(#{kind: "tool_call", index: data.index, id: (), name: (), arguments: delta.partial_json}); }
+                    else { deltas.push(#{kind:"status",name:"server_tool_use_delta",data:#{index:data.index}}); }
                 }
                 "citations_delta" => { block.citations = (block.citations ?? []) + [delta.citation]; }
                 _ => reject("unsupported_delta", "Messages needs an explicit protocol update for this native delta")
@@ -201,6 +203,15 @@ fn event(state, frame) {
     #{state: state, deltas: deltas, finished: false}
 }
 fn final_response(state) {
+    if state.message.stop_reason == "pause_turn" && (settings(state.request).hosted_tools ?? []).len() > 0 {
+        let rounds = state.hosted_rounds ?? 0;
+        if rounds >= (settings(state.request).hosted_tool_rounds ?? 2) { reject("hosted_round_limit", "Messages hosted tool continuation reached its declared round limit"); }
+        let native = opaque("anthropic.messages/v1", #{role:"assistant",content:state.message.content});
+        state.trail.push(native); state.request.messages.push(native);
+        let next = make_exchange(state.model, state.request, state.trail, state.attempt, state.admission);
+        next.state.hosted_rounds = rounds + 1;
+        return #{next:next,input_tokens:token_count(state.usage,"input_tokens",true) + token_count(state.usage,"cache_creation_input_tokens",false) + token_count(state.usage,"cache_read_input_tokens",false),output_tokens:token_count(state.usage,"output_tokens",true)};
+    }
     let output = "";
     let calls = [];
     for block in state.message.content {

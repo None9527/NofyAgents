@@ -3,7 +3,7 @@ use nofy_tool_runtime::ToolCallContext;
 use std::{collections::BTreeSet, sync::Arc};
 
 pub(super) struct Session {
-    pub connection: Arc<http::Connection>,
+    pub connection: Arc<Connection>,
     pub state: tokio::sync::Mutex<State>,
 }
 pub(super) struct State {
@@ -14,7 +14,7 @@ pub(super) struct State {
     pub server: Value,
 }
 impl Session {
-    pub fn new(connection: Arc<http::Connection>) -> Self {
+    pub fn new(connection: Arc<Connection>) -> Self {
         Self {
             connection,
             state: tokio::sync::Mutex::new(State {
@@ -29,16 +29,14 @@ impl Session {
 }
 impl Drop for Session {
     fn drop(&mut self) {
-        if let Some(session) = self.state.get_mut().session.take() {
-            self.connection.close(session);
-        }
+        self.connection.close(self.state.get_mut().session.take());
     }
 }
 
 /// Dropping an outer Runtime future still issues a bounded, best-effort cancel.
 /// A lost response never causes another tools/call POST.
 struct RequestGuard {
-    connection: Arc<http::Connection>,
+    connection: Arc<Connection>,
     session: Option<String>,
     id: u64,
     context: ToolCallContext,
@@ -55,7 +53,7 @@ impl Drop for RequestGuard {
 impl State {
     pub async fn initialize(
         &mut self,
-        connection: &Arc<http::Connection>,
+        connection: &Arc<Connection>,
         context: &ToolCallContext,
         limit: usize,
     ) -> Result<(), ToolError> {
@@ -103,7 +101,7 @@ impl State {
     }
     pub async fn catalog(
         &mut self,
-        connection: &Arc<http::Connection>,
+        connection: &Arc<Connection>,
         context: &ToolCallContext,
         config: &source::Config,
     ) -> Result<BTreeMap<String, Value>, ToolError> {
@@ -177,7 +175,7 @@ impl State {
     }
     pub async fn request(
         &mut self,
-        connection: &Arc<http::Connection>,
+        connection: &Arc<Connection>,
         method: &str,
         params: Value,
         context: &ToolCallContext,
@@ -202,6 +200,29 @@ impl State {
             pending: method != "initialize",
         };
         let message = json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
+        if let Some(channel) = connection.channel() {
+            channel.send(&message).await?;
+            let mut received = 0usize;
+            loop {
+                let message = channel.receive(limit.saturating_sub(received)).await?;
+                received = received.saturating_add(
+                    serde_json::to_vec(&message)
+                        .map_err(|_| protocol("MCP frame is not JSON"))?
+                        .len(),
+                );
+                if received > limit {
+                    return Err(crate::tool_error(
+                        "output_limit",
+                        "MCP response exceeds configured byte limit",
+                    ));
+                }
+                if let Some(result) = self.message(connection, message, id, context).await? {
+                    guard.pending = false;
+                    self.usable = true;
+                    return result;
+                }
+            }
+        }
         let mut response = connection
             .post(&message, self.session.as_deref(), context)
             .await?;
@@ -282,7 +303,7 @@ impl State {
     }
     async fn message(
         &mut self,
-        connection: &Arc<http::Connection>,
+        connection: &Arc<Connection>,
         message: Value,
         id: u64,
         context: &ToolCallContext,

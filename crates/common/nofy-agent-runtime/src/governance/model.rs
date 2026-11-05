@@ -315,7 +315,12 @@ where
                 retry_at_ms,
                 ..
             } => {
-                if !failure.retryable || attempt + 1 >= control.retry.max_attempts {
+                if !failure.retryable
+                    || attempt + 1 >= control.retry.max_attempts
+                    || failure
+                        .retry_after_ms
+                        .is_some_and(|delay| delay > control.retry.max_delay_ms)
+                {
                     if let Some(journal) = &recovery {
                         journal
                             .failed(context, operation_id, &fingerprint, generation)

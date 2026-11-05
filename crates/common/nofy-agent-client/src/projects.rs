@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 impl Engine {
-    async fn template_source(&self, input: &Value) -> Result<Source> {
+    pub(crate) async fn template_source(&self, input: &Value) -> Result<Source> {
         let agent = input.get("agent").and_then(Value::as_str);
         if input.get("empty").and_then(Value::as_bool) == Some(true)
             || input.get("preset").is_none()
@@ -61,15 +61,28 @@ impl Engine {
         // Canonical slots can be rendered offline. Only the editing alias
         // `tools` needs live factory metadata to choose its typed Agent slot.
         let doc = source.json(&source.declaration)?;
-        let needs_kinds = doc.get("system").unwrap_or(&doc)["programs"]
-            .as_object()
-            .is_some_and(|p| p.values().any(|p| p["definition"].get("tools").is_some()));
+        let needs_kinds = !nofy_agent_project::repository::imports(source)?.is_empty()
+            || doc.get("system").unwrap_or(&doc)["programs"]
+                .as_object()
+                .is_some_and(|p| p.values().any(|p| p["definition"].get("tools").is_some()));
         if !needs_kinds || self.offline {
             return Ok(FactoryKinds::new());
         }
         self.kinds().await
     }
     pub(crate) async fn project_operation(&self, op: &str, input: &Value) -> Result<Envelope> {
+        if op == "project.delete" {
+            return native(
+                op,
+                self.client
+                    .send(
+                        "DELETE",
+                        &["api", "v1", "projects", text(input, "project_id")?],
+                        &json!({"expected_revision":text(input,"expected_revision")?}),
+                    )
+                    .await?,
+            );
+        }
         if op == "project.template" {
             let source = self.template_source(input).await?;
             let inspection = nofy_agent_project::inspect(&source, &FactoryKinds::new())?;
@@ -119,7 +132,7 @@ impl Engine {
                 .send("POST", &["api", "v1", "projects"], &body)
                 .await?
                 .value()?;
-            return Ok(project_envelope(op, view));
+            return Ok(project_envelope(op, view, input["include_source"] == true));
         }
         let (mut source, project) = self.source(input).await?;
         let kinds = if op == "project.pack" {
@@ -133,19 +146,30 @@ impl Engine {
             captured.insert("project_id".to_owned(), identity(&project["project_id"]));
             captured.insert("source_revision".to_owned(), identity(&project["revision"]));
         }
+        let original_digest = source.digest()?;
+        if matches!(
+            op,
+            "project.build"
+                | "agent.build"
+                | "project.pack"
+                | "agent.plan"
+                | "agent.apply"
+                | "agent.export"
+        ) {
+            source = self.resolve_source(&source).await?;
+        }
         let result = match op {
             "project.inspect" => Ok(Envelope::ok(
                 op,
-                nofy_agent_project::inspect(&source, &kinds)?,
+                self.inspect_source(&source, &kinds).await?,
             )),
             "project.build" | "agent.build" => {
                 if op == "agent.build" {
                     check_agent(&source, text(input, "agent")?)?;
                 }
-                Ok(Envelope::ok(
-                    op,
-                    nofy_agent_project::build(&source, &kinds)?,
-                ))
+                let mut built = nofy_agent_project::build(&source, &kinds)?;
+                built["source_digest"] = json!(original_digest);
+                Ok(Envelope::ok(op, built))
             }
             "project.pack" => {
                 let archive = self
@@ -157,10 +181,21 @@ impl Engine {
                     )
                     .await?
                     .value()?;
-                Ok(Envelope::ok(op, archive))
+                let mut out = Envelope::ok(op, archive.clone());
+                if let Some(digest) = archive["source_digest"].as_str() {
+                    out.refs.insert("source_digest".into(), Some(digest.into()));
+                }
+                out.refs.insert(
+                    "project_source_digest".into(),
+                    Some(original_digest.clone()),
+                );
+                Ok(out)
             }
             "agent.inspect" | "agent.module.list" | "agent.module.inspect" => {
-                let data = nofy_agent_project::edit(&mut source, op, input, &kinds)?;
+                let mut data = nofy_agent_project::edit(&mut source, op, input, &kinds)?;
+                if op == "agent.inspect" {
+                    data["inspection"] = self.inspect_source(&source, &kinds).await?;
+                }
                 let mut out = Envelope::ok(op, data);
                 if let Some(project) = project {
                     out.refs
@@ -177,6 +212,10 @@ impl Engine {
                 let mut out = Envelope::ok(op, json!({"source":source}));
                 out.refs
                     .insert("source_digest".into(), Some(source.digest()?));
+                out.refs.insert(
+                    "project_source_digest".into(),
+                    Some(original_digest.clone()),
+                );
                 Ok(out)
             }
             "agent.plan" | "agent.apply" => {
@@ -244,7 +283,10 @@ impl Engine {
                     Ok(receipt) => {
                         let mut out = native("system.apply", receipt)?;
                         out.operation = op.into();
-                        out.data["publication_json"] = json!(publication.text);
+                        out.data["publication"] = json!({"release":release,"catalog_revision":identity(&published["created_revision"]),"read":{"operation":"system.export","arguments":{"release":release}}});
+                        if input["include_publication"] == true {
+                            out.data["publication_json"] = json!(publication.text);
+                        }
                         Ok(out)
                     }
                     Err(mut e) => {
@@ -252,19 +294,26 @@ impl Engine {
                         e.refs
                             .insert("command_id".into(), identity(&input["command_id"]));
                         e.details["completed_stages"] = json!(["build", "publish"]);
-                        e.details["publication_json"] = json!(publication.text);
+                        e.details["publication"] = json!({"release":release,"catalog_revision":identity(&published["created_revision"]),"read":{"operation":"system.export","arguments":{"release":release}}});
+                        if input["include_publication"] == true {
+                            e.details["publication_json"] = json!(publication.text);
+                        }
                         e.details["pending_stage"] = json!("apply");
                         Err(e)
                     }
                 }
             }
             "agent.create"
+            | "agent.delete"
+            | "agent.configure"
             | "agent.module.add"
             | "agent.tool.add"
             | "agent.module.set"
             | "agent.module.bind"
             | "agent.module.detach"
-            | "agent.module.remove" => {
+            | "agent.module.remove"
+            | "agent.module.use"
+            | "agent.module.unuse" => {
                 let target = &input["target"];
                 match text(target, "kind")? {
                     "source" => {
@@ -284,12 +333,15 @@ impl Engine {
                 }
                 let mut input = input.clone();
                 let imported = self.import_reference(&mut input).await?;
-                let live_kinds =
-                    if (op == "agent.module.add" || op == "agent.tool.add") && !self.offline {
-                        self.kinds().await?
-                    } else {
-                        kinds
-                    };
+                let live_kinds = if matches!(
+                    op,
+                    "agent.module.add" | "agent.tool.add" | "agent.module.use"
+                ) && !self.offline
+                {
+                    self.kinds().await?
+                } else {
+                    kinds
+                };
                 if let Some(project) = project {
                     if !imported.is_empty() {
                         input["imported_modules"] = json!(imported);
@@ -310,11 +362,31 @@ impl Engine {
                         )
                         .await?
                         .value()?;
-                    Ok(project_envelope(op, view))
+                    Ok(project_envelope(op, view, input["include_source"] == true))
                 } else {
                     nofy_agent_project::import_modules(&mut source, &imported)?;
-                    let inspection =
-                        nofy_agent_project::edit(&mut source, op, &input, &live_kinds)?;
+                    match op {
+                        "agent.module.use" => {
+                            let package = self.package_view(&input).await?;
+                            nofy_agent_project::repository::use_package(
+                                &mut source,
+                                &package,
+                                &input,
+                                &live_kinds,
+                            )?;
+                        }
+                        "agent.module.unuse" => {
+                            check_agent(&source, text(&input, "agent")?)?;
+                            nofy_agent_project::repository::unuse_package(
+                                &mut source,
+                                text(&input, "alias")?,
+                            )?;
+                        }
+                        _ => {
+                            nofy_agent_project::edit(&mut source, op, &input, &live_kinds)?;
+                        }
+                    }
+                    let inspection = self.inspect_source(&source, &live_kinds).await?;
                     let digest = source.digest()?;
                     let mut out =
                         Envelope::ok(op, json!({"source":source,"inspection":inspection}));
@@ -411,7 +483,13 @@ fn check_agent(source: &Source, id: &str) -> Result<()> {
         Err(Error::new("not_found", "Agent not found in source"))
     }
 }
-fn project_envelope(op: &str, view: Value) -> Envelope {
+fn project_envelope(op: &str, mut view: Value, include_source: bool) -> Envelope {
+    if !include_source {
+        if let Some(object) = view.as_object_mut() {
+            object.remove("source");
+        }
+        view["source_read"] = json!({"operation":"project.source","arguments":{"target":{"kind":"project","project_id":view["project_id"]}}});
+    }
     let mut out = Envelope::ok(op, view);
     for (key, field) in [
         ("project_id", "project_id"),

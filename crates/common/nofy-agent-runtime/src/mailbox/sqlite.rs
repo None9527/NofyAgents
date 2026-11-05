@@ -224,10 +224,18 @@ impl InputInbox for GuardedCheckpointer {
             let (root_key, status) = recipient(tx,&address,true,true)?;
             if root_key != lease.key { return Err(Error::Checkpoint("mailbox claim belongs to another root lease".into())); }
             if kind == InputKind::NextTurn && !terminal(&status) { return Ok(None); }
-            let head = tx.query_row("SELECT sequence,digest,payload,status,reason FROM agent_runtime_mailbox WHERE address=?1 AND status IN ('pending','claimed') ORDER BY sequence LIMIT 1",[&key],read_row).optional().map_err(db_error)?;
-            let Some(head) = head else { return Ok(None); };
-            let mut head = decode(head)?;
-            if head.envelope.input.kind() != kind { return Ok(None); }
+            let mut statement = tx.prepare("SELECT sequence,digest,payload,status,reason FROM agent_runtime_mailbox WHERE address=?1 AND status IN ('pending','claimed') ORDER BY sequence").map_err(db_error)?;
+            let rows = statement.query_map([&key],read_row).map_err(db_error)?;
+            let mut selected = None;
+            for row in rows {
+                let candidate = decode(row.map_err(db_error)?)?;
+                let candidate_kind = candidate.envelope.input.kind();
+                if candidate_kind == kind { selected = Some(candidate); break; }
+                // Steering and follow-up have separate queues. A next-turn or
+                // explicit Tool command remains an ordering barrier.
+                if candidate_kind == InputKind::NextTurn || candidate_kind == InputKind::Tool || kind == InputKind::NextTurn { break; }
+            }
+            let Some(mut head) = selected else { return Ok(None); };
             tx.execute("UPDATE agent_runtime_mailbox SET status='claimed' WHERE sequence=?1",[head.sequence]).map_err(db_error)?;
             head.status = InputStatus::Claimed;
             Ok(Some(head))

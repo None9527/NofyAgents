@@ -36,6 +36,9 @@ struct Args {
     /// External versioned source-template registry, containing index.json.
     #[arg(long)]
     preset_dir: Option<PathBuf>,
+    /// Register an explicit source module directory: --module-dir name=/absolute/path.
+    #[arg(long)]
+    module_dir: Vec<String>,
 }
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "linux")]
@@ -74,6 +77,13 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         Some(directory) => host.with_templates(&directory)?,
         None => host,
     };
+    let mut host = host;
+    for binding in args.module_dir {
+        let (repository, path) = binding
+            .split_once('=')
+            .ok_or("module-dir requires name=/absolute/path")?;
+        host = host.with_module_directory(repository, std::path::Path::new(path))?;
+    }
     if let Some(path) = args.source_policy_file {
         let sources = host.loader().sources.clone();
         tokio::task::spawn_blocking(move || sources.bootstrap_file(&path)).await??;

@@ -460,7 +460,7 @@ fn run_graph(
                     let join = matches!(
                         node.action,
                         NodeKind::Join {
-                            mode: JoinMode::AllSettled
+                            mode: JoinMode::AllSettled | JoinMode::AllSettledRecords
                         }
                     );
                     let condition = node
@@ -480,7 +480,29 @@ fn run_graph(
                         frame.commit().await?;
                         continue;
                     }
-                    let input = node.input.evaluate(&frame.state.input, &values)?;
+                    let input = if matches!(
+                        node.action,
+                        NodeKind::Join {
+                            mode: JoinMode::AllSettledRecords
+                        }
+                    ) {
+                        let records = node
+                            .needs
+                            .iter()
+                            .map(|id| {
+                                (
+                                    id.clone(),
+                                    serde_json::to_value(
+                                        frame.state.nodes.get(id).expect("settled dependency"),
+                                    )
+                                    .expect("node progress"),
+                                )
+                            })
+                            .collect::<serde_json::Map<_, _>>();
+                        Value::Object(records)
+                    } else {
+                        node.input.evaluate(&frame.state.input, &values)?
+                    };
                     crate::settings::validate_json_value(&node.input_schema, &input)?;
                     frame.state.nodes.insert(
                         id.clone(),

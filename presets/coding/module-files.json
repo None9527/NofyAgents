@@ -1,0 +1,9 @@
+[
+  "module-files.json",
+  "module.json",
+  "modules/files/files.py",
+  "modules/files/workspace.py",
+  "modules/files/manifest.json",
+  "requirements.txt",
+  "文件说明.md"
+]

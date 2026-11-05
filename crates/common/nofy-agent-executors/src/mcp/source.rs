@@ -129,7 +129,7 @@ impl ModuleFactory for ToolSourceFactory {
                 "MCP source requires its connection resource",
             ));
         };
-        let connection = handle.get::<http::Connection>().ok_or_else(|| {
+        let connection = handle.get::<Connection>().ok_or_else(|| {
             crate::composition("MCP source connection has a different resource type")
         })?;
         let identity =
@@ -143,7 +143,7 @@ impl ModuleFactory for ToolSourceFactory {
 }
 struct Source {
     config: Config,
-    connection: Arc<http::Connection>,
+    connection: Arc<Connection>,
     identity: String,
 }
 #[async_trait::async_trait]
@@ -167,7 +167,7 @@ impl ToolSource for Source {
 }
 impl Source {
     async fn discover(&self, context: &ToolCallContext) -> Result<ToolSnapshot, ToolError> {
-        let session = Arc::new(session::Session::new(self.connection.clone()));
+        let session = Arc::new(session::Session::new(self.connection.open(context).await?));
         let mut state = session.state.lock().await;
         state
             .initialize(&session.connection, context, self.config.max_catalog_bytes)

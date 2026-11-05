@@ -6,7 +6,7 @@ pub mod code;
 pub mod deployment;
 mod directories;
 mod evaluation;
-mod factories;
+pub(crate) mod factories;
 mod helper;
 pub mod images;
 pub mod isolation;
@@ -16,6 +16,8 @@ mod local;
 pub mod memory;
 pub mod models;
 mod module_walk;
+#[cfg(target_os = "linux")]
+pub mod process_sessions;
 pub mod process_tree;
 pub mod prompts;
 pub mod references;
@@ -48,6 +50,8 @@ pub struct Loader {
     pub unload: unload::ObjectStore,
     #[cfg(target_os = "linux")]
     pub process_trees: process_tree::Manager,
+    #[cfg(target_os = "linux")]
+    pub process_sessions: process_sessions::Manager,
     pub(crate) private_root: PathBuf,
     pub(crate) memory: nofy_memory::runtime::declarative::MemoryResourceFactory,
     pub(crate) memory_provider: Arc<memory::Provider>,
@@ -94,6 +98,8 @@ impl Loader {
             unload: unload::ObjectStore::open(&root)?,
             #[cfg(target_os = "linux")]
             process_trees: process_tree::Manager::open(&root.join("process-jobs"))?,
+            #[cfg(target_os = "linux")]
+            process_sessions: process_sessions::Manager::open(&root.join("process-sessions"))?,
             scratch: storage::directory(&root.join("scratch"))?,
             prompt_root: storage::directory(&root.join("render"))?,
             memory,
@@ -128,6 +134,8 @@ impl Loader {
         self.memory.shutdown();
         #[cfg(target_os = "linux")]
         self.process_trees.shutdown();
+        #[cfg(target_os = "linux")]
+        self.process_sessions.shutdown();
     }
     pub fn set_helper(&self, path: &Path) -> Result<()> {
         self.helper.install(path)
@@ -233,6 +241,13 @@ impl Loader {
         registry.register_factory(Arc::new(factories::ProcessArtifactFactory))?;
         #[cfg(target_os = "linux")]
         registry.register_factory(Arc::new(factories::TreeArtifactFactory))?;
+        #[cfg(target_os = "linux")]
+        {
+            registry.register_factory(Arc::new(process_sessions::LimitsFactory))?;
+            registry.register_factory(Arc::new(factories::SessionFactory))?;
+            registry.register_factory(Arc::new(factories::TerminalFactory))?;
+            registry.register_factory(Arc::new(factories::StdioFactory))?;
+        }
         Ok(())
     }
     pub async fn resolve_file(&self, file: SystemFile) -> Result<SystemFile> {

@@ -2,7 +2,7 @@
 use super::*;
 use std::{collections::BTreeMap, ffi::OsStr};
 
-pub(super) const ARG: &str = "__nofy_process_tree_v1";
+pub(in crate::loader) const ARG: &str = "__nofy_process_tree_v1";
 const WIRE_BYTES: usize = 65536;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -14,6 +14,8 @@ pub(in crate::loader) struct Bootstrap {
     pub cwd: PathBuf,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sandbox: Option<super::sandbox::Sandbox>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session: Option<super::super::process_sessions::Setup>,
 }
 impl Bootstrap {
     pub(in crate::loader) fn encode(&self) -> Result<String> {
@@ -29,6 +31,9 @@ impl Bootstrap {
     pub(super) fn validate(&self) -> Result<()> {
         if let Some(sandbox) = &self.sandbox {
             sandbox.validate()?;
+        }
+        if let Some(session) = &self.session {
+            session.validate()?;
         }
         let path = |p: &Path| {
             p.is_absolute()
@@ -133,6 +138,9 @@ fn wait(pid: libc::pid_t) -> std::io::Result<i32> {
 }
 fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Error>> {
     parent_death(profile.parent_pid)?;
+    if let Some(session) = &profile.session {
+        session.handoff()?;
+    }
     let _lease = profile
         .sandbox
         .as_ref()
@@ -160,6 +168,13 @@ fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Err
             != 0
     {
         return Err(std::io::Error::last_os_error().into());
+    }
+    if profile
+        .session
+        .as_ref()
+        .is_some_and(|s| s.network_fd.is_some())
+    {
+        super::super::process_sessions::network::loopback()?;
     }
     if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0
         || unsafe { libc::unshare(libc::CLONE_NEWPID) } != 0
@@ -231,6 +246,13 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
             return Err(error);
         }
     }
+    if let Some(config) = profile
+        .session
+        .as_ref()
+        .and_then(|s| s.limits.network_proxy.as_ref())
+    {
+        super::super::process_sessions::network::spawn_proxy(config, lifeline)?;
+    }
     let child = unsafe { libc::fork() };
     if child < 0 {
         return Err(std::io::Error::last_os_error());
@@ -240,8 +262,26 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
         unsafe {
             libc::close(lifeline);
         }
+        if let Some(session) = &profile.session {
+            if let Err(error) = session.apply() {
+                eprintln!("process session setup failed: {error}");
+                unsafe {
+                    libc::_exit(125);
+                }
+            }
+        }
         if let Some(sandbox) = &profile.sandbox {
-            if let Err(error) = sandbox.apply() {
+            let terminal = profile.session.as_ref().is_some_and(|s| s.terminal);
+            let network = profile
+                .session
+                .as_ref()
+                .is_some_and(|s| s.network_fd.is_some());
+            let confinement = if profile.session.is_some() {
+                sandbox.apply_session(terminal, network)
+            } else {
+                sandbox.apply()
+            };
+            if let Err(error) = confinement {
                 eprintln!("required tree confinement failed: {error}");
                 unsafe {
                     libc::_exit(125);

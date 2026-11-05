@@ -363,3 +363,6 @@ async fn missing_or_rehashed_policy_authority_cannot_dispatch_the_root() {
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
+
+#[path = "branches.rs"]
+mod branch_tests;

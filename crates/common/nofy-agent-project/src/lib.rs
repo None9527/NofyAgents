@@ -3,6 +3,7 @@ mod codec;
 mod edit;
 mod files;
 mod render;
+pub mod repository;
 mod store;
 pub use codec::*;
 pub use edit::{FactoryKinds, agent_names, edit, import_modules};

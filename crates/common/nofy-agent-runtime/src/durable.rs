@@ -191,6 +191,10 @@ impl SqliteStore {
             CREATE TABLE IF NOT EXISTS agent_runtime_session_profiles(session_id TEXT PRIMARY KEY,digest TEXT NOT NULL,payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS agent_runtime_session_admissions(run_id TEXT PRIMARY KEY,session_id TEXT NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS agent_runtime_session_ops(command_id TEXT PRIMARY KEY,session_id TEXT NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS agent_runtime_session_branches(session_id TEXT PRIMARY KEY,parent_session_id TEXT NOT NULL,command_id TEXT NOT NULL UNIQUE,digest TEXT NOT NULL,payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS agent_runtime_approval_grants(grant_id TEXT PRIMARY KEY,anchor TEXT NOT NULL,policy_id TEXT NOT NULL,rule_key TEXT NOT NULL,active INTEGER NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS agent_runtime_approval_grants_match ON agent_runtime_approval_grants(anchor,policy_id,rule_key,active);
+            CREATE INDEX IF NOT EXISTS agent_runtime_session_branch_parent ON agent_runtime_session_branches(parent_session_id,session_id);
             CREATE TABLE IF NOT EXISTS agent_runtime_retained_owners(version INTEGER NOT NULL DEFAULT 1,kind TEXT NOT NULL,key TEXT NOT NULL,root_id TEXT NOT NULL,composition_digest TEXT NOT NULL,PRIMARY KEY(kind,key));")
             .map_err(db_error)?;
             let versions = tx

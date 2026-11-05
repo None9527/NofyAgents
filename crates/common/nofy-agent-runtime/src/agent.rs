@@ -482,7 +482,7 @@ impl Agent {
     }
 
     pub async fn invoke(&self, input: RunInput, context: RunContext) -> Result<RunOutcome, Error> {
-        self.run(input, context, None).await
+        Box::pin(self.run(input, context, None)).await
     }
 
     /// Drive this future concurrently with the receiver to consume events.
@@ -494,7 +494,7 @@ impl Agent {
         context: RunContext,
         events: mpsc::Sender<RunEvent>,
     ) -> Result<RunOutcome, Error> {
-        self.run(input, context, Some(events)).await
+        Box::pin(self.run(input, context, Some(events))).await
     }
 }
 

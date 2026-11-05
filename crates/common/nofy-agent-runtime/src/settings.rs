@@ -18,6 +18,8 @@ pub fn validate_json_value(schema: &Value, value: &Value) -> Result<(), crate::E
 pub struct Settings {
     pub max_steps: usize,
     pub model: Value,
+    #[serde(skip_serializing_if = "InputDelivery::is_default")]
+    pub input_delivery: InputDelivery,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope_identity: Option<crate::IdentityScheme>,
 }
@@ -27,8 +29,28 @@ impl Default for Settings {
         Self {
             max_steps: 32,
             model: Value::Object(Default::default()),
+            input_delivery: InputDelivery::default(),
             scope_identity: None,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeliveryMode {
+    #[default]
+    All,
+    OneAtATime,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct InputDelivery {
+    pub steering: DeliveryMode,
+    pub follow_up: DeliveryMode,
+}
+impl InputDelivery {
+    pub fn is_default(&self) -> bool {
+        self.steering == DeliveryMode::All && self.follow_up == DeliveryMode::All
     }
 }
 

@@ -5,8 +5,10 @@ use crate::program::{CompiledProgram, ExecutionPlan, RunSnapshot};
 mod child_retry;
 mod control;
 mod execution;
+mod scoped_approvals;
 mod storage;
 pub use control::{ChildCancelResumeCommand, RunControlCommand};
+pub use scoped_approvals::{ApprovalGrant, ApprovalScope};
 #[cfg(feature = "workflow")]
 mod control_tree;
 mod durable_events;
@@ -182,6 +184,8 @@ pub struct ApprovalRequest {
     pub thread_id: String,
     pub step: usize,
     pub call: ToolCall,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,6 +200,23 @@ pub struct ChildReconciliation {
 }
 impl ApprovalRequest {
     fn key(&self) -> Result<String, Error> {
+        if let Some(policy) = &self.policy_id {
+            if policy.len() != 64
+                || !policy
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err(Error::Checkpoint("invalid approval policy identity".into()));
+            }
+            return serde_json::to_string(&(
+                &self.run_id,
+                &self.thread_id,
+                self.step,
+                &self.call.id,
+                policy,
+            ))
+            .map_err(db_error);
+        }
         serde_json::to_string(&(&self.run_id, &self.thread_id, self.step, &self.call.id))
             .map_err(db_error)
     }
@@ -284,18 +305,33 @@ impl Policy for DurableApprovalPolicy {
             thread_id: context.thread_id.clone(),
             step: state.steps,
             call: call.clone(),
+            policy_id: context
+                .capabilities
+                .get::<crate::policy::rules::RuleApprovalHint>()
+                .map(|hint| hint.policy_id.clone()),
         };
-        Ok(
-            match self
-                .store
-                .approval(request.clone(), root.lease.clone())
+        let (decision, offer) = if let Some(hint) = context
+            .capabilities
+            .get::<crate::policy::rules::RuleApprovalHint>()
+        {
+            self.store
+                .rule_approval(request.clone(), (*root).clone(), (*hint).clone())
                 .await?
-            {
-                Some(true) => Admission::Allow,
-                Some(false) => Admission::Deny("denied by recorded approval decision".into()),
-                None => Admission::Pause(serde_json::json!({"kind":"approval","request":request})),
-            },
-        )
+        } else {
+            (
+                self.store
+                    .approval(request.clone(), root.lease.clone())
+                    .await?,
+                serde_json::Value::Null,
+            )
+        };
+        Ok(match decision {
+            Some(true) => Admission::Allow,
+            Some(false) => Admission::Deny("denied by recorded approval decision".into()),
+            None => Admission::Pause(
+                serde_json::json!({"kind":"approval","request":request,"scope_offer":offer}),
+            ),
+        })
     }
 }
 

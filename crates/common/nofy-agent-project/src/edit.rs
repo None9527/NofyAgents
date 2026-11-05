@@ -1,3 +1,5 @@
+pub(crate) mod removal;
+mod settings;
 use crate::*;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
@@ -78,7 +80,7 @@ fn agent_mut<'a>(system: &'a mut Value, id: &str) -> Result<&'a mut Map<String, 
         .as_object_mut()
         .ok_or_else(|| Error::new("local_input", "Agent definition must be an object"))
 }
-fn reference(system: &Value, requested: &Value) -> Result<Value> {
+pub(crate) fn reference(system: &Value, requested: &Value) -> Result<Value> {
     if requested.is_object()
         && requested.get("id").and_then(Value::as_str).is_some()
         && requested.get("version").and_then(Value::as_str).is_some()
@@ -88,7 +90,13 @@ fn reference(system: &Value, requested: &Value) -> Result<Value> {
     let id = requested
         .as_str()
         .ok_or_else(|| Error::new("local_input", "dependency must be a source ID or ModuleRef"))?;
-    let i = index(system, id)?;
+    let i = match index(system, id) {
+        Ok(i) => i,
+        Err(e) if e.code == "not_found" => {
+            return crate::repository::resolve_reference(system, id)?.ok_or(e);
+        }
+        Err(e) => return Err(e),
+    };
     Ok(body(&system["modules"][i])["reference"].clone())
 }
 fn slot(slot: &str, kind: Option<&str>) -> Result<(&'static str, bool)> {
@@ -145,7 +153,7 @@ fn slot(slot: &str, kind: Option<&str>) -> Result<(&'static str, bool)> {
     }
     Ok(pair)
 }
-fn attach(
+pub(crate) fn attach(
     system: &mut Value,
     agent_id: &str,
     slot_name: &str,
@@ -177,6 +185,9 @@ fn attach(
         d.insert("schema_version".into(), json!(2));
     }
     Ok(())
+}
+pub(crate) fn check_agent(system: &Value, id: &str) -> Result<()> {
+    agent(system, id).map(|_| ())
 }
 fn dependencies(system: &Value, input: &Value) -> Result<Value> {
     let mut out = Map::new();
@@ -396,6 +407,9 @@ pub fn edit(
     input: &Value,
     kinds: &FactoryKinds,
 ) -> Result<Value> {
+    if operation == "agent.configure" {
+        return settings::configure(source, input, kinds);
+    }
     let mut candidate = source.clone();
     source_files(&mut candidate, input)?;
     let mut doc = candidate.json(&candidate.declaration)?;
@@ -415,17 +429,57 @@ pub fn edit(
     } else {
         agent(system, agent_id)?;
         match operation {
+            "agent.delete" => {
+                system["programs"]
+                    .as_object_mut()
+                    .ok_or_else(|| Error::new("local_input", "programs must be an object"))?
+                    .remove(agent_id);
+                if system["entry"] == agent_id {
+                    if let Some(entry) = input.get("entry").and_then(Value::as_str) {
+                        if system["programs"].get(entry).is_none() {
+                            return Err(Error::new(
+                                "not_found",
+                                "replacement entry program missing",
+                            ));
+                        }
+                        system["entry"] = json!(entry);
+                    } else if let Some(entry) = system["programs"]
+                        .as_object()
+                        .and_then(|p| p.keys().next())
+                        .cloned()
+                    {
+                        system["entry"] = json!(entry);
+                    } else {
+                        system
+                            .as_object_mut()
+                            .expect("system object")
+                            .remove("entry");
+                    }
+                }
+            }
             "agent.inspect" | "agent.export" => {
                 return Ok(
                     json!({"agent":agent_id,"definition_json":serde_json::to_string(agent(system,agent_id)?)?,"inspection":inspect(source,kinds)?}),
                 );
             }
             "agent.module.list" => {
-                return Ok(
-                    json!({"agent":agent_id,"modules":system["modules"].as_array().into_iter().flatten().map(|m| json!({"id":name(m).unwrap_or("?"),"factory":body(m)["factory"],"reference":body(m)["reference"]})).collect::<Vec<_>>()}),
-                );
+                let mut modules: Vec<Value> = system["modules"].as_array().into_iter().flatten().map(|m| json!({"id":name(m).unwrap_or("?"),"factory":body(m)["factory"],"reference":body(m)["reference"]})).collect();
+                modules.extend(crate::repository::imported_modules(system)?);
+                return Ok(json!({"agent":agent_id,"modules":modules}));
             }
             "agent.module.inspect" => {
+                let requested = text(input, "module")?;
+                if let Some(reference) = crate::repository::resolve_reference(system, requested)? {
+                    let descriptor = crate::repository::imported_modules(system)?
+                        .into_iter()
+                        .find(|m| m["reference"] == reference)
+                        .ok_or_else(|| {
+                            Error::new("not_found", "imported module export not found")
+                        })?;
+                    return Ok(
+                        json!({"agent":agent_id,"module_json":serde_json::to_string(&descriptor)?}),
+                    );
+                }
                 let i = index(system, text(input, "module")?)?;
                 return Ok(
                     json!({"agent":agent_id,"module_json":serde_json::to_string(body(&system["modules"][i]))?}),
@@ -488,17 +542,24 @@ pub fn edit(
                     }
                     module["reference"].clone()
                 };
-                let i = index(
-                    system,
-                    r.get("$module")
-                        .or_else(|| r.get("id"))
-                        .and_then(Value::as_str)
-                        .ok_or_else(|| Error::new("local_input", "module reference missing"))?,
-                )?;
-                let factory = body(&system["modules"][i])["factory"]
-                    .as_str()
-                    .unwrap_or("");
-                let kind = kinds.get(factory).map(String::as_str);
+                let factory = if let Some(factory) =
+                    crate::repository::imported_factory(system, &r)?
+                {
+                    factory
+                } else {
+                    let i = index(
+                        system,
+                        r.get("$module")
+                            .or_else(|| r.get("id"))
+                            .and_then(Value::as_str)
+                            .ok_or_else(|| Error::new("local_input", "module reference missing"))?,
+                    )?;
+                    body(&system["modules"][i])["factory"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_owned()
+                };
+                let kind = kinds.get(&factory).map(String::as_str);
                 let slot_name = input.get("slot").and_then(Value::as_str).or(
                     if operation == "agent.tool.add" {
                         Some("tools")
@@ -518,6 +579,12 @@ pub fn edit(
                 }
             }
             "agent.module.set" => {
+                if crate::repository::resolve_reference(system, text(input, "module")?)?.is_some() {
+                    return Err(Error::new(
+                        "local_input",
+                        "configure imported packages with agent.module.use and replace_import",
+                    ));
+                }
                 let i = index(system, text(input, "module")?)?;
                 promote(system, i)?;
                 let m = body_mut(&mut system["modules"][i]);
@@ -530,27 +597,73 @@ pub fn edit(
                         .unwrap_or_else(|| json!({})),
                     &candidate,
                 )?;
+                if let Some(unset) = input.get("unset") {
+                    if !unset.is_array() {
+                        return Err(Error::new(
+                            "local_input",
+                            "unset must be an array of JSON Pointers",
+                        ));
+                    }
+                    m["config"] = json!({"$remove":{"base":m["config"],"pointers":unset}});
+                }
             }
             "agent.module.bind" => {
+                if crate::repository::resolve_reference(system, text(input, "module")?)?.is_some() {
+                    return Err(Error::new(
+                        "local_input",
+                        "bind imported package ports with agent.module.use and replace_import",
+                    ));
+                }
                 let i = index(system, text(input, "module")?)?;
                 promote(system, i)?;
                 let deps = dependencies(system, input)?;
                 let m = body_mut(&mut system["modules"][i]);
-                if m.get("dependencies").is_none() {
-                    m["dependencies"] = json!({});
+                if input["replace_dependencies"] == true {
+                    m["dependencies"] = deps;
+                } else {
+                    if m.get("dependencies").is_none() {
+                        m["dependencies"] = json!({});
+                    }
+                    m["dependencies"]
+                        .as_object_mut()
+                        .ok_or_else(|| Error::new("local_input", "dependencies must be an object"))?
+                        .extend(deps.as_object().cloned().unwrap_or_default());
                 }
-                m["dependencies"]
-                    .as_object_mut()
-                    .ok_or_else(|| Error::new("local_input", "dependencies must be an object"))?
-                    .extend(deps.as_object().cloned().unwrap_or_default());
+                if let Some(removed) = input.get("remove_dependencies") {
+                    for slot in removed.as_array().ok_or_else(|| {
+                        Error::new("local_input", "remove_dependencies must be an array")
+                    })? {
+                        let slot = slot.as_str().ok_or_else(|| {
+                            Error::new("local_input", "dependency names must be strings")
+                        })?;
+                        m["dependencies"]
+                            .as_object_mut()
+                            .ok_or_else(|| {
+                                Error::new("local_input", "dependencies must be an object")
+                            })?
+                            .remove(slot)
+                            .ok_or_else(|| {
+                                Error::new(
+                                    "not_found",
+                                    format!("dependency slot does not exist: {slot}"),
+                                )
+                            })?;
+                    }
+                }
             }
             "agent.module.detach" => {
-                let i = index(system, text(input, "module")?)?;
-                let r = body(&system["modules"][i])["reference"].clone();
-                let kind = body(&system["modules"][i])["factory"]
-                    .as_str()
-                    .and_then(|f| kinds.get(f))
-                    .map(String::as_str);
+                let r = reference(system, &json!(text(input, "module")?))?;
+                let factory =
+                    if let Some(factory) = crate::repository::imported_factory(system, &r)? {
+                        factory
+                    } else {
+                        let i = index(system, text(input, "module")?)?;
+                        body(&system["modules"][i])["factory"]
+                            .as_str()
+                            .unwrap_or("")
+                            .to_owned()
+                    };
+                let kind = kinds.get(&factory).map(String::as_str);
                 let (key, many) = slot(text(input, "slot")?, kind)?;
                 let d = agent_mut(system, agent_id)?;
                 if many {

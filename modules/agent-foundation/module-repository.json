@@ -1,0 +1,12 @@
+{
+  "format": "nofy.module-repository/v1",
+  "packages": [
+    "context-compaction",
+    "agent-task",
+    "plan",
+    "agent-collaboration",
+    "ask-user",
+    "execution-escalation",
+    "resilience"
+  ]
+}

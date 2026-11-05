@@ -62,7 +62,7 @@ impl ServerHandler for NofyServer {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
             .with_protocol_version(ProtocolVersion::V_2025_11_25)
             .with_server_info(Implementation::new("nofy-agent-mcp",env!("CARGO_PKG_VERSION")))
-            .with_instructions("Use nofy_describe and nofy_schema before editing. Targets are managed projects with explicit revision CAS, or explicit source collections. Native DTO JSON remains in native_json; refs preserve exact identities. Credentials are provisioned through the private CLI. MCP request cancellation only stops waiting; inspect original business IDs before retrying. Source archives are read in explicit offset/eof chunks.")
+            .with_instructions("Start with nofy_describe, then nofy_schema(operation/factory/preset/package). Returned guides explain public parameters, dependency ports, valid slots, execution prerequisites, ordered calls, NativeJson body encoding and recovery. Framework source is not needed. Resolve guide placeholders before calls; do not send $input/$result as runtime values. Use agent.configure for preset settings. Targets are managed projects with exact revision CAS or explicit Source collections with digest CAS. Factory presence does not prove an environment is ready. Verify actual execution and tool effects. Credentials are provisioned through the private CLI. MCP cancellation only stops waiting; inspect original business IDs before retrying.")
     }
     async fn initialize(
         &self,
@@ -97,10 +97,16 @@ impl ServerHandler for NofyServer {
                 .cloned()
                 .ok_or_else(|| McpError::internal_error("tool output Schema missing", None))?;
             let read_only = readonly(&operation.operation);
+            let summary = CATALOG["operations"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|o| o["operation"] == operation.operation)
+                .and_then(|o| o["summary"].as_str())
+                .unwrap_or_else(|| description(&operation.operation));
             let description = format!(
-                "{}。操作 {}。先用 nofy_schema 查询工厂配置或操作契约；结果 status 与业务执行状态分别读取，原生 DTO 在 data.native_json，控制标识在 refs。",
-                description(&operation.operation),
-                operation.operation
+                "{} 操作 {}。先用 nofy_schema 查询契约及装配指南；guide 给出依赖、插槽、前提、示例、下一步和恢复办法。结果 status 与业务执行状态分别读取，原生 DTO 在 data.native_json，精确控制标识在 refs。",
+                summary, operation.operation
             );
             tools.push(
                 Tool::new_with_raw(
@@ -378,6 +384,11 @@ fn readonly(op: &str) -> bool {
             | "agent.plan"
             | "agent.module.list"
             | "agent.module.inspect"
+            | "repository.list"
+            | "repository.inspect"
+            | "module.list"
+            | "module.inspect"
+            | "module.export"
             | "draft.get"
             | "system.validate"
             | "system.plan"
@@ -421,6 +432,16 @@ fn description(op: &str) -> &'static str {
         "agent.module.bind" => "连接模块的有名依赖槽",
         "agent.module.detach" => "从 Agent 指定插槽解除引用",
         "agent.module.remove" => "移除没有使用者的模块；仍被引用时返回冲突",
+        "repository.add" => "登记托管、Host 目录或 Git 模块来源；外部来源另需资源权限",
+        "repository.sync" => "显式取得目录或固定 Git 快照，原子登记不可变模块版本",
+        "repository.remove" => "解除来源注册，保留已发布源码以恢复现有引用",
+        "module.publish" => "上传可复用源码包；相同版本不能替换成不同源码",
+        "module.export" => "导出指定不可变模块包的全部源码与普通依赖清单",
+        "agent.module.use" => "以别名引用仓库中的固定模块版本，提供参数和端口接线并可挂载导出",
+        "agent.module.unuse" => "移除没有使用者的声明导入；先解除插槽和依赖引用",
+        _ if op.starts_with("repository.") || op.starts_with("module.") => {
+            "查询模块仓库及不可变源码版本"
+        }
         "agent.apply" => "构建、发布并按原 generation 激活；返回已完成阶段和原始回执",
         "session.start" => "按声明的 SessionPolicy 原子创建会话与首根运行",
         "session.turn" => "按原会话和运行版本接纳后继轮次，复用预算与恢复身份",

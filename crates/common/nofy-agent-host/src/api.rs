@@ -18,15 +18,19 @@ use serde_json::{Value, json};
 mod budgets;
 mod cache;
 mod credentials;
+mod development;
 mod loader;
 mod memory;
+mod permissions;
 mod projects;
 mod prompts;
 mod references;
+mod repositories;
 mod runs;
 mod runtime_history;
 mod sessions;
 mod sources;
+mod terminal;
 mod unload;
 
 impl IntoResponse for HostError {
@@ -123,6 +127,7 @@ pub(crate) fn router(host: KernelHost) -> Router {
         .route("/api/v1/systems/{name}/history", get(history))
         .route("/api/v1/systems/{name}/active", get(active))
         .merge(runs::router())
+        .merge(repositories::router())
         .merge(runtime_history::router())
         .merge(prompts::router())
         .merge(projects::router())
@@ -131,6 +136,8 @@ pub(crate) fn router(host: KernelHost) -> Router {
         .merge(cache::router())
         .merge(references::router())
         .merge(sessions::router())
+        .merge(terminal::router())
+        .merge(permissions::router())
         .merge(sources::router())
         .merge(unload::router())
         .merge(credentials::router())
@@ -173,7 +180,7 @@ async fn catalog(
 async fn modules(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
     Ok(Json(
-        json!({"protocol":"nofy.runtime/v1","factories":host.registry.descriptors()}),
+        json!({"protocol":"nofy.runtime/v1","factories":host.registry.descriptors(),"development":development::capabilities(&host)}),
     ))
 }
 async fn programs(

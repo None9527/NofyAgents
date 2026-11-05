@@ -448,8 +448,11 @@ impl ModuleRegistry {
                 .any(|key| !dependency_kinds.contains_key(key))
         {
             return Err(Error::Composition(format!(
-                "module {} dependency names do not match factory",
-                reference.key()
+                "module {} dependency names do not match factory {}; expected {:?}, received {:?}",
+                reference.key(),
+                definition.factory,
+                dependency_kinds.keys().collect::<Vec<_>>(),
+                definition.dependencies.keys().collect::<Vec<_>>()
             )));
         }
         marks.insert(reference.clone(), false);

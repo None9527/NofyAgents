@@ -1,6 +1,6 @@
 # 开发协议与数据字典
 
-版本：`nofy.kernel/v1`，契约 `0.3`。CLI、MCP、源码工程与 Session 控制接同一内核。构建和实例能力见[总入口](README.md)，实际检查见[实现记录](../verification/agent-development-cli-mcp.md)。
+版本：`nofy.kernel/v1`，契约 `0.6`。CLI、MCP、源码工程与 Session 控制接同一内核。构建和实例能力见[总入口](README.md)，实际检查见[实现记录](../verification/agent-development-cli-mcp.md)。
 
 ## 数据对象与生命周期
 
@@ -64,7 +64,7 @@ flowchart LR
 
 `SessionState`、`SessionCommandReceipt` 及专用 Result 定义了模块化视图，原生响应与客户端共用这些字段。命令回执按原 ID 查询，prepared/applied/rejected 与运行结果区分。route/plan 不写入运行、版本或队列；close/reopen/archive/unarchive/reconfigure 在明确静止边界按 CAS 提交。reconfigure 保留预算/历史身份，后继种子冻结所选策略；详细前提见专册。
 
-会话 HTTP 路径均记为 native_routes；GET /api/v1/sessions/capabilities 报告 session-policy ABI、声明版本、17 项操作和输入/输出 Schema。客户端调用会话操作时核对协议，不使用旧线格式后备。
+会话 HTTP 路径均记为 native_routes；GET /api/v1/sessions/capabilities 报告 session-policy ABI、声明版本、20 项操作和输入/输出 Schema。客户端调用会话操作时核对协议，不使用旧线格式后备。
 
 受支持旧状态使用明确版本解码和显式迁移回执；保留原不可变提交/预算证据，进入同一内部执行模型。更换策略是新版本提交，存储位置变化是原 runtime-history 迁移；不通过删除会话元数据撤销预算使用。
 
@@ -148,6 +148,8 @@ MCP JSON-RPC id 不是业务幂等键。发送写请求前 CLI/Server 固定并�
 
 NativeJson 入参只负责无损传输；解析后仍按原生 DTO 和权限进行校验，不代表允许任意字段。工厂的实际配置与派生依赖由 schema 操作返回；NativeJson 内部 DTO 的出处见上表及各操作手册，不将任意 JSON 字段当成已获支持。
 
+原生 DTO 对应请求选中的 endpoint/view。run.inspect 默认传 view=status，原生响应标识为 nofy.run-status/v1，并显式标记输出预览的 bytes/truncated；view=full 才返回原完整运行视图。HTTP GET /api/v1/runs/{id} 未指定 view 时返回完整视图，?view=status 返回状态视图。状态查询在数据库投影状态和受限文本，不反复反序列化实现快照。agent.apply 默认仅保留 publication 身份/读取指令；完整发布 DTO 按 include_publication:true 显式读取。
+
 ## 实施与验收要求
 
 完整功能块交付实现、接线、说明和案例后集中验证：
@@ -195,3 +197,7 @@ prepare.json 的 parameters 对象将参数名映射到以下表达式；`$param
 set/config/config_json 是用户数据，不递归解释模板关键字。只在声明模板表达式位置解释这些节点。CLI 编辑生成 configure/literal 节点并维护源码清单，不调用 prepare.py、build.py 或任何项目脚本。
 
 打包与构建分开：包收齐模板引用的文件并保留原字节，不检查模块脚本、模块 JSON 或运行参数文件是否可执行/可解析。工程头和源码清单用于定位与收集文件；真正的 `$file` UTF-8、`$json` 解析与工厂配置检查在构建/校验时进行。读取未编辑的只读模板不创建锁侧文件。
+
+模块仓库操作及 `agent.module.use/unuse` 见[模块仓库手册](repositories.md)。声明保存固定版本引用，导出收齐源码；运行依赖由用户提供。
+
+审批与恢复的原生 JSON 示例：先用 run.approvals 读取完整 request，再向 run.decide 的 decision_json 序列化 `{ "request": <原请求对象>, "allow": true, "scope": "once" }`。恢复使用 run.control 的 action_json：`{ "run_id": "原根运行", "command_id": "唯一命令", "command": { "kind": "resume" } }`，kind 位于 command 内。用 action.inspect(command_id) 查询命令结果。schema(operation=run.control) 另给 Human 请求的完整字段与示例，不需要读取 Rust DTO。

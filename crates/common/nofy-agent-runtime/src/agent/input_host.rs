@@ -155,12 +155,35 @@ impl AgentHost<'_> {
             }
             pending
         } else {
-            let delivery = match binding.0.claim(&address, InputKind::Interject).await? {
+            let modes = &self.agent.spec.settings.input_delivery;
+            let steering = if modes.steering == crate::settings::DeliveryMode::OneAtATime
+                && self.state.input_progress.steering_sequence == Some(self.state.model_sequence)
+            {
+                None
+            } else {
+                binding.0.claim(&address, InputKind::Interject).await?
+            };
+            let follow_up_ready = self.state.complete
+                || (modes.follow_up == crate::settings::DeliveryMode::All
+                    && self.state.input_progress.follow_up_sequence
+                        == Some(self.state.model_sequence));
+            let delivery = match steering {
                 Some(delivery) => delivery,
-                None => match binding.0.claim(&address, InputKind::Tool).await? {
-                    Some(delivery) => delivery,
-                    None => return Ok(None),
-                },
+                None => {
+                    let follow_up = if follow_up_ready {
+                        binding.0.claim(&address, InputKind::FollowUp).await?
+                    } else {
+                        None
+                    };
+                    let next = match follow_up {
+                        Some(delivery) => Some(delivery),
+                        None => binding.0.claim(&address, InputKind::Tool).await?,
+                    };
+                    match next {
+                        Some(delivery) => delivery,
+                        None => return Ok(None),
+                    }
+                }
             };
             delivery.validate()?;
             self.state.input_progress.backend = Some(identity);
@@ -193,7 +216,9 @@ impl AgentHost<'_> {
             self.commit().await?;
             return Ok(Some(Step::Continue));
         }
-        let MailInput::Interject { message: input } = &delivery.envelope.input else {
+        let (MailInput::Interject { message: input } | MailInput::FollowUp { message: input }) =
+            &delivery.envelope.input
+        else {
             return Err(Error::Checkpoint(
                 "mailbox interjection claim has a different kind".into(),
             ));
@@ -261,6 +286,15 @@ impl AgentHost<'_> {
             .input_progress
             .delivered
             .insert(delivery.sequence, delivery.digest.clone());
+        match delivery.envelope.input.kind() {
+            InputKind::Interject => {
+                self.state.input_progress.steering_sequence = Some(self.state.model_sequence)
+            }
+            InputKind::FollowUp => {
+                self.state.input_progress.follow_up_sequence = Some(self.state.model_sequence)
+            }
+            _ => {}
+        }
         self.state.input_progress.pending = None;
         self.state.input_progress.unacknowledged = Some(InputAcknowledgment {
             delivery,

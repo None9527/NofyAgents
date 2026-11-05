@@ -845,3 +845,42 @@ async fn executor_hook_without_durable_budget_receipts_never_replays_an_unknown_
         assert_eq!(server.calls.load(Ordering::SeqCst), 1);
     }
 }
+
+#[tokio::test]
+async fn failed_process_keeps_bounded_stderr_exit_status_and_redacts_environment_secrets() {
+    let root = tempfile::tempdir().unwrap();
+    let secret = format!(
+        "diagnostic-secret-{}",
+        root.path().file_name().unwrap().to_string_lossy()
+    );
+    let environment = ProcessEnvironment::install(
+        root.path(),
+        BTreeMap::from([(
+            "python".into(),
+            InstalledProgram::load(Path::new("/usr/bin/python3"), Some("-c".into())).unwrap(),
+        )]),
+        BTreeMap::from([("API_TOKEN".into(), secret.clone())]),
+        Arc::new(TestGuard(Arc::new(AtomicUsize::new(0)))),
+    )
+    .unwrap();
+    let factory = ProcessToolFactory::new("diagnostics", environment).unwrap();
+    let script = "import os,sys;sys.stderr.buffer.write(('launch failure '+os.environ['API_TOKEN']+'\\n').encode()+b'X'*90000+b'\\xff');sys.stderr.flush();sys.exit(125)";
+    let mut config = process_config(script);
+    config["contract"]["max_input_bytes"] = json!(1048576);
+    let error = call(
+        &build(&factory, config),
+        json!({"large":"input".repeat(50000)}),
+        Default::default(),
+    )
+    .await
+    .unwrap_err();
+    let details = error.details.unwrap();
+    assert_eq!(details["code"], "process_exit");
+    assert_eq!(details["exit_code"], 125);
+    let stderr = details["stderr"].as_str().unwrap();
+    assert!(stderr.contains("launch failure"));
+    assert!(stderr.contains("[redacted]"));
+    assert!(!stderr.contains(&secret));
+    assert!(stderr.len() < 9000);
+    assert_eq!(details["stderr_truncated"], true);
+}

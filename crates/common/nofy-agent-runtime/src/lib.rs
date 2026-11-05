@@ -40,6 +40,7 @@ mod schema;
 pub mod session_policy;
 pub mod settings;
 pub mod system;
+pub mod tasks;
 pub use identity::IdentityScheme;
 pub mod state;
 #[cfg(feature = "sqlite")]

@@ -140,7 +140,7 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     for (key, schema) in &props {
         if matches!(
             key.as_str(),
-            "target" | "source" | "sources" | "source_bindings" | "set" | "config"
+            "target" | "source" | "sources" | "source_bindings" | "set" | "config" | "settings"
         ) {
             continue;
         }
@@ -180,6 +180,9 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     } else {
         match op {
             "draft.get" | "draft.put" | "draft.delete" => Some("name"),
+            "repository.add" | "repository.inspect" | "repository.sync" | "repository.remove"
+            | "module.publish" | "module.list" => Some("repository"),
+            "module.inspect" | "module.export" => Some("name"),
             "system.plan" | "system.apply" | "system.active" | "system.history"
             | "system.rollback" => Some("system"),
             "system.export" | "system.programs" => Some("release"),
@@ -215,7 +218,8 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
         };
         assign(&mut value, key, json!(second))?;
     }
-    let module_edit = op.starts_with("agent.module.") || op == "agent.tool.add";
+    let module_edit =
+        op.starts_with("agent.module.") || op == "agent.tool.add" || op == "agent.configure";
     if module_edit {
         if let Some(path) = option(m, "from") {
             assign(&mut value, "native_module_json", json!(read(&path)?))?;
@@ -248,7 +252,18 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             }
         }
         if !sets.is_empty() {
-            assign(&mut value, "set", Value::Object(sets))?;
+            if op == "agent.module.use" {
+                let mut parameters = value
+                    .get("parameters")
+                    .cloned()
+                    .unwrap_or_else(|| json!({}));
+                for (pointer, entry) in sets {
+                    nofy_agent_project::pointer_set(&mut parameters, &pointer, entry)?;
+                }
+                value["parameters"] = parameters;
+            } else {
+                assign(&mut value, "set", Value::Object(sets))?;
+            }
         }
         let mut deps = serde_json::Map::new();
         if let Some(items) = m.try_get_many::<String>("bind").ok().flatten() {
@@ -262,7 +277,15 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             }
         }
         if !deps.is_empty() {
-            assign(&mut value, "dependencies", Value::Object(deps))?;
+            assign(
+                &mut value,
+                if op == "agent.module.use" {
+                    "bindings"
+                } else {
+                    "dependencies"
+                },
+                Value::Object(deps),
+            )?;
         }
         let mut sources = serde_json::Map::new();
         let mut bindings = serde_json::Map::new();
@@ -323,6 +346,63 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             value["slot"] = json!("tools");
         }
     }
+    if op == "agent.configure" {
+        if let Some(path) = option(m, "settings") {
+            assign(&mut value, "settings", serde_json::from_str(&read(&path)?)?)?;
+            stdin |= path == "-";
+        }
+    }
+    if op == "repository.add" {
+        let directory = option(m, "host-directory");
+        let git = option(m, "git-url");
+        if directory.is_some() && git.is_some() {
+            return Err(Error::new("local_input", "choose one repository origin"));
+        }
+        if let Some(host_path) = directory {
+            assign(
+                &mut value,
+                "origin",
+                json!({"kind":"directory","host_path":host_path}),
+            )?;
+        } else if let Some(url) = git {
+            assign(
+                &mut value,
+                "origin",
+                json!({"kind":"git","url":url,"reference":option(m,"git-ref").unwrap_or_else(||"HEAD".into()),"subdirectory":option(m,"subdirectory").unwrap_or_default()}),
+            )?;
+        } else if option(m, "git-ref").is_some() || option(m, "subdirectory").is_some() {
+            return Err(Error::new("local_input", "Git flags require --git-url"));
+        }
+        if value.get("origin").is_none() {
+            value["origin"] = json!({"kind":"managed"});
+        }
+        if value.get("expected_revision").is_none() {
+            value["expected_revision"] = Value::Null;
+        }
+    }
+    if op == "module.publish" {
+        if let Some(path) = option(m, "directory") {
+            let source = nofy_agent_project::repository::load_package_directory(&absolute(
+                PathBuf::from(path),
+            )?)?;
+            assign(&mut value, "source", serde_json::to_value(source)?)?;
+        }
+    }
+    if matches!(
+        op,
+        "repository.sync" | "repository.remove" | "module.publish"
+    ) && value.get("expected_revision").is_none()
+    {
+        let repository = value["repository"]
+            .as_str()
+            .ok_or_else(|| Error::new("local_input", "repository is required"))?;
+        value["expected_revision"] = engine
+            .client
+            .get(&["api", "v1", "module-repositories", repository])
+            .await?
+            .value()?["revision"]
+            .clone();
+    }
     let mut local = None;
     let local_create = project
         .as_ref()
@@ -344,7 +424,7 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
         } else {
             let mut source = nofy_agent_project::load_directory(&path)?;
             let before = source.digest()?;
-            if let Some(settings) = option(m, "settings") {
+            if let Some(settings) = option(m, "settings").filter(|_| op != "agent.configure") {
                 source.settings_json = Some(read(&settings)?);
                 stdin |= settings == "-";
             }
@@ -482,11 +562,14 @@ pub fn is_edit(op: &str) -> bool {
     matches!(
         op,
         "agent.create"
+            | "agent.configure"
             | "agent.module.add"
             | "agent.tool.add"
             | "agent.module.set"
             | "agent.module.bind"
             | "agent.module.detach"
             | "agent.module.remove"
+            | "agent.module.use"
+            | "agent.module.unuse"
     )
 }

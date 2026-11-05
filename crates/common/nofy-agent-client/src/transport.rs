@@ -152,18 +152,34 @@ impl KernelClient {
         })?;
         if !status.is_success() {
             let value: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
+            let missing = (status.as_u16() == 422)
+                .then(|| missing_native_field(&body))
+                .flatten();
+            let mut details = json!({"origin":"kernel","http_status":status.as_u16()});
+            if let Some(field) = missing {
+                details["missing_field"] = json!(field);
+            }
             return Err(Error {
                 code: value
                     .pointer("/error/code")
                     .and_then(Value::as_str)
-                    .unwrap_or("http_error")
+                    .unwrap_or(if missing.is_some() {
+                        "invalid"
+                    } else {
+                        "http_error"
+                    })
                     .into(),
                 message: value
                     .pointer("/error/message")
                     .and_then(Value::as_str)
-                    .unwrap_or("kernel rejected request")
-                    .into(),
-                details: json!({"origin":"kernel","http_status":status.as_u16()}),
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| match missing {
+                        Some(field) => {
+                            format!("kernel JSON request is missing required field: {field}")
+                        }
+                        None => "kernel rejected request".into(),
+                    }),
+                details,
                 unconfirmed: false,
                 refs: Default::default(),
             });
@@ -186,4 +202,32 @@ impl KernelClient {
     pub async fn factories(&self) -> Result<Value> {
         self.get(&["api", "v1", "modules"]).await?.value()
     }
+}
+
+// Axum's non-JSON extractor rejection may include user values. Expose only a
+// recognized DTO field, never the response body or arbitrary parser text.
+fn missing_native_field(body: &str) -> Option<&str> {
+    let rest = body.strip_prefix(
+        "Failed to deserialize the JSON body into the target type: missing field `",
+    )?;
+    let (field, _) = rest.split_once('`')?;
+    [
+        "command",
+        "request",
+        "run_id",
+        "thread_id",
+        "command_id",
+        "kind",
+        "system",
+        "release",
+        "program",
+        "target_run_id",
+        "expected_request",
+        "workflow_path",
+        "value",
+        "scope",
+        "allow",
+    ]
+    .contains(&field)
+    .then_some(field)
 }

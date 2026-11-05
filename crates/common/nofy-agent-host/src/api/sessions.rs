@@ -8,8 +8,10 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/sessions", post(create).get(list))
         .route("/api/v1/sessions/capabilities", get(capabilities))
         .route("/api/v1/sessions/start", post(start))
+        .route("/api/v1/sessions/fork", post(fork))
         .route("/api/v1/sessions/route", post(route))
         .route("/api/v1/sessions/{id}", get(inspect))
+        .route("/api/v1/sessions/{id}/tree", get(tree))
         .route("/api/v1/sessions/{id}/turns", get(turns).post(submit_turn))
         .route("/api/v1/sessions/{id}/turns/{run}", get(turn_binding))
         .route("/api/v1/sessions/{id}/policy", get(policy))
@@ -93,6 +95,35 @@ async fn start(
     let receipt = host.supervisor.start_session(request, &compiled).await?;
     host.wake.notify_one();
     Ok(Json(receipt))
+}
+async fn fork(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Json(request): Json<SessionFork>,
+) -> Result<Json<SessionReceipt>> {
+    host.auth.require(&headers, Scope::Execute)?;
+    if let Some(receipt) = host.supervisor.replay_session_fork(&request).await? {
+        return Ok(Json(receipt));
+    }
+    let root: ManagedRunRequest = serde_json::from_str(&request.start.request_json)
+        .map_err(|e| HostError::Invalid(e.to_string()))?;
+    let compiled = system(&host, &root.release).await?;
+    let _memory = host
+        .loader
+        .memory_provider
+        .admit_program(compiled.program(&root.program)?)
+        .await?;
+    let receipt = host.supervisor.fork_session(request, &compiled).await?;
+    host.wake.notify_one();
+    Ok(Json(receipt))
+}
+async fn tree(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>> {
+    host.auth.require(&headers, Scope::Read)?;
+    Ok(Json(host.store.session_tree(&id).await?))
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -268,6 +299,6 @@ async fn capabilities(State(host): State<KernelHost>, headers: HeaderMap) -> Res
         "agent_schema_versions":[1,2],"policy_update_boundary":"between_quiescent_turns",
         "policy_input_schema":nofy_agent_runtime::session_policy::input_schema(),
         "policy_output_schema":nofy_agent_runtime::session_policy::proposal_schema(),
-        "operations":["start","create","list","inspect","turn","turns","binding","route","policy","plan","metadata","close","reopen","archive","unarchive","reconfigure","command"]}),
+        "operations":["start","create","fork","rewind","tree","list","inspect","turn","turns","binding","route","policy","plan","metadata","close","reopen","archive","unarchive","reconfigure","command"]}),
     ))
 }

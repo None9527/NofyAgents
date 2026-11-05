@@ -20,6 +20,8 @@ pub(super) struct Prepared {
     policy: Option<policy::Frozen>,
     input: policy::Input,
     proposal: Option<policy::Proposal>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    branch: Option<super::super::branches::BranchSeed>,
 }
 fn start_hash(command: &SessionStart) -> Result<(serde_json::Value, String), Error> {
     bounded_name(&command.session_id)?;
@@ -29,7 +31,35 @@ fn start_hash(command: &SessionStart) -> Result<(serde_json::Value, String), Err
     let hash = content_digest(&("session.start", &value))?;
     Ok((value, hash))
 }
+fn branch_identity(
+    command: &SessionStart,
+    branch: Option<&super::super::branches::ForkSource>,
+) -> Result<(serde_json::Value, String), Error> {
+    let (body, hash) = start_hash(command)?;
+    if let Some(branch) = branch {
+        let operation = if branch.through_message.is_some() {
+            "session.rewind"
+        } else {
+            "session.fork"
+        };
+        let body = serde_json::json!({"start":body,"source":branch});
+        let hash = content_digest(&(operation, &body))?;
+        Ok((body, hash))
+    } else {
+        Ok((body, hash))
+    }
+}
 impl RunSupervisor {
+    pub async fn replay_session_fork(
+        &self,
+        command: &super::super::branches::SessionFork,
+    ) -> Result<Option<SessionReceipt>, Error> {
+        let (_, hash) = branch_identity(&command.start, Some(&command.source))?;
+        let id = command.start.command_id.clone();
+        self.store
+            .transaction(move |tx| Ok(previous(tx, &id, &hash)?.filter(|r| r.phase != "prepared")))
+            .await
+    }
     pub async fn replay_session_start(
         &self,
         command: &SessionStart,
@@ -45,8 +75,24 @@ impl RunSupervisor {
         command: SessionStart,
         system: &CompiledSystem,
     ) -> Result<SessionReceipt, Error> {
-        let (body, hash) = start_hash(&command)?;
-        if let Some(old) = self.replay_session_start(&command).await? {
+        self.start_session_branch(command, system, None).await
+    }
+    pub(in crate::supervisor::jobs::managed::sessions) async fn start_session_branch(
+        &self,
+        command: SessionStart,
+        system: &CompiledSystem,
+        branch: Option<super::super::branches::ForkSource>,
+    ) -> Result<SessionReceipt, Error> {
+        let (body, hash) = branch_identity(&command, branch.as_ref())?;
+        let id = command.command_id.clone();
+        let original_hash = hash.clone();
+        let old = self
+            .store
+            .transaction(move |tx| {
+                Ok(previous(tx, &id, &original_hash)?.filter(|r| r.phase != "prepared"))
+            })
+            .await?;
+        if let Some(old) = old {
             return Ok(old);
         }
         let request: ManagedRunRequest = serde_json::from_str(&command.request_json)
@@ -74,7 +120,20 @@ impl RunSupervisor {
         .stored();
         let snapshot = policy::agent_snapshot(&submission.snapshot)
             .ok_or_else(|| Error::Composition("session start requires an Agent program".into()))?;
-        let frozen = policy::Frozen::from_snapshot(snapshot, &request.release)?;
+        let branch = if let Some(branch) = branch {
+            Some(super::super::branches::prepare(&self.store, branch, &submission, &request).await?)
+        } else {
+            None
+        };
+        if let Some(seed) = &branch {
+            // Protocol validation is pure and runs outside the SQLite transaction.
+            program.agent.validate_live_history(&seed.messages).await?;
+        }
+        let frozen = if let Some(branch) = &branch {
+            branch.policy.clone()
+        } else {
+            policy::Frozen::from_snapshot(snapshot, &request.release)?
+        };
         let input = make_input(
             policy::Phase::Create,
             None,
@@ -88,7 +147,17 @@ impl RunSupervisor {
             receipt: SessionReceipt {
                 session_id: command.session_id.clone(),
                 command_id: command.command_id.clone(),
-                operation: "session.start".into(),
+                operation: if branch
+                    .as_ref()
+                    .is_some_and(|b| b.source.through_message.is_some())
+                {
+                    "session.rewind"
+                } else if branch.is_some() {
+                    "session.fork"
+                } else {
+                    "session.start"
+                }
+                .into(),
                 request_digest: hash.clone(),
                 phase: "prepared".into(),
                 session_revision: None,
@@ -104,6 +173,7 @@ impl RunSupervisor {
                 policy: frozen,
                 input,
                 proposal: None,
+                branch,
             }),
         };
         let id = command.command_id.clone();
@@ -206,6 +276,7 @@ impl RunSupervisor {
             if read(tx,&op.receipt.session_id)?.is_some()||load(tx,&p.request.run_id)?.is_some(){return Err(Error::Checkpoint("session or first root already exists; use explicit enrollment".into()));}
             let count:u64=tx.query_row("SELECT COUNT(*) FROM agent_runtime_managed_runs",[],|r|r.get(0)).map_err(db_error)?;
             if count>=10000{return Err(Error::Checkpoint("managed run capacity exceeded".into()));}
+            if let Some(branch)=&p.branch {super::super::branches::install(tx,branch,&op.receipt.session_id,&id,&p.request,now)?;}
             insert(tx,Saved{submission:p.submission,source:None},now)?;
             tx.execute("INSERT INTO agent_runtime_managed_runs(run_id,digest,payload) VALUES(?1,?2,?3)",params![p.request.run_id,request_digest(&p.request)?,serde_json::to_string(&p.request).map_err(db_error)?]).map_err(db_error)?;
             let b=enroll(tx,SessionRequest{id:op.receipt.session_id.clone(),root_run_id:p.request.run_id},&check,now)?;
