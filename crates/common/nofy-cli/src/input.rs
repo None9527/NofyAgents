@@ -1,4 +1,5 @@
 use crate::command::properties;
+use crate::positional;
 use clap::ArgMatches;
 use nofy_agent_client::{Engine, Error, Result, SCHEMAS, operation};
 use nofy_agent_project::File;
@@ -102,12 +103,29 @@ fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
         return Ok(Value::Null);
     }
     match schema.get("type").and_then(Value::as_str) {
-        Some("object" | "array" | "integer" | "number" | "boolean") => Ok(serde_json::from_str(s)?),
+        Some(kind @ ("object" | "array" | "integer" | "number" | "boolean")) => typed(key, kind, s),
         _ if schema.get("oneOf").is_some() || schema.get("allOf").is_some() => {
-            Ok(serde_json::from_str(s)?)
+            typed(key, "value", s)
         }
         _ => Ok(json!(s)),
     }
+}
+/// Parse a flag whose value is not plain text, and say which flag and what it
+/// expects when the text is not valid. The text itself is not echoed.
+fn typed(key: &str, kind: &str, text: &str) -> Result<Value> {
+    serde_json::from_str(text).map_err(|_| {
+        let flag = format!("--{}", key.replace('_', "-"));
+        let wanted = match kind {
+            "integer" => "an integer".to_owned(),
+            "number" => "a number".to_owned(),
+            "boolean" => "true or false".to_owned(),
+            "object" | "array" => format!("a JSON {kind}"),
+            _ => "JSON".to_owned(),
+        };
+        let mut error = Error::new("local_input", format!("{flag}: expected {wanted}"));
+        error.details = json!({"origin": "adapter", "flag": flag, "expected": kind});
+        error
+    })
 }
 pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input> {
     let descriptor = operation(op)?;
@@ -164,58 +182,36 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     let first = option(m, "arg1");
     let second = option(m, "arg2");
     let mut project = option(m, "project");
-    let positional = if op.starts_with("project.") {
-        if let Some(first) = first.clone()
-            && project.replace(first).is_some()
-        {
-            return Err(Error::new(
-                "local_input",
-                "project path provided more than once",
-            ));
-        }
-        None
-    } else if op.starts_with("agent.") && op != "agent.list" {
-        Some("agent")
-    } else {
-        match op {
-            "draft.get" | "draft.put" | "draft.delete" => Some("name"),
-            "repository.add" | "repository.inspect" | "repository.sync" | "repository.remove"
-            | "module.publish" | "module.list" => Some("repository"),
-            "module.inspect" | "module.export" => Some("name"),
-            "system.plan" | "system.apply" | "system.active" | "system.history"
-            | "system.rollback" => Some("system"),
-            "system.export" | "system.programs" => Some("release"),
-            "action.inspect" => Some("command_id"),
-            "run.inspect" | "run.events" | "run.approvals" | "run.decide" | "run.cancel"
-            | "run.input" | "run.recovery" => Some("run_id"),
-            op if op.starts_with("session.") && !matches!(op, "session.list" | "session.route") => {
-                Some("session_id")
+    match (first, positional::first(op)) {
+        (None, _) => {}
+        (Some(path), Some(positional::First::Project)) => {
+            if project.replace(path).is_some() {
+                return Err(Error::new(
+                    "local_input",
+                    "project path provided more than once",
+                ));
             }
-            op if op.starts_with("credential.") && op != "credential.list" => Some("reference"),
-            _ => None,
         }
-    };
-    if !op.starts_with("project.")
-        && let Some(first) = first
-    {
-        let key = positional
-            .ok_or_else(|| Error::new("local_input", "unexpected positional argument"))?;
-        assign(&mut value, key, json!(first))?;
-    }
-    if let Some(second) = second {
-        let key = if op == "session.binding" {
-            "run_id"
-        } else if op == "session.command" {
-            "command_id"
-        } else if props.contains_key("module") {
-            "module"
-        } else {
+        (Some(text), Some(positional::First::Field(key))) => {
+            assign(&mut value, key, json!(text))?;
+        }
+        (Some(_), None) => {
             return Err(Error::new(
                 "local_input",
-                "unexpected second positional argument",
+                format!(
+                    "{op} takes no positional argument; give its fields as --flags or with --input"
+                ),
             ));
-        };
-        assign(&mut value, key, json!(second))?;
+        }
+    }
+    if let Some(text) = second {
+        let key = positional::second(op, props.contains_key("module")).ok_or_else(|| {
+            Error::new(
+                "local_input",
+                format!("{op} takes at most one positional argument"),
+            )
+        })?;
+        assign(&mut value, key, json!(text))?;
     }
     let module_edit =
         op.starts_with("agent.module.") || op == "agent.tool.add" || op == "agent.configure";
