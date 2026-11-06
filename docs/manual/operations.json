@@ -82,7 +82,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Return the complete source set of an empty project or of a versioned preset."
     },
     {
       "operation": "project.inspect",
@@ -95,7 +95,7 @@
       "scope_hint": [],
       "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Inspect a source project and list the models and prompts it leaves unbound."
     },
     {
       "operation": "project.build",
@@ -108,7 +108,7 @@
       "scope_hint": [],
       "authority": "kernel authorizes domain actions; local/source transforms obey explicit target boundaries",
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Render the deployment declaration of a source project as pure data, without running project scripts."
     },
     {
       "operation": "project.pack",
@@ -127,7 +127,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Register an archive holding only the sources and the ordinary dependency manifest; returns its digest and chunked-read URI."
     },
     {
       "operation": "agent.create",
@@ -173,7 +173,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "List the managed Agent projects, one cursor page at a time."
     },
     {
       "operation": "agent.inspect",
@@ -194,7 +194,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Read one Agent's declaration and the modules attached to its slots."
     },
     {
       "operation": "agent.export",
@@ -215,7 +215,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Export one Agent project's complete source set for packing."
     },
     {
       "operation": "agent.build",
@@ -299,7 +299,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "List the modules declared in an Agent and the slots they occupy."
     },
     {
       "operation": "agent.module.inspect",
@@ -320,7 +320,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Read one module of an Agent: its configuration, dependency bindings and slot references."
     },
     {
       "operation": "agent.module.add",
@@ -370,7 +370,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Change a module's configuration by JSON Pointer, or bind module source files explicitly."
     },
     {
       "operation": "agent.module.bind",
@@ -395,7 +395,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Connect a module's named dependency slots to other modules."
     },
     {
       "operation": "agent.module.detach",
@@ -420,7 +420,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Remove a module's reference from one slot of an Agent."
     },
     {
       "operation": "agent.module.remove",
@@ -445,7 +445,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Remove a module that nothing uses; returns a conflict while it is still referenced."
     },
     {
       "operation": "agent.tool.add",
@@ -471,7 +471,7 @@
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs."
+      "summary": "Add a tool module to an Agent from a factory configuration, a native module or a published closure, wiring its dependencies."
     },
     {
       "operation": "draft.get",
@@ -493,7 +493,7 @@
       ],
       "notes": "Select the named existing draft from catalog; no native GET drafts/{name} route is invented.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read a native deployment draft by name."
     },
     {
       "operation": "draft.put",
@@ -514,7 +514,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Save a native deployment draft under a name, guarded by the expected revision."
     },
     {
       "operation": "draft.delete",
@@ -535,7 +535,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Delete a native deployment draft at the given revision."
     },
     {
       "operation": "system.validate",
@@ -556,7 +556,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Validate a complete deployment document without publishing it."
     },
     {
       "operation": "system.publish",
@@ -581,7 +581,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Validate and publish a complete deployment, or a named draft at a given revision."
     },
     {
       "operation": "system.plan",
@@ -602,7 +602,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Plan the activation of a published release of a system without applying it."
     },
     {
       "operation": "system.apply",
@@ -623,7 +623,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Activate a published release of a system at the expected generation, under a fixed command_id."
     },
     {
       "operation": "system.active",
@@ -644,7 +644,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read the release and generation currently active for a system."
     },
     {
       "operation": "system.history",
@@ -665,7 +665,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List the activation history recorded for a system."
     },
     {
       "operation": "system.export",
@@ -686,7 +686,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Export the complete deployment declaration of a published release."
     },
     {
       "operation": "system.rollback",
@@ -712,7 +712,7 @@
       ],
       "notes": "Composite plan/apply toward an older release; creates a new generation, without undoing business effects.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Roll a system back by activating a chosen earlier release at the expected generation, under a fixed command_id."
     },
     {
       "operation": "system.programs",
@@ -733,7 +733,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List the programs declared by a published release."
     },
     {
       "operation": "run.start",
@@ -775,7 +775,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List durable runs, one cursor page at a time."
     },
     {
       "operation": "run.inspect",
@@ -817,7 +817,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read a run's events from a cursor, optionally waiting briefly; it never cancels the run."
     },
     {
       "operation": "run.approvals",
@@ -838,7 +838,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List the approval requests recorded for a run."
     },
     {
       "operation": "run.decide",
@@ -859,7 +859,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Record an approval decision for a paused run. It does not resume the run; send a resume control afterwards."
     },
     {
       "operation": "run.cancel",
@@ -880,7 +880,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Request cancellation of a run under an explicit business command_id."
     },
     {
       "operation": "run.input",
@@ -922,7 +922,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Submit a native control command: park, resume, update, or reconcile an uncertain effect."
     },
     {
       "operation": "run.recovery",
@@ -963,7 +963,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read what recovering a run requires: its recovery state, or the root-level recovery target."
     },
     {
       "operation": "action.inspect",
@@ -984,7 +984,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read the recorded outcome of one command by its command_id."
     },
     {
       "operation": "session.list",
@@ -1006,7 +1006,7 @@
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List durable sessions, one cursor page at a time; archived sessions only when asked for."
     },
     {
       "operation": "session.inspect",
@@ -1028,7 +1028,7 @@
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read one session's durable state and revision."
     },
     {
       "operation": "session.create",
@@ -1050,7 +1050,7 @@
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Create a durable session bound to an existing root run."
     },
     {
       "operation": "session.turn",
@@ -1072,7 +1072,7 @@
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Admit a following turn on the original session and run version, reusing its budget and recovery identity."
     },
     {
       "operation": "session.turns",
@@ -1094,7 +1094,7 @@
       ],
       "notes": "Implemented by the native session control contract; modular views, policy evaluation and exact session revisions are preserved. Archive filtering applies to session list.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List a session's turns, one cursor page at a time."
     },
     {
       "operation": "resource.list",
@@ -1127,7 +1127,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List the kernel's published resources of one kind (artifact or runtime), one cursor page at a time."
     },
     {
       "operation": "resource.inspect",
@@ -1169,7 +1169,7 @@
       ],
       "notes": "Some selections, including memory inspection, additionally require resources permission. Kernel authorization remains authoritative.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read one published resource by kind and id."
     },
     {
       "operation": "resource.apply",
@@ -1206,7 +1206,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Publish a resource of the given kind (artifact or runtime) to the kernel; needs the resources scope."
     },
     {
       "operation": "budget.list",
@@ -1227,7 +1227,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List the kernel's budget roots, one cursor page at a time."
     },
     {
       "operation": "credential.list",
@@ -1248,7 +1248,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "List credential references and their revisions; secret values are never returned."
     },
     {
       "operation": "credential.put",
@@ -1270,7 +1270,7 @@
       ],
       "notes": "Private CLI stdin/file injection only; no secret value is exposed through MCP.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Store a credential value under a reference, read from private stdin or a private file; the value never travels over MCP."
     },
     {
       "operation": "credential.delete",
@@ -1292,7 +1292,7 @@
       ],
       "notes": "Private credential-management entry, separate from ordinary MCP development tools.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Delete a credential reference at the expected revision."
     },
     {
       "operation": "session.start",
@@ -1313,7 +1313,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Atomically create a session and its first root run under the declared SessionPolicy."
     },
     {
       "operation": "session.route",
@@ -1334,7 +1334,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Preview which program a new session would be routed to for a system release and labels, without creating it."
     },
     {
       "operation": "session.plan",
@@ -1355,7 +1355,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Plan a requested change to a session against its expected revision, without applying it."
     },
     {
       "operation": "session.policy",
@@ -1376,7 +1376,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read the frozen SessionPolicy closure a session runs under."
     },
     {
       "operation": "session.metadata",
@@ -1397,7 +1397,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Set a session's display name and labels at the expected revision, under a fixed command_id."
     },
     {
       "operation": "session.close",
@@ -1418,7 +1418,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Close a session at the expected revision, under a fixed command_id."
     },
     {
       "operation": "session.reopen",
@@ -1439,7 +1439,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Reopen a closed session at the expected revision, under a fixed command_id."
     },
     {
       "operation": "session.archive",
@@ -1460,7 +1460,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Archive a session at the expected revision, under a fixed command_id."
     },
     {
       "operation": "session.unarchive",
@@ -1481,7 +1481,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Restore an archived session at the expected revision, under a fixed command_id."
     },
     {
       "operation": "session.reconfigure",
@@ -1503,7 +1503,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Switch a session's frozen policy closure at a closed, quiescent boundary."
     },
     {
       "operation": "session.command",
@@ -1524,7 +1524,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read the recorded result of one session command by its command_id."
     },
     {
       "operation": "session.binding",
@@ -1546,7 +1546,7 @@
       ],
       "notes": "Implemented binding query preserves native binding identity, session revision and frozen policy version fields.",
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Native DTO and authorization remain authoritative; Session uses its typed control protocol."
+      "summary": "Read the binding between a session and one of its runs."
     },
     {
       "operation": "repository.add",
@@ -1567,7 +1567,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Register a managed, host-directory or Git module source; external sources also need the resources scope."
     },
     {
       "operation": "repository.list",
@@ -1588,7 +1588,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "List the registered module repositories."
     },
     {
       "operation": "repository.inspect",
@@ -1609,7 +1609,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Read one module repository's registration and revision."
     },
     {
       "operation": "repository.sync",
@@ -1631,7 +1631,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Explicitly fetch a directory or pinned Git snapshot and atomically register immutable module versions."
     },
     {
       "operation": "repository.remove",
@@ -1652,7 +1652,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Unregister a module repository, keeping published sources so existing references still resolve."
     },
     {
       "operation": "module.publish",
@@ -1694,7 +1694,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "List the immutable module versions in a repository, one cursor page at a time."
     },
     {
       "operation": "module.inspect",
@@ -1715,7 +1715,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Read one immutable module version from a repository."
     },
     {
       "operation": "module.export",
@@ -1740,7 +1740,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Export the complete sources and ordinary dependency manifest of one immutable module version."
     },
     {
       "operation": "agent.module.use",
@@ -1787,7 +1787,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS."
+      "summary": "Remove a declared module import that nothing uses; detach its slot and dependency references first."
     },
     {
       "operation": "agent.configure",

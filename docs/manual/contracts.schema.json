@@ -11,7 +11,8 @@
   "$defs": {
     "Decimal": {
       "type": "string",
-      "pattern": "^(0|[1-9][0-9]*)$"
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "description": "A non-negative integer written as a decimal string, so values beyond 2^53 keep their precision."
     },
     "MaybeDecimal": {
       "anyOf": [
@@ -21,7 +22,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "A decimal string, or null."
     },
     "NativeJson": {
       "type": "string",
@@ -35,17 +37,20 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the module."
         },
         "version": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Version of the module."
         }
       },
       "required": [
         "id",
         "version"
-      ]
+      ],
+      "description": "A published module, by id and exact version."
     },
     "SourceFile": {
       "type": "object",
@@ -55,20 +60,24 @@
           "enum": [
             "utf8",
             "base64"
-          ]
+          ],
+          "description": "How `content` is encoded: plain text (`utf8`) or `base64` for binary data."
         },
         "content": {
-          "type": "string"
+          "type": "string",
+          "description": "File content, encoded as `encoding` says."
         },
         "executable": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Whether the file is marked executable."
         }
       },
       "required": [
         "encoding",
         "content"
-      ]
+      ],
+      "description": "One file of a source set."
     },
     "SourceFiles": {
       "type": "object",
@@ -86,20 +95,24 @@
       "additionalProperties": false,
       "properties": {
         "files": {
-          "$ref": "#/$defs/SourceFiles"
+          "$ref": "#/$defs/SourceFiles",
+          "description": "Files of the source set, keyed by package-relative path."
         },
         "declaration": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Path of the Agent declaration file inside `files`."
         },
         "settings_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "Preset settings for the source set, as serialized JSON text."
         }
       },
       "required": [
         "files",
         "declaration"
-      ]
+      ],
+      "description": "A source set: its files, the path of its declaration, and optional preset settings."
     },
     "ReadTarget": {
       "oneOf": [
@@ -108,11 +121,13 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "project"
+              "const": "project",
+              "description": "`project` reads a managed project; `source` reads an explicit source set passed inline."
             },
             "project_id": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Id of the managed project."
             }
           },
           "required": [
@@ -125,10 +140,12 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "source"
+              "const": "source",
+              "description": "`project` reads a managed project; `source` reads an explicit source set passed inline."
             },
             "source": {
-              "$ref": "#/$defs/Source"
+              "$ref": "#/$defs/Source",
+              "description": "Explicit source set: its files, its declaration and optional settings."
             }
           },
           "required": [
@@ -136,7 +153,8 @@
             "source"
           ]
         }
-      ]
+      ],
+      "description": "What to read: a managed project or an explicit source set passed inline."
     },
     "WriteTarget": {
       "oneOf": [
@@ -145,14 +163,17 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "project"
+              "const": "project",
+              "description": "`project` edits a managed project; `source` edits an explicit source set passed inline."
             },
             "project_id": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Id of the managed project."
             },
             "expected_revision": {
-              "$ref": "#/$defs/MaybeDecimal"
+              "$ref": "#/$defs/MaybeDecimal",
+              "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
             }
           },
           "required": [
@@ -166,14 +187,17 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "source"
+              "const": "source",
+              "description": "`project` edits a managed project; `source` edits an explicit source set passed inline."
             },
             "source": {
-              "$ref": "#/$defs/Source"
+              "$ref": "#/$defs/Source",
+              "description": "Explicit source set: its files, its declaration and optional settings."
             },
             "expected_digest": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Source digest the explicit source set must still have (compare-and-set): the write is refused if it moved on since you read it."
             }
           },
           "required": [
@@ -182,7 +206,8 @@
             "expected_digest"
           ]
         }
-      ]
+      ],
+      "description": "What to edit: a managed project (guarded by its revision) or an explicit source set (guarded by its digest)."
     },
     "Empty": {
       "type": "object",
@@ -196,7 +221,8 @@
       "properties": {
         "group": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Limit the answer to one group of the catalog, for example `repository`."
         },
         "include_details": {
           "type": "boolean",
@@ -214,7 +240,8 @@
           "properties": {
             "operation": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Operation to describe, for example `run.start`."
             }
           },
           "required": [
@@ -227,10 +254,12 @@
           "properties": {
             "factory": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Installed factory to describe."
             },
             "config_json": {
-              "$ref": "#/$defs/NativeJson"
+              "$ref": "#/$defs/NativeJson",
+              "description": "Configuration to derive the factory's dependency ports from, as serialized JSON text."
             }
           },
           "required": [
@@ -243,11 +272,13 @@
           "properties": {
             "preset": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Registered preset to describe."
             },
             "version": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Version of the preset; the newest when omitted."
             }
           },
           "required": [
@@ -259,7 +290,8 @@
           "additionalProperties": false,
           "properties": {
             "package": {
-              "$ref": "#/$defs/PackageRead"
+              "$ref": "#/$defs/PackageRead",
+              "description": "Pinned module package to describe."
             }
           },
           "required": [
@@ -274,18 +306,22 @@
       "properties": {
         "preset": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a registered preset to instantiate (see `describe`)."
         },
         "version": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Version of the preset; the newest when omitted."
         },
         "empty": {
-          "const": true
+          "const": true,
+          "description": "Create an empty Agent instead of instantiating a preset."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         }
       },
       "required": [],
@@ -318,10 +354,12 @@
       "additionalProperties": false,
       "properties": {
         "source": {
-          "$ref": "#/$defs/Source"
+          "$ref": "#/$defs/Source",
+          "description": "Explicit source set."
         },
         "target": {
-          "$ref": "#/$defs/ReadTarget"
+          "$ref": "#/$defs/ReadTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         }
       },
       "oneOf": [
@@ -353,31 +391,39 @@
       "properties": {
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "project_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the managed project."
         },
         "preset": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a registered preset to instantiate (see `describe`)."
         },
         "preset_version": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Version of the preset; the newest when omitted."
         },
         "empty": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Create an empty Agent instead of instantiating a preset."
         },
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "source": {
-          "$ref": "#/$defs/Source"
+          "$ref": "#/$defs/Source",
+          "description": "Source set to create the Agent from, instead of an empty Agent or a preset."
         },
         "expected_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         },
         "include_source": {
           "type": "boolean",
@@ -442,11 +488,13 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/ReadTarget"
+          "$ref": "#/$defs/ReadTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         }
       },
       "required": [
@@ -459,11 +507,13 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "slot": {
           "enum": [
@@ -484,28 +534,35 @@
             "session",
             "session_policy",
             "tool_packs"
-          ]
+          ],
+          "description": "Agent slot to attach the module to."
         },
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id to give the module inside the Agent."
         },
         "module_ref": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Reference to a published module: its id and version, used instead of a factory."
         },
         "native_module_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "A complete native module definition as serialized JSON text, used instead of a factory."
         },
         "factory": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Installed factory that builds the module (see `describe`)."
         },
         "config": {
-          "type": "object"
+          "type": "object",
+          "description": "Configuration for the factory, as an object."
         },
         "config_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "Factory configuration as serialized JSON text."
         },
         "dependencies": {
           "type": "object",
@@ -519,10 +576,12 @@
                 "$ref": "#/$defs/ModuleRef"
               }
             ]
-          }
+          },
+          "description": "Named dependency ports of the module, each mapped to the module that satisfies it."
         },
         "sources": {
-          "$ref": "#/$defs/SourceFiles"
+          "$ref": "#/$defs/SourceFiles",
+          "description": "Source files to attach to the module, keyed by package-relative path."
         },
         "source_bindings": {
           "type": "object",
@@ -534,11 +593,13 @@
         },
         "set": {
           "type": "object",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "description": "Configuration changes: an object of JSON Pointer to new value."
         },
         "replace_slot": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Replace whatever already occupies the slot."
         },
         "include_source": {
           "type": "boolean",
@@ -671,7 +732,8 @@
         {
           "properties": {
             "slot": {
-              "const": "tools"
+              "const": "tools",
+              "description": "Agent slot to attach the tool module to."
             }
           }
         }
@@ -682,15 +744,18 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/ReadTarget"
+          "$ref": "#/$defs/ReadTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "module": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Module to act on, by its id inside the Agent."
         }
       },
       "required": [
@@ -704,22 +769,27 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "module": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Module to act on, by its id inside the Agent."
         },
         "set": {
           "type": "object",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "description": "Configuration changes: an object of JSON Pointer to new value."
         },
         "sources": {
-          "$ref": "#/$defs/SourceFiles"
+          "$ref": "#/$defs/SourceFiles",
+          "description": "Source files to attach to the module, keyed by package-relative path."
         },
         "source_bindings": {
           "type": "object",
@@ -768,15 +838,18 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "module": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Module to act on, by its id inside the Agent."
         },
         "dependencies": {
           "type": "object",
@@ -790,7 +863,8 @@
                 "$ref": "#/$defs/ModuleRef"
               }
             ]
-          }
+          },
+          "description": "Named dependency ports of the module, each mapped to the module that satisfies it."
         },
         "include_source": {
           "type": "boolean",
@@ -824,15 +898,18 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "module": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Module to act on, by its id inside the Agent."
         },
         "slot": {
           "enum": [
@@ -853,7 +930,8 @@
             "session",
             "session_policy",
             "tool_packs"
-          ]
+          ],
+          "description": "Agent slot to remove the module's reference from."
         },
         "include_source": {
           "type": "boolean",
@@ -873,15 +951,18 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "module": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Module to act on, by its id inside the Agent."
         },
         "include_source": {
           "type": "boolean",
@@ -900,22 +981,27 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/ReadTarget"
+          "$ref": "#/$defs/ReadTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_generation": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Generation the system must still be at (compare-and-set): the write is refused if it moved on since you read it."
         },
         "include_publication": {
           "type": "boolean",
@@ -936,7 +1022,8 @@
       "additionalProperties": false,
       "properties": {
         "document_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "Complete deployment document as serialized JSON text."
         }
       },
       "required": [
@@ -949,7 +1036,8 @@
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the draft."
         }
       },
       "required": [
@@ -962,13 +1050,16 @@
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name to save the draft under."
         },
         "expected_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision the draft must still have (compare-and-set): the write is refused if it moved on since you read it; null when the draft must not exist yet."
         },
         "document_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "Complete deployment document as serialized JSON text."
         }
       },
       "required": [
@@ -983,10 +1074,12 @@
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the draft to delete."
         },
         "revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the draft to delete (compare-and-set): the write is refused if it moved on since you read it."
         }
       },
       "required": [
@@ -1005,10 +1098,12 @@
           "properties": {
             "draft": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Name of a saved draft to publish, instead of passing `document_json`."
             },
             "revision": {
-              "$ref": "#/$defs/Decimal"
+              "$ref": "#/$defs/Decimal",
+              "description": "Revision of the draft to publish."
             }
           },
           "required": [
@@ -1024,11 +1119,13 @@
       "properties": {
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         },
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         }
       },
       "required": [
@@ -1042,18 +1139,22 @@
       "properties": {
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         },
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         },
         "expected_generation": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Generation the system must still be at (compare-and-set): the write is refused if it moved on since you read it."
         }
       },
       "required": [
@@ -1069,7 +1170,8 @@
       "properties": {
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         }
       },
       "required": [
@@ -1082,7 +1184,8 @@
       "properties": {
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         }
       },
       "required": [
@@ -1094,7 +1197,8 @@
       "additionalProperties": false,
       "properties": {
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request as serialized JSON text."
         }
       },
       "required": [
@@ -1106,11 +1210,13 @@
       "additionalProperties": false,
       "properties": {
         "after": {
-          "type": "string"
+          "type": "string",
+          "description": "Pagination cursor: return the items after this one. Use `next_cursor` from the previous page; omit for the first page."
         },
         "limit": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Maximum number of items to return."
         }
       },
       "required": []
@@ -1121,7 +1227,8 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         }
       },
       "required": [
@@ -1134,20 +1241,24 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "after": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Return events after this cursor (the `next_cursor` of the previous read); omit to start from the first event."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 1000
+          "maximum": 1000,
+          "description": "Maximum number of items to return."
         },
         "wait_seconds": {
           "type": "number",
           "minimum": 0,
-          "maximum": 30
+          "maximum": 30,
+          "description": "Wait up to this many seconds for new events before returning an empty page (0 to 30)."
         }
       },
       "required": [
@@ -1160,10 +1271,12 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "decision_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The approval decision as serialized JSON text."
         }
       },
       "required": [
@@ -1177,11 +1290,13 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         }
       },
       "required": [
@@ -1195,10 +1310,12 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "envelope_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The input envelope as serialized JSON text."
         }
       },
       "required": [
@@ -1212,7 +1329,8 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "kind": {
           "enum": [
@@ -1222,11 +1340,13 @@
             "hook",
             "human",
             "retry"
-          ]
+          ],
+          "description": "What to recover: the `root` run, a `child` run, a `model` call, a `hook`, a `human` approval or a `retry`."
         },
         "target_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Run inside the tree that the recovery concerns, when it is not the run named by run_id."
         }
       },
       "required": [
@@ -1239,7 +1359,8 @@
       "additionalProperties": false,
       "properties": {
         "action_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The native control command as serialized JSON text."
         }
       },
       "required": [
@@ -1252,7 +1373,8 @@
       "properties": {
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         }
       },
       "required": [
@@ -1265,7 +1387,8 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         }
       },
       "required": [
@@ -1278,13 +1401,16 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request as serialized JSON text."
         }
       },
       "required": [
@@ -1303,14 +1429,17 @@
             "runtimes",
             "runtime_images",
             "runtime_sources"
-          ]
+          ],
+          "description": "One of: `artifacts`, `runtimes`, `runtime_images`, `runtime_sources`."
         },
         "after": {
-          "type": "string"
+          "type": "string",
+          "description": "Pagination cursor: return the items after this one. Use `next_cursor` from the previous page; omit for the first page."
         },
         "limit": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Maximum number of items to return."
         }
       },
       "required": [
@@ -1329,14 +1458,17 @@
             "memory",
             "loader_references",
             "loader_cache"
-          ]
+          ],
+          "description": "One of: `artifact`, `runtime_image`, `runtime_source`, `memory`, `loader_references`, `loader_cache`."
         },
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the resource."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request as serialized JSON text."
         }
       },
       "required": [
@@ -1354,14 +1486,17 @@
             "runtime_image",
             "runtime_source",
             "memory"
-          ]
+          ],
+          "description": "One of: `artifact`, `runtime`, `runtime_image`, `runtime_source`, `memory`."
         },
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the resource."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request as serialized JSON text."
         }
       },
       "required": [
@@ -1375,10 +1510,12 @@
       "properties": {
         "reference": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the credential reference to store the value under."
         },
         "expected_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         },
         "value_from": {
           "oneOf": [
@@ -1387,7 +1524,8 @@
               "additionalProperties": false,
               "properties": {
                 "kind": {
-                  "const": "stdin"
+                  "const": "stdin",
+                  "description": "Where the secret value is read from: `stdin` or a private `file`."
                 }
               },
               "required": [
@@ -1399,11 +1537,13 @@
               "additionalProperties": false,
               "properties": {
                 "kind": {
-                  "const": "file"
+                  "const": "file",
+                  "description": "Where the secret value is read from: `stdin` or a private `file`."
                 },
                 "path": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "Path of the private file that holds the secret value."
                 }
               },
               "required": [
@@ -1411,7 +1551,8 @@
                 "path"
               ]
             }
-          ]
+          ],
+          "description": "Where the secret value is read from. The value is never part of this input."
         }
       },
       "required": [
@@ -1426,10 +1567,12 @@
       "properties": {
         "reference": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the credential reference to delete."
         },
         "expected_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         }
       },
       "required": [
@@ -1442,11 +1585,13 @@
       "additionalProperties": false,
       "properties": {
         "protocol": {
-          "const": "nofy.kernel/v1"
+          "const": "nofy.kernel/v1",
+          "description": "Protocol identifier; always `nofy.kernel/v1`."
         },
         "operation": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the operation that produced this result."
         },
         "status": {
           "enum": [
@@ -1454,9 +1599,12 @@
             "accepted",
             "unconfirmed",
             "error"
-          ]
+          ],
+          "description": "`ok` and `accepted` succeeded; `unconfirmed` means the outcome is unknown and must be inspected before retrying; `error` failed."
         },
-        "data": true,
+        "data": {
+          "description": "Operation result; its shape is the operation's output schema."
+        },
         "error": {
           "anyOf": [
             {
@@ -1468,20 +1616,25 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "Stable machine-readable error code."
                 },
                 "message": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "Human-readable explanation."
                 },
-                "details": true
+                "details": {
+                  "description": "Structured details of the error, including `issues` with the failing JSON Pointer paths and `recovery`."
+                }
               },
               "required": [
                 "code",
                 "message"
               ]
             }
-          ]
+          ],
+          "description": "The error, or null on success."
         },
         "refs": {
           "type": "object",
@@ -1490,13 +1643,15 @@
               "string",
               "null"
             ]
-          }
+          },
+          "description": "Exact identifiers and revisions to use in follow-up calls."
         },
         "next_cursor": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Cursor for the next page, or null when there are no more."
         }
       },
       "required": [
@@ -1513,7 +1668,8 @@
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
+      },
+      "description": "String key/value labels, used to route and filter sessions."
     },
     "SessionPolicyRules": {
       "type": "object",
@@ -1524,12 +1680,14 @@
           "additionalProperties": false,
           "properties": {
             "prefix": {
-              "type": "string"
+              "type": "string",
+              "description": "Prefix added to generated session ids."
             }
           },
           "required": [
             "prefix"
-          ]
+          ],
+          "description": "How new sessions are named."
         },
         "admission": {
           "type": "object",
@@ -1539,12 +1697,14 @@
               "enum": [
                 "queue",
                 "reject"
-              ]
+              ],
+              "description": "What to do with input that arrives while the session is busy: `queue` it or `reject` it."
             }
           },
           "required": [
             "when_busy"
-          ]
+          ],
+          "description": "When new input is admitted to a session."
         },
         "routing": {
           "type": "object",
@@ -1554,7 +1714,8 @@
               "enum": [
                 "explicit",
                 "labels"
-              ]
+              ],
+              "description": "`explicit` routes by session id; `labels` routes by the values of `keys`."
             },
             "keys": {
               "type": "array",
@@ -1562,7 +1723,8 @@
                 "type": "string",
                 "minLength": 1
               },
-              "uniqueItems": true
+              "uniqueItems": true,
+              "description": "Label keys whose values select the session when `mode` is `labels` (at least one); empty when `mode` is `explicit`."
             }
           },
           "required": [
@@ -1593,19 +1755,22 @@
                 }
               }
             }
-          ]
+          ],
+          "description": "How a new request is routed to a session."
         },
         "history": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "archive_after_idle_seconds": {
-              "$ref": "#/$defs/MaybeDecimal"
+              "$ref": "#/$defs/MaybeDecimal",
+              "description": "Archive the session after it has been idle this many seconds; null never archives."
             }
           },
           "required": [
             "archive_after_idle_seconds"
-          ]
+          ],
+          "description": "How session history is kept."
         }
       },
       "required": [
@@ -1621,32 +1786,39 @@
       "properties": {
         "source": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Source text of the policy program."
         },
-        "parameters": true,
+        "parameters": {
+          "description": "Parameters passed to the policy program."
+        },
         "max_operations": {
           "type": "integer",
           "minimum": 1,
           "maximum": 10000000,
-          "default": 200000
+          "default": 200000,
+          "description": "Most operations the policy program may execute (up to 10000000)."
         },
         "timeout_ms": {
           "type": "integer",
           "minimum": 1,
           "maximum": 600000,
-          "default": 1000
+          "default": 1000,
+          "description": "Time limit for the policy program in milliseconds (up to 600000)."
         },
         "max_input_bytes": {
           "type": "integer",
           "minimum": 1,
           "maximum": 16777216,
-          "default": 4194304
+          "default": 4194304,
+          "description": "Largest input the policy program may read, in bytes."
         },
         "max_output_bytes": {
           "type": "integer",
           "minimum": 1,
           "maximum": 16777216,
-          "default": 4194304
+          "default": 4194304,
+          "description": "Largest output the policy program may produce, in bytes."
         }
       },
       "required": [
@@ -1660,19 +1832,23 @@
           "additionalProperties": false,
           "properties": {
             "reference": {
-              "$ref": "#/$defs/ModuleRef"
+              "$ref": "#/$defs/ModuleRef",
+              "description": "Reference to the policy module: its id and version."
             },
             "factory": {
-              "const": "session_policy.rules"
+              "const": "session_policy.rules",
+              "description": "Policy factory: `session_policy.rules` or `session_policy.programmed`."
             },
             "config": {
-              "$ref": "#/$defs/SessionPolicyRules"
+              "$ref": "#/$defs/SessionPolicyRules",
+              "description": "Configuration of the policy factory: the rules, or the program and its limits."
             },
             "dependencies": {
               "type": "object",
               "additionalProperties": false,
               "properties": {},
-              "required": []
+              "required": [],
+              "description": "Named dependency ports of the module, each mapped to the module that satisfies it."
             }
           },
           "required": [
@@ -1687,19 +1863,23 @@
           "additionalProperties": false,
           "properties": {
             "reference": {
-              "$ref": "#/$defs/ModuleRef"
+              "$ref": "#/$defs/ModuleRef",
+              "description": "Reference to the policy module: its id and version."
             },
             "factory": {
-              "const": "session_policy.programmed"
+              "const": "session_policy.programmed",
+              "description": "Policy factory: `session_policy.rules` or `session_policy.programmed`."
             },
             "config": {
-              "$ref": "#/$defs/SessionPolicyProgrammed"
+              "$ref": "#/$defs/SessionPolicyProgrammed",
+              "description": "Configuration of the policy factory: the rules, or the program and its limits."
             },
             "dependencies": {
               "type": "object",
               "additionalProperties": false,
               "properties": {},
-              "required": []
+              "required": [],
+              "description": "Named dependency ports of the module, each mapped to the module that satisfies it."
             }
           },
           "required": [
@@ -1716,7 +1896,8 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": 2
+          "const": 2,
+          "description": "Version of the fragment schema."
         },
         "session_policy": {
           "anyOf": [
@@ -1726,7 +1907,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The session policy declared by the Agent, or null."
         }
       },
       "required": [
@@ -1740,18 +1922,22 @@
       "properties": {
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         },
         "module": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The policy module: its id and version."
         },
         "closure_digest": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Digest of the frozen policy closure."
         },
         "factory_revision": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Revision of the factory that built the policy."
         }
       },
       "required": [
@@ -1767,16 +1953,19 @@
       "properties": {
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         },
         "module": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The policy module: its id and version."
         }
       },
       "required": [
         "release",
         "module"
-      ]
+      ],
+      "description": "The release and module that provide a session policy."
     },
     "SessionSummary": {
       "type": "object",
@@ -1784,13 +1973,16 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session after this command."
         },
         "policy_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session's policy."
         },
         "display_name": {
           "anyOf": [
@@ -1800,25 +1992,31 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Human-readable name of the session; null clears it."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "String key/value labels, used to route and filter sessions."
         },
         "lifecycle": {
           "enum": [
             "open",
             "closed"
-          ]
+          ],
+          "description": "Whether the session is open or closed."
         },
         "archived": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the session is archived."
         },
         "busy": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether a run is executing for the session right now."
         },
         "has_queued_input": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether input is waiting for the next safe boundary."
         }
       },
       "required": [
@@ -1839,13 +2037,16 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session after this command."
         },
         "policy_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session's policy."
         },
         "display_name": {
           "anyOf": [
@@ -1855,49 +2056,61 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Human-readable name of the session; null clears it."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "String key/value labels, used to route and filter sessions."
         },
         "lifecycle": {
           "enum": [
             "open",
             "closed"
-          ]
+          ],
+          "description": "Whether the session is open or closed."
         },
         "archived": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the session is archived."
         },
         "busy": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether a run is executing for the session right now."
         },
         "has_queued_input": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether input is waiting for the next safe boundary."
         },
         "root_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Root run of the session."
         },
         "budget_root_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Root run whose budget this session spends from."
         },
         "thread_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the durable thread the run belongs to."
         },
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         },
         "program": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Program of the system release that the session runs."
         },
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         },
         "active_run_id": {
           "anyOf": [
@@ -1908,7 +2121,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Run currently executing for the session, or null when it is idle."
         },
         "policy": {
           "anyOf": [
@@ -1918,10 +2132,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Session policy: the release and module that decide naming, admission, routing and history."
         },
         "native_view_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The kernel's native view of the session as serialized JSON text."
         }
       },
       "required": [
@@ -1950,7 +2166,8 @@
       "additionalProperties": false,
       "properties": {
         "protocol": {
-          "const": "nofy.session-policy/v1"
+          "const": "nofy.session-policy/v1",
+          "description": "Policy protocol identifier; always `nofy.session-policy/v1`."
         },
         "phase": {
           "enum": [
@@ -1958,13 +2175,16 @@
             "admit_turn",
             "route",
             "retention"
-          ]
+          ],
+          "description": "Stage the command reached."
         },
         "now_ms": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Current time in milliseconds, as seen by the policy."
         },
         "idle_since_ms": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Time in milliseconds since which the session has been idle, or null."
         },
         "session": {
           "anyOf": [
@@ -1974,7 +2194,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The session this concerns, or null when none exists yet."
         },
         "request": {
           "type": "object",
@@ -1989,30 +2210,36 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Id of the session. Operations that create a session take the id to create it under."
             },
             "request_digest": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Digest of the request this record was made for; a different request under the same id is rejected."
             },
             "labels": {
-              "$ref": "#/$defs/SessionLabels"
+              "$ref": "#/$defs/SessionLabels",
+              "description": "String key/value labels, used to route and filter sessions."
             }
           },
           "required": [
             "session_id",
             "request_digest",
             "labels"
-          ]
+          ],
+          "description": "The request the policy evaluates."
         },
         "candidates": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/SessionSummary"
-          }
+          },
+          "description": "Candidates that routing considered."
         },
         "parameters_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "Policy parameters as serialized JSON text."
         }
       },
       "required": [
@@ -2035,11 +2262,13 @@
             "allow",
             "deny",
             "ambiguous"
-          ]
+          ],
+          "description": "The policy's decision: allow, deny or ambiguous."
         },
         "reason": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Why the policy decided this."
         },
         "session_id": {
           "anyOf": [
@@ -2050,7 +2279,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "display_name": {
           "anyOf": [
@@ -2060,10 +2290,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Human-readable name of the session; null clears it."
         },
         "archive": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the policy proposes archiving the session."
         }
       },
       "required": [
@@ -2080,11 +2312,13 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id to create the session under."
         },
         "root_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Existing root run to bind the new session to."
         }
       },
       "required": [
@@ -2097,16 +2331,19 @@
       "additionalProperties": false,
       "properties": {
         "after": {
-          "type": "string"
+          "type": "string",
+          "description": "Pagination cursor: return the items after this one. Use `next_cursor` from the previous page; omit for the first page."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 256
+          "maximum": 256,
+          "description": "Maximum number of items to return."
         },
         "include_archived": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Include archived sessions."
         }
       },
       "required": []
@@ -2117,15 +2354,18 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "after": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Pagination cursor: return the items after this one. Use `next_cursor` from the previous page; omit for the first page."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 256
+          "maximum": 256,
+          "description": "Maximum number of items to return."
         }
       },
       "required": [
@@ -2138,11 +2378,13 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         }
       },
       "required": [
@@ -2156,20 +2398,25 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "type": "null"
+          "type": "null",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request as serialized JSON text."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "String key/value labels, used to route and filter sessions."
         }
       },
       "required": [
@@ -2185,22 +2432,27 @@
       "properties": {
         "system": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the system (a published deployment)."
         },
         "release": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of a published release of the system."
         },
         "program": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Program of the system release that the session runs."
         },
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "String key/value labels, used to route and filter sessions."
         }
       },
       "required": [
@@ -2215,14 +2467,17 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "display_name": {
           "anyOf": [
@@ -2232,10 +2487,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Human-readable name of the session; null clears it."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "String key/value labels, used to route and filter sessions."
         }
       },
       "required": [
@@ -2262,14 +2519,17 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         }
       },
       "required": [
@@ -2284,24 +2544,30 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "source_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Closed run of the source session that the change is based on."
         },
         "expected_source_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the source run must still have (compare-and-set): the write is refused if it moved on since you read it."
         },
         "policy": {
-          "$ref": "#/$defs/SessionPolicySelection"
+          "$ref": "#/$defs/SessionPolicySelection",
+          "description": "Policy to switch to: the release and module that provide it."
         }
       },
       "required": [
@@ -2320,7 +2586,8 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "metadata"
+              "const": "metadata",
+              "description": "The change: `metadata` (name and labels), a lifecycle action (`close`, `reopen`, `archive`, `unarchive`) or `reconfigure` (switch the policy)."
             },
             "display_name": {
               "anyOf": [
@@ -2330,10 +2597,12 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Human-readable name of the session; null clears it."
             },
             "labels": {
-              "$ref": "#/$defs/SessionLabels"
+              "$ref": "#/$defs/SessionLabels",
+              "description": "String key/value labels, used to route and filter sessions."
             }
           },
           "required": [
@@ -2362,7 +2631,8 @@
                 "reopen",
                 "archive",
                 "unarchive"
-              ]
+              ],
+              "description": "The change: `metadata` (name and labels), a lifecycle action (`close`, `reopen`, `archive`, `unarchive`) or `reconfigure` (switch the policy)."
             }
           },
           "required": [
@@ -2374,17 +2644,21 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "reconfigure"
+              "const": "reconfigure",
+              "description": "The change: `metadata` (name and labels), a lifecycle action (`close`, `reopen`, `archive`, `unarchive`) or `reconfigure` (switch the policy)."
             },
             "source_run_id": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Closed run the reconfiguration is based on."
             },
             "expected_source_revision": {
-              "$ref": "#/$defs/Decimal"
+              "$ref": "#/$defs/Decimal",
+              "description": "Revision the source run must still have (compare-and-set): the write is refused if it moved on since you read it."
             },
             "policy": {
-              "$ref": "#/$defs/SessionPolicySelection"
+              "$ref": "#/$defs/SessionPolicySelection",
+              "description": "Policy to switch to: the release and module that provide it."
             }
           },
           "required": [
@@ -2394,7 +2668,8 @@
             "policy"
           ]
         }
-      ]
+      ],
+      "description": "A change to a session: its metadata, a lifecycle action, or a policy switch."
     },
     "SessionPlan": {
       "type": "object",
@@ -2402,13 +2677,16 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "change": {
-          "$ref": "#/$defs/SessionChange"
+          "$ref": "#/$defs/SessionChange",
+          "description": "The change to plan, against the session's expected revision."
         }
       },
       "required": [
@@ -2423,11 +2701,13 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         }
       },
       "required": [
@@ -2441,32 +2721,39 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "operation": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the session operation this receipt records."
         },
         "request_digest": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Digest of the request this record was made for; a different request under the same id is rejected."
         },
         "phase": {
           "enum": [
             "prepared",
             "applied",
             "rejected"
-          ]
+          ],
+          "description": "Stage the command reached."
         },
         "session_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision of the session after this command."
         },
         "policy_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision of the session's policy."
         },
         "session": {
           "anyOf": [
@@ -2476,7 +2763,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The session this concerns, or null when none exists yet."
         },
         "run_id": {
           "anyOf": [
@@ -2487,7 +2775,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Id of the run."
         },
         "error": {
           "anyOf": [
@@ -2497,11 +2786,13 @@
               "properties": {
                 "code": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "Stable machine-readable error code of the failed command."
                 },
                 "message": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "Human-readable explanation."
                 }
               },
               "required": [
@@ -2512,7 +2803,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The error, or null on success."
         }
       },
       "required": [
@@ -2543,7 +2835,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2557,7 +2850,8 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/SessionState"
-          }
+          },
+          "description": "Sessions in this page."
         }
       },
       "required": [
@@ -2579,7 +2873,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2591,17 +2886,21 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session after this command."
         },
         "policy_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session's policy."
         },
         "native_admission_json": {
           "anyOf": [
@@ -2611,7 +2910,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The kernel's native admission record as serialized JSON, or null."
         },
         "seed_json": {
           "anyOf": [
@@ -2621,7 +2921,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The seed that started the turn as serialized JSON, or null."
         },
         "policy_admission_json": {
           "anyOf": [
@@ -2631,7 +2932,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The policy's admission record as serialized JSON, or null."
         }
       },
       "required": [
@@ -2659,7 +2961,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2673,7 +2976,8 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/NativeJson"
-          }
+          },
+          "description": "The session's turns as serialized JSON."
         }
       },
       "required": [
@@ -2695,7 +2999,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2707,13 +3012,16 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session after this command."
         },
         "policy_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision of the session's policy."
         },
         "policy": {
           "anyOf": [
@@ -2723,10 +3031,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Session policy: the release and module that decide naming, admission, routing and history."
         },
         "runtime_store_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The policy's runtime store as serialized JSON text."
         }
       },
       "required": [
@@ -2752,7 +3062,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2768,7 +3079,8 @@
             "unique",
             "ambiguous",
             "rejected"
-          ]
+          ],
+          "description": "Routing outcome: `none`, `unique`, `ambiguous` or `rejected`."
         },
         "selected_session_id": {
           "anyOf": [
@@ -2779,13 +3091,15 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The session routing selected, when it selected exactly one."
         },
         "candidates": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/SessionSummary"
-          }
+          },
+          "description": "Candidates that routing considered."
         },
         "policy": {
           "anyOf": [
@@ -2795,7 +3109,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Session policy: the release and module that decide naming, admission, routing and history."
         }
       },
       "required": [
@@ -2820,7 +3135,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2832,23 +3148,28 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "expected_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the session must still have (compare-and-set): the write is refused if it moved on since you read it. null where the command creates the session."
         },
         "change": {
-          "$ref": "#/$defs/SessionChange"
+          "$ref": "#/$defs/SessionChange",
+          "description": "The change to plan, against the session's expected revision."
         },
         "applicable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the change can be applied now."
         },
         "blocking_reasons": {
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Why the change cannot be applied now."
         },
         "proposal": {
           "anyOf": [
@@ -2858,7 +3179,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "What the policy proposes to do, or null."
         },
         "policy": {
           "anyOf": [
@@ -2868,7 +3190,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Session policy: the release and module that decide naming, admission, routing and history."
         }
       },
       "required": [
@@ -2896,7 +3219,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2917,7 +3241,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -2930,7 +3255,8 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "managed"
+              "const": "managed",
+              "description": "Where modules come from: `managed` (uploaded to the kernel), `directory` (a host directory) or `git`."
             }
           },
           "required": [
@@ -2942,7 +3268,8 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "directory"
+              "const": "directory",
+              "description": "Where modules come from: `managed` (uploaded to the kernel), `directory` (a host directory) or `git`."
             },
             "host_path": {
               "type": "string",
@@ -2960,26 +3287,31 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "git"
+              "const": "git",
+              "description": "Where modules come from: `managed` (uploaded to the kernel), `directory` (a host directory) or `git`."
             },
             "url": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Git URL to fetch."
             },
             "reference": {
               "type": "string",
               "minLength": 1,
-              "default": "HEAD"
+              "default": "HEAD",
+              "description": "Git reference to fetch (branch, tag or commit)."
             },
             "subdirectory": {
               "type": "string",
-              "default": ""
+              "default": "",
+              "description": "Subdirectory of the checkout that holds the modules; the root when empty."
             },
             "timeout_ms": {
               "type": "integer",
               "minimum": 1,
               "maximum": 180000,
-              "default": 30000
+              "default": 30000,
+              "description": "Time limit for the fetch in milliseconds (up to 180000)."
             }
           },
           "required": [
@@ -2987,7 +3319,8 @@
             "url"
           ]
         }
-      ]
+      ],
+      "description": "Where a module repository's modules come from."
     },
     "RepositoryView": {
       "type": "object",
@@ -3001,23 +3334,28 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Current revision of the repository registration."
         },
         "origin": {
-          "$ref": "#/$defs/RepositoryOrigin"
+          "$ref": "#/$defs/RepositoryOrigin",
+          "description": "Where the repository's modules come from: managed, a host directory or Git."
         },
         "source_revision": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Revision of the source this was built from, or null when it has none."
         },
         "package_count": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Number of packages in the repository."
         }
       },
       "required": [
@@ -3033,7 +3371,8 @@
       "additionalProperties": false,
       "properties": {
         "format": {
-          "const": "nofy.module-package/v1"
+          "const": "nofy.module-package/v1",
+          "description": "Format identifier; always `nofy.module-package/v1`."
         },
         "name": {
           "type": "string",
@@ -3043,7 +3382,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the module package."
         },
         "version": {
           "type": "string",
@@ -3053,31 +3393,36 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Version of the package."
         },
         "description": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "description": "Human-readable description of the package."
         },
         "parameters_schema": {
           "type": [
             "object",
             "boolean"
-          ]
+          ],
+          "description": "JSON Schema of the package's parameters."
         },
         "inputs": {
           "type": "object",
           "additionalProperties": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Inputs that the package declares."
         },
         "modules": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "object"
-          }
+          },
+          "description": "Modules the package contains."
         },
         "exports": {
           "type": "object",
@@ -3091,7 +3436,8 @@
                 ".."
               ]
             }
-          }
+          },
+          "description": "What the package exports, keyed by export name."
         }
       },
       "required": [
@@ -3114,7 +3460,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "name": {
           "type": "string",
@@ -3124,7 +3471,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the module package."
         },
         "version": {
           "type": "string",
@@ -3134,20 +3482,24 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Exact version of the module package."
         },
         "digest": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Content digest of the published package."
         },
         "manifest": {
-          "$ref": "#/$defs/PackageManifest"
+          "$ref": "#/$defs/PackageManifest",
+          "description": "Manifest of the package."
         },
         "source_revision": {
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "Revision of the source this was built from, or null when it has none."
         }
       },
       "required": [
@@ -3171,7 +3523,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "name": {
           "type": "string",
@@ -3181,7 +3534,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the module package."
         },
         "version": {
           "type": "string",
@@ -3191,20 +3545,24 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Version of the module package."
         },
         "digest": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Content digest the import is pinned to."
         },
         "parameters": {
-          "type": "object"
+          "type": "object",
+          "description": "Parameters that the imported package declares."
         },
         "bindings": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/ModuleRef"
-          }
+          },
+          "description": "Port wiring of the import: each port mapped to the module that satisfies it."
         },
         "exports": {
           "type": "object",
@@ -3217,14 +3575,16 @@
                 ".."
               ]
             }
-          }
+          },
+          "description": "What the package exports, keyed by export name."
         },
         "factories": {
           "type": "object",
           "additionalProperties": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Factories the package depends on."
         }
       },
       "required": [
@@ -3248,13 +3608,16 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "origin": {
-          "$ref": "#/$defs/RepositoryOrigin"
+          "$ref": "#/$defs/RepositoryOrigin",
+          "description": "Where the repository's modules come from: managed, a host directory or Git."
         },
         "expected_revision": {
-          "$ref": "#/$defs/MaybeDecimal"
+          "$ref": "#/$defs/MaybeDecimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         }
       },
       "required": [
@@ -3275,7 +3638,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         }
       },
       "required": [
@@ -3294,10 +3658,12 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "expected_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         }
       },
       "required": [
@@ -3317,13 +3683,16 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "expected_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         },
         "source": {
-          "$ref": "#/$defs/Source"
+          "$ref": "#/$defs/Source",
+          "description": "Complete source set of the module package."
         }
       },
       "required": [
@@ -3344,16 +3713,19 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "after": {
-          "type": "string"
+          "type": "string",
+          "description": "Pagination cursor: return the items after this one. Use `next_cursor` from the previous page; omit for the first page."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
           "maximum": 256,
-          "default": 32
+          "default": 32,
+          "description": "Maximum number of items to return."
         }
       },
       "required": []
@@ -3370,7 +3742,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository."
         },
         "name": {
           "type": "string",
@@ -3380,7 +3753,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the module package."
         },
         "version": {
           "type": "string",
@@ -3390,7 +3764,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Exact version of the module package."
         }
       },
       "required": [
@@ -3404,11 +3779,13 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "repository": {
           "type": "string",
@@ -3418,7 +3795,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Id of the module repository to import from."
         },
         "name": {
           "type": "string",
@@ -3428,7 +3806,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the module package to import."
         },
         "version": {
           "type": "string",
@@ -3438,7 +3817,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Pinned version of the module package to import."
         },
         "alias": {
           "type": "string",
@@ -3448,11 +3828,13 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Local name of a module import inside the Agent."
         },
         "parameters": {
           "type": "object",
-          "default": {}
+          "default": {},
+          "description": "Values for the parameters that the package declares."
         },
         "bindings": {
           "type": "object",
@@ -3466,7 +3848,8 @@
                 "$ref": "#/$defs/ModuleRef"
               }
             ]
-          }
+          },
+          "description": "Port wiring of the import: each port mapped to the module that satisfies it."
         },
         "export": {
           "type": "string",
@@ -3476,7 +3859,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Name of the export of the imported module to mount."
         },
         "slot": {
           "enum": [
@@ -3497,15 +3881,18 @@
             "session",
             "session_policy",
             "tool_packs"
-          ]
+          ],
+          "description": "Agent slot to mount the imported export on."
         },
         "replace_import": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Replace an existing import of the same alias instead of failing."
         },
         "replace_slot": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Replace whatever already occupies the slot."
         },
         "include_source": {
           "type": "boolean",
@@ -3535,11 +3922,13 @@
       "additionalProperties": false,
       "properties": {
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "alias": {
           "type": "string",
@@ -3549,7 +3938,8 @@
               ".",
               ".."
             ]
-          }
+          },
+          "description": "Local name of a module import inside the Agent."
         },
         "include_source": {
           "type": "boolean",
@@ -3569,17 +3959,21 @@
       "properties": {
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "settings": {
-          "type": "object"
+          "type": "object",
+          "description": "Preset settings to apply to the Agent."
         },
         "set": {
           "type": "object",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "description": "Configuration changes: an object of JSON Pointer to new value."
         },
         "unset": {
           "type": "array",
@@ -3623,7 +4017,8 @@
       "type": "object",
       "properties": {
         "format": {
-          "const": "nofy.assembly-guide/v1"
+          "const": "nofy.assembly-guide/v1",
+          "description": "Format identifier; always `nofy.assembly-guide/v1`."
         },
         "subject": {
           "type": "object",
@@ -3635,60 +4030,71 @@
                 "factory",
                 "preset",
                 "package"
-              ]
+              ],
+              "description": "What the guide describes: an `operation`, a `factory`, a `preset` or a `package`."
             },
             "name": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Name of the operation, factory, preset or package described."
             }
           },
           "required": [
             "kind",
             "name"
-          ]
+          ],
+          "description": "What the guide describes."
         },
         "summary": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "One-sentence description."
         },
         "availability": {
-          "type": "object"
+          "type": "object",
+          "description": "Whether the operation is available in this client and kernel."
         },
         "slots": {
           "type": [
             "object",
             "array"
-          ]
+          ],
+          "description": "Valid slots and what each accepts."
         },
         "prerequisites": {
           "type": "array",
           "items": {
             "type": "object"
-          }
+          },
+          "description": "What must hold before the first call."
         },
         "examples": {
           "type": "array",
           "items": {
             "type": "object"
-          }
+          },
+          "description": "Example calls with placeholders to fill in."
         },
         "steps": {
           "type": "array",
           "items": {
             "type": "object"
-          }
+          },
+          "description": "Ordered calls that accomplish the task."
         },
         "pitfalls": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Common mistakes to avoid."
         },
         "recovery": {
           "type": "array",
           "items": {
             "type": "object"
-          }
+          },
+          "description": "What to do when a step fails or its outcome is unknown."
         }
       },
       "required": [
@@ -3721,14 +4127,16 @@
                   "type": "object",
                   "properties": {
                     "guide": {
-                      "$ref": "#/$defs/AssemblyGuide"
+                      "$ref": "#/$defs/AssemblyGuide",
+                      "description": "Assembly guidance for the subject."
                     }
                   },
                   "required": [
                     "guide"
                   ]
                 }
-              ]
+              ],
+              "description": "Operation result; its shape is the operation's output schema."
             }
           }
         }
@@ -3746,20 +4154,24 @@
       "properties": {
         "release": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of a published release of the system."
         },
         "module_ref": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "Published interactive process resource to start, by id and version."
         },
         "owner": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 480
+          "maxLength": 480,
+          "description": "Owner identity the terminal belongs to; owner and resource identities are checked on every operation."
         },
         "start_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
+          "maxLength": 128,
+          "description": "Caller-chosen id of this start; asking again with the same id returns the original start instead of launching another process."
         }
       }
     },
@@ -3775,37 +4187,45 @@
       "properties": {
         "release": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Release that holds the terminal's process resource."
         },
         "module_ref": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The terminal's process resource."
         },
         "owner": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 480
+          "maxLength": 480,
+          "description": "Owner identity the terminal belongs to; owner and resource identities are checked on every operation."
         },
         "session_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of the terminal's process session."
         },
         "stdout_cursor": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Byte offset to read standard output from; 0 starts at the beginning of the retained output."
         },
         "stderr_cursor": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Byte offset to read standard error from; 0 starts at the beginning of the retained output."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 1048576
+          "maximum": 1048576,
+          "description": "Maximum number of bytes to return per stream (up to 1048576)."
         },
         "wait_ms": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 30000
+          "maximum": 30000,
+          "description": "Wait up to this many milliseconds for new output."
         }
       }
     },
@@ -3822,31 +4242,38 @@
       "properties": {
         "release": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of a published release of the system."
         },
         "module_ref": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The terminal's process resource."
         },
         "owner": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 480
+          "maxLength": 480,
+          "description": "Owner identity the terminal belongs to; owner and resource identities are checked on every operation."
         },
         "session_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of the terminal's process session."
         },
         "command_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
+          "maxLength": 128,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "text": {
           "type": "string",
-          "maxLength": 1048576
+          "maxLength": 1048576,
+          "description": "Text to write to standard input."
         },
         "eof": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Close standard input after this write."
         }
       }
     },
@@ -3864,29 +4291,35 @@
       "properties": {
         "release": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of a published release of the system."
         },
         "module_ref": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The terminal's process resource."
         },
         "owner": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 480
+          "maxLength": 480,
+          "description": "Owner identity the terminal belongs to; owner and resource identities are checked on every operation."
         },
         "session_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of the terminal's process session."
         },
         "rows": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 1000
+          "maximum": 1000,
+          "description": "Terminal height in rows."
         },
         "columns": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 1000
+          "maximum": 1000,
+          "description": "Terminal width in columns."
         }
       }
     },
@@ -3902,19 +4335,23 @@
       "properties": {
         "release": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of a published release of the system."
         },
         "module_ref": {
-          "$ref": "#/$defs/ModuleRef"
+          "$ref": "#/$defs/ModuleRef",
+          "description": "The terminal's process resource."
         },
         "owner": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 480
+          "maxLength": 480,
+          "description": "Owner identity the terminal belongs to; owner and resource identities are checked on every operation."
         },
         "session_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Id of the terminal's process session."
         }
       }
     },
@@ -3924,36 +4361,45 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "type": "null"
+          "type": "null",
+          "description": "Must be null: the new session does not exist yet."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request for the new session's first turn, as serialized JSON text."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "Labels for the new session."
         },
         "source_session_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "description": "Session to start from: its history is copied into the new session."
         },
         "source_run_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "description": "Closed run of the source session to fork from."
         },
         "expected_source_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the source session must still have (compare-and-set): the write is refused if it moved on since you read it."
         },
         "expected_source_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the source run must still have (compare-and-set): the write is refused if it moved on since you read it."
         }
       },
       "required": [
@@ -3973,40 +4419,50 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         },
         "command_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         },
         "expected_session_revision": {
-          "type": "null"
+          "type": "null",
+          "description": "Must be null: the new session does not exist yet."
         },
         "request_json": {
-          "$ref": "#/$defs/NativeJson"
+          "$ref": "#/$defs/NativeJson",
+          "description": "The request for the new session's first turn, as serialized JSON text."
         },
         "labels": {
-          "$ref": "#/$defs/SessionLabels"
+          "$ref": "#/$defs/SessionLabels",
+          "description": "Labels for the new session."
         },
         "source_session_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "description": "Session to start from: its history is copied into the new session."
         },
         "source_run_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "description": "Closed run of the source session to rewind from."
         },
         "expected_source_session_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the source session must still have (compare-and-set): the write is refused if it moved on since you read it."
         },
         "expected_source_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the source run must still have (compare-and-set): the write is refused if it moved on since you read it."
         },
         "through_message": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "How many leading messages of the source history to keep (at least 1); must fall on a valid message boundary."
         }
       },
       "required": [
@@ -4027,7 +4483,8 @@
       "properties": {
         "session_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the session. Operations that create a session take the id to create it under."
         }
       },
       "required": [
@@ -4050,7 +4507,8 @@
             "type": "string"
           },
           "maxItems": 1024,
-          "maxLength": 65536
+          "maxLength": 65536,
+          "description": "The command to analyze: a single string parsed as POSIX shell, or an argv array. It is never executed."
         }
       }
     },
@@ -4060,15 +4518,18 @@
       "properties": {
         "after": {
           "type": "string",
-          "maxLength": 64
+          "maxLength": 64,
+          "description": "Pagination cursor: return grants after this one."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 256
+          "maximum": 256,
+          "description": "Maximum number of items to return."
         },
         "include_revoked": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Include grants that have been revoked."
         }
       }
     },
@@ -4083,15 +4544,18 @@
       "properties": {
         "grant_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Exact id of the approval grant."
         },
         "expected_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         },
         "command_id": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "description": "Caller-chosen id that makes this command replay-safe: sending it again returns the recorded outcome instead of acting twice."
         }
       }
     },
@@ -4101,10 +4565,12 @@
       "properties": {
         "project_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the managed project."
         },
         "expected_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         }
       },
       "required": [
@@ -4118,14 +4584,17 @@
       "properties": {
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the Agent inside the project."
         },
         "target": {
-          "$ref": "#/$defs/WriteTarget"
+          "$ref": "#/$defs/WriteTarget",
+          "description": "What the operation reads or edits: a managed project (`kind: project`) or an explicit source set passed inline (`kind: source`). Edits must carry the guard for the target they name."
         },
         "entry": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "When the deleted Agent is the system's entry, the program that becomes the new entry; the first remaining program when omitted."
         },
         "include_source": {
           "type": "boolean",
@@ -4144,22 +4613,27 @@
       "properties": {
         "repository": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the module repository."
         },
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Name of the module package."
         },
         "version": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Version to withdraw or restore."
         },
         "expected_revision": {
-          "$ref": "#/$defs/Decimal"
+          "$ref": "#/$defs/Decimal",
+          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
         },
         "yanked": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Withdraw the version from selection (true) or restore it (false). Existing digest pins keep working."
         }
       },
       "required": [
@@ -4175,7 +4649,8 @@
       "properties": {
         "dry_run": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Only report what would be reclaimed."
         }
       },
       "required": []
@@ -4186,34 +4661,41 @@
       "properties": {
         "root_run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Root run of the run tree the message goes to."
         },
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Run that receives the message."
         },
         "thread_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the durable thread the run belongs to."
         },
         "agent": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Agent that receives the message."
         },
         "input_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of this input, unique within the run, so a retry is recognised."
         },
         "text": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "The message text."
         },
         "attachments": {
           "type": "array",
           "maxItems": 8,
           "items": {
             "type": "object"
-          }
+          },
+          "description": "Attachments delivered with the text (at most 8)."
         }
       },
       "required": [
@@ -4231,7 +4713,8 @@
       "properties": {
         "run_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Id of the run."
         },
         "view": {
           "enum": [
