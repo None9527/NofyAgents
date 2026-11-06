@@ -5,7 +5,7 @@ use crate::governance::{ModelReconciliationTarget, model::CachedModel};
 
 pub(in crate::governance) enum Admission {
     Dispatch,
-    Replay(CachedModel),
+    Replay(Box<CachedModel>),
     Uncertain,
 }
 #[derive(Serialize, Deserialize)]
@@ -75,7 +75,7 @@ impl ModelRecovery {
                 return Err(error("unmetered model attempt changed"));
             }
             return Ok(match &old.result {
-                Some(result) => Admission::Replay(result.clone()),
+                Some(result) => Admission::Replay(Box::new(result.clone())),
                 None => Admission::Uncertain,
             });
         }

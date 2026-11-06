@@ -68,6 +68,9 @@ pub(super) async fn run(
         environment: Default::default(),
         cache_lease: None,
     };
+    // Owner: this function (kill_on_drop; waited under the job deadline below,
+    // killed on the missing-pipe path).
+    #[allow(clippy::disallowed_methods)]
     let mut child = tokio::process::Command::new(helper)
         .arg(isolation::WORKER_ARG)
         .arg(serde_json::to_string(&profile).map_err(|_| job.failed())?)

@@ -266,11 +266,11 @@ pub fn compile_agent(
         }
     }
     for reference in &definition.policies {
-        if let ModuleInstance::Policy(policy) = get(reference, ModuleKind::Policy)? {
-            if !registry.required_policies().contains(reference) {
-                components.policies.insert(reference.key(), policy.clone());
-                builder = builder.policy(reference.key());
-            }
+        if let ModuleInstance::Policy(policy) = get(reference, ModuleKind::Policy)?
+            && !registry.required_policies().contains(reference)
+        {
+            components.policies.insert(reference.key(), policy.clone());
+            builder = builder.policy(reference.key());
         }
     }
     for reference in &definition.tool_sources {
@@ -290,10 +290,10 @@ pub fn compile_agent(
         }
     }
     let mut agent = builder.compile(&components)?;
-    if let Some(reference) = &definition.recipe {
-        if let ModuleInstance::Recipe(recipe) = get(reference, ModuleKind::Recipe)? {
-            agent = agent.with_recipe(recipe.clone())?;
-        }
+    if let Some(reference) = &definition.recipe
+        && let ModuleInstance::Recipe(recipe) = get(reference, ModuleKind::Recipe)?
+    {
+        agent = agent.with_recipe(recipe.clone())?;
     }
     for reference in &definition.governance {
         if let ModuleInstance::Governance(profile) = get(reference, ModuleKind::Governance)? {
@@ -346,10 +346,10 @@ pub fn compile_agent(
             hooks,
         )?);
     }
-    if let Some(reference) = &definition.checkpointer {
-        if let ModuleInstance::Checkpointer(store) = get(reference, ModuleKind::Checkpointer)? {
-            agent = agent.with_checkpointer(store.clone());
-        }
+    if let Some(reference) = &definition.checkpointer
+        && let ModuleInstance::Checkpointer(store) = get(reference, ModuleKind::Checkpointer)?
+    {
+        agent = agent.with_checkpointer(store.clone());
     }
     for reference in &definition.bindings {
         if let ModuleInstance::Binding(binding) = get(reference, ModuleKind::Binding)? {

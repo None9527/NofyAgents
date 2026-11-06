@@ -115,10 +115,10 @@ pub(crate) fn imported_factory(system: &Value, reference: &Value) -> Result<Opti
         return Ok(None);
     };
     for (alias, p) in read_imports(system)? {
-        if let Some(id) = id.strip_prefix(&format!("{alias}.")) {
-            if let Some(factory) = p.factories.get(id) {
-                return Ok(Some(factory.clone()));
-            }
+        if let Some(id) = id.strip_prefix(&format!("{alias}."))
+            && let Some(factory) = p.factories.get(id)
+        {
+            return Ok(Some(factory.clone()));
         }
     }
     Ok(None)
@@ -316,10 +316,9 @@ pub(crate) fn expand_cached(source: &Source, kinds: &FactoryKinds) -> Result<Sou
         if let Some(id) = m["reference"]["$module"]
             .as_str()
             .or_else(|| m["reference"]["id"].as_str())
+            && let Some(factory) = m["factory"].as_str()
         {
-            if let Some(factory) = m["factory"].as_str() {
-                known.insert(id.to_owned(), factory.to_owned());
-            }
+            known.insert(id.to_owned(), factory.to_owned());
         }
     }
     for (alias, imported) in &all {
@@ -367,17 +366,14 @@ pub(crate) fn expand_cached(source: &Source, kinds: &FactoryKinds) -> Result<Sou
                 .inputs
                 .get(port)
                 .ok_or_else(|| Error::new("local_input", "undeclared package input"))?;
-            if let Some(id) = value.get("$module").and_then(Value::as_str) {
-                if let Some(kind) = known.get(id).and_then(|f| kinds.get(f)) {
-                    if kind != expected {
-                        return Err(Error::new(
-                            "local_input",
-                            format!(
-                                "package port {alias}.{port} expects {expected}, received {kind}"
-                            ),
-                        ));
-                    }
-                }
+            if let Some(id) = value.get("$module").and_then(Value::as_str)
+                && let Some(kind) = known.get(id).and_then(|f| kinds.get(f))
+                && kind != expected
+            {
+                return Err(Error::new(
+                    "local_input",
+                    format!("package port {alias}.{port} expects {expected}, received {kind}"),
+                ));
             }
         }
         let parameters = crate::render::evaluate_parameters(

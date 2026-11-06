@@ -178,21 +178,21 @@ impl PackageManifest {
                     if m.contains_key("$literal") {
                         return Ok(());
                     }
-                    if let Some(id) = m.get("$module").and_then(Value::as_str) {
-                        if !modules.contains(id) {
-                            return Err(Error::new(
-                                "local_input",
-                                "package references an undefined internal module",
-                            ));
-                        }
+                    if let Some(id) = m.get("$module").and_then(Value::as_str)
+                        && !modules.contains(id)
+                    {
+                        return Err(Error::new(
+                            "local_input",
+                            "package references an undefined internal module",
+                        ));
                     }
-                    if let Some(id) = m.get("$input").and_then(Value::as_str) {
-                        if !inputs.contains_key(id) {
-                            return Err(Error::new(
-                                "local_input",
-                                "package references an undeclared input port",
-                            ));
-                        }
+                    if let Some(id) = m.get("$input").and_then(Value::as_str)
+                        && !inputs.contains_key(id)
+                    {
+                        return Err(Error::new(
+                            "local_input",
+                            "package references an undeclared input port",
+                        ));
                     }
                 }
                 for v in m.values() {

@@ -118,11 +118,9 @@ async fn invalid_publish_import_and_activate_preserve_the_previous_system() {
         .await
         .unwrap();
     let mut invalid = document("broken");
-    invalid.programs.get_mut("chat").map(|p| {
-        if let ProgramDefinition::Agent { definition } = p {
-            definition.model = r("missing")
-        }
-    });
+    if let Some(ProgramDefinition::Agent { definition }) = invalid.programs.get_mut("chat") {
+        definition.model = r("missing");
+    }
     let bad = plane.save_draft("invalid", None, invalid).await.unwrap();
     assert!(plane.publish("invalid", bad.revision).await.is_err());
     let mut changed = a.bundle.clone();

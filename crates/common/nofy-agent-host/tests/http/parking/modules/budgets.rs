@@ -16,7 +16,10 @@ async fn prepare_budget(
         .prepare(serde_json::from_value(base_source(url)).unwrap())
         .unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let resolved = source.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = source
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("quota")
     };

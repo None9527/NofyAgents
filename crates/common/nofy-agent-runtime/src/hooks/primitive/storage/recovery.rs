@@ -90,15 +90,14 @@ pub(crate) async fn targets(
             if key!=effect_key(&frame.intent.id)||frame.intent.root!=root{return Err(checkpoint("Hook recovery source key changed"));}
             let (outer,saved)=outer(tx,&frame.intent)?;
             let active:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_runs r JOIN agent_runtime_threads t ON t.key=r.thread_key AND t.active_run=r.id WHERE r.id=?1 AND json_extract(r.payload,'$.composition')=?2)",params![root,frame.intent.root_composition],|r|r.get(0)).map_err(db_error)?;
-            if active&&source_matches(tx,&frame.intent,&saved.event)? {
-                if let Some(kind)=kind(tx,&frame,&saved)? {
+            if active&&source_matches(tx,&frame.intent,&saved.event)?
+                && let Some(kind)=kind(tx,&frame,&saved)? {
                     let target=HookRecoveryTarget {ticket:HookRecoveryTicket {id:frame.intent.id.clone(),effect_revision:cp.revision,hook_revision:outer.revision,intent_digest:crate::system::content_digest(&frame.intent)?,kind},event:saved.event,tool:frame.intent.tool};
                     let size=serde_json::to_vec(&target).map_err(db_error)?.len();
                     if size>8*1024*1024-32768{return Err(checkpoint("Hook recovery target exceeds response limit"));}
                     if bytes+size>8*1024*1024{return Ok(HookRecoveryPage {schema_version:1,targets:result,next});}
                     bytes+=size;result.push(target);
                 }
-            }
             next=Some(frame.intent.id);
         }
         Ok(HookRecoveryPage {schema_version:1,targets:result,next:None})

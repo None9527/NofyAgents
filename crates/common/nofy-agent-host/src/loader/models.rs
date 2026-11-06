@@ -131,12 +131,12 @@ impl Pool {
         // Metadata preparation and retirement are owned to completion, even
         // when the caller is gone. Never detach a blocking preparation job.
         let ready = async {
-            if let Some(worker) = guard.as_mut() {
-                if worker.expired()? {
-                    worker.retire().await?;
-                    *guard = None;
-                    slot.pid.store(0, Ordering::SeqCst);
-                }
+            if let Some(worker) = guard.as_mut()
+                && worker.expired()?
+            {
+                worker.retire().await?;
+                *guard = None;
+                slot.pid.store(0, Ordering::SeqCst);
             }
             if guard.is_none() {
                 let worker = Worker::start(loader, &cancel).await?;
@@ -163,15 +163,15 @@ impl Pool {
         };
         // A valid typed program failure leaves the worker usable. Broken IPC,
         // a timeout or cancellation requires physical retirement first.
-        if result.is_err() {
-            if let Some(worker) = guard.as_mut() {
-                if worker.retire().await.is_err() {
-                    self.cleanup_failed.store(true, Ordering::SeqCst);
-                    return Err(failed());
-                }
-                *guard = None;
-                slot.pid.store(0, Ordering::SeqCst);
+        if result.is_err()
+            && let Some(worker) = guard.as_mut()
+        {
+            if worker.retire().await.is_err() {
+                self.cleanup_failed.store(true, Ordering::SeqCst);
+                return Err(failed());
             }
+            *guard = None;
+            slot.pid.store(0, Ordering::SeqCst);
         }
         result?.map_err(nofy_agent_models::worker::Failure::into_runtime)
     }

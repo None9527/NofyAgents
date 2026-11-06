@@ -82,14 +82,13 @@ impl StageEffect {
                 "reject_tool is only valid before a tool".into(),
             ));
         }
-        if let StageAction::ContinueText { max_bytes, .. }
-        | StageAction::CompleteText { max_bytes } = &self.action
+        if let StageAction::ContinueText { max_bytes, .. } | StageAction::CompleteText { max_bytes } =
+            &self.action
+            && (boundary != Boundary::BeforeStop || !(1..=1_048_576).contains(max_bytes))
         {
-            if boundary != Boundary::BeforeStop || !(1..=1_048_576).contains(max_bytes) {
-                return Err(Error::Composition(
-                    "text continuation is limited to before_stop and a 1 MiB buffer".into(),
-                ));
-            }
+            return Err(Error::Composition(
+                "text continuation is limited to before_stop and a 1 MiB buffer".into(),
+            ));
         }
         if matches!(self.action, StageAction::Pause { .. }) && self.data.is_some() {
             return Err(Error::Composition(

@@ -43,7 +43,7 @@ async fn listing(
     Query(query): Query<BTreeMap<String, String>>,
 ) -> Response {
     state.reads.fetch_add(1, Ordering::SeqCst);
-    if query.get("slow").is_some() {
+    if query.contains_key("slow") {
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
     assert_eq!(

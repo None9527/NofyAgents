@@ -469,7 +469,7 @@ impl StdioChannel for Channel {
                 &self.id,
                 &self.owner,
                 self.resource.identity(),
-                &nofy_tool_protocol::ToolCallId::new_v7().to_string(),
+                nofy_tool_protocol::ToolCallId::new_v7().as_ref(),
                 bytes,
                 false,
             )

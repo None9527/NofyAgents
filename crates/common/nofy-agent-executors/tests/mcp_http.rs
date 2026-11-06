@@ -147,13 +147,14 @@ async fn pure_binding_json_session_stable_snapshot_credentials_and_exact_remote_
             .is_err()
     );
     assert_eq!(server.state.calls.load(Ordering::SeqCst), 1);
-    let requests = server.state.requests.lock().unwrap();
-    assert_eq!(requests[0].0["method"], "initialize");
-    assert_eq!(requests[1].0["method"], "notifications/initialized");
-    assert_eq!(requests[2].0["method"], "tools/list");
-    assert_eq!(requests.last().unwrap().0["method"], "tools/call");
-    assert_eq!(credentials.load(Ordering::SeqCst), requests.len());
-    drop(requests);
+    {
+        let requests = server.state.requests.lock().unwrap();
+        assert_eq!(requests[0].0["method"], "initialize");
+        assert_eq!(requests[1].0["method"], "notifications/initialized");
+        assert_eq!(requests[2].0["method"], "tools/list");
+        assert_eq!(requests.last().unwrap().0["method"], "tools/call");
+        assert_eq!(credentials.load(Ordering::SeqCst), requests.len());
+    }
     drop(first);
     drop(second);
     wait_count(&server.state.closed, 2).await;

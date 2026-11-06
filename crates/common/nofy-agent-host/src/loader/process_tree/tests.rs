@@ -1,4 +1,5 @@
 //! Physical controller tests run in their own transient delegated user service.
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 use std::{
     fs,
@@ -97,10 +98,10 @@ fn python(job: &Job, source: &str) -> std::process::Child {
 fn wait_file(path: &Path) -> Value {
     let deadline = std::time::Instant::now() + Duration::from_secs(10);
     loop {
-        if let Ok(bytes) = fs::read(path) {
-            if let Ok(value) = serde_json::from_slice(&bytes) {
-                return value;
-            }
+        if let Ok(bytes) = fs::read(path)
+            && let Ok(value) = serde_json::from_slice(&bytes)
+        {
+            return value;
         }
         assert!(
             std::time::Instant::now() < deadline,

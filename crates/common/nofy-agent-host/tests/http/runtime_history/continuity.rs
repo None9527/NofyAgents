@@ -83,7 +83,10 @@ async fn scoped(host: &KernelHost, system: &str, root: &str) -> Option<BudgetSco
     }
     let prepared = host.control().prepare(document.clone()).unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let resolved = prepared.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = prepared
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("governance profile")
     };

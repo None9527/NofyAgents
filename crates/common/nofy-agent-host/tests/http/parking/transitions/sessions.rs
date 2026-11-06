@@ -343,20 +343,21 @@ async fn live_config_handoff_runs_queued_native_turns_and_recovers_a_crashed_see
         assert_eq!(models.load(Ordering::SeqCst), 1);
         assert_eq!(effects.load(Ordering::SeqCst), 1);
         assert_eq!(hooks.load(Ordering::SeqCst), 1);
-        let seen = requests.lock().unwrap();
-        assert_eq!(seen.len(), 3);
-        assert_eq!(seen[1]["temperature"], 0.25);
-        assert!(
-            seen[1]["messages"]
-                .to_string()
-                .contains("preserved queued input")
-        );
-        assert!(
-            seen[1]["messages"]
-                .to_string()
-                .contains("live prompt version two")
-        );
-        drop(seen);
+        {
+            let seen = requests.lock().unwrap();
+            assert_eq!(seen.len(), 3);
+            assert_eq!(seen[1]["temperature"], 0.25);
+            assert!(
+                seen[1]["messages"]
+                    .to_string()
+                    .contains("preserved queued input")
+            );
+            assert!(
+                seen[1]["messages"]
+                    .to_string()
+                    .contains("live prompt version two")
+            );
+        }
         let after = host.store().inspect(&scope).await.unwrap().unwrap();
         assert_eq!(after.used.model_calls, 4);
         assert_eq!(after.reserved.model_calls, 0);

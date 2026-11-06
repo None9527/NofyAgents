@@ -69,7 +69,7 @@ impl HookHandler for ExecutorHandler {
     async fn handle(&self, event: &HookEvent, context: &RunContext) -> Result<HookDecision, Error> {
         // Keep call IDs bounded even though an event's durable identity is a
         // canonical tuple. The complete event identity remains in the payload.
-        let ctx = ToolCallContextForHook::new(event, context)?;
+        let ctx = ToolCallContextForHook::build(event, context)?;
         let call = ToolCall {
             id: ctx.call_id.as_str().into(),
             name: self.tool.clone(),
@@ -116,7 +116,7 @@ impl HookHandler for ExecutorHandler {
 }
 struct ToolCallContextForHook;
 impl ToolCallContextForHook {
-    fn new(
+    fn build(
         event: &HookEvent,
         context: &RunContext,
     ) -> Result<nofy_tool_runtime::ToolCallContext, Error> {

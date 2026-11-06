@@ -734,6 +734,62 @@ impl Drop for ProcessGroup {
     }
 }
 
+/// A child process together with the process group that holds its whole tree.
+///
+/// This is the one place that starts and owns a short-lived tool child
+/// (`Command::spawn` is otherwise disallowed by `clippy.toml`). Dropping the
+/// value kills the group, grandchildren included, and then the direct child, so
+/// a cancelled or panicking caller cannot leave a tree behind. [`ProcessGroup`]
+/// has no `Drop` of its own on Unix, so this `Drop` is what reaches descendants.
+///
+/// Callers keep waiting for and reading from [`child`](Self::child) as usual.
+pub struct OwnedChild {
+    pub child: tokio::process::Child,
+    group: ProcessGroup,
+}
+
+/// Why [`OwnedChild::spawn`] failed. The child, if it started, has been killed.
+#[derive(Debug)]
+pub enum OwnedChildError {
+    /// The command could not be started.
+    Spawn(io::Error),
+    /// The process group could not be created.
+    Group(io::Error),
+    /// The child could not be placed in its process group.
+    Attach(io::Error),
+}
+
+impl OwnedChild {
+    /// Start `command` and enrol the child in a new process group.
+    ///
+    /// Configure `command` first (`detach_command`, sandbox preparation): this
+    /// only adds `kill_on_drop` and owns the result.
+    pub fn spawn(command: &mut tokio::process::Command) -> Result<Self, OwnedChildError> {
+        command.kill_on_drop(true);
+        #[allow(clippy::disallowed_methods)] // this type is the owner
+        let mut child = command.spawn().map_err(OwnedChildError::Spawn)?;
+        let mut group = match ProcessGroup::new() {
+            Ok(group) => group,
+            Err(error) => {
+                let _ = child.start_kill();
+                return Err(OwnedChildError::Group(error));
+            }
+        };
+        if let Err(error) = group.attach(&child) {
+            let _ = child.start_kill();
+            return Err(OwnedChildError::Attach(error));
+        }
+        Ok(Self { child, group })
+    }
+}
+
+impl Drop for OwnedChild {
+    fn drop(&mut self) {
+        let _ = self.group.kill();
+        let _ = self.child.start_kill();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Environment variable helpers
 // ---------------------------------------------------------------------------

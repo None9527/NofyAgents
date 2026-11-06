@@ -30,13 +30,13 @@ fn key(repository: &str, name: &str, version: &str) -> Result<String> {
     Ok(format!("{repository}/{name}@{version}"))
 }
 fn plain(path: &Path) -> Result<()> {
-    if let Ok(m) = path.symlink_metadata() {
-        if !m.is_file() || m.file_type().is_symlink() {
-            return Err(Error::new(
-                "local_io",
-                "module store entry is not a regular file",
-            ));
-        }
+    if let Ok(m) = path.symlink_metadata()
+        && (!m.is_file() || m.file_type().is_symlink())
+    {
+        return Err(Error::new(
+            "local_io",
+            "module store entry is not a regular file",
+        ));
     }
     Ok(())
 }
@@ -178,10 +178,10 @@ impl ModuleStore {
         let mut catalog = self.read()?;
         let before = catalog.repositories.get(repository);
         expected(before, revision)?;
-        if let Some(before) = before {
-            if before.origin == origin {
-                return Ok(before.clone());
-            }
+        if let Some(before) = before
+            && before.origin == origin
+        {
+            return Ok(before.clone());
         }
         let view = RepositoryView {
             repository: repository.into(),

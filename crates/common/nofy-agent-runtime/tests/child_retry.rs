@@ -126,19 +126,20 @@ fn agent(name: &str, model: Arc<dyn Model>, tool: ToolEntry) -> Agent {
 fn context() -> RunContext {
     RunContext::new("thread", "root")
 }
+type SetupParts = (
+    CompiledAgent,
+    Arc<AtomicUsize>,
+    Arc<Mutex<Vec<ModelRequest>>>,
+    Arc<AtomicUsize>,
+    Arc<GovernanceProfile>,
+);
 fn setup(
     store: &SqliteStore,
     nested: bool,
     failures: usize,
     model_limit: u64,
     events: Option<Arc<Mutex<Vec<HookEvent>>>>,
-) -> (
-    CompiledAgent,
-    Arc<AtomicUsize>,
-    Arc<Mutex<Vec<ModelRequest>>>,
-    Arc<AtomicUsize>,
-    Arc<GovernanceProfile>,
-) {
+) -> SetupParts {
     let effects = Arc::new(AtomicUsize::new(0));
     let requests = Arc::new(Mutex::new(Vec::new()));
     let parents = Arc::new(AtomicUsize::new(0));
@@ -462,13 +463,15 @@ async fn repeated_failures_have_distinct_control_hooks_and_keep_the_same_pending
         serde_json::to_value(&seen[3]).unwrap()
     );
     assert_eq!(effects.load(Ordering::SeqCst), 1);
-    let events = events.lock().unwrap();
-    assert_eq!(events.iter().filter(|e| e.name == "turn_error").count(), 2);
-    let statuses = events
-        .iter()
-        .filter(|e| e.name == "subagent_finished")
-        .map(|e| e.payload["status"].as_str().unwrap().to_string())
-        .collect::<Vec<_>>();
+    let statuses = {
+        let events = events.lock().unwrap();
+        assert_eq!(events.iter().filter(|e| e.name == "turn_error").count(), 2);
+        events
+            .iter()
+            .filter(|e| e.name == "subagent_finished")
+            .map(|e| e.payload["status"].as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
     assert_eq!(
         statuses,
         vec![
@@ -810,20 +813,21 @@ mod workflows {
     fn spec(id: &str, nodes: Vec<Value>, output: Value) -> Value {
         json!({"reference":reference(id),"nodes":nodes,"output":output,"parallelism":4,"input_schema":true,"output_schema":true})
     }
-    fn setup_graph(
-        store: &SqliteStore,
-        shape: &str,
-        pause: bool,
-        failures: usize,
-        events: Arc<Mutex<Vec<HookEvent>>>,
-    ) -> (
+    type GraphParts = (
         CompiledAgent,
         Arc<AtomicUsize>,
         Arc<AtomicUsize>,
         Arc<AtomicUsize>,
         Arc<Mutex<Vec<ModelRequest>>>,
         Arc<GovernanceProfile>,
-    ) {
+    );
+    fn setup_graph(
+        store: &SqliteStore,
+        shape: &str,
+        pause: bool,
+        failures: usize,
+        events: Arc<Mutex<Vec<HookEvent>>>,
+    ) -> GraphParts {
         let mut registry = ModuleRegistry::default();
         let effects = Arc::new(AtomicUsize::new(0));
         let peers = Arc::new(AtomicUsize::new(0));
@@ -1329,12 +1333,7 @@ mod workflows {
             }
         }
     }
-    fn setup_hook(
-        store: &SqliteStore,
-        event: &str,
-        failures: usize,
-        pause: bool,
-    ) -> (
+    type HookParts = (
         CompiledAgent,
         Arc<AtomicUsize>,
         Arc<AtomicUsize>,
@@ -1342,7 +1341,8 @@ mod workflows {
         Arc<AtomicUsize>,
         Arc<Mutex<Vec<ModelRequest>>>,
         ModuleRegistry,
-    ) {
+    );
+    fn setup_hook(store: &SqliteStore, event: &str, failures: usize, pause: bool) -> HookParts {
         use nofy_agent_runtime::workflow::modules::*;
         let mut registry = ModuleRegistry::default();
         let effects = Arc::new(AtomicUsize::new(0));

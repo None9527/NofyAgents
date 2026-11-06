@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use nofy_agent_host::{HostError, credentials::FileCredentials};
 use nofy_agent_runtime::control::ControlError;
 use nofy_agent_runtime::credentials::CredentialProvider;

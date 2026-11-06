@@ -542,35 +542,35 @@ fn render(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
         ready: Default::default(),
         active: Default::default(),
     };
-    if let Node::Object(root) = &tree {
-        if let Some(Node::Array(modules)) = root.get("modules") {
-            for module in modules {
-                let Node::Object(fields) = module else {
-                    return Err(Error::new("local_input", "module must be an object"));
-                };
-                match fields.get("reference") {
-                    Some(Node::Ref(id)) => {
-                        if versions
-                            .definitions
-                            .insert(id.clone(), module.clone())
-                            .is_some()
-                        {
-                            return Err(Error::new("local_input", "duplicate source module name"));
-                        }
+    if let Node::Object(root) = &tree
+        && let Some(Node::Array(modules)) = root.get("modules")
+    {
+        for module in modules {
+            let Node::Object(fields) = module else {
+                return Err(Error::new("local_input", "module must be an object"));
+            };
+            match fields.get("reference") {
+                Some(Node::Ref(id)) => {
+                    if versions
+                        .definitions
+                        .insert(id.clone(), module.clone())
+                        .is_some()
+                    {
+                        return Err(Error::new("local_input", "duplicate source module name"));
                     }
-                    Some(reference) => {
-                        let value = plain(reference.clone())?;
-                        let id = text(&value, "id")?;
-                        if versions.ready.contains_key(id) {
-                            return Err(Error::new(
-                                "local_input",
-                                "ambiguous native module IDs; use explicit JSON references",
-                            ));
-                        }
-                        versions.ready.insert(id.into(), value);
-                    }
-                    None => return Err(Error::new("local_input", "module reference missing")),
                 }
+                Some(reference) => {
+                    let value = plain(reference.clone())?;
+                    let id = text(&value, "id")?;
+                    if versions.ready.contains_key(id) {
+                        return Err(Error::new(
+                            "local_input",
+                            "ambiguous native module IDs; use explicit JSON references",
+                        ));
+                    }
+                    versions.ready.insert(id.into(), value);
+                }
+                None => return Err(Error::new("local_input", "module reference missing")),
             }
         }
     }
@@ -757,11 +757,11 @@ pub(crate) fn module_dependencies(value: &Value) -> BTreeSet<String> {
             if m.len() == 1 && m.contains_key("$literal") {
                 return;
             }
-            if m.len() == 1 {
-                if let Some(id) = m.get("$module").and_then(Value::as_str) {
-                    out.insert(id.into());
-                    return;
-                }
+            if m.len() == 1
+                && let Some(id) = m.get("$module").and_then(Value::as_str)
+            {
+                out.insert(id.into());
+                return;
             }
             for child in m.values() {
                 walk(child, out)

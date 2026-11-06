@@ -119,11 +119,31 @@ impl SqliteStore {
         crate::system::bounded_name(root)?;
         let root = root.to_owned();
         self.transaction(move |tx| {
-            let row: Option<(String,u64,Option<String>,Option<String>,Option<String>,u64,bool,u32)> = tx.query_row(
+            // One field per SELECT column, in column order.
+            struct RootRow {
+                thread_id: String,
+                revision: u64,
+                call: Option<String>,
+                front: Option<String>,
+                owner: Option<String>,
+                epoch: u64,
+                composition: bool,
+                version: u32,
+            }
+            let row = tx.query_row(
                 "SELECT json_extract(r.payload,'$.thread_id'),p.revision,json_extract(p.payload,'$.state.in_flight'),json_extract(p.payload,'$.state.pending_tools[0]'),json_extract(p.payload,'$.state.execution_run_id'),COALESCE(json_extract(p.payload,'$.state.model_sequence'),0),json_extract(p.payload,'$.composition')=json_extract(r.payload,'$.composition'),json_extract(p.payload,'$.version')
                 FROM agent_runtime_runs r JOIN agent_runtime_threads t ON t.key=r.thread_key AND t.active_run=r.id JOIN agent_runtime_checkpoints p ON p.key=r.thread_key WHERE r.id=?1",[&root],
-                |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?))).optional().map_err(db_error)?;
-            let Some((thread_id,revision,call,front,owner,epoch,composition,version)) = row else {return Ok(None)};
+                |r| Ok(RootRow {
+                    thread_id: r.get(0)?,
+                    revision: r.get(1)?,
+                    call: r.get(2)?,
+                    front: r.get(3)?,
+                    owner: r.get(4)?,
+                    epoch: r.get(5)?,
+                    composition: r.get(6)?,
+                    version: r.get(7)?,
+                })).optional().map_err(db_error)?;
+            let Some(RootRow { thread_id, revision, call, front, owner, epoch, composition, version }) = row else {return Ok(None)};
             if owner.as_deref() != Some(&root) || !composition || version != 1 {return Err(Error::Checkpoint("root recovery checkpoint identity changed".into()));}
             let Some(call) = call else {return Ok(None)};
             let call:ToolCall = serde_json::from_str(&call).map_err(db_error)?;

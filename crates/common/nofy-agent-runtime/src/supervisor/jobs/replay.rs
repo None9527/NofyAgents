@@ -117,12 +117,12 @@ impl RunSupervisor {
                 ));
             }
         }
-        if let Some(command) = cancellation {
-            if !controllers.accepted_cancel(command).await? {
-                return Err(Error::Checkpoint(
-                    "closed job cannot accept a new cancel resume".into(),
-                ));
-            }
+        if let Some(command) = cancellation
+            && !controllers.accepted_cancel(command).await?
+        {
+            return Err(Error::Checkpoint(
+                "closed job cannot accept a new cancel resume".into(),
+            ));
         }
         if let Some(through) = input.resume_cancel_through {
             use crate::mailbox::InputInbox;

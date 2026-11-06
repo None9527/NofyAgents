@@ -301,14 +301,15 @@ async fn three_external_protocols_stream_and_replay_signed_unsigned_history_thro
                 .output,
             "next"
         );
-        let requests = captured.lock().unwrap();
-        assert_eq!(requests.len(), 2);
-        let text = requests[1].to_string();
+        let text = {
+            let requests = captured.lock().unwrap();
+            assert_eq!(requests.len(), 2);
+            requests[1].to_string()
+        };
         assert!(text.contains("18446744073709551615"), "{profile}");
         if profile != "chat_completions" {
             assert!(text.contains("sealed"), "{profile}");
         }
-        drop(requests);
         let loader = kernel.loader().clone();
         assert_eq!(loader.model_status().started, 2);
         assert_eq!(loader.model_status().in_flight, 0);

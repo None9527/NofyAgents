@@ -49,6 +49,9 @@ impl InputAddress {
     }
 }
 
+// Public wire type: boxing the snapshot would change every constructor and
+// match site of this crate's API for a queue item that is not on a hot path.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MailInput {

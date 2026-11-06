@@ -376,6 +376,8 @@ async fn run(
         else {command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());}
         let gate=io::gate(&mut command).map_err(unavailable)?;
         let broker=launch.profile.session.as_ref().and_then(|s|s.limits.network_proxy.clone()).map(|config|network::Broker::prepare(&mut command,config)).transpose()?;
+        // Owner: this session task (kill_on_drop; stop/timeout/handoff failure all kill and wait).
+        #[allow(clippy::disallowed_methods)]
         let mut child=command.spawn().map_err(unavailable)?;
         drop(command);
         if let Some(broker)=broker {

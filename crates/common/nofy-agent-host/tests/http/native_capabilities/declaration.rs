@@ -100,7 +100,10 @@ fn quota(host: &KernelHost, source: Value, id: &str) -> BudgetScope {
         .prepare(serde_json::from_value(source).unwrap())
         .unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let resolved = compiled.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = compiled
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("quota")
     };

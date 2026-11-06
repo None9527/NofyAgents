@@ -227,20 +227,21 @@ async fn live_embedding_model_switch_and_rollback_preserve_state_and_the_origina
         assert_eq!(result["outcome"]["Completed"]["output"], "SATURN-RETRIEVED");
         assert_eq!(wire.effects.load(Ordering::SeqCst), 1);
         assert_eq!(canonical(dir.path()), original);
-        let requests = wire.embeddings.lock().unwrap();
-        let last = requests.last().unwrap();
-        assert_eq!(
-            last["model"],
-            if rollback {
-                "local-embedding"
-            } else {
-                "alternate-embedding"
-            },
-            "embeddings: {requests:?}; primary requests: {:?}; outcome: {result}",
-            wire.chats.lock().unwrap()
-        );
-        assert_eq!(requests.len(), if rollback { 3 } else { 4 });
-        drop(requests);
+        {
+            let requests = wire.embeddings.lock().unwrap();
+            let last = requests.last().unwrap();
+            assert_eq!(
+                last["model"],
+                if rollback {
+                    "local-embedding"
+                } else {
+                    "alternate-embedding"
+                },
+                "embeddings: {requests:?}; primary requests: {:?}; outcome: {result}",
+                wire.chats.lock().unwrap()
+            );
+            assert_eq!(requests.len(), if rollback { 3 } else { 4 });
+        }
         stop.cancel();
         worker.await.unwrap();
     }

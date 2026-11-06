@@ -482,10 +482,12 @@ async fn tools_and_future_hooks_update_and_recover_without_replaying_old_effects
         assert!(matches!(done,RunOutcome::Completed {ref output,..} if output=="updated done"));
         assert_eq!(next.effects.load(Ordering::SeqCst), 1);
         assert_eq!(gates.calls.load(Ordering::SeqCst), 1);
-        let seen = next.requests.lock().unwrap();
-        assert_eq!(seen.len(), 2);
-        assert!(seen[0].tools.iter().any(|t| t.function.name == "updated"));
-        assert!(!seen[0].tools.iter().any(|t| t.function.name == "append"));
+        {
+            let seen = next.requests.lock().unwrap();
+            assert_eq!(seen.len(), 2);
+            assert!(seen[0].tools.iter().any(|t| t.function.name == "updated"));
+            assert!(!seen[0].tools.iter().any(|t| t.function.name == "append"));
+        }
         assert_eq!(
             next.hooks.lock().unwrap().as_slice(),
             ["before_model", "after_tool", "before_model", "turn_done"]

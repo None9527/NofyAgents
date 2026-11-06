@@ -238,10 +238,9 @@ impl Agent {
         .await;
         if matches!(&result, Ok(RunOutcome::Completed { .. }))
             && let Some(scope) = task_scope
+            && let Err(error) = scope.finish().await
         {
-            if let Err(error) = scope.finish().await {
-                result = Err(error);
-            }
+            result = Err(error);
         }
         // Drop every owned future before the caller can release the root lease.
         if let Some(owner) = task_owner {

@@ -186,49 +186,6 @@ fn opaque_turn_boundary(messages: &[crate::Message], end: usize) -> Result<bool,
     }
     Ok(opaque)
 }
-
-#[cfg(test)]
-mod native_history_boundaries {
-    use super::*;
-    #[test]
-    fn opaque_turns_are_preserved_whole_without_guessing_their_native_calls() {
-        use crate::Message;
-        let messages = vec![
-            Message::System {
-                content: "system".into(),
-            },
-            Message::User {
-                content: "first".into(),
-            },
-            Message::Opaque {
-                provider: "declared.protocol".into(),
-                value: serde_json::json!({"sealed":"native tool call"}),
-            },
-            Message::Tool {
-                call_id: "native-call".into(),
-                content: "actual result".into(),
-                is_error: false,
-            },
-            Message::Opaque {
-                provider: "declared.protocol".into(),
-                value: serde_json::json!({"sealed":"native answer"}),
-            },
-            Message::User {
-                content: "second".into(),
-            },
-            Message::Assistant {
-                content: "answer".into(),
-                tool_calls: vec![],
-            },
-        ];
-        assert!(!opaque_turn_boundary(&messages, 2).unwrap());
-        for end in [3, 4] {
-            assert!(opaque_turn_boundary(&messages, end).is_err());
-        }
-        assert!(opaque_turn_boundary(&messages, 5).unwrap());
-        assert!(opaque_turn_boundary(&messages, messages.len()).unwrap());
-    }
-}
 pub(super) async fn prepare(
     store: &SqliteStore,
     source: ForkSource,
@@ -357,4 +314,47 @@ fn lineage_root(tx: &rusqlite::Transaction<'_>, session: &str) -> Result<(String
     Err(Error::Checkpoint(
         "session lineage exceeds supported depth (128)".into(),
     ))
+}
+
+#[cfg(test)]
+mod native_history_boundaries {
+    use super::*;
+    #[test]
+    fn opaque_turns_are_preserved_whole_without_guessing_their_native_calls() {
+        use crate::Message;
+        let messages = vec![
+            Message::System {
+                content: "system".into(),
+            },
+            Message::User {
+                content: "first".into(),
+            },
+            Message::Opaque {
+                provider: "declared.protocol".into(),
+                value: serde_json::json!({"sealed":"native tool call"}),
+            },
+            Message::Tool {
+                call_id: "native-call".into(),
+                content: "actual result".into(),
+                is_error: false,
+            },
+            Message::Opaque {
+                provider: "declared.protocol".into(),
+                value: serde_json::json!({"sealed":"native answer"}),
+            },
+            Message::User {
+                content: "second".into(),
+            },
+            Message::Assistant {
+                content: "answer".into(),
+                tool_calls: vec![],
+            },
+        ];
+        assert!(!opaque_turn_boundary(&messages, 2).unwrap());
+        for end in [3, 4] {
+            assert!(opaque_turn_boundary(&messages, end).is_err());
+        }
+        assert!(opaque_turn_boundary(&messages, 5).unwrap());
+        assert!(opaque_turn_boundary(&messages, messages.len()).unwrap());
+    }
 }

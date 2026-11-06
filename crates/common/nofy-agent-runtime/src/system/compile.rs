@@ -57,17 +57,13 @@ fn prepare_program(
         ),
     }
 }
-fn resolve(
-    document: &SystemDocument,
-    host: &ModuleRegistry,
-) -> Result<
-    (
-        BTreeMap<String, CompiledProgram>,
-        Vec<ResolvedModule>,
-        ModuleRegistry,
-    ),
-    Error,
-> {
+type Resolved = (
+    BTreeMap<String, CompiledProgram>,
+    Vec<ResolvedModule>,
+    ModuleRegistry,
+);
+
+fn resolve(document: &SystemDocument, host: &ModuleRegistry) -> Result<Resolved, Error> {
     let mut registry = host.clone();
     for reference in &document.required_policies {
         registry.require_policy(reference.clone());

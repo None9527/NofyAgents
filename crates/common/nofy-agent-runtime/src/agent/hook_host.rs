@@ -239,16 +239,15 @@ impl AgentHost<'_> {
                         .checkpoint
                         .as_ref()
                         .is_some_and(|store| store.is_durable())
-                {
-                    if let Some(receipt) = self.revision.and_then(|revision| {
+                    && let Some(receipt) = self.revision.and_then(|revision| {
                         crate::memory::DurableTurnReceipt::committed(
                             &context,
                             &self.state,
                             revision,
                         )
-                    }) {
-                        context.capabilities.insert(receipt);
-                    }
+                    })
+                {
+                    context.capabilities.insert(receipt);
                 }
                 match bus
                     .emit(&runtime_owner(), name, operation, payload, &context)
@@ -358,16 +357,15 @@ impl AgentHost<'_> {
             Message::User { .. } => {}
             Message::UserParts { content } if !content.is_empty() => {
                 for part in content {
-                    if let crate::InputPart::Image { url } = part {
-                        if !self.agent.model_capabilities().image_input
+                    if let crate::InputPart::Image { url } = part
+                        && (!self.agent.model_capabilities().image_input
                             || !(url.starts_with("http://")
                                 || url.starts_with("https://")
-                                || url.starts_with("data:image/"))
-                        {
-                            return Err(Error::Composition(
-                                "hook produced unsupported image input".into(),
-                            ));
-                        }
+                                || url.starts_with("data:image/")))
+                    {
+                        return Err(Error::Composition(
+                            "hook produced unsupported image input".into(),
+                        ));
                     }
                 }
             }

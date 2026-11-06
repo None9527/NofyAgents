@@ -1,28 +1,21 @@
-# Clippy config for crates/codegen/**.
-#
-# NOTE: clippy uses the NEAREST clippy.toml (no merging), so this file must
-# duplicate any settings from the repo-root //clippy.toml.
+# Workspace clippy configuration (clippy reads the nearest clippy.toml only).
 
-# TODO: remove after https://github.com/hyperium/tonic/issues/2253 fixed.
+# nofy_agent_runtime::Error is larger than clippy's default 128-byte limit, so
+# every `Result<_, Error>` would trip `result_large_err`. 256 is a deliberate
+# ceiling: raise it only with a reason, or box the error to shrink it.
 large-error-threshold = 256
 
-# Ban raw canonicalize: on Windows it returns verbatim `\\?\C:\...` paths that
-# break external tools, leak into prompts, and poison path-equality keys.
-# `dunce::canonicalize` keeps the verbatim form for paths it cannot simplify
-# (over 260 chars, device names), so containment checks there fail closed.
+# Ban raw child-process spawning: a child nobody owns outlives the work that
+# started it. Every spawn site must carry
+# `#[allow(clippy::disallowed_methods)] // <who reaps/kills the child>` naming
+# the owner that waits on, kills, or deliberately detaches it. This keeps the
+# set of process-creating sites reviewable.
 #
-# Ban raw child-process spawning: an unenrolled child outlives the session that
-# started it, while an enrolled one dies with its scope. Allow with a reason
-# where a child is waited on or deliberately detached.
-#
-# Enforced by `cargo clippy` and `just lint-rs`. The Bazel lint aspect pins the
-# repo-root config instead, so crates this file does not reach carry a
-# crate-level allow.
+# `canonicalize` is intentionally not banned: the workspace targets Linux only
+# (see rust-toolchain.toml), where `std::fs::canonicalize` and
+# `dunce::canonicalize` are identical. Re-add that rule if a Windows target is
+# ever introduced.
 disallowed-methods = [
-    { path = "std::fs::canonicalize", reason = "returns \\\\?\\ verbatim paths on Windows; use dunce::canonicalize" },
-    { path = "std::path::Path::canonicalize", reason = "returns \\\\?\\ verbatim paths on Windows; use dunce::canonicalize" },
-    { path = "tokio::fs::canonicalize", reason = "returns \\\\?\\ verbatim paths on Windows; use nofy_tools::util::fs helpers or spawn_blocking + dunce::canonicalize" },
-    { path = "std::process::Command::spawn", reason = "an unenrolled child outlives its session; use nofy_tty_utils::ProcessScope::enroll" },
-    { path = "tokio::process::Command::spawn", reason = "an unenrolled child outlives its session; use nofy_tty_utils::ProcessScope::enroll" },
-    { path = "portable_pty::SlavePty::spawn_command", reason = "an unenrolled pty child outlives its session; enroll the shell with nofy_tty_utils::ProcessScope::enroll_terminal_pid" },
+    { path = "std::process::Command::spawn", reason = "annotate the owner that reaps or kills this child, or enroll it via nofy_tty_utils::ProcessScope" },
+    { path = "tokio::process::Command::spawn", reason = "annotate the owner that reaps or kills this child, or enroll it via nofy_tty_utils::ProcessScope" },
 ]

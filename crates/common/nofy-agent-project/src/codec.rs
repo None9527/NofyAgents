@@ -149,13 +149,13 @@ impl Source {
             file.decode()?;
             let mut parent = std::path::Path::new(path).parent();
             while let Some(p) = parent {
-                if let Some(p) = p.to_str().filter(|p| !p.is_empty()) {
-                    if self.files.contains_key(p) {
-                        return Err(Error::new(
-                            "local_input",
-                            "source file path is also a directory prefix",
-                        ));
-                    }
+                if let Some(p) = p.to_str().filter(|p| !p.is_empty())
+                    && self.files.contains_key(p)
+                {
+                    return Err(Error::new(
+                        "local_input",
+                        "source file path is also a directory prefix",
+                    ));
                 }
                 parent = p.parent();
             }

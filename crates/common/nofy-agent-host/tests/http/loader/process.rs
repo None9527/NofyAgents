@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 use std::path::Path;
 use tokio::io::AsyncBufReadExt;
@@ -57,10 +58,9 @@ pub(super) async fn process_pid(directory: &Path) -> u32 {
         loop {
             for entry in std::fs::read_dir(directory.join("loader/scratch")).unwrap() {
                 if let Ok(pid) = std::fs::read_to_string(entry.unwrap().path().join("process.pid"))
+                    && let Ok(pid) = pid.parse()
                 {
-                    if let Ok(pid) = pid.parse() {
-                        return pid;
-                    }
+                    return pid;
                 }
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -260,7 +260,7 @@ async fn shipped_resident_binary_updates_external_tool_and_hook_in_place_and_res
         source["modules"]
             .as_array_mut()
             .unwrap()
-            .extend(chat["modules"].as_array_mut().unwrap().drain(..));
+            .append(chat["modules"].as_array_mut().unwrap());
         let r = |id: &str| json!({"id":id,"version":"1"});
         let script = format!(
             "import json,sys\nv=json.load(sys.stdin)\nv['payload']['request']['messages'][0]['content']='external hook {version}'\nprint(json.dumps({{'decision':'patch','payload':v['payload']}}))\n"

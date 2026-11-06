@@ -83,12 +83,12 @@ fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
         .get("$ref")
         .and_then(Value::as_str)
         .and_then(|s| s.strip_prefix("#/$defs/"));
-    if let Some(name) = reference {
-        if !matches!(name, "Decimal" | "MaybeDecimal" | "NativeJson") {
-            return parse_property(key, &SCHEMAS["$defs"][name], s);
-        }
+    if let Some(name) = reference
+        && !matches!(name, "Decimal" | "MaybeDecimal" | "NativeJson")
+    {
+        return parse_property(key, &SCHEMAS["$defs"][name], s);
     }
-    if schema
+    if (schema
         .get("$ref")
         .and_then(Value::as_str)
         .is_some_and(|s| s.ends_with("MaybeDecimal"))
@@ -96,11 +96,10 @@ fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
         || schema
             .get("anyOf")
             .and_then(Value::as_array)
-            .is_some_and(|a| a.iter().any(|s| s["type"] == "null"))
+            .is_some_and(|a| a.iter().any(|s| s["type"] == "null")))
+        && matches!(s, "none" | "null")
     {
-        if matches!(s, "none" | "null") {
-            return Ok(Value::Null);
-        }
+        return Ok(Value::Null);
     }
     match schema.get("type").and_then(Value::as_str) {
         Some("object" | "array" | "integer" | "number" | "boolean") => Ok(serde_json::from_str(s)?),
@@ -166,13 +165,13 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     let second = option(m, "arg2");
     let mut project = option(m, "project");
     let positional = if op.starts_with("project.") {
-        if let Some(first) = first.clone() {
-            if project.replace(first).is_some() {
-                return Err(Error::new(
-                    "local_input",
-                    "project path provided more than once",
-                ));
-            }
+        if let Some(first) = first.clone()
+            && project.replace(first).is_some()
+        {
+            return Err(Error::new(
+                "local_input",
+                "project path provided more than once",
+            ));
         }
         None
     } else if op.starts_with("agent.") && op != "agent.list" {
@@ -196,12 +195,12 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             _ => None,
         }
     };
-    if !op.starts_with("project.") {
-        if let Some(first) = first {
-            let key = positional
-                .ok_or_else(|| Error::new("local_input", "unexpected positional argument"))?;
-            assign(&mut value, key, json!(first))?;
-        }
+    if !op.starts_with("project.")
+        && let Some(first) = first
+    {
+        let key = positional
+            .ok_or_else(|| Error::new("local_input", "unexpected positional argument"))?;
+        assign(&mut value, key, json!(first))?;
     }
     if let Some(second) = second {
         let key = if op == "session.binding" {
@@ -341,16 +340,14 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             value["set"] = json!({});
         }
     }
-    if op == "agent.tool.add" {
-        if value.get("slot").is_none() {
-            value["slot"] = json!("tools");
-        }
+    if op == "agent.tool.add" && value.get("slot").is_none() {
+        value["slot"] = json!("tools");
     }
-    if op == "agent.configure" {
-        if let Some(path) = option(m, "settings") {
-            assign(&mut value, "settings", serde_json::from_str(&read(&path)?)?)?;
-            stdin |= path == "-";
-        }
+    if op == "agent.configure"
+        && let Some(path) = option(m, "settings")
+    {
+        assign(&mut value, "settings", serde_json::from_str(&read(&path)?)?)?;
+        stdin |= path == "-";
     }
     if op == "repository.add" {
         let directory = option(m, "host-directory");
@@ -380,13 +377,13 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             value["expected_revision"] = Value::Null;
         }
     }
-    if op == "module.publish" {
-        if let Some(path) = option(m, "directory") {
-            let source = nofy_agent_project::repository::load_package_directory(&absolute(
-                PathBuf::from(path),
-            )?)?;
-            assign(&mut value, "source", serde_json::to_value(source)?)?;
-        }
+    if op == "module.publish"
+        && let Some(path) = option(m, "directory")
+    {
+        let source = nofy_agent_project::repository::load_package_directory(&absolute(
+            PathBuf::from(path),
+        )?)?;
+        assign(&mut value, "source", serde_json::to_value(source)?)?;
     }
     if matches!(
         op,
@@ -478,10 +475,9 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
         && !local_create
         && value.get("project_id").is_none()
         && value.get("target").is_none()
+        && let Some(id) = option(m, "project_id")
     {
-        if let Some(id) = option(m, "project_id") {
-            value["project_id"] = json!(id);
-        }
+        value["project_id"] = json!(id);
     }
     if op == "session.start" && value.get("expected_session_revision").is_none() {
         value["expected_session_revision"] = Value::Null;
@@ -489,22 +485,20 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     if props.contains_key("command_id") && value.get("command_id").is_none() {
         value["command_id"] = json!(uuid::Uuid::new_v4().to_string());
     }
-    if op == "agent.apply" {
-        if value.get("system").is_none() {
-            let built = engine
-                .execute(
-                    "agent.build",
-                    json!({"agent":value["agent"],"target":value["target"]}),
-                )
-                .await;
-            if built.is_error() {
-                return Err(Error::new(
-                    "incomplete",
-                    "source must build before inferring its system name",
-                ));
-            }
-            value["system"] = built.data["system"].clone();
+    if op == "agent.apply" && value.get("system").is_none() {
+        let built = engine
+            .execute(
+                "agent.build",
+                json!({"agent":value["agent"],"target":value["target"]}),
+            )
+            .await;
+        if built.is_error() {
+            return Err(Error::new(
+                "incomplete",
+                "source must build before inferring its system name",
+            ));
         }
+        value["system"] = built.data["system"].clone();
     }
     if props.contains_key("expected_generation") && value.get("expected_generation").is_none() {
         let system = value["system"]

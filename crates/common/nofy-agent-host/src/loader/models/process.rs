@@ -49,6 +49,9 @@ impl Worker {
             environment: Default::default(),
             cache_lease: None,
         };
+        // Owner: the returned worker handle holds `child` (kill_on_drop); a
+        // failed handoff below kills and waits for it before returning.
+        #[allow(clippy::disallowed_methods)]
         let mut child = tokio::process::Command::new(helper)
             .arg(isolation::WORKER_ARG)
             .arg(serde_json::to_string(&profile).map_err(|_| failed())?)

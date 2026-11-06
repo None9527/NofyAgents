@@ -137,7 +137,16 @@ impl ServerHandler for NofyServer {
         let engine = self.engine(&context)?;
         let input = Value::Object(request.arguments.unwrap_or_default());
         let output = tokio::select! {biased;
-            _=context.ct.cancelled()=>{let mut e=Error::new(if readonly(&operation.operation){"cancelled"}else{"result_unconfirmed"},"request wait cancelled; inspect the original business IDs before retrying");e.unconfirmed=!readonly(&operation.operation);e.refs=refs_from_input(&input);Envelope::failed(&operation.operation,e)},
+            _ = context.ct.cancelled() => {
+                let read_only = readonly(&operation.operation);
+                let mut e = Error::new(
+                    if read_only { "cancelled" } else { "result_unconfirmed" },
+                    "request wait cancelled; inspect the original business IDs before retrying",
+                );
+                e.unconfirmed = !read_only;
+                e.refs = refs_from_input(&input);
+                Envelope::failed(&operation.operation, e)
+            },
             output=engine.execute(&operation.operation,input.clone())=>output,
         };
         let error = output.is_error();

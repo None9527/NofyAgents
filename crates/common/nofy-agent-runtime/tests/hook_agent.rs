@@ -82,13 +82,12 @@ impl HookHandler for Handler {
         Ok((self.apply)(event))
     }
 }
-fn handler(
-    apply: fn(&HookEvent) -> HookDecision,
-) -> (
+type HandlerParts = (
     Arc<dyn HookHandler>,
     Arc<AtomicUsize>,
     Arc<Mutex<Vec<HookEvent>>>,
-) {
+);
+fn handler(apply: fn(&HookEvent) -> HookDecision) -> HandlerParts {
     let calls = Arc::new(AtomicUsize::new(0));
     let events = Arc::new(Mutex::new(Vec::new()));
     (
@@ -365,11 +364,7 @@ async fn cancellation_inside_a_hook_is_a_cancelled_run_with_no_effect() {
     assert!(effects.lock().unwrap().is_empty());
     assert_eq!(cancelled_count.load(Ordering::SeqCst), 1);
 }
-fn handler_fn_for_cancel() -> (
-    Arc<dyn HookHandler>,
-    Arc<AtomicUsize>,
-    Arc<Mutex<Vec<HookEvent>>>,
-) {
+fn handler_fn_for_cancel() -> HandlerParts {
     handler(|_| HookDecision::Continue)
 }
 
@@ -474,9 +469,10 @@ async fn subagent_stop_hook_pauses_parent_and_resumes_completed_child_without_re
     )
     .unwrap();
     let child = agent(effects.clone(), store.clone()).with_hooks(bus);
-    let parent = nofy_agent_runtime::composition::sequence_agent("parent", &[child.clone()])
-        .unwrap()
-        .with_checkpointer(store.clone());
+    let parent =
+        nofy_agent_runtime::composition::sequence_agent("parent", std::slice::from_ref(&child))
+            .unwrap()
+            .with_checkpointer(store.clone());
     assert!(matches!(
         parent.invoke(RunInput::new("go"), context()).await.unwrap(),
         RunOutcome::Paused { .. }

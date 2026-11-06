@@ -1,4 +1,5 @@
 //! Actual external preset, selected runtime dependencies and command effects.
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 
 fn selected_image(work: &Path) -> RuntimeImage {

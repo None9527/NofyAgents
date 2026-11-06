@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 #[cfg(target_os = "linux")]
 mod fork;

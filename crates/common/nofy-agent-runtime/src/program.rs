@@ -165,6 +165,9 @@ impl CompiledProgram {
 
 /// The supervisor reads both wire formats, while RunRecord's default type and
 /// original snapshot field remain source-compatible for legacy consumers.
+// Public untagged wire type read by legacy consumers; boxing a variant would
+// break their source compatibility.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Serialize)]
 #[serde(untagged)]
 pub enum RunSnapshot {

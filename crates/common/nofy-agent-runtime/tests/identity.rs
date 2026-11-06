@@ -277,7 +277,7 @@ async fn assert_tree(store: &SqliteStore, depth: usize, scheme: IdentityScheme) 
                     .unwrap()
                     .parse()
                     .unwrap();
-                if level % 2 == 0 {
+                if level.is_multiple_of(2) {
                     assert!(child.composition.starts_with("composition-hash-v2:"));
                     assert_eq!(child.composition.len(), "composition-hash-v2:".len() + 64);
                 }
@@ -373,13 +373,14 @@ async fn deep_model_retry_uses_same_frozen_addresses_and_request() {
         ));
         assert_tree(&store, 12, scheme).await;
         assert_eq!(fixture.effects.load(Ordering::SeqCst), 1);
-        let requests = fixture.requests.lock().unwrap();
-        assert_eq!(requests.len(), 3);
-        assert_eq!(
-            serde_json::to_value(&requests[1]).unwrap(),
-            serde_json::to_value(&requests[2]).unwrap()
-        );
-        drop(requests);
+        {
+            let requests = fixture.requests.lock().unwrap();
+            assert_eq!(requests.len(), 3);
+            assert_eq!(
+                serde_json::to_value(&requests[1]).unwrap(),
+                serde_json::to_value(&requests[2]).unwrap()
+            );
+        }
         assert_eq!(summary(&store, &fixture).await.used.model_calls, 27);
         assert_eq!(summary(&store, &fixture).await.active_children, 0);
     }

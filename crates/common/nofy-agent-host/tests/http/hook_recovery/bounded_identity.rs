@@ -42,7 +42,10 @@ async fn start(
         .prepare(serde_json::from_value(doc.clone()).unwrap())
         .unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let modules = compiled.registry().resolve(&[reference.clone()]).unwrap();
+    let modules = compiled
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &modules.instances[&reference] else {
         panic!("quota")
     };

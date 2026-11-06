@@ -305,6 +305,8 @@ async fn run_command(
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     job.configure(command.as_std_mut())?;
+    // Owner: this function (kill_on_drop + `job` stop request; waited below).
+    #[allow(clippy::disallowed_methods)]
     let mut child = command.spawn().map_err(unavailable)?;
     let pipes = (child.stdin.take(), child.stdout.take(), child.stderr.take());
     let (Some(mut stdin), Some(stdout), Some(stderr)) = pipes else {
@@ -318,10 +320,10 @@ async fn run_command(
     let result = {
         let io = async {
             let input = async {
-                if let Err(error) = stdin.write_all(&input).await {
-                    if error.kind() != std::io::ErrorKind::BrokenPipe {
-                        return Err(error);
-                    }
+                if let Err(error) = stdin.write_all(&input).await
+                    && error.kind() != std::io::ErrorKind::BrokenPipe
+                {
+                    return Err(error);
                 }
                 drop(stdin);
                 Ok(())

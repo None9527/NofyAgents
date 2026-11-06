@@ -126,14 +126,15 @@ async fn external_catalog_and_isolated_context_program_update_and_rollback_throu
         assert_eq!(service.counts[4].load(Ordering::SeqCst), 1 + new_effects);
         assert_eq!(service.counts[1].load(Ordering::SeqCst), 2);
         assert!(host.loader().code_status().started >= 3);
-        let requests = service.requests.lock().unwrap();
-        let latest = requests.last().unwrap()["messages"].to_string();
+        let latest = {
+            let requests = service.requests.lock().unwrap();
+            requests.last().unwrap()["messages"].to_string()
+        };
         assert!(latest.contains(if rollback {
             "context-one"
         } else {
             "context-two"
         }));
-        drop(requests);
         stop.cancel();
         worker.await.unwrap();
     }

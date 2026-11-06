@@ -321,10 +321,9 @@ impl CompactionSampler for RuntimeSampler {
                     | Error::Cancelled
                     | Error::GovernancePaused(_)
                     | Error::Checkpoint(_)
-            ) {
-                if let Ok(mut control) = self.control.lock() {
-                    *control = Some(error);
-                }
+            ) && let Ok(mut control) = self.control.lock()
+            {
+                *control = Some(error);
             }
             // Transport retry belongs to the shared model boundary. The
             // native compactor still owns empty/degenerate-summary retries.

@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 use tokio::io::AsyncBufReadExt;
 pub(super) async fn binary(

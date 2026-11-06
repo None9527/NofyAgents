@@ -265,10 +265,10 @@ impl ModelRecovery {
         let _guard = self.evidence_lock.lock().await;
         let (revision, mut saved) = self.load_evidence().await?;
         let key = key(&receipt.ticket)?;
-        if let Some(id) = command_id {
-            if saved.commands.get(id).is_some_and(|old| old != &key) {
-                return Err(invalid("model evidence command ID reused"));
-            }
+        if let Some(id) = command_id
+            && saved.commands.get(id).is_some_and(|old| old != &key)
+        {
+            return Err(invalid("model evidence command ID reused"));
         }
         if let Some(old) = saved.receipts.get(&key) {
             if serde_json::to_value(old).map_err(invalid)?

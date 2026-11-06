@@ -58,11 +58,24 @@ pub(crate) fn read_seed(tx: &rusqlite::Transaction<'_>, run: &str) -> Result<Opt
     .transpose()
 }
 
+/// What a closed predecessor run proves for a session seed. The three strings
+/// are different digests/ids; named fields keep them from being swapped.
+struct SourceCheckpoint {
+    checkpoint: crate::Checkpoint,
+    /// Digest of the stored checkpoint payload.
+    checkpoint_digest: String,
+    /// Submission digest of the source job.
+    source_hash: String,
+    source: Saved,
+    /// Run id that currently owns the thread.
+    owner: String,
+}
+
 fn source_checkpoint(
     tx: &rusqlite::Transaction<'_>,
     binding: &Binding,
     a: &SessionTurnAdmission,
-) -> Result<Option<(crate::Checkpoint, String, String, Saved, String)>, Error> {
+) -> Result<Option<SourceCheckpoint>, Error> {
     predecessor(
         tx,
         binding,
@@ -130,7 +143,13 @@ fn source_checkpoint(
             "source is not a closed, quiescent checkpoint with its original input proof".into(),
         ));
     }
-    Ok(Some((cp, digest(payload.as_bytes()), hash, saved, owner)))
+    Ok(Some(SourceCheckpoint {
+        checkpoint: cp,
+        checkpoint_digest: digest(payload.as_bytes()),
+        source_hash: hash,
+        source: saved,
+        owner,
+    }))
 }
 
 pub(crate) fn verify_start(
@@ -228,7 +247,7 @@ impl RunSupervisor {
             if state=="cancelled" || state=="closed" || state=="abandoned" {return Ok(false);}
             let head:Option<u64>=tx.query_row("SELECT sequence FROM agent_runtime_jobs WHERE thread_key=?1 AND status NOT IN ('closed','cancelled','abandoned') ORDER BY sequence LIMIT 1",[&check.key],|r|r.get(0)).optional().map_err(db_error)?;
             if head!=Some(sequence) {return Ok(false);}
-            let Some((cp,checkpoint_digest,source_hash,source,owner))=source_checkpoint(tx,&binding,&a)? else {return Ok(false);};
+            let Some(SourceCheckpoint{checkpoint:cp,checkpoint_digest,source_hash,source,owner})=source_checkpoint(tx,&binding,&a)? else {return Ok(false);};
             let effective=transition::effective(tx,&a.command.source_run_id)?;
             if effective.as_ref().map_or(0,|v|v.revision)!=a.command.expected_source_revision {
                 return Err(Error::Checkpoint("session expected source revision changed".into()));

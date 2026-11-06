@@ -132,13 +132,12 @@ fn registry(
 fn compiled(registry: &ModuleRegistry) -> CompiledAgent {
     compile_agent(serde_json::from_value(json!({"name":"queued","model":{"id":"model","version":"1"},"prompt":{"id":"prompt","version":"1"}})).unwrap(),registry).unwrap()
 }
-fn echo(
-    gate: Option<Arc<Notify>>,
-) -> (
+type EchoParts = (
     Arc<Echo>,
     Arc<Mutex<Vec<(String, ModelRequest)>>>,
     Arc<Notify>,
-) {
+);
+fn echo(gate: Option<Arc<Notify>>) -> EchoParts {
     let seen = Arc::new(Mutex::new(Vec::new()));
     let started = Arc::new(Notify::new());
     (

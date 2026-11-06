@@ -13,6 +13,12 @@ mod journal;
 #[cfg(all(test, target_os = "linux", target_arch = "x86_64"))]
 mod tests;
 
+#[cfg(test)]
+type TestPause = (
+    Arc<tokio::sync::Notify>,
+    Arc<std::sync::Mutex<Option<std::sync::mpsc::Receiver<()>>>>,
+);
+
 #[derive(Clone)]
 pub struct ObjectStore {
     root: PathBuf,
@@ -20,10 +26,7 @@ pub struct ObjectStore {
     #[cfg(test)]
     test_exit: Option<&'static str>,
     #[cfg(test)]
-    test_pause: Option<(
-        Arc<tokio::sync::Notify>,
-        Arc<std::sync::Mutex<Option<std::sync::mpsc::Receiver<()>>>>,
-    )>,
+    test_pause: Option<TestPause>,
 }
 pub(super) struct MaintenanceLease {
     _commit: admission::CommitLease,
@@ -355,13 +358,12 @@ impl KernelHost {
             let store = host.loader.unload.clone();
             let candidate = command.clone();
             let complete = tokio::task::spawn_blocking(move || -> Result<_> {
-                if let Some(receipt) = store.replay(&candidate)? {
-                    if receipt.state == UnloadState::Complete
-                        && journal::barrier_pending(store.root.parent().expect("unload lifecycle"))?
-                            == Some(false)
-                    {
-                        return Ok(Some(receipt));
-                    }
+                if let Some(receipt) = store.replay(&candidate)?
+                    && receipt.state == UnloadState::Complete
+                    && journal::barrier_pending(store.root.parent().expect("unload lifecycle"))?
+                        == Some(false)
+                {
+                    return Ok(Some(receipt));
                 }
                 Ok(None)
             })

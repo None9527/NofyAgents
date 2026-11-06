@@ -57,7 +57,7 @@ async fn setup() -> (
         .unwrap(),
     );
     let mut context = RunContext::new("thread", "run");
-    let guard = runtime::prepare(&[profile.clone()], &mut context, false)
+    let guard = runtime::prepare(std::slice::from_ref(&profile), &mut context, false)
         .await
         .unwrap();
     let scope = BudgetScope {

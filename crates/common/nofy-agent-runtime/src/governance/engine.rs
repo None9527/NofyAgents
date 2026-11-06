@@ -477,11 +477,10 @@ pub(super) fn settle(
     }
     if !bounded_usage.within(reservation.request.reserve) {
         summary.blocked = Some(denial("actual_usage_exceeded_reservation", "usage_bound"));
-    } else if summary.blocked.is_none() {
-        if let Some(exceeded) = exceeds(&summary.spec.limits, summary.used.add(summary.reserved)?)?
-        {
-            summary.blocked = Some(exceeded);
-        }
+    } else if summary.blocked.is_none()
+        && let Some(exceeded) = exceeds(&summary.spec.limits, summary.used.add(summary.reserved)?)?
+    {
+        summary.blocked = Some(exceeded);
     }
     let cost = receipt.used;
     operation.receipt = Some(receipt);
