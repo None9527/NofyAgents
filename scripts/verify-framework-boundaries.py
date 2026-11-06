@@ -16,6 +16,9 @@ FORBIDDEN_MEMORY = {
 MODULE_INTERNALS = {
     "nofy-agent-modules", "nofy-agent-runtime", "nofy-interjection-core",
     "nofy-tool-protocol", "nofy-tool-runtime", "nofy-tool-types",
+    # A leaf the runtime itself needs to make a commit durable (tempfile, and the
+    # Windows API on Windows). It knows nothing of products, hosts or modules.
+    "nofy-durable-fs",
 }
 
 

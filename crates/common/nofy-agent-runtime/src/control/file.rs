@@ -36,9 +36,6 @@ impl FileCatalogStore {
         path: &Path,
         admission: Option<Arc<dyn crate::admission::CommitAdmission>>,
     ) -> Result<Self> {
-        if !cfg!(unix) {
-            return Err(ControlError::Invalid("file catalog requires Unix atomic rename and directory fsync; use another CatalogStore on this platform".into()));
-        }
         crate::admission::marker::check(path, admission.as_deref())?;
         if !path.is_absolute() || path.file_name().is_none() {
             return Err(ControlError::Invalid(
@@ -140,8 +137,10 @@ impl FileCatalogStore {
             let mut file = options.open(&temporary).map_err(storage)?;
             file.write_all(&bytes).map_err(storage)?;
             file.sync_all().map_err(storage)?;
-            std::fs::rename(&temporary, &*self.path).map_err(storage)?;
-            crate::sync_directory(parent)
+            // A failure to replace means nothing committed; a failure to make the
+            // replacement durable means it may have.
+            nofy_durable_fs::replace_file(&temporary, &self.path).map_err(storage)?;
+            nofy_durable_fs::sync_directory(parent)
                 .map_err(|e| ControlError::CommitUncertain(e.to_string()))?;
             Ok(())
         })();

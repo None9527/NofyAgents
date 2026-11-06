@@ -13,6 +13,7 @@ base64 = { workspace = true }
 thiserror = { workspace = true }
 fs2 = { workspace = true }
 tempfile = { workspace = true }
+nofy-durable-fs = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
 cap-std = "3.4"

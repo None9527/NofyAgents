@@ -341,7 +341,7 @@ impl Control {
             // a pointer. The destination may be on a different filesystem.
             let mut directory = Some(stage.as_path());
             while let Some(path) = directory {
-                nofy_agent_runtime::sync_directory(path).map_err(storage::unavailable)?;
+                nofy_durable_fs::sync_directory(path).map_err(storage::unavailable)?;
                 if path == self.backend_directory(&record.target.backend)? {
                     break;
                 }

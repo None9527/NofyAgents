@@ -122,11 +122,11 @@ pub(super) fn atomic(path: &Path, bytes: &[u8], mode: u32, replace: bool) -> Res
     tmp.write_all(bytes).map_err(unavailable)?;
     tmp.as_file().sync_all().map_err(unavailable)?;
     if replace {
-        tmp.persist(path).map_err(unavailable)?;
+        nofy_durable_fs::persist_file(tmp, path).map_err(unavailable)?;
     } else {
-        match tmp.persist_noclobber(path) {
-            Ok(_) => {}
-            Err(e) if e.error.kind() == std::io::ErrorKind::AlreadyExists => {
+        match nofy_durable_fs::persist_new_file(tmp, path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                 if read(path, bytes.len() as u64)? != bytes {
                     return Err(HostError::Unavailable(
                         "immutable loader content changed".into(),
@@ -136,7 +136,7 @@ pub(super) fn atomic(path: &Path, bytes: &[u8], mode: u32, replace: bool) -> Res
             Err(e) => return Err(unavailable(e)),
         }
     }
-    nofy_agent_runtime::sync_directory(parent).map_err(|_| {
+    nofy_durable_fs::sync_directory(parent).map_err(|_| {
         HostError::Control(nofy_agent_runtime::control::ControlError::CommitUncertain(
             "loader write may have committed; read the exact digest before retrying".into(),
         ))

@@ -131,7 +131,7 @@ pub(super) fn install(storage: &Path, placement: &dyn SqlitePlacement) -> Result
             }
             Err(_) => return Err(failure()),
         }
-        crate::sync_directory(parent).map_err(|_| failure())
+        nofy_durable_fs::sync_directory(parent).map_err(|_| failure())
     })();
     let _ = std::fs::remove_file(temp);
     result

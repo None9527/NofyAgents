@@ -1,6 +1,6 @@
 //! Crash-safe replacement of canonical memory files.
 
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -97,46 +97,10 @@ fn inject(
     Ok(())
 }
 
-#[cfg(not(windows))]
 fn replace_path(source: &Path, destination: &Path) -> io::Result<()> {
-    std::fs::rename(source, destination)
+    nofy_durable_fs::replace_file(source, destination)
 }
 
-#[cfg(windows)]
-fn replace_path(source: &Path, destination: &Path) -> io::Result<()> {
-    use windows::Win32::Storage::FileSystem::{
-        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
-    };
-    use windows::core::PCWSTR;
-
-    fn wide(path: &Path) -> Vec<u16> {
-        use std::os::windows::ffi::OsStrExt;
-        path.as_os_str()
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect()
-    }
-
-    let source = wide(source);
-    let destination = wide(destination);
-    unsafe {
-        MoveFileExW(
-            PCWSTR(source.as_ptr()),
-            PCWSTR(destination.as_ptr()),
-            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-        )
-        .map_err(|error| io::Error::new(io::ErrorKind::Other, error))
-    }
-}
-
-#[cfg(unix)]
 pub(crate) fn sync_parent_directory(parent: &Path) -> io::Result<()> {
-    File::open(parent)?.sync_all()
-}
-
-#[cfg(not(unix))]
-pub(crate) fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
-    // MoveFileExW with MOVEFILE_WRITE_THROUGH provides the Windows durability
-    // boundary; opening directories for sync is not supported by std.
-    Ok(())
+    nofy_durable_fs::sync_directory(parent)
 }

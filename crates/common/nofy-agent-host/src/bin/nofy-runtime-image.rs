@@ -37,8 +37,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     serde_json::to_writer(temporary.as_file_mut(), &image)?;
     temporary.flush()?;
     temporary.as_file().sync_all()?;
-    temporary.persist_noclobber(&output)?;
-    nofy_agent_runtime::sync_directory(parent)?;
+    nofy_durable_fs::persist_new_file(temporary, &output)?;
+    nofy_durable_fs::sync_directory(parent)?;
     println!("{}", image.manifest.digest()?);
     Ok(())
 }

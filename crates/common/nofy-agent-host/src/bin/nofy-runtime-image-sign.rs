@@ -79,8 +79,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     serde_json::to_writer(temp.as_file_mut(), &attestation)?;
     temp.flush()?;
     temp.as_file().sync_all()?;
-    temp.persist_noclobber(&output)?;
-    nofy_agent_runtime::sync_directory(parent)?;
+    nofy_durable_fs::persist_new_file(temp, &output)?;
+    nofy_durable_fs::sync_directory(parent)?;
     println!(
         "{}",
         serde_json::json!({"key_id":args.key_id,"public_key":public_key})

@@ -47,7 +47,7 @@ fn atomic(path: &Path, value: &impl Serialize) -> Result<()> {
     let mut temp = tempfile::NamedTempFile::new_in(parent)?;
     temp.write_all(&serde_json::to_vec(value)?)?;
     temp.as_file().sync_all()?;
-    temp.persist(path).map_err(|e| e.error)?;
+    nofy_durable_fs::persist_file(temp, path)?;
     sync_directory(parent)?;
     Ok(())
 }

@@ -15,7 +15,6 @@ pub mod context_policy;
 pub mod control;
 mod controllers;
 pub mod credentials;
-mod directory;
 pub mod driver;
 #[cfg(feature = "sqlite")]
 pub mod durable;
@@ -42,7 +41,6 @@ pub mod session_policy;
 pub mod settings;
 pub mod system;
 pub mod tasks;
-pub use directory::sync_directory;
 pub use identity::IdentityScheme;
 pub mod state;
 #[cfg(feature = "sqlite")]
