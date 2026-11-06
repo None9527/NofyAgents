@@ -1,5 +1,6 @@
 use nofy_agent_client::{
-    CATALOG, Engine, Envelope, Error, OPERATIONS, SCHEMA_JSON, refs_from_input, schema,
+    CATALOG, Engine, Envelope, Error, OPERATIONS, Operation, SCHEMA_JSON, SCHEMAS, nearest,
+    refs_from_input, schema,
 };
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler, ServiceExt, model::*, service::RequestContext,
@@ -97,21 +98,10 @@ impl ServerHandler for NofyServer {
                 .cloned()
                 .ok_or_else(|| McpError::internal_error("tool output Schema missing", None))?;
             let read_only = readonly(&operation.operation);
-            let summary = CATALOG["operations"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .find(|o| o["operation"] == operation.operation)
-                .and_then(|o| o["summary"].as_str())
-                .unwrap_or_else(|| description(&operation.operation));
-            let description = format!(
-                "{} 操作 {}。先用 nofy_schema 查询契约及装配指南；guide 给出依赖、插槽、前提、示例、下一步和恢复办法。结果 status 与业务执行状态分别读取，原生 DTO 在 data.native_json，精确控制标识在 refs。",
-                summary, operation.operation
-            );
             tools.push(
                 Tool::new_with_raw(
                     operation.mcp_tool.clone().unwrap_or_default(),
-                    Some(description.into()),
+                    Some(tool_description(operation).into()),
                     input,
                 )
                 .with_raw_output_schema(Arc::new(output))
@@ -119,7 +109,7 @@ impl ServerHandler for NofyServer {
                     ToolAnnotations::new()
                         .read_only(read_only)
                         .destructive(!read_only)
-                        .idempotent(read_only),
+                        .idempotent(idempotent(operation)),
                 ),
             );
         }
@@ -133,7 +123,25 @@ impl ServerHandler for NofyServer {
         let operation = OPERATIONS
             .iter()
             .find(|o| o.mcp_tool.as_deref() == Some(request.name.as_ref()))
-            .ok_or_else(|| McpError::invalid_params("unknown Nofy tool", None))?;
+            .ok_or_else(|| {
+                let suggestions = nearest(
+                    request.name.as_ref(),
+                    OPERATIONS.iter().filter_map(|o| o.mcp_tool.as_deref()),
+                );
+                let message = if suggestions.is_empty() {
+                    format!(
+                        "unknown Nofy tool `{}`; tools/list returns every tool",
+                        request.name
+                    )
+                } else {
+                    format!(
+                        "unknown Nofy tool `{}`; did you mean {}?",
+                        request.name,
+                        suggestions.join(" or ")
+                    )
+                };
+                McpError::invalid_params(message, Some(json!({"suggestions": suggestions})))
+            })?;
         let engine = self.engine(&context)?;
         let input = Value::Object(request.arguments.unwrap_or_default());
         let output = tokio::select! {biased;
@@ -378,6 +386,53 @@ pub async fn serve_http(
         .await?;
     Ok(())
 }
+/// What a client sees for a tool: the operation's own one-sentence summary, then
+/// the shared reading instructions. The summary comes from the catalog, so every
+/// tool is described by what it does and not by a generic note.
+fn tool_description(operation: &Operation) -> String {
+    format!(
+        "{} Operation: {}. Query nofy_schema first for the contract and assembly guide: it gives dependencies, slots, prerequisites, examples, next steps and recovery. Read the result status and the business execution state separately; the native DTO is in data.native_json and exact control identifiers are in refs.",
+        operation.summary, operation.operation
+    )
+}
+/// Whether repeating the exact call changes nothing more: reads, and writes that
+/// carry a caller-chosen `command_id`. The kernel replays the recorded outcome of
+/// a command it has already seen instead of executing it again.
+fn idempotent(operation: &Operation) -> bool {
+    fn carries_command_id(node: &Value, depth: usize) -> bool {
+        let Some(map) = node.as_object() else {
+            return false;
+        };
+        if map
+            .get("properties")
+            .and_then(Value::as_object)
+            .is_some_and(|p| p.contains_key("command_id"))
+        {
+            return true;
+        }
+        if depth > 4 {
+            return false;
+        }
+        if let Some(target) = map
+            .get("$ref")
+            .and_then(Value::as_str)
+            .and_then(|r| r.strip_prefix("#/$defs/"))
+            && carries_command_id(&SCHEMAS["$defs"][target], depth + 1)
+        {
+            return true;
+        }
+        ["allOf", "oneOf", "anyOf"].iter().any(|key| {
+            map.get(*key)
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|item| carries_command_id(item, depth + 1)))
+        })
+    }
+    readonly(&operation.operation)
+        || schema(&operation.input_schema).is_ok_and(|s| carries_command_id(&s, 0))
+}
+/// Whether the operation only reads. The catalog's read-only scope hint
+/// (`scope_hint == ["read"]`) must imply membership here; a test enforces it, so
+/// a new read operation cannot silently be advertised as destructive.
 fn readonly(op: &str) -> bool {
     matches!(
         op,
@@ -423,46 +478,147 @@ fn readonly(op: &str) -> bool {
             | "resource.inspect"
             | "budget.list"
             | "credential.list"
+            | "command.analyze"
+            | "permission.grants"
+            | "session.tree"
     )
 }
-fn description(op: &str) -> &'static str {
-    match op {
-        "describe" => "发现内核权限、工厂、预设、操作与会话协议",
-        "schema" => "查询操作输入输出或已安装工厂及配置派生依赖",
-        "project.template" => "取得空工程或指定版本预设的完整源码集合",
-        "project.inspect" => "检查源码工程并列出未绑定的模型和 Prompt",
-        "project.build" | "agent.build" => "纯数据渲染部署声明，不执行工程脚本",
-        "project.pack" => "登记仅含源码和依赖清单的归档，返回摘要和分块读取 URI",
-        "agent.create" => "创建允许缺项的 Agent 声明和源码工程",
-        "agent.module.add" | "agent.tool.add" => {
-            "添加工厂配置、原生模块或发布闭包，连接依赖并挂入 Agent 插槽"
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    fn tools() -> impl Iterator<Item = &'static Operation> {
+        OPERATIONS.iter().filter(|o| o.mcp_tool.is_some())
+    }
+
+    #[test]
+    fn read_only_annotation_follows_the_catalog_scopes() {
+        for operation in OPERATIONS.iter() {
+            let needs_only_read = operation.scope_hint == ["read"];
+            if needs_only_read {
+                assert!(
+                    readonly(&operation.operation),
+                    "{} needs only the read scope, so it must be advertised as read-only",
+                    operation.operation
+                );
+            }
+            if readonly(&operation.operation) {
+                assert!(
+                    !operation
+                        .scope_hint
+                        .iter()
+                        .any(|s| matches!(s.as_str(), "edit" | "publish" | "execute")),
+                    "{} is advertised as read-only but needs {:?}",
+                    operation.operation,
+                    operation.scope_hint
+                );
+            }
         }
-        "agent.module.set" => "用 JSON Pointer 修改模块配置或明确绑定源码文件",
-        "agent.module.bind" => "连接模块的有名依赖槽",
-        "agent.module.detach" => "从 Agent 指定插槽解除引用",
-        "agent.module.remove" => "移除没有使用者的模块；仍被引用时返回冲突",
-        "repository.add" => "登记托管、Host 目录或 Git 模块来源；外部来源另需资源权限",
-        "repository.sync" => "显式取得目录或固定 Git 快照，原子登记不可变模块版本",
-        "repository.remove" => "解除来源注册，保留已发布源码以恢复现有引用",
-        "module.publish" => "上传可复用源码包；相同版本不能替换成不同源码",
-        "module.export" => "导出指定不可变模块包的全部源码与普通依赖清单",
-        "agent.module.use" => "以别名引用仓库中的固定模块版本，提供参数和端口接线并可挂载导出",
-        "agent.module.unuse" => "移除没有使用者的声明导入；先解除插槽和依赖引用",
-        _ if op.starts_with("repository.") || op.starts_with("module.") => {
-            "查询模块仓库及不可变源码版本"
+    }
+
+    #[test]
+    fn read_only_list_names_only_real_operations() {
+        let known: BTreeSet<_> = OPERATIONS.iter().map(|o| o.operation.as_str()).collect();
+        let source = include_str!("lib.rs");
+        let body = source
+            .split("fn readonly(op: &str) -> bool {")
+            .nth(1)
+            .and_then(|rest| rest.split("\n}\n").next())
+            .expect("readonly body");
+        for name in body.split('"').skip(1).step_by(2) {
+            assert!(
+                known.contains(name),
+                "readonly() lists unknown operation {name}"
+            );
         }
-        "agent.apply" => "构建、发布并按原 generation 激活；返回已完成阶段和原始回执",
-        "session.start" => "按声明的 SessionPolicy 原子创建会话与首根运行",
-        "session.turn" => "按原会话和运行版本接纳后继轮次，复用预算与恢复身份",
-        "session.reconfigure" => "在已关闭且静止的边界切换冻结会话策略闭包",
-        "run.start" => "通过内核统一执行路径提交持久运行",
-        "run.events" => "按原游标读取事件，可有限等待；不取消业务运行",
-        "run.control" => "提交原生命令，执行停驻、恢复、更新或效果核对",
-        "run.cancel" => "用明确业务命令 ID 请求取消指定运行",
-        "system.publish" => "校验并发布完整部署或指定版本的原生草稿",
-        "system.apply" | "system.rollback" => "按原 generation 与固定 command_id 激活指定发布",
-        _ if op.starts_with("session.") => "查询或控制内核持久会话；写操作携带固定命令与原会话版本",
-        _ if op.starts_with("resource.") => "管理内核登记的资源，权限由内核裁决",
-        _ => "通过统一开发协议操作声明、持久运行及控制面事实",
+    }
+
+    #[test]
+    fn every_tool_is_described_by_its_own_english_summary() {
+        let mut seen = BTreeSet::new();
+        for operation in tools() {
+            let description = tool_description(operation);
+            assert!(
+                !operation.summary.trim().is_empty(),
+                "{} has no summary",
+                operation.operation
+            );
+            assert!(
+                seen.insert(operation.summary.as_str()),
+                "{} shares its summary with another operation",
+                operation.operation
+            );
+            assert!(
+                !description
+                    .chars()
+                    .any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+                "{} description is not English",
+                operation.operation
+            );
+        }
+    }
+
+    #[test]
+    fn replayed_commands_are_idempotent_and_other_writes_are_not() {
+        let mut replayable = Vec::new();
+        for operation in tools() {
+            let carries = operation
+                .input_schema
+                .rsplit('/')
+                .next()
+                .is_some_and(|name| {
+                    SCHEMAS["$defs"][name]
+                        .to_string()
+                        .contains("\"command_id\"")
+                });
+            if idempotent(operation) {
+                assert!(
+                    readonly(&operation.operation) || carries,
+                    "{} is advertised as idempotent but is neither a read nor takes a command_id",
+                    operation.operation
+                );
+            }
+            if !readonly(&operation.operation) && carries && operation.scope_hint != ["read"] {
+                replayable.push(operation.operation.as_str());
+                assert!(
+                    idempotent(operation),
+                    "{} takes a command_id",
+                    operation.operation
+                );
+            }
+        }
+        assert!(
+            replayable.contains(&"run.cancel") && replayable.contains(&"session.start"),
+            "{replayable:?}"
+        );
+        assert!(!idempotent(
+            OPERATIONS
+                .iter()
+                .find(|o| o.operation == "agent.module.set")
+                .unwrap()
+        ));
+    }
+
+    #[test]
+    fn only_secret_writes_are_missing_from_mcp() {
+        let missing: Vec<_> = OPERATIONS
+            .iter()
+            .filter(|o| o.mcp_tool.is_none())
+            .map(|o| o.operation.as_str())
+            .collect();
+        assert_eq!(missing, ["credential.put", "credential.delete"]);
+    }
+
+    #[test]
+    fn every_tool_publishes_resolvable_input_and_output_schemas() {
+        for operation in tools() {
+            for reference in [&operation.input_schema, &operation.output_schema] {
+                let schema = schema(reference)
+                    .unwrap_or_else(|e| panic!("{}: {reference}: {e}", operation.operation));
+                assert!(schema.is_object(), "{}: {reference}", operation.operation);
+            }
+        }
     }
 }
