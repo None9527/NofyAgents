@@ -15,6 +15,7 @@ cargo test --locked \
   -p nofy-agent-project \
   -p nofy-agent-client \
   -p nofy-agent-mcp \
+  -p nofy-isolation \
   -p nofy-cli
 cargo test --locked -p nofy-agent-host --lib
 cargo test --locked -p nofy-agent-host --test http real_api_enforces_scopes_and_pure_preview_then_runs_edited_releases_in_one_process -- --exact
