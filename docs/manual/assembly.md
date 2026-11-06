@@ -22,7 +22,7 @@
 
 均作为 nofy_schema 的参数。工厂配置确定后，再用 `{factory,config_json}` 取得该配置派生的完整依赖端口；config_json 为序列化 JSON 文本。预设查询返回公开 settings_schema、初始 settings 和步骤，不要求阅读预设脚本。包查询返回固定摘要、公开参数/端口/导出与使用步骤。
 
-CLI 对应 `nofy schema --operation agent.create`、`nofy schema --factory tool.process_artifact`、`nofy schema --preset coding --version 0.1.0`，复杂输入可使用 --input。
+引导里每个提到 MCP 工具的调用同时带 `cli` 字段，给出对应的 CLI 命令；调用的 `arguments` 也是该命令 `--input` 的完整 JSON 输入，所以同一份引导对两种入口都适用。CLI 对应 `nofy schema --operation agent.create`、`nofy schema --factory tool.process_artifact`、`nofy schema --preset coding --version 0.1.0`，复杂输入可使用 --input。
 
 ## 按指南执行
 
