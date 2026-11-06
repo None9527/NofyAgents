@@ -235,6 +235,8 @@ rollback 将旧 release 作为目标，再产生新 generation；不会把 gener
 
 默认 stdout 是一个协议结果对象；follow 输出 NDJSON，进度和诊断到 stderr。机器消费者同时检查信封 status、运行状态与外部工具业务结果，不能只看进程退出码。
 
+`nofy --help` 末尾列出同一张退出码表，它与代码中决定退出码的是同一张表。每个命令的 `--help` 以操作目录中的一句话摘要开头，列出该命令的全部输入字段（带说明，必填字段标注 `required`）、位置参数各自填入哪个字段（例如 `run inspect [RUN_ID]`）、权限提示，以及查看完整契约和装配指南的 `nofy schema --operation …` 入口。
+
 | 退出码 | 含义 |
 |---:|---|
 | 0 | 操作成功或明确已接纳，查看结果中的实际业务状态 |
@@ -259,6 +261,11 @@ rollback 将旧 release 作为目标，再产生新 generation；不会把 gener
 | 找不到外部依赖 | 用户安装或修正显式环境绑定；源码打包无需因此失败 |
 | 写请求超时 | 保留原 command_id/run_id，查询回执；不要换新 ID 重发 |
 | 工具出错而根任务 completed | 检查工具业务结果与 is_error/ok/退出码；根状态不是效果证明 |
+| `cannot connect to the kernel at …` | 信息给出所连地址；确认内核已运行、`--endpoint` 或 `$NOFY_ENDPOINT` 正确。写操作在连接建立前失败说明请求没有发出，可直接重试 |
+| `no access token was sent` / `did not accept the access token` | 前者是没有配置令牌来源，后者是带了令牌但被内核拒绝；`details.reason` 分别为 `no_token`、`token_rejected` |
+| `unknown operation … did you mean …` | 操作名拼错；信息和 `details.suggestions` 给出最接近的操作名 |
+| `not found: run_id=…` | 信息带上本次查找的标识，用来核对是否写错了 ID |
+| `--limit: expected an integer` | 非文本 flag 的值格式不对；信息点名 flag 和期望的类型，不回显你输入的值 |
 
 ## 本地编辑和精确输入
 
