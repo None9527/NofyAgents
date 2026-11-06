@@ -123,6 +123,9 @@ async fn tree(
     Path(id): Path<String>,
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
+    // An unknown session is "not found" here as it is everywhere else; the store
+    // would report it as a checkpoint conflict.
+    state(&host, &id).await?;
     Ok(Json(host.store.session_tree(&id).await?))
 }
 #[derive(Deserialize)]

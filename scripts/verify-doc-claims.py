@@ -12,6 +12,12 @@ example how many factories a host registers) are not checked here.
 
 The docs also ship byte copies of the contract files; they must equal the
 originals, or readers follow a link to a stale contract.
+
+The error codes are owned by the contract (`error_codes`): the HTTP statuses that
+carry them, the CLI exit status, whether a retry is safe. The manual must list
+exactly those codes, so a new code cannot ship undocumented and a retired one
+cannot linger. The host mapping and the CLI exit status are bound to the same
+table by their own tests.
 """
 import json
 import pathlib
@@ -75,6 +81,50 @@ def truth():
     }
 
 
+PROTOCOL = ROOT / "docs/manual/protocol.md"
+KERNEL_LISTING = re.compile(r"内核返回的错误码：([^。]+)。")
+ADAPTER_LISTING = re.compile(r"客户端补充的适配器错误码：([^。]+)。")
+
+
+def error_vocabulary(problems):
+    """The contract owns the error codes; the manual must list exactly them.
+
+    The host's mapping and the CLI's exit status are bound to the same table by
+    their own tests, so this closes the triangle: contract, code, manual.
+    """
+    codes = json.loads(CATALOG.read_text(encoding="utf-8"))["error_codes"]
+    seen = set()
+    for entry in codes:
+        name = entry["code"]
+        if name in seen:
+            problems.append(f"error_codes: `{name}` is listed twice")
+        seen.add(name)
+        if entry["origin"] not in ("kernel", "adapter", "both"):
+            problems.append(f"error_codes: `{name}` has origin {entry['origin']!r}")
+        has_status = bool(entry["http_status"])
+        if has_status != (entry["origin"] != "adapter"):
+            problems.append(f"error_codes: `{name}` ({entry['origin']}) "
+                            f"{'has no' if not has_status else 'must not have an'} HTTP status")
+        if not entry["meaning"].strip():
+            problems.append(f"error_codes: `{name}` has no meaning")
+    text = PROTOCOL.read_text(encoding="utf-8")
+    for label, pattern, wanted in [
+        ("kernel", KERNEL_LISTING,
+         {e["code"] for e in codes if e["origin"] in ("kernel", "both")}),
+        ("adapter", ADAPTER_LISTING, {e["code"] for e in codes if e["origin"] == "adapter"}),
+    ]:
+        listing = pattern.search(text)
+        if not listing:
+            problems.append(f"{PROTOCOL.name}: the line listing the {label} error codes is missing")
+            continue
+        documented = set(re.findall(r"[a-z_]+", listing.group(1)))
+        for code in sorted(wanted - documented):
+            problems.append(f"{PROTOCOL.name}: the contract has {label} code `{code}` but the manual does not list it")
+        for code in sorted(documented - wanted):
+            problems.append(f"{PROTOCOL.name}: the manual lists {label} code `{code}` that the contract does not have")
+    return len(codes)
+
+
 def main():
     expected = truth()
     problems = []
@@ -95,10 +145,12 @@ def main():
     for copy, original in COPIES.items():
         if (ROOT / copy).read_bytes() != (ROOT / original).read_bytes():
             problems.append(f"{copy} differs from {original}; copy the original over it")
+    codes = error_vocabulary(problems)
     if problems:
         print("\n".join(problems), file=sys.stderr)
         raise SystemExit("docs disagree with the contract")
-    print(f"doc claims: {checked} figures match the catalog, {len(COPIES)} copies identical "
+    print(f"doc claims: {checked} figures match the catalog, {len(COPIES)} copies identical, "
+          f"{codes} error codes listed "
           f"(revision {expected['revision']}, {expected['operations']} operations, "
           f"{expected['mcp_tools']} MCP tools)")
 

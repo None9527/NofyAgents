@@ -36,8 +36,13 @@ pub(crate) fn recovery(code: &str, operation: &str, input: &Value, unconfirmed: 
                 "Inspect the existing receipt/resource status. Execution environments are user provisioned; do not retry side effects blindly.",
                 "inspect_availability",
             ),
+            // A code the contract describes explains itself; only an unknown one
+            // gets the generic advice.
             _ => (
-                "Inspect the original run events and structured tool diagnostics before choosing a corrective action.",
+                crate::ERROR_CODES.iter().find(|entry| entry.code == code).map_or(
+                    "Inspect the original run events and structured tool diagnostics before choosing a corrective action.",
+                    |entry| entry.meaning.as_str(),
+                ),
                 "inspect_diagnostics",
             ),
         }

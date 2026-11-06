@@ -172,6 +172,27 @@ impl KernelClient {
             if let Some(field) = missing {
                 details["missing_field"] = json!(field);
             }
+            // Current kernels classify their own rejections. Only plain
+            // identifiers are carried over, never free text.
+            let plain = |text: &&str| {
+                !text.is_empty()
+                    && text.len() <= 64
+                    && text.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            };
+            let kernel = |key: &str| {
+                value
+                    .pointer(&format!("/error/details/{key}"))
+                    .and_then(Value::as_str)
+                    .filter(plain)
+            };
+            if let Some(reason) = kernel("reason") {
+                details["reason"] = json!(reason);
+                if reason == "missing_field"
+                    && let Some(field) = kernel("field")
+                {
+                    details["missing_field"] = json!(field);
+                }
+            }
             let mut message = value
                 .pointer("/error/message")
                 .and_then(Value::as_str)
@@ -199,19 +220,22 @@ impl KernelClient {
                 details["reason"] = json!(reason);
                 message = text.to_owned();
             }
+            let code: String = value
+                .pointer("/error/code")
+                .and_then(Value::as_str)
+                .unwrap_or(if missing.is_some() {
+                    "invalid"
+                } else {
+                    "http_error"
+                })
+                .into();
+            // The kernel itself says it cannot tell whether the write landed.
+            let unconfirmed = code == "result_unconfirmed";
             return Err(Error {
-                code: value
-                    .pointer("/error/code")
-                    .and_then(Value::as_str)
-                    .unwrap_or(if missing.is_some() {
-                        "invalid"
-                    } else {
-                        "http_error"
-                    })
-                    .into(),
+                code,
                 message,
                 details,
-                unconfirmed: false,
+                unconfirmed,
                 refs: Default::default(),
             });
         }

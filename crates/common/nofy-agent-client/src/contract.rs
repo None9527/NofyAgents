@@ -25,6 +25,30 @@ pub struct Operation {
 pub static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
     serde_json::from_value(CATALOG["operations"].clone()).expect("embedded catalog operations")
 });
+/// One entry of the contract's error vocabulary: the single place that says
+/// which codes exist, what status carries them, which exit status the command
+/// line gives them and whether a retry with the same ids is safe.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ErrorCode {
+    pub code: String,
+    /// `kernel`, `adapter` (made by this client) or `both`.
+    pub origin: String,
+    /// HTTP statuses a kernel answers this code with; empty for adapter codes.
+    pub http_status: Vec<u16>,
+    pub exit_code: i32,
+    pub retryable: bool,
+    pub meaning: String,
+}
+/// An entry that does not parse is left out rather than panicking the kernel's
+/// neighbour; `every_catalogued_error_code_parses` fails the build if one does.
+pub static ERROR_CODES: LazyLock<Vec<ErrorCode>> = LazyLock::new(|| {
+    CATALOG["error_codes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| serde_json::from_value(entry.clone()).ok())
+        .collect()
+});
 /// The names closest to `name`, nearest first, at most three. A name is
 /// suggested when it is a small edit away or one contains the other, so both a
 /// typo (`run.inspekt`) and a fragment (`inspect`) lead somewhere.

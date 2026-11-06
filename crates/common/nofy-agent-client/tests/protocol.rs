@@ -215,3 +215,107 @@ async fn extractor_rejections_expose_missing_native_fields_without_echoing_value
     assert_eq!(error.message, "kernel rejected request");
     assert!(!error.message.contains("private-business-value"));
 }
+
+#[tokio::test]
+async fn a_kernel_that_classifies_its_own_rejection_keeps_the_field_and_the_unconfirmed_outcome() {
+    let reject = |status, body: Value| async move { (status, axum::Json(body)) };
+    let server = serve(
+        axum::Router::new()
+            .route(
+                "/api/v1/actions",
+                axum::routing::post(move || {
+                    reject(
+                        axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+                        json!({"error":{"code":"invalid","message":"request body is missing required field `command`","details":{"reason":"missing_field","field":"command"}}}),
+                    )
+                }),
+            )
+            .route(
+                "/api/v1/apply",
+                axum::routing::post(move || {
+                    reject(
+                        axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                        json!({"error":{"code":"result_unconfirmed","message":"configuration commit may have succeeded; reload before retrying: sync failed"}}),
+                    )
+                }),
+            ),
+    )
+    .await;
+    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+
+    let rejected = engine
+        .execute("run.control", json!({"action_json":"{}"}))
+        .await;
+    let error = rejected.error.as_ref().unwrap();
+    assert_eq!(error["code"], "invalid");
+    assert_eq!(error["details"]["reason"], "missing_field");
+    assert_eq!(error["details"]["missing_field"], "command");
+    assert_eq!(rejected.status, "error");
+
+    let applied = engine
+        .execute(
+            "system.apply",
+            json!({"system":"coder","release":"published","command_id":"same-id","expected_generation":"0"}),
+        )
+        .await;
+    assert_eq!(applied.status, "unconfirmed", "{applied:?}");
+    assert_eq!(
+        applied.error.as_ref().unwrap()["code"],
+        "result_unconfirmed"
+    );
+}
+
+#[tokio::test]
+async fn free_text_in_a_kernel_reason_is_not_carried_over() {
+    let server = serve(axum::Router::new().route(
+        "/api/v1/access",
+        axum::routing::get(|| async {
+            (
+                axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+                axum::Json(json!({"error":{"code":"invalid","message":"rejected","details":{"reason":"private business value","field":"also private"}}})),
+            )
+        }),
+    ))
+    .await;
+    let client = KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap();
+    let error = client.authorize().await.unwrap_err();
+    assert!(error.details.get("reason").is_none(), "{:?}", error.details);
+    assert!(!error.details.to_string().contains("private"));
+}
+
+#[test]
+fn every_catalogued_error_code_parses() {
+    let catalogued = serde_json::from_str::<Value>(CATALOG_JSON).unwrap()["error_codes"]
+        .as_array()
+        .unwrap()
+        .len();
+    assert!(catalogued > 0);
+    assert_eq!(ERROR_CODES.len(), catalogued);
+}
+
+#[tokio::test]
+async fn a_catalogued_code_without_its_own_guidance_explains_itself_from_the_contract() {
+    let server = serve(axum::Router::new().route(
+        "/api/v1/actions",
+        axum::routing::post(|| async {
+            (
+                axum::http::StatusCode::CONFLICT,
+                axum::Json(json!({"error":{"code":"session_busy","message":"session busy: pending effects"}})),
+            )
+        }),
+    ))
+    .await;
+    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let result = engine
+        .execute("run.control", json!({"action_json":"{}"}))
+        .await;
+    let meaning = ERROR_CODES
+        .iter()
+        .find(|entry| entry.code == "session_busy")
+        .unwrap()
+        .meaning
+        .clone();
+    let error = result.error.as_ref().unwrap();
+    assert_eq!(error["code"], "session_busy");
+    assert_eq!(error["details"]["recovery"]["message"], json!(meaning));
+}
