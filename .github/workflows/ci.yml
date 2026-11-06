@@ -132,7 +132,7 @@ jobs:
       - name: Build the nofy command line
         run: cargo build --locked -p nofy-cli
       - name: Test the portable crates
-        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation -p nofy-durable-fs
+        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation -p nofy-durable-fs -p nofy-private-fs
 
   # Measurement, not a gate: how far the whole workspace gets on each platform.
   # The kernel is Linux-only today (docs/architecture/cross-platform.md), so this is

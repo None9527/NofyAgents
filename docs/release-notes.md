@@ -4,7 +4,7 @@
 
 ## 已可使用
 
-- 干净的 24 包 Rust 框架工作区，统一 Loader 与执行路径。
+- 干净的 25 包 Rust 框架工作区，统一 Loader 与执行路径。
 - CLI、入站 stdio／Streamable HTTP MCP，以及同源的托管／本地源码工程编辑。
 - 97 项操作、95 个 MCP 工具、20 项 Session 操作；默认 Linux Host 发现 65 个工厂。
 - 声明构建、校验、发布、generation 激活、事件观察、审批、取消、恢复与版本转换。

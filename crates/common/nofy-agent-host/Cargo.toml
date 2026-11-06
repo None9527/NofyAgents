@@ -18,6 +18,7 @@ nofy-tool-types = { path = "../nofy-tool-types" }
 nofy-tool-protocol = { path = "../nofy-tool-protocol" }
 nofy-tty-utils = { workspace = true }
 nofy-durable-fs = { workspace = true }
+nofy-private-fs = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 ed25519-dalek = "=2.2.0"

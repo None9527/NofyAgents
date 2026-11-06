@@ -53,6 +53,8 @@ pub struct KernelHost {
     pub(crate) credentials: Option<Arc<credentials::FileCredentials>>,
     pub(crate) loader: loader::Loader,
     pub(crate) runtime_history: Arc<loader::runtime_history::Control>,
+    /// Keeps the checked state directory in place for the life of the host.
+    pub(crate) _state_guard: Arc<nofy_private_fs::PrivateDirGuard>,
     pub(crate) projects: nofy_agent_project::ProjectStore,
     pub(crate) module_library: nofy_agent_project::repository::ModuleStore,
     pub(crate) templates: Option<nofy_agent_project::TemplateRegistry>,
@@ -73,10 +75,13 @@ impl KernelHost {
         let directory = directory.to_path_buf();
         let project_directory = directory.join("projects");
         let module_directory = directory.join("module-repositories");
-        let (catalog, store, loader, runtime_history) =
+        let (catalog, store, loader, runtime_history, state_guard) =
             tokio::task::spawn_blocking(move || -> Result<_> {
-                std::fs::create_dir_all(&directory)
-                    .map_err(|e| HostError::Unavailable(e.to_string()))?;
+                // The state directory holds credentials, releases and run history.
+                // It is created owner-only, or an existing one must already be.
+                let state_guard = nofy_private_fs::ensure_private_dir(&directory).map_err(|e| {
+                    HostError::Unavailable(format!("state directory {}: {e}", directory.display()))
+                })?;
                 let loader = loader::Loader::open(&directory)?;
                 let admission = Arc::new(loader::admission::LoaderAdmission(loader.clone()));
                 let runtime_history = Arc::new(loader::runtime_history::Control::open(
@@ -93,7 +98,7 @@ impl KernelHost {
                     Some(admission),
                 )?;
                 runtime_history.initialize()?;
-                Ok((catalog, store, loader, runtime_history))
+                Ok((catalog, store, loader, runtime_history, state_guard))
             })
             .await
             .map_err(|e| HostError::Unavailable(e.to_string()))??;
@@ -112,6 +117,7 @@ impl KernelHost {
         ))?;
         loader.register(&mut registry)?;
         Ok(Self {
+            _state_guard: Arc::new(state_guard),
             projects: nofy_agent_project::ProjectStore::open(&project_directory)?,
             module_library: nofy_agent_project::repository::ModuleStore::open(&module_directory)?,
             templates: None,
