@@ -108,7 +108,7 @@ pub(crate) mod marker {
                 }
                 Err(_) => return Err(failure()),
             }
-            crate::sync_directory(parent).map_err(|_| failure())?;
+            nofy_durable_fs::sync_directory(parent).map_err(|_| failure())?;
             Ok(())
         })();
         // Only this operation's create_new temporary is removed.

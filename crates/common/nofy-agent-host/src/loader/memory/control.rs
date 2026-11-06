@@ -177,7 +177,7 @@ impl MemoryControl {
                 false,
             )?;
             storage::atomic(&path.join("lease.lock"), b"", 0o600, false)?;
-            nofy_agent_runtime::sync_directory(&self.root).map_err(storage::unavailable)?;
+            nofy_durable_fs::sync_directory(&self.root).map_err(storage::unavailable)?;
         }
         Ok(path)
     }

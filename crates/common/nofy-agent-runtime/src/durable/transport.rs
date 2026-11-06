@@ -255,7 +255,7 @@ pub fn copy_snapshot(
     File::open(target)
         .and_then(|f| f.sync_all())
         .map_err(db_error)?;
-    crate::sync_directory(
+    nofy_durable_fs::sync_directory(
         target
             .parent()
             .ok_or_else(|| failure("runtime snapshot target has no parent"))?,

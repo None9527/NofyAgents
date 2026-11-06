@@ -184,8 +184,8 @@ impl FileCredentials {
         let mut temp = tempfile::NamedTempFile::new_in(parent).map_err(|_| unavailable())?;
         temp.write_all(&bytes).map_err(|_| unavailable())?;
         temp.as_file().sync_all().map_err(|_| unavailable())?;
-        temp.persist(&*self.path).map_err(|_| unavailable())?;
-        nofy_agent_runtime::sync_directory(parent).map_err(|_| {
+        nofy_durable_fs::persist_file(temp, &self.path).map_err(|_| unavailable())?;
+        nofy_durable_fs::sync_directory(parent).map_err(|_| {
             HostError::Control(ControlError::CommitUncertain(
                 "credential update may have committed; read metadata before retrying".into(),
             ))

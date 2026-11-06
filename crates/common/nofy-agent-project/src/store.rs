@@ -28,7 +28,7 @@ fn atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut temp = tempfile::NamedTempFile::new_in(parent)?;
     temp.write_all(bytes)?;
     temp.as_file().sync_all()?;
-    temp.persist(path).map_err(|e| e.error)?;
+    nofy_durable_fs::persist_file(temp, path)?;
     sync_directory(parent)?;
     Ok(())
 }
