@@ -61,8 +61,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 }
 async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    #[cfg(not(unix))]
-    warn_if_state_dir_may_be_shared(&args.state_dir);
     let access: Vec<AccessKeyReference> =
         serde_json::from_slice(&tokio::fs::read(args.access_file).await?)?;
     let auth = Authorizer::from_environment(access)?;
@@ -134,28 +132,6 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         result=tokio::signal::ctrl_c()=>{result?;host.shutdown();shutdown.cancel();let (s,w)=tokio::join!(server,worker);s?;w?;}
     }
     Ok(())
-}
-
-/// Unix gives the state directory owner-only permissions. Elsewhere the kernel
-/// cannot, so say where that protection has to come from: the user's profile
-/// directory is private by default, any other location is whatever its ACL says.
-#[cfg(not(unix))]
-fn warn_if_state_dir_may_be_shared(state_dir: &std::path::Path) {
-    let plain = |path: &std::path::Path| {
-        path.to_string_lossy()
-            .replace('/', "\\")
-            .trim_start_matches(r"\\?\")
-            .to_lowercase()
-    };
-    let inside_profile = std::env::var_os("USERPROFILE").is_some_and(|home| {
-        let home = plain(std::path::Path::new(&home));
-        !home.is_empty() && plain(state_dir).starts_with(&home)
-    });
-    if !inside_profile {
-        eprintln!(
-            "warning: the state directory is outside your user profile. This platform cannot make it owner-only, so it holds credentials, releases and run history only as privately as its own access list does"
-        );
-    }
 }
 
 fn check_listen(address: SocketAddr, allow_non_loopback: bool) -> Result<(), String> {

@@ -16632,7 +16632,8 @@ openai/codex
 --------------------------------------------------------------------------------
 Source:  https://github.com/openai/codex
 License: Apache-2.0
-Upstream paths: codex-rs/core/src/tools/handlers/ (and apply-patch crate)
+Upstream paths: codex-rs/core/src/tools/handlers/ (and apply-patch crate);
+  codex-rs/uds/src/windows_security.rs and windows_socket_validation.rs
 
 Copyright notice:
   Copyright 2025 OpenAI
@@ -16647,6 +16648,15 @@ Additional requirements / notices:
   crate's Tool trait and runtime. Apache-2.0 §4 requires retention of
   copyright, patent, trademark, and attribution notices, a copy of the
   license, and a notice of changes (this entry).
+
+  Windows private-directory access-list handling under:
+    crates/common/nofy-private-fs/src/windows.rs
+  Derived from codex-rs/uds/src/windows_security.rs and
+  windows_socket_validation.rs at commit ba057e43758cb19beead2af9df19d10756cc4100.
+  Changed to serve any directory or file rather than a socket rendezvous
+  directory, to accept the access lists Windows gives a user's own folders
+  instead of exactly one entry, and to check files without holding them. The
+  detailed list of changes is in crates/common/nofy-private-fs/THIRD_PARTY.md.
 
 
 --------------------------------------------------------------------------------

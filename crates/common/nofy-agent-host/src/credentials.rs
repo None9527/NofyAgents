@@ -136,18 +136,9 @@ impl FileCredentials {
         if !metadata.is_file() || metadata.len() > MAX_BYTES {
             return Err(unavailable());
         }
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if metadata.permissions().mode() & 0o077 != 0 {
-                return Err(unavailable());
-            }
-        }
-        // Owner-only access cannot be verified off Unix, so a store that already
-        // holds secrets is refused rather than trusted.
-        if cfg!(not(unix)) {
-            return Err(unavailable());
-        }
+        // Owner-only, by mode on Unix and by access list on Windows. A store that
+        // others can open is not trusted with secrets.
+        nofy_private_fs::verify_private_file(&self.path).map_err(|_| unavailable())?;
         let mut bytes = Vec::new();
         File::open(&*self.path)
             .map_err(|_| unavailable())?
@@ -181,6 +172,15 @@ impl FileCredentials {
             ));
         }
         let parent = self.path.parent().ok_or_else(unavailable)?;
+        // Unix creates the file `0600` itself. On Windows a new file is exactly as
+        // private as the directory it is created in, so the directory is checked
+        // rather than trusted.
+        #[cfg(windows)]
+        nofy_private_fs::verify_private_dir(parent).map_err(|_| {
+            HostError::Unavailable(
+                "the credential store's directory is not private to the current user".into(),
+            )
+        })?;
         let mut temp = tempfile::NamedTempFile::new_in(parent).map_err(|_| unavailable())?;
         temp.write_all(&bytes).map_err(|_| unavailable())?;
         temp.as_file().sync_all().map_err(|_| unavailable())?;
@@ -229,13 +229,6 @@ impl FileCredentials {
         if !value_valid(&value) {
             return Err(HostError::Invalid(
                 "credential value requires 1..=16384 bytes".into(),
-            ));
-        }
-        // A secret file whose access cannot be restricted to its owner is never
-        // created. Environment fallbacks still resolve; only storing is refused.
-        if cfg!(not(unix)) {
-            return Err(HostError::Unavailable(
-                "storing credentials needs an owner-only file permission check, which this platform does not have yet; supply them through the environment".into(),
             ));
         }
         let store = self.clone();

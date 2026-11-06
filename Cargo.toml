@@ -21,6 +21,7 @@ members = [
     "crates/common/nofy-memory",
     "crates/common/nofy-memory-types",
     "crates/common/nofy-packcore",
+    "crates/common/nofy-private-fs",
     "crates/common/nofy-sqlite-journal",
     "crates/common/nofy-test-support",
     "crates/common/nofy-token-estimation",
@@ -77,6 +78,7 @@ uuid = { version = "1", features = ["serde", "v4", "v5"] }
 windows = { version = "0.61", features = ["Win32_Security", "Win32_Security_Authorization", "Win32_Foundation", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Pipes"] }
 nofy-durable-fs = { path = "crates/common/nofy-durable-fs" }
 nofy-packcore = { path = "crates/common/nofy-packcore" }
+nofy-private-fs = { path = "crates/common/nofy-private-fs" }
 nofy-test-support = { path = "crates/common/nofy-test-support" }
 nofy-sqlite-journal = { path = "crates/common/nofy-sqlite-journal" }
 nofy-tool-protocol = { path = "crates/common/nofy-tool-protocol" }

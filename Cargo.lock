@@ -2676,6 +2676,7 @@ dependencies = [
  "nofy-interjection-core",
  "nofy-memory",
  "nofy-memory-types",
+ "nofy-private-fs",
  "nofy-sqlite-journal",
  "nofy-test-support",
  "nofy-tool-protocol",
@@ -2936,6 +2937,14 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "nofy-private-fs"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
