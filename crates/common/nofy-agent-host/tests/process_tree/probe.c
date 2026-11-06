@@ -70,10 +70,14 @@ int main(void) {
         errno = 0;
         int pending = 0;
         ioctl_denials = ioctl(pipes[0], FIONREAD, &pending) == -1 && errno == EPERM;
+        // The kernel consumes ioctl's fd and request as 32-bit values, and the
+        // filter compares that interpretation. So upper register bits must
+        // neither grant a denied request nor change the outcome of an allowed one.
         errno = 0;
-        ioctl_denials = ioctl_denials && syscall(SYS_ioctl, pipes[0], (1ULL << 32) | FIONBIO, &enabled) == -1 && errno == EPERM;
-        errno = 0;
-        ioctl_denials = ioctl_denials && syscall(SYS_ioctl, pipes[0], (1ULL << 32) | FIOCLEX, 0) == -1 && errno == EPERM;
+        ioctl_denials = ioctl_denials && syscall(SYS_ioctl, pipes[0], (1ULL << 32) | FIONREAD, &pending) == -1 && errno == EPERM;
+        enabled = 0;
+        ioctl_denials = ioctl_denials && syscall(SYS_ioctl, pipes[0], (1ULL << 32) | FIONBIO, &enabled) == 0;
+        ioctl_denials = ioctl_denials && syscall(SYS_ioctl, pipes[0], (1ULL << 32) | FIOCLEX, 0) == 0;
         close(pipes[0]);
         close(pipes[1]);
     }
