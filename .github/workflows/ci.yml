@@ -128,7 +128,7 @@ jobs:
       - name: Build the nofy command line
         run: cargo build --locked -p nofy-cli
       - name: Test the portable crates
-        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation
+        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation -p nofy-durable-fs
 
   # Measurement, not a gate: how far the whole workspace gets on each platform.
   # The kernel is Linux-only today (docs/architecture/cross-platform.md), so this is
@@ -162,6 +162,47 @@ jobs:
             grep -E "^error: could not compile" check.log | sort | uniq -c || echo "none"
             echo '```'
             echo "errors: $(grep -cE '^[^ ]+:[0-9]+:[0-9]+: error' check.log || true)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Measurement, not a gate: every test of the workspace, natively, in one run, so a
+  # platform's whole list of failures arrives at once instead of one per push.
+  # Tests that need Linux isolation are compiled out by cfg and do not appear; what
+  # remains failing is either a portability bug or an assumption to name in
+  # docs/architecture/platforms.md. Turn continue-on-error off once it is green.
+  workspace-tests-portability:
+    name: whole workspace tests on ${{ matrix.os }} (measuring)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the binaries the integration tests start
+        run: cargo build --locked --workspace --bins
+      - name: Run every test, keep going after failures
+        run: cargo test --locked --workspace --no-fail-fast -- --test-threads=2 2>&1 | tee tests.log
+      - name: List what failed
+        if: always()
+        run: |
+          {
+            echo "### failing tests on ${{ matrix.os }}"
+            echo '```'
+            grep -E "^test .* \.\.\. FAILED$" tests.log | sort | uniq || echo "none"
+            echo '```'
+            echo "test binaries that failed:"
+            echo '```'
+            grep -E "^error: test failed|^error: [0-9]+ targets? failed|^    \`-p " tests.log | sort | uniq || echo "none"
+            echo '```'
+            echo "passed: $(grep -E '^test .* \.\.\. ok$' tests.log | wc -l)  failed: $(grep -cE '^test .* \.\.\. FAILED$' tests.log || true)"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # Does a real kernel start and serve the control plane? Linux is the baseline and

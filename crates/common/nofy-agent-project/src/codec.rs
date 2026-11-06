@@ -103,6 +103,18 @@ pub fn safe_path(path: &str) -> Result<()> {
     }
     Ok(())
 }
+/// An ID becomes a file name, and state must move between platforms, so an ID
+/// that Windows cannot hold is refused everywhere: its reserved device names
+/// (with or without an extension) and a trailing dot, which Windows drops.
+fn windows_cannot_hold(id: &str) -> bool {
+    let stem = id.split('.').next().unwrap_or("").to_ascii_lowercase();
+    let device = matches!(stem.as_str(), "con" | "prn" | "aux" | "nul")
+        || ["com", "lpt"].iter().any(|prefix| {
+            stem.strip_prefix(prefix)
+                .is_some_and(|n| matches!(n, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"))
+        });
+    device || id.ends_with('.')
+}
 pub fn safe_id(id: &str) -> Result<()> {
     if id.is_empty()
         || id.len() > 128
@@ -111,10 +123,11 @@ pub fn safe_id(id: &str) -> Result<()> {
             .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
         || id == "."
         || id == ".."
+        || windows_cannot_hold(id)
     {
         return Err(Error::new(
             "local_input",
-            "project ID must use 1..128 ASCII letters, digits, dot, underscore or hyphen",
+            "project ID must use 1..128 ASCII letters, digits, dot, underscore or hyphen, and must not be a Windows device name (con, nul, com1...) or end with a dot",
         ));
     }
     Ok(())
@@ -300,4 +313,29 @@ pub fn pointer_set(value: &mut Value, pointer: &str, replacement: Value) -> Resu
         }
     }
     set(value, &tokens, replacement)
+}
+
+#[cfg(test)]
+mod id_tests {
+    use super::*;
+
+    #[test]
+    fn ids_that_windows_cannot_hold_are_refused_on_every_platform() {
+        for id in [
+            "con", "CON", "nul", "Prn", "aux", "com1", "COM9", "lpt3", "con.json", "nul.txt",
+            "demo.",
+        ] {
+            assert!(safe_id(id).is_err(), "{id}");
+        }
+    }
+
+    #[test]
+    fn ordinary_ids_and_near_misses_still_pass() {
+        for id in [
+            "demo", "Demo", "my-agent", "a.b", "com", "com0", "com10", "lpt", "console", "conx",
+            ".hidden", "_x",
+        ] {
+            assert!(safe_id(id).is_ok(), "{id}");
+        }
+    }
 }
