@@ -92,7 +92,8 @@ impl Terminal {
         if unsafe { libc::grantpt(fd) } != 0 || unsafe { libc::unlockpt(fd) } != 0 {
             return Err(io::Error::last_os_error());
         }
-        let mut name = [0i8; 4096];
+        // `c_char` is `i8` on x86_64 but `u8` on aarch64 Linux.
+        let mut name = [0 as libc::c_char; 4096];
         let status = unsafe { libc::ptsname_r(fd, name.as_mut_ptr(), name.len()) };
         if status != 0 {
             return Err(io::Error::from_raw_os_error(status));
