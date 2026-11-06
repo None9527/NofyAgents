@@ -94,7 +94,14 @@ jobs:
             echo "::warning title=Sandbox acceptance skipped::no cgroup delegation on this runner"
             skip=(--skip confined:: --skip real_namespace_lifecycle)
           fi
-          cargo test --locked --workspace --all-features --no-fail-fast -- "${skip[@]}"
+          # Most host integration tests start real kernels and wait on them with fixed
+          # timeouts. On a 4-core runner, running as many at once as there are cores made
+          # them 3x slower than on a 16-core machine (the http binary: 37 min against 12)
+          # and seven of them timed out, so the host suites run two at a time.
+          status=0
+          cargo test --locked --workspace --exclude nofy-agent-host --all-features --no-fail-fast -- "${skip[@]}" || status=1
+          cargo test --locked -p nofy-agent-host --all-features --no-fail-fast -- --test-threads=2 "${skip[@]}" || status=1
+          exit $status
 
   # The kernel (nofy-agent-host and below) is Linux-only: its sandbox is Landlock,
   # cgroups, seccomp and namespaces. The command line, the MCP bridge, the client
