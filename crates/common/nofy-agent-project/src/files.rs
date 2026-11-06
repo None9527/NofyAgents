@@ -287,7 +287,7 @@ pub fn write_directory(path: &Path, source: &Source, expected_digest: Option<&st
                 rustix::fs::RenameFlags::NOREPLACE,
             )
             .map_err(|e| Error::from(std::io::Error::from(e)))?;
-            std::fs::File::open(parent)?.sync_all()?;
+            sync_directory(parent)?;
         }
         #[cfg(not(target_os = "linux"))]
         {

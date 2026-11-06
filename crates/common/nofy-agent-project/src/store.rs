@@ -29,7 +29,7 @@ fn atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     temp.write_all(bytes)?;
     temp.as_file().sync_all()?;
     temp.persist(path).map_err(|e| e.error)?;
-    std::fs::File::open(parent)?.sync_all()?;
+    sync_directory(parent)?;
     Ok(())
 }
 fn plain(path: &Path) -> Result<()> {
