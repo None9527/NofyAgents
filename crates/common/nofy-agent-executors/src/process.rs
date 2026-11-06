@@ -110,16 +110,6 @@ struct ProcessDispatch {
     environment: ProcessEnvironment,
     config: ProcessToolConfig,
 }
-struct OwnedChild {
-    child: tokio::process::Child,
-    group: nofy_tty_utils::ProcessGroup,
-}
-impl Drop for OwnedChild {
-    fn drop(&mut self) {
-        let _ = self.group.kill();
-        let _ = self.child.start_kill();
-    }
-}
 async fn read_bounded(
     mut reader: impl AsyncRead + Unpin,
     limit: usize,
@@ -255,19 +245,20 @@ impl ToolDispatch for ProcessDispatch {
             }
             nofy_tty_utils::detach_command(&mut command);
             self.environment.guard.prepare(&mut command)?;
-            let mut child = command.spawn().map_err(|_| {
-                crate::tool_error("process_spawn", "installed process could not start")
+            let mut owner = nofy_tty_utils::OwnedChild::spawn(&mut command).map_err(|e| {
+                use nofy_tty_utils::OwnedChildError as E;
+                match e {
+                    E::Spawn(_) => {
+                        crate::tool_error("process_spawn", "installed process could not start")
+                    }
+                    E::Group(_) => {
+                        crate::tool_error("process_group", "cannot create process group")
+                    }
+                    E::Attach(_) => {
+                        crate::tool_error("process_group", "cannot attach process group")
+                    }
+                }
             })?;
-            let mut group = nofy_tty_utils::ProcessGroup::new()
-                .map_err(|_| crate::tool_error("process_group", "cannot create process group"))?;
-            if group.attach(&child).is_err() {
-                let _ = child.start_kill();
-                return Err(crate::tool_error(
-                    "process_group",
-                    "cannot attach process group",
-                ));
-            }
-            let mut owner = OwnedChild { child, group };
             let mut stdin = owner.child.stdin.take().expect("piped stdin");
             let stdout = owner.child.stdout.take().expect("piped stdout");
             let stderr = owner.child.stderr.take().expect("piped stderr");

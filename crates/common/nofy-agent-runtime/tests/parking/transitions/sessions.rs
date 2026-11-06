@@ -165,15 +165,16 @@ async fn changed_model_prompt_carries_into_queued_and_chained_roots_without_rewr
         content_digest(&after.submission).unwrap()
     );
     assert_eq!(gates.calls.load(Ordering::SeqCst), 1);
-    let seen = requests.lock().unwrap();
-    assert_eq!(seen.len(), 2);
-    assert_eq!(
-        seen[1].messages[0],
-        Message::System {
-            content: "new literal {prompt}".into()
-        }
-    );
-    drop(seen);
+    {
+        let seen = requests.lock().unwrap();
+        assert_eq!(seen.len(), 2);
+        assert_eq!(
+            seen[1].messages[0],
+            Message::System {
+                content: "new literal {prompt}".into()
+            }
+        );
+    }
     assert!(matches!(
         recovered
             .execute_submitted(&registry, "three")

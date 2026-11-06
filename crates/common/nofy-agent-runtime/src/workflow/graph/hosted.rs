@@ -144,12 +144,11 @@ impl ToolDispatch for HostedGraphDispatch {
                         | Error::BudgetExceeded
                         | Error::GovernancePaused(_))
                 )
+                && let Some(controller) = controller
             {
-                if let Some(controller) = controller {
-                    controller
-                        .record_failure(&child.run_id, epoch, program.composition_identity())
-                        .await?;
-                }
+                controller
+                    .record_failure(&child.run_id, epoch, program.composition_identity())
+                    .await?;
             }
             if let Some(observer) = &observer {
                 observer.0.finished(&child, &outcome).await?;

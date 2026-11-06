@@ -112,11 +112,10 @@ impl UnifiedState {
         if tx.execute("UPDATE observation_states SET status='superseded',resolved_by=NULL,updated_at=?2 WHERE observation_id=?1", params![deactivate.as_uuid().to_string(),now])? != 1 {
             return Err(invalid());
         }
-        if let Some(previous) = reactivate {
-            if tx.execute("UPDATE observation_states SET status='active',resolved_by=NULL,updated_at=?2 WHERE observation_id=?1", params![previous.as_uuid().to_string(),now])? != 1 {
+        if let Some(previous) = reactivate
+            && tx.execute("UPDATE observation_states SET status='active',resolved_by=NULL,updated_at=?2 WHERE observation_id=?1", params![previous.as_uuid().to_string(),now])? != 1 {
                 return Err(invalid());
             }
-        }
         tx.execute("INSERT INTO topic_changes(operation_id,topic_id,previous_hash,next_hash,created_at) VALUES (?1,?2,?3,?4,?5)", params![id.as_uuid().to_string(),path,before,after,now])?;
         tx.execute(
             "UPDATE operations SET phase='completed',updated_at=?2 WHERE id=?1",

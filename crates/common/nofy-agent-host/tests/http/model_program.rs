@@ -290,14 +290,15 @@ async fn protocol_source_is_managed_in_the_system_document_and_changes_without_k
         outcome(&server, "protocol-pinned").await["execution"]["outcome"]["Completed"]["output"],
         "protocol-one"
     );
-    let calls = calls.lock().unwrap();
-    assert_eq!(calls.len(), 3);
-    for (headers, body) in calls.iter() {
-        assert_eq!(headers["authorization"], "Bearer fixture-provider-token");
-        assert_eq!(body["model"], "test-model");
-        assert!(!body.to_string().contains("fixture-provider-token"));
+    {
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(), 3);
+        for (headers, body) in calls.iter() {
+            assert_eq!(headers["authorization"], "Bearer fixture-provider-token");
+            assert_eq!(body["model"], "test-model");
+            assert!(!body.to_string().contains("fixture-provider-token"));
+        }
     }
-    drop(calls);
     assert_eq!(reads.load(Ordering::SeqCst), 3);
     stop.cancel();
     worker.await.unwrap();

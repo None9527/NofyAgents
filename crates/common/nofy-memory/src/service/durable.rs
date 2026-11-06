@@ -120,12 +120,34 @@ impl Store {
         Ok(Some(Self(db)))
     }
     fn load(&self, owner: &str, token: &str) -> MemoryServiceResult<Row> {
-        let raw: Option<(String,String,String,Option<String>,Option<String>,Option<String>)> = self.0.query_row(
+        // One field per SELECT column, in column order.
+        struct UndoRow {
+            area: String,
+            target: String,
+            phase: String,
+            payload: Option<String>,
+            undo_id: Option<String>,
+            receipt: Option<String>,
+        }
+        let raw = self.0.query_row(
             "SELECT area,target,phase,payload,undo_id,receipt FROM nofy_service_undo_v1 WHERE owner=?1 AND token=?2",
-            params![owner,token], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?)),
+            params![owner,token], |row| Ok(UndoRow {
+                area: row.get(0)?,
+                target: row.get(1)?,
+                phase: row.get(2)?,
+                payload: row.get(3)?,
+                undo_id: row.get(4)?,
+                receipt: row.get(5)?,
+            }),
         ).optional().map_err(internal_error)?;
-        let (area, target, phase, payload, undo_id, receipt) =
-            raw.ok_or(MemoryServiceError::NotFound)?;
+        let UndoRow {
+            area,
+            target,
+            phase,
+            payload,
+            undo_id,
+            receipt,
+        } = raw.ok_or(MemoryServiceError::NotFound)?;
         if phase == "revoked" {
             return Err(MemoryServiceError::NotFound);
         }

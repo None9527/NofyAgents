@@ -73,10 +73,10 @@ impl State {
             || !result
                 .pointer("/capabilities/tools")
                 .is_some_and(Value::is_object)
-            || !result
+            || result
                 .pointer("/serverInfo/name")
                 .and_then(Value::as_str)
-                .is_some_and(|v| !v.is_empty())
+                .is_none_or(|v| v.is_empty())
             || !result
                 .pointer("/serverInfo/version")
                 .is_some_and(Value::is_string)

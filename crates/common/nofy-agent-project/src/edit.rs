@@ -143,13 +143,14 @@ fn slot(slot: &str, kind: Option<&str>) -> Result<(&'static str, bool)> {
         "hooks" => "hook",
         other => other,
     };
-    if let Some(kind) = kind {
-        if pair.0 != "tools" && kind != expected {
-            return Err(Error::new(
-                "local_input",
-                format!("slot {slot} expects {expected}, received {kind}"),
-            ));
-        }
+    if let Some(kind) = kind
+        && pair.0 != "tools"
+        && kind != expected
+    {
+        return Err(Error::new(
+            "local_input",
+            format!("slot {slot} expects {expected}, received {kind}"),
+        ));
     }
     Ok(pair)
 }
@@ -321,12 +322,12 @@ fn promote(system: &mut Value, i: usize) -> Result<()> {
     }
     if let Some(programs) = system["programs"].as_object_mut() {
         for p in programs.values_mut() {
-            if p["kind"] == "agent" {
-                if let Some(d) = p["definition"].as_object_mut() {
-                    for (key, value) in d {
-                        if !matches!(key.as_str(), "settings" | "name" | "schema_version") {
-                            change_refs(value, &old, &new);
-                        }
+            if p["kind"] == "agent"
+                && let Some(d) = p["definition"].as_object_mut()
+            {
+                for (key, value) in d {
+                    if !matches!(key.as_str(), "settings" | "name" | "schema_version") {
+                        change_refs(value, &old, &new);
                     }
                 }
             }
@@ -370,12 +371,12 @@ fn uses(system: &Value, target: &Value, except: usize) -> Vec<String> {
     }
     if let Some(p) = system["programs"].as_object() {
         for (id, v) in p {
-            if v["kind"] == "agent" {
-                if let Some(d) = v["definition"].as_object() {
-                    for (slot, v) in d {
-                        if slot != "settings" && has(v, target) {
-                            found.push(format!("Agent {id}.{slot}"));
-                        }
+            if v["kind"] == "agent"
+                && let Some(d) = v["definition"].as_object()
+            {
+                for (slot, v) in d {
+                    if slot != "settings" && has(v, target) {
+                        found.push(format!("Agent {id}.{slot}"));
                     }
                 }
             }

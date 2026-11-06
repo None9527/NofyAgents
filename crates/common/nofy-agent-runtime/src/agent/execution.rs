@@ -37,15 +37,14 @@ impl Agent {
                 ));
             }
             for part in &content {
-                if let crate::InputPart::Image { url } = part {
-                    if !(url.starts_with("https://")
+                if let crate::InputPart::Image { url } = part
+                    && !(url.starts_with("https://")
                         || url.starts_with("http://")
                         || url.starts_with("data:image/"))
-                    {
-                        return Err(Error::Composition(
-                            "image input must be an HTTP(S) URL or image data URI".into(),
-                        ));
-                    }
+                {
+                    return Err(Error::Composition(
+                        "image input must be an HTTP(S) URL or image data URI".into(),
+                    ));
                 }
             }
             Some(if has_images {

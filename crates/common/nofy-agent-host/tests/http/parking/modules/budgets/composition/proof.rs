@@ -159,7 +159,10 @@ async fn newly_attached_durable_budget_cannot_promote_an_originally_unmetered_ho
         )
         .unwrap();
     let budget_ref = ModuleRef::new("quota", "1");
-    let resolved = system.registry().resolve(&[budget_ref.clone()]).unwrap();
+    let resolved = system
+        .registry()
+        .resolve(std::slice::from_ref(&budget_ref))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&budget_ref] else {
         panic!("quota")
     };

@@ -143,13 +143,13 @@ pub fn compile_workflow(
             .map(|node| (node.id.clone(), node.output_schema.clone()))
             .collect();
         for node in &plan.spec().nodes {
-            if let NodeKind::Tool { runtime, tool } = &node.action {
-                if let Some(schema) = tools[runtime].tool_schema(tool)? {
-                    check_binding_schema(&node.input, &schema, &plan.spec().input_schema, &schemas)
-                        .map_err(|error| {
-                            invalid(format!("node {} tool arguments: {error}", node.id))
-                        })?;
-                }
+            if let NodeKind::Tool { runtime, tool } = &node.action
+                && let Some(schema) = tools[runtime].tool_schema(tool)?
+            {
+                check_binding_schema(&node.input, &schema, &plan.spec().input_schema, &schemas)
+                    .map_err(|error| {
+                        invalid(format!("node {} tool arguments: {error}", node.id))
+                    })?;
             }
         }
     }

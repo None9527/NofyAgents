@@ -22,22 +22,24 @@ async fn manual_compaction_prefix_plans_once_even_below_pressure_threshold() {
     else {
         panic!("policy")
     };
-    let mut state = RunState::default();
-    state.messages = vec![
-        Message::System {
-            content: "system".into(),
-        },
-        Message::User {
-            content: "prior".into(),
-        },
-        Message::Assistant {
-            content: "prior answer".into(),
-            tool_calls: vec![],
-        },
-        Message::User {
-            content: "/compact now".into(),
-        },
-    ];
+    let mut state = RunState {
+        messages: vec![
+            Message::System {
+                content: "system".into(),
+            },
+            Message::User {
+                content: "prior".into(),
+            },
+            Message::Assistant {
+                content: "prior answer".into(),
+                tool_calls: vec![],
+            },
+            Message::User {
+                content: "/compact now".into(),
+            },
+        ],
+        ..RunState::default()
+    };
     state.hook_progress.input_start_index = Some(3);
     let context = RunContext::new("thread", "run");
     let plan = policy.plan(&state, &context).await.unwrap().unwrap();
@@ -116,15 +118,17 @@ async fn external_compaction_policy_plans_without_sampling_and_requires_persiste
         error.to_string().contains("persistent model receipts"),
         "{error}"
     );
-    let mut small = RunState::default();
-    small.messages = vec![
-        Message::System {
-            content: "system".into(),
-        },
-        Message::User {
-            content: "current".into(),
-        },
-    ];
+    let mut small = RunState {
+        messages: vec![
+            Message::System {
+                content: "system".into(),
+            },
+            Message::User {
+                content: "current".into(),
+            },
+        ],
+        ..RunState::default()
+    };
     small.hook_progress.input_start_index = Some(1);
     assert!(policy.plan(&small, &context).await.unwrap().is_none());
 }

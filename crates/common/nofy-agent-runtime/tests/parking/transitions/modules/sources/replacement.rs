@@ -111,30 +111,30 @@ async fn replacement_reopens_atomic_update_and_runs_new_context_policy_and_dynam
         recovery.execute_submitted(&registry, "run").await.unwrap(),
         Some(RunOutcome::Completed { .. })
     ));
-    let requests = next.requests.lock().unwrap();
-    assert_eq!(requests.len(), 2);
-    assert!(
-        requests[0]
-            .messages
-            .iter()
-            .any(|m| matches!(m, Message::User { content } if content == "retrieved:replacement"))
-    );
-    assert!(
-        !requests[0]
-            .messages
-            .iter()
-            .any(|m| matches!(m, Message::User { content } if content == "retrieved:original"))
-    );
-    assert!(requests[0].messages.iter().any(
+    {
+        let requests = next.requests.lock().unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(
+            requests[0].messages.iter().any(
+                |m| matches!(m, Message::User { content } if content == "retrieved:replacement")
+            )
+        );
+        assert!(
+            !requests[0]
+                .messages
+                .iter()
+                .any(|m| matches!(m, Message::User { content } if content == "retrieved:original"))
+        );
+        assert!(requests[0].messages.iter().any(
         |m| matches!(m, Message::Assistant { content, .. } if content == "compacted:replacement")
     ));
-    assert!(
-        requests[0]
-            .tools
-            .iter()
-            .any(|t| t.function.name == "updated")
-    );
-    drop(requests);
+        assert!(
+            requests[0]
+                .tools
+                .iter()
+                .any(|t| t.function.name == "updated")
+        );
+    }
     assert_eq!(
         *sources.snapshots.lock().unwrap(),
         ["original", "replacement"]

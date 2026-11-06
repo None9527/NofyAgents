@@ -25,7 +25,10 @@ fn budget_command(id: &str, system: &CompiledSystem, revision: u64) -> ManagedAc
 }
 fn profile(system: &CompiledSystem) -> Arc<GovernanceProfile> {
     let reference = ModuleRef::new("budget", "1");
-    let resolved = system.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = system
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("budget")
     };

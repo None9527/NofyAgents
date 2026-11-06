@@ -99,7 +99,10 @@ async fn submit(
         None
     } else {
         let reference = ModuleRef::new("quota", "1");
-        let resolved = compiled.registry().resolve(&[reference.clone()]).unwrap();
+        let resolved = compiled
+            .registry()
+            .resolve(std::slice::from_ref(&reference))
+            .unwrap();
         let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
             panic!("quota")
         };
@@ -348,7 +351,10 @@ async fn unknown_hook_effect_is_reconciled_after_real_exit_with_and_without_budg
                 .prepare(serde_json::from_value(doc).unwrap())
                 .unwrap();
             let reference = ModuleRef::new("quota", "1");
-            let resolved = compiled.registry().resolve(&[reference.clone()]).unwrap();
+            let resolved = compiled
+                .registry()
+                .resolve(std::slice::from_ref(&reference))
+                .unwrap();
             let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
                 panic!("quota")
             };

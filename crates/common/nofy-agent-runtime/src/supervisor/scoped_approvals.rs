@@ -102,7 +102,7 @@ impl SqliteStore {
             let (original,old_payload,mut decision):(String,String,Option<bool>)=tx.query_row("SELECT call_json,payload,decision FROM agent_runtime_approvals WHERE key=?1",[&key],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(db_error)?;
             if original!=call{return Err(invalid("call identity changed"));}
             let mut old:Value=serde_json::from_str(&old_payload).map_err(db_error)?;
-            if decision.is_none(){if let Some((allow,id))=&remembered{old["_decision_scope"]=json!("once");old["_grant_id"]=json!(id);decision=Some(*allow);tx.execute("UPDATE agent_runtime_approvals SET decision=?1,payload=?2 WHERE key=?3",params![allow,serde_json::to_string(&old).map_err(db_error)?,key]).map_err(db_error)?;}}
+            if decision.is_none()&& let Some((allow,id))=&remembered{old["_decision_scope"]=json!("once");old["_grant_id"]=json!(id);decision=Some(*allow);tx.execute("UPDATE agent_runtime_approvals SET decision=?1,payload=?2 WHERE key=?3",params![allow,serde_json::to_string(&old).map_err(db_error)?,key]).map_err(db_error)?;}
             if old.get("_rule_offer").is_none()&&decision.is_none(){old["_rule_offer"]=payload["_rule_offer"].clone();tx.execute("UPDATE agent_runtime_approvals SET payload=?1 WHERE key=?2",params![serde_json::to_string(&old).map_err(db_error)?,key]).map_err(db_error)?;}
             let original_offer=old.get("_rule_offer").cloned().unwrap_or(Value::Null);
             let mut public=json!({"scopes":["once"],"memory":"not_offered"});

@@ -304,7 +304,7 @@ async fn proxy(client: &mut tokio::net::UnixStream, config: &Config) -> std::io:
                 parts[0],
                 path,
                 parts[2],
-                url[url::Position::BeforeHost..url::Position::AfterPort].to_string()
+                &url[url::Position::BeforeHost..url::Position::AfterPort]
             );
             for line in lines.filter(|line| !line.is_empty()) {
                 if line.starts_with([' ', '\t'])

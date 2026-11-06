@@ -33,10 +33,10 @@ fn atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 fn plain(path: &Path) -> Result<()> {
-    if let Ok(m) = path.symlink_metadata() {
-        if !m.is_file() || m.file_type().is_symlink() {
-            return Err(Error::new("local_io", "store path is not a regular file"));
-        }
+    if let Ok(m) = path.symlink_metadata()
+        && (!m.is_file() || m.file_type().is_symlink())
+    {
+        return Err(Error::new("local_io", "store path is not a regular file"));
     }
     Ok(())
 }
@@ -124,10 +124,10 @@ impl ProjectStore {
         let source = change(before.as_ref().map(|v| &v.source))?;
         source.validate()?;
         complete(&source)?;
-        if let Some(before) = &before {
-            if before.source.digest()? == source.digest()? {
-                return Ok(before.clone());
-            }
+        if let Some(before) = &before
+            && before.source.digest()? == source.digest()?
+        {
+            return Ok(before.clone());
         }
         let revision = match before {
             Some(v) => v
@@ -168,12 +168,12 @@ impl ProjectStore {
         let mut ids = vec![];
         for entry in std::fs::read_dir(self.root.as_ref())? {
             let path = entry?.path();
-            if path.extension().is_some_and(|e| e == "json") {
-                if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
-                    safe_id(id)?;
-                    if id > after {
-                        ids.push(id.to_owned());
-                    }
+            if path.extension().is_some_and(|e| e == "json")
+                && let Some(id) = path.file_stem().and_then(|s| s.to_str())
+            {
+                safe_id(id)?;
+                if id > after {
+                    ids.push(id.to_owned());
                 }
             }
         }

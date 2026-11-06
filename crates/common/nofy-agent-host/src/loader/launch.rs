@@ -3,7 +3,7 @@ use nofy_agent_executors::resources::InstalledProgram;
 use std::collections::BTreeMap;
 #[derive(Clone)]
 pub(super) enum RuntimeSource {
-    Legacy(runtimes::InstalledRuntime),
+    Legacy(Box<runtimes::InstalledRuntime>),
     Locked(Arc<images::ImageManifest>),
     Local(Arc<local::Config>),
 }

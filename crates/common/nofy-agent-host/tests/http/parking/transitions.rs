@@ -236,17 +236,18 @@ async fn published_connection_prompt_and_settings_switch_in_place_and_after_acce
             done["outcome"]["Completed"]["output"], "live prompt version two",
             "{done}"
         );
-        let seen = requests.lock().unwrap();
-        assert_eq!(seen.len(), 1);
-        assert_eq!(seen[0]["temperature"], 0.25);
-        assert!(
-            seen[0]["messages"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|m| m["role"] == "tool")
-        );
-        drop(seen);
+        {
+            let seen = requests.lock().unwrap();
+            assert_eq!(seen.len(), 1);
+            assert_eq!(seen[0]["temperature"], 0.25);
+            assert!(
+                seen[0]["messages"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|m| m["role"] == "tool")
+            );
+        }
         assert_eq!(
             service_count(&base.url).await,
             json!({"models":1,"tools":1,"hooks":1})

@@ -1,3 +1,4 @@
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
 use nofy_agent_executors::code::{Executor, Request};
 use nofy_tool_runtime::ToolError;

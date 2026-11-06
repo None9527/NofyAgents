@@ -172,7 +172,7 @@ impl ToolDispatch for TreeDispatch {
                     let helper = loader.helper()?;
                     match (&runtime, &sandbox.runtime) {
                         (RuntimeSource::Locked(manifest), process_tree::sandbox::Runtime::Image { path, .. }) => {
-                            let image = loader.images.materialize(&manifest, loader.cache.quarantined_bytes(lifecycle::CacheKind::Image)?)?;
+                            let image = loader.images.materialize(manifest, loader.cache.quarantined_bytes(lifecycle::CacheKind::Image)?)?;
                             if image != *path {
                                 return Err(HostError::Invalid("tree image cache layout changed".into()));
                             }

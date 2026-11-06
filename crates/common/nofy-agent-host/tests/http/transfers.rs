@@ -122,9 +122,11 @@ async fn cached_list(
     system: &nofy_agent_runtime::system::CompiledSystem,
     id: &str,
 ) -> Value {
-    let mut context = RunContext::default();
-    context.run_id = id.into();
-    context.thread_id = id.into();
+    let context = RunContext {
+        run_id: id.into(),
+        thread_id: id.into(),
+        ..RunContext::default()
+    };
     let result = supervisor
         .execute_program(
             system.program("list").unwrap(),

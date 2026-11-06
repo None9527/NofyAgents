@@ -19,13 +19,12 @@ impl HookHandler for Handler {
         Ok(self.decision.clone())
     }
 }
-fn handler(
-    decision: HookDecision,
-) -> (
+type HandlerParts = (
     Arc<dyn HookHandler>,
     Arc<AtomicUsize>,
     Arc<Mutex<Option<HookEvent>>>,
-) {
+);
+fn handler(decision: HookDecision) -> HandlerParts {
     let count = Arc::new(AtomicUsize::new(0));
     let capture = Arc::new(Mutex::new(None));
     (

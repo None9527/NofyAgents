@@ -14,10 +14,9 @@ pub fn properties(schema: &Value) -> BTreeMap<String, Value> {
             .get("$ref")
             .and_then(Value::as_str)
             .and_then(|s| s.strip_prefix("#/$defs/"))
+            && seen.insert(r.into())
         {
-            if seen.insert(r.into()) {
-                walk(&SCHEMAS["$defs"][r], out, seen);
-            }
+            walk(&SCHEMAS["$defs"][r], out, seen);
         }
         if let Some(p) = schema["properties"].as_object() {
             out.extend(p.iter().map(|(k, v)| (k.clone(), v.clone())));

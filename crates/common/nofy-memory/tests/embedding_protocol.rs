@@ -71,17 +71,20 @@ async fn actual_http_uses_only_declared_client_and_reorders_batched_vectors() {
     assert_eq!(vectors[0], vec![0.0, 1.0]);
     assert_eq!(vectors[31], vec![31.0, 1.0]);
     assert_eq!(vectors[32], vec![0.0, 1.0]);
-    let requests = server.requests.lock().unwrap();
-    assert_eq!(requests.len(), 2);
-    for (headers, body) in requests.iter() {
-        assert_eq!(headers["authorization"], "Bearer explicitly-injected");
-        assert!(!headers.contains_key("x-nofy-token-auth"));
-        assert!(!headers.contains_key("x-nofy-client-version"));
-        assert_eq!(body["model"], "declared-model");
-        assert_eq!(body["dimensions"], 2);
+    {
+        let requests = server.requests.lock().unwrap();
+        assert_eq!(requests.len(), 2);
+        for (headers, body) in requests.iter() {
+            assert_eq!(headers["authorization"], "Bearer explicitly-injected");
+            assert!(!headers.contains_key("x-nofy-token-auth"));
+            assert!(!headers.contains_key("x-nofy-client-version"));
+            assert_eq!(body["model"], "declared-model");
+            assert_eq!(body["dimensions"], 2);
+        }
     }
     assert!(provider.embed_batch(&[]).await.unwrap().is_empty());
-    assert_eq!(requests.len(), 2);
+    // Re-lock after the call: an empty batch must not have sent a request.
+    assert_eq!(server.requests.lock().unwrap().len(), 2);
 }
 
 #[tokio::test]

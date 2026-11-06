@@ -43,10 +43,9 @@ pub fn schema(name: &str) -> Result<Value> {
                 .get("$ref")
                 .and_then(Value::as_str)
                 .and_then(|s| s.strip_prefix("#/$defs/"))
+                && names.insert(name.into())
             {
-                if names.insert(name.into()) {
-                    collect(&SCHEMAS["$defs"][name], names);
-                }
+                collect(&SCHEMAS["$defs"][name], names);
             }
             for child in m.values() {
                 collect(child, names);
@@ -187,45 +186,44 @@ pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
             .take(8)
             .map(|error| issue(&error, ""))
             .collect::<Vec<_>>();
-        if issues.iter().any(|i| i["path"] == "/target") {
-            if let Some(target) = input.get("target") {
-                let mode = target["kind"].as_str();
-                let write = target.get("expected_revision").is_some()
-                    || target.get("expected_digest").is_some()
-                    || matches!(
-                        operation_name,
-                        "agent.configure"
-                            | "agent.create"
-                            | "agent.module.add"
-                            | "agent.module.set"
-                            | "agent.module.bind"
-                            | "agent.module.detach"
-                            | "agent.module.remove"
-                            | "agent.module.use"
-                            | "agent.module.unuse"
-                            | "agent.tool.add"
-                    );
-                let name = if write { "WriteTarget" } else { "ReadTarget" };
-                if let Some(branch) =
-                    SCHEMAS["$defs"][name]["oneOf"]
-                        .as_array()
-                        .and_then(|branches| {
-                            branches
-                                .iter()
-                                .find(|b| b["properties"]["kind"]["const"].as_str() == mode)
-                        })
-                {
-                    let target_schema = json!({"allOf":[branch],"$defs":SCHEMAS["$defs"]});
-                    if let Ok(check) = jsonschema::validator_for(&target_schema) {
-                        let exact = check
-                            .iter_errors(target)
-                            .take(8)
-                            .map(|error| issue(&error, "/target"))
-                            .collect::<Vec<_>>();
-                        if !exact.is_empty() {
-                            issues.retain(|i| i["path"] != "/target");
-                            issues.extend(exact);
-                        }
+        if issues.iter().any(|i| i["path"] == "/target")
+            && let Some(target) = input.get("target")
+        {
+            let mode = target["kind"].as_str();
+            let write = target.get("expected_revision").is_some()
+                || target.get("expected_digest").is_some()
+                || matches!(
+                    operation_name,
+                    "agent.configure"
+                        | "agent.create"
+                        | "agent.module.add"
+                        | "agent.module.set"
+                        | "agent.module.bind"
+                        | "agent.module.detach"
+                        | "agent.module.remove"
+                        | "agent.module.use"
+                        | "agent.module.unuse"
+                        | "agent.tool.add"
+                );
+            let name = if write { "WriteTarget" } else { "ReadTarget" };
+            if let Some(branch) = SCHEMAS["$defs"][name]["oneOf"]
+                .as_array()
+                .and_then(|branches| {
+                    branches
+                        .iter()
+                        .find(|b| b["properties"]["kind"]["const"].as_str() == mode)
+                })
+            {
+                let target_schema = json!({"allOf":[branch],"$defs":SCHEMAS["$defs"]});
+                if let Ok(check) = jsonschema::validator_for(&target_schema) {
+                    let exact = check
+                        .iter_errors(target)
+                        .take(8)
+                        .map(|error| issue(&error, "/target"))
+                        .collect::<Vec<_>>();
+                    if !exact.is_empty() {
+                        issues.retain(|i| i["path"] != "/target");
+                        issues.extend(exact);
                     }
                 }
             }

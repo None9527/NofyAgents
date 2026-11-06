@@ -140,10 +140,8 @@ impl SqliteStore {
             placement.as_deref(),
             placement.is_some() && !create,
         )?;
-        if create {
-            if let Some(parent) = effective.parent() {
-                std::fs::create_dir_all(parent).map_err(db_error)?;
-            }
+        if create && let Some(parent) = effective.parent() {
+            std::fs::create_dir_all(parent).map_err(db_error)?;
         }
         crate::admission::marker::check(&effective, admission.as_deref())?;
         let mut connection = connect(&effective, writable, create)?;

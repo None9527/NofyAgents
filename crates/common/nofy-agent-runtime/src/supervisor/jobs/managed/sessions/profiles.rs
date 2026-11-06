@@ -150,7 +150,7 @@ pub(super) fn profile(tx: &rusqlite::Transaction<'_>, binding: &Binding) -> Resu
             || op.receipt.session_id != value.session_id
             || op.receipt.policy_revision.as_deref()
                 != Some(value.policy_revision.to_string().as_str())
-            || serde_json::to_value(&expected).map_err(db_error)?
+            || serde_json::to_value(expected).map_err(db_error)?
                 != serde_json::to_value(op.receipt.session.as_ref().and_then(|s| s.policy.as_ref()))
                     .map_err(db_error)?
         {

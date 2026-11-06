@@ -34,7 +34,10 @@ fn policy_update(id: &str, system: &CompiledSystem, revision: u64) -> ManagedAct
 
 async fn quota(store: &SqliteStore, system: &CompiledSystem) -> Option<BudgetSummary> {
     let reference = ModuleRef::new("budget", "1");
-    let resolved = system.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = system
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("budget profile")
     };

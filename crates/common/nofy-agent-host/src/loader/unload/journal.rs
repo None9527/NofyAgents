@@ -250,12 +250,12 @@ impl ObjectStore {
         let revision = receipt.revision;
         self.set_barrier(revision, true)?;
         #[cfg(test)]
-        if let Some((entered, wait)) = &self.test_pause {
-            if let Some(wait) = wait.lock().map_err(storage::unavailable)?.take() {
-                entered.notify_one();
-                wait.recv_timeout(std::time::Duration::from_secs(5))
-                    .map_err(storage::unavailable)?;
-            }
+        if let Some((entered, wait)) = &self.test_pause
+            && let Some(wait) = wait.lock().map_err(storage::unavailable)?.take()
+        {
+            entered.notify_one();
+            wait.recv_timeout(std::time::Duration::from_secs(5))
+                .map_err(storage::unavailable)?;
         }
         if !receipt.bindings_checked {
             loader.runtimes.remove_bindings(&receipt.bindings, lease)?;

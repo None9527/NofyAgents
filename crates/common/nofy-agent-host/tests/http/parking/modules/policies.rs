@@ -19,7 +19,10 @@ async fn prepare_policy(
         .prepare(serde_json::from_value(document.clone()).unwrap())
         .unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let resolved = system.registry().resolve(&[reference.clone()]).unwrap();
+    let resolved = system
+        .registry()
+        .resolve(std::slice::from_ref(&reference))
+        .unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("quota")
     };

@@ -140,16 +140,16 @@ impl HookHandler for MemoryModule {
             return Err(composition("memory capture subscribes only to turn_done"));
         }
         // Refused/truncated completions intentionally have no receipt.
-        if context.capabilities.get::<DurableTurnReceipt>().is_none() {
-            if event.payload.get("info").is_some_and(|info| {
+        if context.capabilities.get::<DurableTurnReceipt>().is_none()
+            && event.payload.get("info").is_some_and(|info| {
                 !info.get("refusal").is_none_or(serde_json::Value::is_null)
                     || matches!(
                         info.get("stop_reason").and_then(serde_json::Value::as_str),
                         Some("length" | "max_tokens" | "max_output_tokens")
                     )
-            }) {
-                return Ok(HookDecision::Continue);
-            }
+            })
+        {
+            return Ok(HookDecision::Continue);
         }
         self.capture(context, None).await?;
         Ok(HookDecision::Continue)

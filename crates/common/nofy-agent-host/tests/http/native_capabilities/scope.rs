@@ -144,7 +144,10 @@ async fn resident_scoped_substitution_failure_does_not_start_child_or_reset_root
         .prepare(serde_json::from_value(source.clone()).unwrap())
         .unwrap();
     let quota_ref = ModuleRef::new("quota", "1");
-    let resolved = compiled.registry().resolve(&[quota_ref.clone()]).unwrap();
+    let resolved = compiled
+        .registry()
+        .resolve(std::slice::from_ref(&quota_ref))
+        .unwrap();
     let ModuleInstance::Governance(quota) = &resolved.instances[&quota_ref] else {
         panic!("quota")
     };

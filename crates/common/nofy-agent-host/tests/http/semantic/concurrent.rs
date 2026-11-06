@@ -37,10 +37,11 @@ async fn forgetting_during_embedding_discards_the_old_plan_before_primary_infere
     wire.embedding_gate.cancel();
     assert_eq!(output(&outcome(&server, "root").await), "NO-SEMANTIC-HIT");
     assert_eq!(wire.embeddings.lock().unwrap().len(), 2);
-    let chats = wire.chats.lock().unwrap();
-    assert_eq!(chats.len(), 1);
-    assert!(!chats[0]["messages"].to_string().contains("Saturn"));
-    drop(chats);
+    {
+        let chats = wire.chats.lock().unwrap();
+        assert_eq!(chats.len(), 1);
+        assert!(!chats[0]["messages"].to_string().contains("Saturn"));
+    }
     assert_eq!(canonical(dir.path()), canonical_after_forget);
     stop.cancel();
     worker.await.unwrap();

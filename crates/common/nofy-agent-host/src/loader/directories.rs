@@ -7,6 +7,9 @@ use serde_json::{Value, json};
 mod tests;
 
 pub(super) const ENV_PREFIX: &str = "NOFY_DIRECTORY_";
+// The variant names are the wire vocabulary (`read_only`, `read_write`,
+// `read_write_execute`), so they are not renamed to satisfy the prefix lint.
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum Access {

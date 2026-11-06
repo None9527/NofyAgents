@@ -210,13 +210,12 @@ impl RunSupervisor {
             store: self.store.clone(),
             identity,
         });
-        if input.resume {
-            if let Some(receipt) = observer
+        if input.resume
+            && let Some(receipt) = observer
                 .reconciliation_input(&context, &compiled.agent)
                 .await?
-            {
-                context.capabilities.insert(receipt);
-            }
+        {
+            context.capabilities.insert(receipt);
         }
         context
             .capabilities

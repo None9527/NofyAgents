@@ -262,12 +262,12 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
         unsafe {
             libc::close(lifeline);
         }
-        if let Some(session) = &profile.session {
-            if let Err(error) = session.apply() {
-                eprintln!("process session setup failed: {error}");
-                unsafe {
-                    libc::_exit(125);
-                }
+        if let Some(session) = &profile.session
+            && let Err(error) = session.apply()
+        {
+            eprintln!("process session setup failed: {error}");
+            unsafe {
+                libc::_exit(125);
             }
         }
         if let Some(sandbox) = &profile.sandbox {

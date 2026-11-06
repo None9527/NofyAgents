@@ -225,12 +225,11 @@ impl ToolDispatch for ChildAgent {
             if let Some(observer)=&observer {
                 observer.0.started(&parent,&child_context,&child).await
                     .map_err(|e| nofy_tool_runtime::ToolError::custom("child_receipt",e.to_string()))?;
-                if has_state {
-                    if let Some(receipt) = observer.0.reconciliation(&child_context, &child).await
+                if has_state
+                    && let Some(receipt) = observer.0.reconciliation(&child_context, &child).await
                         .map_err(|e| nofy_tool_runtime::ToolError::custom("child_reconciliation",e.to_string()))? {
                         child_context.capabilities.insert(receipt);
                     }
-                }
             }
             let cost = crate::governance::BudgetCost { child_calls: 1, ..Default::default() };
             let operation = if epoch==0 {serde_json::to_string(&("child", &child_context.run_id))}else{serde_json::to_string(&("child", &child_context.run_id,"control",epoch))}.expect("child identity serializes");
@@ -258,15 +257,13 @@ impl ToolDispatch for ChildAgent {
                 Err(Error::GovernancePaused(reason)) => Ok(RunOutcome::Paused { reason, state: Default::default() }),
                 result => result,
             };
-            if outcome.is_err() && !matches!(&outcome,Err(Error::Checkpoint(_))) {
-                if let Some(controller)=&controller {
-                    if let Err(error)=controller.record_failure(&child_context.run_id,epoch,child.composition_identity()).await {
+            if outcome.is_err() && !matches!(&outcome,Err(Error::Checkpoint(_)))
+                && let Some(controller)=&controller
+                    && let Err(error)=controller.record_failure(&child_context.run_id,epoch,child.composition_identity()).await {
                         let control=context.get::<ChildControl>().ok_or_else(||nofy_tool_runtime::ToolError::custom("missing_control","child journal requires a runtime control rail"))?;
                         *control.0.lock().map_err(|_|nofy_tool_runtime::ToolError::custom("control_poisoned","child control poisoned"))?=Some(ChildOutcome::Checkpoint(error.to_string()));
                         return Err(nofy_tool_runtime::ToolError::custom("child_retry_journal",error.to_string()));
                     }
-                }
-            }
             if let Some(observer)=&observer {
                 observer.0.finished(&child_context,&outcome).await
                     .map_err(|e| nofy_tool_runtime::ToolError::custom("child_receipt",e.to_string()))?;

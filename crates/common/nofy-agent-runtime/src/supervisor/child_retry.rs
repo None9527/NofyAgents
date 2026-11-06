@@ -321,7 +321,7 @@ pub(super) async fn recovery_path(
                     current,
                     parent_thread,
                     parent_run,
-                    &children,
+                    children,
                     store.as_ref(),
                     mode,
                 )
@@ -339,13 +339,14 @@ pub(super) async fn recovery_path(
                     .strip_prefix(&format!("{}:iteration:", parent.run_id))
                     .ok_or_else(|| Error::Checkpoint("iteration identity changed".into()))?;
                 let index: u32 = suffix.parse().map_err(db_error)?;
+                let status_at_boundary = matches!(current.status.as_str(), "failed" | "waiting")
+                    || (mode == RecoveryMode::Cancel
+                        && matches!(current.status.as_str(), "cancelled" | "running"));
                 if parent.kind.as_deref() != Some("workflow_loop")
                     || suffix != index.to_string()
                     || index >= 128
                     || current.thread_id != current.run_id
-                    || !matches!(current.status.as_str(), "failed" | "waiting")
-                        && !(mode == RecoveryMode::Cancel
-                            && matches!(current.status.as_str(), "cancelled" | "running"))
+                    || !status_at_boundary
                 {
                     return Err(Error::Checkpoint(
                         "iteration is not at the failed loop boundary".into(),

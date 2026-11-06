@@ -127,15 +127,13 @@ impl RunSupervisor {
                 &child.thread_id,
             ))
             .await?
-        {
-            if cp.version != 1
+            && (cp.version != 1
                 || cp.composition != child.composition
-                || cp.state.execution_run_id.as_deref() != Some(&child.run_id)
-            {
-                return Err(Error::Checkpoint(
-                    "cancelled child checkpoint is complete or changed".into(),
-                ));
-            }
+                || cp.state.execution_run_id.as_deref() != Some(&child.run_id))
+        {
+            return Err(Error::Checkpoint(
+                "cancelled child checkpoint is complete or changed".into(),
+            ));
         }
         // Validate active ownership through the actual fenced consumer; then
         // bind the exact still-unacknowledged cursor, not a later cancellation.

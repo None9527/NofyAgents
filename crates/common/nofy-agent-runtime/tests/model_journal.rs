@@ -59,13 +59,12 @@ impl Checkpointer for LoseResult {
         version: Option<u64>,
         checkpoint: Checkpoint,
     ) -> Result<(), Error> {
-        if let Some(old) = self.inner.load(key).await? {
-            if old.state.pending_model.is_some()
-                && checkpoint.state.pending_model.is_none()
-                && !self.failed.swap(true, Ordering::SeqCst)
-            {
-                return Err(Error::Checkpoint("lost primary result commit".into()));
-            }
+        if let Some(old) = self.inner.load(key).await?
+            && old.state.pending_model.is_some()
+            && checkpoint.state.pending_model.is_none()
+            && !self.failed.swap(true, Ordering::SeqCst)
+        {
+            return Err(Error::Checkpoint("lost primary result commit".into()));
         }
         self.inner.save(key, version, checkpoint).await
     }

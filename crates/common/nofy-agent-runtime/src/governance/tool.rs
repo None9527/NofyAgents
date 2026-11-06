@@ -297,7 +297,7 @@ mod recovery_tests {
             .unwrap(),
         );
         let mut run = RunContext::new("thread", "run");
-        let _guard = runtime::prepare(&[profile.clone()], &mut run, false)
+        let _guard = runtime::prepare(std::slice::from_ref(&profile), &mut run, false)
             .await
             .unwrap();
         let calls = Arc::new(AtomicUsize::new(0));

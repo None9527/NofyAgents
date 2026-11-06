@@ -27,7 +27,9 @@ impl Policy for Observe {
             .ok_or_else(|| Error::Checkpoint("policy unavailable".into()))
     }
 }
-fn build(result: Option<Admission>) -> (Arc<dyn Policy>, Arc<Mutex<Vec<(String, String, usize)>>>) {
+type Calls = Arc<Mutex<Vec<(String, String, usize)>>>;
+
+fn build(result: Option<Admission>) -> (Arc<dyn Policy>, Calls) {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let inner = ModuleInstance::Policy(Arc::new(Observe {
         result,

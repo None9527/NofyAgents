@@ -239,7 +239,7 @@ async fn native_definitions_are_enumerated_pure_portable_and_keep_old_skill_bodi
         .control()
         .prepare(serde_json::from_value(first["bundle"]["document"].clone()).unwrap())
         .unwrap();
-    assert!(compiled.program_names().contains(&"load-skill".into()));
+    assert!(compiled.program_names().contains(&"load-skill"));
     let migrated_server = serve(migrated.router()).await;
     let imported = post(&migrated_server, "/api/v1/import", first["bundle"].clone()).await;
     assert_eq!(imported["bundle"]["digest"], first["bundle"]["digest"]);

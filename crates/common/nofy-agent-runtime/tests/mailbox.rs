@@ -479,30 +479,34 @@ async fn interjections_wait_for_all_tool_results_keep_fifo_and_capture_raw_user_
     };
     assert_eq!(count.load(Ordering::SeqCst), 2);
     assert_eq!(requests.lock().unwrap().len(), 2);
-    let messages = &requests.lock().unwrap()[1].messages;
-    let a = messages
-        .iter()
-        .position(|m| matches!(m,Message::Tool {call_id,..} if call_id=="call-1"))
-        .unwrap();
-    let b = messages
-        .iter()
-        .position(|m| matches!(m,Message::Tool {call_id,..} if call_id=="call-2"))
-        .unwrap();
-    let first = messages.iter().position(|m| matches!(m,Message::User {content} if content.contains("<user_query>\nfirst steer"))).unwrap();
-    let second = messages.iter().position(|m| matches!(m,Message::User {content} if content.contains("<user_query>\nsecond steer"))).unwrap();
-    assert!(a < b && b < first && first < second);
-    assert_eq!(state.input_progress.capture.len(), 2);
-    let captured = captured.lock().unwrap();
-    for text in ["original", "first steer", "second steer"] {
-        assert!(
-            captured
-                .iter()
-                .any(|m| matches!(m,Message::User {content} if content==text))
-        );
+    {
+        let messages = &requests.lock().unwrap()[1].messages;
+        let a = messages
+            .iter()
+            .position(|m| matches!(m,Message::Tool {call_id,..} if call_id=="call-1"))
+            .unwrap();
+        let b = messages
+            .iter()
+            .position(|m| matches!(m,Message::Tool {call_id,..} if call_id=="call-2"))
+            .unwrap();
+        let first = messages.iter().position(|m| matches!(m,Message::User {content} if content.contains("<user_query>\nfirst steer"))).unwrap();
+        let second = messages.iter().position(|m| matches!(m,Message::User {content} if content.contains("<user_query>\nsecond steer"))).unwrap();
+        assert!(a < b && b < first && first < second);
     }
-    assert!(!captured.iter().any(
+    assert_eq!(state.input_progress.capture.len(), 2);
+    {
+        let captured = captured.lock().unwrap();
+        for text in ["original", "first steer", "second steer"] {
+            assert!(
+                captured
+                    .iter()
+                    .any(|m| matches!(m,Message::User {content} if content==text))
+            );
+        }
+        assert!(!captured.iter().any(
         |m| matches!(m,Message::User {content} if content.contains("The user sent a message while"))
     ));
+    }
     assert_eq!(
         store
             .input_status(&address(), "image")
@@ -1015,12 +1019,9 @@ fn abrupt_process_exit_after_transcript_commit_recovers_claim_and_ack_without_du
         assert_eq!(
             result.status.code(),
             Some(code),
-            "{}",
-            format!(
-                "{}{}",
-                String::from_utf8_lossy(&result.stdout),
-                String::from_utf8_lossy(&result.stderr)
-            )
+            "{}{}",
+            String::from_utf8_lossy(&result.stdout),
+            String::from_utf8_lossy(&result.stderr)
         );
     }
     assert_eq!(
@@ -1247,23 +1248,20 @@ async fn user_tool_proof_is_consumed_and_cannot_be_forged_by_model_arguments_or_
         panic!("not completed")
     };
     assert_eq!(*seen.lock().unwrap(), vec![true, false]);
-    let capture = captured.lock().unwrap();
-    assert!(
-        capture
-            .iter()
-            .any(|m| matches!(m,Message::User {content} if content=="query"))
-    );
-    assert!(
-        !capture.iter().any(
+    {
+        let capture = captured.lock().unwrap();
+        assert!(
+            capture
+                .iter()
+                .any(|m| matches!(m,Message::User {content} if content=="query"))
+        );
+        assert!(!capture.iter().any(
             |m| matches!(m,Message::Tool {content,..} if content["value"]["authorized"]==true)
-        )
-    );
-    assert!(
-        capture.iter().any(
+        ));
+        assert!(capture.iter().any(
             |m| matches!(m,Message::Tool {content,..} if content["value"]["authorized"]==false)
-        )
-    );
-    drop(capture);
+        ));
+    }
     let summary = store.inspect(&scope).await.unwrap().unwrap();
     assert_eq!(summary.used.tool_calls, 2);
     assert_eq!(summary.used.model_calls, 3);

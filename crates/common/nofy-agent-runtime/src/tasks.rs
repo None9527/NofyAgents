@@ -182,7 +182,7 @@ impl Scope {
         Ok(view(task_id, &task))
     }
     fn launch(&self, task_id: String, task: Task, resume: bool) -> Result<(), Error> {
-        let owner = self.owner.upgrade().ok_or_else(|| Error::Cancelled)?;
+        let owner = self.owner.upgrade().ok_or(Error::Cancelled)?;
         let entry = self
             .drivers
             .get(&task.tool)

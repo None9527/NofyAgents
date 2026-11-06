@@ -243,8 +243,8 @@ async fn binding(host: &KernelHost, id: &str, run: &str) -> Result<Value> {
     Ok(json!({"session_id":id,"run_id":run,
         "session_revision":admission.as_ref().and_then(|a|a.get("session_revision")).and_then(Value::as_str).unwrap_or("0"),
         "policy_revision":admission.as_ref().and_then(|a|a.get("policy_revision")).and_then(Value::as_str).unwrap_or("0"),
-        "native_admission_json":native.map(|v|serde_json::to_value(v)).transpose().map_err(|e|HostError::Invalid(e.to_string()))?.as_ref().map(text).transpose()?,
-        "seed_json":seed.map(|v|serde_json::to_value(v)).transpose().map_err(|e|HostError::Invalid(e.to_string()))?.as_ref().map(text).transpose()?,
+        "native_admission_json":native.map(serde_json::to_value).transpose().map_err(|e|HostError::Invalid(e.to_string()))?.as_ref().map(text).transpose()?,
+        "seed_json":seed.map(serde_json::to_value).transpose().map_err(|e|HostError::Invalid(e.to_string()))?.as_ref().map(text).transpose()?,
         "policy_admission_json":admission.as_ref().map(text).transpose()?}))
 }
 async fn turn_binding(

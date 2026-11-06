@@ -66,7 +66,7 @@ async fn prepare(
         .unwrap()
         .unwrap();
     let reference = ModuleRef::new("quota", "1");
-    let resolved = registry.resolve(&[reference.clone()]).unwrap();
+    let resolved = registry.resolve(std::slice::from_ref(&reference)).unwrap();
     let ModuleInstance::Governance(profile) = &resolved.instances[&reference] else {
         panic!("quota")
     };
@@ -326,9 +326,13 @@ async fn declared_rules_update_remove_and_rollback_use_the_original_worker_after
         assert_eq!(models.load(Ordering::SeqCst), 2);
         assert_eq!(effects.load(Ordering::SeqCst), 1);
         assert_eq!(hooks.load(Ordering::SeqCst), 1);
-        let requests = seen.lock().unwrap();
-        let first = requests[0]["messages"].to_string();
-        let last = requests[1]["messages"].to_string();
+        let (first, last) = {
+            let requests = seen.lock().unwrap();
+            (
+                requests[0]["messages"].to_string(),
+                requests[1]["messages"].to_string(),
+            )
+        };
         assert!(first.contains("original project instructions"));
         match crash {
             None => {
@@ -343,7 +347,6 @@ async fn declared_rules_update_remove_and_rollback_use_the_original_worker_after
                 assert!(!last.contains("replacement project instructions"));
             }
         }
-        drop(requests);
         stop.cancel();
         worker.await.unwrap();
     }

@@ -65,16 +65,6 @@ pub(super) fn admit_url(value: &str, library: &ModuleStore) -> Result<()> {
     }
     Ok(())
 }
-struct GitChild {
-    child: tokio::process::Child,
-    group: nofy_tty_utils::ProcessGroup,
-}
-impl Drop for GitChild {
-    fn drop(&mut self) {
-        let _ = self.group.kill();
-        let _ = self.child.start_kill();
-    }
-}
 async fn run(args: &[String], deadline: tokio::time::Instant) -> Result<Vec<u8>> {
     if tokio::time::Instant::now() >= deadline {
         return Err(HostError::Unavailable(
@@ -114,16 +104,17 @@ async fn run(args: &[String], deadline: tokio::time::Instant) -> Result<Vec<u8>>
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     nofy_tty_utils::detach_command(&mut command);
-    let child = command.spawn().map_err(|_| {
-        HostError::Unavailable("Git is not available for module synchronization".into())
+    let mut owned = nofy_tty_utils::OwnedChild::spawn(&mut command).map_err(|e| {
+        use nofy_tty_utils::OwnedChildError as E;
+        HostError::Unavailable(
+            match e {
+                E::Spawn(_) => "Git is not available for module synchronization",
+                E::Group(_) => "Git process ownership is unavailable",
+                E::Attach(_) => "cannot own Git acquisition process",
+            }
+            .into(),
+        )
     })?;
-    let group = nofy_tty_utils::ProcessGroup::new()
-        .map_err(|_| HostError::Unavailable("Git process ownership is unavailable".into()))?;
-    let mut owned = GitChild { child, group };
-    owned
-        .group
-        .attach(&owned.child)
-        .map_err(|_| HostError::Unavailable("cannot own Git acquisition process".into()))?;
     let mut stdout = owned
         .child
         .stdout

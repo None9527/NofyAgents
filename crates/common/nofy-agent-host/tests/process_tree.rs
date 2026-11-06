@@ -1,5 +1,6 @@
 //! Actual namespace/cgroup lifecycle, never an unconfined Agent tool.
 #![cfg(target_os = "linux")]
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use nofy_agent_host::{
     KernelHost,
     auth::{Authorizer, Scope},
@@ -85,10 +86,10 @@ print('main-finished',flush=True)
 async fn wait_json(path: &Path) -> Value {
     tokio::time::timeout(Duration::from_secs(10), async {
         loop {
-            if let Ok(bytes) = fs::read(path) {
-                if let Ok(value) = serde_json::from_slice(&bytes) {
-                    return value;
-                }
+            if let Ok(bytes) = fs::read(path)
+                && let Ok(value) = serde_json::from_slice(&bytes)
+            {
+                return value;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }

@@ -190,10 +190,10 @@ async fn run_tool_node(
     let mut child = context.clone();
     if let Some(observer) = &observer {
         observer.0.started(&parent, &child, &agent).await?;
-        if checkpoint.is_some() {
-            if let Some(receipt) = observer.0.reconciliation(&child, &agent).await? {
-                child.capabilities.insert(receipt);
-            }
+        if checkpoint.is_some()
+            && let Some(receipt) = observer.0.reconciliation(&child, &agent).await?
+        {
+            child.capabilities.insert(receipt);
         }
     }
     let input = if checkpoint.is_some() {

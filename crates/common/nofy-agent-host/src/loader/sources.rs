@@ -110,14 +110,14 @@ pub struct ImageAttestation {
 }
 impl ImageAttestation {
     fn message(&self) -> Result<Vec<u8>> {
-        Ok(serde_json::to_vec(&(
+        serde_json::to_vec(&(
             "nofy.runtime-image.source/v1",
             &self.manifest_digest,
             &self.payload_digest,
             self.payload_size,
             &self.key_id,
         ))
-        .map_err(storage::unavailable)?)
+        .map_err(storage::unavailable)
     }
     pub fn validate(&self) -> Result<()> {
         storage::digest(&self.manifest_digest)?;

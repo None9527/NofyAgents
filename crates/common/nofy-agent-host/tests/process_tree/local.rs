@@ -1,4 +1,5 @@
 //! Actual user-installed Python modules and GCC, without dependency images.
+#![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::command::{approve, module, post, request, submit};
 use super::*;
 

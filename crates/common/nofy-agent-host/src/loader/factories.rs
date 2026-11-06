@@ -132,7 +132,7 @@ impl ModuleFactory for EnvironmentFactory {
         Ok(ModuleInstance::Resource(Arc::new(ResourceHandle::new(
             identity.clone(),
             Arc::new(Environment {
-                runtime: launch::RuntimeSource::Legacy(runtime),
+                runtime: launch::RuntimeSource::Legacy(Box::new(runtime)),
                 loader: self.0.clone(),
                 identity,
             }),

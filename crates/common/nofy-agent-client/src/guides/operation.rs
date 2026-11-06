@@ -56,23 +56,23 @@ pub(crate) fn recovery(code: &str, operation: &str, input: &Value, unconfirmed: 
             "Read the original run, execution and control-tree state.",
         ));
     }
-    if let Some(target) = input.get("target") {
-        if let Some(agent) = input.get("agent") {
-            let read = if target["kind"] == "project" {
-                json!({"kind":"project","project_id":target["project_id"]})
-            } else {
-                json!({"kind":"source","source":target["source"]})
-            };
-            // A source collection remains in the caller's request; do not copy
-            // the entire implementation into every failure response.
-            if read["kind"] == "project" {
-                calls.push(step(
-                    "inspect",
-                    "agent.inspect",
-                    json!({"target":read,"agent":agent}),
-                    "Inspect source revision, missing requirements and the current declaration.",
-                ));
-            }
+    if let Some(target) = input.get("target")
+        && let Some(agent) = input.get("agent")
+    {
+        let read = if target["kind"] == "project" {
+            json!({"kind":"project","project_id":target["project_id"]})
+        } else {
+            json!({"kind":"source","source":target["source"]})
+        };
+        // A source collection remains in the caller's request; do not copy
+        // the entire implementation into every failure response.
+        if read["kind"] == "project" {
+            calls.push(step(
+                "inspect",
+                "agent.inspect",
+                json!({"target":read,"agent":agent}),
+                "Inspect source revision, missing requirements and the current declaration.",
+            ));
         }
     }
     json!({"action":action,"message":message,"automatic_retry":false,"calls":calls})

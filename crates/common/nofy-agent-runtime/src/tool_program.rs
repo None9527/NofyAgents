@@ -243,10 +243,10 @@ pub fn compile_tools(
             hooks,
         )?);
     }
-    if let Some(reference) = &definition.checkpointer {
-        if let ModuleInstance::Checkpointer(store) = &resolved.instances[reference] {
-            agent = agent.with_checkpointer(store.clone());
-        }
+    if let Some(reference) = &definition.checkpointer
+        && let ModuleInstance::Checkpointer(store) = &resolved.instances[reference]
+    {
+        agent = agent.with_checkpointer(store.clone());
     }
     let snapshot = ToolCompilationSnapshot {
         version: 1,

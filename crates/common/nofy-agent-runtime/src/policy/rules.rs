@@ -5,15 +5,12 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 enum Action {
     Allow,
     Deny,
+    #[default]
     Ask,
-}
-impl Default for Action {
-    fn default() -> Self {
-        Self::Ask
-    }
 }
 fn any() -> Value {
     Value::Bool(true)
@@ -277,9 +274,7 @@ impl Policy for Rules {
             Action::Deny
         } else if ask.is_some() || (unknown && self.config.unknown_command == Action::Ask) {
             Action::Ask
-        } else if unknown && self.config.unknown_command == Action::Allow {
-            Action::Allow
-        } else if allow {
+        } else if allow || (unknown && self.config.unknown_command == Action::Allow) {
             Action::Allow
         } else {
             self.config.default

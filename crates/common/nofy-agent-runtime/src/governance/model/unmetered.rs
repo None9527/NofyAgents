@@ -30,7 +30,7 @@ where
     };
     let admission = journal.start_unmetered(target.clone()).await?;
     let cached = match admission {
-        UnmeteredAdmission::Replay(result) => result,
+        UnmeteredAdmission::Replay(result) => *result,
         admission => {
             journal.note_model_attempt(target.clone()).await?;
             let evidence = journal.model_evidence(&ticket).await?;
