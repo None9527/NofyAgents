@@ -80,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     temp.flush()?;
     temp.as_file().sync_all()?;
     temp.persist_noclobber(&output)?;
-    std::fs::File::open(parent)?.sync_all()?;
+    nofy_agent_runtime::sync_directory(parent)?;
     println!(
         "{}",
         serde_json::json!({"key_id":args.key_id,"public_key":public_key})

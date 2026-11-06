@@ -131,9 +131,7 @@ pub(super) fn install(storage: &Path, placement: &dyn SqlitePlacement) -> Result
             }
             Err(_) => return Err(failure()),
         }
-        File::open(parent)
-            .and_then(|f| f.sync_all())
-            .map_err(|_| failure())
+        crate::sync_directory(parent).map_err(|_| failure())
     })();
     let _ = std::fs::remove_file(temp);
     result

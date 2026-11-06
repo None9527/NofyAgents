@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     temporary.flush()?;
     temporary.as_file().sync_all()?;
     temporary.persist_noclobber(&output)?;
-    std::fs::File::open(parent)?.sync_all()?;
+    nofy_agent_runtime::sync_directory(parent)?;
     println!("{}", image.manifest.digest()?);
     Ok(())
 }

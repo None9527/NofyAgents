@@ -255,12 +255,11 @@ pub fn copy_snapshot(
     File::open(target)
         .and_then(|f| f.sync_all())
         .map_err(db_error)?;
-    File::open(
+    crate::sync_directory(
         target
             .parent()
             .ok_or_else(|| failure("runtime snapshot target has no parent"))?,
     )
-    .and_then(|f| f.sync_all())
     .map_err(db_error)?;
     let copied = inspect_snapshot(target)?;
     if copied != *expected || inspect_snapshot(source)? != *expected {
