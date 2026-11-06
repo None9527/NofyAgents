@@ -380,7 +380,7 @@ print(json.dumps(checks))
         .unwrap();
     use tokio::io::AsyncBufReadExt;
     let mut errors = tokio::io::BufReader::new(cli.stderr.take().unwrap()).lines();
-    let line = tokio::time::timeout(Duration::from_secs(15), errors.next_line())
+    let line = tokio::time::timeout(crate::KERNEL_START, errors.next_line())
         .await
         .unwrap()
         .unwrap()

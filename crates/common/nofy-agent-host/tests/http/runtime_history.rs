@@ -14,6 +14,22 @@ fn selection(release: &str, reverse: bool) -> Value {
 fn submission(release: &str, id: &str) -> Value {
     json!({"run_id":id,"thread_id":id,"system":"runtime-history","release":release,"program":"compute"})
 }
+/// The run record closes in a write after the execution result is visible.
+/// `outcome` returns in between; this waits for the settled view, so a view read
+/// after a storage move is compared with one that cannot be a step older.
+async fn closed(server: &Serving, id: &str) -> Value {
+    tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            let view = outcome(server, id).await;
+            if view["run"]["status"] == "closed" {
+                return view;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap()
+}
 fn command(id: &str, plan: &Value) -> Value {
     json!({"command_id":id,"fingerprint":plan["fingerprint"]})
 }
@@ -134,7 +150,7 @@ async fn whole_instance_migration_preserves_real_runs_budgets_queue_and_latest_r
     assert_eq!(host.store().logical_identity(), identity);
     assert_eq!(inspect_snapshot(&external).unwrap(), original);
     let (stop, worker) = start(&host);
-    let finished = outcome(&server, "queued-original").await;
+    let finished = closed(&server, "queued-original").await;
     assert_eq!(finished["execution"]["status"], "completed");
     let budget = rusqlite::Connection::open(&external)
         .unwrap()
