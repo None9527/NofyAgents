@@ -433,55 +433,55 @@ fn idempotent(operation: &Operation) -> bool {
 /// Whether the operation only reads. The catalog's read-only scope hint
 /// (`scope_hint == ["read"]`) must imply membership here; a test enforces it, so
 /// a new read operation cannot silently be advertised as destructive.
+const READ_ONLY: &[&str] = &[
+    "describe",
+    "schema",
+    "project.template",
+    "project.inspect",
+    "project.build",
+    "agent.list",
+    "agent.inspect",
+    "agent.export",
+    "agent.build",
+    "agent.plan",
+    "agent.module.list",
+    "agent.module.inspect",
+    "repository.list",
+    "repository.inspect",
+    "module.list",
+    "module.inspect",
+    "module.export",
+    "draft.get",
+    "system.validate",
+    "system.plan",
+    "system.active",
+    "system.history",
+    "system.export",
+    "system.programs",
+    "run.list",
+    "run.inspect",
+    "run.events",
+    "run.approvals",
+    "run.recovery",
+    "action.inspect",
+    "session.list",
+    "session.inspect",
+    "session.turns",
+    "session.route",
+    "session.plan",
+    "session.policy",
+    "session.command",
+    "session.binding",
+    "resource.list",
+    "resource.inspect",
+    "budget.list",
+    "credential.list",
+    "command.analyze",
+    "permission.grants",
+    "session.tree",
+];
 fn readonly(op: &str) -> bool {
-    matches!(
-        op,
-        "describe"
-            | "schema"
-            | "project.template"
-            | "project.inspect"
-            | "project.build"
-            | "agent.list"
-            | "agent.inspect"
-            | "agent.export"
-            | "agent.build"
-            | "agent.plan"
-            | "agent.module.list"
-            | "agent.module.inspect"
-            | "repository.list"
-            | "repository.inspect"
-            | "module.list"
-            | "module.inspect"
-            | "module.export"
-            | "draft.get"
-            | "system.validate"
-            | "system.plan"
-            | "system.active"
-            | "system.history"
-            | "system.export"
-            | "system.programs"
-            | "run.list"
-            | "run.inspect"
-            | "run.events"
-            | "run.approvals"
-            | "run.recovery"
-            | "action.inspect"
-            | "session.list"
-            | "session.inspect"
-            | "session.turns"
-            | "session.route"
-            | "session.plan"
-            | "session.policy"
-            | "session.command"
-            | "session.binding"
-            | "resource.list"
-            | "resource.inspect"
-            | "budget.list"
-            | "credential.list"
-            | "command.analyze"
-            | "permission.grants"
-            | "session.tree"
-    )
+    READ_ONLY.contains(&op)
 }
 
 #[cfg(test)]
@@ -521,18 +521,17 @@ mod tests {
     #[test]
     fn read_only_list_names_only_real_operations() {
         let known: BTreeSet<_> = OPERATIONS.iter().map(|o| o.operation.as_str()).collect();
-        let source = include_str!("lib.rs");
-        let body = source
-            .split("fn readonly(op: &str) -> bool {")
-            .nth(1)
-            .and_then(|rest| rest.split("\n}\n").next())
-            .expect("readonly body");
-        for name in body.split('"').skip(1).step_by(2) {
+        for name in READ_ONLY {
             assert!(
                 known.contains(name),
-                "readonly() lists unknown operation {name}"
+                "READ_ONLY lists unknown operation {name}"
             );
         }
+        assert_eq!(
+            READ_ONLY.iter().collect::<BTreeSet<_>>().len(),
+            READ_ONLY.len(),
+            "READ_ONLY lists an operation twice"
+        );
     }
 
     #[test]
