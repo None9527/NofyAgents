@@ -74,7 +74,7 @@ async fn host(path: &Path) -> KernelHost {
         .unwrap()
         .parent()
         .unwrap()
-        .join("nofy-agent-host");
+        .join(format!("nofy-agent-host{}", std::env::consts::EXE_SUFFIX));
     // The helper belongs to another package, so `cargo test -p nofy-cli` does not
     // build it. Say so, rather than failing later with a bare "No such file".
     assert!(

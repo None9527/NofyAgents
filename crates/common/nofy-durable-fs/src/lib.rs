@@ -75,38 +75,84 @@ pub fn sync_directory(path: &Path) -> io::Result<()> {
     }
 }
 
+/// Windows system errors that mean "somebody has it open right now": access denied
+/// and the sharing and lock violations. Antivirus and indexers hold a freshly
+/// written file for a moment without delete sharing, and the move succeeds when
+/// they let go.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn busy_for_a_moment(system_error: i32) -> bool {
+    matches!(system_error, 5 | 32 | 33)
+}
+
+/// The path in extended-length form, so a long state directory (over 260
+/// characters) does not defeat the move. An already prefixed path is left alone.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn extended_length(absolute: &str) -> String {
+    if absolute.starts_with(r"\\?\") || absolute.starts_with(r"\\.\") {
+        absolute.to_owned()
+    } else if let Some(share) = absolute.strip_prefix(r"\\") {
+        format!(r"\\?\UNC\{share}")
+    } else {
+        format!(r"\\?\{absolute}")
+    }
+}
+
 #[cfg(windows)]
 fn windows_move(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt;
+    use std::{os::windows::ffi::OsStrExt, time::Duration};
     use windows::{
         Win32::Storage::FileSystem::{
             MOVE_FILE_FLAGS, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
         },
         core::PCWSTR,
     };
-    let wide = |path: &Path| -> Vec<u16> {
-        path.as_os_str()
+    let wide = |path: &Path| -> io::Result<Vec<u16>> {
+        let absolute = std::path::absolute(path)?;
+        let text = absolute.to_str().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "path is not valid Unicode")
+        })?;
+        if text.contains('\0') {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "path contains a NUL",
+            ));
+        }
+        Ok(std::ffi::OsStr::new(&extended_length(text))
             .encode_wide()
             .chain(std::iter::once(0))
-            .collect()
+            .collect())
     };
-    let (from, to) = (wide(from), wide(to));
+    let (from, to) = (wide(from)?, wide(to)?);
     let mut flags: MOVE_FILE_FLAGS = MOVEFILE_WRITE_THROUGH;
     if replace {
         flags |= MOVEFILE_REPLACE_EXISTING;
     }
-    // SAFETY: both buffers are NUL-terminated UTF-16 that outlive the call, and
-    // MoveFileExW only reads them.
-    unsafe { MoveFileExW(PCWSTR(from.as_ptr()), PCWSTR(to.as_ptr()), flags) }.map_err(|error| {
-        // HRESULT_FROM_WIN32 keeps the system error in the low word; mapping it
-        // back lets callers see `AlreadyExists` and `PermissionDenied`.
-        let code = error.code().0 as u32;
-        if code >> 16 == 0x8007 {
-            io::Error::from_raw_os_error((code & 0xFFFF) as i32)
-        } else {
-            io::Error::other(error)
+    // A bounded wait, because callers hold this on a blocking thread.
+    const ATTEMPTS: u32 = 40;
+    for attempt in 1..=ATTEMPTS {
+        // SAFETY: both buffers are NUL-terminated UTF-16 that outlive the call, and
+        // MoveFileExW only reads them.
+        let moved = unsafe { MoveFileExW(PCWSTR(from.as_ptr()), PCWSTR(to.as_ptr()), flags) };
+        let error = match moved {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                // HRESULT_FROM_WIN32 keeps the system error in the low word; mapping
+                // it back lets callers see `AlreadyExists` and `PermissionDenied`.
+                let code = error.code().0 as u32;
+                if code >> 16 == 0x8007 {
+                    io::Error::from_raw_os_error((code & 0xFFFF) as i32)
+                } else {
+                    io::Error::other(error)
+                }
+            }
+        };
+        let busy = error.raw_os_error().is_some_and(busy_for_a_moment);
+        if !busy || attempt == ATTEMPTS {
+            return Err(error);
         }
-    })
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    unreachable!("the loop returns on its last attempt")
 }
 
 #[cfg(test)]
@@ -165,6 +211,47 @@ mod tests {
         assert_eq!(std::fs::read(&to).unwrap(), b"first");
         // The rejected temporary is cleaned up, not left beside the file.
         assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    /// Runs only on Windows, where the 260-character limit exists.
+    #[cfg(windows)]
+    #[test]
+    fn replace_file_works_in_a_path_longer_than_max_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut deep = dir.path().to_path_buf();
+        while deep.as_os_str().len() < 320 {
+            deep.push("a_directory_name_of_some_length");
+        }
+        std::fs::create_dir_all(&deep).unwrap();
+        let (from, to) = (deep.join("new"), deep.join("current"));
+        std::fs::write(&to, b"old").unwrap();
+        std::fs::write(&from, b"new").unwrap();
+        replace_file(&from, &to).unwrap();
+        assert_eq!(std::fs::read(&to).unwrap(), b"new");
+    }
+
+    #[test]
+    fn long_and_network_paths_are_given_in_extended_length_form() {
+        assert_eq!(extended_length(r"C:\state\a.json"), r"\\?\C:\state\a.json");
+        assert_eq!(
+            extended_length(r"\\server\share\a.json"),
+            r"\\?\UNC\server\share\a.json"
+        );
+        // Already extended, or a device path: left alone.
+        assert_eq!(extended_length(r"\\?\C:\a"), r"\\?\C:\a");
+        assert_eq!(extended_length(r"\\.\pipe\x"), r"\\.\pipe\x");
+    }
+
+    #[test]
+    fn only_a_moment_of_contention_is_retried() {
+        // access denied, sharing violation, lock violation
+        for code in [5, 32, 33] {
+            assert!(busy_for_a_moment(code), "{code}");
+        }
+        // file exists, already exists, file not found, path not found
+        for code in [80, 183, 2, 3] {
+            assert!(!busy_for_a_moment(code), "{code}");
+        }
     }
 
     #[test]
