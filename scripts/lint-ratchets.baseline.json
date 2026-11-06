@@ -1,0 +1,20 @@
+{
+  "panic": {
+    "nofy-agent-client": 6,
+    "nofy-agent-executors": 5,
+    "nofy-agent-host": 28,
+    "nofy-agent-models": 1,
+    "nofy-agent-modules": 15,
+    "nofy-agent-project": 3,
+    "nofy-agent-runtime": 104,
+    "nofy-compaction": 4,
+    "nofy-memory": 19,
+    "nofy-tool-runtime": 1,
+    "nofy-tool-types": 2
+  },
+  "unsafe": {
+    "nofy-agent-host": 89,
+    "nofy-sqlite-journal": 1,
+    "nofy-tty-utils": 1
+  }
+}
