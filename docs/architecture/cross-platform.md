@@ -26,6 +26,14 @@
 
 Linux 专有的功能在其他平台上没有对应物，需要明确标为"不支持"，而不是移植：锁定的 glibc 运行时镜像（ELF64）。用户自备环境（`resource.process_local`）是跨平台路径。
 
+## S0 实测结果
+
+CI 在 macOS 与 Windows 原生运行（运行 `42210820616`，提交 `3706b6a`）：
+
+- **整个工作区的库与二进制目标在两个平台上都通过了 `cargo check`**，23 个包全部编译，包括 `nofy-agent-host`。host 里的 Linux 代码此前已经用条件编译隔离，非 Linux 平台上的隔离入口返回"需要 Linux 约束"。所以"host 能编译"这一项**已经成立**，不是待办。
+- 命令行与可移植包：macOS 构建并通过测试；Windows 构建通过，测试里有一个失败，是 `nofy-agent-mcp` 的一个测试用 `include_str!` 解析自己的源码，遇到 Windows 的 CRLF 换行就切错了。已改成直接遍历常量，并加了 `.gitattributes` 统一为 LF。
+- 仍然**未知**：测试目标在两个平台上能否编译；内核在 macOS 与 Windows 上能否真正启动并提供控制面（`kernel-smoke` 任务测量它）；隔离入口在运行时的真实行为。编译通过不等于能运行。
+
 ## 目标架构
 
 在 host 内围绕隔离层划一条边界：
@@ -41,7 +49,7 @@ Linux 专有的功能在其他平台上没有对应物，需要明确标为"不�
 |---|---|---|
 | S0 测量 | CI 在 macOS 与 Windows 上原生编译，得到逐包错误清单 | 有每个平台逐包的错误数 |
 | S1 可移植层 | 命令行、MCP 桥、客户端、工程引擎在两个平台构建并测试；决定 Windows 令牌文件的 ACL 检查 | `client-portability` 在两个平台全绿 |
-| S2 隔离边界 | 接口与准入已落地（`nofy-isolation`，见[沙箱模块化](sandbox-module.md)）；Linux 后端适配；其他平台返回"不支持" | host 在 macOS 与 Windows 上编译；Linux 闸门与全部测试不变 |
+| S2 隔离边界 | 库与二进制目标在 macOS、Windows 上已能编译；接口与准入已落地（`nofy-isolation`，见[沙箱模块化](sandbox-module.md)）；Linux 后端适配；其他平台返回"不支持" | host 在 macOS 与 Windows 上编译；Linux 闸门与全部测试不变 |
 | S3 控制面全平台 | 内核在三个平台启动并提供项目、草稿、系统、会话接口；需要隔离的执行以 `isolation_unavailable` 拒绝 | 不需要隔离的测试在三个平台上通过 |
 | S4 隔离后端 | 每个平台原生实现，部分改造自参考项目，见[沙箱模块化](sandbox-module.md) | 每个后端通过同一组验收：探针事实、`process_tree` 一类的真实杀进程与取消测试 |
 | S5 桌面版 | 内核作为随应用分发的服务；安装包、签名、更新 | 桌面应用端到端运行一个 Agent |
