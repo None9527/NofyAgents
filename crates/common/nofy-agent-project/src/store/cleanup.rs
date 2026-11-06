@@ -51,7 +51,7 @@ impl ProjectStore {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),
         }
-        std::fs::File::open(self.root.as_ref())?.sync_all()?;
+        sync_directory(self.root.as_ref())?;
         Ok(
             json!({"project_id":id,"revision":view.revision,"source_digest":view.source_digest,"deleted":true}),
         )

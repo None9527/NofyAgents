@@ -73,14 +73,13 @@ impl FileCredentials {
         fallback: Option<Arc<dyn CredentialProvider>>,
     ) -> Result<Self> {
         let path = path.as_ref();
-        if !cfg!(unix)
-            || !path.is_absolute()
+        if !path.is_absolute()
             || path.file_name().is_none()
             || authority.trim().is_empty()
             || authority.len() > 1024
         {
             return Err(HostError::Invalid(
-                "credentials require a Unix absolute file path and logical authority".into(),
+                "credentials require an absolute file path and logical authority".into(),
             ));
         }
         let identity = format!("credentials-v1:{authority}");
@@ -143,6 +142,11 @@ impl FileCredentials {
             if metadata.permissions().mode() & 0o077 != 0 {
                 return Err(unavailable());
             }
+        }
+        // Owner-only access cannot be verified off Unix, so a store that already
+        // holds secrets is refused rather than trusted.
+        if cfg!(not(unix)) {
+            return Err(unavailable());
         }
         let mut bytes = Vec::new();
         File::open(&*self.path)
@@ -225,6 +229,13 @@ impl FileCredentials {
         if !value_valid(&value) {
             return Err(HostError::Invalid(
                 "credential value requires 1..=16384 bytes".into(),
+            ));
+        }
+        // A secret file whose access cannot be restricted to its owner is never
+        // created. Environment fallbacks still resolve; only storing is refused.
+        if cfg!(not(unix)) {
+            return Err(HostError::Unavailable(
+                "storing credentials needs an owner-only file permission check, which this platform does not have yet; supply them through the environment".into(),
             ));
         }
         let store = self.clone();

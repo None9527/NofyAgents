@@ -48,7 +48,7 @@ fn atomic(path: &Path, value: &impl Serialize) -> Result<()> {
     temp.write_all(&serde_json::to_vec(value)?)?;
     temp.as_file().sync_all()?;
     temp.persist(path).map_err(|e| e.error)?;
-    std::fs::File::open(parent)?.sync_all()?;
+    sync_directory(parent)?;
     Ok(())
 }
 fn increment(revision: &str) -> Result<String> {

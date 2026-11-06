@@ -64,7 +64,7 @@ impl ModuleStore {
             for digest in &candidates {
                 std::fs::remove_file(self.blob_path(digest)?)?;
             }
-            std::fs::File::open(self.root.join("packages"))?.sync_all()?;
+            sync_directory(&self.root.join("packages"))?;
         }
         Ok(
             json!({"dry_run":dry_run,"digests":candidates,"bytes":bytes,"published_versions_retained":retained.len()}),
