@@ -8,6 +8,9 @@ cargo fmt --all --check
 python3 scripts/verify-format-blindspots.py
 python3 scripts/verify-doc-claims.py
 cargo check --workspace --all-features --all-targets --locked
+# The nofy-cli integration tests start the real kernel helper, a binary of another
+# package that `cargo test -p nofy-cli` does not build. A clean checkout has none.
+cargo build --locked -p nofy-agent-host
 cargo test --locked \
   -p nofy-agent-project \
   -p nofy-agent-client \

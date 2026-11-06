@@ -75,6 +75,13 @@ async fn host(path: &Path) -> KernelHost {
         .parent()
         .unwrap()
         .join("nofy-agent-host");
+    // The helper belongs to another package, so `cargo test -p nofy-cli` does not
+    // build it. Say so, rather than failing later with a bare "No such file".
+    assert!(
+        binary.is_file(),
+        "these tests run the real kernel helper at {}; build it first with `cargo build -p nofy-agent-host`",
+        binary.display()
+    );
     KernelHost::open(path, native::registry(credentials).unwrap(), auth)
         .await
         .unwrap()
