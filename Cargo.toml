@@ -16,6 +16,7 @@ members = [
     "crates/common/nofy-compaction",
     "crates/common/nofy-goal",
     "crates/common/nofy-interjection-core",
+    "crates/common/nofy-isolation",
     "crates/common/nofy-memory",
     "crates/common/nofy-memory-types",
     "crates/common/nofy-packcore",
