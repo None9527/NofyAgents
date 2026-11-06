@@ -161,12 +161,12 @@ async fn create(
     let templates = host.templates.clone();
     let kinds = kinds(&host);
     let library = host.module_library.clone();
-    if q.source.is_some() && q.preset.is_some() {
-        return Err(HostError::Invalid("choose source or preset".into()));
-    }
     Ok(Json(
         blocking(move || {
             let source = match (q.source, q.preset) {
+                (Some(_), Some(_)) => {
+                    return Err(HostError::Invalid("choose source or preset".into()));
+                }
                 (Some(s), None) => s,
                 (None, Some(id)) => templates.ok_or(HostError::NotFound)?.get(
                     &id,
@@ -179,7 +179,6 @@ async fn create(
                     })?;
                     Source::empty(agent, &q.project_id)?
                 }
-                _ => unreachable!(),
             };
             view(
                 store.put(&q.project_id, q.expected_revision.as_deref(), source)?,
