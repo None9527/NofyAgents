@@ -185,7 +185,7 @@ impl FileCredentials {
         temp.write_all(&bytes).map_err(|_| unavailable())?;
         temp.as_file().sync_all().map_err(|_| unavailable())?;
         temp.persist(&*self.path).map_err(|_| unavailable())?;
-        File::open(parent).and_then(|f| f.sync_all()).map_err(|_| {
+        nofy_agent_runtime::sync_directory(parent).map_err(|_| {
             HostError::Control(ControlError::CommitUncertain(
                 "credential update may have committed; read metadata before retrying".into(),
             ))

@@ -330,7 +330,7 @@ impl ObjectStore {
     }
 }
 fn sync(path: &Path) -> Result<()> {
-    File::open(path).and_then(|f| f.sync_all()).map_err(|_| {
+    nofy_agent_runtime::sync_directory(path).map_err(|_| {
         HostError::Control(ControlError::CommitUncertain(
             "unload may have committed; inspect and resume its receipt".into(),
         ))

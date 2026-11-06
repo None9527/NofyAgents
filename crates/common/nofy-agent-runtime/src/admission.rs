@@ -108,9 +108,7 @@ pub(crate) mod marker {
                 }
                 Err(_) => return Err(failure()),
             }
-            File::open(parent)
-                .and_then(|f| f.sync_all())
-                .map_err(|_| failure())?;
+            crate::sync_directory(parent).map_err(|_| failure())?;
             Ok(())
         })();
         // Only this operation's create_new temporary is removed.

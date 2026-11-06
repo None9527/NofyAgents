@@ -141,8 +141,7 @@ impl FileCatalogStore {
             file.write_all(&bytes).map_err(storage)?;
             file.sync_all().map_err(storage)?;
             std::fs::rename(&temporary, &*self.path).map_err(storage)?;
-            File::open(parent)
-                .and_then(|file| file.sync_all())
+            crate::sync_directory(parent)
                 .map_err(|e| ControlError::CommitUncertain(e.to_string()))?;
             Ok(())
         })();

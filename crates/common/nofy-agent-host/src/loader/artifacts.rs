@@ -125,8 +125,7 @@ impl ArtifactStore {
             }
             match std::fs::rename(tmp.path(), &target) {
                 Ok(()) => {
-                    std::fs::File::open(&self.trees)
-                        .and_then(|f| f.sync_all())
+                    nofy_agent_runtime::sync_directory(&self.trees)
                         .map_err(storage::unavailable)?;
                 }
                 Err(_) if target.exists() => {}
