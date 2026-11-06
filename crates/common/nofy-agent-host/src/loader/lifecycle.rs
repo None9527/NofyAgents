@@ -101,19 +101,33 @@ fn lease(path: &Path, exclusive: bool) -> Result<File> {
     if !file.metadata().map_err(storage::unavailable)?.is_file() {
         return Err(invalid("invalid cache lease file"));
     }
-    let result = if exclusive {
-        fs2::FileExt::try_lock_exclusive(&file)
-    } else {
-        fs2::FileExt::try_lock_shared(&file)
-    };
-    result.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::WouldBlock {
-            HostError::Unavailable("loader cache is in use or undergoing maintenance".into())
+    // A lock held for real (a running worker, an unload in progress) outlasts
+    // this wait. A brief overlap does not, e.g. a concurrently forked child
+    // still sharing this open file description until it execs. Retry briefly so
+    // such an overlap is not reported as the cache being in use. Under real
+    // contention this blocks for up to ~180 ms, so call it from blocking
+    // context (`spawn_blocking`), never directly from an async task.
+    const ATTEMPTS: u32 = 10;
+    const PAUSE: std::time::Duration = std::time::Duration::from_millis(20);
+    for attempt in 1..=ATTEMPTS {
+        let result = if exclusive {
+            fs2::FileExt::try_lock_exclusive(&file)
         } else {
-            storage::unavailable(e)
+            fs2::FileExt::try_lock_shared(&file)
+        };
+        match result {
+            Ok(()) => return Ok(file),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                if attempt < ATTEMPTS {
+                    std::thread::sleep(PAUSE);
+                }
+            }
+            Err(e) => return Err(storage::unavailable(e)),
         }
-    })?;
-    Ok(file)
+    }
+    Err(HostError::Unavailable(
+        "loader cache is in use or undergoing maintenance".into(),
+    ))
 }
 impl CacheLifecycle {
     pub(super) fn open(loader_root: &Path) -> Result<Self> {
