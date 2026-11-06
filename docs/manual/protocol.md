@@ -128,7 +128,7 @@ MCP JSON-RPC id 不是业务幂等键。发送写请求前 CLI/Server 固定并�
 
 ## 错误与权限
 
-保留现有原生错误码：unauthorized、forbidden、not_found、conflict、busy、unavailable、runtime_conflict、invalid。客户端补充 local_input、local_io、unsupported_operation、unsupported_protocol、result_unconfirmed 等适配器错误，并标明来源，不把本地报错伪装成内核响应。
+内核返回的错误码：unauthorized、forbidden、not_found、conflict、busy、unavailable、invalid、incomplete、runtime_conflict、policy_invalid、policy_rejected、session_closed、session_archived、session_busy、result_unconfirmed（内核无法确认写入是否生效，先查询原 ID，不换 ID 重发）。框架自身的拒绝（未知路径、方法不允许、请求体不是 JSON 或不符合类型、请求体过大）使用同一错误信封，`details.reason` 给出类别；原始解析文本可能引用调用者提交的值，不会转发。客户端补充的适配器错误码：local_input、local_io、unsupported_protocol、unsupported_operation、http_error、cancelled。传输中断时，客户端同样产生 result_unconfirmed。适配器错误标明来源，不把本地报错伪装成内核响应。每个错误码的 HTTP 状态、命令行退出码和能否重试，都在契约 `operations.json` 的 `error_codes` 里；`nofy --help`、本手册和内核实现都受它约束。
 
 权限沿用 read/edit/publish/resources/execute；具体组合由内核判定。原生完整声明保存、发布或激活含 Resource 时可能要求额外 resources 权限；源码编辑只保存数据，不装载或执行资源。工具的安全注解不授予这些权限。CLI 的密钥注入从 stdin/指定私有文件读取，公开结果只含引用及 metadata；普通 MCP 开发工具不接触密钥正文。
 

@@ -5,6 +5,211 @@
   "protocol": "nofy.kernel/v1",
   "mcp_protocol_baseline": "2025-11-25",
   "scope_hints_are_authorization": false,
+  "error_codes": [
+    {
+      "code": "invalid",
+      "origin": "kernel",
+      "http_status": [
+        400,
+        405,
+        413,
+        415,
+        422
+      ],
+      "exit_code": 2,
+      "retryable": false,
+      "meaning": "The request cannot succeed as written: a field is missing or malformed, or the body is not what the endpoint takes. details.reason names the class."
+    },
+    {
+      "code": "incomplete",
+      "origin": "kernel",
+      "http_status": [
+        422
+      ],
+      "exit_code": 2,
+      "retryable": false,
+      "meaning": "The Agent source still has empty required slots; fill them before building or publishing."
+    },
+    {
+      "code": "policy_invalid",
+      "origin": "kernel",
+      "http_status": [
+        422
+      ],
+      "exit_code": 2,
+      "retryable": false,
+      "meaning": "A session policy document does not satisfy the policy schema."
+    },
+    {
+      "code": "policy_rejected",
+      "origin": "kernel",
+      "http_status": [
+        422
+      ],
+      "exit_code": 2,
+      "retryable": false,
+      "meaning": "The session policy refused this input."
+    },
+    {
+      "code": "unauthorized",
+      "origin": "kernel",
+      "http_status": [
+        401
+      ],
+      "exit_code": 3,
+      "retryable": false,
+      "meaning": "No access token was sent, or the kernel did not accept it."
+    },
+    {
+      "code": "forbidden",
+      "origin": "kernel",
+      "http_status": [
+        403
+      ],
+      "exit_code": 3,
+      "retryable": false,
+      "meaning": "The token is valid but lacks the scope this operation needs."
+    },
+    {
+      "code": "not_found",
+      "origin": "kernel",
+      "http_status": [
+        404
+      ],
+      "exit_code": 5,
+      "retryable": false,
+      "meaning": "The named resource or endpoint does not exist."
+    },
+    {
+      "code": "conflict",
+      "origin": "kernel",
+      "http_status": [
+        409
+      ],
+      "exit_code": 4,
+      "retryable": false,
+      "meaning": "The expected revision or command identity no longer matches; read the current state, then decide again."
+    },
+    {
+      "code": "runtime_conflict",
+      "origin": "kernel",
+      "http_status": [
+        409
+      ],
+      "exit_code": 4,
+      "retryable": false,
+      "meaning": "The runtime state conflicts with this request."
+    },
+    {
+      "code": "session_closed",
+      "origin": "kernel",
+      "http_status": [
+        409
+      ],
+      "exit_code": 4,
+      "retryable": false,
+      "meaning": "The session is closed; reopen it first."
+    },
+    {
+      "code": "session_archived",
+      "origin": "kernel",
+      "http_status": [
+        409
+      ],
+      "exit_code": 4,
+      "retryable": false,
+      "meaning": "The session is archived; unarchive it first."
+    },
+    {
+      "code": "session_busy",
+      "origin": "kernel",
+      "http_status": [
+        409
+      ],
+      "exit_code": 4,
+      "retryable": false,
+      "meaning": "The session has unfinished or queued work; try again when it settles."
+    },
+    {
+      "code": "busy",
+      "origin": "kernel",
+      "http_status": [
+        503
+      ],
+      "exit_code": 6,
+      "retryable": true,
+      "meaning": "The kernel is momentarily at capacity; retry later with the same ids."
+    },
+    {
+      "code": "unavailable",
+      "origin": "kernel",
+      "http_status": [
+        503
+      ],
+      "exit_code": 6,
+      "retryable": true,
+      "meaning": "The kernel or its store cannot serve the request now; a retry with the same ids is safe."
+    },
+    {
+      "code": "result_unconfirmed",
+      "origin": "both",
+      "http_status": [
+        500,
+        503
+      ],
+      "exit_code": 6,
+      "retryable": false,
+      "meaning": "The write may or may not have happened. Inspect it by its original ids before retrying; never resend under a new id."
+    },
+    {
+      "code": "local_input",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 2,
+      "retryable": false,
+      "meaning": "The input was rejected locally, before reaching the kernel."
+    },
+    {
+      "code": "local_io",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 9,
+      "retryable": false,
+      "meaning": "A local file could not be read or written."
+    },
+    {
+      "code": "unsupported_protocol",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 10,
+      "retryable": false,
+      "meaning": "The kernel speaks a protocol or response shape this client does not."
+    },
+    {
+      "code": "unsupported_operation",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 10,
+      "retryable": false,
+      "meaning": "The kernel or this client does not offer the operation."
+    },
+    {
+      "code": "http_error",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 6,
+      "retryable": false,
+      "meaning": "The kernel answered with an HTTP failure that carries no recognizable error body."
+    },
+    {
+      "code": "cancelled",
+      "origin": "adapter",
+      "http_status": [],
+      "exit_code": 130,
+      "retryable": false,
+      "meaning": "The command was interrupted."
+    }
+  ],
   "notes": [
     "CLI and inbound MCP share the Rust operation engine and contract schemas. See docs/verification/agent-development-cli-mcp.md for actual acceptance scope.",
     "Resource-bearing native deployment actions can require additional resources permission at the kernel; source edits only save data.",

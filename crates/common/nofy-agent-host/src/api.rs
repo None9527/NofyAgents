@@ -25,6 +25,7 @@ mod permissions;
 mod projects;
 mod prompts;
 mod references;
+mod rejections;
 mod repositories;
 mod runs;
 mod runtime_history;
@@ -53,11 +54,12 @@ impl IntoResponse for HostError {
                 (StatusCode::CONFLICT, "conflict")
             }
             Self::Control(ControlError::Busy) => (StatusCode::SERVICE_UNAVAILABLE, "busy"),
-            Self::Control(
-                ControlError::Storage(_)
-                | ControlError::CommitUncertain(_)
-                | ControlError::CompileTask(_),
-            )
+            // The kernel does not know whether the write landed. That is the
+            // protocol's `result_unconfirmed`, not a retryable "unavailable".
+            Self::Control(ControlError::CommitUncertain(_)) => {
+                (StatusCode::SERVICE_UNAVAILABLE, "result_unconfirmed")
+            }
+            Self::Control(ControlError::Storage(_) | ControlError::CompileTask(_))
             | Self::Unavailable(_) => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
             Self::Runtime(nofy_agent_runtime::Error::Composition(message))
                 if message.starts_with("policy_invalid:") =>
@@ -82,7 +84,7 @@ impl IntoResponse for HostError {
             Self::Runtime(nofy_agent_runtime::Error::Checkpoint(message))
                 if message.starts_with("session busy:") =>
             {
-                (StatusCode::CONFLICT, "busy")
+                (StatusCode::CONFLICT, "session_busy")
             }
             Self::Runtime(nofy_agent_runtime::Error::Checkpoint(_)) => {
                 (StatusCode::CONFLICT, "runtime_conflict")
@@ -148,6 +150,8 @@ pub(crate) fn router(host: KernelHost) -> Router {
             loader::resource_backpressure,
         ))
         .layer(middleware::from_fn_with_state(host.clone(), authenticate))
+        // Outermost, so the framework's own rejections wear the same envelope.
+        .layer(middleware::from_fn(rejections::envelope))
         .with_state(host)
 }
 async fn access(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Json<Value>> {
@@ -367,4 +371,137 @@ async fn active(
             .and_then(|v| v.data.active.get(&name).cloned())
             .ok_or(HostError::NotFound)?,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nofy_agent_runtime::{Error as RuntimeError, control::ControlError};
+    use std::collections::BTreeSet;
+
+    /// The contract owns the vocabulary (`error_codes`); this binds the mapping to it.
+    const CONTRACT: &str = include_str!("../../nofy-agent-client/contracts/operations.json");
+
+    async fn answer(error: HostError) -> (u16, Value) {
+        let response = error.into_response();
+        let status = response.status().as_u16();
+        let bytes = axum::body::to_bytes(response.into_body(), 64 * 1024)
+            .await
+            .unwrap();
+        (status, serde_json::from_slice(&bytes).unwrap())
+    }
+
+    fn samples() -> Vec<HostError> {
+        let source = |code: &str| HostError::Source(nofy_agent_project::Error::new(code, "x"));
+        let composition = |text: &str| HostError::Runtime(RuntimeError::Composition(text.into()));
+        let checkpoint = |text: &str| HostError::Runtime(RuntimeError::Checkpoint(text.into()));
+        vec![
+            source("conflict"),
+            source("not_found"),
+            source("local_io"),
+            source("incomplete"),
+            source("local_input"),
+            HostError::Unauthorized,
+            HostError::Forbidden,
+            HostError::NotFound,
+            HostError::Invalid("x".into()),
+            HostError::Unavailable("x".into()),
+            HostError::Control(ControlError::NotFound("x".into())),
+            HostError::Control(ControlError::Conflict {
+                expected: None,
+                actual: Some(1),
+            }),
+            HostError::Control(ControlError::CommandConflict),
+            HostError::Control(ControlError::Busy),
+            HostError::Control(ControlError::Storage("x".into())),
+            HostError::Control(ControlError::CommitUncertain("x".into())),
+            HostError::Control(ControlError::CompileTask("x".into())),
+            HostError::Control(ControlError::Invalid("x".into())),
+            composition("policy_invalid: x"),
+            composition("policy_rejected: x"),
+            composition("session_closed"),
+            composition("session_archived"),
+            composition("something else"),
+            checkpoint("session busy: pending effects"),
+            checkpoint("anything else"),
+        ]
+    }
+
+    #[test]
+    fn every_status_and_code_the_kernel_sends_is_in_the_contract() {
+        let contract: Value = serde_json::from_str(CONTRACT).unwrap();
+        let listed: Vec<(String, BTreeSet<u64>, String)> = contract["error_codes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| {
+                (
+                    e["code"].as_str().unwrap().to_owned(),
+                    e["http_status"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|s| s.as_u64().unwrap())
+                        .collect(),
+                    e["origin"].as_str().unwrap().to_owned(),
+                )
+            })
+            .collect();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        let mut sent: BTreeSet<(u64, String)> = BTreeSet::new();
+        for error in samples() {
+            let (status, body) = rt.block_on(answer(error));
+            sent.insert((
+                u64::from(status),
+                body["error"]["code"].as_str().unwrap().to_owned(),
+            ));
+        }
+        // The framework's own rejections go through the same envelope.
+        for status in [400, 404, 405, 413, 415, 422, 500] {
+            let (code, _, _) = rejections::classify(StatusCode::from_u16(status).unwrap(), "");
+            sent.insert((u64::from(status), code.to_owned()));
+        }
+        for (status, code) in &sent {
+            let entry = listed.iter().find(|(name, _, _)| name == code);
+            let (_, statuses, origin) =
+                entry.unwrap_or_else(|| panic!("`{code}` ({status}) is not in the contract"));
+            assert!(
+                statuses.contains(status),
+                "`{code}` is sent with {status}; the contract lists {statuses:?}"
+            );
+            assert!(origin != "adapter", "`{code}` is an adapter code");
+        }
+        // And the other way: no code the contract promises is unreachable.
+        let sent_codes: BTreeSet<&str> = sent.iter().map(|(_, c)| c.as_str()).collect();
+        for (code, statuses, origin) in &listed {
+            if origin == "adapter" {
+                continue;
+            }
+            assert!(sent_codes.contains(code.as_str()), "`{code}` is never sent");
+            for status in statuses {
+                assert!(
+                    sent.contains(&(*status, code.clone())),
+                    "the contract lists {status} for `{code}`, which is never sent"
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn an_uncertain_commit_is_reported_as_an_unconfirmed_result() {
+        let (status, body) = answer(HostError::Control(ControlError::CommitUncertain(
+            "sync".into(),
+        )))
+        .await;
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["code"], "result_unconfirmed");
+        // A plain storage failure stays retryable.
+        let (status, body) = answer(HostError::Control(ControlError::Storage("disk".into()))).await;
+        assert_eq!(
+            (status, &body["error"]["code"]),
+            (503, &json!("unavailable"))
+        );
+    }
 }
