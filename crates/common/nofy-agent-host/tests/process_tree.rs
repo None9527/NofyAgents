@@ -21,6 +21,11 @@ use std::{
 use tokio_util::sync::CancellationToken;
 
 const HELPER: &str = env!("CARGO_BIN_EXE_nofy-agent-host");
+/// How long a freshly started kernel may take to print its listening line. A
+/// kernel that dies still fails at once (its stderr closes); this only bounds a
+/// slow start. 10 s was enough on a 16-core machine and failed on a loaded
+/// 4-vCPU runner that ran several of these tests at once.
+const KERNEL_START: Duration = Duration::from_secs(60);
 #[path = "process_tree/confined.rs"]
 mod confined;
 #[path = "support/dependencies.rs"]

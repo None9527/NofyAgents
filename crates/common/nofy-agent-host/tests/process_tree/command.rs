@@ -725,7 +725,7 @@ fn delegated_commands() {
                 .kill_on_drop(true).spawn().unwrap();
             use tokio::io::AsyncBufReadExt;
             let mut errors = tokio::io::BufReader::new(cli.stderr.take().unwrap()).lines();
-            let line = tokio::time::timeout(Duration::from_secs(10),errors.next_line()).await.unwrap().unwrap().unwrap();
+            let line = tokio::time::timeout(crate::KERNEL_START,errors.next_line()).await.unwrap().unwrap().unwrap();
             let base = line.strip_prefix("Nofy kernel listening on ").unwrap();
             let saved: Value = serde_json::from_slice(&fs::read(work.join("command-completed-record.json")).unwrap()).unwrap();
             let (status,restored)=request(base,reqwest::Method::GET,"/runs/command-project-check",Value::Null).await;

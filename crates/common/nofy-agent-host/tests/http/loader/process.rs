@@ -25,7 +25,8 @@ pub(super) async fn binary(
     }
     let mut child = command.spawn().unwrap();
     let mut lines = tokio::io::BufReader::new(child.stderr.take().unwrap()).lines();
-    let url = tokio::time::timeout(Duration::from_secs(20), async {
+    // Only bounds a slow start: a host that exits before listening panics below at once.
+    let url = tokio::time::timeout(Duration::from_secs(60), async {
         while let Some(line) = lines.next_line().await.unwrap() {
             if let Some(url) = line.strip_prefix("Nofy kernel listening on ") {
                 return url.to_owned();
