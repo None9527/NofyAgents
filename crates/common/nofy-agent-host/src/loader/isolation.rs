@@ -68,12 +68,24 @@ pub fn worker_entry() -> Option<i32> {
         #[cfg(target_os = "linux")]
         {
             use std::os::unix::process::CommandExt;
-            let error = std::process::Command::new(program)
+            let error = std::process::Command::new(&program)
                 .args(arguments)
                 .env_clear()
                 .envs(profile.environment)
                 .exec();
-            return Err(error.into());
+            // `exec` only returns on failure. Name the program, and for the usual
+            // sandbox cause say what the kernel will not: Landlock reports EACCES
+            // without saying which path lacked execute permission.
+            let hint = if error.kind() == std::io::ErrorKind::PermissionDenied {
+                "; the program, its ELF interpreter and its shared libraries must each be under a path declared with execute=true"
+            } else {
+                ""
+            };
+            Err(format!(
+                "cannot execute {}: {error}{hint}",
+                program.to_string_lossy()
+            )
+            .into())
         }
         #[cfg(not(target_os = "linux"))]
         {
