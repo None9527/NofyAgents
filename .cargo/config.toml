@@ -34,8 +34,10 @@ rustflags = [
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "force-unwind-tables=yes"]
 
+# `generic`, not a specific core: a distributed binary must run on every aarch64
+# machine of this target (Neoverse V2 code faults with SIGILL on older cores).
 [target.aarch64-unknown-linux-gnu]
-rustflags = ["-C", "target-cpu=neoverse-v2", "-C", "force-unwind-tables=yes"]
+rustflags = ["-C", "target-cpu=generic", "-C", "force-unwind-tables=yes"]
 
 [target.x86_64-unknown-linux-musl]
 rustflags = [
@@ -65,20 +67,7 @@ rustflags = ["-C", "force-unwind-tables=yes", "-C", "target-feature=+crt-static"
 rustflags = ["-C", "force-unwind-tables=yes", "-C", "target-feature=+crt-static"]
 
 
-# jemalloc page size for Apple Silicon (macOS aarch64 uses 16KB pages = 2^14).
-# This target-prefixed env var is consumed by tikv-jemalloc-sys's build.rs
-# and only takes effect when TARGET=aarch64-apple-darwin. Other targets
-# (x86_64, linux) are unaffected — they check their own prefix first and
-# fall back to the default 4KB page size.
-# Some aarch64 Linux hosts use 64KB kernel pages = 2^16; set the matching
-# env vars below for those platforms.
-# See: https://github.com/tikv/jemallocator/issues/122
 [env]
-SYSTEM_DEPS_DAV1D_BUILD_INTERNAL = "auto"
-AARCH64_APPLE_DARWIN_JEMALLOC_SYS_WITH_LG_PAGE = "14"
-AARCH64_UNKNOWN_LINUX_GNU_JEMALLOC_SYS_WITH_LG_PAGE = "16"
-AARCH64_UNKNOWN_LINUX_MUSL_JEMALLOC_SYS_WITH_LG_PAGE = "16"
-AARCH64_UNKNOWN_LINUX_MUSL_JEMALLOC_SYS_WITH_BACKGROUND_THREADS = "0"
 # SessionActor turn futures overflow libtest's default 2MB test-thread stack
 # in debug builds (see disk_full_tests::block_on_session and the 8MB
 # SESSION_THREAD_STACK_SIZE production session thread). Raise the floor for

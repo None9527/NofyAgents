@@ -1,0 +1,87 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-gate:
+    name: release gate (fmt, check, tests, boundaries)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml pins the channel and components.
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Release checks
+        run: bash scripts/check-release.sh
+
+  clippy:
+    name: clippy (warnings are errors)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+  # The two jobs below turn claims into checks: rust-toolchain.toml declares
+  # aarch64, and the workspace has hundreds of tests the release gate does not
+  # select. Neither job has run on a hosted runner yet (the author's machine has
+  # no cross toolchain and no sudo), so treat them as informational: do not make
+  # them required checks until each has been green once.
+  aarch64-check:
+    name: aarch64 type-check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      # Dependencies with C build scripts (ring, aws-lc-sys, sqlite, blake3, zlib)
+      # need a cross C compiler even for `cargo check`.
+      - name: Install cross C toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - uses: Swatinem/rust-cache@v2
+      - name: Check
+        run: >
+          cargo check --locked --workspace --all-targets --all-features
+          --target aarch64-unknown-linux-gnu
+
+  workspace-tests:
+    name: workspace tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Test
+        # The sandbox acceptance tests need a systemd user manager with cgroup
+        # delegation. Where the runner has none, skip exactly those and say so.
+        run: |
+          skip=()
+          if ! systemd-run --user --scope -p Delegate=yes true >/dev/null 2>&1; then
+            echo "::warning title=Sandbox acceptance skipped::no cgroup delegation on this runner"
+            skip=(--skip confined:: --skip real_namespace_lifecycle)
+          fi
+          cargo test --locked --workspace --all-features --no-fail-fast -- "${skip[@]}"
