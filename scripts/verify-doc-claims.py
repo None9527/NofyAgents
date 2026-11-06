@@ -17,6 +17,7 @@ import json
 import pathlib
 import re
 import sys
+import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "crates/common/nofy-agent-client/contracts/operations.json"
@@ -52,6 +53,7 @@ CLAIMS = {
         (r"声明版本、(\d+) 项操作和输入/输出 Schema", ["session_operations"]),
     ],
     "docs/release-notes.md": [
+        (r"干净的 (\d+) 包 Rust 框架工作区", ["workspace_crates"]),
         (r"契约修订 `(\d+\.\d+)`", ["revision"]),
         (r"(\d+) 项操作、(\d+) 个 MCP 工具、(\d+) 项 Session 操作",
          ["operations", "mcp_tools", "session_operations"]),
@@ -68,6 +70,8 @@ def truth():
         "mcp_tools": str(sum(1 for o in operations if o.get("mcp_tool"))),
         "session_operations": str(
             sum(1 for o in operations if o["operation"].startswith("session."))),
+        "workspace_crates": str(
+            len(tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["members"])),
     }
 
 
