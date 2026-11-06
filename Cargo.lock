@@ -2862,6 +2862,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-isolation"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "nofy-memory"
 version = "0.1.0"
 dependencies = [
