@@ -10,13 +10,15 @@ python3 scripts/verify-doc-claims.py
 cargo check --workspace --all-features --all-targets --locked
 # The nofy-cli integration tests start the real kernel helper, a binary of another
 # package that `cargo test -p nofy-cli` does not build. A clean checkout has none.
-cargo build --locked -p nofy-agent-host
+cargo build --locked -p nofy-agent-host -p nofy-cli
 cargo test --locked \
   -p nofy-agent-project \
   -p nofy-agent-client \
   -p nofy-agent-mcp \
   -p nofy-isolation \
   -p nofy-cli
+# A real kernel starts and serves the control plane through the command line.
+bash scripts/smoke-kernel.sh
 cargo test --locked -p nofy-agent-host --lib
 cargo test --locked -p nofy-agent-host --test http real_api_enforces_scopes_and_pure_preview_then_runs_edited_releases_in_one_process -- --exact
 cargo test --locked -p nofy-agent-host --test http accepted_http_request_survives_server_disconnect_and_reopen_before_worker_dispatch -- --exact
