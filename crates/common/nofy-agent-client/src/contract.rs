@@ -17,19 +17,75 @@ pub struct Operation {
     pub input_schema: String,
     pub output_schema: String,
     pub scope_hint: Vec<String>,
+    /// One-sentence description, shown in CLI help and MCP tool listings. Read
+    /// only: serializing an `Operation` keeps its published shape.
+    #[serde(default, skip_serializing)]
+    pub summary: String,
 }
 pub static OPERATIONS: LazyLock<Vec<Operation>> = LazyLock::new(|| {
     serde_json::from_value(CATALOG["operations"].clone()).expect("embedded catalog operations")
 });
+/// The names closest to `name`, nearest first, at most three. A name is
+/// suggested when it is a small edit away or one contains the other, so both a
+/// typo (`run.inspekt`) and a fragment (`inspect`) lead somewhere.
+pub fn nearest<'a>(name: &str, candidates: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    fn distance(a: &str, b: &str) -> usize {
+        let b: Vec<char> = b.chars().collect();
+        let mut row: Vec<usize> = (0..=b.len()).collect();
+        for (i, ca) in a.chars().enumerate() {
+            let mut previous = row[0];
+            row[0] = i + 1;
+            for (j, cb) in b.iter().enumerate() {
+                let current = row[j + 1];
+                row[j + 1] = (previous + usize::from(ca != *cb))
+                    .min(row[j] + 1)
+                    .min(current + 1);
+                previous = current;
+            }
+        }
+        row[b.len()]
+    }
+    let wanted = name.trim().to_lowercase();
+    if wanted.is_empty() {
+        return Vec::new();
+    }
+    let limit = (wanted.chars().count() / 3).max(2);
+    let mut scored: Vec<(usize, &str)> = candidates
+        .into_iter()
+        .filter_map(|candidate| {
+            let lowered = candidate.to_lowercase();
+            let score = distance(&wanted, &lowered);
+            let related = lowered.contains(&wanted) || wanted.contains(&lowered);
+            (score <= limit || related)
+                .then_some((if related { score.min(limit) } else { score }, candidate))
+        })
+        .collect();
+    scored.sort();
+    scored
+        .into_iter()
+        .take(3)
+        .map(|(_, c)| c.to_owned())
+        .collect()
+}
 pub fn operation(name: &str) -> Result<&'static Operation> {
     OPERATIONS
         .iter()
         .find(|o| o.operation == name)
         .ok_or_else(|| {
-            Error::new(
+            let suggestions = nearest(name, OPERATIONS.iter().map(|o| o.operation.as_str()));
+            let mut error = Error::new(
                 "unsupported_operation",
-                format!("unknown operation: {name}"),
-            )
+                if suggestions.is_empty() {
+                    format!("unknown operation: {name}; `describe` lists the operations")
+                } else {
+                    format!(
+                        "unknown operation: {name}; did you mean {}?",
+                        suggestions.join(" or ")
+                    )
+                },
+            );
+            error.details = json!({"origin": "adapter", "suggestions": suggestions});
+            error
         })
 }
 pub fn schema(name: &str) -> Result<Value> {
@@ -147,6 +203,56 @@ fn exposed_fields(
     }
     (fields, required)
 }
+/// Say what the contract requires, from the schema keyword that failed. The
+/// offending value is deliberately not echoed: an input can hold a secret and
+/// the message is returned to logs as well as to the caller.
+fn violation(error: &jsonschema::ValidationError<'_>) -> String {
+    use jsonschema::error::{TypeKind, ValidationErrorKind as Kind};
+    fn short(value: &Value) -> String {
+        let text = value.to_string();
+        if text.chars().count() > 160 {
+            format!("{}…", text.chars().take(160).collect::<String>())
+        } else {
+            text
+        }
+    }
+    match &error.kind {
+        Kind::AdditionalProperties { unexpected } => {
+            format!("unknown fields: {}", unexpected.join(", "))
+        }
+        Kind::Type { kind } => match kind {
+            TypeKind::Single(only) => format!("expected {only}"),
+            TypeKind::Multiple(set) => format!(
+                "expected {}",
+                set.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(" or ")
+            ),
+        },
+        Kind::Enum { options } => format!("must be one of {}", short(options)),
+        Kind::Constant { expected_value } => format!("must equal {}", short(expected_value)),
+        Kind::Minimum { limit } => format!("must be at least {limit}"),
+        Kind::Maximum { limit } => format!("must be at most {limit}"),
+        Kind::ExclusiveMinimum { limit } => format!("must be greater than {limit}"),
+        Kind::ExclusiveMaximum { limit } => format!("must be less than {limit}"),
+        Kind::MinLength { limit } => format!("must be at least {limit} characters"),
+        Kind::MaxLength { limit } => format!("must be at most {limit} characters"),
+        Kind::MinItems { limit } => format!("must have at least {limit} items"),
+        Kind::MaxItems { limit } => format!("must have at most {limit} items"),
+        Kind::MinProperties { limit } => format!("must have at least {limit} properties"),
+        Kind::MaxProperties { limit } => format!("must have at most {limit} properties"),
+        Kind::Pattern { pattern } => format!("must match the pattern {pattern}"),
+        Kind::UniqueItems => "items must be unique".to_owned(),
+        Kind::OneOfNotValid => {
+            "matches none of the allowed shapes (oneOf); check the discriminating field, usually `kind`"
+                .to_owned()
+        }
+        Kind::OneOfMultipleValid => "matches more than one allowed shape (oneOf)".to_owned(),
+        Kind::AnyOf => "matches none of the allowed shapes (anyOf)".to_owned(),
+        _ => format!(
+            "value violates {}",
+            error.schema_path.to_string().rsplit('/').next().unwrap_or("contract")
+        ),
+    }
+}
 pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
     let operation = operation(operation_name)?;
     let schema = schema(&operation.input_schema)?;
@@ -163,21 +269,8 @@ pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
                     path.push_str(&name.replace('~', "~0").replace('/', "~1"));
                 }
                 "required field is missing".to_owned()
-            } else if let jsonschema::error::ValidationErrorKind::AdditionalProperties {
-                unexpected,
-            } = &error.kind
-            {
-                format!("unknown fields: {}", unexpected.join(", "))
             } else {
-                format!(
-                    "value violates {}",
-                    error
-                        .schema_path
-                        .to_string()
-                        .rsplit('/')
-                        .next()
-                        .unwrap_or("contract")
-                )
+                violation(error)
             };
             json!({"path":path,"schema_path":error.schema_path.to_string(),"message":message})
         }
@@ -232,9 +325,21 @@ pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
             .first()
             .and_then(|v| v["path"].as_str())
             .unwrap_or("");
+        let first = issues
+            .first()
+            .and_then(|v| v["message"].as_str())
+            .unwrap_or("invalid value");
+        let at = if path.is_empty() {
+            "the input root"
+        } else {
+            path
+        };
         return Err(Error {
             code: "local_input".into(),
-            message: format!("input does not match {} at {}", operation.operation, path),
+            message: format!(
+                "input does not match {} at {at}: {first}",
+                operation.operation
+            ),
             details: json!({"origin":"adapter","schema":operation.input_schema,"path":path,"issues":issues}),
             unconfirmed: false,
             refs: Default::default(),
@@ -275,8 +380,24 @@ impl From<nofy_agent_project::Error> for Error {
     }
 }
 impl From<serde_json::Error> for Error {
-    fn from(_: serde_json::Error) -> Self {
-        Self::new("local_input", "invalid JSON data")
+    /// Say where and what kind of JSON problem, never the offending text.
+    fn from(e: serde_json::Error) -> Self {
+        use serde_json::error::Category;
+        let message = match e.classify() {
+            Category::Syntax => format!(
+                "invalid JSON syntax at line {} column {}",
+                e.line(),
+                e.column()
+            ),
+            Category::Data => format!(
+                "JSON value has the wrong shape or type at line {} column {}",
+                e.line(),
+                e.column()
+            ),
+            Category::Eof => "JSON ended unexpectedly".to_owned(),
+            Category::Io => "JSON could not be read".to_owned(),
+        };
+        Self::new("local_input", message)
     }
 }
 impl From<std::io::Error> for Error {

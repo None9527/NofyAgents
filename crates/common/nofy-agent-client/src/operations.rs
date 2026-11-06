@@ -43,11 +43,28 @@ impl Engine {
                 for (k, v) in initial {
                     e.refs.entry(k).or_insert(v);
                 }
+                // The kernel answers a missing object with a bare "not found".
+                // Say which identifiers were looked up, from the caller's own input.
+                if e.code == "not_found" && e.message.eq_ignore_ascii_case("not found") {
+                    let looked_up: Vec<String> = e
+                        .refs
+                        .iter()
+                        .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}={v}")))
+                        .take(3)
+                        .collect();
+                    if !looked_up.is_empty() {
+                        e.message = format!("not found: {}", looked_up.join(", "));
+                    }
+                }
                 if !e.details.is_object() {
                     e.details = json!({"cause":e.details});
                 }
-                e.details["recovery"] =
-                    crate::guides::recovery(&e.code, operation_name, &input, e.unconfirmed);
+                e.details["recovery"] = crate::guides::with_cli(crate::guides::recovery(
+                    &e.code,
+                    operation_name,
+                    &input,
+                    e.unconfirmed,
+                ));
                 Envelope::failed(operation_name, e)
             }
         }
@@ -157,7 +174,7 @@ impl Engine {
                 }
                 Ok(Envelope::ok(
                     op,
-                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::bootstrap(),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
+                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::with_cli(crate::guides::bootstrap()),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
                 ))
             }
             "schema" => self.schema_result(input).await,

@@ -120,21 +120,34 @@ impl KernelClient {
                 .body(body);
         }
         let response = request.send().await.map_err(|e| {
+            let origin = self.endpoint.origin().ascii_serialization();
+            // A connection that was never established carried no request, so a
+            // write cannot have happened and need not be inspected before a retry.
+            let not_sent = e.is_connect();
+            let unconfirmed = write && !not_sent;
+            let (reason, message) = if not_sent {
+                (
+                    "connect",
+                    format!(
+                        "cannot connect to the kernel at {origin}; is it running, and is the endpoint right (--endpoint or $NOFY_ENDPOINT)?"
+                    ),
+                )
+            } else if e.is_timeout() {
+                ("timeout", format!("kernel request to {origin} timed out"))
+            } else {
+                ("transport", format!("kernel request to {origin} failed"))
+            };
             let mut error = Error::new(
-                if write {
-                    "result_unconfirmed"
-                } else {
-                    "unavailable"
-                },
-                if e.is_timeout() {
-                    "kernel request timed out"
-                } else {
-                    "kernel request transport failed"
-                },
+                if unconfirmed { "result_unconfirmed" } else { "unavailable" },
+                message,
             );
-            error.unconfirmed = write;
-            error.details =
-                json!({"origin":"transport","delivery":if write{"unconfirmed"}else{"read_failed"}});
+            error.unconfirmed = unconfirmed;
+            error.details = json!({
+                "origin": "transport",
+                "endpoint": origin,
+                "reason": reason,
+                "delivery": if not_sent { "not_sent" } else if write { "unconfirmed" } else { "read_failed" },
+            });
             error
         })?;
         let status = response.status();
@@ -159,6 +172,33 @@ impl KernelClient {
             if let Some(field) = missing {
                 details["missing_field"] = json!(field);
             }
+            let mut message = value
+                .pointer("/error/message")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .unwrap_or_else(|| match missing {
+                    Some(field) => {
+                        format!("kernel JSON request is missing required field: {field}")
+                    }
+                    None => "kernel rejected request".into(),
+                });
+            // The kernel answers 401 the same way whether no token arrived or the
+            // token was refused; this client knows which one it sent.
+            if status.as_u16() == 401 && message.eq_ignore_ascii_case("authentication required") {
+                let (reason, text) = if self.token.is_some() {
+                    (
+                        "token_rejected",
+                        "authentication failed: the kernel did not accept the access token",
+                    )
+                } else {
+                    (
+                        "no_token",
+                        "authentication required: no access token was sent",
+                    )
+                };
+                details["reason"] = json!(reason);
+                message = text.to_owned();
+            }
             return Err(Error {
                 code: value
                     .pointer("/error/code")
@@ -169,16 +209,7 @@ impl KernelClient {
                         "http_error"
                     })
                     .into(),
-                message: value
-                    .pointer("/error/message")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned)
-                    .unwrap_or_else(|| match missing {
-                        Some(field) => {
-                            format!("kernel JSON request is missing required field: {field}")
-                        }
-                        None => "kernel rejected request".into(),
-                    }),
+                message,
                 details,
                 unconfirmed: false,
                 refs: Default::default(),
