@@ -2,6 +2,7 @@ mod command;
 mod config;
 mod input;
 mod output;
+mod positional;
 use nofy_agent_client::{Envelope, Error, Result, refs_from_input};
 use serde_json::{Value, json};
 use std::{io::Read, path::Path};

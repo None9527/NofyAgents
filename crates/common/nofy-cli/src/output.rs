@@ -275,26 +275,67 @@ pub async fn follow(engine: &Engine, input: Value, format: &str) -> Result<i32> 
         }
     }
 }
+/// Exit status by error code: the single source for both `exit_code` and the
+/// table printed by `nofy --help`. Success is 0; an error code not listed is 7.
+pub const EXIT_CODES: &[(i32, &[&str], &str)] = &[
+    (2, &["local_input"], "invalid input"),
+    (3, &["unauthorized", "forbidden"], "not authorized"),
+    (
+        4,
+        &[
+            "conflict",
+            "runtime_conflict",
+            "session_closed",
+            "session_archived",
+        ],
+        "conflicts with the current state",
+    ),
+    (5, &["not_found"], "not found"),
+    (
+        6,
+        &["unavailable", "result_unconfirmed", "http_error", "busy"],
+        "kernel unavailable, busy, or the outcome of a write is unknown",
+    ),
+    (9, &["local_io"], "local file error"),
+    (
+        10,
+        &["unsupported_protocol", "unsupported_operation"],
+        "unsupported operation or protocol",
+    ),
+    (130, &["cancelled"], "interrupted"),
+];
 pub fn exit_code(output: &Envelope) -> i32 {
     if !output.is_error() {
         return 0;
     }
-    match output
+    let code = output
         .error
         .as_ref()
         .and_then(|v| v["code"].as_str())
-        .unwrap_or("invalid")
-    {
-        "local_input" => 2,
-        "unauthorized" | "forbidden" => 3,
-        "conflict" | "runtime_conflict" | "session_closed" | "session_archived" => 4,
-        "not_found" => 5,
-        "unavailable" | "result_unconfirmed" | "http_error" | "busy" => 6,
-        "local_io" => 9,
-        "unsupported_protocol" | "unsupported_operation" => 10,
-        "cancelled" => 130,
-        _ => 7,
+        .unwrap_or("invalid");
+    EXIT_CODES
+        .iter()
+        .find(|(_, codes, _)| codes.contains(&code))
+        .map_or(7, |(status, _, _)| *status)
+}
+/// The text that closes `nofy --help`.
+pub fn root_help() -> String {
+    let mut text = String::from(
+        "Quick start:\n  nofy describe                      what this kernel offers\n  nofy schema --operation run.start  the contract and a step-by-step guide for one operation\n  nofy <group> <command> --help      flags, and what each positional argument means\n\nEvery command prints one JSON envelope on stdout (status, data, error, refs). An error\ncarries error.code and error.details.recovery, which lists the next calls to make.\n\nExit codes:\n  0    ok\n",
+    );
+    let mut other_listed = false;
+    for (status, codes, meaning) in EXIT_CODES {
+        if *status > 7 && !other_listed {
+            text.push_str("  7    any other kernel error, or --wait ended failed, cancelled or out of budget\n");
+            text.push_str("  8    --wait stopped at a state that needs you: approval, human input, budget park or reconciliation\n");
+            other_listed = true;
+        }
+        text.push_str(&format!("  {status:<4} {meaning} ({})\n", codes.join(", ")));
     }
+    text.push_str(
+        "\nAfter exit 6 with result_unconfirmed, inspect the original ids before retrying a write.",
+    );
+    text
 }
 pub fn offline_archive(op: &str, input: &Input) -> Result<Envelope> {
     let source: Source = serde_json::from_value(
@@ -310,4 +351,43 @@ pub fn offline_archive(op: &str, input: &Input) -> Result<Envelope> {
         op,
         json!({"format":"nofy.source-archive/v1","source_digest":source.digest()?,"files":source.files.len(),"output_required":true}),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn failed(code: &str) -> Envelope {
+        Envelope::failed("describe", Error::new(code, "x"))
+    }
+
+    #[test]
+    fn exit_codes_follow_the_table_and_default_to_seven() {
+        for (status, codes, _) in EXIT_CODES {
+            for code in *codes {
+                assert_eq!(exit_code(&failed(code)), *status, "{code}");
+            }
+        }
+        assert_eq!(exit_code(&failed("something_new")), 7);
+    }
+
+    #[test]
+    fn no_error_code_has_two_exit_statuses() {
+        let mut seen = std::collections::BTreeSet::new();
+        for (_, codes, _) in EXIT_CODES {
+            for code in *codes {
+                assert!(seen.insert(*code), "{code} is listed twice");
+            }
+        }
+    }
+
+    #[test]
+    fn the_help_text_lists_every_exit_status() {
+        let help = root_help();
+        for (status, _, meaning) in EXIT_CODES {
+            assert!(help.contains(meaning), "help is missing exit {status}");
+        }
+        assert!(help.contains("any other kernel error"));
+        assert!(help.contains("needs you"), "exit 8 (--wait) must be listed");
+    }
 }
