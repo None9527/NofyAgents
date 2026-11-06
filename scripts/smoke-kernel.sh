@@ -17,9 +17,13 @@ done
 
 work="$(mktemp -d)"
 pid=""
+# Stop the kernel the same hard way the test does: a plain `kill` does not end a
+# native Windows process started from Git Bash, which then keeps its files open
+# and makes removing the state directory fail. Cleaning up is best effort and
+# never changes the script's result.
 cleanup() {
-  [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
-  rm -rf "$work"
+  [ -z "$pid" ] || kill_hard
+  rm -rf "$work" 2>/dev/null || true
 }
 trap cleanup EXIT
 
