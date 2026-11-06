@@ -358,6 +358,8 @@ fn seccomp(lease_fd: Option<i32>) -> std::io::Result<()> {
         filter.push(stmt(libc::BPF_RET | libc::BPF_K, DENY));
     }
     if let Some(fd) = lease_fd {
+        // x86_64 adds dup2 below; aarch64 has no dup2, so nothing is added there.
+        #[cfg_attr(not(target_arch = "x86_64"), allow(unused_mut))]
         let mut protected = vec![
             (libc::SYS_close, 0),
             (libc::SYS_dup, 0),
@@ -397,6 +399,8 @@ fn seccomp(lease_fd: Option<i32>) -> std::io::Result<()> {
         stmt(libc::BPF_RET | libc::BPF_K, DENY),
         stmt(libc::BPF_RET | libc::BPF_K, 0x7fff0000),
     ]);
+    // x86_64 adds its legacy syscalls below; aarch64 has none, so nothing is added there.
+    #[cfg_attr(not(target_arch = "x86_64"), allow(unused_mut))]
     let mut denied = vec![
         libc::SYS_socket,
         libc::SYS_socketpair,
