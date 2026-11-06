@@ -12,8 +12,9 @@ pub(in crate::loader) fn loopback() -> io::Result<()> {
     }
     let fd = unsafe { OwnedFd::from_raw_fd(fd) };
     let mut request: libc::ifreq = unsafe { std::mem::zeroed() };
-    request.ifr_name[0] = b'l' as i8;
-    request.ifr_name[1] = b'o' as i8;
+    // `ifr_name` is `[c_char; 16]`: `i8` on x86_64 but `u8` on aarch64 Linux.
+    request.ifr_name[0] = b'l' as libc::c_char;
+    request.ifr_name[1] = b'o' as libc::c_char;
     if unsafe { libc::ioctl(fd.as_raw_fd(), libc::SIOCGIFFLAGS, &mut request) } < 0 {
         return Err(io::Error::last_os_error());
     }
