@@ -96,7 +96,7 @@ pub(super) fn lock(root: &Path) -> Result<StoreLock> {
                 });
             }
             Err(e)
-                if e.kind() == std::io::ErrorKind::WouldBlock
+                if nofy_durable_fs::lock_contended(&e)
                     && start.elapsed() < std::time::Duration::from_secs(2) =>
             {
                 std::thread::sleep(std::time::Duration::from_millis(5))

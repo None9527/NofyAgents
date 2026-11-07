@@ -117,7 +117,7 @@ fn lease(path: &Path, exclusive: bool) -> Result<File> {
         };
         match result {
             Ok(()) => return Ok(file),
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+            Err(e) if nofy_durable_fs::lock_contended(&e) => {
                 if attempt < ATTEMPTS {
                     std::thread::sleep(PAUSE);
                 }

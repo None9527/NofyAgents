@@ -2848,6 +2848,7 @@ dependencies = [
 name = "nofy-durable-fs"
 version = "0.1.0"
 dependencies = [
+ "fs2",
  "tempfile",
  "windows 0.61.3",
 ]

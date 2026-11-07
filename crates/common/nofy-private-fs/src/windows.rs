@@ -158,10 +158,12 @@ pub(crate) fn ensure_private_dir(path: &Path) -> io::Result<OwnedHandle> {
         return Err(io::Error::last_os_error());
     }
     let created = (|| {
-        let target = resolved(path)?;
-        if let Some(parent) = target.parent() {
+        // The parents must exist before they can be resolved, so they come first.
+        let absolute = std::path::absolute(path)?;
+        if let Some(parent) = absolute.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        let target = resolved(&absolute)?;
         let attributes = SECURITY_ATTRIBUTES {
             nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
             lpSecurityDescriptor: descriptor,

@@ -112,7 +112,7 @@ impl FileCredentials {
             match fs2::FileExt::try_lock_exclusive(&file) {
                 Ok(()) => return Ok(file),
                 Err(error)
-                    if error.kind() == std::io::ErrorKind::WouldBlock
+                    if nofy_durable_fs::lock_contended(&error)
                         && start.elapsed() < Duration::from_secs(2) =>
                 {
                     std::thread::sleep(Duration::from_millis(5))

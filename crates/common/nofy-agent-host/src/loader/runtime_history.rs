@@ -352,7 +352,7 @@ impl Control {
             fs2::FileExt::try_lock_shared(&file)
         };
         result.map_err(|error| {
-            if error.kind() == std::io::ErrorKind::WouldBlock {
+            if nofy_durable_fs::lock_contended(&error) {
                 HostError::Control(nofy_agent_runtime::control::ControlError::Busy)
             } else {
                 storage::unavailable(error)

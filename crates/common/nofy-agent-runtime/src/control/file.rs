@@ -76,7 +76,7 @@ impl FileCatalogStore {
         loop {
             match fs2::FileExt::try_lock_exclusive(&lock) {
                 Ok(()) => return Ok(lock),
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                Err(e) if nofy_durable_fs::lock_contended(&e) => {
                     if start.elapsed() > Duration::from_secs(2) {
                         return Err(ControlError::Busy);
                     }

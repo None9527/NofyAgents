@@ -60,6 +60,17 @@ pub fn persist_new_file(temp: NamedTempFile, to: &Path) -> io::Result<()> {
     }
 }
 
+/// Whether a failed non-blocking file lock only means "somebody else holds it
+/// right now", so a caller can wait and try again.
+///
+/// Unix reports that as `ErrorKind::WouldBlock`. Windows reports
+/// `ERROR_LOCK_VIOLATION` (33), which `fs2` passes through and the standard
+/// library does not classify as `WouldBlock`; a caller that only tested the kind
+/// would treat ordinary contention as a failure.
+pub fn lock_contended(error: &io::Error) -> bool {
+    error.kind() == io::ErrorKind::WouldBlock || (cfg!(windows) && error.raw_os_error() == Some(33))
+}
+
 /// Make the entries of `path` durable after a rename, link or removal inside it.
 /// On Windows the rename was already written through, so there is nothing left
 /// to flush.
@@ -252,6 +263,27 @@ mod tests {
         for code in [80, 183, 2, 3] {
             assert!(!busy_for_a_moment(code), "{code}");
         }
+    }
+
+    #[test]
+    fn a_lock_held_elsewhere_is_contention_and_other_failures_are_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lock");
+        let holder = std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        fs2::FileExt::lock_exclusive(&holder).unwrap();
+        let other = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        // The real error fs2 gives on this platform, not one built by hand.
+        let contended = fs2::FileExt::try_lock_exclusive(&other).unwrap_err();
+        assert!(lock_contended(&contended), "{contended:?}");
+        assert!(!lock_contended(&io::Error::from(io::ErrorKind::NotFound)));
+        assert!(!lock_contended(&io::Error::from(
+            io::ErrorKind::PermissionDenied
+        )));
     }
 
     #[test]
