@@ -1,4 +1,3 @@
-#![cfg(target_os = "linux")]
 use super::*;
 #[path = "native_capabilities/declaration.rs"]
 mod declaration;
@@ -48,6 +47,9 @@ fn preview_body() -> Value {
 
 #[tokio::test]
 async fn prompt_preview_is_pure_bounded_and_uses_original_schema_fragments_and_admission() {
+    if !workers_confined() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = resident(dir.path(), reads.clone()).await;
@@ -145,6 +147,9 @@ async fn prompt_preview_is_pure_bounded_and_uses_original_schema_fragments_and_a
 
 #[tokio::test]
 async fn native_definitions_are_enumerated_pure_portable_and_keep_old_skill_bodies_after_reopen() {
+    if !workers_confined() {
+        return;
+    }
     use nofy_agent_runtime::supervisor::RunSupervisor;
     let dir = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
@@ -172,6 +177,15 @@ async fn native_definitions_are_enumerated_pure_portable_and_keep_old_skill_bodi
                 .any(|module| module["factory"] == name)
         );
     }
+    // Discovery reports what the workers can be confined to, measured, not guessed
+    // from the operating system's name.
+    let isolation = &modules["development"]["worker_isolation"];
+    assert_eq!(isolation["backend"], "linux-landlock");
+    assert_eq!(isolation["capabilities"].as_object().unwrap().len(), 12);
+    assert!(
+        ["unavailable", "partial", "enforced"]
+            .contains(&isolation["capabilities"]["filesystem"].as_str().unwrap())
+    );
     let original = source();
     post(&server, "/api/v1/validate", original.clone()).await;
     let first = post(&server, "/api/v1/import", original).await;
@@ -247,6 +261,9 @@ async fn native_definitions_are_enumerated_pure_portable_and_keep_old_skill_bodi
 
 #[tokio::test]
 async fn original_prompt_rules_and_skill_context_reach_real_model_with_exact_preview_text() {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()
@@ -301,6 +318,9 @@ async fn original_prompt_rules_and_skill_context_reach_real_model_with_exact_pre
 
 #[tokio::test]
 async fn shipped_file_entry_loads_native_skill_and_replays_it_after_real_process_restart() {
+    if !workers_confined() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let source = dir.path().join("native.json");
     tokio::fs::write(&source, include_bytes!("../../examples/native-system.json"))

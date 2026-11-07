@@ -19,9 +19,6 @@ impl Worker {
     ) -> std::result::Result<Self, Error> {
         let prepared = loader.clone();
         let helper = tokio::task::spawn_blocking(move || {
-            if !cfg!(target_os = "linux") {
-                return Err(failed());
-            }
             let metadata =
                 std::fs::symlink_metadata(&prepared.prompt_root).map_err(|_| failed())?;
             if !metadata.is_dir()
@@ -49,14 +46,23 @@ impl Worker {
             environment: Default::default(),
             cache_lease: None,
         };
+        let confined = confine::worker_command(
+            helper,
+            &profile,
+            "--evaluate-model",
+            vec![],
+            Default::default(),
+            None,
+        )
+        .map_err(|error| {
+            Error::Composition(format!(
+                "isolated model evaluator is unavailable or failed: {error}"
+            ))
+        })?;
         // Owner: the returned worker handle holds `child` (kill_on_drop); a
         // failed handoff below kills and waits for it before returning.
         #[allow(clippy::disallowed_methods)]
-        let mut child = tokio::process::Command::new(helper)
-            .arg(isolation::WORKER_ARG)
-            .arg(serde_json::to_string(&profile).map_err(|_| failed())?)
-            .arg("--evaluate-model")
-            .env_clear()
+        let mut child = confine::tokio_command(confined)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())

@@ -260,6 +260,6 @@ pub(super) fn copy(
     // A new snapshot must not transport deleted plaintext in free pages.
     target.execute_batch("PRAGMA secure_delete=ON; VACUUM;")?;
     drop(target);
-    File::open(output)?.sync_all()?;
+    nofy_durable_fs::sync_file(&output)?;
     Ok(())
 }

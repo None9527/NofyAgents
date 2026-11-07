@@ -105,16 +105,8 @@ pub fn safe_path(path: &str) -> Result<()> {
 }
 /// An ID becomes a file name, and state must move between platforms, so an ID
 /// that Windows cannot hold is refused everywhere: its reserved device names
-/// (with or without an extension) and a trailing dot, which Windows drops.
-fn windows_cannot_hold(id: &str) -> bool {
-    let stem = id.split('.').next().unwrap_or("").to_ascii_lowercase();
-    let device = matches!(stem.as_str(), "con" | "prn" | "aux" | "nul")
-        || ["com", "lpt"].iter().any(|prefix| {
-            stem.strip_prefix(prefix)
-                .is_some_and(|n| matches!(n, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"))
-        });
-    device || id.ends_with('.')
-}
+/// (with or without an extension) and a trailing dot, which Windows drops. The
+/// rule itself lives in `nofy-host-path`, the one place that knows host names.
 pub fn safe_id(id: &str) -> Result<()> {
     if id.is_empty()
         || id.len() > 128
@@ -123,7 +115,7 @@ pub fn safe_id(id: &str) -> Result<()> {
             .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
         || id == "."
         || id == ".."
-        || windows_cannot_hold(id)
+        || nofy_host_path::windows_cannot_hold(id)
     {
         return Err(Error::new(
             "local_input",
@@ -222,6 +214,9 @@ impl Source {
         Ok(format!("{:x}", hash.finalize()))
     }
     pub fn refresh_manifest(&mut self) -> Result<()> {
+        // A source that declares its executables keeps the declaration equal to
+        // the flags; one that does not is untouched.
+        self.sync_executable_declaration()?;
         self.files
             .entry("source-files.json".into())
             .or_insert_with(|| File::text("[]"));

@@ -3,6 +3,7 @@
 pub mod admission;
 pub mod artifacts;
 pub mod code;
+pub(crate) mod confine;
 pub mod deployment;
 mod directories;
 mod evaluation;
@@ -16,6 +17,8 @@ mod local;
 pub mod memory;
 pub mod models;
 mod module_walk;
+#[cfg(test)]
+mod platform_skips;
 #[cfg(target_os = "linux")]
 pub mod process_sessions;
 pub mod process_tree;
@@ -26,7 +29,7 @@ pub mod runtimes;
 pub mod scopes;
 pub mod sources;
 mod storage;
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, unix))]
 mod test_support;
 pub mod unload;
 use crate::{HostError, Result};
@@ -276,11 +279,18 @@ impl Loader {
             environment: Default::default(),
             cache_lease: Some(self.cache.lease_path()),
         };
-        let output = std::process::Command::new(helper)
-            .arg(isolation::WORKER_ARG)
-            .arg(serde_json::to_string(&profile).map_err(storage::unavailable)?)
-            .arg("--probe")
-            .env_clear()
+        let confined = confine::worker_command(
+            helper,
+            &profile,
+            "--probe",
+            vec![],
+            Default::default(),
+            None,
+        )
+        .map_err(|error| {
+            confine::unavailable("required process isolation is unavailable", error)
+        })?;
+        let output = confine::std_command(confined)
             .output()
             .map_err(storage::unavailable)?;
         if !output.status.success() {

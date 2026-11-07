@@ -15,6 +15,7 @@ members = [
     "crates/common/nofy-agent-runtime",
     "crates/common/nofy-compaction",
     "crates/common/nofy-goal",
+    "crates/common/nofy-host-path",
     "crates/common/nofy-interjection-core",
     "crates/common/nofy-durable-fs",
     "crates/common/nofy-isolation",
@@ -77,6 +78,7 @@ url = "2"
 uuid = { version = "1", features = ["serde", "v4", "v5"] }
 windows = { version = "0.61", features = ["Win32_Security", "Win32_Security_Authorization", "Win32_Foundation", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Console", "Win32_System_Pipes"] }
 nofy-durable-fs = { path = "crates/common/nofy-durable-fs" }
+nofy-host-path = { path = "crates/common/nofy-host-path" }
 nofy-packcore = { path = "crates/common/nofy-packcore" }
 nofy-private-fs = { path = "crates/common/nofy-private-fs" }
 nofy-test-support = { path = "crates/common/nofy-test-support" }

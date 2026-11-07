@@ -55,6 +55,9 @@ async fn hard_exit_fixture() {
 
 #[tokio::test]
 async fn hard_parent_exit_kills_the_confined_scope_worker_and_reopen_has_no_stale_permits() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let result = tokio::time::timeout(
         Duration::from_secs(20),

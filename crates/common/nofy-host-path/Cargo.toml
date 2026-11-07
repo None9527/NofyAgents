@@ -1,0 +1,21 @@
+[package]
+name = "nofy-host-path"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Paths and files as the host sees them: absolute and normalized paths, reserved names, file identity, and opening without following links"
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

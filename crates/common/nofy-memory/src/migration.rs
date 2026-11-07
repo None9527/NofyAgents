@@ -1,7 +1,6 @@
 //! One-way, restartable import from the legacy Markdown memory tree.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use chrono::{TimeZone, Utc};
@@ -823,7 +822,7 @@ fn inject(
 
 fn sync_parent(path: &Path) -> Result<(), MigrationError> {
     if let Some(parent) = path.parent() {
-        File::open(parent)?.sync_all()?;
+        nofy_durable_fs::sync_directory(parent)?;
     }
     Ok(())
 }

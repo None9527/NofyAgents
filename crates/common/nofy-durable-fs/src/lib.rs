@@ -86,6 +86,28 @@ pub fn sync_directory(path: &Path) -> io::Result<()> {
     }
 }
 
+/// Flush a finished file's data and metadata to disk, by path.
+///
+/// `File::open(path)?.sync_all()` is not portable: on Windows `sync_all` is
+/// `FlushFileBuffers`, which needs write access, so a handle opened for reading
+/// fails with "Access is denied" (os error 5) for every file, always. Windows
+/// therefore opens the file for writing (without truncating it). The file must
+/// not be marked read-only there; callers flush files they have just written.
+/// Unix opens it read-only, which also works for a file without write permission.
+pub fn sync_file(path: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(path)?
+            .sync_all()
+    }
+    #[cfg(not(windows))]
+    {
+        std::fs::File::open(path)?.sync_all()
+    }
+}
+
 /// Windows system errors that mean "somebody has it open right now": access denied
 /// and the sharing and lock violations. Antivirus and indexers hold a freshly
 /// written file for a moment without delete sharing, and the move succeeds when
@@ -289,6 +311,29 @@ mod tests {
     #[test]
     fn sync_directory_accepts_a_real_directory() {
         let dir = tempfile::tempdir().unwrap();
+        sync_directory(dir.path()).unwrap();
+    }
+
+    /// The portable replacement for `File::open(path)?.sync_all()`, which fails on
+    /// every Windows file with "Access is denied" because it flushes through a
+    /// read-only handle. Written and closed first, as the callers do.
+    #[test]
+    fn sync_file_flushes_a_finished_file_without_changing_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("finished");
+        std::fs::write(&path, b"complete").unwrap();
+        sync_file(&path).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"complete");
+        assert!(sync_file(&dir.path().join("absent")).is_err());
+    }
+
+    /// The pair callers use after creating a file in a directory.
+    #[test]
+    fn a_new_file_and_its_directory_can_both_be_flushed() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("new");
+        std::fs::write(&path, b"x").unwrap();
+        sync_file(&path).unwrap();
         sync_directory(dir.path()).unwrap();
     }
 }

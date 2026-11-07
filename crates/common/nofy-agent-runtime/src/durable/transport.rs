@@ -4,11 +4,7 @@ use super::{Error, db_error};
 use rusqlite::{Connection, OpenFlags, types::ValueRef};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    fs::{File, OpenOptions},
-    path::Path,
-    time::Duration,
-};
+use std::{fs::OpenOptions, path::Path, time::Duration};
 #[cfg(test)]
 mod tests;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -252,9 +248,7 @@ pub fn copy_snapshot(
         .map_err(db_error)?;
     drop(target_db);
     drop(source_db);
-    File::open(target)
-        .and_then(|f| f.sync_all())
-        .map_err(db_error)?;
+    nofy_durable_fs::sync_file(target).map_err(db_error)?;
     nofy_durable_fs::sync_directory(
         target
             .parent()

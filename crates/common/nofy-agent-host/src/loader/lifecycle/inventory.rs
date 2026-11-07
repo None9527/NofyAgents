@@ -1,7 +1,8 @@
 use super::*;
 use nofy_agent_runtime::system::content_digest;
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
+use nofy_host_path::{FileIdentity, FileKind};
+/// One node of a cache tree as it was read. The fingerprint of a plan is the
+/// digest of these, so a plan applies only to the tree it was made from.
 #[derive(Serialize)]
 struct Stamp {
     path: String,
@@ -90,19 +91,15 @@ impl CacheLifecycle {
         })
     }
 }
-#[cfg(unix)]
+/// The volume and file number of what `path` names, or `None` when nothing is
+/// there. Two paths on one volume can be moved between with a single rename.
 pub(in crate::loader) fn identity(path: &Path) -> Result<Option<(u64, u64)>> {
-    match std::fs::symlink_metadata(path) {
-        Ok(meta) => Ok(Some((meta.dev(), meta.ino()))),
+    match FileIdentity::of_path(path) {
+        Ok(identity) => Ok(Some((identity.volume(), identity.index()))),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(storage::unavailable(e)),
     }
 }
-#[cfg(not(unix))]
-pub(in crate::loader) fn identity(_: &Path) -> Result<Option<(u64, u64)>> {
-    Err(invalid("cache inventory requires Unix"))
-}
-#[cfg(unix)]
 pub(in crate::loader) fn inspect(kind: CacheKind, name: &str, root: &Path) -> Result<CacheEntry> {
     let mut pending = vec![root.to_owned()];
     let mut stamps = Vec::new();
@@ -110,8 +107,8 @@ pub(in crate::loader) fn inspect(kind: CacheKind, name: &str, root: &Path) -> Re
     let mut bytes = 0u64;
     let (device, inode) = identity(root)?.ok_or(HostError::NotFound)?;
     while let Some(path) = pending.pop() {
-        let meta = std::fs::symlink_metadata(&path).map_err(storage::unavailable)?;
-        if meta.dev() != device {
+        let node = FileIdentity::of_path(&path).map_err(storage::unavailable)?;
+        if node.volume() != device {
             return Err(invalid("cache crosses a filesystem boundary"));
         }
         let relative = path
@@ -120,14 +117,11 @@ pub(in crate::loader) fn inspect(kind: CacheKind, name: &str, root: &Path) -> Re
             .to_str()
             .ok_or_else(|| invalid("non-UTF8 cache path"))?
             .to_owned();
-        let kind = if meta.is_dir() {
-            0
-        } else if meta.is_file() {
-            1
-        } else if meta.file_type().is_symlink() {
-            2
-        } else {
-            return Err(invalid("unsupported cache node type"));
+        let kind = match node.kind() {
+            FileKind::Directory => 0,
+            FileKind::File => 1,
+            FileKind::Symlink => 2,
+            FileKind::Other => return Err(invalid("unsupported cache node type")),
         };
         if kind == 0 {
             for child in std::fs::read_dir(&path).map_err(storage::unavailable)? {
@@ -138,18 +132,18 @@ pub(in crate::loader) fn inspect(kind: CacheKind, name: &str, root: &Path) -> Re
             }
         } else {
             files += 1;
-            bytes = bytes.saturating_add(meta.len());
+            bytes = bytes.saturating_add(node.len());
         }
         stamps.push(Stamp {
             path: relative,
             kind,
-            device: meta.dev(),
-            inode: meta.ino(),
-            size: meta.len(),
-            mtime: meta.mtime(),
-            mtime_ns: meta.mtime_nsec(),
-            ctime: meta.ctime(),
-            ctime_ns: meta.ctime_nsec(),
+            device: node.volume(),
+            inode: node.index(),
+            size: node.len(),
+            mtime: node.modified().secs,
+            mtime_ns: i64::from(node.modified().nanos),
+            ctime: node.changed().secs,
+            ctime_ns: i64::from(node.changed().nanos),
         });
         if stamps.len().saturating_add(pending.len()) > 65536 || bytes > 1024 * 1024 * 1024 {
             return Err(invalid("cache tree exceeds bounded inventory"));
@@ -165,8 +159,4 @@ pub(in crate::loader) fn inspect(kind: CacheKind, name: &str, root: &Path) -> Re
         device,
         inode,
     })
-}
-#[cfg(not(unix))]
-pub(in crate::loader) fn inspect(_: CacheKind, _: &str, _: &Path) -> Result<CacheEntry> {
-    Err(invalid("cache inventory requires Unix"))
 }

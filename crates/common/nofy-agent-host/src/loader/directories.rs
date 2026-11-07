@@ -3,7 +3,7 @@ use super::*;
 use nofy_agent_runtime::{Error, registry::*, system::content_digest};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(super) const ENV_PREFIX: &str = "NOFY_DIRECTORY_";

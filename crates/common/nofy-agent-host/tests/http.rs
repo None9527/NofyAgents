@@ -76,8 +76,22 @@ mod human;
 mod human_hook;
 #[path = "http/lifecycle.rs"]
 mod lifecycle;
+#[cfg(target_os = "linux")]
 #[path = "http/loader.rs"]
 mod loader;
+/// The loader tests drive Linux-only calls (`libc::SYS_keyctl`, descriptors, the
+/// system C compiler for a probe program) and a Linux runtime image; they cannot be
+/// compiled elsewhere. This stand-in puts the unit in every platform's results.
+#[cfg(not(target_os = "linux"))]
+mod loader {
+    #[test]
+    fn unit_loader_cache_images_sources_and_process_artifacts() {
+        nofy_test_support::skip(
+            "a Linux runtime image, cache maintenance and Linux-only system calls",
+            "tests/http/loader.rs is compiled for Linux only",
+        );
+    }
+}
 #[path = "http/mcp.rs"]
 mod mcp;
 #[path = "http/memory.rs"]
@@ -196,6 +210,59 @@ async fn host(path: &std::path::Path, reads: Arc<AtomicUsize>) -> KernelHost {
         .await
         .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
         .unwrap()
+}
+/// What the kernel's own workers can be confined to on this machine: the probe
+/// from its discovery report (`development.worker_isolation`), read once.
+fn worker_probe() -> &'static nofy_isolation::Probe {
+    static PROBE: std::sync::OnceLock<nofy_isolation::Probe> = std::sync::OnceLock::new();
+    PROBE.get_or_init(|| {
+        std::thread::spawn(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    let dir = tempfile::tempdir().unwrap();
+                    let host = unbound_host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+                    let server = serve(host.router()).await;
+                    let (_, modules) = request(
+                        &server,
+                        reqwest::Method::GET,
+                        "/api/v1/modules",
+                        VIEW,
+                        Value::Null,
+                    )
+                    .await;
+                    nofy_test_support::probe_from_report(
+                        &modules["development"]["worker_isolation"],
+                    )
+                    .expect("discovery reports the worker isolation probe")
+                })
+        })
+        .join()
+        .unwrap()
+    })
+}
+/// What an isolated worker needs from the platform: the capabilities the kernel
+/// asks of its backend when it launches one (`loader::confine::confinement`).
+const WORKER_NEEDS: [nofy_isolation::Capability; 6] = [
+    nofy_isolation::Capability::Filesystem,
+    nofy_isolation::Capability::NetworkDeny,
+    nofy_isolation::Capability::ProcessSpawnDeny,
+    nofy_isolation::Capability::DieWithParent,
+    nofy_isolation::Capability::CpuLimit,
+    nofy_isolation::Capability::MemoryLimit,
+];
+/// Whether the running test may use the kernel's isolated workers. When this
+/// machine cannot confine them the skip line says which capability is missing and
+/// the test returns; the kernel never runs a worker unconfined.
+fn workers_confined() -> bool {
+    nofy_test_support::capability::require_capability(worker_probe(), &WORKER_NEEDS)
+}
+/// [`workers_confined`], for a test that also reads the workers' processes from
+/// `/proc`, which only some machines have.
+fn workers_confined_and_observable() -> bool {
+    workers_confined() && nofy_test_support::capability::require_program("/proc/self/status")
 }
 async fn unbound_host(path: &std::path::Path, reads: Arc<AtomicUsize>) -> KernelHost {
     KernelHost::open(

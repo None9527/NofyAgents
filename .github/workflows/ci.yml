@@ -107,12 +107,18 @@ jobs:
           cargo test --locked -p nofy-agent-host --all-features --no-fail-fast -- --test-threads=2 "${skip[@]}" || status=1
           exit $status
 
-  # The kernel (nofy-agent-host and below) is Linux-only: its sandbox is Landlock,
-  # cgroups, seccomp and namespaces. The command line, the MCP bridge, the client
-  # and the project engine only talk to a kernel over HTTP and edit local files,
-  # so they are meant to run on a developer's Mac or Windows machine too. This
-  # job builds them there natively. nofy-cli's integration tests start a kernel,
-  # so only its binary is built; the other three crates are tested.
+  # The kernel is meant to behave the same on every platform: its protocol, the
+  # state it commits and the digests it computes must not depend on the operating
+  # system. What differs today is confinement: the sandbox backend (Landlock,
+  # cgroups, seccomp, namespaces) exists only on Linux, so the kernel's own
+  # workers and process tools are refused elsewhere until the macOS and Windows
+  # backends land (docs/architecture/sandbox-module.md). The measuring jobs below
+  # run the whole workspace on both platforms; scripts/verify-platform-welds.py
+  # keeps the Linux-only assumptions from growing. This job builds and tests the
+  # parts that only talk to a kernel over HTTP and edit local files: the command
+  # line, the MCP bridge, the client and the project engine. nofy-cli's
+  # integration tests start a kernel, so only its binary is built; the other
+  # three crates are tested.
   client-portability:
     name: client on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -132,11 +138,16 @@ jobs:
       - name: Build the nofy command line
         run: cargo build --locked -p nofy-cli
       - name: Test the portable crates
-        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation -p nofy-durable-fs -p nofy-private-fs
+        run: cargo test --locked --no-fail-fast -p nofy-agent-project -p nofy-agent-client -p nofy-agent-mcp -p nofy-isolation -p nofy-durable-fs -p nofy-private-fs -p nofy-host-path
+      # Needs the command line only, not a kernel: the same source directory must
+      # collect to the same package on every platform.
+      - name: Test the command line without a kernel
+        run: cargo test --locked -p nofy-cli --test executables
 
   # Measurement, not a gate: how far the whole workspace gets on each platform.
-  # The kernel is Linux-only today (docs/architecture/cross-platform.md), so this is
-  # expected to fail until the isolation boundary exists; its value is the per-crate
+  # The kernel's isolation backend exists only on Linux today
+  # (docs/architecture/sandbox-module.md), so this is expected to fail until the
+  # macOS and Windows backends exist; its value is the per-crate
   # error list in the job summary. Turn continue-on-error off once it is green.
   workspace-portability:
     name: whole workspace on ${{ matrix.os }} (measuring)

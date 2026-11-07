@@ -32,7 +32,7 @@ async fn unknown_root_effect_and_accepted_recovery_move_without_redispatch_with_
                 ),
         )
         .await;
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let state = dir.path().join("host");
         exited(
             "root_reconciliation::uncertain_root_process",
@@ -129,7 +129,7 @@ async fn original_hook_ticket_and_pending_budget_settle_after_migration_and_reve
  {
     for unmetered in [false, true] {
         let (service, observed, finish) = hook_service().await;
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let state = dir.path().join("host");
         exited(
             "hook_recovery::effect_exit_process",

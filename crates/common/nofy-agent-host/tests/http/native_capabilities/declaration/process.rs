@@ -2,6 +2,9 @@ use super::*;
 
 #[tokio::test]
 async fn shipped_file_entry_restores_declared_scope_and_pending_approval_after_hard_exit() {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()

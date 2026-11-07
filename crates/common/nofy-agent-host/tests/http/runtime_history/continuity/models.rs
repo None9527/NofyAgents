@@ -79,7 +79,7 @@ async fn original_root_and_child_model_tickets_preserve_claims_and_history_acros
                     ),
             )
             .await;
-            let dir = tempfile::tempdir().unwrap();
+            let dir = nofy_test_support::canonical_tempdir().unwrap();
             let state = dir.path().join("host");
             exited(
                 "model_reconciliation::uncertain_model_process",

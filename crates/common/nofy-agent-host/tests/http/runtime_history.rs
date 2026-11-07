@@ -103,7 +103,7 @@ fn start(host: &KernelHost) -> (CancellationToken, tokio::task::JoinHandle<()>) 
 }
 #[tokio::test]
 async fn whole_instance_migration_preserves_real_runs_budgets_queue_and_latest_reverse_data() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
     let other = host.store().clone();
     let server = serve(host.router()).await;
@@ -220,7 +220,7 @@ async fn whole_instance_migration_preserves_real_runs_budgets_queue_and_latest_r
 }
 #[tokio::test]
 async fn scope_permissions_stale_plans_and_abort_are_explicit() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = unbound_host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let release = post(
@@ -317,10 +317,9 @@ async fn scope_permissions_stale_plans_and_abort_are_explicit() {
         dir.path().join("host/runtime.sqlite")
     );
 }
-#[cfg(target_os = "linux")]
 #[tokio::test]
 async fn conflicting_existing_grants_are_rejected_before_source_or_protection_changes() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let external = dir.path().join("external");
     std::fs::create_dir(&external).unwrap();
     let host = unbound_host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
@@ -346,7 +345,7 @@ async fn conflicting_existing_grants_are_rejected_before_source_or_protection_ch
 }
 #[tokio::test]
 async fn real_cli_recovers_prepared_read_only_store_then_replays_after_another_restart() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let doc = source(&dir.path().join("external"));
     let file = dir.path().join("system.json");
     std::fs::write(&file, serde_json::to_vec(&doc).unwrap()).unwrap();

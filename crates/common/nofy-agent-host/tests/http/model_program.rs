@@ -5,6 +5,19 @@ mod isolation;
 #[cfg(target_os = "linux")]
 #[path = "model_program/streams.rs"]
 mod streams;
+/// The model evaluator's confinement and stream tests watch workers through
+/// `pidfd_open` and `/proc`; they compile for Linux only. A stand-in keeps the units
+/// in every platform's results.
+#[cfg(not(target_os = "linux"))]
+mod isolation {
+    #[test]
+    fn unit_model_worker_confinement_and_streams() {
+        nofy_test_support::skip(
+            "an isolated model worker observed through pidfd and /proc",
+            "tests/http/model_program/{isolation,streams}.rs are compiled for Linux only",
+        );
+    }
+}
 
 const SOURCE: &str = r#"
 if args.phase == "admit" {return #{max_requests:1};}

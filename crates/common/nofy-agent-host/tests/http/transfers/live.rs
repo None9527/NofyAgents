@@ -52,7 +52,7 @@ async fn parked_root_transfers_memory_switches_modules_and_rolls_back_without_re
     for rollback in [false, true] {
         let wire = Wire::default();
         let remote = fixture(&wire).await;
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
         let server = serve(host.router()).await;
         let original = document(&remote.url);

@@ -91,9 +91,13 @@ mod installed_program_tests {
     use super::*;
     #[tokio::test]
     async fn invocation_alias_is_retained_without_losing_content_verification() {
+        // The program path is kept as the canonical form of the directory: the
+        // operating system's temporary directory is not (`/var` is a link to
+        // `/private/var` on macOS), and the assertion below compares paths.
         let directory = tempfile::tempdir().unwrap();
-        let target = directory.path().join("runtime");
-        let alias = directory.path().join("invocation");
+        let root = std::fs::canonicalize(directory.path()).unwrap();
+        let target = root.join("runtime");
+        let alias = root.join("invocation");
         std::fs::copy("/usr/bin/true", &target).unwrap();
         std::os::unix::fs::symlink(&target, &alias).unwrap();
         let original = InstalledProgram::load(&alias, None).unwrap();

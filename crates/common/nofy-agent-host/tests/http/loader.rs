@@ -1,4 +1,3 @@
-#![cfg(target_os = "linux")]
 use super::*;
 use sha2::{Digest, Sha256};
 #[path = "loader/admission.rs"]

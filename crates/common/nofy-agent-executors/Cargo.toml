@@ -28,6 +28,7 @@ futures = { workspace = true }
 [dev-dependencies]
 tempfile = { workspace = true }
 axum = { workspace = true }
+nofy-test-support = { workspace = true }
 
 [lints]
 workspace = true

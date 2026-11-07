@@ -81,6 +81,9 @@ async fn normal(host: &KernelHost) {
 
 #[tokio::test]
 async fn artifact_scope_enforces_declared_paths_argv_and_names_without_credentials() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = resident(dir.path(), reads.clone()).await;
@@ -154,6 +157,9 @@ async fn artifact_scope_enforces_declared_paths_argv_and_names_without_credentia
 
 #[tokio::test]
 async fn scope_preflight_bounds_missing_helper_and_status_never_fall_back_to_in_process_matching() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = super::super::unbound_host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let error = host
@@ -242,6 +248,9 @@ async fn scope_preflight_bounds_missing_helper_and_status_never_fall_back_to_in_
 
 #[tokio::test]
 async fn recursive_matching_and_cpu_exhaustion_are_confined_and_next_requests_still_work() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let result = host
@@ -273,6 +282,9 @@ async fn recursive_matching_and_cpu_exhaustion_are_confined_and_next_requests_st
 #[tokio::test]
 async fn dropped_callers_keep_both_work_permits_until_cancellation_and_shutdown_reap_actual_workers()
  {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
@@ -359,6 +371,9 @@ async fn dropped_callers_keep_both_work_permits_until_cancellation_and_shutdown_
 
 #[tokio::test]
 async fn resource_maintenance_does_not_lock_out_existing_scope_evaluation() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let commit = host.loader().commits.exclusive().unwrap();

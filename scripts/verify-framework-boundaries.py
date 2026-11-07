@@ -66,7 +66,11 @@ def main():
         if package == "nofy-agent-modules":
             unexpected += sorted(names & {"tree-sitter-bash"})
         if package in {"nofy-test-support", "nofy-tool-protocol", "nofy-tool-runtime"}:
-            allowed = ({package} if package in {"nofy-test-support", "nofy-tool-protocol"}
+            # nofy-isolation is a platform-neutral leaf (serde and thiserror only): the
+            # vocabulary a test uses to skip itself, out loud, when the machine's
+            # probe says it cannot provide a capability.
+            allowed = ({package, "nofy-isolation"} if package == "nofy-test-support"
+                       else {package} if package == "nofy-tool-protocol"
                        else {"nofy-tool-runtime", "nofy-tool-protocol", "nofy-tool-types"})
             unexpected += sorted(name for name in names
                                  if name.startswith("nofy-") and name not in allowed)

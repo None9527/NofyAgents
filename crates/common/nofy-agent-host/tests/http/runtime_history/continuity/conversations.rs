@@ -29,7 +29,7 @@ async fn queued_session_turns_and_shared_budget_continue_after_forward_and_rever
             .with_state(requests.clone()),
     )
     .await;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let doc = conversation_document(&provider.url);
@@ -175,7 +175,7 @@ async fn pending_approval_fifo_mail_and_durable_cancel_keep_original_identity_ac
             };Sse::new(futures::stream::iter(events.into_iter().map(Ok::<_,Infallible>)))
         }
     })).route("/effect",route_post(move||{let called=called.clone();async move{called.fetch_add(1,Ordering::SeqCst);Json(json!({"accepted":true}))}}))).await;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let release = import(&server, &approval_document(&service.url)).await;

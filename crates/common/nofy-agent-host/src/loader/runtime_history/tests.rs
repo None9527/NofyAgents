@@ -45,7 +45,7 @@ fn transfer_process_helper() {
 }
 #[tokio::test]
 async fn cached_stores_follow_real_generations_and_reverse_copies_latest_history() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let root = dir.path().join("host");
     let (control, store) = setup(&root);
     let (_, other) = setup(&root);
@@ -123,7 +123,7 @@ async fn cached_stores_follow_real_generations_and_reverse_copies_latest_history
 #[test]
 fn recover_each_durable_cut_by_original_command_after_real_process_exit() {
     for point in ["intent", "fenced", "prepared", "retired", "published"] {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let (control, store) = setup(&dir.path().join("host"));
         let target = backend(&dir.path().join("external"));
         let plan = control.plan(&target, store.now_ms()).unwrap();
@@ -157,7 +157,7 @@ fn recover_each_durable_cut_by_original_command_after_real_process_exit() {
 }
 #[test]
 fn abort_releases_exact_retirement_and_preserves_partial_copies() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let (control, store) = setup(&dir.path().join("host"));
     let target = backend(&dir.path().join("external"));
     let original = store.path().unwrap();
@@ -195,7 +195,7 @@ fn abort_releases_exact_retirement_and_preserves_partial_copies() {
 #[test]
 fn missing_authority_pointer_or_active_database_never_reopens_old_history() {
     for file in ["active.json", "authority.json", "protected-roots.json"] {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let (control, store) = setup(&dir.path().join("host"));
         let target = backend(&dir.path().join("external"));
         let plan = control.plan(&target, store.now_ms()).unwrap();
@@ -209,7 +209,7 @@ fn missing_authority_pointer_or_active_database_never_reopens_old_history() {
             "{file}"
         );
     }
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let (control, store) = setup(&dir.path().join("host"));
     std::fs::remove_file(store.path().unwrap()).unwrap();
     assert!(store.path().is_err());
@@ -221,7 +221,7 @@ fn missing_authority_pointer_or_active_database_never_reopens_old_history() {
 fn cached_directory_and_local_grants_recheck_external_private_buckets() {
     use super::super::directories::{Access, Grant};
     use super::super::local::Mount;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let (control, store) = setup(&dir.path().join("host"));
     let external = dir.path().join("external");
     std::fs::create_dir(&external).unwrap();
@@ -247,7 +247,7 @@ fn cached_directory_and_local_grants_recheck_external_private_buckets() {
 }
 #[test]
 fn declaration_factory_is_pure_and_execution_resource_boundaries_exclude_concurrent_owners() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let root = dir.path().join("absent");
     let factory = BackendFactory;
     factory
@@ -287,7 +287,7 @@ fn incomplete_unpublished_drafts_do_not_grant_authority_or_block_history_transfe
         control::{CatalogData, CatalogView, Draft},
         system::SystemDocument,
     };
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let (control, store) = setup(&dir.path().join("host"));
     let mut document: SystemDocument = serde_json::from_str(include_str!(
         "../../../examples/runtime-history-system.json"

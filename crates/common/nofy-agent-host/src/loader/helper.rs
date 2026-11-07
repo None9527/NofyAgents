@@ -1,7 +1,8 @@
 //! One immutable bootstrap executable, cached only after a complete byte check.
 use super::*;
+use nofy_host_path::{FileIdentity, FileKind};
 use std::{
-    fs::{File, Metadata, OpenOptions},
+    fs::{File, OpenOptions},
     io::Read,
     sync::{Mutex, OnceLock},
 };
@@ -16,31 +17,23 @@ struct Installed {
     #[cfg(test)]
     reads: std::sync::atomic::AtomicUsize,
 }
+/// What the helper file was when its bytes were last read in full: the same
+/// file, with the same size and times. Any difference sends the next use back
+/// to a full read.
 #[derive(PartialEq, Eq)]
-struct Stamp {
-    size: u64,
-    #[cfg(unix)]
-    identity: (u64, u64, i64, i64, i64, i64),
-}
+struct Stamp(FileIdentity);
 impl Stamp {
-    fn read(meta: Metadata) -> Result<Self> {
-        if !meta.is_file() || meta.len() > MAX_BYTES {
+    fn of(identity: FileIdentity) -> Result<Self> {
+        if identity.kind() != FileKind::File || identity.len() > MAX_BYTES {
             return Err(changed());
         }
-        #[cfg(unix)]
-        use std::os::unix::fs::MetadataExt;
-        Ok(Self {
-            size: meta.len(),
-            #[cfg(unix)]
-            identity: (
-                meta.dev(),
-                meta.ino(),
-                meta.mtime(),
-                meta.mtime_nsec(),
-                meta.ctime(),
-                meta.ctime_nsec(),
-            ),
-        })
+        Ok(Self(identity))
+    }
+    fn of_file(file: &File) -> Result<Self> {
+        Self::of(FileIdentity::of_file(file).map_err(|_| changed())?)
+    }
+    fn of_path(path: &Path) -> Result<Self> {
+        Self::of(FileIdentity::of_path(path).map_err(|_| changed())?)
     }
 }
 fn changed() -> HostError {
@@ -49,21 +42,16 @@ fn changed() -> HostError {
 fn read(path: &Path) -> Result<(String, Stamp)> {
     let mut options = OpenOptions::new();
     options.read(true);
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
-    }
-    let mut file: File = options.open(path).map_err(|_| changed())?;
-    let before = Stamp::read(file.metadata().map_err(|_| changed())?)?;
+    let mut file: File = nofy_host_path::open_no_follow(&options, path).map_err(|_| changed())?;
+    let before = Stamp::of_file(&file)?;
     let mut bytes = Vec::new();
     file.by_ref()
         .take(MAX_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|_| changed())?;
     if bytes.len() as u64 > MAX_BYTES
-        || before != Stamp::read(file.metadata().map_err(|_| changed())?)?
-        || before != Stamp::read(std::fs::symlink_metadata(path).map_err(|_| changed())?)?
+        || before != Stamp::of_file(&file)?
+        || before != Stamp::of_path(path)?
     {
         return Err(changed());
     }
@@ -91,12 +79,9 @@ impl Helper {
             .0
             .get()
             .ok_or_else(|| HostError::Invalid("isolated process helper is not installed".into()))?;
-        let current =
-            Stamp::read(std::fs::symlink_metadata(&installed.path).map_err(|_| changed())?)?;
+        let current = Stamp::of_path(&installed.path)?;
         let mut verified = installed.verified.lock().map_err(|_| changed())?;
-        // Other platforms rehash conservatively; there is no Unix inode/ctime
-        // identity available here on which to base the positive cache.
-        if cfg!(unix) && verified.as_ref() == Some(&current) {
+        if verified.as_ref() == Some(&current) {
             return Ok(installed.path.clone());
         }
         *verified = None;

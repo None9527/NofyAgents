@@ -16,6 +16,7 @@ cargo test --locked \
   -p nofy-agent-client \
   -p nofy-agent-mcp \
   -p nofy-isolation \
+  -p nofy-host-path \
   -p nofy-cli
 # A real kernel starts and serves the control plane through the command line.
 bash scripts/smoke-kernel.sh
@@ -46,3 +47,4 @@ fi
 
 python3 scripts/verify-framework-boundaries.py
 python3 scripts/verify-lint-ratchets.py
+python3 scripts/verify-platform-welds.py

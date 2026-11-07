@@ -87,6 +87,9 @@ pub fn package_from_reader(mut read: impl FnMut(&str) -> Result<File>) -> Result
             "module source manifest changed while reading",
         ));
     }
+    // A declared source is decided by its declaration alone; whatever the reader
+    // reported for the files (host modes, Git modes) is replaced.
+    crate::executables::apply_declaration(&mut files)?;
     let mut source = Source {
         files,
         declaration: "module.json".into(),
@@ -134,6 +137,9 @@ fn load_package(dir: &Dir) -> Result<Source> {
         None
     };
     let source = package_from_reader(|path| read(dir, path))?;
+    if !source.files.contains_key(EXECUTABLE_DECLARATION) {
+        crate::executables::reject_unlisted_declaration(dir)?;
+    }
     let after = package_from_reader(|path| read(dir, path))?;
     if source.digest()? != after.digest()?
         || (guard.is_none() && dir.try_exists(".nofy-source.lock")?)

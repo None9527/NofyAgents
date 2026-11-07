@@ -1,0 +1,51 @@
+{
+  "linux_gate": {
+    "nofy-agent-host": 46,
+    "nofy-agent-project": 2,
+    "nofy-sqlite-journal": 3
+  },
+  "libc_call": {
+    "nofy-agent-host": 7,
+    "nofy-agent-project": 2,
+    "nofy-cli": 2,
+    "nofy-goal": 1,
+    "nofy-memory": 3,
+    "nofy-sqlite-journal": 5
+  },
+  "unix_fork": {
+    "nofy-agent-executors": 2,
+    "nofy-agent-host": 9,
+    "nofy-agent-project": 6,
+    "nofy-agent-runtime": 5,
+    "nofy-cli": 2,
+    "nofy-goal": 5,
+    "nofy-memory": 5,
+    "nofy-sqlite-journal": 1
+  },
+  "proc_sys": {
+    "nofy-agent-host": 7
+  },
+  "unix_path_literal": {
+    "nofy-agent-client": 9,
+    "nofy-agent-executors": 1,
+    "nofy-agent-host": 10,
+    "nofy-cli": 1,
+    "nofy-memory": 5
+  },
+  "slash_absolute": {
+    "nofy-agent-executors": 1,
+    "nofy-agent-models": 1,
+    "nofy-agent-project": 2
+  },
+  "inode_identity": {
+    "nofy-goal": 1
+  },
+  "unix_ipc": {},
+  "process_signal": {},
+  "linux_only_tests": {
+    "nofy-agent-host": 9
+  },
+  "linux_only_factories": {
+    "nofy-agent-host": 5
+  }
+}

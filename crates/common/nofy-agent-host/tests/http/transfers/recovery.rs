@@ -2,7 +2,7 @@ use super::*;
 
 #[tokio::test]
 async fn default_binary_recovers_a_prepared_physical_copy_and_replays_completed_receipts() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let file = dir.path().join("transfer-system.json");
     tokio::fs::write(&file, serde_json::to_vec(&source()).unwrap())
         .await

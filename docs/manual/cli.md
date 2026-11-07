@@ -121,6 +121,7 @@ CLI 读取工厂 Schema，生成模块声明，绑定 connection 依赖并挂入
 | `--set /pointer=value` | 按 JSON Pointer 设置字符串，不猜测布尔值或数字 |
 | `--set-json /pointer=JSON` | 设置数字、布尔、null、数组或对象等明确 JSON 值 |
 | `--source /pointer=@path` | 上传/复制明确源码文件，建立明确的 source_bindings 文件绑定，业务 JSON 保持字面数据 |
+| `--source-executable /pointer` | 声明该 `--source` 文件可执行，不看本机文件权限；见下文「可执行文件」 |
 | `--bind slot=module-ref` | 连接该工厂要求的依赖槽；与挂到 Agent 的 slot 不同 |
 | `--expected-revision` | 对托管源码工程做 CAS；也可由命令先读 revision，再带原 revision 提交，冲突即停 |
 
@@ -274,6 +275,27 @@ rollback 将旧 release 作为目标，再产生新 generation；不会把 gener
 `--input` 默认接收该操作的完整对象；system validate/publish、run start/control/decide/input 也识别其原生 DTO，按对应 NativeJson 字段封装。NativeJson 的具名参数可用 `@FILE`，例如 `--request-json @run.json`。字段与位置参数或 --input 重复时拒绝歧义。版本数字以十进制字符串输入，`none`/`null` 仅用于允许空值的创建/激活字段。
 
 新增模块的 config/config_json、--set 和 --set-json 都按字面数据处理，不递归执行其中的模板关键字。`--source /source=@calculate.rhai` 复制指定文件到源码集合，通过 source_bindings 绑定；不把该客户端路径传给服务器读取。
+
+### 可执行文件：声明，不读本机权限
+
+源码文件的 `executable` 标志进入包摘要，所以它必须来自源码本身，而不是收集它的那台机器：Unix 有可执行位，Windows 没有，同一目录在两处会得到不同摘要。凡是收集目录的命令（`--project DIR` 的所有命令、`module publish --directory`）和 `--source` 都按同一规则决定这个标志：
+
+1. 目录里有 `source-executables.json`（列在 `source-files.json` 里的 JSON 路径数组，格式见[模块仓库](repositories.md)）：**只看它**，任何平台都不读文件权限，三个平台的摘要相同。
+2. 命令行给了 `--executable`、`--source-executable` 或 `--no-executable`：
+   - `--executable PATH`（可重复）：`--project`／`--directory` 源码里的包内相对路径（POSIX 写法）。给出的文件就是**完整**的可执行集合，其余一律不可执行；声明随结果写入 `source-executables.json`（`--project` 的编辑命令会把它写回工程目录，`module publish` 会把它随包上传）。
+   - `--source-executable /pointer`（可重复）：声明那个 `--source` 文件可执行。只给 pointer 时，工程目录原有的可执行集合不变；目录尚无声明时，会先把目录当前的答案固化成声明，再加入这个文件——在没有可执行位的主机上也只有声明能保住它。没有 `--source` 的 pointer 不能单独使用。
+   - `--no-executable`：声明没有任何文件可执行（包括 `--source` 文件）。与另外两个互斥。
+   命令行的值取代目录里的声明。`--executable` 指向源码里不存在的文件、没有 `--project`／`--directory` 可用、`--source-executable` 的 pointer 没有对应的 `--source`，都直接报错，不悄悄忽略。
+3. 都没有：保持原规则，已发布包的摘要不变——Unix 按文件模式（任一执行位），没有可执行位的主机（Windows）上全部不可执行。这个答案取决于本机，所以命令在 stderr 提示：Unix 上列出「仅因本机文件权限而可执行」的文件；Windows 上列出以 `#!` 开头、却无法被记为可执行的文件（只是提示，不影响摘要）。想让摘要与主机无关，就写 `source-executables.json` 或传 `--executable`。
+
+```sh
+nofy module publish local --directory ./pkg --executable bin/run.sh --executable tools/setup.py
+nofy project pack --project ./coder --no-executable --output coder.tar.gz
+nofy agent module add coder --project ./coder --offline --id calc --factory tool.rhai \
+  --slot tool_packs --source /source=@calc.rhai --source-executable /source
+```
+
+写目录（本地编辑、`module init --directory`）时，Unix 把标志写成 `0755`/`0644`；没有可执行位的主机无法保存这个位，所以带可执行文件、却没有 `source-executables.json` 的源码写目录会被拒绝（`local_input`，信息点名文件），而不是写出摘要不同的目录。导出的 tar.gz 的权限只由标志决定（可执行 `0755`，其余 `0644`），三个平台相同；在 Windows 上解包归档同样无法保留这个位，由读者按需设置。以上在 Linux 上由 `nofy-cli` 的 `tests/executables.rs` 覆盖；macOS 与 Windows 上的实际行为**未验证**——CI 的 client on macos-latest／windows-latest 任务运行 `nofy-agent-project` 的跨平台黄金测试，但不运行 `nofy-cli` 的测试（只在整个工作区的测量任务里跑）。
 
 跨发布模块引用使用 `nofy://releases/RELEASE/modules/ID/VERSION`，ID/VERSION 按 URI 组件编码。导入精确依赖闭包；遇到同 ID 的不同定义返回冲突，不替换、改名或扫描任意业务 JSON 猜测依赖。
 

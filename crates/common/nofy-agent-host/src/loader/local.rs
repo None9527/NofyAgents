@@ -14,24 +14,15 @@ pub(super) struct Mount {
 }
 
 fn absolute(path: &Path) -> Result<()> {
-    if path.to_str().is_none_or(|s| {
-        !s.starts_with('/')
-            || s.len() > 4096
-            || s.contains('\\')
-            || s.chars().any(char::is_control)
-            || s[1..].split('/').any(|p| matches!(p, "" | "." | ".."))
-    }) {
-        return Err(HostError::Invalid(
-            "local environment requires normalized absolute paths".into(),
-        ));
-    }
-    Ok(())
+    nofy_host_path::check_normalized_absolute(path, 4096).map_err(|_| {
+        HostError::Invalid("local environment requires normalized absolute paths".into())
+    })
 }
 
 fn public(path: &Path, private_root: &Path) -> Result<()> {
     absolute(path)?;
-    if path.starts_with(private_root)
-        || private_root.starts_with(path)
+    if nofy_host_path::starts_with(path, private_root)
+        || nofy_host_path::starts_with(private_root, path)
         || path == Path::new("/tmp")
         || ["/nofy", "/proc", "/sys", "/dev", "/run"]
             .iter()
@@ -85,10 +76,10 @@ pub(super) fn validate_paths(paths: &[Mount], private_root: &Path) -> Result<()>
     }
     for (index, mount) in paths.iter().enumerate() {
         mount.validate(private_root)?;
-        if paths[..index]
-            .iter()
-            .any(|p| mount.path.starts_with(&p.path) || p.path.starts_with(&mount.path))
-        {
+        if paths[..index].iter().any(|p| {
+            nofy_host_path::starts_with(&mount.path, &p.path)
+                || nofy_host_path::starts_with(&p.path, &mount.path)
+        }) {
             return Err(HostError::Invalid(
                 "local dependency paths must not overlap".into(),
             ));

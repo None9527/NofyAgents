@@ -54,7 +54,7 @@
 
 ## 环境与故障
 
-process_isolation 报告平台、helper 配置和 Landlock 查询结果；command_execution 报告当前执行供给条件。发现接口不探测用户任意路径或凭据正文，不把 cgroup v2 挂载等同于已经取得可写委派根。原 cgroup 后端要求实际委派的子目录，根目录字符串本身不是有效授权。
+process_isolation 报告平台、helper 配置和 Landlock 查询结果；worker_isolation 报告内核自己的工作进程（模型、提示词、作用域、代码）在本机上逐项能被约束到什么程度，每项取 `enforced`、`partial` 或 `unavailable`，未达到的项带原因，来自对本机的探测，不是按操作系统名推断；command_execution 报告当前执行供给条件。发现接口不探测用户任意路径或凭据正文，不把 cgroup v2 挂载等同于已经取得可写委派根。原 cgroup 后端要求实际委派的子目录，根目录字符串本身不是有效授权。
 
 运行排队时 execution 可以为 null。accepted/queued 不表示已完成；completed 也不能替代检查 tool_completed.is_error 和业务结果的 ok。进程工具失败时检查 result.details 的 exit_code、signal、stderr、stderr_truncated；诊断保留受限窗口并遮盖敏感环境值，不替换原错误文本。125 表示隔离/启动失败，需要具体诊断才能归因。
 

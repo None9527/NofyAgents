@@ -63,6 +63,9 @@ async fn run(op: &str, m: &clap::ArgMatches) -> Result<i32> {
         ));
     }
     let mut prepared = input::prepare(op, m, engine).await?;
+    for note in &prepared.notes {
+        eprintln!("{note}");
+    }
     if op == "project.pack" && prepared.value.get("source").is_some() {
         if m.get_one::<String>("output").is_none() {
             return Err(Error::new(

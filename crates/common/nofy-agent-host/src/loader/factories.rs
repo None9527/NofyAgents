@@ -344,18 +344,20 @@ impl EnvironmentGuard for Guard {
                 ))
             })
             .collect::<std::result::Result<_, ToolError>>()?;
-        let profile = serde_json::to_string(&profile).map_err(tool_error)?;
-        if profile.len() > 65536 {
+        if serde_json::to_string(&profile).map_err(tool_error)?.len() > 65536 {
             return Err(tool_error("isolation profile exceeds 64 KiB"));
         }
-        let mut wrapped = tokio::process::Command::new(&self.helper);
+        let confined = confine::worker_command(
+            self.helper.clone(),
+            &profile,
+            program,
+            args,
+            Default::default(),
+            Some(cwd),
+        )
+        .map_err(tool_error)?;
+        let mut wrapped = confine::tokio_command(confined);
         wrapped
-            .arg(isolation::WORKER_ARG)
-            .arg(profile)
-            .arg(program)
-            .args(args)
-            .env_clear()
-            .current_dir(cwd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

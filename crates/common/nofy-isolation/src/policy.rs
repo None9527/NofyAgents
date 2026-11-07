@@ -12,6 +12,50 @@ pub struct Filesystem {
     pub executable: Vec<PathBuf>,
     /// The command sees private read-only views of its dependencies, not the host tree.
     pub private_mounts: bool,
+    /// Paths that stay unwritable even when they lie inside a `read_write` root,
+    /// whether or not they exist yet. Repository hooks, shell start-up files and
+    /// editor settings belong here: a write to them would be run later, outside
+    /// the confinement.
+    pub protected: Vec<PathBuf>,
+}
+
+/// Paths below a writable root that must never be writable from inside the
+/// confinement, because something outside it reads them later and acts on them:
+/// git runs hooks and reads its config, a shell sources its start-up files, an
+/// editor loads its workspace settings. This is the list `sandbox-runtime`,
+/// codex and grok-build each protect by default.
+pub const MANDATORY_PROTECTED: &[&str] = &[
+    ".bashrc",
+    ".bash_profile",
+    ".zshrc",
+    ".zprofile",
+    ".profile",
+    ".gitconfig",
+    ".gitmodules",
+    ".ripgreprc",
+    ".mcp.json",
+    ".vscode",
+    ".idea",
+    ".claude/commands",
+    ".claude/agents",
+    ".git/hooks",
+    ".git/config",
+];
+
+impl Filesystem {
+    /// Add [`MANDATORY_PROTECTED`] below every writable root, skipping any that
+    /// is already listed. Only the paths are named here; whether they exist is
+    /// the backend's concern.
+    pub fn protect_mandatory(&mut self) {
+        for root in &self.read_write {
+            for relative in MANDATORY_PROTECTED {
+                let path = root.join(relative);
+                if !self.protected.contains(&path) {
+                    self.protected.push(path);
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +119,9 @@ impl Confinement {
             }
             if files.private_mounts {
                 needed.push(Capability::PrivateMounts);
+            }
+            if !files.protected.is_empty() {
+                needed.push(Capability::ProtectedPaths);
             }
         }
         match self.network {

@@ -94,11 +94,32 @@ pub fn worker_entry() -> Option<i32> {
         }
     })();
     if let Err(error) = result {
-        eprintln!("required module isolation or runtime launch failed: {error}");
-        Some(125)
+        // The one signature a caller uses to tell "the confinement could not be
+        // applied" from "the command ended on its own".
+        eprintln!("{}: {error}", nofy_isolation::RUNNER_FAILURE_MARKER);
+        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
     } else {
         Some(0)
     }
+}
+/// The Landlock ABI version this kernel offers, or `None` when Landlock is
+/// missing or switched off. Confinement needs version 3.
+#[cfg(target_os = "linux")]
+pub(crate) fn landlock_abi() -> Option<u64> {
+    // SAFETY: this version query passes no pointer and creates no ruleset.
+    let version = unsafe {
+        libc::syscall(
+            libc::SYS_landlock_create_ruleset,
+            std::ptr::null::<u8>(),
+            0usize,
+            1u32,
+        )
+    };
+    (version >= 0).then_some(version as u64)
+}
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn landlock_abi() -> Option<u64> {
+    None
 }
 #[cfg(not(target_os = "linux"))]
 fn apply(

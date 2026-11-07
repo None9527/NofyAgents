@@ -1,6 +1,5 @@
 //! Retention and recoverable-copy destruction for unified memory.
 
-use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -163,7 +162,7 @@ pub fn gc_scope(
         if modified <= cutoff {
             std::fs::remove_file(&path)?;
             if let Some(parent) = path.parent() {
-                File::open(parent)?.sync_all()?;
+                nofy_durable_fs::sync_directory(parent)?;
             }
             archives_deleted += 1;
         }

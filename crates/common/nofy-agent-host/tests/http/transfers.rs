@@ -143,7 +143,7 @@ async fn cached_list(
 
 #[tokio::test]
 async fn real_history_moves_back_with_latest_writes_undo_and_retained_compilation() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = host(dir.path(), reads.clone()).await;
     let server = serve(host.router()).await;
@@ -361,7 +361,7 @@ async fn real_history_moves_back_with_latest_writes_undo_and_retained_compilatio
 
 #[tokio::test]
 async fn queued_roots_block_migration_and_abort_reopens_only_original_ownership() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let compiled = host
@@ -469,7 +469,7 @@ async fn ordinary_tool_payloads_are_not_treated_as_memory_definitions() {
         route_post(|Json(value): Json<Value>| async move { Json(value) }),
     ))
     .await;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let mut doc = source();

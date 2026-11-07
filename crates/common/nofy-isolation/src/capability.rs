@@ -7,6 +7,10 @@ use std::collections::BTreeMap;
 pub enum Capability {
     /// Files outside the granted paths cannot be read or written.
     Filesystem,
+    /// Named paths inside a writable root stay unwritable, even when they do not
+    /// exist yet. Landlock cannot express this exception; a mount view, a Seatbelt
+    /// profile and an access-control entry can.
+    ProtectedPaths,
     /// Execution, not just reading, is refused outside the granted executable paths.
     ExecuteAllowlist,
     /// The command sees private read-only views of its dependencies, not the host tree.
@@ -27,8 +31,9 @@ pub enum Capability {
 }
 
 impl Capability {
-    pub const ALL: [Capability; 11] = [
+    pub const ALL: [Capability; 12] = [
         Capability::Filesystem,
+        Capability::ProtectedPaths,
         Capability::ExecuteAllowlist,
         Capability::PrivateMounts,
         Capability::NetworkDeny,
@@ -45,6 +50,7 @@ impl Capability {
     pub fn name(self) -> &'static str {
         match self {
             Capability::Filesystem => "filesystem",
+            Capability::ProtectedPaths => "protected_paths",
             Capability::ExecuteAllowlist => "execute_allowlist",
             Capability::PrivateMounts => "private_mounts",
             Capability::NetworkDeny => "network_deny",

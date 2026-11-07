@@ -1,6 +1,6 @@
 //! Encrypted, short-lived legacy backups used by the one-way memory cutover.
 
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -107,7 +107,7 @@ fn write_encrypted_archive(
     let encrypted = archive.into_inner()?;
     let output = encrypted.finish()?;
     output.sync_all()?;
-    File::open(parent)?.sync_all()?;
+    nofy_durable_fs::sync_directory(parent)?;
     Ok(())
 }
 
@@ -127,7 +127,7 @@ pub fn forget_legacy_backup(
         Err(error) => return Err(error.into()),
     }
     if let Some(parent) = backup.parent() {
-        File::open(parent)?.sync_all()?;
+        nofy_durable_fs::sync_directory(parent)?;
     }
     Ok(())
 }

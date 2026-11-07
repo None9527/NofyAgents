@@ -27,6 +27,7 @@ fn strict() -> Confinement {
             read_write: vec!["/work".into()],
             executable: vec!["/usr/bin".into()],
             private_mounts: false,
+            protected: vec![],
         }),
         network: Network::Denied,
         processes: Processes::Single,

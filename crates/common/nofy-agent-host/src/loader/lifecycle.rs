@@ -92,12 +92,7 @@ pub(super) fn maintenance_file(path: &Path) -> Result<File> {
 fn lease(path: &Path, exclusive: bool) -> Result<File> {
     let mut options = std::fs::OpenOptions::new();
     options.read(true).write(exclusive);
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
-    }
-    let file = options.open(path).map_err(storage::unavailable)?;
+    let file = nofy_host_path::open_no_follow(&options, path).map_err(storage::unavailable)?;
     if !file.metadata().map_err(storage::unavailable)?.is_file() {
         return Err(invalid("invalid cache lease file"));
     }

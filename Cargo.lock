@@ -2637,6 +2637,7 @@ dependencies = [
  "axum",
  "futures",
  "nofy-agent-runtime",
+ "nofy-test-support",
  "nofy-tool-protocol",
  "nofy-tool-runtime",
  "nofy-tool-types",
@@ -2673,7 +2674,9 @@ dependencies = [
  "nofy-agent-project",
  "nofy-agent-runtime",
  "nofy-durable-fs",
+ "nofy-host-path",
  "nofy-interjection-core",
+ "nofy-isolation",
  "nofy-memory",
  "nofy-memory-types",
  "nofy-private-fs",
@@ -2739,6 +2742,7 @@ dependencies = [
  "globset",
  "minijinja",
  "nofy-agent-runtime",
+ "nofy-test-support",
  "nofy-tool-protocol",
  "nofy-tool-runtime",
  "nofy-tool-types",
@@ -2763,6 +2767,7 @@ dependencies = [
  "jsonschema",
  "libc",
  "nofy-durable-fs",
+ "nofy-host-path",
  "rustix",
  "serde",
  "serde_json",
@@ -2868,6 +2873,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-host-path"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "tempfile",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "nofy-interjection-core"
 version = "0.1.0"
 dependencies = [
@@ -2965,7 +2979,9 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "futures-util",
+ "nofy-isolation",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 

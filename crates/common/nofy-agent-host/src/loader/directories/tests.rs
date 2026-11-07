@@ -1,6 +1,6 @@
 use super::*;
 use nofy_agent_runtime::admission::CommitAdmission;
-use std::{collections::BTreeMap, os::unix::fs::symlink};
+use std::collections::BTreeMap;
 
 fn definition(path: &Path, access: &str) -> ModuleDefinition {
     serde_json::from_value(json!({"reference":{"id":"project","version":"1"},
@@ -78,9 +78,16 @@ fn unavailable_directory_blocks_new_authority_but_not_owned_receipts_or_pure_inh
     assert!(!public.path().join("missing").exists());
 }
 
+/// `Grant::open` hands the opened directory to Landlock and exists on Linux only;
+/// `unit_directory_and_local_mount_descriptors` (platform_skips.rs) stands in for
+/// this test elsewhere.
+#[cfg(target_os = "linux")]
 #[test]
 fn opened_descriptor_pins_the_authorized_directory_and_retargeted_aliases_fail_closed() {
-    use std::os::{fd::AsFd, unix::fs::MetadataExt};
+    use std::os::{
+        fd::AsFd,
+        unix::fs::{MetadataExt, symlink},
+    };
     let private = tempfile::tempdir().unwrap();
     let public = tempfile::tempdir().unwrap();
     let root = public.path().join("project");

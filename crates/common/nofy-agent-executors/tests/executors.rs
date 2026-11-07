@@ -282,17 +282,48 @@ impl EnvironmentGuard for TestGuard {
         Ok(())
     }
 }
-fn process_factory(root: &Path, guard: Arc<AtomicUsize>) -> ProcessToolFactory {
-    let python = InstalledProgram::load(Path::new("/usr/bin/python3"), Some("-c".into())).unwrap();
-    let cat = InstalledProgram::load(Path::new("/bin/cat"), None).unwrap();
+/// An interpreter for the script fixtures. A Unix machine keeps one at
+/// `/usr/bin/python3`; a Windows machine has it on `PATH` under another name.
+fn python() -> Option<std::path::PathBuf> {
+    let usual = Path::new("/usr/bin/python3");
+    if usual.is_file() {
+        return Some(usual.into());
+    }
+    let names: &[&str] = if cfg!(windows) {
+        &["python3.exe", "python.exe"]
+    } else {
+        &["python3", "python"]
+    };
+    std::env::split_paths(&std::env::var_os("PATH")?)
+        .flat_map(|directory| names.iter().map(move |name| directory.join(name)))
+        .find(|candidate| candidate.is_file())
+}
+/// The process fixtures drive real, installed programs. `None` after a visible
+/// skip when this machine has no interpreter. `cat` is registered when the
+/// machine has it; the tests that need it say so with `require_program!`.
+fn process_factory(root: &Path, guard: Arc<AtomicUsize>) -> Option<ProcessToolFactory> {
+    let Some(python) = python() else {
+        nofy_test_support::skip(
+            "python3 or python on PATH",
+            "no Python interpreter is installed on this machine",
+        );
+        return None;
+    };
+    let mut programs = BTreeMap::from([(
+        "python".into(),
+        InstalledProgram::load(&python, Some("-c".into())).unwrap(),
+    )]);
+    if let Ok(cat) = InstalledProgram::load(Path::new("/bin/cat"), None) {
+        programs.insert("cat".into(), cat);
+    }
     let environment = ProcessEnvironment::install(
         root,
-        BTreeMap::from([("python".into(), python), ("cat".into(), cat)]),
+        programs,
         BTreeMap::from([("VISIBLE".into(), "host-value".into())]),
         Arc::new(TestGuard(guard)),
     )
     .unwrap();
-    ProcessToolFactory::new("v1", environment).unwrap()
+    Some(ProcessToolFactory::new("v1", environment).unwrap())
 }
 fn process_config(script: &str) -> Value {
     json!({"contract":{"name":"script"},"program":"python","script":script})
@@ -300,9 +331,12 @@ fn process_config(script: &str) -> Value {
 
 #[tokio::test]
 async fn process_and_script_are_configured_with_literal_stdin_and_explicit_environment() {
+    nofy_test_support::require_program!("/bin/cat");
     let root = tempfile::tempdir().unwrap();
     let guard = Arc::new(AtomicUsize::new(0));
-    let factory = process_factory(root.path(), guard.clone());
+    let Some(factory) = process_factory(root.path(), guard.clone()) else {
+        return;
+    };
     let config = process_config(
         "import json,sys,os;print(json.dumps({'input':json.load(sys.stdin),'cwd':os.getcwd(),'home':os.environ.get('HOME'),'visible':os.environ.get('VISIBLE')}))",
     );
@@ -315,12 +349,11 @@ async fn process_and_script_are_configured_with_literal_stdin_and_explicit_envir
     assert_eq!(result["input"], args);
     assert!(result["home"].is_null());
     assert_eq!(result["visible"], "host-value");
+    // Python reports the working directory without Windows' `\\?\` verbatim prefix.
+    let canonical = std::fs::canonicalize(root.path()).unwrap();
     assert_eq!(
         result["cwd"],
-        std::fs::canonicalize(root.path())
-            .unwrap()
-            .to_string_lossy()
-            .as_ref()
+        canonical.to_string_lossy().trim_start_matches(r"\\?\")
     );
     assert!(!root.path().join("SHOULD_NOT_EXIST").exists());
     assert_eq!(guard.load(Ordering::SeqCst), 1);
@@ -333,8 +366,11 @@ async fn process_and_script_are_configured_with_literal_stdin_and_explicit_envir
 
 #[tokio::test]
 async fn process_rejects_uninstalled_interpreters_paths_bad_outputs_and_limits() {
+    nofy_test_support::require_program!("/bin/cat");
     let root = tempfile::tempdir().unwrap();
-    let factory = process_factory(root.path(), Arc::new(AtomicUsize::new(0)));
+    let Some(factory) = process_factory(root.path(), Arc::new(AtomicUsize::new(0))) else {
+        return;
+    };
     for config in [
         json!({"contract":{"name":"x"},"program":"missing"}),
         json!({"contract":{"name":"x"},"program":"cat","script":"code"}),
@@ -392,6 +428,7 @@ async fn process_rejects_uninstalled_interpreters_paths_bad_outputs_and_limits()
 
 #[tokio::test]
 async fn replaced_installed_executable_is_rejected_before_launch() {
+    nofy_test_support::require_program!("/bin/cat");
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("installed-cat");
     std::fs::copy("/bin/cat", &path).unwrap();
@@ -422,7 +459,9 @@ async fn process_timeout_cancel_and_dropped_future_kill_descendants() {
     // A grandchild would create a marker after its parent returns/cancels. The
     // ownership guard must kill the entire group even if the caller drops it.
     let root = tempfile::tempdir().unwrap();
-    let factory = process_factory(root.path(), Arc::new(AtomicUsize::new(0)));
+    let Some(factory) = process_factory(root.path(), Arc::new(AtomicUsize::new(0))) else {
+        return;
+    };
     for mode in ["timeout", "cancel", "drop"] {
         let marker = format!("{mode}-leaked");
         let child = format!(
@@ -465,6 +504,7 @@ async fn process_timeout_cancel_and_dropped_future_kill_descendants() {
 
 #[tokio::test]
 async fn a_host_guard_refusal_never_launches_the_installed_process() {
+    nofy_test_support::require_program!("/usr/bin/touch");
     struct UnavailableGuard(Arc<AtomicUsize>);
     impl EnvironmentGuard for UnavailableGuard {
         fn revision(&self) -> &str {
@@ -572,7 +612,9 @@ async fn configured_http_and_process_executors_are_real_typed_hook_handlers() {
     config["contract"]["input_schema"] = json!({"type":"object"});
     let http_entry = build(&http, config);
     let root = tempfile::tempdir().unwrap();
-    let process = process_factory(root.path(), Arc::new(AtomicUsize::new(0)));
+    let Some(process) = process_factory(root.path(), Arc::new(AtomicUsize::new(0))) else {
+        return;
+    };
     let process_entry = build(
         &process,
         process_config(
@@ -599,7 +641,11 @@ async fn configured_http_and_process_executors_are_real_typed_hook_handlers() {
                 HookRule {
                     event: "before_tool".into(),
                     priority: 0,
-                    timeout_ms: 3000,
+                    // The process handler starts a real interpreter. On the macOS runner the
+                    // first start of /usr/bin/python3 took about three seconds (the same run's
+                    // process tests waited that long), which a 3 s hook limit cannot absorb.
+                    // This test is about the typed hook handlers, not about the hook deadline.
+                    timeout_ms: 30_000,
                     failure: FailurePolicy::Closed,
                     matches: None,
                 },
@@ -848,6 +894,13 @@ async fn executor_hook_without_durable_budget_receipts_never_replays_an_unknown_
 
 #[tokio::test]
 async fn failed_process_keeps_bounded_stderr_exit_status_and_redacts_environment_secrets() {
+    let Some(python) = python() else {
+        nofy_test_support::skip(
+            "python3 or python on PATH",
+            "no Python interpreter is installed on this machine",
+        );
+        return;
+    };
     let root = tempfile::tempdir().unwrap();
     let secret = format!(
         "diagnostic-secret-{}",
@@ -857,7 +910,7 @@ async fn failed_process_keeps_bounded_stderr_exit_status_and_redacts_environment
         root.path(),
         BTreeMap::from([(
             "python".into(),
-            InstalledProgram::load(Path::new("/usr/bin/python3"), Some("-c".into())).unwrap(),
+            InstalledProgram::load(&python, Some("-c".into())).unwrap(),
         )]),
         BTreeMap::from([("API_TOKEN".into(), secret.clone())]),
         Arc::new(TestGuard(Arc::new(AtomicUsize::new(0)))),

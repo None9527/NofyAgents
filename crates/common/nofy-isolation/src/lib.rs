@@ -22,9 +22,13 @@ mod capability;
 mod gate;
 mod policy;
 mod registry;
+mod runner;
 
 pub use backend::{Backend, Command, ConfinedCommand, Error, Unsupported, launch_plan};
 pub use capability::{Capabilities, Capability, Level, Probe};
 pub use gate::{ERROR_CODE, Refusal, Shortfall, admit};
-pub use policy::{Confinement, Filesystem, Limits, Network, Processes, Requirement};
+pub use policy::{
+    Confinement, Filesystem, Limits, MANDATORY_PROTECTED, Network, Processes, Requirement,
+};
 pub use registry::{Registry, SelectError, current_platform};
+pub use runner::{RUNNER_FAILURE_EXIT_CODE, RUNNER_FAILURE_MARKER, runner_failure};

@@ -5,32 +5,17 @@ pub struct ImageStore {
     trees: PathBuf,
     verified: Arc<std::sync::Mutex<std::collections::BTreeMap<String, FileStamp>>>,
 }
+/// A stored object as last read: the same file with the same size and times, or
+/// it is read again.
 #[derive(Clone, PartialEq, Eq)]
-struct FileStamp {
-    length: u64,
-    modified: std::time::SystemTime,
-    #[cfg(unix)]
-    identity: (u64, u64, i64, i64),
-}
+struct FileStamp(nofy_host_path::FileIdentity);
 impl FileStamp {
     fn read(path: &Path) -> Result<Self> {
-        let metadata = std::fs::symlink_metadata(path).map_err(storage::unavailable)?;
-        if !metadata.is_file() || metadata.len() > MAX_WIRE {
+        let identity = nofy_host_path::FileIdentity::of_path(path).map_err(storage::unavailable)?;
+        if identity.kind() != nofy_host_path::FileKind::File || identity.len() > MAX_WIRE {
             return Err(invalid("invalid runtime image object"));
         }
-        #[cfg(unix)]
-        use std::os::unix::fs::MetadataExt;
-        Ok(Self {
-            length: metadata.len(),
-            modified: metadata.modified().map_err(storage::unavailable)?,
-            #[cfg(unix)]
-            identity: (
-                metadata.dev(),
-                metadata.ino(),
-                metadata.ctime(),
-                metadata.ctime_nsec(),
-            ),
-        })
+        Ok(Self(identity))
     }
 }
 #[derive(Serialize)]

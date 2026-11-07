@@ -3,26 +3,13 @@ use super::*;
 /// Public capability facts only. User paths, credential values and arbitrary
 /// endpoints are never probed by discovery.
 pub(super) fn capabilities(host: &KernelHost) -> Value {
-    #[cfg(target_os = "linux")]
-    let abi = {
-        // SAFETY: this version query passes no pointer and creates no ruleset.
-        let version = unsafe {
-            libc::syscall(
-                libc::SYS_landlock_create_ruleset,
-                std::ptr::null::<u8>(),
-                0usize,
-                1u32,
-            )
-        };
-        (version >= 0).then_some(version as u64)
-    };
-    #[cfg(not(target_os = "linux"))]
-    let abi: Option<u64> = None;
+    let abi = crate::loader::isolation::landlock_abi();
     json!({
         "protocol":"nofy.development-capabilities/v1",
         "contract_revision":"0.6",
         "platform":{"os":std::env::consts::OS,"arch":std::env::consts::ARCH},
         "source_projects":true,"module_repositories":true,
+        "worker_isolation":crate::loader::confine::worker_isolation_report(),
         "process_isolation":{"helper_configured":host.loader.helper_ready(),"landlock_abi":abi,
             "platform_supported":cfg!(target_os="linux"),"landlock_requirement":3,
             "execution_ready":"requires_explicit_resource_configuration","direct_network":"denied"},

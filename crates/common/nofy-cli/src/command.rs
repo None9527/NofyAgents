@@ -329,6 +329,15 @@ fn global_help(key: &str) -> &'static str {
         "wait" => {
             "After starting, wait for the run to finish (run start, session start, session turn)"
         }
+        "executable" => {
+            "Declare a file of the --project or --directory source executable, whatever this host's file modes say: a package-relative path, repeated for each. The files named are then the complete set. Needs no executable bit, so it works the same on Windows"
+        }
+        "source_executable" => {
+            "Declare a --source file executable by its /pointer, whatever this host's file modes say. Repeat for each; the pointers named are then the complete set of executable --source files"
+        }
+        "no_executable" => {
+            "Declare that no collected file is executable, whatever this host's file modes say"
+        }
         _ => "",
     }
 }
@@ -385,6 +394,24 @@ pub fn cli() -> Command {
                 .help(global_help(key)),
         );
     }
+    for key in ["executable", "source_executable"] {
+        cmd = cmd.arg(
+            Arg::new(key)
+                .long(key.replace('_', "-"))
+                .global(true)
+                .action(ArgAction::Append)
+                .num_args(1)
+                .conflicts_with("no_executable")
+                .help(global_help(key)),
+        );
+    }
+    cmd = cmd.arg(
+        Arg::new("no_executable")
+            .long("no-executable")
+            .global(true)
+            .action(ArgAction::SetTrue)
+            .help(global_help("no_executable")),
+    );
     cmd = cmd.subcommand(
         Command::new("call")
             .about("Call one operation by name, with the complete JSON input from --input")

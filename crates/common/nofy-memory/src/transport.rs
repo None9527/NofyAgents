@@ -311,7 +311,7 @@ pub fn copy_snapshot(
     directories.sort();
     directories.dedup();
     for path in directories.into_iter().rev() {
-        File::open(path)?.sync_all()?;
+        nofy_durable_fs::sync_directory(&path)?;
     }
     Ok(copied)
 }

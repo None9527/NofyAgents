@@ -48,14 +48,9 @@ pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
             format!("source changed while reading: {path}"),
         ));
     }
-    #[cfg(unix)]
-    let executable = {
-        use std::os::unix::fs::PermissionsExt;
-        metadata.permissions().mode() & 0o111 != 0
-    };
-    #[cfg(not(unix))]
-    let executable = false;
-    Ok(File::bytes(&bytes, executable))
+    // What this host reports for the file, not what the source declares: a
+    // collector replaces it with the declaration when the source has one.
+    Ok(File::bytes(&bytes, observed_executable(&metadata)))
 }
 fn load_unlocked(path: &Path) -> Result<Source> {
     let dir = Dir::open_ambient_dir(path, ambient_authority())?;
@@ -76,6 +71,10 @@ fn load_unlocked(path: &Path) -> Result<Source> {
             "source manifest must include itself",
         ));
     }
+    if !files.contains_key(EXECUTABLE_DECLARATION) {
+        crate::executables::reject_unlisted_declaration(&dir)?;
+    }
+    crate::executables::apply_declaration(&mut files)?;
     let declaration = if let Some(project) = files.get("project.json") {
         let project: Value = serde_json::from_str(&project.utf8()?)?;
         if project["format"] != "nofy.project/v1" {
@@ -117,16 +116,7 @@ fn private_write(path: &Path, bytes: &[u8], executable: bool) -> Result<()> {
     std::fs::create_dir_all(parent)?;
     let mut file = tempfile::NamedTempFile::new_in(parent)?;
     file.write_all(bytes)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        file.as_file()
-            .set_permissions(std::fs::Permissions::from_mode(if executable {
-                0o755
-            } else {
-                0o644
-            }))?;
-    }
+    crate::executables::record_executable(file.as_file(), executable)?;
     file.as_file().sync_all()?;
     file.persist(path).map_err(|e| e.error)?;
     Ok(())
@@ -218,6 +208,7 @@ pub fn write_directory(path: &Path, source: &Source, expected_digest: Option<&st
     let source = effective(source)?;
     source.validate()?;
     complete(&source)?;
+    crate::executables::ensure_recordable(&source)?;
     if let Some(expected) = expected_digest {
         let _guard = lock(path)?;
         recover(path)?;
@@ -392,6 +383,7 @@ pub fn complete(source: &Source) -> Result<()> {
             ));
         }
     }
+    crate::executables::check_declaration(&source.files)?;
     Ok(())
 }
 pub fn pack_to(source: &Source, output: impl Write) -> Result<()> {
@@ -407,6 +399,9 @@ pub fn pack_to(source: &Source, output: impl Write) -> Result<()> {
         let mut header = tar::Header::new_gnu();
         header.set_entry_type(tar::EntryType::Regular);
         header.set_size(bytes.len() as u64);
+        // The mode comes from the flag alone, never from the host, so the same
+        // source packs to the same entries on every platform. Unpacking is the
+        // reader's: a host with no executable bit cannot keep this one.
         header.set_mode(if file.executable { 0o755 } else { 0o644 });
         header.set_uid(0);
         header.set_gid(0);

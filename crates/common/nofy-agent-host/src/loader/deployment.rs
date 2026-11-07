@@ -59,12 +59,9 @@ impl DeploymentFile {
         let path = std::fs::canonicalize(path).map_err(storage::unavailable)?;
         let mut options = OpenOptions::new();
         options.read(true);
-        #[cfg(target_os = "linux")]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
-        }
-        let file = options.open(path).map_err(storage::unavailable)?;
+        // A FIFO named here must not block the open; the regular-file check follows.
+        let file = nofy_host_path::open_no_follow_nonblocking(&options, &path)
+            .map_err(storage::unavailable)?;
         if !file.metadata().map_err(storage::unavailable)?.is_file() {
             return Err(HostError::Invalid(
                 "deployment must be a regular file".into(),

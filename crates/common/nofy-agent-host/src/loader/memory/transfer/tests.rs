@@ -54,7 +54,7 @@ fn transfer_process_helper() {
 #[tokio::test]
 async fn real_generations_preserve_undo_and_latest_data_across_reverse_move_and_historical_replay()
 {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let provider = provider(dir.path());
     let (a, b) = backends();
     let context = RunContext::new("t", "r");
@@ -142,7 +142,7 @@ async fn real_generations_preserve_undo_and_latest_data_across_reverse_move_and_
 }
 #[tokio::test]
 async fn prepared_abort_reopens_original_and_invalidates_old_plan_without_overwriting_data() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let provider = provider(dir.path());
     let (a, b) = backends();
     let source = provider.open(&a, &RunContext::new("t", "r")).await.unwrap();
@@ -191,7 +191,7 @@ async fn prepared_abort_reopens_original_and_invalidates_old_plan_without_overwr
 }
 #[tokio::test]
 async fn holders_used_targets_stale_data_and_modified_prepared_files_fail_before_publication() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let provider = provider(dir.path());
     let (a, b) = backends();
     let context = RunContext::new("t", "r");
@@ -243,7 +243,7 @@ async fn holders_used_targets_stale_data_and_modified_prepared_files_fail_before
 async fn actual_process_exit_after_intent_preparation_and_publication_recovers_one_original_command()
  {
     for exit in ["intent", "prepared", "published"] {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
         let provider = provider(dir.path());
         let (a, b) = backends();
         let source = provider.open(&a, &RunContext::new("t", "r")).await.unwrap();
@@ -309,7 +309,7 @@ async fn actual_process_exit_after_intent_preparation_and_publication_recovers_o
 
 #[tokio::test]
 async fn lost_namespace_rows_or_broken_seals_never_reopen_the_retired_origin() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = nofy_test_support::canonical_tempdir().unwrap();
     let provider = provider(dir.path());
     let (a, b) = backends();
     let context = RunContext::new("t", "r");

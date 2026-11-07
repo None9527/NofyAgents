@@ -5,7 +5,7 @@ use nofy_agent_runtime::{
     admission::{CommitAdmission, CommitPermit},
 };
 use std::fs::File;
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, unix))]
 mod tests;
 
 #[derive(Clone)]
@@ -60,12 +60,7 @@ pub(super) fn resource_lease(root: &Path) -> Result<Option<CommitLease>> {
 fn acquire(path: &Path, exclusive: bool) -> Result<CommitLease> {
     let mut options = std::fs::OpenOptions::new();
     options.read(true).write(exclusive);
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC);
-    }
-    let file = options.open(path).map_err(storage::unavailable)?;
+    let file = nofy_host_path::open_no_follow(&options, path).map_err(storage::unavailable)?;
     if !file.metadata().map_err(storage::unavailable)?.is_file() {
         return Err(HostError::Unavailable("invalid commit fence".into()));
     }

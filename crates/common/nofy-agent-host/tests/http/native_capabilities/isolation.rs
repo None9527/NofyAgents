@@ -1,4 +1,3 @@
-#![cfg(target_os = "linux")]
 use super::*;
 use nofy_agent_runtime::{
     RunContext,
@@ -63,6 +62,9 @@ async fn idle(host: &KernelHost) {
 }
 #[tokio::test]
 async fn missing_helper_fails_closed_and_status_is_lightweight_metadata() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = super::super::unbound_host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
@@ -95,6 +97,9 @@ async fn missing_helper_fails_closed_and_status_is_lightweight_metadata() {
 }
 #[tokio::test]
 async fn constant_folding_and_intermediate_memory_cpu_and_output_limits_never_kill_the_host() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = resident(dir.path(), reads.clone()).await;
@@ -187,6 +192,9 @@ async fn constant_folding_and_intermediate_memory_cpu_and_output_limits_never_ki
 }
 #[tokio::test]
 async fn dropped_prompt_caller_keeps_its_actual_worker_permit_and_context_cancel_reaps_the_pid() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let mut source = source();
@@ -225,6 +233,9 @@ async fn dropped_prompt_caller_keeps_its_actual_worker_permit_and_context_cancel
 }
 #[tokio::test]
 async fn disconnected_previews_hold_management_admission_until_shutdown_reaps_both_real_workers() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
@@ -293,6 +304,9 @@ async fn disconnected_previews_hold_management_admission_until_shutdown_reaps_bo
 }
 #[tokio::test]
 async fn resource_maintenance_fences_do_not_block_existing_document_prompt_rendering() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let host = resident(dir.path(), Arc::new(AtomicUsize::new(0))).await;
     let commit = host.loader().commits.exclusive().unwrap();
@@ -313,6 +327,9 @@ async fn resource_maintenance_fences_do_not_block_existing_document_prompt_rende
 #[tokio::test]
 async fn actual_model_root_compiles_and_renders_only_in_confinement_before_credentials_or_dispatch()
 {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()
@@ -383,6 +400,9 @@ async fn actual_model_root_compiles_and_renders_only_in_confinement_before_crede
 
 #[tokio::test]
 async fn hard_parent_exit_stops_the_real_confined_renderer_and_restart_has_no_stale_work() {
+    if !workers_confined_and_observable() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let source = dir.path().join("native.json");
     tokio::fs::write(

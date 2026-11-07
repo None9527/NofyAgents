@@ -2,6 +2,9 @@ use super::*;
 
 #[tokio::test]
 async fn resident_plain_skill_rejects_expansion_and_utf8_byte_overflow_then_runs_new_definition() {
+    if !workers_confined() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = resident(dir.path(), reads.clone()).await;

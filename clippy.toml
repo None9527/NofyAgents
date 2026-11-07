@@ -11,10 +11,11 @@ large-error-threshold = 256
 # the owner that waits on, kills, or deliberately detaches it. This keeps the
 # set of process-creating sites reviewable.
 #
-# `canonicalize` is intentionally not banned: the workspace targets Linux only
-# (see rust-toolchain.toml), where `std::fs::canonicalize` and
-# `dunce::canonicalize` are identical. Re-add that rule if a Windows target is
-# ever introduced.
+# `canonicalize` is not banned yet. On Linux and macOS `std::fs::canonicalize`
+# and `dunce::canonicalize` are identical; on Windows the standard one returns
+# `\\?\` verbatim paths and the other strips the prefix. The workspace now builds
+# on Windows, so which one a call site means must be decided in one place
+# (the path work in docs/architecture/cross-platform.md), then this rule banned.
 disallowed-methods = [
     { path = "std::process::Command::spawn", reason = "annotate the owner that reaps or kills this child, or enroll it via nofy_tty_utils::ProcessScope" },
     { path = "tokio::process::Command::spawn", reason = "annotate the owner that reaps or kills this child, or enroll it via nofy_tty_utils::ProcessScope" },

@@ -115,6 +115,9 @@ fn quota(host: &KernelHost, source: Value, id: &str) -> BudgetScope {
 
 #[tokio::test]
 async fn declared_native_rules_are_pure_strict_and_leave_the_exact_factory_unchanged() {
+    if !workers_confined() {
+        return;
+    }
     let root = tempfile::tempdir().unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
     let host = resident(root.path(), reads.clone()).await;
@@ -208,6 +211,9 @@ async fn declared_native_rules_are_pure_strict_and_leave_the_exact_factory_uncha
 #[tokio::test]
 async fn declared_rules_preserve_approval_and_success_receipts_after_reopen_and_portable_lock_import()
  {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()
@@ -316,6 +322,9 @@ async fn declared_rules_preserve_approval_and_success_receipts_after_reopen_and_
 #[tokio::test]
 async fn published_scope_code_changes_new_runs_while_pending_approval_keeps_original_and_rolls_back()
  {
+    if !workers_confined() {
+        return;
+    }
     use sha2::{Digest, Sha256};
     use std::io::Read;
     let binary_digest = || {
@@ -467,6 +476,9 @@ async fn published_scope_code_changes_new_runs_while_pending_approval_keeps_orig
 #[tokio::test]
 async fn declared_cwd_conflicts_stop_before_child_model_and_native_scope_cannot_grant_parent_permissions()
  {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()

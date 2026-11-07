@@ -2,9 +2,9 @@ use crate::command::properties;
 use crate::positional;
 use clap::ArgMatches;
 use nofy_agent_client::{Engine, Error, Result, SCHEMAS, operation};
-use nofy_agent_project::File;
+use nofy_agent_project::{File, Source};
 use serde_json::{Value, json};
-use std::{io::Read, path::PathBuf};
+use std::{collections::BTreeSet, io::Read, path::PathBuf};
 
 pub struct Local {
     pub path: PathBuf,
@@ -15,6 +15,122 @@ pub struct Input {
     pub local: Option<Local>,
     pub local_create: bool,
     pub stdin: bool,
+    /// Things the user should know about what was collected from disk. They are
+    /// advice about the host, never part of the operation input.
+    pub notes: Vec<String>,
+}
+/// What `--executable`, `--source-executable` and `--no-executable` said about
+/// executable bits. `None` for a kind means the user said nothing about it.
+struct Executables {
+    paths: Option<Vec<String>>,
+    pointers: Option<BTreeSet<String>>,
+    used_pointers: BTreeSet<String>,
+}
+impl Executables {
+    fn from_flags(m: &ArgMatches) -> Self {
+        let many = |key: &str| -> Vec<String> {
+            m.try_get_many::<String>(key)
+                .ok()
+                .flatten()
+                .map(|v| v.cloned().collect())
+                .unwrap_or_default()
+        };
+        let none = m.try_get_one::<bool>("no_executable").ok().flatten() == Some(&true);
+        Self::new(many("executable"), many("source_executable"), none)
+    }
+    fn new(paths: Vec<String>, pointers: Vec<String>, none: bool) -> Self {
+        Self {
+            paths: (none || !paths.is_empty()).then_some(paths),
+            pointers: (none || !pointers.is_empty()).then(|| pointers.into_iter().collect()),
+            used_pointers: BTreeSet::new(),
+        }
+    }
+    /// The files of a collected directory. Unspecified leaves the source's own
+    /// declaration (or, without one, the host's modes) in charge.
+    fn declare(&mut self, source: &mut Source) -> Result<()> {
+        if let Some(paths) = &self.paths {
+            source.declare_executables(paths)?;
+        } else if self.pointers.as_ref().is_some_and(|p| !p.is_empty())
+            && !source
+                .files
+                .contains_key(nofy_agent_project::EXECUTABLE_DECLARATION)
+        {
+            // A `--source` file declared executable has to be kept by the
+            // directory it lands in, and on a host with no executable bit only a
+            // declaration can keep it. Adopt what the directory already says.
+            let current = source.executable_files();
+            source.declare_executables(&current)?;
+        }
+        Ok(())
+    }
+    /// One `--source` file. Unspecified asks the host, as it always did.
+    fn source_file(&mut self, pointer: &str, host: impl FnOnce() -> Result<bool>) -> Result<bool> {
+        match &self.pointers {
+            Some(pointers) => {
+                let executable = pointers.contains(pointer);
+                if executable {
+                    self.used_pointers.insert(pointer.to_owned());
+                }
+                Ok(executable)
+            }
+            None => host(),
+        }
+    }
+    fn finish(self, collected_directory: bool) -> Result<()> {
+        if let Some(paths) = &self.paths
+            && !paths.is_empty()
+            && !collected_directory
+        {
+            return Err(Error::new(
+                "local_input",
+                "--executable PATH names a file of the collected source; it needs --project or --directory (--source-executable names a --source file)",
+            ));
+        }
+        for pointer in self.pointers.iter().flatten() {
+            if !self.used_pointers.contains(pointer) {
+                return Err(Error::new(
+                    "local_input",
+                    format!("--source-executable {pointer} matches no --source pointer"),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+/// A note about how a directory's executable flags were decided, when the answer
+/// depends on the host and the user can make it independent.
+fn executable_note(what: &str, source: &Source) -> Option<String> {
+    use nofy_agent_project::ExecutableOrigin;
+    match source.executable_origin() {
+        ExecutableOrigin::Declared => None,
+        ExecutableOrigin::HostMode => {
+            let files = source.executable_files();
+            (!files.is_empty()).then(|| {
+                format!(
+                    "note: {what}: {} executable only because of this host's file modes ({}). A host without an executable bit would digest the same directory differently; declare them in {} (list that file in source-files.json) or pass --executable PATH",
+                    files.len(),
+                    files.join(", "),
+                    nofy_agent_project::EXECUTABLE_DECLARATION
+                )
+            })
+        }
+        ExecutableOrigin::Unavailable => {
+            let scripts: Vec<_> = source
+                .files
+                .iter()
+                .filter(|(_, file)| file.decode().is_ok_and(|bytes| bytes.starts_with(b"#!")))
+                .map(|(path, _)| path.clone())
+                .collect();
+            (!scripts.is_empty()).then(|| {
+                format!(
+                    "note: {what}: this host has no executable bit, so no file is recorded executable, including {} that start with `#!` ({}). Declare the ones that should be in {} (list that file in source-files.json) or pass --executable PATH",
+                    scripts.len(),
+                    scripts.join(", "),
+                    nofy_agent_project::EXECUTABLE_DECLARATION
+                )
+            })
+        }
+    }
 }
 fn option(m: &ArgMatches, key: &str) -> Option<String> {
     m.try_get_one::<String>(key).ok().flatten().cloned()
@@ -184,6 +300,9 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
         properties(&SCHEMAS["$defs"][descriptor.input_schema.rsplit('/').next().unwrap_or("")]);
     let input_path = option(m, "input");
     let mut stdin = input_path.as_deref() == Some("-");
+    let mut executables = Executables::from_flags(m);
+    let mut collected_directory = false;
+    let mut notes = Vec::new();
     let mut value = if let Some(path) = &input_path {
         let text = read(path)?;
         let value: Value = serde_json::from_str(&text)?;
@@ -380,13 +499,11 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
                 {
                     return Err(Error::new("local_input", "source pointer provided twice"));
                 }
-                #[cfg(unix)]
-                let executable = {
-                    use std::os::unix::fs::PermissionsExt;
-                    std::fs::metadata(path)?.permissions().mode() & 0o111 != 0
-                };
-                #[cfg(not(unix))]
-                let executable = false;
+                let executable = executables.source_file(pointer, || {
+                    Ok(nofy_agent_project::observed_executable(&std::fs::metadata(
+                        path,
+                    )?))
+                })?;
                 sources.insert(
                     package_path,
                     serde_json::to_value(File::bytes(&bytes, executable))?,
@@ -440,9 +557,13 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     if op == "module.publish"
         && let Some(path) = option(m, "directory")
     {
-        let source = nofy_agent_project::repository::load_package_directory(&absolute(
+        let what = format!("--directory {path}");
+        let mut source = nofy_agent_project::repository::load_package_directory(&absolute(
             PathBuf::from(path),
         )?)?;
+        executables.declare(&mut source)?;
+        collected_directory = true;
+        notes.extend(executable_note(&what, &source));
         assign(&mut value, "source", serde_json::to_value(source)?)?;
     }
     let mut local = None;
@@ -465,7 +586,15 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             });
         } else {
             let mut source = nofy_agent_project::load_directory(&path)?;
+            // The compare-and-set baseline is the directory as it is; a declaration
+            // given on the command line is part of the edit, not of the baseline.
             let before = source.digest()?;
+            executables.declare(&mut source)?;
+            collected_directory = true;
+            notes.extend(executable_note(
+                &format!("--project {}", path.display()),
+                &source,
+            ));
             if let Some(settings) = option(m, "settings").filter(|_| op != "agent.configure") {
                 source.settings_json = Some(read(&settings)?);
                 stdin |= settings == "-";
@@ -569,11 +698,13 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             "operation JSON and credential value cannot both read stdin",
         ));
     }
+    executables.finish(collected_directory)?;
     Ok(Input {
         value,
         local,
         local_create,
         stdin,
+        notes,
     })
 }
 fn absolute(path: PathBuf) -> Result<PathBuf> {
@@ -611,6 +742,122 @@ pub fn is_edit(op: &str) -> bool {
             | "agent.module.use"
             | "agent.module.unuse"
     )
+}
+
+#[cfg(test)]
+mod executable_flag_tests {
+    use super::*;
+
+    fn flags(paths: &[&str], pointers: &[&str], none: bool) -> Executables {
+        let own = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect();
+        Executables::new(own(paths), own(pointers), none)
+    }
+    fn source() -> Source {
+        let mut source = Source::empty("coder", "coder").unwrap();
+        source
+            .files
+            .insert("run.sh".into(), File::bytes(b"#!/bin/sh\n", true));
+        source.refresh_manifest().unwrap();
+        source
+    }
+
+    #[test]
+    fn a_package_path_and_a_source_pointer_are_declared_separately() {
+        let mut e = flags(&["run.sh"], &["/source"], false);
+        let mut s = source();
+        e.declare(&mut s).unwrap();
+        assert_eq!(s.executable_files(), ["run.sh"]);
+        assert!(
+            e.source_file("/source", || panic!("host consulted"))
+                .unwrap()
+        );
+        assert!(
+            !e.source_file("/other", || panic!("host consulted"))
+                .unwrap()
+        );
+        e.finish(true).unwrap();
+    }
+
+    #[test]
+    fn named_paths_are_the_complete_set_and_replace_what_the_host_reported() {
+        let mut s = source();
+        assert_eq!(s.executable_files(), ["run.sh"]);
+        flags(&["project.json"], &[], false)
+            .declare(&mut s)
+            .unwrap();
+        assert_eq!(s.executable_files(), ["project.json"]);
+        assert!(
+            s.files
+                .contains_key(nofy_agent_project::EXECUTABLE_DECLARATION)
+        );
+        flags(&[], &[], true).declare(&mut s).unwrap();
+        assert!(s.executable_files().is_empty());
+    }
+
+    #[test]
+    fn nothing_said_leaves_the_source_and_the_host_in_charge() {
+        let mut e = flags(&[], &[], false);
+        let mut s = source();
+        let before = s.digest().unwrap();
+        e.declare(&mut s).unwrap();
+        assert_eq!(s.digest().unwrap(), before);
+        assert!(e.source_file("/source", || Ok(true)).unwrap());
+        assert!(!e.source_file("/source", || Ok(false)).unwrap());
+        e.finish(false).unwrap();
+    }
+
+    #[test]
+    fn a_pointer_alone_adopts_the_directory_declaration_without_changing_its_set() {
+        let mut s = source();
+        flags(&[], &["/source"], false).declare(&mut s).unwrap();
+        assert!(
+            s.files
+                .contains_key(nofy_agent_project::EXECUTABLE_DECLARATION)
+        );
+        assert_eq!(s.executable_files(), ["run.sh"]);
+    }
+
+    #[test]
+    fn a_flag_that_names_nothing_is_refused_instead_of_ignored() {
+        let error = flags(&["run.sh"], &[], false).finish(false).unwrap_err();
+        assert!(
+            error.message.contains("--project or --directory"),
+            "{}",
+            error.message
+        );
+        let error = flags(&[], &["/missing"], false).finish(true).unwrap_err();
+        assert!(
+            error.message.contains("matches no --source"),
+            "{}",
+            error.message
+        );
+        let mut s = source();
+        assert!(flags(&["absent.sh"], &[], false).declare(&mut s).is_err());
+    }
+
+    #[test]
+    fn the_note_names_a_host_dependent_answer_and_stays_silent_when_declared() {
+        let mut s = source();
+        let note = executable_note("--project p", &s);
+        if nofy_agent_project::host_records_executable_bit() {
+            let note = note.unwrap();
+            assert!(
+                note.contains("run.sh") && note.contains("file modes"),
+                "{note}"
+            );
+        } else {
+            // This host cannot read a bit; the source is non-executable and a
+            // shebang file is worth a word.
+            s.files.get_mut("run.sh").unwrap().executable = false;
+            assert!(
+                executable_note("--project p", &s)
+                    .unwrap()
+                    .contains("run.sh")
+            );
+        }
+        s.declare_executables(&["run.sh"]).unwrap();
+        assert!(executable_note("--project p", &s).is_none());
+    }
 }
 
 #[cfg(test)]

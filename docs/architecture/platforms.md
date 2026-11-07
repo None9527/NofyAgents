@@ -75,6 +75,7 @@
 | 持久化原语的行为 | `nofy-durable-fs` 的测试，同上任务原生运行 |
 | 工作区每个测试在 macOS、Windows 上的结果 | `whole workspace tests on …`（测量，一次给出完整失败清单） |
 | 错误码、HTTP 状态、退出码与契约一致 | host 映射测试、CLI 退出码测试、`verify-doc-claims.py` |
+| 内核里被焊死在某个平台上的假设没有增加 | `verify-platform-welds.py`（棘轮，只许减少，接在发布闸门里） |
 
 ## 第一次整个工作区测试的测量（运行 `42256433388`，提交 `bd139d1`）
 
@@ -82,7 +83,7 @@ macOS 失败 92 项，Windows 失败 134 项；Linux 上同一套测试全部通
 
 | 现象 | macOS | Windows | 归因 |
 |---|---:|---:|---|
-| `parking::*`、`hook_recovery::*`（外加 `code::` 1 项）：子进程里的内核在 10 秒内没走到对模型桩服务的调用（`Elapsed`） | 38 | 38 | **未归因。** 日志没有捕获子进程输出。假设是这些测试用到只有 Linux 才有的隔离程序（`loader/models/process.rs` 在非 Linux 直接拒绝），但没有证实 |
+| `parking::*`、`hook_recovery::*`（外加 `code::` 1 项）：子进程里的内核在 10 秒内没走到对模型桩服务的调用（`Elapsed`） | 38 | 38 | **已归因**（见下一节“工作进程的平台门”）：内核自己的模型、提示词、作用域、代码四类工作进程在非 Linux 平台被直接拒绝 |
 | 运行历史迁移拒绝目标路径：“destination must use real directory components”、“ledger path escapes” | 约 10 | — | **已查到原因**：检查有意拒绝路径里的符号链接，而 macOS 的临时目录在 `/var`（指向 `/private/var`）下，测试用的是未规范化的路径。是测试夹具问题，不是产品缺陷 |
 | SQLite／运行历史迁移：`Access is denied (os error 5)` | — | 约 10 | 未归因。迁移要重命名或替换仍被打开的数据库文件，Windows 不允许；需要读代码确认 |
 | `nofy-memory` 的传输、迁移切换、遗忘与保留：`Access is denied` | — | 约 12 | 未归因。都是文件操作被拒；嫌疑是对只读或仍打开的文件做删除、重命名 |
@@ -99,6 +100,37 @@ macOS 失败 92 项，Windows 失败 134 项；Linux 上同一套测试全部通
 - Windows 128，比 133 少 6 项又多 1 项。凭据测试 4 项降到 1 项，`nofy-cli` 的 5 项降到 2 项。
 - **访问限制的原生测试 9/10 通过**：新建目录并继承、“所有人”条目被拒且不被修复、联接点被拒、卷根被拒、被保持时不能改名、用户目录下的常规目录通过检查。失败的 1 项是真缺陷：先解析父目录、后创建它，父目录不存在就报找不到路径。Linux 上测不出来。已修，待验证。
 - 凭据测试剩下的 1 项（`real_process_cas_accepts_exactly_one_rotation`）：两个进程同时轮换，其中一个 `panic` 了。原因有迹可循：Windows 上 `fs2` 的锁被占用时返回 `ERROR_LOCK_VIOLATION`，标准库不把它归为 `WouldBlock`，“等一等再试”的分支没认出来。已加 `lock_contended`，用真实的 `fs2` 锁做了测试，并用在全部会等锁的地方；待验证。
+
+## 工作进程的平台门（读两个平台的 CI 日志得出）
+
+内核有四类自己的工作进程：**模型、提示词渲染、作用域程序、代码程序**。它们都经同一个助手启动，而助手的施加约束（Landlock、seccomp）只有 Linux 实现；启动处原来写着 `cfg!(target_os = "linux")`，非 Linux 平台直接失败，失败信息是同一句笼统的“isolated … is unavailable or failed”。
+
+证据来自上一次测量（运行 `42264234422`）已有的两份日志，没有新跑：
+
+| | macOS | Windows |
+|---|---:|---:|
+| 失败的测试（按名去重） | 91 | 128 |
+| 其输出里带“isolated model evaluator is unavailable or failed” 或 “isolated script worker is unavailable or failed” | 约 58 | 约 58 |
+
+后一行按每个失败测试的标准输出块归属，是近似计数。含义是：**macOS 与 Windows 上内核调不了模型，Agent 一轮都跑不起来**，不只是工具被拒绝。此前记为“未归因”的 38 项 `parking`／`hook_recovery` 超时属于这一类。
+
+处理（沙箱改造第 0 阶段）：这些启动处不再各自判断平台，统一经 `loader/confine.rs` 走 `nofy_isolation::launch_plan`。Linux 行为不变；没有后端的平台得到带原因的拒绝（`isolation_unavailable`，列出缺哪几项），不再是笼统的失败。这只让失败可以被说清楚，**并不让这些平台能跑**：macOS 与 Windows 的后端是后续阶段，见[沙箱模块化](sandbox-module.md)。
+
+### 去掉工作进程之后，其余失败是什么
+
+同样来自上面两份日志，按失败测试的 panic 文字归类（启发式，不是逐项人工核对）。**“其他”里有一批没有归类**：它们是启动内核子进程的测试，失败信息在子进程里，父进程的日志看不到；它们很可能也是工作进程门的牺牲者，但这一点没有证实。
+
+| 类别 | macOS | Windows | 判断 |
+|---|---:|---:|---|
+| 带工作进程拒绝信息 | 约 58 | 约 58 | 已证实，见上 |
+| 路径夹具：测试拿到未规范化的临时路径（`/var` 实为 `/private/var`） | 10 | 1 | 夹具问题，不是产品缺陷（此前已查明） |
+| `canonical memory snapshot rejected` | 4 | 8 | **未归因**，两个平台都有，很可能是非沙箱代码里的真问题 |
+| 文件被占用或拒绝访问（`Access is denied`、os error 5／32／33） | — | 22 | 未归因；怀疑是对仍被打开的文件重命名或替换 |
+| 夹具假设 Unix 路径（`program path must be absolute` 等） | — | 18 | 夹具问题，是否应在 Windows 上支持这些功能尚未决定 |
+| 超时 | 2 | 1 | 子进程输出没有捕获 |
+| 未归类 | 17 | 20 | 其中 macOS 约 11 个是 `*_process` 子进程测试，疑为工作进程门的牺牲者，未证实 |
+
+另外，读代码时发现一处**非沙箱的平台差异**：`helper.rs`、`lifecycle.rs`、`admission.rs`、`deployment.rs`、`runtime_history.rs` 里打开文件时加 `O_NOFOLLOW | O_CLOEXEC` 的代码写的是 `cfg(target_os = "linux")`，不是 `cfg(unix)`。macOS 同样支持这两个标志，却没有拿到；Windows 上没有对应物（需要 `FILE_FLAG_OPEN_REPARSE_POINT`）。这几处打开之后还有元数据比对，所以不是裸露的，但在 macOS 上少了一层防符号链接的保护，是无意的差异。
 
 ## 还没有结论的
 

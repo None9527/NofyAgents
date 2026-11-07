@@ -2,6 +2,19 @@ use super::*;
 #[cfg(target_os = "linux")]
 #[path = "code/isolation.rs"]
 mod isolation;
+/// The code worker's confinement tests watch workers through `pidfd_open` and
+/// `/proc`; they compile for Linux only. A stand-in keeps the unit in every
+/// platform's results.
+#[cfg(not(target_os = "linux"))]
+mod isolation {
+    #[test]
+    fn unit_code_worker_confinement() {
+        nofy_test_support::skip(
+            "an isolated code worker observed through pidfd and /proc",
+            "tests/http/code/isolation.rs is compiled for Linux only",
+        );
+    }
+}
 #[tokio::test]
 async fn source_code_from_one_file_runs_as_tool_and_hook_then_changes_in_the_same_kernel() {
     let requests = Arc::new(Mutex::new(vec![]));

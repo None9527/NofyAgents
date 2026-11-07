@@ -12,7 +12,7 @@ nofy repository add local                         # origin 默认 managed，expe
 nofy module publish local --directory ./double    # expected_revision 缺省时用仓库当前的版本
 ```
 
-MCP 调用同样的操作，把结果里的 `data.source` 改好后原样交给 `nofy_module_publish`。`source-files.json` 是**有意的白名单**：只有列在里面的文件才会进入不可变的包；模板把它按当前文件写好，作者改了文件之后重新核对即可。
+MCP 调用同样的操作，把结果里的 `data.source` 改好后原样交给 `nofy_module_publish`。`source-files.json` 是**有意的白名单**：只有列在里面的文件才会进入不可变的包；模板把它按当前文件写好，作者改了文件之后重新核对即可。包里有可执行文件时，用 `source-executables.json` 声明它们，见本文末尾「可执行文件」。
 
 `repository.add` 的 `origin` 和 `expected_revision` 有默认值（`managed` 与无），`module.publish` 缺省 `expected_revision` 时用仓库当前版本；这些默认值写在契约里，命令行和 MCP 行为一致。`repository.sync` 与 `repository.remove` 要求明确的版本，命令行和 MCP 都一样，不会替你读取。
 
@@ -135,3 +135,22 @@ packages 为相对目录，空字符串表示根包；每包包含 module.json �
 Agent 导出与 project.pack 会在内存副本中加入 `.nofy-module-packages/<digest>.json`，保存完整包 Source 及精确文件字节。不改写托管声明，不包含模型凭据或外部解释器。解压后可运行 `nofy project build /absolute/export --offline`；后续 validate/apply 仍需要目标内核上可用的工厂、权限及运行资源。
 
 读操作需要 read；托管仓库注册/移除和声明编辑需要 edit；目录/Git 登记与 sync 另需 resources；上传源码包需要 publish。最终权限由内核每次裁决。验收范围见[模块仓库记录](../verification/module-repositories.md)。
+
+## 可执行文件：包里声明，不读宿主权限
+
+包的每个文件有 `executable` 标志，它进入包摘要（线格式 `{"encoding","content","executable"}` 不变）。这个标志必须来自包，而不是收集它的主机：Unix 有可执行位，Windows 没有，同一份源码在两处会得到不同的包内容和摘要，已发布的版本也就无法在 Windows 上复现。所以包用一个普通文件 `source-executables.json` 声明可执行集合，内容是包内相对路径（POSIX 写法）的 JSON 数组：
+
+```json
+["bin/run.sh", "tools/setup.py"]
+```
+
+它和别的文件一样：必须列在 `source-files.json` 里，参与摘要；发布时与清单一起整理成排序后的规范格式。规则：
+
+- **有声明就只看声明。** 收集客户端目录（`module publish --directory`）、目录仓库（`repository add --host-directory`）和 Git 仓库时，声明里的文件 `executable=true`，其余为 `false`；宿主文件权限和 Git 的 100755 都不再起作用。同一份源码在 Linux、macOS、Windows 上摘要相同，跨平台黄金测试固定了这一点。
+- **声明与标志必须一致。** 一个源码若带声明，各文件的 `executable` 必须恰好等于声明；不一致是 `local_input`。声明了清单里没有的文件、重复、路径不安全、声明自己，同样拒绝。目录里存在却没有列进 `source-files.json` 的声明，不会被白名单悄悄忽略，而是直接拒绝。
+- **没有声明保持原规则，已发布包的摘要不变。** Unix 上文件有任一执行位即可执行；没有可执行位的主机（Windows）上全部不可执行。这个答案取决于收集它的主机，命令行会提示（见[命令行](cli.md)的「可执行文件」）；要与主机无关就写声明。
+- **Windows 无法把标志落成权限位，不静默忽略。** 写目录时，Unix 写 `0755`/`0644`；没有可执行位的主机若遇到带可执行文件却无声明的源码，拒绝写出（`local_input`，点名文件与 `source-executables.json`），因为写出的目录读回会得到不同摘要。有声明时标志由声明保存，读回摘要不变。导出的 tar.gz 的权限只由标志决定（可执行 `0755`，其余 `0644`），三平台一致；解包到 Windows 同样无法保留可执行位。探针是 Rust 的 `nofy_agent_project::host_records_executable_bit()`；命令行在无声明且由主机决定答案时给出提示。
+
+`module.publish` 与 MCP 不读本机：调用者直接给出 `files`，其中每个文件的 `executable` 与（若有）`source-executables.json` 必须一致，内核按这个值入库。行尾也是字节：用 Git 检出到 Windows 时，请用 `.gitattributes` 固定为 LF（`* text=auto eol=lf` 或 `-text`），否则文本文件的摘要会因行尾而不同——这与可执行位无关，但同样会让「同一份源码」得到不同摘要。
+
+在 Linux 上，由 `nofy-agent-project` 的 `tests/executables.rs`（跨平台黄金测试：用代码构造固定的文件树，显式声明可执行集合，把包摘要固定为字面值，并故意把宿主权限设成相反的值）与 `nofy-cli` 的 `tests/executables.rs` 覆盖。macOS 与 Windows 上的实际行为**未验证**，由 CI 的 client on macos-latest／windows-latest 任务运行（它运行 `nofy-agent-project` 的测试，黄金测试在其中）。

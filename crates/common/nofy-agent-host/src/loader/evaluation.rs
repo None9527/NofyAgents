@@ -33,9 +33,6 @@ pub(super) async fn run(
     let (helper, bytes) = tokio::task::spawn_blocking(move || -> Result<_> {
         let bytes = prepare()?;
         let fail = || HostError::Unavailable(unavailable.into());
-        if !cfg!(target_os = "linux") {
-            return Err(fail());
-        }
         let metadata = std::fs::symlink_metadata(&prepared.prompt_root).map_err(|_| fail())?;
         if !metadata.is_dir()
             || std::fs::canonicalize(&prepared.prompt_root).map_err(|_| fail())?
@@ -68,14 +65,13 @@ pub(super) async fn run(
         environment: Default::default(),
         cache_lease: None,
     };
+    let confined =
+        confine::worker_command(helper, &profile, job.mode, vec![], Default::default(), None)
+            .map_err(|error| confine::unavailable(job.unavailable, error))?;
     // Owner: this function (kill_on_drop; waited under the job deadline below,
     // killed on the missing-pipe path).
     #[allow(clippy::disallowed_methods)]
-    let mut child = tokio::process::Command::new(helper)
-        .arg(isolation::WORKER_ARG)
-        .arg(serde_json::to_string(&profile).map_err(|_| job.failed())?)
-        .arg(job.mode)
-        .env_clear()
+    let mut child = confine::tokio_command(confined)
         .kill_on_drop(true)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -96,7 +92,7 @@ pub(super) async fn run(
         .unwrap_or_else(|| tokio::time::Instant::now() + std::time::Duration::from_secs(5));
     let outcome = {
         let io = async {
-            let (_, output, _, status) = tokio::try_join!(
+            let (_, output, errors, status) = tokio::try_join!(
                 async move {
                     stdin.write_all(&bytes).await?;
                     stdin.shutdown().await
@@ -105,7 +101,7 @@ pub(super) async fn run(
                 read(stderr, 65536),
                 child.wait()
             )?;
-            Ok::<_, std::io::Error>((output, status))
+            Ok::<_, std::io::Error>((output, errors, status))
         };
         tokio::pin!(io);
         tokio::select! {biased;
@@ -115,7 +111,7 @@ pub(super) async fn run(
             result=&mut io=>result.map_err(|_|job.failed()),
         }
     };
-    let (bytes, status) = match outcome {
+    let (bytes, errors, status) = match outcome {
         Ok(result) => result,
         Err(error) => {
             let _ = child.start_kill();
@@ -124,6 +120,14 @@ pub(super) async fn run(
         }
     };
     if !status.success() {
+        // A helper that could not apply the confinement says so in a fixed
+        // form; that is an environment fault to fix, not a failed computation.
+        if let Some(reason) = nofy_isolation::runner_failure(status.code(), &errors) {
+            return Err(HostError::Unavailable(format!(
+                "{}: {reason}",
+                job.unavailable
+            )));
+        }
         return Err(job.failed());
     }
     Ok(bytes)

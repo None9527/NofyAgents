@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_methods)] // test fixture processes are killed or waited on by the test that spawns them
 use super::*;
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 mod fork;
 fn control(root: &Path) -> MemoryControl {
     let loader = storage::directory(&root.join("loader")).unwrap();
@@ -114,7 +114,7 @@ fn bounded_history_cannot_reapply_an_expired_command_with_its_old_cas() {
     assert!(control.state(&key).unwrap().open);
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 #[test]
 fn actual_process_use_fences_close_and_exit_releases_only_the_lease() {
     let temp = tempfile::tempdir().unwrap();

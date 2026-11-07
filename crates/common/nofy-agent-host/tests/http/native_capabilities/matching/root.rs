@@ -3,6 +3,9 @@ use super::*;
 #[tokio::test]
 async fn actual_model_admission_overflow_fails_only_the_scope_worker_and_a_new_definition_runs_normally()
  {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let observed = requests.clone();
     let hostile = Arc::new(std::sync::atomic::AtomicBool::new(true));

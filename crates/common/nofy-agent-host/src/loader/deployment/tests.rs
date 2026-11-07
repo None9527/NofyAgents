@@ -30,13 +30,20 @@ fn sourced_declarations_reject_embedded_dependency_payloads() {
     assert!(DeploymentFile::from_json(&serde_json::to_vec(&source).unwrap()).is_err());
 }
 
-#[cfg(target_os = "linux")]
 #[test]
 fn file_entry_rejects_directories_and_fifos_without_blocking() {
     let directory = tempfile::tempdir().unwrap();
     assert!(DeploymentFile::read(directory.path()).is_err());
-    let fifo = directory.path().join("pipe");
-    let path = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).unwrap();
-    assert_eq!(unsafe { libc::mkfifo(path.as_ptr(), 0o600) }, 0);
-    assert!(DeploymentFile::read(&fifo).is_err());
+    #[cfg(unix)]
+    {
+        let fifo = directory.path().join("pipe");
+        let path = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(path.as_ptr(), 0o600) }, 0);
+        assert!(DeploymentFile::read(&fifo).is_err());
+    }
+    #[cfg(not(unix))]
+    nofy_test_support::skip(
+        "a named pipe (mkfifo)",
+        "Windows has no FIFO special file; the directory case above still ran",
+    );
 }

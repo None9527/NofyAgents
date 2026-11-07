@@ -3,12 +3,14 @@ license = "Apache-2.0"
 name = "nofy-test-support"
 version = "0.1.0"
 edition.workspace = true
-description = "Deterministic SSE fixtures for declarative agent framework tests"
+description = "Deterministic SSE fixtures, visible run-time skips and platform-neutral fixtures for declarative agent framework tests"
 publish = false
 
 [dependencies]
 axum = { workspace = true }
+nofy-isolation = { path = "../nofy-isolation" }
 serde_json = { workspace = true }
+tempfile = { workspace = true }
 
 [dev-dependencies]
 futures-util = { workspace = true }

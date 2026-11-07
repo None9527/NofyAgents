@@ -86,6 +86,9 @@ pub(super) fn system(provider: &str, service: &str, allow_lookup: bool, model_ca
 
 #[tokio::test]
 async fn resident_scoped_substitution_failure_does_not_start_child_or_reset_root_budget() {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let observed = requests.clone();
     let provider = serve(Router::new().route(
@@ -221,6 +224,9 @@ async fn resident_scoped_substitution_failure_does_not_start_child_or_reset_root
 
 #[tokio::test]
 async fn native_skill_child_keeps_model_scope_parent_floor_approval_budget_and_completed_effects() {
+    if !workers_confined() {
+        return;
+    }
     let requests = Arc::new(Mutex::new(Vec::<Value>::new()));
     let provider = serve(
         Router::new()
