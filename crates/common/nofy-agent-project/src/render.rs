@@ -138,10 +138,12 @@ impl<'a> Renderer<'a> {
                 .cloned()
                 .ok_or_else(|| Error::incomplete(format!("missing parameter {path}")));
         }
-        self.settings
-            .pointer(path)
-            .cloned()
-            .ok_or_else(|| Error::incomplete(format!("missing parameter {path}")))
+        // Not derived by the template, so it is read straight from the settings.
+        self.settings.pointer(path).cloned().ok_or_else(|| {
+            let mut error = Error::incomplete(format!("missing parameter {path}"));
+            error.details = json!({"missing_setting": path});
+            error
+        })
     }
     fn data(&mut self, value: &Value, depth: usize) -> Result<Value> {
         plain(self.expand(value, depth + 1)?)
@@ -217,9 +219,12 @@ impl<'a> Renderer<'a> {
                     let p = arg
                         .as_str()
                         .ok_or_else(|| Error::new("local_input", "setting pointer required"))?;
-                    return Ok(Node::Data(self.settings.pointer(p).cloned().ok_or_else(
-                        || Error::incomplete(format!("missing setting {p}")),
-                    )?));
+                    return Ok(Node::Data(
+                        self.settings
+                            .pointer(p)
+                            .cloned()
+                            .ok_or_else(|| missing_setting(p))?,
+                    ));
                 }
                 "$module" => {
                     return Ok(Node::Ref(
@@ -309,6 +314,9 @@ impl<'a> Renderer<'a> {
                     return Ok(Node::Data(json!(out)));
                 }
                 "$coalesce" => {
+                    // When every alternative is a missing setting, supplying any one
+                    // of them is enough: remember which, for the report.
+                    let mut absent: Vec<String> = vec![];
                     for e in arg
                         .as_array()
                         .ok_or_else(|| Error::new("local_input", "coalesce requires an array"))?
@@ -316,11 +324,21 @@ impl<'a> Renderer<'a> {
                         match self.data(e, depth) {
                             Ok(v) if !v.is_null() => return Ok(Node::Data(v)),
                             Ok(_) => {}
-                            Err(e) if matches!(e.code.as_str(), "incomplete" | "not_found") => {}
+                            Err(e) if matches!(e.code.as_str(), "incomplete" | "not_found") => {
+                                if let Some(pointer) =
+                                    e.details.get("missing_setting").and_then(Value::as_str)
+                                {
+                                    absent.push(pointer.to_owned());
+                                }
+                            }
                             Err(e) => return Err(e),
                         }
                     }
-                    return Err(Error::incomplete("no coalesce value available"));
+                    let mut error = Error::incomplete("no coalesce value available");
+                    if !absent.is_empty() {
+                        error.details = json!({"missing_any_of": absent});
+                    }
+                    return Err(error);
                 }
                 "$if" => {
                     let condition = self
@@ -514,6 +532,11 @@ fn materialize(node: &Node, state: &mut Versions) -> Result<Value> {
     }
 }
 fn render(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
+    render_with(source, kinds, &json!({}))
+}
+/// `render`, with `stand_in` laid over the settings. A probe uses it to carry on
+/// past a gap and find the next one; it is never used to produce a deployment.
+fn render_with(source: &Source, kinds: &crate::FactoryKinds, stand_in: &Value) -> Result<Value> {
     let expanded;
     let doc = source.json(&source.declaration)?;
     let source = if doc
@@ -528,6 +551,7 @@ fn render(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
         source
     };
     let mut r = Renderer::new(source)?;
+    merge(&mut r.settings, stand_in.clone());
     let document = source.json(&source.declaration)?;
     let template = if document.get("format").and_then(Value::as_str) == Some("nofy.preset/v1") {
         document
@@ -707,6 +731,133 @@ fn normalize_tools(system: &mut Value, kinds: &crate::FactoryKinds) -> Result<()
     }
     Ok(())
 }
+fn missing_setting(pointer: &str) -> Error {
+    let mut error = Error::incomplete(format!("missing setting {pointer}"));
+    error.details = json!({"missing_setting": pointer});
+    error
+}
+/// The schema node for a settings pointer, if the settings schema describes it.
+fn schema_node<'s>(schema: &'s Value, pointer: &str) -> Option<&'s Value> {
+    let mut node = schema;
+    for segment in pointer.split('/').skip(1) {
+        let key = segment.replace("~1", "/").replace("~0", "~");
+        node = node.get("properties")?.get(&key)?;
+    }
+    Some(node)
+}
+/// Something of the right type to stand where a setting is missing, so rendering
+/// can go on and reach the next gap. A flag stands in as off: the smallest
+/// configuration is the one reported.
+fn stand_in_for(node: Option<&Value>) -> Value {
+    match node.and_then(|n| n.get("type")).and_then(Value::as_str) {
+        Some("object") => json!({}),
+        Some("array") => json!([]),
+        Some("string") => json!("x"),
+        Some("boolean") => json!(false),
+        Some("integer" | "number") => json!(1),
+        // Never null: `$coalesce` passes over a null, and would send the probe on
+        // to the next alternative as though this one were still absent.
+        _ => json!({}),
+    }
+}
+fn set_at(root: &mut Value, pointer: &str, value: Value) -> bool {
+    let mut node = root;
+    let segments: Vec<String> = pointer
+        .split('/')
+        .skip(1)
+        .map(|s| s.replace("~1", "/").replace("~0", "~"))
+        .collect();
+    let Some((last, parents)) = segments.split_last() else {
+        return false;
+    };
+    for segment in parents {
+        let Some(map) = node.as_object_mut() else {
+            return false;
+        };
+        node = map.entry(segment.clone()).or_insert_with(|| json!({}));
+    }
+    match node.as_object_mut() {
+        Some(map) => {
+            map.insert(last.clone(), value);
+            true
+        }
+        None => false,
+    }
+}
+/// Every setting the declaration still needs, found in one pass: render, and where
+/// a setting is missing note it, stand something in for it, and render again. The
+/// walk follows what is really evaluated, so a setting only a switched-off branch
+/// reads is not asked for, and one of several alternatives (`$coalesce`) is
+/// reported as "any of these". The first gap the renderer meets is `issue`, as
+/// ever; this is the whole list behind it.
+fn missing_settings(
+    source: &Source,
+    kinds: &crate::FactoryKinds,
+    first: &Error,
+) -> (Vec<Value>, bool) {
+    let schema = source
+        .json("project.json")
+        .ok()
+        .and_then(|p| {
+            p.get("settings_schema")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
+        .unwrap_or_else(|| "settings.schema.json".into());
+    let schema = source.json(&schema).unwrap_or(Value::Null);
+    let mut stand_in = json!({});
+    let mut found: Vec<Value> = vec![];
+    // The list is the whole closure only if the walk ended in a render that worked.
+    // A stand-in can lead somewhere that fails for another reason; then it is a
+    // lower bound, and the report says so.
+    let mut complete = false;
+    let mut details = first.details.clone();
+    // More gaps than this is not a configuration anyone can finish by hand.
+    for _ in 0..64 {
+        let (path, alternatives) =
+            if let Some(path) = details.get("missing_setting").and_then(Value::as_str) {
+                (path.to_owned(), None)
+            } else if let Some(list) = details.get("missing_any_of").and_then(Value::as_array) {
+                let list: Vec<String> = list
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect();
+                match list.first() {
+                    Some(first) => (first.clone(), Some(list)),
+                    None => break,
+                }
+            } else {
+                break;
+            };
+        if found.iter().any(|f| f["path"] == path) {
+            break;
+        }
+        let node = schema_node(&schema, &path);
+        let mut entry = json!({"path": path});
+        if let Some(kind) = node.and_then(|n| n.get("type")) {
+            entry["type"] = kind.clone();
+        }
+        if let Some(text) = node.and_then(|n| n.get("description")) {
+            entry["description"] = text.clone();
+        }
+        if let Some(list) = alternatives {
+            entry["any_of"] = json!(list);
+        }
+        found.push(entry);
+        if !set_at(&mut stand_in, &path, stand_in_for(node)) {
+            break;
+        }
+        match render_with(source, kinds, &stand_in) {
+            Ok(_) => {
+                complete = true;
+                break;
+            }
+            Err(next) => details = next.details,
+        }
+    }
+    (found, complete)
+}
 pub fn inspect(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
     source.validate()?;
     let doc = source.json(&source.declaration)?;
@@ -728,11 +879,13 @@ pub fn inspect(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {
             }
         }
     }
-    let issue = render(source, kinds)
-        .err()
-        .map(|e| json!({"code":e.code,"message":e.message,"details":e.details}));
+    let failure = render(source, kinds).err();
+    let (missing_settings, missing_settings_complete) = failure
+        .as_ref()
+        .map_or((vec![], true), |e| missing_settings(source, kinds, e));
+    let issue = failure.map(|e| json!({"code":e.code,"message":e.message,"details":e.details}));
     Ok(
-        json!({"source_digest":source.digest()?,"agents":agents,"missing_slots":missing,"status":if missing.is_empty()&&issue.is_none(){"complete"}else{"incomplete"},"issue":issue}),
+        json!({"source_digest":source.digest()?,"agents":agents,"missing_slots":missing,"missing_settings":missing_settings,"missing_settings_complete":missing_settings_complete,"status":if missing.is_empty()&&issue.is_none(){"complete"}else{"incomplete"},"issue":issue}),
     )
 }
 pub fn build(source: &Source, kinds: &crate::FactoryKinds) -> Result<Value> {

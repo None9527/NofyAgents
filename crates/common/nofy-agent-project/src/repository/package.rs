@@ -88,6 +88,15 @@ impl RepositoryOrigin {
     }
 }
 
+/// A value that is not data but an expression, filled in when the package is
+/// used: a parameter, a setting, an input port, a module reference, a
+/// conditional list item. Every expression is an object with one `$` key.
+pub fn is_expression(value: &Value) -> bool {
+    value
+        .as_object()
+        .is_some_and(|fields| fields.len() == 1 && fields.keys().all(|key| key.starts_with('$')))
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PackageManifest {
@@ -110,6 +119,14 @@ impl PackageManifest {
         let manifest: Self = serde_json::from_value(source.json(&source.declaration)?)?;
         manifest.validate()?;
         Ok(manifest)
+    }
+    /// The module definitions as written, each with its `$when` wrapper removed
+    /// so the definition itself is what is returned. The position in the list is
+    /// the position in `modules`.
+    pub fn module_definitions(&self) -> impl Iterator<Item = &Value> {
+        self.modules
+            .iter()
+            .map(|m| m.get("$when").and_then(|v| v.get("value")).unwrap_or(m))
     }
     pub fn factories(&self) -> Result<BTreeMap<String, String>> {
         self.modules

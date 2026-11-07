@@ -255,7 +255,7 @@ rollback 将旧 release 作为目标，再产生新 generation；不会把 gener
 |---|---|
 | CLI 不存在 | 按总入口构建 nofy，并将其绝对路径或所在目录加入 PATH |
 | 401/403 | 检查连接 profile、令牌来源和作用域；不要把模型 API key 当内核访问令牌 |
-| 源码工程 incomplete | 查看 missing_slots，补齐真实模型、Prompt 和依赖后再 build |
+| 源码工程 incomplete | 查看 `inspection.missing_settings`（预设还缺的设置，一次列全，每项带类型和说明；`any_of` 表示几个里给一个即可；`missing_settings_complete` 为 false 说明探测中途因别的原因停下，列表只是下限）和 `missing_slots`，补齐后再 build。设置按当前取值判断：开关关着的分支不要求，开关默认开着就会列出它所需的设置 |
 | 409 冲突 | 重新读取原版本与差异，再明确提交；不自动覆盖 |
 | 发布成功但没运行 | 检查是否 apply、program 参数是否正确以及运行是否已接纳 |
 | 找不到外部依赖 | 用户安装或修正显式环境绑定；源码打包无需因此失败 |

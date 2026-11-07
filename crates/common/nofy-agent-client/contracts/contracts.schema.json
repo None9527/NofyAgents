@@ -291,7 +291,7 @@
           "properties": {
             "package": {
               "$ref": "#/$defs/PackageRead",
-              "description": "Pinned module package to describe."
+              "description": "Pinned module package to describe, as the JSON object {\"repository\": ..., \"name\": ..., \"version\": ...}."
             }
           },
           "required": [
@@ -3613,17 +3613,19 @@
         },
         "origin": {
           "$ref": "#/$defs/RepositoryOrigin",
-          "description": "Where the repository's modules come from: managed, a host directory or Git."
+          "description": "Where the repository's modules come from: managed, a host directory or Git. Defaults to managed.",
+          "default": {
+            "kind": "managed"
+          }
         },
         "expected_revision": {
           "$ref": "#/$defs/MaybeDecimal",
-          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
+          "description": "Revision the repository must still have (compare-and-set). Null, the default, means it must not exist yet.",
+          "default": null
         }
       },
       "required": [
-        "repository",
-        "origin",
-        "expected_revision"
+        "repository"
       ]
     },
     "RepositoryRead": {
@@ -3688,7 +3690,7 @@
         },
         "expected_revision": {
           "$ref": "#/$defs/Decimal",
-          "description": "Revision the object must still have (compare-and-set): the write is refused if it moved on since you read it. Use the revision from your last read."
+          "description": "Revision the repository must still have (compare-and-set). When omitted the repository's current revision is used: a version is immutable once published, so a stale revision protects nothing that a conflicting version would not already refuse."
         },
         "source": {
           "$ref": "#/$defs/Source",
@@ -3697,7 +3699,6 @@
       },
       "required": [
         "repository",
-        "expected_revision",
         "source"
       ]
     },
@@ -3860,7 +3861,7 @@
               ".."
             ]
           },
-          "description": "Name of the export of the imported module to mount."
+          "description": "Name of the export of the imported package to mount on the Agent. If only `slot` is given and the package has a single export, that one is used."
         },
         "slot": {
           "enum": [
@@ -3882,7 +3883,7 @@
             "session_policy",
             "tool_packs"
           ],
-          "description": "Agent slot to mount the imported export on."
+          "description": "Agent slot to mount the export on. If only `export` is given, the slot is worked out from the export's kind; kinds that are wired to another module's port (a resource, say) have none and must be bound instead. Give neither to only import the package."
         },
         "replace_import": {
           "type": "boolean",
@@ -3907,15 +3908,7 @@
         "name",
         "version",
         "alias"
-      ],
-      "dependentRequired": {
-        "export": [
-          "slot"
-        ],
-        "slot": [
-          "export"
-        ]
-      }
+      ]
     },
     "ModuleUnuse": {
       "type": "object",
@@ -3968,7 +3961,7 @@
         },
         "settings": {
           "type": "object",
-          "description": "Preset settings to apply to the Agent."
+          "description": "Preset settings to apply to the Agent: inline JSON, `@FILE`, or the path of a JSON file on the command line."
         },
         "set": {
           "type": "object",
@@ -4728,6 +4721,42 @@
       "required": [
         "run_id"
       ]
+    },
+    "ModuleTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          },
+          "description": "Name of the new module package. Defaults to `my-module`."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$",
+          "not": {
+            "enum": [
+              ".",
+              ".."
+            ]
+          },
+          "description": "Version of the new module package. Defaults to `0.1.0`."
+        },
+        "kind": {
+          "enum": [
+            "tool",
+            "prompt"
+          ],
+          "description": "What the example module is: a Rhai `tool` (the default) or a static `prompt`."
+        }
+      },
+      "required": []
     }
   }
 }

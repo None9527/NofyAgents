@@ -86,6 +86,8 @@ mod memory;
 mod model_program;
 #[path = "http/model_reconciliation.rs"]
 mod model_reconciliation;
+#[path = "http/module_publish.rs"]
+mod module_publish;
 #[path = "http/native_capabilities.rs"]
 mod native_capabilities;
 #[path = "http/parameters.rs"]

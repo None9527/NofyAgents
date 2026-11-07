@@ -10,5 +10,5 @@ pub use files::{
     RepositoryIndex, load_package_directory, load_repository_directory, package_from_reader,
 };
 pub(crate) use package::parameter_validator;
-pub use package::{PackageManifest, PackageView, RepositoryOrigin, RepositoryView};
+pub use package::{PackageManifest, PackageView, RepositoryOrigin, RepositoryView, is_expression};
 pub use store::ModuleStore;

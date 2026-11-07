@@ -89,7 +89,9 @@ pub(crate) fn bootstrap() -> Value {
         "entry_points":[
             step("preset","schema",json!({"preset":"coding"}),"Obtain the public settings contract, required user inputs and an ordered construction recipe."),
             step("empty","schema",json!({"operation":"agent.create"}),"Create an empty declaration and add explicit factories or pinned packages."),
-            step("package","schema",json!({"operation":"agent.module.use"}),"Select a repository/name/version, inspect ports, provide parameters and attach exports.")],
+            step("package","schema",json!({"operation":"agent.module.use"}),"Select a repository/name/version, inspect ports, provide parameters and attach exports."),
+            step("publish","schema",json!({"operation":"module.template"}),"Start a reusable module package from a minimal one that already publishes, publish it to a repository on this kernel, then pin it into any Agent.")],
+        "module_workflow":["repository.add","module.template","module.publish","module.list","schema (package)","agent.module.use","agent.inspect"],
         "workflow":["describe","schema","agent.create","agent.configure","agent.module.add or agent.module.use","agent.inspect","agent.build","agent.plan","agent.apply","run.start","run.inspect","run.events"],
         "bindings":{"input":"Objects containing only $input are guide placeholders; replace them with user inputs before calling a tool.","cli":"Each call names its CLI command in `cli`. The call's `arguments` are also the complete JSON input of that command: `nofy <command> --input FILE` (or `--input -` for stdin).","result":"Objects containing $result and pointer refer to the named previous step's complete result envelope.","native_json":"When a step provides native_json_body, serialize that object into its stated NativeJson field. This is not a separate kernel operation."},
         "rules":["Use the actual tools/list contract; do not rely on client-cached parameter shapes.","Read the latest target revision before every edit; do not invent revision or generation values.","A successful build renders data; a successful activation checks actual runtime resources.","Inspect business execution status and actual tool outputs: an accepted request or completed model response does not prove an effect succeeded.","Keep model credentials as references and provision values through the private credential CLI.","Stop on an unmet execution prerequisite and report the concrete required provision; do not silently relax the boundary."]})
@@ -118,7 +120,7 @@ pub(crate) fn operation_guide(operation: &Operation) -> Result<Value> {
     guide["availability"] = json!({"status":"implemented","reason":"Registered in this client's operation catalog. Kernel-dependent operations still require a matching server and declared resources."});
     guide["prerequisites"] = json!([{"id":"access","required_scopes":operation.scope_hint,"status":"check_kernel","check":{"tool":"nofy_describe","arguments":{}}}]);
     guide["bindings"] = bootstrap()["bindings"].clone();
-    guide["recovery"] = json!([{"code":"conflict","action":"Inspect current identities and concurrent changes; never blind overwrite."},{"code":"incomplete","action":"Inspect missing_slots and issue, add the requested parameters or modules, then rebuild."},{"code":"result_unconfirmed","action":"Query the original command/run IDs. Request cancellation does not cancel accepted work."}]);
+    guide["recovery"] = json!([{"code":"conflict","action":"Inspect current identities and concurrent changes; never blind overwrite."},{"code":"incomplete","action":"Inspect missing_slots, missing_settings (every setting still needed, listed at once) and issue, add the requested parameters or modules, then rebuild."},{"code":"result_unconfirmed","action":"Query the original command/run IDs. Request cancellation does not cancel accepted work."}]);
     let edit = name.starts_with("agent.module.")
         && !matches!(name, "agent.module.inspect" | "agent.module.list")
         || matches!(name, "agent.configure" | "agent.tool.add");
@@ -295,7 +297,7 @@ pub(crate) fn operation_guide(operation: &Operation) -> Result<Value> {
             )]);
             guide["pitfalls"] = json!([
                 "Do not copy implementations into each managed project; use a pinned import.",
-                "export and slot are supplied together; no export/slot registers a dependency-only package.",
+                "give export, slot or both to mount the package: the other is worked out (the slot from the export's kind, the export when the package has only one). Give neither to only import a package whose exports other modules take as dependencies.",
                 "Changing an occupied alias requires replace_import. An occupied single-value slot requires replace_slot."
             ]);
         }
@@ -438,13 +440,65 @@ pub(crate) fn operation_guide(operation: &Operation) -> Result<Value> {
         }
         "module.publish" => {
             guide["summary"] = json!(
-                "Publish a complete explicit Source containing module.json and its source-files.json manifest. Same coordinate with different bytes conflicts; external dependency installation is not required."
+                "Publish a complete explicit Source containing module.json and its source-files.json manifest. The package is checked against this kernel before it becomes an immutable version: every module's factory must be installed, its configuration must fit the factory's schema, its dependency ports must be bound to modules of the right kind, and a module that needs nothing else must build. Problems come back together as error.details.issues, each with a JSON Pointer into module.json, and nothing is published. Same coordinate with different bytes conflicts; external dependency installation is not required."
             );
+            guide["steps"] = json!([
+                step(
+                    "template",
+                    "module.template",
+                    json!({"name":{"$input":"name"},"kind":"tool"}),
+                    "Optional: get a minimal package that already publishes (data.source), edit it, and use it as package_source."
+                ),
+                step(
+                    "publish",
+                    "module.publish",
+                    json!({"repository":{"$input":"repository"},"source":{"$input":"package_source"}}),
+                    "Publish the package. Every problem is reported at once as error.details.issues, each with a JSON Pointer into module.json; nothing is published until there are none."
+                ),
+                step(
+                    "inspect",
+                    "module.inspect",
+                    json!({"repository":{"$input":"repository"},"name":{"$input":"name"},"version":{"$input":"version"}}),
+                    "Read the published inputs, exports and parameters schema: they decide how it is wired when selected."
+                ),
+                step(
+                    "guide",
+                    "schema",
+                    json!({"package":{"repository":{"$input":"repository"},"name":{"$input":"name"},"version":{"$input":"version"}}}),
+                    "Get the guided steps for selecting this package into an Agent: ports to bind, an export to mount, a compatible slot."
+                ),
+                step(
+                    "use",
+                    "agent.module.use",
+                    json!({"agent":{"$input":"agent"},"repository":{"$input":"repository"},"name":{"$input":"name"},"version":{"$input":"version"},"alias":{"$input":"alias"},"export":{"$input":"export"},"slot":{"$input":"compatible_slot"}}),
+                    "Pin it into an Agent and mount the export in one call."
+                )
+            ]);
             guide["package_contract"] = SCHEMAS["$defs"]["PackageManifest"].clone();
             let manifest = json!({"format":"nofy.module-package/v1","name":"double","version":"1.0.0","parameters_schema":{"type":"object"},"inputs":{},"modules":[{"reference":{"$module":"double"},"factory":"tool.rhai","config":{"contract":{"name":"double","input_schema":{"type":"object","required":["value"],"properties":{"value":{"type":"integer"}}}},"source":"#{result: args.value * 2}"}}],"exports":{"main":"double"}});
             guide["examples"] = json!([{"arguments":{"repository":{"$input":"repository"},"expected_revision":{"$result":"repository","pointer":"/refs/repository_revision"},"source":{"declaration":"module.json","files":{"module.json":{"encoding":"utf8","content":serde_json::to_string(&manifest)?},"source-files.json":{"encoding":"utf8","content":"[\"module.json\",\"source-files.json\"]"}}}}}]);
         }
         "repository.add" => {
+            guide["steps"] = json!([
+                step(
+                    "repository",
+                    "repository.add",
+                    json!({"repository":{"$input":"repository"}}),
+                    "Register an empty managed repository (origin and expected_revision default to managed and none)."
+                ),
+                step(
+                    "publish",
+                    "module.publish",
+                    json!({"repository":{"$input":"repository"},"source":{"$input":"package_source"}}),
+                    "Publish a package into it (expected_revision defaults to the repository's current one). It is checked against this kernel first; problems come back with JSON Pointers into module.json."
+                ),
+                step(
+                    "list",
+                    "module.list",
+                    json!({"repository":{"$input":"repository"}}),
+                    "Confirm the version and read its package digest."
+                )
+            ]);
             guide["examples"] = json!([{"arguments":{"repository":"local","origin":{"kind":"managed"},"expected_revision":null}}]);
             guide["pitfalls"] = json!([
                 "A directory origin is an explicit canonical Host path, not a client file path. Git/directory acquisition requires resources scope.",

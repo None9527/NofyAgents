@@ -1860,6 +1860,20 @@
       "summary": "Unregister a module repository, keeping published sources so existing references still resolve."
     },
     {
+      "operation": "module.template",
+      "cli": "nofy module init",
+      "mcp_tool": "nofy_module_template",
+      "input_schema": "contracts.schema.json#/$defs/ModuleTemplate",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "new-source-project-or-pure-project-component",
+      "scope_hint": [],
+      "authority": "pure data: nothing is read from or written to the kernel",
+      "native_routes": [],
+      "mapping_note": "A complete module package source set, ready to edit and pass to module.publish. The command line can also write it to a directory.",
+      "summary": "Return the complete source set of a minimal, valid module package to edit and publish."
+    },
+    {
       "operation": "module.publish",
       "cli": "nofy module publish",
       "mcp_tool": "nofy_module_publish",
@@ -1878,7 +1892,7 @@
         }
       ],
       "mapping_note": "Immutable versioned source packages; builds resolve only cached sources. Managed project edits require revision CAS; explicit source edits require source digest CAS.",
-      "summary": "Publish a complete immutable module source package and ordinary dependency lists."
+      "summary": "Publish a complete immutable module source package after checking it against this kernel's factories: installed factory, configuration schema, bound ports of the right kind, and a trial build of self-contained modules."
     },
     {
       "operation": "module.list",

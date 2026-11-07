@@ -16,7 +16,7 @@ Give a coding agent a goal, let it create and test an agent through CLI or MCP, 
 - **Keep session state.** Seventeen session operations cover admission, subsequent turns, metadata, archives, and policy changes between turns.
 - **Share portable source.** Archives contain declarations, module source, and ordinary dependency lists. Credentials are injected separately; users install interpreters, compilers, and external libraries.
 
-Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 97 operations, including 95 inbound MCP tools. Secret values use a separate private local entry point.
+Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 98 operations, including 96 inbound MCP tools. Secret values use a separate private local entry point.
 
 ## Core concept: goals and recursive self-improvement (RSI)
 

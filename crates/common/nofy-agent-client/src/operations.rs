@@ -45,7 +45,17 @@ impl Engine {
                 }
                 // The kernel answers a missing object with a bare "not found".
                 // Say which identifiers were looked up, from the caller's own input.
-                if e.code == "not_found" && e.message.eq_ignore_ascii_case("not found") {
+                if e.code == "not_found"
+                    && e.message.eq_ignore_ascii_case("not found")
+                    && operation_name.ends_with(".create")
+                    && let Some(preset) = input.get("preset").and_then(Value::as_str)
+                {
+                    // Creating something cannot fail because the new thing is
+                    // missing: what is missing is what it is made from.
+                    e.message = format!(
+                        "preset `{preset}` is not registered on this kernel; `nofy describe` lists the presets it has, and starting the kernel with --preset-dir adds some"
+                    );
+                } else if e.code == "not_found" && e.message.eq_ignore_ascii_case("not found") {
                     let looked_up: Vec<String> = e
                         .refs
                         .iter()
@@ -172,9 +182,18 @@ impl Engine {
                         }
                     }
                 }
+                // A kernel started with nothing to offer says how to give it something,
+                // rather than leaving an empty list to be puzzled over.
+                let mut hints = Vec::new();
+                if templates["presets"].as_array().is_some_and(Vec::is_empty) {
+                    hints.push(json!({"about":"presets","message":"This kernel offers no presets. Start it with --preset-dir to offer source templates. A model's wire protocol comes from a preset or an installed package, so an Agent cannot be built to run without one."}));
+                }
+                if repositories["repositories"].as_array().is_some_and(Vec::is_empty) {
+                    hints.push(json!({"about":"module_repositories","message":"No module repositories are registered. Create one with `nofy repository add <id>` and publish packages with `nofy module publish <id> --directory <dir>`, or start the kernel with --module-dir <id>=<absolute path> to serve a directory of packages."}));
+                }
                 Ok(Envelope::ok(
                     op,
-                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::with_cli(crate::guides::bootstrap()),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
+                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"hints":hints,"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::with_cli(crate::guides::bootstrap()),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
                 ))
             }
             "schema" => self.schema_result(input).await,

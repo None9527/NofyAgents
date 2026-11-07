@@ -319,3 +319,121 @@ async fn a_catalogued_code_without_its_own_guidance_explains_itself_from_the_con
     assert_eq!(error["code"], "session_busy");
     assert_eq!(error["details"]["recovery"]["message"], json!(meaning));
 }
+
+#[tokio::test]
+async fn creating_from_a_missing_preset_names_the_preset_not_the_new_agent() {
+    let server = serve(axum::Router::new().fallback(|| async {
+        (
+            axum::http::StatusCode::NOT_FOUND,
+            axum::Json(json!({"error":{"code":"not_found","message":"not found"}})),
+        )
+    }))
+    .await;
+    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let result = engine
+        .execute(
+            "agent.create",
+            json!({"agent": "fresh", "preset": "coding"}),
+        )
+        .await;
+    let message = result.error.as_ref().unwrap()["message"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(message.contains("preset `coding`"), "{message}");
+    assert!(!message.contains("agent=fresh"), "{message}");
+}
+
+#[tokio::test]
+async fn naming_only_the_repository_gives_the_same_call_for_every_front_end() {
+    let seen = Arc::new(std::sync::Mutex::new(Vec::<(String, Value)>::new()));
+    let log = seen.clone();
+    let server = serve(
+        axum::Router::new()
+            .route(
+                "/api/v1/module-repositories/lib",
+                axum::routing::put({
+                    let log = log.clone();
+                    move |axum::Json(body): axum::Json<Value>| async move {
+                        log.lock().unwrap().push(("add".into(), body));
+                        axum::Json(json!({"repository": "lib", "revision": "0", "origin": {"kind": "managed"}, "package_count": 0}))
+                    }
+                })
+                .get(|| async { axum::Json(json!({"revision": "7"})) }),
+            )
+            .route(
+                "/api/v1/module-repositories/lib/packages",
+                axum::routing::post({
+                    let log = log.clone();
+                    move |axum::Json(body): axum::Json<Value>| async move {
+                        log.lock().unwrap().push(("publish".into(), body));
+                        axum::Json(json!({"repository": {"revision": "8"}, "package": {"digest": "d"}}))
+                    }
+                }),
+            ),
+    )
+    .await;
+    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let added = engine
+        .execute("repository.add", json!({"repository": "lib"}))
+        .await;
+    assert!(!added.is_error(), "{added:?}");
+    let template = engine.execute("module.template", json!({})).await;
+    let published = engine
+        .execute(
+            "module.publish",
+            json!({"repository": "lib", "source": template.data["source"]}),
+        )
+        .await;
+    assert!(!published.is_error(), "{published:?}");
+    let seen = seen.lock().unwrap();
+    assert_eq!(seen[0].1["origin"], json!({"kind": "managed"}));
+    assert_eq!(seen[0].1["expected_revision"], Value::Null);
+    // Omitted, the publish goes against the revision the repository has now.
+    assert_eq!(seen[1].1["expected_revision"], "7");
+}
+
+#[test]
+fn the_contract_declares_the_defaults_the_engine_applies() {
+    let schema = schema("RepositoryAdd").unwrap();
+    assert_eq!(
+        schema["properties"]["origin"]["default"],
+        json!({"kind": "managed"})
+    );
+    assert_eq!(schema["required"], json!(["repository"]));
+    assert_eq!(
+        schema_required("ModulePublish"),
+        json!(["repository", "source"])
+    );
+}
+fn schema_required(name: &str) -> Value {
+    schema(name).unwrap()["required"].clone()
+}
+
+#[tokio::test]
+async fn the_module_template_is_a_valid_package_and_says_what_it_is() {
+    let engine =
+        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+    for (input, name, factory) in [
+        (json!({}), "my-module", "tool.rhai"),
+        (
+            json!({"name": "greeter", "version": "2.1.0", "kind": "prompt"}),
+            "greeter",
+            "prompt.static",
+        ),
+    ] {
+        let out = engine.execute("module.template", input).await;
+        assert!(!out.is_error(), "{out:?}");
+        assert_eq!(out.data["package"]["name"], name);
+        let files = out.data["source"]["files"].as_object().unwrap();
+        assert!(files.contains_key("module.json") && files.contains_key("source-files.json"));
+        let module = out.data["source"]["files"]["module.json"]["content"]
+            .as_str()
+            .unwrap();
+        assert!(module.contains(factory), "{module}");
+    }
+    let bad = engine
+        .execute("module.template", json!({"kind": "resource"}))
+        .await;
+    assert!(bad.is_error());
+}

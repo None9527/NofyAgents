@@ -73,7 +73,14 @@ async fn shared_module_cli_and_mcp_pin_edit_export_and_offline_rebuild() {
     .await;
     let package_digest = published["refs"]["package_digest"].clone();
     let client = mcp(&server.url, dir.path()).await;
-    assert_eq!(client.list_all_tools().await.unwrap().len(), 95);
+    // The catalog says how many tools there are; a literal here only goes stale.
+    assert_eq!(
+        client.list_all_tools().await.unwrap().len(),
+        nofy_agent_client::OPERATIONS
+            .iter()
+            .filter(|o| o.mcp_tool.is_some())
+            .count()
+    );
     let discovery = mcp_call(&client, "nofy_describe", json!({"group":"repository"})).await;
     assert_eq!(discovery["data"]["contract_revision"], "0.6");
     mcp_call(
@@ -322,7 +329,22 @@ async fn directory_and_real_git_snapshots_are_explicit_atomic_and_authorized() {
     )
     .await;
     assert_eq!(registered["data"]["package_count"], 0);
-    let synced = cli_ok(&server.url, &["repository", "sync", "directory"]).await;
+    // The command line asks for the revision just as MCP does: the one it last read.
+    let revision = registered["refs"]["repository_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let synced = cli_ok(
+        &server.url,
+        &[
+            "repository",
+            "sync",
+            "directory",
+            "--expected-revision",
+            &revision,
+        ],
+    )
+    .await;
     assert_eq!(synced["data"]["packages"].as_array().unwrap().len(), 1);
     assert_eq!(
         synced["data"]["packages"][0]["digest"],
@@ -368,7 +390,7 @@ async fn directory_and_real_git_snapshots_are_explicit_atomic_and_authorized() {
         .output()
         .unwrap();
     let head = String::from_utf8(head.stdout).unwrap();
-    cli_ok(
+    let git_added = cli_ok(
         &server.url,
         &[
             "repository",
@@ -381,7 +403,21 @@ async fn directory_and_real_git_snapshots_are_explicit_atomic_and_authorized() {
         ],
     )
     .await;
-    let git = cli_ok(&server.url, &["repository", "sync", "git"]).await;
+    let git_revision = git_added["refs"]["repository_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let git = cli_ok(
+        &server.url,
+        &[
+            "repository",
+            "sync",
+            "git",
+            "--expected-revision",
+            &git_revision,
+        ],
+    )
+    .await;
     assert_eq!(git["data"]["repository"]["source_revision"], head.trim());
     assert_eq!(
         git["data"]["packages"][0]["digest"],
@@ -411,4 +447,160 @@ async fn directory_and_real_git_snapshots_are_explicit_atomic_and_authorized() {
             .await
             .is_error()
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn a_module_goes_from_template_to_agent_the_same_way_on_the_command_line_and_over_mcp() {
+    let dir = tempfile::tempdir().unwrap();
+    let kernel = host(&dir.path().join("kernel")).await;
+    let server = serve(kernel.router()).await;
+
+    // Command line: a package written to disk, published, selected.
+    let package_dir = dir.path().join("double");
+    let init = cli_ok(
+        &server.url,
+        &[
+            "module",
+            "init",
+            "double",
+            "--directory",
+            package_dir.to_str().unwrap(),
+        ],
+    )
+    .await;
+    assert!(package_dir.join("module.json").is_file());
+    assert!(package_dir.join("source-files.json").is_file());
+    assert!(init["refs"]["local_directory"].is_string(), "{init}");
+    // Nothing already there is ever replaced.
+    let (code, _) = cli(
+        &server.url,
+        &[
+            "module",
+            "init",
+            "double",
+            "--directory",
+            package_dir.to_str().unwrap(),
+        ],
+    )
+    .await;
+    assert_ne!(code, 0);
+    cli_ok(&server.url, &["repository", "add", "by-cli"]).await;
+    let published = cli_ok(
+        &server.url,
+        &[
+            "module",
+            "publish",
+            "by-cli",
+            "--directory",
+            package_dir.to_str().unwrap(),
+        ],
+    )
+    .await;
+    cli_ok(&server.url, &["agent", "create", "coder"]).await;
+    cli_ok(
+        &server.url,
+        &[
+            "agent",
+            "module",
+            "use",
+            "coder",
+            "--repository",
+            "by-cli",
+            "--name",
+            "double",
+            "--version",
+            "0.1.0",
+            "--alias",
+            "d",
+            "--export",
+            "main",
+        ],
+    )
+    .await;
+
+    // MCP: the same steps, naming only what the contract requires.
+    let client = mcp(&server.url, dir.path()).await;
+    let tools = client.list_all_tools().await.unwrap();
+    assert!(tools.iter().any(|t| t.name == "nofy_module_template"));
+    mcp_call(
+        &client,
+        "nofy_repository_add",
+        json!({"repository": "by-mcp"}),
+    )
+    .await;
+    let template = mcp_call(&client, "nofy_module_template", json!({"name": "double"})).await;
+    let published_over_mcp = mcp_call(
+        &client,
+        "nofy_module_publish",
+        json!({"repository": "by-mcp", "source": template["data"]["source"]}),
+    )
+    .await;
+    // The two routes produce the very same package.
+    assert_eq!(
+        published["refs"]["package_digest"], published_over_mcp["refs"]["package_digest"],
+        "{published} / {published_over_mcp}"
+    );
+    let created = mcp_call(
+        &client,
+        "nofy_agent_create",
+        json!({"agent": "coder2", "empty": true}),
+    )
+    .await;
+    mcp_call(
+        &client,
+        "nofy_agent_module_use",
+        json!({
+            "target": {"kind": "project", "project_id": "coder2",
+                "expected_revision": created["refs"]["source_revision"]},
+            "agent": "coder2", "repository": "by-mcp", "name": "double",
+            "version": "0.1.0", "alias": "d", "export": "main"
+        }),
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn syncing_or_removing_a_repository_needs_the_revision_you_read_on_the_command_line_too() {
+    let dir = tempfile::tempdir().unwrap();
+    let kernel = host(&dir.path().join("kernel")).await;
+    let server = serve(kernel.router()).await;
+    let added = cli_ok(&server.url, &["repository", "add", "lib"]).await;
+    let revision = added["refs"]["repository_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    // No revision: refused before anything is sent, and the error says what to do.
+    let (code, refused) = cli(&server.url, &["repository", "remove", "lib"]).await;
+    assert_eq!(code, 2, "{refused}");
+    let message = refused["error"]["message"].as_str().unwrap();
+    assert!(
+        message.contains("expected_revision") && message.contains("last read"),
+        "{message}"
+    );
+    // Nothing was removed.
+    let listed = cli_ok(&server.url, &["repository", "inspect", "lib"]).await;
+    assert_eq!(listed["data"]["revision"], revision.as_str());
+
+    // A stale revision is a conflict, as it is over MCP.
+    let (code, stale) = cli(
+        &server.url,
+        &["repository", "remove", "lib", "--expected-revision", "999"],
+    )
+    .await;
+    assert_ne!(code, 0, "{stale}");
+    assert_eq!(stale["error"]["code"], "conflict");
+
+    // The revision that was read removes it.
+    cli_ok(
+        &server.url,
+        &[
+            "repository",
+            "remove",
+            "lib",
+            "--expected-revision",
+            &revision,
+        ],
+    )
+    .await;
 }

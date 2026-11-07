@@ -292,7 +292,12 @@ pub fn validate(operation_name: &str, input: &Value) -> Result<()> {
                     path.push('/');
                     path.push_str(&name.replace('~', "~0").replace('/', "~1"));
                 }
-                "required field is missing".to_owned()
+                if property.as_str() == Some("expected_revision") {
+                    // Not a value to invent: it is what the caller last read.
+                    "required field is missing: pass the revision you last read, unchanged (the previous result's refs, or the matching inspect)".to_owned()
+                } else {
+                    "required field is missing".to_owned()
+                }
             } else {
                 violation(error)
             };

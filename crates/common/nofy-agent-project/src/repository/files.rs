@@ -40,7 +40,19 @@ impl RepositoryIndex {
 pub fn package_from_reader(mut read: impl FnMut(&str) -> Result<File>) -> Result<Source> {
     let (manifest_path, manifest) = match read("module-files.json") {
         Ok(f) => ("module-files.json", f),
-        Err(e) if e.code == "not_found" => ("source-files.json", read("source-files.json")?),
+        Err(e) if e.code == "not_found" => (
+            "source-files.json",
+            read("source-files.json").map_err(|e| {
+                if e.code == "not_found" {
+                    Error::new(
+                        "not_found",
+                        "a module package lists the files to publish in source-files.json (or module-files.json) and found neither; `module.template` (`nofy module init`) writes a package with one",
+                    )
+                } else {
+                    e
+                }
+            })?,
+        ),
         Err(e) => return Err(e),
     };
     let names: Vec<String> = serde_json::from_str(&manifest.utf8()?)?;

@@ -233,36 +233,84 @@ pub fn use_package(
     }
     all.insert(alias.into(), imported);
     system["module_imports"] = serde_json::to_value(all)?;
-    match (input.get("export"), input.get("slot")) {
-        (Some(export), Some(slot)) => {
-            let export = export
+    // Neither: the package is only imported, for modules that need it as a
+    // dependency. Either one is enough to mount it: the other is worked out.
+    let export = match input.get("export") {
+        Some(export) => Some(
+            export
                 .as_str()
-                .ok_or_else(|| Error::new("local_input", "export name must be a string"))?;
-            let id = package
-                .manifest
-                .exports
-                .get(export)
-                .ok_or_else(|| Error::new("not_found", "package export not found"))?;
-            let factory = package.manifest.factories()?[id].clone();
-            crate::edit::attach(
-                system,
-                text(input, "agent")?,
-                slot.as_str()
-                    .ok_or_else(|| Error::new("local_input", "slot must be a string"))?,
-                json!({"$module":format!("{alias}.{id}")}),
-                kinds.get(&factory).map(String::as_str),
-                input["replace_slot"] == true,
-            )?;
+                .ok_or_else(|| Error::new("local_input", "export name must be a string"))?
+                .to_owned(),
+        ),
+        None if input.get("slot").is_some() => {
+            let mut names = package.manifest.exports.keys();
+            match (names.next(), names.next()) {
+                (Some(only), None) => Some(only.clone()),
+                _ => {
+                    return Err(Error::new(
+                        "local_input",
+                        format!(
+                            "package exports {}; name the one to mount with export",
+                            package
+                                .manifest
+                                .exports
+                                .keys()
+                                .map(|name| format!("`{name}`"))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ),
+                    ));
+                }
+            }
         }
-        (None, None) => {
-            crate::edit::check_agent(system, text(input, "agent")?)?;
-        }
-        _ => {
-            return Err(Error::new(
-                "local_input",
-                "export and slot must be supplied together",
-            ));
-        }
+        None => None,
+    };
+    if let Some(export) = export {
+        let id = package.manifest.exports.get(&export).ok_or_else(|| {
+            Error::new(
+                "not_found",
+                format!(
+                    "package export `{export}` not found; it exports {}",
+                    package
+                        .manifest
+                        .exports
+                        .keys()
+                        .map(|name| format!("`{name}`"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            )
+        })?;
+        let factory = package.manifest.factories()?[id].clone();
+        let kind = kinds.get(&factory).map(String::as_str);
+        let slot = match input.get("slot") {
+            Some(slot) => slot
+                .as_str()
+                .ok_or_else(|| Error::new("local_input", "slot must be a string"))?,
+            None => kind.and_then(crate::edit::default_slot).ok_or_else(|| {
+                Error::new(
+                    "local_input",
+                    match kind {
+                        Some(kind) => format!(
+                            "export `{export}` is a {kind}, which is wired to another module's port rather than mounted on an Agent slot; bind it with bindings, or name a slot"
+                        ),
+                        None => format!(
+                            "cannot tell which slot export `{export}` belongs on: this kernel does not list factory `{factory}`; name the slot"
+                        ),
+                    },
+                )
+            })?,
+        };
+        crate::edit::attach(
+            system,
+            text(input, "agent")?,
+            slot,
+            json!({"$module":format!("{alias}.{id}")}),
+            kind,
+            input["replace_slot"] == true,
+        )?;
+    } else {
+        crate::edit::check_agent(system, text(input, "agent")?)?;
     }
     candidate.put_json(&candidate.declaration.clone(), &doc)?;
     candidate.refresh_manifest()?;

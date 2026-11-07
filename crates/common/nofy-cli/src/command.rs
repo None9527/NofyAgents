@@ -39,7 +39,21 @@ fn operation_schema(o: &Operation) -> &'static Value {
 }
 /// One line for `--help`: the schema's own description when it has one, else
 /// what kind of value the flag takes, and whether it is required.
-fn flag_help(key: &str, schema: &Value, required: bool) -> String {
+/// What a flag does when left out, from the `default` the contract declares for
+/// it, so the help, the command line and MCP all say the same thing.
+fn default_label(schema: &Value) -> Option<String> {
+    let default = schema.get("default")?;
+    Some(match default {
+        Value::Null => "none".to_owned(),
+        Value::String(text) => text.clone(),
+        Value::Object(fields) => match fields.get("kind").and_then(Value::as_str) {
+            Some(kind) => kind.to_owned(),
+            None => default.to_string(),
+        },
+        other => other.to_string(),
+    })
+}
+fn flag_help(key: &str, schema: &Value, required: bool, default: Option<&str>) -> String {
     let target = schema
         .get("$ref")
         .and_then(Value::as_str)
@@ -66,10 +80,15 @@ fn flag_help(key: &str, schema: &Value, required: bool) -> String {
         }
         .to_owned()
     };
-    match (note.is_empty(), required) {
-        (true, true) => "required".to_owned(),
-        (false, true) => format!("{note} (required)"),
-        (_, false) => note,
+    // The contract's own sentence may already say it ("Defaults to managed.").
+    let says_default = note.to_lowercase().contains("default");
+    match (note.is_empty(), required, default) {
+        (_, _, Some(default)) if note.is_empty() => format!("default: {default}"),
+        (_, _, Some(_)) if says_default => note,
+        (_, _, Some(default)) => format!("{note} (default: {default})"),
+        (true, true, None) => "required".to_owned(),
+        (false, true, None) => format!("{note} (required)"),
+        (_, false, None) => note,
     }
 }
 fn positional_arg(index: usize, name: &str, field: Option<(&str, &str)>) -> Arg {
@@ -132,7 +151,12 @@ fn leaf(mut cmd: Command, o: &Operation) -> Command {
         } else {
             arg = arg.num_args(1);
         }
-        arg = arg.help(flag_help(&key, &value, required.contains(&key)));
+        arg = arg.help(flag_help(
+            &key,
+            &value,
+            required.contains(&key),
+            default_label(&value).as_deref(),
+        ));
         if key == "module_ref" {
             arg = arg.visible_alias("module");
         }
@@ -160,12 +184,42 @@ fn leaf(mut cmd: Command, o: &Operation) -> Command {
         );
     }
     if o.operation == "repository.add" {
-        for key in ["host-directory", "git-url", "git-ref", "subdirectory"] {
-            cmd = cmd.arg(Arg::new(key).long(key).num_args(1));
+        for (key, help) in [
+            (
+                "host-directory",
+                "Use a directory on the kernel host as the origin (an absolute path; needs the resources scope)",
+            ),
+            (
+                "git-url",
+                "Use a Git repository as the origin (needs the resources scope)",
+            ),
+            (
+                "git-ref",
+                "Git reference to fetch: branch, tag or commit [default: HEAD]",
+            ),
+            (
+                "subdirectory",
+                "Subdirectory of the checkout that holds the modules [default: its root]",
+            ),
+        ] {
+            cmd = cmd.arg(Arg::new(key).long(key).num_args(1).help(help));
         }
     }
     if o.operation == "module.publish" {
-        cmd = cmd.arg(Arg::new("directory").long("directory").num_args(1));
+        cmd = cmd.arg(
+            Arg::new("directory")
+                .long("directory")
+                .num_args(1)
+                .help("Local directory holding module.json and source-files.json to publish"),
+        );
+    }
+    if o.operation == "module.template" {
+        cmd = cmd.arg(
+            Arg::new("directory")
+                .long("directory")
+                .num_args(1)
+                .help("Write the new package into this directory, which must not exist yet"),
+        );
     }
     if o.operation == "agent.configure" {
         for key in ["set", "set-json"] {
@@ -263,9 +317,11 @@ fn global_help(key: &str) -> &'static str {
         "project" => "Local project directory to read and write, instead of a managed project",
         "project_id" => "Managed project id, as an alternative to --project",
         "preset_dir" => "Directory of local presets [default: profile, then $NOFY_PRESET_DIR]",
-        "expected_revision" => "Revision the managed project must still have (compare-and-set)",
+        "expected_revision" => {
+            "Revision the target must still have (compare-and-set): a managed project's source, or a module repository's. Where the contract gives a default, it is used when omitted"
+        }
         "expected_digest" => "Source digest the local project must still have (compare-and-set)",
-        "settings" => "Preset settings as a JSON file",
+        "settings" => "Preset settings: inline JSON, @FILE, or the path of a JSON file",
         "file" => "Native JSON body from this file, or - for stdin, for commands that take one",
         "replace_output" => "Overwrite --output if it already exists",
         "offline" => "Do not contact the kernel for operations that can run on local files",

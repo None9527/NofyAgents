@@ -6,7 +6,7 @@
 
 - 干净的 25 包 Rust 框架工作区，统一 Loader 与执行路径。
 - CLI、入站 stdio／Streamable HTTP MCP，以及同源的托管／本地源码工程编辑。
-- 97 项操作、95 个 MCP 工具、20 项 Session 操作；默认 Linux Host 发现 65 个工厂。
+- 98 项操作、96 个 MCP 工具、20 项 Session 操作；默认 Linux Host 发现 65 个工厂。
 - 声明构建、校验、发布、generation 激活、事件观察、审批、取消、恢复与版本转换。
 - SessionPolicy 规则／源码模块、接纳与续轮、元数据与归档、静止轮次间策略切换。
 - 源码归档及普通依赖清单交付，凭据独立注入，业务依赖由使用者安装。

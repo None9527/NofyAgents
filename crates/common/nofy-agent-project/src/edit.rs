@@ -99,6 +99,27 @@ pub(crate) fn reference(system: &Value, requested: &Value) -> Result<Value> {
     };
     Ok(body(&system["modules"][i])["reference"].clone())
 }
+/// The Agent slot a module of `kind` is mounted on when the caller names none.
+/// Kinds that are only ever wired to another module's port (a resource, a stage,
+/// a hook handler, an event producer) have no slot: there is nothing to guess.
+pub(crate) fn default_slot(kind: &str) -> Option<&'static str> {
+    Some(match kind {
+        "model" => "model",
+        "prompt" => "prompt",
+        "session_policy" => "session",
+        "recipe" => "recipe",
+        "checkpointer" => "checkpointer",
+        "tool_pack" | "tool_source" => "tools",
+        "context_source" => "context",
+        "context_policy" => "context_policies",
+        "policy" => "policies",
+        "governance" => "governance",
+        "middleware" => "middleware",
+        "binding" => "bindings",
+        "hook" => "hooks",
+        _ => return None,
+    })
+}
 fn slot(slot: &str, kind: Option<&str>) -> Result<(&'static str, bool)> {
     let pair = match slot {
         "model" => ("model", false),

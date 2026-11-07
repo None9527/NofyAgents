@@ -153,6 +153,9 @@ async fn run(op: &str, m: &clap::ArgMatches) -> Result<i32> {
     }};
     let finish = async {
         output::persist_local(&prepared, &mut result)?;
+        // Only some commands have a --directory; asking another for it would panic.
+        let directory = m.try_get_one::<String>("directory").ok().flatten();
+        output::persist_template(op, directory, &mut result)?;
         if let Some(path) = m.get_one::<String>("output") {
             output::persist_output(
                 engine,

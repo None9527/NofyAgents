@@ -91,11 +91,17 @@ impl IntoResponse for HostError {
             }
             _ => (StatusCode::UNPROCESSABLE_ENTITY, "invalid"),
         };
-        (
-            status,
-            Json(json!({"error":{"code":code,"message":self.to_string()}})),
-        )
-            .into_response()
+        let mut error = json!({"code":code,"message":self.to_string()});
+        // A source error can say more than its message: which paths, which
+        // references, which digests. It is structured data the kernel itself
+        // built, so it travels, within a bound.
+        if let Self::Source(source) = &self
+            && !source.details.is_null()
+            && source.details.to_string().len() <= 16 * 1024
+        {
+            error["details"] = source.details.clone();
+        }
+        (status, Json(json!({ "error": error }))).into_response()
     }
 }
 async fn authenticate(

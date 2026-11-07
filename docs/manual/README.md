@@ -21,7 +21,7 @@
 | [Session](sessions.md) | 规则/源码策略、20 项操作、接纳、生命周期与恢复 |
 | [MCP](mcp.md) | stdio、Streamable HTTP、Codex 配置、工具与归档资源 |
 | [协议](protocol.md) | 结果信封、精确版本、并发更新、权限、幂等和部分完成 |
-| [操作目录](operations.json) | 97 项操作，其中 95 项开放为 MCP 工具 |
+| [操作目录](operations.json) | 98 项操作，其中 96 项开放为 MCP 工具 |
 | [契约 Schema](contracts.schema.json) | CLI/MCP 共用输入输出；原生 DTO 仍由内核校验 |
 | [HTTP 索引](http-api-index.json) | 从当前源码提取的方法、路径和行号；不代表运行实例已经升级 |
 | [文件说明](文件说明.md) | 文件职责及证据范围 |

@@ -1,5 +1,6 @@
 mod contract;
 mod guides;
+mod module_template;
 mod operations;
 mod projects;
 mod repositories;

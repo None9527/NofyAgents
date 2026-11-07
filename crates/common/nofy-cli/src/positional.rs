@@ -22,7 +22,7 @@ pub fn first(op: &str) -> Option<First> {
         "draft.get" | "draft.put" | "draft.delete" => "name",
         "repository.add" | "repository.inspect" | "repository.sync" | "repository.remove"
         | "module.publish" | "module.list" => "repository",
-        "module.inspect" | "module.export" => "name",
+        "module.inspect" | "module.export" | "module.template" => "name",
         "system.plan" | "system.apply" | "system.active" | "system.history" | "system.rollback" => {
             "system"
         }

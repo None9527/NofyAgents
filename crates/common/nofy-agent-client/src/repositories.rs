@@ -87,11 +87,24 @@ impl Engine {
             "module.yank" => self.client.send("POST", &["api","v1","module-repositories",text(input,"repository")?,"packages",text(input,"name")?,text(input,"version")?,"yank"], &json!({"expected_revision":text(input,"expected_revision")?,"yanked":input.get("yanked").cloned().unwrap_or(json!(true))})).await?.value()?,
             "module.gc" => self.client.send("POST", &["api","v1","module-packages","gc"], &json!({"dry_run":input.get("dry_run").cloned().unwrap_or(json!(true))})).await?.value()?,
             "repository.list" => self.client.get(&["api","v1","module-repositories"]).await?.value()?,
-            "repository.add" => self.client.send("PUT",&["api","v1","module-repositories",text(input,"repository")?],&json!({"origin":input["origin"],"expected_revision":input["expected_revision"]})).await?.value()?,
+            "module.template" => return crate::module_template::module_template(input),
+            // The contract gives these two a default, so a caller that names only the
+            // repository gets the same thing from the command line and from MCP.
+            "repository.add" => self.client.send("PUT",&["api","v1","module-repositories",text(input,"repository")?],&json!({"origin":input.get("origin").cloned().unwrap_or_else(|| json!({"kind":"managed"})),"expected_revision":input.get("expected_revision").cloned().unwrap_or(Value::Null)})).await?.value()?,
             "repository.inspect" => self.client.get(&["api","v1","module-repositories",text(input,"repository")?]).await?.value()?,
             "repository.remove" => self.client.send("DELETE",&["api","v1","module-repositories",text(input,"repository")?],&json!({"expected_revision":input["expected_revision"]})).await?.value()?,
             "repository.sync" => self.client.send("POST",&["api","v1","module-repositories",text(input,"repository")?,"sync"],&json!({"expected_revision":input["expected_revision"]})).await?.value()?,
-            "module.publish" => self.client.send("POST",&["api","v1","module-repositories",text(input,"repository")?,"packages"],&json!({"expected_revision":input["expected_revision"],"source":input["source"]})).await?.value()?,
+            "module.publish" => {
+                let repository = text(input, "repository")?;
+                // Omitted: publish against the revision the repository has now. A
+                // version is immutable, so a stale revision would only make two
+                // authors publishing different packages refuse each other.
+                let expected = match input.get("expected_revision") {
+                    Some(revision) => revision.clone(),
+                    None => self.client.get(&["api","v1","module-repositories",repository]).await?.value()?["revision"].clone(),
+                };
+                self.client.send("POST",&["api","v1","module-repositories",repository,"packages"],&json!({"expected_revision":expected,"source":input["source"]})).await?.value()?
+            }
             "module.list" => {
                 let mut query = vec![];
                 for key in ["repository","after","limit"] {

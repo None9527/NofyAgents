@@ -416,7 +416,13 @@ async fn cli_and_official_stdio_client_share_source_publish_run_and_session_stat
         ProtocolVersion::V_2025_11_25
     );
     let tools = client.list_all_tools().await.unwrap();
-    assert_eq!(tools.len(), 95);
+    assert_eq!(
+        tools.len(),
+        nofy_agent_client::OPERATIONS
+            .iter()
+            .filter(|o| o.mcp_tool.is_some())
+            .count()
+    );
     assert!(!tools.iter().any(|t| t.name == "nofy_credential_put"));
     let inspect = mcp_call(
         &client,

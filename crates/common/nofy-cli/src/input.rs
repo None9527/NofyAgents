@@ -37,7 +37,11 @@ fn read(path: &str) -> Result<String> {
         std::io::stdin().read_to_string(&mut text)?;
         Ok(text)
     } else {
-        Ok(std::fs::read_to_string(path)?)
+        std::fs::read_to_string(path).map_err(|e| {
+            let mut error = Error::new("local_io", format!("cannot read `{path}`: {e}"));
+            error.details = json!({"origin": "adapter", "path": path});
+            error
+        })
     }
 }
 fn json_text(text: &str) -> Result<String> {
@@ -76,6 +80,38 @@ fn native_input(op: &str, value: &Value) -> bool {
         _ => false,
     }
 }
+/// A flag whose value is one of several tagged shapes (`{"kind": ...}`) may be
+/// given as the bare name of a shape that takes nothing else: `--origin managed`.
+/// A name that needs more says what, rather than failing as bad JSON.
+fn bare_variant(key: &str, variants: &[Value], text: &str) -> Option<Result<Value>> {
+    let name = text.trim();
+    if name.is_empty() || name.starts_with(['{', '[', '"']) {
+        return None;
+    }
+    let variant = variants
+        .iter()
+        .find(|v| v.pointer("/properties/kind/const").and_then(Value::as_str) == Some(name))?;
+    let needs: Vec<&str> = variant["required"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|field| *field != "kind")
+        .collect();
+    if needs.is_empty() {
+        return Some(Ok(json!({"kind": name})));
+    }
+    let flag = format!("--{}", key.replace('_', "-"));
+    let mut error = Error::new(
+        "local_input",
+        format!(
+            "{flag}: `{name}` also needs {}; give JSON such as {{\"kind\":\"{name}\",...}}, or its own flags",
+            needs.join(", ")
+        ),
+    );
+    error.details = json!({"origin": "adapter", "flag": flag, "needs": needs});
+    Some(Err(error))
+}
 fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
     if key.ends_with("_json") {
         return Ok(json!(json_text(s)?));
@@ -105,6 +141,11 @@ fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
     match schema.get("type").and_then(Value::as_str) {
         Some(kind @ ("object" | "array" | "integer" | "number" | "boolean")) => typed(key, kind, s),
         _ if schema.get("oneOf").is_some() || schema.get("allOf").is_some() => {
+            if let Some(variants) = schema.get("oneOf").and_then(Value::as_array)
+                && let Some(parsed) = bare_variant(key, variants, s)
+            {
+                return parsed;
+            }
             typed(key, "value", s)
         }
         _ => Ok(json!(s)),
@@ -113,6 +154,16 @@ fn parse_property(key: &str, schema: &Value, s: &str) -> Result<Value> {
 /// Parse a flag whose value is not plain text, and say which flag and what it
 /// expects when the text is not valid. The text itself is not echoed.
 fn typed(key: &str, kind: &str, text: &str) -> Result<Value> {
+    // Inline JSON, or `@FILE` for the same thing kept in a file, as the `*_json`
+    // flags already take it.
+    let file;
+    let text = match text.strip_prefix('@') {
+        Some(path) => {
+            file = read(path)?;
+            file.as_str()
+        }
+        None => text,
+    };
     serde_json::from_str(text).map_err(|_| {
         let flag = format!("--{}", key.replace('_', "-"));
         let wanted = match kind {
@@ -193,6 +244,20 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             }
         }
         (Some(text), Some(positional::First::Field(key))) => {
+            // The most common slip: a positional that meant something else. Say what
+            // this command's positional is, not just that a field repeats.
+            if value.get(key).is_some() {
+                let flag = format!("--{}", key.replace('_', "-"));
+                let mut error = Error::new(
+                    "local_input",
+                    format!(
+                        "`{text}` was read as {key}, which {flag} already gave: the positional argument of `{}` is the {key}",
+                        op.replace('.', " ")
+                    ),
+                );
+                error.details = json!({"origin": "adapter", "positional": key, "flag": flag});
+                return Err(error);
+            }
             assign(&mut value, key, json!(text))?;
         }
         (Some(_), None) => {
@@ -342,7 +407,12 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
     if op == "agent.configure"
         && let Some(path) = option(m, "settings")
     {
-        assign(&mut value, "settings", serde_json::from_str(&read(&path)?)?)?;
+        let text = match path.strip_prefix('@') {
+            Some(file) => read(file)?,
+            None if path.trim_start().starts_with('{') => path.clone(),
+            None => read(&path)?,
+        };
+        assign(&mut value, "settings", serde_json::from_str(&text)?)?;
         stdin |= path == "-";
     }
     if op == "repository.add" {
@@ -366,12 +436,6 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
         } else if option(m, "git-ref").is_some() || option(m, "subdirectory").is_some() {
             return Err(Error::new("local_input", "Git flags require --git-url"));
         }
-        if value.get("origin").is_none() {
-            value["origin"] = json!({"kind":"managed"});
-        }
-        if value.get("expected_revision").is_none() {
-            value["expected_revision"] = Value::Null;
-        }
     }
     if op == "module.publish"
         && let Some(path) = option(m, "directory")
@@ -380,21 +444,6 @@ pub async fn prepare(op: &str, m: &ArgMatches, engine: &Engine) -> Result<Input>
             PathBuf::from(path),
         )?)?;
         assign(&mut value, "source", serde_json::to_value(source)?)?;
-    }
-    if matches!(
-        op,
-        "repository.sync" | "repository.remove" | "module.publish"
-    ) && value.get("expected_revision").is_none()
-    {
-        let repository = value["repository"]
-            .as_str()
-            .ok_or_else(|| Error::new("local_input", "repository is required"))?;
-        value["expected_revision"] = engine
-            .client
-            .get(&["api", "v1", "module-repositories", repository])
-            .await?
-            .value()?["revision"]
-            .clone();
     }
     let mut local = None;
     let local_create = project
@@ -562,4 +611,71 @@ pub fn is_edit(op: &str) -> bool {
             | "agent.module.use"
             | "agent.module.unuse"
     )
+}
+
+#[cfg(test)]
+mod flag_tests {
+    use super::*;
+
+    fn origin() -> Value {
+        json!({"$ref": "#/$defs/RepositoryOrigin"})
+    }
+
+    #[test]
+    fn a_shape_that_takes_nothing_else_is_given_by_its_bare_name() {
+        assert_eq!(
+            parse_property("origin", &origin(), "managed").unwrap(),
+            json!({"kind": "managed"})
+        );
+    }
+
+    #[test]
+    fn json_still_works_and_a_shape_that_needs_more_says_what() {
+        assert_eq!(
+            parse_property("origin", &origin(), r#"{"kind":"managed"}"#).unwrap(),
+            json!({"kind": "managed"})
+        );
+        let error = parse_property("origin", &origin(), "directory").unwrap_err();
+        assert!(error.message.contains("host_path"), "{}", error.message);
+        assert!(error.message.contains("--origin"), "{}", error.message);
+    }
+
+    #[test]
+    fn an_unknown_name_is_still_a_json_error_naming_the_flag() {
+        let error = parse_property("origin", &origin(), "bogus").unwrap_err();
+        assert!(
+            error.message.starts_with("--origin: expected"),
+            "{}",
+            error.message
+        );
+    }
+}
+
+#[cfg(test)]
+mod json_flag_tests {
+    use super::*;
+
+    #[test]
+    fn a_json_flag_takes_inline_json_or_a_file_with_at() {
+        assert_eq!(
+            typed("bindings", "object", r#"{"a":1}"#).unwrap(),
+            json!({"a": 1})
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("bindings.json");
+        std::fs::write(&file, r#"{"b":2}"#).unwrap();
+        let at = format!("@{}", file.display());
+        assert_eq!(typed("bindings", "object", &at).unwrap(), json!({"b": 2}));
+    }
+
+    #[test]
+    fn a_file_that_cannot_be_read_is_named_in_the_error() {
+        let error = typed("bindings", "object", "@/no/such/dir/bindings.json").unwrap_err();
+        assert_eq!(error.code, "local_io");
+        assert!(
+            error.message.contains("/no/such/dir/bindings.json"),
+            "{}",
+            error.message
+        );
+    }
 }

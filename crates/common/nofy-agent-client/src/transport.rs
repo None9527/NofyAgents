@@ -185,6 +185,30 @@ impl KernelClient {
                     .and_then(Value::as_str)
                     .filter(plain)
             };
+            // The kernel may list what is wrong, each with the JSON Pointer of the
+            // value, in the same shape local validation uses. Only well-formed
+            // entries are kept, and only so many, so the list cannot be used to
+            // smuggle an arbitrary body through.
+            if let Some(listed) = value
+                .pointer("/error/details/issues")
+                .and_then(Value::as_array)
+            {
+                let issues: Vec<Value> = listed
+                    .iter()
+                    .filter_map(|issue| {
+                        let path = issue.get("path")?.as_str()?;
+                        let message = issue.get("message")?.as_str()?;
+                        Some(json!({
+                            "path": path.chars().take(500).collect::<String>(),
+                            "message": message.chars().take(1000).collect::<String>(),
+                        }))
+                    })
+                    .take(50)
+                    .collect();
+                if !issues.is_empty() {
+                    details["issues"] = Value::Array(issues);
+                }
+            }
             if let Some(reason) = kernel("reason") {
                 details["reason"] = json!(reason);
                 if reason == "missing_field"

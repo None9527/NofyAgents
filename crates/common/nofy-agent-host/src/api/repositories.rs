@@ -1,6 +1,7 @@
 use super::*;
 use nofy_agent_project::Source;
 use nofy_agent_project::repository::{ModuleStore, RepositoryOrigin, RepositoryView};
+mod check;
 mod git;
 
 pub(super) fn router() -> Router<KernelHost> {
@@ -179,8 +180,32 @@ async fn publish(
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Publish)?;
     let store = host.module_library.clone();
+    let registry = host.registry.clone();
     Ok(Json(
         blocking(move || {
+            // Structure first, then this kernel's factories: both before anything
+            // becomes an immutable version.
+            let manifest = nofy_agent_project::repository::PackageManifest::from_source(&q.source)?;
+            let issues = check::check_package(&registry, &manifest);
+            if !issues.is_empty() {
+                let listed: Vec<Value> = issues
+                    .iter()
+                    .map(|i| json!({"path": i.path, "message": i.message}))
+                    .collect();
+                let mut error = nofy_agent_project::Error::new(
+                    "local_input",
+                    format!(
+                        "package {}@{} does not fit this kernel: {} problem(s); first: {} ({})",
+                        manifest.name,
+                        manifest.version,
+                        issues.len(),
+                        issues[0].message,
+                        issues[0].path
+                    ),
+                );
+                error.details = json!({"issues": listed});
+                return Err(error.into());
+            }
             let (repository, package) =
                 store.publish(&repository, &q.expected_revision, q.source)?;
             Ok(json!({"repository":repository,"package":package}))

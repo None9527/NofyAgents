@@ -374,3 +374,141 @@ fn directory_collection_uses_only_listed_safe_bytes_and_schemas_cannot_fetch() {
         assert!(load_package_directory(&directory).is_err());
     }
 }
+
+/// Publish `package` into a throwaway store and return the pinned view.
+fn pinned(package: Source) -> PackageView {
+    let dir = tempfile::tempdir().unwrap();
+    let store = ModuleStore::open(dir.path()).unwrap();
+    let repo = store
+        .put("shared", None, RepositoryOrigin::Managed)
+        .unwrap();
+    let (_, pin) = store.publish("shared", &repo.revision, package).unwrap();
+    pin
+}
+fn with_exports(mut source: Source, exports: Value) -> Source {
+    let mut manifest = source.json("module.json").unwrap();
+    manifest["exports"] = exports;
+    source.put_json("module.json", &manifest).unwrap();
+    source.refresh_manifest().unwrap();
+    source
+}
+fn prompt_of(source: &Source) -> Value {
+    // The Agent's definition inside the system declaration; a mounted module shows
+    // up as the value of its slot.
+    source.json("preset.json").unwrap()["system"]["programs"]["coder"]["definition"]["prompt"]
+        .clone()
+}
+
+#[test]
+fn naming_the_export_is_enough_to_mount_it_because_its_kind_picks_the_slot() {
+    let pin = pinned(package("prompt", "1", json!("x")));
+    let mut source = agent();
+    use_package(
+        &mut source,
+        &pin,
+        &json!({"agent": "coder", "alias": "p", "export": "main"}),
+        &kinds(),
+    )
+    .unwrap();
+    assert_eq!(prompt_of(&source), json!({"$module": "p.entry"}));
+}
+
+#[test]
+fn naming_the_slot_is_enough_when_the_package_has_one_export() {
+    let pin = pinned(package("prompt", "1", json!("x")));
+    let mut source = agent();
+    use_package(
+        &mut source,
+        &pin,
+        &json!({"agent": "coder", "alias": "p", "slot": "prompt"}),
+        &kinds(),
+    )
+    .unwrap();
+    assert_eq!(prompt_of(&source), json!({"$module": "p.entry"}));
+}
+
+#[test]
+fn naming_neither_still_only_imports_the_package() {
+    let pin = pinned(package("prompt", "1", json!("x")));
+    let mut source = agent();
+    use_package(
+        &mut source,
+        &pin,
+        &json!({"agent": "coder", "alias": "p"}),
+        &kinds(),
+    )
+    .unwrap();
+    assert!(prompt_of(&source).is_null());
+    assert!(imports(&source).unwrap().contains_key("p"));
+}
+
+#[test]
+fn a_slot_alone_cannot_choose_between_several_exports_and_says_which_there_are() {
+    let pin = pinned(with_exports(
+        package("two", "1", json!("x")),
+        json!({"main": "entry", "other": "entry"}),
+    ));
+    let error = use_package(
+        &mut agent(),
+        &pin,
+        &json!({"agent": "coder", "alias": "p", "slot": "prompt"}),
+        &kinds(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "local_input");
+    assert!(
+        error.message.contains("`main`") && error.message.contains("`other`"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn an_export_that_is_wired_not_mounted_is_not_guessed_a_slot_and_is_explained() {
+    let mut package = package("conn", "1", json!("x"));
+    let mut manifest = package.json("module.json").unwrap();
+    manifest["modules"][0]["factory"] = json!("resource.artifact");
+    package.put_json("module.json", &manifest).unwrap();
+    package.refresh_manifest().unwrap();
+    let pin = pinned(package);
+    let error = use_package(
+        &mut agent(),
+        &pin,
+        &json!({"agent": "coder", "alias": "p", "export": "main"}),
+        &kinds(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "local_input");
+    assert!(
+        error.message.contains("resource") && error.message.contains("port"),
+        "{}",
+        error.message
+    );
+}
+
+#[test]
+fn an_unknown_export_lists_the_ones_the_package_has() {
+    let pin = pinned(package("prompt", "1", json!("x")));
+    let error = use_package(
+        &mut agent(),
+        &pin,
+        &json!({"agent": "coder", "alias": "p", "export": "nope"}),
+        &kinds(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "not_found");
+    assert!(error.message.contains("`main`"), "{}", error.message);
+}
+
+#[test]
+fn a_directory_without_a_file_list_says_what_a_package_needs_and_where_to_get_one() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("module.json"), "{}").unwrap();
+    let error = load_package_directory(dir.path()).unwrap_err();
+    assert_eq!(error.code, "not_found");
+    assert!(
+        error.message.contains("source-files.json") && error.message.contains("module init"),
+        "{}",
+        error.message
+    );
+}

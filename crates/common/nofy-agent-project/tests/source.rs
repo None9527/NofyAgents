@@ -315,3 +315,123 @@ fn coding_template_renders_in_rust_without_executing_project_scripts() {
     );
     assert!(pack(&source).is_ok());
 }
+
+fn fresh_coding_preset() -> Source {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../presets")
+        .canonicalize()
+        .unwrap();
+    TemplateRegistry::open(&root)
+        .unwrap()
+        .get("coding", Some("0.1.0"), Some("coder"))
+        .unwrap()
+}
+fn missing_paths(source: &Source) -> Vec<String> {
+    inspect(source, &FactoryKinds::new()).unwrap()["missing_settings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["path"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[test]
+fn a_fresh_preset_reports_every_setting_it_needs_at_once_not_the_first() {
+    let source = fresh_coding_preset();
+    let report = inspect(&source, &FactoryKinds::new()).unwrap();
+    // The renderer still stops at the first gap, as it always did...
+    assert_eq!(report["issue"]["message"], "missing setting /connection");
+    // ...and the report carries the whole closure behind it, with what each is.
+    let paths = missing_paths(&source);
+    for needed in ["/connection", "/model", "/workspace", "/environment"] {
+        assert!(
+            paths.iter().any(|p| p == needed),
+            "{needed} not in {paths:?}"
+        );
+    }
+    let connection = report["missing_settings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["path"] == "/connection")
+        .unwrap();
+    assert_eq!(connection["type"], "object");
+    assert!(!connection["description"].as_str().unwrap().is_empty());
+}
+
+#[test]
+fn supplying_exactly_what_was_listed_completes_the_declaration() {
+    let mut source = fresh_coding_preset();
+    // Command execution is on by default and then needs a process tree too; the
+    // report lists that, and switching it off is the smaller way to finish.
+    assert!(missing_paths(&source).iter().any(|p| p == "/process_tree"));
+    source.settings_json = Some(
+        json!({
+            "workspace": "/project", "model": "m", "terminal_enabled": false,
+            "connection": {"base_url": "http://127.0.0.1:9000/v1/", "models": ["m"],
+                "header_credentials": {"authorization": {"prefix": "Bearer ", "reference": "K"}}},
+            "environment": {"executable": "/usr/bin/python3", "env": {}, "paths": []}
+        })
+        .to_string(),
+    );
+    let report = inspect(&source, &FactoryKinds::new()).unwrap();
+    assert_eq!(report["status"], "complete", "{report}");
+    assert!(report["missing_settings"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn a_setting_only_a_switched_off_branch_reads_is_not_asked_for() {
+    let mut source = fresh_coding_preset();
+    source.settings_json = Some(json!({"terminal_enabled": false}).to_string());
+    let paths = missing_paths(&source);
+    assert!(!paths.iter().any(|p| p == "/process_tree"), "{paths:?}");
+    assert!(paths.iter().any(|p| p == "/connection"), "{paths:?}");
+}
+
+#[test]
+fn a_complete_source_reports_no_missing_settings() {
+    let report = inspect(&complete_source(), &kinds()).unwrap();
+    assert_eq!(report["missing_settings"], json!([]));
+}
+
+#[test]
+fn alternatives_that_are_all_missing_are_reported_as_any_of_not_as_two_demands() {
+    let mut source = Source {
+        files: BTreeMap::new(),
+        declaration: "preset.json".into(),
+        settings_json: None,
+    };
+    source
+        .put_json(
+            "preset.json",
+            &json!({"format": "nofy.preset/v1", "system": {
+                "name": "x", "schema_version": 1, "modules": [], "programs": {},
+                "marker": {"$coalesce": [{"$setting": "/first"}, {"$setting": "/second"}]}
+            }}),
+        )
+        .unwrap();
+    source.refresh_manifest().unwrap();
+    let report = inspect(&source, &FactoryKinds::new()).unwrap();
+    let missing = report["missing_settings"].as_array().unwrap();
+    assert_eq!(missing.len(), 1, "{missing:?}");
+    assert_eq!(missing[0]["any_of"], json!(["/first", "/second"]));
+    // Supplying either one is enough.
+    source.settings_json = Some(json!({"second": 1}).to_string());
+    let after = inspect(&source, &FactoryKinds::new()).unwrap();
+    assert!(
+        after["missing_settings"].as_array().unwrap().is_empty(),
+        "{after}"
+    );
+}
+
+#[test]
+fn the_report_says_whether_its_list_is_the_whole_closure() {
+    // A fresh preset: the walk reaches a render that works, so the list is whole.
+    let report = inspect(&fresh_coding_preset(), &FactoryKinds::new()).unwrap();
+    assert_eq!(report["missing_settings_complete"], true, "{report}");
+    // A complete source has nothing missing, trivially whole.
+    assert_eq!(
+        inspect(&complete_source(), &kinds()).unwrap()["missing_settings_complete"],
+        true
+    );
+}

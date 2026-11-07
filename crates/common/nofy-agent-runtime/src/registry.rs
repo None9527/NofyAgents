@@ -1,8 +1,10 @@
 //! Versioned, instance-scoped configuration factories. Building a module is
 //! synchronous and must be free of IO; connections are installed by the host.
 mod build;
+mod check;
 mod instances;
 pub use build::ModuleBuildContext;
+pub use check::{ConfigIssue, ModuleCheck};
 mod prompt;
 use crate::Error;
 pub use instances::{ModuleInstance, ResourceHandle};

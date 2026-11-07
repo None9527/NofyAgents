@@ -66,6 +66,22 @@ pub fn persist_local(input: &Input, output: &mut Envelope) -> Result<()> {
     }
     Ok(())
 }
+/// `module init --directory`: put the new package on disk. The directory must not
+/// exist, so nothing already there is ever replaced.
+pub fn persist_template(op: &str, directory: Option<&String>, output: &mut Envelope) -> Result<()> {
+    let (true, Some(directory), false) = (op == "module.template", directory, output.is_error())
+    else {
+        return Ok(());
+    };
+    let source: Source = serde_json::from_value(output.data["source"].clone())?;
+    let path = std::path::absolute(directory)?;
+    nofy_agent_project::write_directory(&path, &source, None)?;
+    output.refs.insert(
+        "local_directory".into(),
+        Some(path.to_string_lossy().into_owned()),
+    );
+    Ok(())
+}
 pub async fn persist_output(
     engine: &Engine,
     op: &str,
