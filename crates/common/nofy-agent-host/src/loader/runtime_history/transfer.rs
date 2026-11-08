@@ -196,22 +196,9 @@ impl Control {
         Ok(())
     }
     fn preflight_directory(&self, directory: &Path) -> Result<()> {
-        let mut current = PathBuf::new();
-        for component in directory.components() {
-            current.push(component.as_os_str());
-            match current.symlink_metadata() {
-                Ok(meta) if !meta.is_dir() || meta.file_type().is_symlink() => {
-                    return Err(invalid(
-                        "runtime history destination must use real directory components",
-                    ));
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Err(storage::unavailable(e)),
-                _ => {}
-            }
-        }
-        Ok(())
+        preflight_directory_with(directory, |path| path.symlink_metadata())
     }
+
     fn plan_locked(&self, target: &BackendDefinition, now: u64) -> Result<(Plan, Pointer)> {
         let before = self.pointer()?;
         self.finish_tail(&before)?;
@@ -496,4 +483,46 @@ impl Control {
         self.write_record(&record, true)?;
         Ok(result)
     }
+}
+
+#[cfg(test)]
+mod preflight_tests;
+
+/// Query only complete disk/share roots, then every ancestor without following
+/// links. Keep other namespaces and drive-relative paths on their original path.
+fn preflight_directory_with(
+    directory: &Path,
+    mut metadata: impl FnMut(&Path) -> std::io::Result<std::fs::Metadata>,
+) -> Result<()> {
+    let mut current = PathBuf::new();
+    let mut components = directory.components().peekable();
+    while let Some(component) = components.next() {
+        current.push(component.as_os_str());
+        if let Component::Prefix(prefix) = component {
+            use std::path::Prefix;
+            if matches!(
+                prefix.kind(),
+                Prefix::Disk(_)
+                    | Prefix::VerbatimDisk(_)
+                    | Prefix::UNC(_, _)
+                    | Prefix::VerbatimUNC(_, _)
+            ) && matches!(components.peek(), Some(Component::RootDir))
+            {
+                // A bare verbatim disk prefix is a volume, not its root directory.
+                // The following RootDir is still queried, including for root-only paths.
+                continue;
+            }
+        }
+        match metadata(&current) {
+            Ok(meta) if !meta.is_dir() || meta.file_type().is_symlink() => {
+                return Err(invalid(
+                    "runtime history destination must use real directory components",
+                ));
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(storage::unavailable(e)),
+            _ => {}
+        }
+    }
+    Ok(())
 }
