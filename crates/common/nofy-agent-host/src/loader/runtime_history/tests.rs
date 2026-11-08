@@ -208,13 +208,100 @@ fn missing_authority_pointer_or_active_database_never_reopens_old_history() {
             Control::open(&control.host_root, &control.authority.origin).is_err(),
             "{file}"
         );
+        if file == "active.json" {
+            // Losing the pointer must also reject a still-live cached store on Windows.
+            assert!(store.path().is_err());
+            assert!(
+                SqliteStore::open_placed(
+                    &control.authority.origin,
+                    Arc::new(control.clone()),
+                    None,
+                )
+                .is_err()
+            );
+        }
     }
-    let dir = nofy_test_support::canonical_tempdir().unwrap();
-    let (control, store) = setup(&dir.path().join("host"));
-    std::fs::remove_file(store.path().unwrap()).unwrap();
-    assert!(store.path().is_err());
-    let origin = control.authority.origin.clone();
-    assert!(SqliteStore::open_placed(&origin, Arc::new(control), None).is_err());
+    for migrated in [false, true] {
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
+        let host = dir.path().join("host");
+        let (origin, active, pointer_file, pointer_bytes) = {
+            let (control, store) = setup(&host);
+            let origin = store.path().unwrap();
+            if migrated {
+                let target = backend(&dir.path().join("external"));
+                let plan = control.plan(&target, store.now_ms()).unwrap();
+                control
+                    .prepare("move", &target, &plan.fingerprint, &store)
+                    .unwrap();
+                control.apply("move", &plan.fingerprint, &store).unwrap();
+            }
+            let active = store.path().unwrap();
+            assert!(active.is_file());
+            assert!(origin.is_file());
+            assert_eq!(active != origin, migrated);
+            let pointer = control.pointer().unwrap();
+            assert!(pointer.initialized);
+            assert_eq!(pointer.active.path, active);
+            let pointer_file = control.root.join("active.json");
+            let pointer_bytes = std::fs::read(&pointer_file).unwrap();
+            (origin, active, pointer_file, pointer_bytes)
+        };
+        // Model a restart: no store, connection, or placement permit leaves the scope.
+        // Windows cannot unlink SQLite's open database handle.
+        std::fs::remove_file(&active).unwrap();
+        assert!(!active.try_exists().unwrap());
+        let control = Control::open(&host, &origin).unwrap();
+        assert_eq!(control.pointer().unwrap().active.path, active);
+        assert!(SqliteStore::open_placed(&origin, Arc::new(control), None).is_err());
+        assert!(!active.try_exists().unwrap());
+        assert_eq!(std::fs::read(&pointer_file).unwrap(), pointer_bytes);
+        if migrated {
+            assert!(origin.is_file());
+            assert_ne!(active, origin);
+        }
+    }
+}
+// Keep the original full name as a prefix: CI's existing substring filter selects both.
+#[cfg(unix)]
+#[tokio::test]
+async fn missing_authority_pointer_or_active_database_never_reopens_old_history_with_live_cached_store()
+ {
+    for migrated in [false, true] {
+        let dir = nofy_test_support::canonical_tempdir().unwrap();
+        let (control, store) = setup(&dir.path().join("host"));
+        let origin = store.path().unwrap();
+        if migrated {
+            let target = backend(&dir.path().join("external"));
+            let plan = control.plan(&target, store.now_ms()).unwrap();
+            control
+                .prepare("move", &target, &plan.fingerprint, &store)
+                .unwrap();
+            control.apply("move", &plan.fingerprint, &store).unwrap();
+        }
+        // Finish a real transaction so the cached connection follows the active generation.
+        let lease = store
+            .acquire("before-loss", "owner", std::time::Duration::from_secs(1))
+            .await
+            .unwrap();
+        store.release(&lease).await.unwrap();
+        let active = store.path().unwrap();
+        assert_eq!(active != origin, migrated);
+        // Unix permits unlink while the cached SQLite connection remains live.
+        std::fs::remove_file(&active).unwrap();
+        assert!(!active.try_exists().unwrap());
+        assert!(store.path().is_err());
+        assert!(
+            store
+                .acquire("after-loss", "owner", std::time::Duration::from_secs(1))
+                .await
+                .is_err()
+        );
+        assert!(SqliteStore::open_placed(&origin, Arc::new(control), None).is_err());
+        assert!(!active.try_exists().unwrap());
+        if migrated {
+            assert!(origin.is_file());
+        }
+    }
 }
 #[cfg(target_os = "linux")]
 #[test]
