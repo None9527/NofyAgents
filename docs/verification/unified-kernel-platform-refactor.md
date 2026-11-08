@@ -218,3 +218,36 @@ host/CLI 显式启用 runtime 的 sqlite、workflow、control-file，但根 work
 ## 后续验证授权与投递
 
 2026-11-08 后续获准将以上本批改动提交到公开仓库 None9527/NofyAgents 的独立测试分支，并创建草稿 PR 触发三端 CI；不改 main、不合并，不安装本机工具链。上文各批“尚未提交/推送/远程运行”是当批完成时的记录，后续真实 CI 结果会单独追加，不能预先视为三端通过。投递前远端 main 与本地基线同为 c958379f，34 个任务文件逐项检查，未发现凭据形态内容、构建产物或棘轮基线修改。
+
+
+# 第六批：首次三端原生执行与 Windows 阻塞
+
+日期：2026-11-08。公开验证 PR：[NofyAgents #1](https://github.com/None9527/NofyAgents/pull/1)。本节记录已发生的结果，不把总体 CI 红灯写成完成。
+
+## 已取得的原生证据
+
+首次 [run 42437265290](https://github.com/None9527/NofyAgents/actions/runs/42437265290) 对提交 97822c24 执行：
+
+- Linux、macOS、Windows 的 CPU 作业均通过，每端 3 项单位/溢出检查与 2 个集成入口（含 1 个 child helper）。
+- 三端共同内核均实际执行 44/44，分别为 42 个验收条目与 2 个 helper，failed/ignored/filtered/reported_skips 均为 0。重新解析三端原始材料的实际清单 parity 作业也通过。
+- Linux 工厂/策略/拒绝/目录/历史保护五组分别通过 5/6/1/11/3 项；macOS 分别通过 5/6/1/10/3 项。Windows 前三组通过 5/6/1，目录组 6 通过、1 失败，之后的历史保护步骤未执行，不能计为通过。
+- Linux 与 macOS 仓库外 offline consumer 均通过。Windows consumer 已完成真实编译、路径与 TOML 读取，但运行 main 线程时 STATUS_STACK_OVERFLOW（0xc00000fd）；不是离线缺包或编码失败。
+- 该 run 后来被新 head 的并发规则取消，未完成的 Linux 全 workspace 等检查不能当作通过。
+
+历史调整后的 head b312df1b 在 [run 42437860131](https://github.com/None9527/NofyAgents/actions/runs/42437860131) 再次出现相同两项 Windows 失败；三端共同内核/parity、CPU、Linux/macOS consumer 与目录门禁、Linux release gate 已通过。记录时长时间 workspace 测试尚未全部结束。PR 保持用户手动创建时的普通 open 状态，没有合并。
+
+## 已修复的目录测试反例
+
+Windows 的 canonical_tempdir 返回 verbatim 路径，PathBuf::join("../other") 会先消除父组件，测试实际送给 Factory 的已经是合法路径。生产校验没有漏掉原始的 ".."，是反例在进入被测函数前失真。
+
+测试改为在 OsString 中原样拼接宿主分隔符、".." 和 "other"，并先断言 ParentDir 组件仍存在，再检查 Factory 拒绝。Linux 目录 11 项通过；GitNexus 精确测试符号上游影响 LOW、无调用者。独立只读审查确认未修改生产权限、schema、恢复或隔离规则。修复后的 Windows 通过证据仍须来自下一次原生 CI。
+
+## 尚未解决的 SDK 小栈问题
+
+- 原始独立 consumer 在 Linux 单独子进程 RLIMIT_STACK=1MiB、RLIMIT_CORE=0 下也复现栈溢出。限制只作用于诊断子进程，没有修改全局环境或机器安全设置。
+- 原 debug 构建的 AgentHost::advance poll 单帧约 594KB，叠加 run_inner、Agent::run、drive 与嵌套 Agent/workflow/event 调用；RunState/RunOutcome 分别约 4392/4424 字节。数值只代表本次编译配置，不是跨平台固定 ABI 或所有调用的栈上限。
+- 仅拆 consumer、Box 私有 future、分段 advance、以及有限私有结果间接化的对照均没有让原 consumer 在 1MiB 栈下通过。虽然局部帧降低，不能据此宣称根因解决。
+- 所有这些无效生产和 fixture 实验均已精确撤回，原 consumer、生产执行链、公开 API 与 RunHost 契约保持原样。临时诊断日志/回溯器仅在忽略的 target 内，不进入提交。
+- 原有仓库配置 RUST_MIN_STACK=16MiB 只解释工作区测试线程条件，不能证明外部消费者的 Windows 默认主栈可用。本批未增加栈、切换 release 掩盖、跳过失败或降低安全准入。
+
+后续须针对默认小栈的实际嵌套调用制定有证据的内部调度/结果布局方案，独立审查取消、未知效果、权限 floor、预算与持久恢复，再重跑完整 runtime 回归和三端原生 consumer。Windows consumer 在此之前仍是明确发布阻塞；新增门禁保持红灯。

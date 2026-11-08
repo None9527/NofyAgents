@@ -25,6 +25,19 @@ fn preview_is_pure_and_rejects_unsafe_or_unknown_directory_configuration() {
             .is_ok()
     );
     assert!(!missing.exists());
+    // PathBuf::join normalizes ".." for Windows verbatim paths. Keep the raw
+    // declaration spelling so this remains an invalid-input test on every OS.
+    let mut traversal = public.path().as_os_str().to_os_string();
+    traversal.push(std::path::MAIN_SEPARATOR_STR);
+    traversal.push("..");
+    traversal.push(std::path::MAIN_SEPARATOR_STR);
+    traversal.push("other");
+    let traversal = PathBuf::from(traversal);
+    assert!(
+        traversal
+            .components()
+            .any(|part| part == std::path::Component::ParentDir)
+    );
     for value in [
         json!({"path":public.path().ancestors().last().unwrap(),"access":"read_only"}),
         json!({"path":"relative","access":"read_only"}),
@@ -32,7 +45,7 @@ fn preview_is_pure_and_rejects_unsafe_or_unknown_directory_configuration() {
         json!({"path":private.path().join("catalog"),"access":"read_only"}),
         json!({"path":private.path().parent().unwrap(),"access":"read_only"}),
         json!({"path":"/proc/self/fd/3","access":"read_only"}),
-        json!({"path":public.path().join("../other"),"access":"read_only"}),
+        json!({"path":traversal,"access":"read_only"}),
         json!({"path":public.path(),"access":"write"}),
         json!({"path":public.path(),"access":"read_only","unknown":true}),
     ] {
