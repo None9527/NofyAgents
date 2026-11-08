@@ -92,8 +92,8 @@ impl Worker {
         if self.retired || self.child.try_wait().map_err(|_| failed())?.is_some() {
             return Ok(true);
         }
-        cpu_seconds(self.pid)
-            .map(|seconds| seconds >= 540)
+        nofy_tty_utils::child_cpu_time(&self.child)
+            .map(|cpu| cpu.as_secs() >= 540)
             .map_err(|_| failed())
     }
     pub(super) async fn retire(&mut self) -> std::result::Result<(), Error> {
@@ -182,28 +182,4 @@ impl Worker {
             _ => Err(failed()),
         }
     }
-}
-#[cfg(target_os = "linux")]
-fn cpu_seconds(pid: u32) -> std::io::Result<u64> {
-    let mut clock = 0;
-    let mut time = libc::timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
-    // SAFETY: both outputs are valid initialized C ABI structures. The owned
-    // Child is not reaped/reused while this read runs under the slot mutex.
-    unsafe {
-        let result = libc::clock_getcpuclockid(pid as libc::pid_t, &mut clock);
-        if result != 0 {
-            return Err(std::io::Error::from_raw_os_error(result));
-        }
-        if libc::clock_gettime(clock, &mut time) != 0 {
-            return Err(std::io::Error::last_os_error());
-        }
-    }
-    u64::try_from(time.tv_sec).map_err(std::io::Error::other)
-}
-#[cfg(not(target_os = "linux"))]
-fn cpu_seconds(_: u32) -> std::io::Result<u64> {
-    Err(std::io::Error::other("Linux model confinement required"))
 }

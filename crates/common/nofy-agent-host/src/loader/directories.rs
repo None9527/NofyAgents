@@ -1,9 +1,10 @@
 //! Directory authority is explicit, immutable and independent of tool semantics.
 use super::*;
 use nofy_agent_runtime::{Error, registry::*, system::content_digest};
+use nofy_host_path::Syntax;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests;
 
 pub(super) const ENV_PREFIX: &str = "NOFY_DIRECTORY_";
@@ -23,33 +24,62 @@ pub(super) struct Grant {
     pub path: PathBuf,
     pub access: Access,
 }
+/// Pure declaration rules. Windows syntax can also be checked on Unix hosts.
+/// This grants no filesystem authority: Windows preflight remains unavailable,
+/// Unix preflight requires exact canonical equality, and Linux acquisition still
+/// checks the opened descriptor. Case folding is only a conservative deny rule
+/// for private overlap, never proof that a path is canonical or not a link.
+fn validate_path(path: &Path, private_root: &Path, syntax: Syntax) -> Result<()> {
+    use std::path::Component;
+    let unsafe_root = || HostError::Invalid("directory grant has an unsafe root".into());
+    let text = path.to_str().ok_or_else(unsafe_root)?;
+    let (invalid, private, reserved) = match syntax {
+        Syntax::Posix => (
+            // Preserve the existing directory contract, which is less strict
+            // than process_local's normalized path rule: backslashes are legal
+            // names, and Path components already normalize repeated separators,
+            // interior "." and trailing separators. Do not reject those here.
+            !path.is_absolute()
+                || path == Path::new("/")
+                || text.len() > 4096
+                || text.chars().any(char::is_control)
+                || path
+                    .components()
+                    .any(|part| !matches!(part, Component::RootDir | Component::Normal(_))),
+            path.starts_with(private_root) || private_root.starts_with(path),
+            ["/proc", "/sys", "/dev", "/run"]
+                .iter()
+                .any(|root| path.starts_with(root)),
+        ),
+        Syntax::Windows => (
+            syntax.check_normalized_absolute(text, 4096).is_err(),
+            private_root.to_str().is_none_or(|root| {
+                syntax.starts_with(text, root) || syntax.starts_with(root, text)
+            }),
+            false,
+        ),
+    };
+    if invalid || private || reserved {
+        return Err(unsafe_root());
+    }
+    Ok(())
+}
 impl Grant {
     fn validate(&self, private_root: &Path) -> Result<()> {
-        use std::path::Component;
-        if !self.path.is_absolute()
-            || self.path == Path::new("/")
-            || self
-                .path
-                .to_str()
-                .is_none_or(|s| s.len() > 4096 || s.chars().any(char::is_control))
-            || self
-                .path
-                .components()
-                .any(|part| !matches!(part, Component::RootDir | Component::Normal(_)))
-            || self.path.starts_with(private_root)
-            || private_root.starts_with(&self.path)
-            || ["/proc", "/sys", "/dev", "/run"]
-                .iter()
-                .any(|root| self.path.starts_with(root))
-        {
-            return Err(HostError::Invalid(
-                "directory grant has an unsafe root".into(),
-            ));
-        }
-        Ok(())
+        validate_path(&self.path, private_root, Syntax::HOST)
     }
     fn preflight(&self, private_root: &Path) -> Result<()> {
         self.validate(private_root)?;
+        // Protected history may retain an 8.3 spelling even after a generation
+        // is retired or missing. Neither lexical folding nor canonicalizing the
+        // live grant proves it is disjoint from that protected Windows alias.
+        // Keep declaration preview portable, but do not admit new authority
+        // until a native path-identity protocol can verify every protected root.
+        if cfg!(windows) {
+            return Err(HostError::Unavailable(
+                "directory authorization requires verified Windows protected-path identity".into(),
+            ));
+        }
         runtime_history::check_protected(private_root, &self.path)?;
         let canonical = std::fs::canonicalize(&self.path)
             .map_err(|_| HostError::Invalid("declared directory is unavailable".into()))?;

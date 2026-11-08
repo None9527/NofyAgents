@@ -39,6 +39,9 @@
 use std::collections::HashMap;
 use std::io;
 
+mod process_cpu;
+pub use process_cpu::child_cpu_time;
+
 mod process_resources;
 pub use process_resources::{ProcessResources, sample_process_memory, sample_process_resources};
 

@@ -53,11 +53,10 @@ impl Fixture {
             &json!({"cgroup_root":"/sys/fs/cgroup/absent-pure-tree/jobs"}),
             &Default::default(),
         )?;
-        let project = super::super::super::directories::Factory::new(self.private.path().into())
-            .build(
-                &json!({"path":self.public.path().join("missing"),"access":"read_only"}),
-                &Default::default(),
-            )?;
+        let project = crate::loader::directories::Factory::new(self.private.path().into()).build(
+            &json!({"path":self.public.path().join("missing"),"access":"read_only"}),
+            &Default::default(),
+        )?;
         TreeArtifactFactory.build(
             config,
             &[

@@ -10,13 +10,11 @@ use nofy_tool_runtime::{ToolCallContext, ToolDispatch, ToolError, ToolStream, Ty
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, process::Stdio, time::Duration};
-#[cfg(target_os = "linux")]
 pub(crate) mod sessions;
-#[cfg(target_os = "linux")]
 pub(in crate::loader) mod tree;
-#[cfg(target_os = "linux")]
+#[cfg(any(not(target_os = "linux"), test))]
+mod unavailable;
 pub(super) use sessions::{SessionFactory, StdioFactory, TerminalFactory};
-#[cfg(target_os = "linux")]
 pub(super) use tree::TreeArtifactFactory;
 
 pub(super) struct EnvironmentFactory(pub Loader);
@@ -601,3 +599,6 @@ mod tests {
         drop(held);
     }
 }
+
+#[cfg(test)]
+mod catalog_tests;
