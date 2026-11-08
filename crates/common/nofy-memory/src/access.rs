@@ -314,8 +314,8 @@ impl MemoryAccess {
     }
 
     fn topic_target(&self, relative_topic: &Path) -> Result<PathBuf, AccessError> {
-        let text = relative_topic.to_string_lossy().into_owned();
-        TopicPath::parse(text.clone()).map_err(|_| AccessError::InvalidPath(text.clone()))?;
+        TopicPath::from_native_path(relative_topic)
+            .map_err(|_| AccessError::InvalidPath(relative_topic.to_string_lossy().into_owned()))?;
         self.validate_write_path(&Path::new("topics").join(relative_topic))
     }
 
@@ -459,7 +459,7 @@ fn sync_rename(previous: &Path, next: &Path) -> std::io::Result<()> {
 
 fn scope_relative_string(root: &Path, path: &Path) -> Result<String, AccessError> {
     path.strip_prefix(root)
-        .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+        .map(crate::manifest::relative_text)
         .map_err(|_| AccessError::SymlinkEscape(path.display().to_string()))
 }
 

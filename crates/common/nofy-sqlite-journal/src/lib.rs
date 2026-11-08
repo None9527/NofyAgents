@@ -89,7 +89,7 @@ impl JournalMode {
         }
     }
 
-    /// The path actually opened for `db_path` under this mode.
+    /// The legacy physical-path mapping for `db_path` under this mode.
     ///
     /// `Wal` (local): unchanged. `Truncate` (network): a per-host sibling
     /// (`worktrees.db` → `worktrees.h-<host>.db`). Journal mode is a
@@ -105,6 +105,9 @@ impl JournalMode {
     /// callers may pre-resolve the path for sidecar file operations. Falls
     /// back to `db_path` unchanged (still TRUNCATE) if no hostname is
     /// available.
+    ///
+    /// This mapping is unchecked: renaming a non-Unicode basename can be
+    /// lossy. Use [`Self::checked_effective_db_path`] before opening storage.
     pub fn effective_db_path(self, db_path: &Path) -> PathBuf {
         if self != Self::Truncate {
             return db_path.to_path_buf();
@@ -132,16 +135,37 @@ impl JournalMode {
         db_path.with_file_name(new_name)
     }
 
+    /// Resolve the physical path without silently aliasing native basenames.
+    ///
+    /// Rejects a non-Unicode basename only when the legacy per-host mapping
+    /// changes the path. WAL, an unavailable hostname, and already-resolved
+    /// paths keep their existing behavior and bytes. Parent directories are
+    /// never converted to text.
+    ///
+    /// A rejected path may previously have opened a shared lossy filename.
+    /// This check does not infer its owner, migrate it, or open a replacement.
+    pub fn checked_effective_db_path(self, db_path: &Path) -> rusqlite::Result<PathBuf> {
+        let effective = self.effective_db_path(db_path);
+        if db_path
+            .file_name()
+            .is_some_and(|name| name.to_str().is_none())
+            && effective != db_path
+        {
+            return Err(rusqlite::Error::InvalidPath(db_path.to_path_buf()));
+        }
+        Ok(effective)
+    }
+
     /// Open (or create) a read-write connection with this journal mode
-    /// applied, at [`Self::effective_db_path`] (per-host on network mounts).
+    /// applied, at [`Self::checked_effective_db_path`] (per-host on network mounts).
     pub fn open(self, db_path: &Path) -> rusqlite::Result<rusqlite::Connection> {
-        let conn = rusqlite::Connection::open(self.effective_db_path(db_path))?;
+        let conn = rusqlite::Connection::open(self.checked_effective_db_path(db_path)?)?;
         self.apply_with_retry(&conn)?;
         Ok(conn)
     }
 
     /// Open a connection for read-only use, safely for this mode's
-    /// filesystem, at [`Self::effective_db_path`] (per-host on network
+    /// filesystem, at [`Self::checked_effective_db_path`] (per-host on network
     /// mounts — until a read-write open creates that file, this errors and
     /// callers fall back to their defaults). Errors if the database file
     /// does not exist (never creates it).
@@ -172,7 +196,8 @@ impl JournalMode {
             // Read-write (no CREATE): the conversion needs a writable fd.
             Self::Truncate => OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         };
-        let conn = rusqlite::Connection::open_with_flags(self.effective_db_path(db_path), flags)?;
+        let conn =
+            rusqlite::Connection::open_with_flags(self.checked_effective_db_path(db_path)?, flags)?;
         // Readers can hit SQLITE_BUSY too (peer recovery, a rollback writer's
         // exclusive window), and the conversion below requires a busy handler.
         conn.busy_timeout(BUSY_TIMEOUT)?;

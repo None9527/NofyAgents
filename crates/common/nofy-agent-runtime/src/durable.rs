@@ -121,7 +121,7 @@ impl SqliteStore {
             ));
         }
         let mode = nofy_sqlite_journal::JournalMode::for_db_path(path);
-        let anchor = mode.effective_db_path(path);
+        let anchor = mode.checked_effective_db_path(path).map_err(db_error)?;
         placement::check(&anchor, placement.as_deref(), false)?;
         let permit = placement.as_ref().map(|p| p.acquire()).transpose()?;
         let effective = permit
