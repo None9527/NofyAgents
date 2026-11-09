@@ -1,0 +1,82 @@
+name: Opt-in managed SDK consumer
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-consumer:
+    name: opt-in managed consumer on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify the managed evidence checker and its negative cases
+        run: |
+          python - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover("scripts/tests", pattern="test_verify_agent_managed_consumer.py")
+          if suite.countTestCases() < 57:
+              raise SystemExit("Missing managed verifier tests")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped:
+              raise SystemExit("Managed verifier tests failed or skipped")
+          PY
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Test the public managed entry contract
+        run: cargo test --locked -p nofy-agent-runtime --test managed_entry
+      - name: Check the public managed entry example
+        run: cargo check --locked -p nofy-agent-runtime --example managed_entry
+      - name: Build and execute the complete opt-in managed consumer natively
+        run: >-
+          python scripts/verify-agent-managed-consumer.py collect
+          --runner "${{ matrix.os }}"
+          --output "$RUNNER_TEMP/nofy-opt-in-managed-evidence"
+          --fetch
+      - name: Retain managed-mode source, generated harness, and actual execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opt-in-managed-consumer-${{ matrix.os }}
+          path: ${{ runner.temp }}/nofy-opt-in-managed-evidence/
+          if-no-files-found: error
+
+  managed-consumer-parity:
+    name: opt-in managed consumer native parity
+    needs: managed-consumer
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require successful execution on every native matrix member
+        env:
+          MATRIX_RESULT: ${{ needs.managed-consumer.result }}
+        run: test "$MATRIX_RESULT" = success
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: opt-in-managed-consumer-*
+          path: ${{ runner.temp }}/nofy-opt-in-managed-platforms
+      - name: Require matching business scenarios, features, and source on all three platforms
+        run: >-
+          python scripts/verify-agent-managed-consumer.py compare
+          "$RUNNER_TEMP/nofy-opt-in-managed-platforms"
