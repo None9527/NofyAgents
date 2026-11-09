@@ -38,6 +38,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Test diagnostic orchestration and negative cases
+        env:
+          NOFY_STACK_DIAGNOSTIC_REFERENCE: ${{ github.workspace }}/source-under-test
         run: >-
           python -m unittest discover
           -s "$env:GITHUB_WORKSPACE/diagnostic-control/scripts/tests"

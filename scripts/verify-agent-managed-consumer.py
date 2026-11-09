@@ -16,7 +16,7 @@ import time
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-MODE = "opt-in-managed-16mib-current-thread"
+MODE = "opt-in-sdk-managed-16mib-current-thread"
 STACK_BYTES = 16 * 1024 * 1024
 PACKAGE = "nofy-opt-in-managed-consumer"
 RUNNERS = {"ubuntu-24.04": "Linux", "macos-latest": "Darwin", "windows-latest": "Windows"}
@@ -29,44 +29,35 @@ FORBIDDEN = {"nofy-agent-host", "nofy-shell", "nofy-tools", "nofy-agent",
              "nofy-daemon", "nofy-pager", "nofy-workspace", "nofy-acp",
              "nofy-sandbox", "nofy-workflow", "nofy-orchestra"}
 ENTRY = '#[tokio::main(flavor = "current_thread")]\nasync fn main() -> Result<(), Error> {'
-RENAMED = '#[tokio::main(flavor = "current_thread")]\nasync fn managed_consumer_body() -> Result<(), Error> {'
+RENAMED = 'async fn managed_consumer_body() -> Result<(), Error> {'
 WRAPPER = """
 // Generated opt-in harness. Business body above is otherwise byte-for-byte unchanged.
-fn main() -> std::process::ExitCode {
-    let thread = std::thread::Builder::new()
-        .name("nofy-managed-consumer".into())
-        .stack_size(16 * 1024 * 1024)
-        .spawn(|| {
-            // The runtime, application data and future are FIRST constructed here.
-            // No runtime or application future is created on the OS main stack.
-            // Keep the original tokio::main macro and its runtime configuration.
-            // Calling its synchronous expansion here creates the one runtime/future.
-            let result = managed_consumer_body();
-            // Runtime has dropped before reporting completion. Errors stay here.
-            let code = std::process::Termination::report(result);
-            if code == std::process::ExitCode::SUCCESS {
-                    println!("{}", serde_json::json!({
-                        "managed_harness": "opt-in-managed-16mib-current-thread",
-                        "stack_bytes": 16777216,
-                        "runtime": "current_thread",
-                        "runtime_dropped": true,
-                        "thread_name": std::thread::current().name().unwrap()
-                    }));
-            }
-            code
-        });
-    match thread {
-        Ok(thread) => match thread.join() {
-            Ok(code) => code,
-            Err(panic) => std::panic::resume_unwind(panic),
-        },
-        Err(error) => std::process::Termination::report(Result::<(), _>::Err(error)),
+struct ManagedCompletion(Result<(), Error>);
+impl std::process::Termination for ManagedCompletion {
+    fn report(self) -> std::process::ExitCode {
+        // The public SDK invokes report only after dropping its runtime.
+        let code = std::process::Termination::report(self.0);
+        if code == std::process::ExitCode::SUCCESS {
+            println!("{}", serde_json::json!({
+                "managed_harness": "opt-in-sdk-managed-16mib-current-thread",
+                "stack_bytes": nofy_agent_runtime::managed::STACK_BYTES,
+                "runtime": "current_thread",
+                "runtime_dropped": true,
+                "thread_name": std::thread::current().name().unwrap()
+            }));
+        }
+        code
     }
+}
+fn main() -> std::process::ExitCode {
+    nofy_agent_runtime::managed::run(|| async {
+        ManagedCompletion(managed_consumer_body().await)
+    })
 }
 """
 MARKER = {"managed_harness": MODE, "stack_bytes": STACK_BYTES,
           "runtime": "current_thread", "runtime_dropped": True,
-          "thread_name": "nofy-managed-consumer"}
+          "thread_name": "nofy-sdk-main"}
 
 
 def require(condition, message):

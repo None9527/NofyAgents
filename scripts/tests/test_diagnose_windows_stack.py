@@ -14,7 +14,9 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("diagnostic", HERE.parent / "diagnose-windows-stack.py")
 d = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(d)
-REFERENCE = HERE.parents[1]
+# CI already checks out the immutable diagnostic source separately. Local runs
+# use this repository's historical objects, never the evolving managed SDK entry.
+REFERENCE = Path(os.environ.get("NOFY_STACK_DIAGNOSTIC_REFERENCE", HERE.parents[1]))
 
 
 def synthetic_pe(plus=True, reserve=1048576, commit=4096):
@@ -32,7 +34,8 @@ def synthetic_pe(plus=True, reserve=1048576, commit=4096):
 class DiagnosticTests(unittest.TestCase):
     def test_collector_anchors_match_reference_blobs(self):
         for path, sha in d.ANCHORS.items():
-            self.assertEqual(d.blob_sha((REFERENCE / path).read_bytes().replace(b"\r\n", b"\n")), sha, path)
+            source = d.git(REFERENCE, "show", f"{d.SOURCE_SHA}:{path}")
+            self.assertEqual(d.blob_sha(source), sha, path)
 
     def test_entire_original_body_unchanged_except_entry_name(self):
         source = (REFERENCE / d.FIXTURE / "src/main.rs").read_bytes().replace(b"\r\n", b"\n")

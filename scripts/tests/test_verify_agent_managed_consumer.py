@@ -24,13 +24,16 @@ class HarnessTests(unittest.TestCase):
     def test_only_entry_name_and_appended_wrapper_change(self):
         generated = M.generate_harness(self.source)
         self.assertEqual(generated.removesuffix(M.WRAPPER).replace(M.RENAMED, M.ENTRY), self.source)
-        self.assertEqual(generated.count('#[tokio::main(flavor = "current_thread")]'), 1)
-        self.assertEqual(generated.count("managed_consumer_body();"), 1)
+        self.assertNotIn("#[tokio::main", generated)
+        self.assertEqual(generated.count("managed_consumer_body().await"), 1)
+        self.assertEqual(M.WRAPPER.count("nofy_agent_runtime::managed::run(|| async"), 1)
+        self.assertIn("nofy_agent_runtime::managed::STACK_BYTES", M.WRAPPER)
+        self.assertIn("impl std::process::Termination for ManagedCompletion", M.WRAPPER)
         self.assertNotIn("Runtime::", M.WRAPPER)
         self.assertNotIn("new_current_thread", M.WRAPPER)
-        self.assertLess(M.WRAPPER.index(".spawn(||"), M.WRAPPER.index("managed_consumer_body();"))
-        self.assertIn(".stack_size(16 * 1024 * 1024)", M.WRAPPER)
-        self.assertIn("std::panic::resume_unwind(panic)", M.WRAPPER)
+        self.assertNotIn("std::thread::Builder", M.WRAPPER)
+        self.assertNotIn(".stack_size(", M.WRAPPER)
+        self.assertNotIn(".spawn(", M.WRAPPER)
 
     def test_missing_entry(self):
         with self.assertRaises(ValueError):
