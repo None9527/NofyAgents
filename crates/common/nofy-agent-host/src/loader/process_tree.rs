@@ -69,8 +69,10 @@ impl Config {
             .cgroup_root
             .to_str()
             .ok_or_else(|| HostError::Invalid("cgroup root must be UTF-8".into()))?;
-        if !cfg!(target_os = "linux")
-            || path.len() > 4096
+        // This is the legacy Linux binding's syntax, not an enforcement probe.
+        // Declaration checks are portable; preflight below still requires the
+        // actual delegated controller and refuses unsupported native backends.
+        if path.len() > 4096
             || !path.starts_with("/sys/fs/cgroup/")
             || path
                 .split('/')
@@ -91,9 +93,10 @@ impl Config {
         }
         #[cfg(not(target_os = "linux"))]
         {
-            Err(HostError::Unavailable(
-                "process-tree control requires Linux cgroup v2".into(),
-            ))
+            Err(HostError::Unavailable(format!(
+                "{}: legacy process-tree control requires Linux cgroup v2",
+                nofy_isolation::ERROR_CODE
+            )))
         }
     }
 }

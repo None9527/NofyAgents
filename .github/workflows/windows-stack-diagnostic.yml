@@ -1,0 +1,81 @@
+# Independent evidence collection only. Existing gates and business code are unchanged.
+name: Windows stack diagnostic (not a consumer gate)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/windows-stack-diagnostic.yml'
+      - 'scripts/diagnose-windows-stack.py'
+      - 'scripts/tests/test_diagnose_windows_stack.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-stack-diagnostic:
+    name: Collect stack comparison and original-fixture control
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Read diagnostic code from the actual PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: diagnostic-control
+          persist-credentials: false
+      - name: Read immutable source under test
+        uses: actions/checkout@v4
+        with:
+          repository: None9527/NofyAgents
+          ref: 5844138f8d748ffe183c9ed1124cadcf023224d3
+          path: source-under-test
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test diagnostic orchestration and negative cases
+        env:
+          NOFY_STACK_DIAGNOSTIC_REFERENCE: ${{ github.workspace }}/source-under-test
+        run: >-
+          python -m unittest discover
+          -s "$env:GITHUB_WORKSPACE/diagnostic-control/scripts/tests"
+          -p test_diagnose_windows_stack.py -v
+      - name: Install pinned native compiler
+        run: rustup toolchain install 1.94.0-x86_64-pc-windows-msvc --profile minimal --no-self-update
+      - name: Collect one binary in three processes, then the original fixture separately
+        run: >-
+          python "$env:GITHUB_WORKSPACE/diagnostic-control/scripts/diagnose-windows-stack.py"
+          collect --execute-windows
+          --source-root "$env:GITHUB_WORKSPACE/source-under-test"
+          --output "$env:RUNNER_TEMP/nofy-windows-stack-diagnostic"
+          --run-timeout 120
+      - name: Retain executables, lock, source, metadata, PE fields, exits and raw outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nofy-windows-stack-diagnostic-5844138f
+          path: ${{ runner.temp }}/nofy-windows-stack-diagnostic/evidence/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Summarize outcomes without claiming the original gate passes
+        if: always()
+        run: |
+          "Diagnostic collection is not a consumer gate pass or a fix. Existing gates are unchanged." >> $env:GITHUB_STEP_SUMMARY
+          $result = "$env:RUNNER_TEMP/nofy-windows-stack-diagnostic/evidence/result.json"
+          if (Test-Path $result) {
+            $report = Get-Content -Raw $result | ConvertFrom-Json
+            "Collection status: $($report.status). Source: $($report.source_sha)." >> $env:GITHUB_STEP_SUMMARY
+            foreach ($mode in @('main', '1mib', '16mib')) {
+              $run = $report.runs.$mode
+              "$mode : exit=$($run.exit_u32_hex), timeout=$($run.timeout), process and business pass=$($run.process_and_business_pass)." >> $env:GITHUB_STEP_SUMMARY
+            }
+            $original = $report.original_fixture
+            "Original fixture (separate executable): exit=$($original.exit_u32_hex), timeout=$($original.timeout), process and business pass=$($original.process_and_business_pass)." >> $env:GITHUB_STEP_SUMMARY
+            if ($report.error) { "Collection error: $($report.error)" >> $env:GITHUB_STEP_SUMMARY }
+          } else {
+            "No collection result was produced. See the failed step; no execution result is implied." >> $env:GITHUB_STEP_SUMMARY
+          }

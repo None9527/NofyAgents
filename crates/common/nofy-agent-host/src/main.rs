@@ -1,3 +1,5 @@
+mod managed_entry;
+
 use clap::Parser;
 use nofy_agent_host::loader::deployment::DeploymentFile;
 use nofy_agent_host::{
@@ -45,7 +47,7 @@ struct Args {
     #[arg(long)]
     module_dir: Vec<String>,
 }
-fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+fn main() -> std::process::ExitCode {
     #[cfg(target_os = "linux")]
     if let Some(code) = nofy_agent_host::loader::process_tree::worker_entry() {
         std::process::exit(code);
@@ -53,11 +55,16 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if let Some(code) = nofy_agent_host::loader::isolation::worker_entry() {
         std::process::exit(code);
     }
-    tokio::runtime::Builder::new_multi_thread()
-        .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
-        .enable_all()
-        .build()?
-        .block_on(run())
+    managed_entry::run(
+        nofy_agent_host::WORKER_STACK_BYTES,
+        || -> std::result::Result<(), Box<dyn std::error::Error>> {
+            tokio::runtime::Builder::new_multi_thread()
+                .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
+                .enable_all()
+                .build()?
+                .block_on(run())
+        },
+    )
 }
 async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();

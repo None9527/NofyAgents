@@ -34,6 +34,175 @@ jobs:
       - name: Release checks
         run: bash scripts/check-release.sh
 
+  # A bounded native gate for the process adapter, independent of unfinished
+  # whole-workspace portability. All OSes run the same features and tests; no
+  # capability skips or allowed failures can turn missing CPU accounting green.
+  process-accounting:
+    name: process CPU accounting on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify native CPU units and overflow handling
+        run: cargo test --locked -p nofy-tty-utils --all-features --lib process_cpu::tests
+      - name: Verify owned-child accounting natively
+        run: cargo test --locked -p nofy-tty-utils --all-features --test process_cpu
+
+  # Shared declaration/catalog checks must run natively, even where execution
+  # is intentionally refused. Keep legacy descriptors and error envelopes.
+  factory-catalog:
+    name: process factory catalog on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure skip report
+        run: |
+          report="$RUNNER_TEMP/nofy-factory-skips.log"
+          : > "$report"
+          test -w "$report"
+          echo "NOFY_SKIP_REPORT=$report" >> "$GITHUB_ENV"
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Record the native acceptance test inventory
+        run: |
+          for filter in loader::factories::catalog_tests process_policy loader::factories::unavailable loader::directories::tests loader::runtime_history::protection::tests; do
+            echo "=== $filter ==="
+            cargo test --locked -p nofy-agent-host --all-features --lib "$filter" -- --list
+          done | tee "$RUNNER_TEMP/nofy-factory-test-list.txt"
+      - name: Verify shared catalog and public activation boundary
+        run: cargo test --locked -p nofy-agent-host --all-features --lib loader::factories::catalog_tests
+      - name: Verify portable policy and compatibility identities
+        run: cargo test --locked -p nofy-agent-host --all-features --lib process_policy
+      - name: Verify no missing-backend execution fallback
+        run: cargo test --locked -p nofy-agent-host --all-features --lib loader::factories::unavailable
+      - name: Verify native directory declaration and authority boundary
+        run: cargo test --locked -p nofy-agent-host --all-features --lib loader::directories::tests
+      - name: Verify external runtime history remains private
+        run: cargo test --locked -p nofy-agent-host --all-features --lib loader::runtime_history::protection::tests
+      - name: Verify native runtime history preflight and transfer regressions
+        run: |
+          set -euo pipefail
+          filters=(
+            loader::runtime_history::transfer::preflight_tests
+            loader::runtime_history::tests::cached_stores_follow_real_generations_and_reverse_copies_latest_history
+            loader::runtime_history::tests::recover_each_durable_cut_by_original_command_after_real_process_exit
+            loader::runtime_history::tests::abort_releases_exact_retirement_and_preserves_partial_copies
+            loader::runtime_history::tests::missing_authority_pointer_or_active_database_never_reopens_old_history
+            loader::runtime_history::tests::incomplete_unpublished_drafts_do_not_grant_authority_or_block_history_transfer
+          )
+          for filter in "${filters[@]}"; do
+            inventory="$RUNNER_TEMP/nofy-history-inventory.txt"
+            result="$RUNNER_TEMP/nofy-history-result.txt"
+            cargo test --locked -p nofy-agent-host --all-features --lib "$filter" -- --list | tee "$inventory"
+            grep -Eq ': test$' "$inventory"
+            cat "$inventory" >> "$RUNNER_TEMP/nofy-factory-test-list.txt"
+            cargo test --locked -p nofy-agent-host --all-features --lib "$filter" | tee "$result"
+            grep -Eq '^test result: ok[.] [1-9][0-9]* passed; 0 failed; 0 ignored;' "$result"
+            if grep -Eq '^test result:.*[1-9][0-9]* ignored;' "$result"; then
+              exit 1
+            fi
+          done
+      - name: Reject skipped acceptance checks
+        if: always()
+        run: |
+          test -f "$NOFY_SKIP_REPORT"
+          if [ -s "$NOFY_SKIP_REPORT" ]; then
+            cat "$NOFY_SKIP_REPORT"
+            exit 1
+          fi
+
+      - name: Retain native test inventory and skip evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-acceptance-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/nofy-factory-test-list.txt
+            ${{ runner.temp }}/nofy-factory-skips.log
+          if-no-files-found: error
+
+  # Five portable runtime targets, not the runtime crate's Unix-only suites.
+  # Native execution plus an actual inventory comparison are both required.
+  shared-kernel:
+    name: shared kernel contracts on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test the evidence checker, including rejected evidence
+        run: python -m unittest discover -s scripts -p test_verify_shared_kernel.py
+      - name: Install pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Collect and verify native shared-kernel inventory and results
+        run: python scripts/verify-shared-kernel.py collect "$RUNNER_TEMP/nofy-shared-kernel" --runner "${{ matrix.os }}"
+      - name: Test the independent-consumer runner
+        run: python -m unittest discover -s scripts/tests -p test_verify_agent_independent_consumer.py
+      - name: Verify the runtime as an independent offline consumer
+        run: python scripts/verify-agent-independent-consumer.py --output "$RUNNER_TEMP/nofy-independent-consumer"
+      - name: Retain independent-consumer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-consumer-${{ matrix.os }}
+          path: ${{ runner.temp }}/nofy-independent-consumer/
+          if-no-files-found: error
+      - name: Retain native inventory, results, exit codes, and skip evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-kernel-${{ matrix.os }}
+          path: ${{ runner.temp }}/nofy-shared-kernel/
+          if-no-files-found: error
+
+  shared-kernel-parity:
+    name: shared kernel actual inventory parity
+    needs: shared-kernel
+    # A failed matrix member must produce a failed comparison, not a skipped gate.
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shared-kernel-*
+          path: ${{ runner.temp }}/nofy-shared-kernel-platforms
+      - name: Require all three successful native inventories to match
+        run: python scripts/verify-shared-kernel.py compare "$RUNNER_TEMP/nofy-shared-kernel-platforms"
+
   clippy:
     name: clippy (warnings are errors)
     runs-on: ubuntu-24.04

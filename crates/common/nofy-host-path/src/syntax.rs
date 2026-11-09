@@ -311,6 +311,9 @@ mod windows {
             .filter(|name| !name.is_empty() && (verbatim || *name != "."))
             .collect();
         let (kind, prefix) = match parsed.kind {
+            // Ordinary UNC prefixes accept either separator, just like their
+            // remaining components. Verbatim prefixes keep `/` as a name.
+            Prefix::Unc => (Prefix::Unc, parsed.prefix.replace('/', "\\")),
             Prefix::VerbatimDrive => (Prefix::Drive, parsed.prefix[4..].to_owned()),
             Prefix::VerbatimUnc => (Prefix::Unc, format!(r"\\{}", &parsed.prefix[8..])),
             kind => (kind, parsed.prefix.to_owned()),

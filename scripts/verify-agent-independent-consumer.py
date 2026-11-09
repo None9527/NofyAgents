@@ -3,10 +3,25 @@
 import argparse
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
+import re
 import shutil
 import subprocess
 import tempfile
+
+
+def relocate_dependency_paths(text: str, root: PurePath) -> str:
+    """Relocate the fixture's crate dependencies without changing path contents."""
+    def replace_path(match: re.Match) -> str:
+        path = str(root / "crates" / match[2])
+        # JSON escapes are valid in TOML basic strings. Keep Unicode scalar
+        # values intact (ASCII encoding would produce invalid surrogate pairs),
+        # and escape DEL, which JSON allows literally but TOML forbids.
+        encoded = json.dumps(path, ensure_ascii=False).replace("\x7f", "\\u007f")
+        return match[1] + encoded
+
+    return re.sub(r'(\bpath\s*=\s*)"\.\./\.\./crates/([^"\\\r\n]+)"',
+                  replace_path, text)
 
 
 def main():
@@ -21,15 +36,15 @@ def main():
                         ignore=shutil.ignore_patterns("target", "Cargo.lock"))
         shutil.copy2(root / "rust-toolchain.toml", consumer / "rust-toolchain.toml")
         manifest = consumer / "Cargo.toml"
-        text = manifest.read_text()
-        text = text.replace('path = "../../crates/', 'path = "' + str(root / "crates") + '/')
-        manifest.write_text(text)
+        text = manifest.read_text(encoding="utf-8")
+        manifest.write_text(relocate_dependency_paths(text, root), encoding="utf-8")
         env = os.environ.copy()
         env["CARGO_TARGET_DIR"] = str(root / "target")
         command = ["cargo", "run", "--offline", "--manifest-path", str(manifest)]
-        result = subprocess.run(command, cwd=consumer, env=env, text=True, capture_output=True)
-        (args.output / "stdout.log").write_text(result.stdout)
-        (args.output / "stderr.log").write_text(result.stderr)
+        result = subprocess.run(command, cwd=consumer, env=env, text=True,
+                                encoding="utf-8", capture_output=True)
+        (args.output / "stdout.log").write_text(result.stdout, encoding="utf-8")
+        (args.output / "stderr.log").write_text(result.stderr, encoding="utf-8")
         if result.returncode:
             raise SystemExit(f"consumer failed; inspect {args.output / 'stderr.log'}")
         report = json.loads(result.stdout.strip().splitlines()[-1])
@@ -45,14 +60,15 @@ def main():
         assert report["file_catalog"] is True, report
         tree = subprocess.run(["cargo", "tree", "--offline", "--manifest-path", str(manifest),
                                "--edges", "normal", "--prefix", "none"],
-                              cwd=consumer, env=env, check=True, text=True, capture_output=True)
-        (args.output / "dependencies.txt").write_text(tree.stdout)
+                              cwd=consumer, env=env, check=True, text=True,
+                              encoding="utf-8", capture_output=True)
+        (args.output / "dependencies.txt").write_text(tree.stdout, encoding="utf-8")
         names = {line.split()[0] for line in tree.stdout.splitlines() if line.strip()}
         forbidden = {"nofy-shell", "nofy-tools", "nofy-agent", "nofy-daemon", "nofy-pager",
                      "nofy-workspace", "nofy-acp", "nofy-sandbox", "nofy-workflow", "nofy-orchestra"}
         assert not names & forbidden, names & forbidden
         report.update({"outside_workspace": True, "dependency_boundary": "passed"})
-        (args.output / "result.json").write_text(json.dumps(report, indent=2))
+        (args.output / "result.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(json.dumps(report, indent=2))
 
 

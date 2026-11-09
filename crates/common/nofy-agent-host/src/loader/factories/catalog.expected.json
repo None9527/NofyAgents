@@ -1,0 +1,400 @@
+[
+  {
+    "config_schema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "dependencies": {
+      "session": "resource"
+    },
+    "factory": "resource.mcp_stdio",
+    "input_schema": null,
+    "kind": "resource",
+    "output_schema": null,
+    "required_capabilities": [],
+    "revision": "artifact-process-v1"
+  },
+  {
+    "config_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "address_space_bytes": {
+          "maximum": 17179869184,
+          "minimum": 67108864,
+          "type": "integer"
+        },
+        "cpu_seconds": {
+          "maximum": 600,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "filesystem_mode": {
+          "default": "full_access",
+          "enum": [
+            "read_only",
+            "workspace_write",
+            "full_access"
+          ]
+        },
+        "network_proxy": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "allowed": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "allow_private": {
+                        "type": "boolean"
+                      },
+                      "host": {
+                        "maxLength": 253,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "ports": {
+                        "items": {
+                          "maximum": 65535,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "maxItems": 64,
+                        "minItems": 1,
+                        "type": "array",
+                        "uniqueItems": true
+                      }
+                    },
+                    "required": [
+                      "host",
+                      "ports"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "idle_timeout_ms": {
+                  "maximum": 120000,
+                  "minimum": 100,
+                  "type": "integer"
+                },
+                "max_bytes_per_connection": {
+                  "maximum": 1073741824,
+                  "minimum": 1024,
+                  "type": "integer"
+                },
+                "max_connections": {
+                  "maximum": 32,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "allowed"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "writable_directories": {
+          "items": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
+    "dependencies": {},
+    "factory": "resource.process_namespace_limits",
+    "input_schema": null,
+    "kind": "resource",
+    "output_schema": null,
+    "required_capabilities": [],
+    "revision": "1"
+  },
+  {
+    "config_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "items": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "maxItems": 120,
+          "type": "array"
+        },
+        "columns": {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "directories": {
+          "additionalProperties": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxProperties": 8,
+          "type": "object"
+        },
+        "entrypoint": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "max_output_bytes": {
+          "maximum": 8388608,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "rows": {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "timeout_ms": {
+          "maximum": 86400000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "entrypoint"
+      ],
+      "type": "object"
+    },
+    "dependencies": {
+      "artifact": "resource",
+      "environment": "resource",
+      "limits": "resource"
+    },
+    "factory": "resource.process_session",
+    "input_schema": null,
+    "kind": "resource",
+    "output_schema": null,
+    "required_capabilities": [],
+    "revision": "artifact-process-v1"
+  },
+  {
+    "config_schema": {
+      "$defs": {
+        "binding": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "input"
+                },
+                "pointer": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "literal"
+                },
+                "value": {}
+              },
+              "required": [
+                "kind",
+                "value"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "fields": {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/binding"
+                  },
+                  "type": "object"
+                },
+                "kind": {
+                  "const": "object"
+                }
+              },
+              "required": [
+                "kind",
+                "fields"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "$ref": "#/$defs/binding"
+                  },
+                  "type": "array"
+                },
+                "kind": {
+                  "const": "array"
+                }
+              },
+              "required": [
+                "kind",
+                "items"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "items": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "type": "array"
+        },
+        "contract": {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "effect": {
+              "enum": [
+                "unknown",
+                "read_only",
+                "idempotent",
+                "non_idempotent"
+              ]
+            },
+            "input_schema": {
+              "type": [
+                "object",
+                "boolean"
+              ]
+            },
+            "max_input_bytes": {
+              "maximum": 8388608,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_output_bytes": {
+              "maximum": 8388608,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "output_pointer": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "output_schema": {
+              "type": [
+                "object",
+                "boolean"
+              ]
+            },
+            "timeout_ms": {
+              "maximum": 600000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
+        "directories": {
+          "additionalProperties": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxProperties": 8,
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]{0,31}$"
+          },
+          "type": "object"
+        },
+        "entrypoint": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "input": {
+          "$ref": "#/$defs/binding"
+        }
+      },
+      "required": [
+        "contract",
+        "entrypoint"
+      ],
+      "type": "object"
+    },
+    "dependencies": {
+      "artifact": "resource",
+      "environment": "resource",
+      "tree": "resource"
+    },
+    "factory": "tool.process_tree_artifact",
+    "input_schema": null,
+    "kind": "tool_pack",
+    "output_schema": null,
+    "required_capabilities": [],
+    "revision": "confined-process-tree-v2"
+  },
+  {
+    "config_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 4096,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "dependencies": {
+      "session": "resource"
+    },
+    "factory": "tool.terminal",
+    "input_schema": null,
+    "kind": "tool_pack",
+    "output_schema": null,
+    "required_capabilities": [],
+    "revision": "artifact-process-v1"
+  }
+]

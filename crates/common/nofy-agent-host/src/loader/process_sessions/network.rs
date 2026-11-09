@@ -1,7 +1,6 @@
 //! The guest has only loopback. Only this host broker owns outbound sockets.
 use super::*;
 use std::{
-    collections::BTreeSet,
     net::{IpAddr, SocketAddr},
     os::fd::OwnedFd,
     time::Duration,
@@ -12,71 +11,11 @@ mod guest;
 pub(in crate::loader) use guest::{loopback, spawn_proxy};
 pub(in crate::loader) const FD: i32 = 199;
 pub(in crate::loader) const PORT: u16 = 19753;
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Destination {
-    pub host: String,
-    pub ports: BTreeSet<u16>,
-    #[serde(default)]
-    pub allow_private: bool,
-}
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
-pub struct Config {
-    pub allowed: Vec<Destination>,
-    pub max_connections: u16,
-    pub max_bytes_per_connection: u64,
-    pub idle_timeout_ms: u64,
-}
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            allowed: vec![],
-            max_connections: 16,
-            max_bytes_per_connection: 16 * 1024 * 1024,
-            idle_timeout_ms: 30000,
-        }
-    }
-}
-fn invalid() -> HostError {
-    HostError::Invalid("invalid network proxy policy".into())
-}
+#[allow(unused_imports)]
+pub(in crate::loader) use crate::loader::process_policy::network::schema;
+pub use crate::loader::process_policy::network::{Config, Destination};
+
 impl Config {
-    pub fn validate(&self) -> Result<()> {
-        if self.allowed.is_empty()
-            || self.allowed.len() > 64
-            || !(1..=32).contains(&self.max_connections)
-            || !(1024..=1024 * 1024 * 1024).contains(&self.max_bytes_per_connection)
-            || !(100..=120000).contains(&self.idle_timeout_ms)
-        {
-            return Err(invalid());
-        }
-        let mut seen = BTreeSet::new();
-        for rule in &self.allowed {
-            let host = rule.host.strip_prefix("*.").unwrap_or(&rule.host);
-            if host.is_empty()
-                || host.len() > 253
-                || host != host.to_ascii_lowercase()
-                || host.ends_with('.')
-                || host.chars().any(|c| c.is_whitespace() || c.is_control())
-                || rule.ports.is_empty()
-                || rule.ports.len() > 64
-                || rule.ports.contains(&0)
-                || !seen.insert(&rule.host)
-                || (host
-                    .trim_start_matches('[')
-                    .trim_end_matches(']')
-                    .parse::<IpAddr>()
-                    .is_err()
-                    && url::Host::parse(host).is_err())
-                || (rule.host.starts_with("*.")
-                    && (host.parse::<IpAddr>().is_ok() || !host.contains('.')))
-            {
-                return Err(invalid());
-            }
-        }
-        Ok(())
-    }
     fn destination(&self, host: &str, port: u16) -> Option<&Destination> {
         self.allowed.iter().find(|rule| {
             rule.ports.contains(&port)
@@ -94,12 +33,6 @@ impl Config {
                     }))
         })
     }
-}
-pub(in crate::loader) fn schema() -> Value {
-    json!({"type":"object","additionalProperties":false,"required":["allowed"],"properties":{
-        "allowed":{"type":"array","minItems":1,"maxItems":64,"items":{"type":"object","additionalProperties":false,"required":["host","ports"],"properties":{
-            "host":{"type":"string","minLength":1,"maxLength":253},"ports":{"type":"array","uniqueItems":true,"minItems":1,"maxItems":64,"items":{"type":"integer","minimum":1,"maximum":65535}},"allow_private":{"type":"boolean"}}}},
-        "max_connections":{"type":"integer","minimum":1,"maximum":32},"max_bytes_per_connection":{"type":"integer","minimum":1024,"maximum":1073741824},"idle_timeout_ms":{"type":"integer","minimum":100,"maximum":120000}}})
 }
 pub(super) struct Broker {
     socket: tokio::io::unix::AsyncFd<OwnedFd>,

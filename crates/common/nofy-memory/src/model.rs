@@ -238,6 +238,17 @@ impl TopicPath {
         Ok(Self(value))
     }
 
+    /// Adapt a host-native path at filesystem boundaries, not logical path
+    /// text or serde input. Keep raw dot/empty segments for parse to reject.
+    /// Preserve the existing lossy validation; callers still use the original
+    /// native path for filesystem access and durable payloads.
+    pub(crate) fn from_native_path(path: &Path) -> Result<Self, ModelError> {
+        let value = path.to_string_lossy().into_owned();
+        #[cfg(windows)]
+        let value = value.replace('\\', "/");
+        Self::parse(value)
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -553,3 +564,6 @@ fn normalize_remote_url(url: &str) -> Option<String> {
     }
     Some(without_suffix.to_string())
 }
+
+#[cfg(test)]
+mod native_topic_path_tests;

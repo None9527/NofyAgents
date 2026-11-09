@@ -19,6 +19,7 @@ pub mod models;
 mod module_walk;
 #[cfg(test)]
 mod platform_skips;
+pub mod process_policy;
 #[cfg(target_os = "linux")]
 pub mod process_sessions;
 pub mod process_tree;
@@ -242,15 +243,11 @@ impl Loader {
         registry.register_factory(Arc::new(factories::LockedEnvironmentFactory(self.clone())))?;
         registry.register_factory(Arc::new(factories::LocalEnvironmentFactory(self.clone())))?;
         registry.register_factory(Arc::new(factories::ProcessArtifactFactory))?;
-        #[cfg(target_os = "linux")]
         registry.register_factory(Arc::new(factories::TreeArtifactFactory))?;
-        #[cfg(target_os = "linux")]
-        {
-            registry.register_factory(Arc::new(process_sessions::LimitsFactory))?;
-            registry.register_factory(Arc::new(factories::SessionFactory))?;
-            registry.register_factory(Arc::new(factories::TerminalFactory))?;
-            registry.register_factory(Arc::new(factories::StdioFactory))?;
-        }
+        registry.register_factory(Arc::new(process_policy::LimitsFactory))?;
+        registry.register_factory(Arc::new(factories::SessionFactory))?;
+        registry.register_factory(Arc::new(factories::TerminalFactory))?;
+        registry.register_factory(Arc::new(factories::StdioFactory))?;
         Ok(())
     }
     pub async fn resolve_file(&self, file: SystemFile) -> Result<SystemFile> {

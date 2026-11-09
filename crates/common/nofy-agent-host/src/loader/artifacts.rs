@@ -132,6 +132,13 @@ impl ArtifactStore {
             }
         }
         let target = storage::directory(&target)?;
+        // Compare host paths as components, not native separator strings.
+        // The validated bundle keeps its canonical POSIX keys and digest.
+        let files = bundle
+            .files
+            .iter()
+            .map(|(name, text)| (Path::new(name), text))
+            .collect::<std::collections::BTreeMap<_, _>>();
         let mut directories = std::collections::BTreeSet::new();
         for name in bundle.files.keys() {
             let mut parent = Path::new(name).parent();
@@ -158,12 +165,11 @@ impl ArtifactStore {
                     pending.push(path);
                     continue;
                 }
-                let relative = path
-                    .strip_prefix(&target)
-                    .map_err(storage::unavailable)?
+                let relative = path.strip_prefix(&target).map_err(storage::unavailable)?;
+                relative
                     .to_str()
                     .ok_or_else(|| HostError::Unavailable("non-UTF8 artifact path".into()))?;
-                let text = bundle.files.get(relative).ok_or_else(|| {
+                let text = files.get(relative).ok_or_else(|| {
                     HostError::Unavailable("unexpected artifact cache entry".into())
                 })?;
                 if storage::read(&path, 1024 * 1024)? != text.as_bytes() {
@@ -240,3 +246,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(outside).unwrap(), "print('ok')");
     }
 }
+
+#[cfg(test)]
+#[path = "artifacts/inventory_tests.rs"]
+mod inventory_tests;

@@ -24,6 +24,7 @@ pub mod governance;
 pub mod hooks;
 mod identity;
 pub mod mailbox;
+pub mod managed;
 pub mod memory;
 pub mod model;
 pub mod model_journal;

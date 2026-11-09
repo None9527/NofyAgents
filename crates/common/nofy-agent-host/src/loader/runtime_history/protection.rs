@@ -4,6 +4,8 @@ use nofy_agent_runtime::{
     control::CatalogView, durable::retention::inspect_snapshot_modules, registry::ModuleDefinition,
 };
 use std::collections::BTreeSet;
+#[cfg(test)]
+mod tests;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Protected {
@@ -12,7 +14,10 @@ struct Protected {
     roots: BTreeSet<PathBuf>,
 }
 fn overlap(a: &Path, b: &Path) -> bool {
-    a.starts_with(b) || b.starts_with(a)
+    // Conservative lexical denial, not filesystem identity: Windows short
+    // names and reparse aliases still need native verification. In particular,
+    // a retired or missing protected root cannot simply be canonicalized away.
+    nofy_host_path::starts_with(a, b) || nofy_host_path::starts_with(b, a)
 }
 fn registry(root: &Path) -> Result<Option<Protected>> {
     let file = root.join("protected-roots.json");

@@ -35,18 +35,6 @@ fn unit_directory_and_local_mount_descriptors() {
     );
 }
 
-/// The rules for what a directory grant may name are written for POSIX roots:
-/// `Grant::validate` accepts only `RootDir` and `Normal` components, so any path with
-/// a Windows prefix (`C:`) is "an unsafe root" and no grant can be built there.
-#[test]
-fn unit_directory_grant_rules() {
-    skip_unless(
-        cfg!(unix),
-        "directory grants on Windows host paths",
-        "Grant::validate rejects Component::Prefix, so the grant rules cannot be exercised with a Windows path until the host-path work lands",
-    );
-}
-
 /// Runtime images are ELF files for the same architecture, and the fixture is the
 /// system's x86-64 dynamic loader.
 #[test]

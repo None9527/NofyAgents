@@ -164,9 +164,7 @@ impl Store {
             .transpose()?;
         if let Some(data) = &data {
             let (stored_area, path) = data.entry.location();
-            if stored_area != &area
-                || crate::model::TopicPath::parse(path.to_string_lossy().into_owned()).is_err()
-            {
+            if stored_area != &area || crate::model::TopicPath::from_native_path(path).is_err() {
                 return Err(corrupt());
             }
         }
