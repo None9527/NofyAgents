@@ -112,6 +112,9 @@ pub(super) fn install(storage: &Path, placement: &dyn SqlitePlacement) -> Result
         ".nofy-placement-{}.tmp",
         nofy_tool_protocol::ToolCallId::new_v7()
     ));
+    #[cfg(test)]
+    let temp = cleanup_tests::temporary_path(temp);
+    let mut created = false;
     let result = (|| {
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
@@ -121,6 +124,7 @@ pub(super) fn install(storage: &Path, placement: &dyn SqlitePlacement) -> Result
             options.mode(0o600);
         }
         let mut file = options.open(&temp).map_err(|_| failure())?;
+        created = true;
         file.write_all(&expected(placement.authority())?)
             .map_err(|_| failure())?;
         file.sync_all().map_err(|_| failure())?;
@@ -133,7 +137,14 @@ pub(super) fn install(storage: &Path, placement: &dyn SqlitePlacement) -> Result
         }
         nofy_durable_fs::sync_directory(parent).map_err(|_| failure())
     })();
-    let _ = std::fs::remove_file(temp);
+    #[cfg(test)]
+    cleanup_tests::before_cleanup(&temp);
+    if created {
+        let _ = std::fs::remove_file(temp);
+    }
     result
 }
 pub(crate) mod fence;
+
+#[cfg(test)]
+mod cleanup_tests;

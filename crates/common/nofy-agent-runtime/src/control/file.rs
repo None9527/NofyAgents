@@ -126,6 +126,9 @@ impl FileCatalogStore {
             ".nofy-catalog-{}.tmp",
             nofy_tool_protocol::ToolCallId::new_v7()
         ));
+        #[cfg(test)]
+        let temporary = cleanup_tests::temporary_path(temporary);
+        let mut created = false;
         let result = (|| {
             let mut options = OpenOptions::new();
             options.write(true).create_new(true);
@@ -135,6 +138,7 @@ impl FileCatalogStore {
                 options.mode(0o600);
             }
             let mut file = options.open(&temporary).map_err(storage)?;
+            created = true;
             file.write_all(&bytes).map_err(storage)?;
             file.sync_all().map_err(storage)?;
             // A failure to replace means nothing committed; a failure to make the
@@ -144,7 +148,9 @@ impl FileCatalogStore {
                 .map_err(|e| ControlError::CommitUncertain(e.to_string()))?;
             Ok(())
         })();
-        if temporary.exists() {
+        #[cfg(test)]
+        cleanup_tests::before_cleanup(&temporary);
+        if created && temporary.exists() {
             let _ = std::fs::remove_file(&temporary);
         }
         result
@@ -236,3 +242,6 @@ impl CatalogStore for FileCatalogStore {
         .map_err(storage)?
     }
 }
+
+#[cfg(test)]
+mod cleanup_tests;

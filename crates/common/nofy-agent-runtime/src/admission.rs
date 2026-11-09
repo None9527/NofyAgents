@@ -25,6 +25,8 @@ pub trait CommitPermit: Send {
     fn validate(&self, kind: &str, modules: &[&ModuleDefinition]) -> Result<(), Error>;
 }
 #[cfg(all(test, any(feature = "sqlite", feature = "control-file")))]
+mod cleanup_tests;
+#[cfg(all(test, any(feature = "sqlite", feature = "control-file")))]
 pub(crate) mod tests;
 
 #[cfg(any(feature = "sqlite", feature = "control-file"))]
@@ -90,6 +92,9 @@ pub(crate) mod marker {
             ".nofy-admission-{}.tmp",
             nofy_tool_protocol::ToolCallId::new_v7()
         ));
+        #[cfg(test)]
+        let temporary = super::cleanup_tests::temporary_path(temporary);
+        let mut created = false;
         let result = (|| {
             let mut options = OpenOptions::new();
             options.write(true).create_new(true);
@@ -99,6 +104,7 @@ pub(crate) mod marker {
                 options.mode(0o600);
             }
             let mut file = options.open(&temporary).map_err(|_| failure())?;
+            created = true;
             file.write_all(&expected(policy)?).map_err(|_| failure())?;
             file.sync_all().map_err(|_| failure())?;
             match std::fs::hard_link(&temporary, &destination) {
@@ -111,8 +117,12 @@ pub(crate) mod marker {
             nofy_durable_fs::sync_directory(parent).map_err(|_| failure())?;
             Ok(())
         })();
+        #[cfg(test)]
+        super::cleanup_tests::before_cleanup(&temporary);
         // Only this operation's create_new temporary is removed.
-        let _ = std::fs::remove_file(temporary);
+        if created {
+            let _ = std::fs::remove_file(temporary);
+        }
         result
     }
 }

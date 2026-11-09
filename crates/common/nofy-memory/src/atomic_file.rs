@@ -58,14 +58,17 @@ pub fn replace_with_kill_point(
             )
         })?;
     let temp_path = parent.join(format!(".{file_name}.tmp-{}", uuid::Uuid::new_v4()));
+    #[cfg(test)]
+    let temp_path = tests::override_temp_path(temp_path);
     let mut guard = TempFileGuard {
         path: temp_path.clone(),
-        armed: true,
+        armed: false,
     };
     let mut temp = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&temp_path)?;
+    guard.armed = true;
 
     if let Ok(metadata) = std::fs::metadata(path) {
         temp.set_permissions(metadata.permissions())?;
@@ -104,3 +107,6 @@ fn replace_path(source: &Path, destination: &Path) -> io::Result<()> {
 pub(crate) fn sync_parent_directory(parent: &Path) -> io::Result<()> {
     nofy_durable_fs::sync_directory(parent)
 }
+
+#[cfg(test)]
+mod tests;
