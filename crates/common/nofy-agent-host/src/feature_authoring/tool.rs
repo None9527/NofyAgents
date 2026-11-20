@@ -54,15 +54,19 @@ impl ModuleFactory for Factory {
                 "hook_source":{"type":"string","minLength":1,"maxLength":4096,"description":"Pure Rhai before_model Hook. For an observer the full source can be #{decision: \"continue\"}."},
                 "mcp_tool":text,"extensions":extensions}});
         let mut http_design = design.clone();
-        http_design["required"]
-            .as_array_mut()
-            .expect("static required fields")
+        http_design
+            .get_mut("required")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| {
+                Error::Composition("invalid feature tool schema required fields".into())
+            })?
             .push(json!("http"));
-        http_design["properties"]["http"] = http;
-        http_design["properties"]
-            .as_object_mut()
-            .expect("static design fields")
-            .remove("extensions");
+        let properties = http_design
+            .get_mut("properties")
+            .and_then(Value::as_object_mut)
+            .ok_or_else(|| Error::Composition("invalid feature tool schema properties".into()))?;
+        properties.insert("http".into(), http);
+        properties.remove("extensions");
         for (name, description, parameters) in [
             (
                 "sdk_feature_catalog",

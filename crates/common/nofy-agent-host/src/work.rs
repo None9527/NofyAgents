@@ -254,7 +254,7 @@ impl WorkService {
         match path {
             "list" if session_view => Ok(json!(
                 self.store
-                    .session_work_list(session.unwrap(), after, limit)
+                    .session_work_list(required(session, "session_id")?, after, limit)
                     .await?
             )),
             "list" => Ok(json!(
@@ -332,7 +332,7 @@ impl WorkService {
             }
             "control" => {
                 let root = required(root.as_deref(), "run_id or work_id")?;
-                let kind = args["action"].as_str().unwrap();
+                let kind = required(args["action"].as_str(), "action")?;
                 if let Some(caller) = caller {
                     let node = self
                         .store
@@ -461,6 +461,7 @@ impl WorkService {
             return Ok(json!({"session_id":session,"background":targets}));
         }
         let program = required(args["program"].as_str(), "program")?;
+        let command_id = required(args["command_id"].as_str(), "command_id")?;
         let kind = program_kind(&bundle, program).ok_or(HostError::Forbidden)?;
         if !grants.contains(&program) || args["release"] != release {
             return Err(HostError::Forbidden);
@@ -496,7 +497,7 @@ impl WorkService {
             .start_work(
                 session,
                 &origin,
-                args["command_id"].as_str().unwrap(),
+                command_id,
                 request,
                 &system,
                 proof.cloned(),

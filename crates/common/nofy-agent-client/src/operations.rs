@@ -120,7 +120,7 @@ impl Engine {
         }
         match op {
             "work.list" | "work.inspect" | "work.targets" | "work.start" | "work.wait" | "work.control" => {
-                let path = op.strip_prefix("work.").expect("work operation");
+                let path = op.trim_start_matches("work.");
                 let data = self.client.send("POST", &["api", "v1", "work", path], input).await?.value()?;
                 let next_cursor = if op == "work.wait" && data["more"] == true {
                     data["watermark"].as_str()

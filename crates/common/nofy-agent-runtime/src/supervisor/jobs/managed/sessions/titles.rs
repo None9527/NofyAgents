@@ -5,22 +5,25 @@ const FALLBACK_BYTES: usize = 40;
 const TITLE_BYTES: usize = 80;
 const INPUT_BYTES: usize = 4096;
 
-static TITLE_CONTROLS: LazyLock<regex::Regex> = LazyLock::new(|| {
+static TITLE_CONTROLS: LazyLock<Result<regex::Regex, regex::Error>> = LazyLock::new(|| {
     regex::Regex::new(concat!(
         r"(?:\x1b\]|\u{009d})(?:[^\x07\x1b]|\x1b[^\\])*(?:\x07|\x1b\\|$)",
         r"|(?:\x1b\[|\u{009b})[0-?]*[ -/]*[@-~]|\x1b[@-_]",
         r"|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\u{009f}\u{200b}\u{200e}\u{200f}\u{202a}-\u{202e}\u{2060}-\u{2064}\u{2066}-\u{206f}\u{feff}]"
-    )).expect("valid title control pattern")
+    ))
 });
 
-fn normalize(input: &str, max_words: usize, max_bytes: usize) -> String {
-    let clean = TITLE_CONTROLS.replace_all(input, "");
+fn normalize(input: &str, max_words: usize, max_bytes: usize) -> Result<String, Error> {
+    let pattern = TITLE_CONTROLS.as_ref().map_err(|error| {
+        Error::Composition(format!("invalid built-in session title pattern: {error}"))
+    })?;
+    let clean = pattern.replace_all(input, "");
     let line = clean
         .split_whitespace()
         .take(max_words)
         .collect::<Vec<_>>()
         .join(" ");
-    utf8_prefix(&line, max_bytes).trim_end().to_owned()
+    Ok(utf8_prefix(&line, max_bytes).trim_end().to_owned())
 }
 
 fn utf8_prefix(input: &str, max_bytes: usize) -> &str {
@@ -50,7 +53,7 @@ pub(super) fn register(
     {
         return Ok(true);
     }
-    let fallback = normalize(&input.text, 5, FALLBACK_BYTES);
+    let fallback = normalize(&input.text, 5, FALLBACK_BYTES)?;
     if fallback.is_empty() {
         return Ok(false);
     }
@@ -274,7 +277,7 @@ impl RunSupervisor {
         } else {
             line
         };
-        let title = normalize(line, usize::MAX, TITLE_BYTES);
+        let title = normalize(line, usize::MAX, TITLE_BYTES)?;
         Ok((!title.is_empty()).then_some(title))
     }
 }
@@ -286,11 +289,11 @@ mod tests {
     #[test]
     fn fallback_limits_words_and_utf8_and_cleans_controls() {
         assert_eq!(
-            normalize(" \u{1b}[31mOne  two\nthree four five six", 5, 40),
+            normalize(" \u{1b}[31mOne  two\nthree four five six", 5, 40).unwrap(),
             "One two three four five"
         );
         let input = "会".repeat(18);
-        assert_eq!(normalize(&input, 5, 40), "会".repeat(13));
-        assert_eq!(normalize("\u{200b}  \n", 5, 40), "");
+        assert_eq!(normalize(&input, 5, 40).unwrap(), "会".repeat(13));
+        assert_eq!(normalize("\u{200b}  \n", 5, 40).unwrap(), "");
     }
 }

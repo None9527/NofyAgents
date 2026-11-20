@@ -83,7 +83,7 @@ pub(super) async fn inspect(
     let mut headers = HeaderMap::new();
     headers.insert(
         axum::http::header::CACHE_CONTROL,
-        "no-store".parse().unwrap(),
+        axum::http::HeaderValue::from_static("no-store"),
     );
     Ok((headers, Json(receipt)))
 }
