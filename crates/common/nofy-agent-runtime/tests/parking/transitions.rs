@@ -387,6 +387,67 @@ async fn rollback_is_a_new_version_and_atomic_ack_loss_never_partially_installs_
     );
 }
 
+#[tokio::test]
+async fn transition_and_unpark_commit_receipts_with_their_lease_release() {
+    let dir = tempfile::tempdir().unwrap();
+    let (store, mut registry, base, gates, _) = setup(dir.path(), false, false);
+    let (new, _) = target(&mut registry, &base);
+    let supervisor = Arc::new(RunSupervisor::new(store.clone()));
+    park(&supervisor, &store, &registry, &base, &gates).await;
+    supervisor
+        .submit_transition(change("change", &new, 0), &new)
+        .await
+        .unwrap();
+    let sql = rusqlite::Connection::open(dir.path().join("runtime.sqlite")).unwrap();
+    for id in ["change", "unpark"] {
+        if id == "unpark" {
+            store
+                .enqueue_managed_action(action(
+                    id,
+                    ManagedCommand::Unpark {
+                        park_command_id: "park".into(),
+                    },
+                ))
+                .await
+                .unwrap();
+        }
+        // Only fail release when the receipt is visible to the transaction.
+        // A cleanup release after rollback must still be allowed.
+        sql.execute_batch(&format!(
+            "CREATE TRIGGER lose_lease_release BEFORE UPDATE OF expires_ms
+             ON agent_runtime_leases WHEN NEW.expires_ms=0 AND EXISTS (
+                 SELECT 1 FROM agent_runtime_managed_actions
+                 WHERE command_id='{id}' AND result IS NOT NULL
+             ) BEGIN SELECT RAISE(ABORT,'lease release interrupted'); END;"
+        ))
+        .unwrap();
+        let error = supervisor
+            .execute_managed_action(&registry, id)
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("lease release interrupted"),
+            "{error}"
+        );
+        assert!(!store.managed_action(id).await.unwrap().unwrap().finished);
+        assert_eq!(
+            store.live_execution("run").await.unwrap().is_some(),
+            id == "unpark"
+        );
+        assert_eq!(
+            store.parking("run").await.unwrap().unwrap().status,
+            ParkStatus::Parked
+        );
+        sql.execute_batch("DROP TRIGGER lose_lease_release")
+            .unwrap();
+        assert!(execute(&supervisor, &registry, id).await.finished);
+    }
+    assert_eq!(
+        store.parking("run").await.unwrap().unwrap().status,
+        ParkStatus::Released
+    );
+}
+
 struct WaitingTarget {
     started: Arc<Notify>,
     calls: Arc<AtomicUsize>,

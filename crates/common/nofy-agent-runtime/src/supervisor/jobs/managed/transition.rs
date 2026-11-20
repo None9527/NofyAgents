@@ -621,6 +621,10 @@ impl RunSupervisor {
             tokio::task::spawn_blocking(move || compatibility::agent(&frozen)?.restore(&host))
                 .await
                 .map_err(|e| Error::Checkpoint(format!("live restore task failed: {e}")))??;
+        let storage_identity = self
+            .store
+            .storage_identity()
+            .ok_or_else(|| Error::Composition("live budget storage identity missing".into()))?;
         let lease = self
             .store
             .acquire(
@@ -629,16 +633,11 @@ impl RunSupervisor {
                 self.ttl,
             )
             .await?;
-        let check = lease.clone();
         let clock = self.store.clock.clone();
         // Keep the root fence alive while an isolated evaluator is queued or
         // running; no write transaction is held across that wait.
         let proof = {
             let inspect = p.clone();
-            let storage_identity = self
-                .store
-                .storage_identity()
-                .ok_or_else(|| Error::Composition("live budget storage identity missing".into()))?;
             let validation = async {
                 let boundary = self
                     .store
@@ -659,30 +658,22 @@ impl RunSupervisor {
                 }
             }
         };
-        let result = self.store.transaction(move |tx| {
-            check_lease(tx, &check, clock.now_ms())?;
+        self.store.transaction_and_release(lease, move |tx, check| {
+            check_lease(tx, check, clock.now_ms())?;
             let current = actions::read(tx, &p.action.command_id)?.ok_or_else(|| Error::Checkpoint("live command missing".into()))?;
             if current.finished { return Ok(current); }
             let earlier: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE run_id=?1 AND result IS NULL AND command_id!=?2 AND json_extract(payload,'$.command.kind')!='park' AND (sequence<?3 OR json_extract(payload,'$.command.kind')='abandon'))", params![current.action.run_id,current.action.command_id,current.sequence], |r| r.get(0)).map_err(db_error)?;
             if earlier { return Err(Error::Checkpoint("earlier management command is pending".into())); }
             tx.execute_batch("SAVEPOINT live_transition").map_err(db_error)?;
-            let outcome = proof.and_then(|proof| apply(tx, &check, &p, &target.agent, &proof, clock.now_ms()));
+            let outcome = proof.and_then(|proof| apply(tx, check, &p, &target.agent, &proof, clock.now_ms()));
             let result = match outcome {
                 Ok(outcome) => { tx.execute_batch("RELEASE live_transition").map_err(db_error)?; ActionResult { outcome: Some(outcome), error: None, abandonment: None } }
                 Err(error) => { tx.execute_batch("ROLLBACK TO live_transition; RELEASE live_transition").map_err(db_error)?; ActionResult { outcome: None, error: Some(error.to_string().chars().take(8192).collect()), abandonment: None } }
             };
             parking::finish_action(tx, &p.action.command_id, result)?;
-            check_lease(tx, &check, clock.now_ms())?;
+            check_lease(tx, check, clock.now_ms())?;
             actions::read(tx, &p.action.command_id)?.ok_or_else(|| Error::Checkpoint("live command disappeared".into()))
-        }).await;
-        let released = self.store.release(&lease).await;
-        match result {
-            Ok(value) => {
-                released?;
-                Ok(value)
-            }
-            Err(error) => Err(error),
-        }
+        }).await
     }
 }
 

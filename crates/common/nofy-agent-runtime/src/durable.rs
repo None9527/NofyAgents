@@ -498,10 +498,27 @@ impl SqliteStore {
     }
     pub async fn release(&self, lease: &Lease) -> Result<(), Error> {
         let lease = lease.clone();
-        self.transaction(move |tx| {
-            let changed=tx.execute("UPDATE agent_runtime_leases SET expires_ms=0 WHERE key=?1 AND owner=?2 AND fence=?3",params![lease.key,lease.owner,lease.fence]).map_err(db_error)?;
-            if changed!=1 {return Err(Error::Checkpoint("lease fence lost".into()));} Ok(())
-        }).await
+        self.transaction(move |tx| release_lease(tx, &lease)).await
+    }
+    /// Commit the final update and release its fence in one durable transaction.
+    pub(crate) async fn transaction_and_release<T: Send + 'static>(
+        &self,
+        lease: Lease,
+        finish: impl FnOnce(&Transaction<'_>, &Lease) -> Result<T, Error> + Send + 'static,
+    ) -> Result<T, Error> {
+        let fence = lease.clone();
+        let result = self
+            .transaction(move |tx| {
+                let result = finish(tx, &fence)?;
+                release_lease(tx, &fence)?;
+                Ok(result)
+            })
+            .await;
+        if result.is_err() {
+            // The update rolled back. Free the lease when its fence still owns it.
+            let _ = self.release(&lease).await;
+        }
+        result
     }
     pub fn guarded(&self, lease: &Lease) -> GuardedCheckpointer {
         GuardedCheckpointer {
@@ -587,6 +604,19 @@ fn expiry(now: u64, ttl: Duration) -> Result<i64, Error> {
     )
     .map_err(db_error)
 }
+fn release_lease(tx: &Transaction<'_>, lease: &Lease) -> Result<(), Error> {
+    let changed = tx
+        .execute(
+            "UPDATE agent_runtime_leases SET expires_ms=0 WHERE key=?1 AND owner=?2 AND fence=?3",
+            params![lease.key, lease.owner, lease.fence],
+        )
+        .map_err(db_error)?;
+    if changed != 1 {
+        return Err(Error::Checkpoint("lease fence lost".into()));
+    }
+    Ok(())
+}
+
 pub(crate) fn check_lease(tx: &Transaction<'_>, lease: &Lease, now: u64) -> Result<(), Error> {
     let valid:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_leases WHERE key=?1 AND owner=?2 AND fence=?3 AND expires_ms>?4)",params![lease.key,lease.owner,lease.fence,i64::try_from(now).map_err(db_error)?],|row|row.get(0)).map_err(db_error)?;
     if valid {

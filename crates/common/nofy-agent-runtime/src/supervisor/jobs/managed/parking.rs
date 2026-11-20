@@ -495,11 +495,10 @@ impl RunSupervisor {
                 self.ttl,
             )
             .await?;
-        let check = lease.clone();
         let id = record.action.command_id.clone();
         let clock = self.store.clock.clone();
-        let result = self.store.transaction(move |tx| {
-            check_lease(tx, &check, clock.now_ms())?;
+        self.store.transaction_and_release(lease, move |tx, check| {
+            check_lease(tx, check, clock.now_ms())?;
             let current = actions::read(tx, &id)?.ok_or_else(|| Error::Checkpoint("park command missing".into()))?;
             if current.finished { return Ok(current); }
             let earlier: bool = tx.query_row(
@@ -508,7 +507,7 @@ impl RunSupervisor {
             ).map_err(db_error)?;
             if earlier { return Err(Error::Checkpoint("earlier management command is pending".into())); }
             tx.execute_batch("SAVEPOINT parking_action").map_err(db_error)?;
-            if let Err(error) = apply(tx, &check, &current.action, clock.now_ms()) {
+            if let Err(error) = apply(tx, check, &current.action, clock.now_ms()) {
                 tx.execute_batch("ROLLBACK TO parking_action; RELEASE parking_action").map_err(db_error)?;
                 if matches!(current.action.command, ManagedCommand::Park)
                     && let Some(mut park) = read(tx, &id)?
@@ -518,16 +517,8 @@ impl RunSupervisor {
             } else {
                 tx.execute_batch("RELEASE parking_action").map_err(db_error)?;
             }
-            check_lease(tx, &check, clock.now_ms())?;
+            check_lease(tx, check, clock.now_ms())?;
             actions::read(tx, &id)?.ok_or_else(|| Error::Checkpoint("park command disappeared".into()))
-        }).await;
-        let released = self.store.release(&lease).await;
-        match result {
-            Ok(record) => {
-                released?;
-                Ok(record)
-            }
-            Err(error) => Err(error),
-        }
+        }).await
     }
 }
