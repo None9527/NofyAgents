@@ -44,15 +44,14 @@ CLAIMS = {
     "README.zh-CN.md": [
         (r"契约修订 `(\d+\.\d+)`：(\d+) 项操作，其中 (\d+) 项通过 MCP",
          ["revision", "operations", "mcp_tools"]),
-        (r"CLI／MCP 的 (\d+) 项操作", ["operations"]),
-        (r"`tools/list` 固定公开 (\d+) 项已实现操作", ["mcp_tools"]),
+        (r"`full` 工具集开放 (\d+) 项 MCP 操作", ["mcp_tools"]),
     ],
     "docs/manual/README.md": [
         (r"(\d+) 项操作，其中 (\d+) 项开放为 MCP 工具", ["operations", "mcp_tools"]),
         (r"规则/源码策略、(\d+) 项操作", ["session_operations"]),
     ],
     "docs/manual/mcp.md": [
-        (r"固定公开 (\d+) 项已实现适配操作", ["mcp_tools"]),
+        (r"`full` \| 完整目录，MCP 共 (\d+) 项", ["mcp_tools"]),
         (r"(\d+) 项操作的完整输入", ["session_operations"]),
     ],
     "docs/manual/protocol.md": [
@@ -61,7 +60,7 @@ CLAIMS = {
     "docs/release-notes.md": [
         (r"干净的 (\d+) 包 Rust 框架工作区", ["workspace_crates"]),
         (r"契约修订 `(\d+\.\d+)`", ["revision"]),
-        (r"(\d+) 项操作、(\d+) 个 MCP 工具、(\d+) 项 Session 操作",
+        (r"(\d+) 项操作、(\d+) 个 MCP 工具（`full` 工具集）、(\d+) 项 Session 操作",
          ["operations", "mcp_tools", "session_operations"]),
     ],
 }

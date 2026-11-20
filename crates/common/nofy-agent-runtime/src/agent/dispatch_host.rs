@@ -82,7 +82,10 @@ impl AgentHost<'_> {
         #[cfg(feature = "sqlite")]
         let policy_context = {
             let mut context = policy_context;
-            if let Some(policy) = context.capabilities.get::<crate::supervisor::TurnApprovalPolicy>() {
+            if let Some(policy) = context
+                .capabilities
+                .get::<crate::supervisor::TurnApprovalPolicy>()
+            {
                 let session_control = match dispatch.recovery_identity().as_deref() {
                     Some("agent-messages/v1") => true,
                     Some("agent-tasks/v1") => matches!(
@@ -91,12 +94,14 @@ impl AgentHost<'_> {
                     ),
                     _ => false,
                 };
-                context.capabilities.insert(crate::supervisor::ToolApprovalState {
-                    composition: self.agent.composition.clone(),
-                    approved: Default::default(),
-                    session_control,
-                    effect: dispatch.approval_effect(),
-                });
+                context
+                    .capabilities
+                    .insert(crate::supervisor::ToolApprovalState {
+                        composition: self.agent.composition.clone(),
+                        approved: Default::default(),
+                        session_control,
+                        effect: dispatch.approval_effect(),
+                    });
                 policies.push(policy);
             }
             context

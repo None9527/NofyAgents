@@ -280,19 +280,19 @@ impl WorkService {
                 let workflow = node.kind == "workflow";
                 let mut value = serde_json::to_value(node)
                     .map_err(|err| HostError::Unavailable(err.to_string()))?;
-                if include_result && is_root {
-                    if let Some(record) = self.store.execution_record(root).await?
-                        && let Some(RunOutcome::Completed { output, .. }) = record.outcome
+                if include_result
+                    && is_root
+                    && let Some(record) = self.store.execution_record(root).await?
+                    && let Some(RunOutcome::Completed { output, .. }) = record.outcome
+                {
+                    let truncated = output.chars().count() > 16384;
+                    value["result"] = json!({"output":output.chars().take(16384).collect::<String>(),"truncated":truncated});
+                    if workflow
+                        && !truncated
+                        && let Ok(envelope) = serde_json::from_str::<Value>(&output)
+                        && let Some(result) = envelope.get("value")
                     {
-                        let truncated = output.chars().count() > 16384;
-                        value["result"] = json!({"output":output.chars().take(16384).collect::<String>(),"truncated":truncated});
-                        if workflow
-                            && !truncated
-                            && let Ok(envelope) = serde_json::from_str::<Value>(&output)
-                            && let Some(result) = envelope.get("value")
-                        {
-                            value["result"]["value"] = result.clone();
-                        }
+                        value["result"]["value"] = result.clone();
                     }
                 }
                 Ok(value)

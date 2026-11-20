@@ -178,7 +178,10 @@ struct HttpDispatch {
 #[async_trait::async_trait]
 impl ToolDispatch for HttpDispatch {
     fn approval_effect(&self) -> nofy_tool_runtime::dispatch::ApprovalEffect {
-        if matches!(self.config.contract.effect, crate::config::EffectSemantics::ReadOnly) {
+        if matches!(
+            self.config.contract.effect,
+            crate::config::EffectSemantics::ReadOnly
+        ) {
             nofy_tool_runtime::dispatch::ApprovalEffect::ReadOnly
         } else {
             nofy_tool_runtime::dispatch::ApprovalEffect::Unknown

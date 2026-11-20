@@ -174,10 +174,18 @@ impl SqliteStore {
         }).await
     }
     pub async fn pending_approvals(&self, run_id: &str) -> Result<Vec<ApprovalRequest>, Error> {
-        Ok(self.pending_approval_options(run_id).await?.into_iter().map(|item| item.request).collect())
+        Ok(self
+            .pending_approval_options(run_id)
+            .await?
+            .into_iter()
+            .map(|item| item.request)
+            .collect())
     }
 
-    pub async fn pending_approval_options(&self, run_id: &str) -> Result<Vec<PendingApproval>, Error> {
+    pub async fn pending_approval_options(
+        &self,
+        run_id: &str,
+    ) -> Result<Vec<PendingApproval>, Error> {
         let id = run_id.to_string();
         self.transaction(move |tx| {
             if !approval_is_open(tx, &id)? { return Ok(vec![]); }

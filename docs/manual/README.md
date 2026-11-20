@@ -22,7 +22,7 @@
 | [MCP](mcp.md) | stdio、Streamable HTTP、Codex 配置、工具与归档资源 |
 | [Web 客户端协议](client-protocol.md) | HTTP/SSE、字符串游标、断线续读、命令回执与传输适配边界 |
 | [协议](protocol.md) | 结果信封、精确版本、并发更新、权限、幂等和部分完成 |
-| [操作目录](operations.json) | 98 项操作，其中 96 项开放为 MCP 工具 |
+| [操作目录](operations.json) | 104 项操作，其中 102 项开放为 MCP 工具（`full` 工具集） |
 | [契约 Schema](contracts.schema.json) | CLI/MCP 共用输入输出；原生 DTO 仍由内核校验 |
 | [HTTP 索引](http-api-index.json) | 从当前源码提取的方法、路径和行号；不代表运行实例已经升级 |
 | [文件说明](文件说明.md) | 文件职责及证据范围 |

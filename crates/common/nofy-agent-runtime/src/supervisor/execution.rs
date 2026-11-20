@@ -116,15 +116,20 @@ impl RunSupervisor {
         let root = context.run_id.clone();
         let expected = compiled.live_identity();
         let clock = self.store.clock.clone();
-        let approval_mode = self.store
-            .transaction(move |tx| {
-                check_lease(tx, &check, clock.now_ms())?;
-                jobs::verify_plan(tx, &root, expected.as_ref())?;
-                Ok(jobs::read_managed_request(tx, &root)?.and_then(|request| request.approval_mode))
-            })
-            .await?;
+        let approval_mode =
+            self.store
+                .transaction(move |tx| {
+                    check_lease(tx, &check, clock.now_ms())?;
+                    jobs::verify_plan(tx, &root, expected.as_ref())?;
+                    Ok(jobs::read_managed_request(tx, &root)?
+                        .and_then(|request| request.approval_mode))
+                })
+                .await?;
         if let Some(mode) = approval_mode {
-            context.capabilities.insert(TurnApprovalPolicy { store: self.store.clone(), mode });
+            context.capabilities.insert(TurnApprovalPolicy {
+                store: self.store.clone(),
+                mode,
+            });
         }
         let cancel_request = context
             .capabilities

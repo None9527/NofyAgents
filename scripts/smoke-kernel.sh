@@ -80,7 +80,7 @@ step() {
   local label="$1"
   shift
   local out
-  out="$("$cli" --endpoint "$url" --config "$work/none.toml" "$@" 2>&1 || true)"
+  out="$("$cli" --toolset development --endpoint "$url" --config "$work/none.toml" "$@" 2>&1 || true)"
   if printf '%s' "$out" | grep -q '"status":"ok"'; then
     echo "ok    $label"
   else
@@ -95,7 +95,7 @@ step_has() {
   local label="$1" needle="$2"
   shift 2
   local out
-  out="$("$cli" --endpoint "$url" --config "$work/none.toml" "$@" 2>&1 || true)"
+  out="$("$cli" --toolset development --endpoint "$url" --config "$work/none.toml" "$@" 2>&1 || true)"
   if printf '%s' "$out" | grep -q '"status":"ok"' && printf '%s' "$out" | grep -q "$needle"; then
     echo "ok    $label"
   else

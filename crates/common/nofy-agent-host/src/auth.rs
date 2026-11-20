@@ -58,7 +58,12 @@ impl Authorizer {
     pub(crate) fn development() -> Self {
         Self {
             keys: Vec::new(),
-            development_scopes: Some(BTreeSet::from([Scope::Read, Scope::Execute, Scope::Edit, Scope::Publish])),
+            development_scopes: Some(BTreeSet::from([
+                Scope::Read,
+                Scope::Execute,
+                Scope::Edit,
+                Scope::Publish,
+            ])),
         }
     }
     pub fn from_environment(references: Vec<AccessKeyReference>) -> Result<Self> {

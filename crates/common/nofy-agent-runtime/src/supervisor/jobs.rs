@@ -4,12 +4,12 @@ use super::*;
 mod initial;
 mod lifecycle;
 mod worker;
-pub(in crate::supervisor) use worker::cancel_queued;
 use initial::{reject_stale, settle_source};
 pub(super) use lifecycle::{finish, validate_begin};
+pub(in crate::supervisor) use worker::cancel_queued;
 mod managed;
-pub(super) use managed::read_request as read_managed_request;
 pub(in crate::supervisor) use managed::actions::enqueue as enqueue_work_action;
+pub(super) use managed::read_request as read_managed_request;
 #[cfg(feature = "workflow")]
 pub use managed::{HumanRecoveryPage, HumanRecoveryTarget};
 mod replay;

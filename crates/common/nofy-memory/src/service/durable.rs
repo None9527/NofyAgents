@@ -162,7 +162,8 @@ impl NofyMemoryService {
         else {
             return Err(corrupt());
         };
-        if relative_path != PathBuf::from(format!("remembered-{}.md", row.target)) {
+        let expected_path = format!("remembered-{}.md", row.target);
+        if relative_path != Path::new(&expected_path) {
             return Err(corrupt());
         }
         if !self

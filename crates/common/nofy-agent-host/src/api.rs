@@ -54,9 +54,7 @@ impl IntoResponse for HostError {
                 (StatusCode::NOT_FOUND, "not_found")
             }
             Self::Control(ControlError::Conflict { .. } | ControlError::CommandConflict)
-            | Self::RuntimeHistoryPlanStale => {
-                (StatusCode::CONFLICT, "conflict")
-            }
+            | Self::RuntimeHistoryPlanStale => (StatusCode::CONFLICT, "conflict"),
             Self::Control(ControlError::Busy) => (StatusCode::SERVICE_UNAVAILABLE, "busy"),
             // The kernel does not know whether the write landed. That is the
             // protocol's `result_unconfirmed`, not a retryable "unavailable".

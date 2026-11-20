@@ -126,12 +126,8 @@ impl Worker {
         if let Some(code) = status.code() {
             failure.details["exit_code"] = json!(code);
         }
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::ExitStatusExt;
-            if let Some(signal) = status.signal() {
-                failure.details["signal"] = json!(signal);
-            }
+        if let Some(signal) = nofy_tty_utils::exit_signal(&status) {
+            failure.details["signal"] = json!(signal);
         }
         if status.code() == Some(STARTUP_EXIT_CODE) {
             failure.details["stage"] = json!("initialize_confinement");

@@ -128,7 +128,10 @@ async fn wait_status(sdk: &Engine, id: &str, status: &str) -> Value {
             }
             if matches!(node["status"].as_str(), Some("failed" | "cancelled")) {
                 let details = sdk
-                    .execute("run.inspect", json!({"run_id":node["run_id"],"view":"full"}))
+                    .execute(
+                        "run.inspect",
+                        json!({"run_id":node["run_id"],"view":"full"}),
+                    )
                     .await;
                 let details: Value = details.data["native_json"]
                     .as_str()
@@ -138,10 +141,16 @@ async fn wait_status(sdk: &Engine, id: &str, status: &str) -> Value {
                     .as_array()
                     .into_iter()
                     .flatten()
-                    .filter_map(|child| child["error"].as_str().map(|error| (&child["run_id"], error)))
+                    .filter_map(|child| {
+                        child["error"]
+                            .as_str()
+                            .map(|error| (&child["run_id"], error))
+                    })
                     .collect::<Vec<_>>();
-                panic!("work {node}; outcome: {}; child errors: {child_errors:?}",
-                    details["execution"]["outcome"]);
+                panic!(
+                    "work {node}; outcome: {}; child errors: {child_errors:?}",
+                    details["execution"]["outcome"]
+                );
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
@@ -470,7 +479,9 @@ impl BackgroundHostProcess {
             .unwrap()
             .join("nofy-agent-host");
         let executable = if probe.is_some() {
-            PathBuf::from(std::env::var_os("NOFY_LIVE_PROBE_HOST").expect("set NOFY_LIVE_PROBE_HOST"))
+            PathBuf::from(
+                std::env::var_os("NOFY_LIVE_PROBE_HOST").expect("set NOFY_LIVE_PROBE_HOST"),
+            )
         } else {
             default_binary
         };
@@ -497,14 +508,12 @@ impl BackgroundHostProcess {
         if let Some(path) = probe {
             command.env("NOFY_LIVE_MEMORY_CRASH_PROBE", path);
         }
-        let mut child = command
-            .spawn()
-            .unwrap_or_else(|error| {
-                panic!(
-                    "start {}; build it with cargo build -p nofy-agent-host: {error}",
-                    executable.display()
-                )
-            });
+        let mut child = command.spawn().unwrap_or_else(|error| {
+            panic!(
+                "start {}; build it with cargo build -p nofy-agent-host: {error}",
+                executable.display()
+            )
+        });
         let pid = child.id().unwrap();
         let mut lines = BufReader::new(child.stderr.take().unwrap()).lines();
         let url = tokio::time::timeout(Duration::from_secs(45), async {
@@ -523,7 +532,10 @@ impl BackgroundHostProcess {
                 eprintln!("host {pid}: {line}");
             }
         });
-        eprintln!("{}", json!({"event":"host_ready","pid":pid,"url":url,"state":state}));
+        eprintln!(
+            "{}",
+            json!({"event":"host_ready","pid":pid,"url":url,"state":state})
+        );
         Self {
             child,
             url,
@@ -533,16 +545,23 @@ impl BackgroundHostProcess {
     }
 
     async fn stop(mut self) -> Value {
-        assert!(self.child.try_wait().unwrap().is_none(), "host exited before shutdown");
+        assert!(
+            self.child.try_wait().unwrap().is_none(),
+            "host exited before shutdown"
+        );
         // The Host CLI handles SIGINT as graceful shutdown. Signal the owned child only.
-        assert_eq!(unsafe { libc::kill(self.pid as libc::pid_t, libc::SIGINT) }, 0);
+        assert_eq!(
+            unsafe { libc::kill(self.pid as libc::pid_t, libc::SIGINT) },
+            0
+        );
         let status = tokio::time::timeout(Duration::from_secs(30), self.child.wait())
             .await
             .expect("host graceful shutdown timed out")
             .unwrap();
         assert!(status.success(), "host {} exited with {status}", self.pid);
         self.logs.await.unwrap();
-        let receipt = json!({"event":"host_exited","pid":self.pid,"url":self.url,"exit_code":status.code()});
+        let receipt =
+            json!({"event":"host_exited","pid":self.pid,"url":self.url,"exit_code":status.code()});
         eprintln!("{receipt}");
         receipt
     }
@@ -550,15 +569,24 @@ impl BackgroundHostProcess {
     async fn crash(mut self) -> Value {
         use std::os::unix::process::ExitStatusExt;
 
-        assert!(self.child.try_wait().unwrap().is_none(), "host exited before crash");
+        assert!(
+            self.child.try_wait().unwrap().is_none(),
+            "host exited before crash"
+        );
         self.child.start_kill().unwrap();
         let status = tokio::time::timeout(Duration::from_secs(10), self.child.wait())
             .await
             .expect("host SIGKILL timed out")
             .unwrap();
-        assert_eq!(status.signal(), Some(libc::SIGKILL), "host {}: {status}", self.pid);
+        assert_eq!(
+            status.signal(),
+            Some(libc::SIGKILL),
+            "host {}: {status}",
+            self.pid
+        );
         self.logs.await.unwrap();
-        let receipt = json!({"event":"host_killed","pid":self.pid,"url":self.url,"signal":status.signal()});
+        let receipt =
+            json!({"event":"host_killed","pid":self.pid,"url":self.url,"signal":status.signal()});
         eprintln!("{receipt}");
         receipt
     }
@@ -592,8 +620,12 @@ async fn memory_call_events(
                         call.name == "memory" && call.arguments["operation"] == "remember",
                     );
                 }
-                RunEvent::ToolResumed { call } if probe["call_id"] == call.id.as_str() => resumes += 1,
-                RunEvent::ToolCompleted { call_id, .. } if probe["call_id"] == call_id.as_str() => completions += 1,
+                RunEvent::ToolResumed { call } if probe["call_id"] == call.id.as_str() => {
+                    resumes += 1
+                }
+                RunEvent::ToolCompleted { call_id, .. } if probe["call_id"] == call_id.as_str() => {
+                    completions += 1
+                }
                 _ => {}
             }
         }
@@ -602,7 +634,13 @@ async fn memory_call_events(
 }
 
 #[cfg(unix)]
-fn runtime_snapshot(database: &Path) -> (tempfile::TempDir, nofy_agent_runtime::durable::SqliteStore, u64) {
+fn runtime_snapshot(
+    database: &Path,
+) -> (
+    tempfile::TempDir,
+    nofy_agent_runtime::durable::SqliteStore,
+    u64,
+) {
     use nofy_agent_runtime::durable::SqliteStore;
 
     // Read a private copy so opening SQLite cannot checkpoint the recovery input.
@@ -620,18 +658,36 @@ fn runtime_snapshot(database: &Path) -> (tempfile::TempDir, nofy_agent_runtime::
 }
 
 #[cfg(unix)]
-async fn audit_crash_snapshot(database: &Path, action_id: &str, workflow_run: &str, probe: Option<&Value>) -> Value {
+async fn audit_crash_snapshot(
+    database: &Path,
+    action_id: &str,
+    workflow_run: &str,
+    probe: Option<&Value>,
+) -> Value {
     let (_snapshot, store, wal_bytes) = runtime_snapshot(database);
-    let action = store.managed_action(action_id).await.unwrap().expect("approval survived SIGKILL");
+    let action = store
+        .managed_action(action_id)
+        .await
+        .unwrap()
+        .expect("approval survived SIGKILL");
     assert_eq!(action.action.run_id, workflow_run);
-    assert!(!action.finished, "approval had settled before the crash: {action:?}");
+    assert!(
+        !action.finished,
+        "approval had settled before the crash: {action:?}"
+    );
     let workflow = store.execution_record(workflow_run).await.unwrap().unwrap();
-    assert_ne!(workflow.status, "completed", "workflow completed before the crash");
+    assert_ne!(
+        workflow.status, "completed",
+        "workflow completed before the crash"
+    );
     let mut receipt = json!({"event":"crash_snapshot","action":action,"workflow_status":workflow.status,"wal_bytes":wal_bytes});
     if let Some(probe) = probe {
         let events = memory_call_events(&store, workflow_run, probe).await;
-        assert_eq!(events, json!({"started":1,"resumed":0,"completed":0,"memory_write_starts":1}),
-            "crashed outside the intended tool boundary");
+        assert_eq!(
+            events,
+            json!({"started":1,"resumed":0,"completed":0,"memory_write_starts":1}),
+            "crashed outside the intended tool boundary"
+        );
         receipt["memory_probe"] = probe.clone();
         receipt["tool_events"] = events;
     }
@@ -680,8 +736,13 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     ]);
     std::fs::write(&access, serde_json::to_vec(&grants).unwrap()).unwrap();
     let probe_file = state.path().join("memory-commit.json");
-    let initial = BackgroundHostProcess::start(state.path(), &access, &token,
-        crash_after_memory.then_some(probe_file.as_path())).await;
+    let initial = BackgroundHostProcess::start(
+        state.path(),
+        &access,
+        &token,
+        crash_after_memory.then_some(probe_file.as_path()),
+    )
+    .await;
     let sdk = engine(&initial.url, &token);
     let release = publish(&sdk, &endpoint, &model, window).await;
     let goal = format!(
@@ -690,7 +751,9 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     let started = start_session(&sdk, &release, SESSION, ORIGIN, &goal).await;
     let origin = wait_status(&sdk, ORIGIN, "completed").await;
     let first = evidence(&sdk, ORIGIN).await;
-    let successful_starts = first.iter().filter(|e| e["tool"] == "sdk_work_start" && e["error"] == false);
+    let successful_starts = first
+        .iter()
+        .filter(|e| e["tool"] == "sdk_work_start" && e["error"] == false);
     assert_eq!(successful_starts.clone().count(), 2, "{origin}; {first:?}");
     let admissions = successful_starts
         .map(|e| (e["result"]["kind"].as_str().unwrap(), e["result"].clone()))
@@ -729,12 +792,18 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     let operator = engine(&initial.url, &format!("{token}-execute"));
     let mut permission_receipts = json!({});
     if crash_after_memory {
-        let anonymous = Engine::new(KernelClient::new(&initial.url, None, Duration::from_secs(10)).unwrap())
-            .with_operation_view(Toolset::Full.sdk());
+        let anonymous =
+            Engine::new(KernelClient::new(&initial.url, None, Duration::from_secs(10)).unwrap())
+                .with_operation_view(Toolset::Full.sdk());
         let reader = engine(&initial.url, &format!("{token}-read"));
-        let reader_view = checked(&reader, "work.inspect", json!({"work_id":gate["work_id"]})).await.data;
+        let reader_view = checked(&reader, "work.inspect", json!({"work_id":gate["work_id"]}))
+            .await
+            .data;
         assert_eq!(reader_view, gate);
-        for (case, client, code) in [("anonymous", &anonymous, "unauthorized"), ("read_only", &reader, "forbidden")] {
+        for (case, client, code) in [
+            ("anonymous", &anonymous, "unauthorized"),
+            ("read_only", &reader, "forbidden"),
+        ] {
             let result = client.execute("work.control", consent.clone()).await;
             assert_eq!(result.error.as_ref().unwrap()["code"], code, "{result:?}");
             permission_receipts[case] = json!(result);
@@ -742,16 +811,33 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
         let mut stale = consent.clone();
         stale["expected_revision"] = json!("0".repeat(64));
         let result = operator.execute("work.control", stale).await;
-        assert_eq!(result.error.as_ref().unwrap()["code"], "runtime_conflict", "{result:?}");
+        assert_eq!(
+            result.error.as_ref().unwrap()["code"],
+            "runtime_conflict",
+            "{result:?}"
+        );
         permission_receipts["stale_revision"] = json!(result);
-        assert_eq!(checked(&reader, "work.inspect", json!({"work_id":gate["work_id"]})).await.data, gate);
-        eprintln!("{}", json!({"event":"approval_permissions","receipts":permission_receipts}));
+        assert_eq!(
+            checked(&reader, "work.inspect", json!({"work_id":gate["work_id"]}))
+                .await
+                .data,
+            gate
+        );
+        eprintln!(
+            "{}",
+            json!({"event":"approval_permissions","receipts":permission_receipts})
+        );
     }
     let (first_exit, approval_before_crash, crash_snapshot) = if crash_after_approval {
-        let approval = checked(&operator, "work.control", consent.clone()).await.data;
+        let approval = checked(&operator, "work.control", consent.clone())
+            .await
+            .data;
         assert_eq!(approval["phase"], "accepted");
         let action_id = approval["action_id"].as_str().unwrap();
-        eprintln!("{}", json!({"event":"approval_committed","pid":first_pid,"receipt":approval}));
+        eprintln!(
+            "{}",
+            json!({"event":"approval_committed","pid":first_pid,"receipt":approval})
+        );
         let probe: Option<Value> = if crash_after_memory {
             let data = tokio::time::timeout(Duration::from_secs(120), async {
                 loop {
@@ -763,7 +849,9 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
                         Err(error) => panic!("read memory commit probe: {error}"),
                     }
                 }
-            }).await.expect("Workflow did not reach the memory commit probe");
+            })
+            .await
+            .expect("Workflow did not reach the memory commit probe");
             let probe: Value = serde_json::from_slice(&data).unwrap();
             assert_eq!(probe["pid"], first_pid);
             eprintln!("{}", json!({"event":"memory_committed","probe":probe}));
@@ -772,7 +860,13 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
             None
         };
         let exit = initial.crash().await;
-        let snapshot = audit_crash_snapshot(&db_path, action_id, flow["run_id"].as_str().unwrap(), probe.as_ref()).await;
+        let snapshot = audit_crash_snapshot(
+            &db_path,
+            action_id,
+            flow["run_id"].as_str().unwrap(),
+            probe.as_ref(),
+        )
+        .await;
         (exit, Some(approval), Some(snapshot))
     } else {
         (initial.stop().await, None, None)
@@ -780,7 +874,10 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     let restarted = BackgroundHostProcess::start(state.path(), &access, &token, None).await;
     assert_ne!(restarted.pid, first_pid);
     let db_after = std::fs::metadata(&db_path).unwrap();
-    assert_eq!((db_before.dev(), db_before.ino()), (db_after.dev(), db_after.ino()));
+    assert_eq!(
+        (db_before.dev(), db_before.ino()),
+        (db_after.dev(), db_after.ino())
+    );
     let sdk = engine(&restarted.url, &token);
     let gate_after_restart = checked(
         &sdk,
@@ -795,16 +892,27 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     } else {
         assert_eq!(gate_after_restart, gate);
     }
-    let recovered = checked(&sdk, "work.list", json!({"session_id":SESSION})).await.data;
+    let recovered = checked(&sdk, "work.list", json!({"session_id":SESSION}))
+        .await
+        .data;
     let recovered_items = recovered["items"].as_array().unwrap();
     for target in [agent, flow] {
-        assert!(recovered_items.iter().any(|item| item["work_id"] == target["work_id"]));
+        assert!(
+            recovered_items
+                .iter()
+                .any(|item| item["work_id"] == target["work_id"])
+        );
     }
-    let recovered_session = checked(&sdk, "session.inspect", json!({"session_id":SESSION})).await.data;
+    let recovered_session = checked(&sdk, "session.inspect", json!({"session_id":SESSION}))
+        .await
+        .data;
     assert_eq!(recovered_session["session_id"], SESSION);
     assert_eq!(recovered_session["root_run_id"], ORIGIN);
-    eprintln!("{}", json!({"event":"state_recovered","pid":restarted.pid,"session_id":SESSION,
-        "work_ids":[agent["work_id"],flow["work_id"]],"gate":gate_after_restart["work_id"]}));
+    eprintln!(
+        "{}",
+        json!({"event":"state_recovered","pid":restarted.pid,"session_id":SESSION,
+        "work_ids":[agent["work_id"],flow["work_id"]],"gate":gate_after_restart["work_id"]})
+    );
     let authorized = match approval_before_crash {
         Some(approval) => approval,
         None => checked(&sdk, "work.control", consent.clone()).await.data,
@@ -815,7 +923,10 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
         bookmark["watermark"].as_str().unwrap()
     );
     if crash_after_memory {
-        goal = format!("Continue coordinating the work you previously scheduled. Use sdk_work_wait from the saved watermark {} and use sdk_work_list and sdk_work_inspect to verify the original Agent and Workflow Work IDs. The original authorized Workflow may still be recovering. If it is running, keep waiting for changes from the latest watermark and inspect again. If it is waiting and the latest inspection allows resume, you are authorized to call sdk_work_control once with action resume, the original Workflow Work ID, and current revision. Wait for the result. Do not start either program again, submit a human response, or write memory. List personal and project memory with the memory tool. Verify that both original work items reached completed and report the three recorded markers. Report any actual remaining blocker if completion cannot be verified.", bookmark["watermark"].as_str().unwrap());
+        goal = format!(
+            "Continue coordinating the work you previously scheduled. Use sdk_work_wait from the saved watermark {} and use sdk_work_list and sdk_work_inspect to verify the original Agent and Workflow Work IDs. The original authorized Workflow may still be recovering. If it is running, keep waiting for changes from the latest watermark and inspect again. If it is waiting and the latest inspection allows resume, you are authorized to call sdk_work_control once with action resume, the original Workflow Work ID, and current revision. Wait for the result. Do not start either program again, submit a human response, or write memory. List personal and project memory with the memory tool. Verify that both original work items reached completed and report the three recorded markers. Report any actual remaining blocker if completion cannot be verified.",
+            bookmark["watermark"].as_str().unwrap()
+        );
     }
     let command = json!({"command_id":next,"source_run_id":ORIGIN,"expected_source_revision":0,
         "turn":{"kind":"new","run_id":next,"input":{"text":goal,"attachments":[]}}});
@@ -830,30 +941,66 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     if crash_after_memory {
         let audited = wait_status(&sdk, next, "completed").await;
         let verification = evidence(&sdk, next).await;
-        assert!(verification.iter().any(|e| e["error"] == false && e["tool"] == "sdk_work_wait"
-            && e["args"]["after"] == bookmark["watermark"]), "{verification:?}");
+        assert!(
+            verification.iter().any(|e| e["error"] == false
+                && e["tool"] == "sdk_work_wait"
+                && e["args"]["after"] == bookmark["watermark"]),
+            "{verification:?}"
+        );
         for target in [agent, flow] {
-            assert!(verification.iter().any(|e| e["error"] == false && e["tool"] == "sdk_work_inspect"
-                && e["result"]["work_id"] == target["work_id"]
-                && e["result"]["status"] == "completed"), "{verification:?}");
+            assert!(
+                verification.iter().any(|e| e["error"] == false
+                    && e["tool"] == "sdk_work_inspect"
+                    && e["result"]["work_id"] == target["work_id"]
+                    && e["result"]["status"] == "completed"),
+                "{verification:?}"
+            );
         }
-        assert!(!verification.iter().any(|e| e["tool"] == "sdk_work_start"
-            || (e["tool"] == "memory" && e["args"]["operation"] == "remember")), "{verification:?}");
+        assert!(
+            !verification.iter().any(|e| e["tool"] == "sdk_work_start"
+                || (e["tool"] == "memory" && e["args"]["operation"] == "remember")),
+            "{verification:?}"
+        );
         let probe = &crash_snapshot.as_ref().unwrap()["memory_probe"];
         let original_receipt = &probe["tool_result"]["value"];
         let original_target = &original_receipt["target"];
         assert!(original_target["id"].is_string());
-        let items = verification.iter().filter(|e| e["error"] == false && e["tool"] == "memory"
-            && e["args"]["operation"] == "list")
-            .flat_map(|e| e["result"]["items"].as_array().into_iter().flatten()).collect::<Vec<_>>();
+        let items = verification
+            .iter()
+            .filter(|e| {
+                e["error"] == false && e["tool"] == "memory" && e["args"]["operation"] == "list"
+            })
+            .flat_map(|e| e["result"]["items"].as_array().into_iter().flatten())
+            .collect::<Vec<_>>();
         for marker in [GLOBAL, CHILD, WORKFLOW] {
-            assert!(items.iter().any(|item| item["summary"].as_str().is_some_and(|text| text.contains(marker))), "missing {marker}");
+            assert!(
+                items.iter().any(|item| item["summary"]
+                    .as_str()
+                    .is_some_and(|text| text.contains(marker))),
+                "missing {marker}"
+            );
         }
-        let workflow_memory = items.iter().filter(|item| item["summary"].as_str().is_some_and(|text| text.contains(WORKFLOW)))
-            .map(|item| item["target"]["id"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(workflow_memory, [original_target["id"].as_str().unwrap()].into());
-        assert!(items.iter().any(|item| item["target"] == *original_target), "{items:?}");
-        let resume = verification.iter().filter(|e| e["tool"] == "sdk_work_control").collect::<Vec<_>>();
+        let workflow_memory = items
+            .iter()
+            .filter(|item| {
+                item["summary"]
+                    .as_str()
+                    .is_some_and(|text| text.contains(WORKFLOW))
+            })
+            .map(|item| item["target"]["id"].as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            workflow_memory,
+            [original_target["id"].as_str().unwrap()].into()
+        );
+        assert!(
+            items.iter().any(|item| item["target"] == *original_target),
+            "{items:?}"
+        );
+        let resume = verification
+            .iter()
+            .filter(|e| e["tool"] == "sdk_work_control")
+            .collect::<Vec<_>>();
         assert!(resume.len() <= 1, "{resume:?}");
         let mut resume_action = Value::Null;
         if let Some(entry) = resume.first() {
@@ -873,39 +1020,86 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
                 }
             }).await.expect("Omni's resume command did not settle");
         }
-        let workflow_after = checked(&sdk, "work.inspect", json!({"work_id":flow["work_id"],"include_result":true})).await.data;
+        let workflow_after = checked(
+            &sdk,
+            "work.inspect",
+            json!({"work_id":flow["work_id"],"include_result":true}),
+        )
+        .await
+        .data;
         assert_eq!(workflow_after["work_id"], flow["work_id"]);
         assert_eq!(workflow_after["status"], "completed", "{workflow_after}");
-        let tree_after = checked(&sdk, "work.list", json!({"run_id":flow["run_id"]})).await.data;
-        let recovery = checked(&sdk, "run.recovery", json!({"run_id":flow["run_id"],"kind":"child"})).await;
-        let recovery: Value = serde_json::from_str(recovery.data["native_json"].as_str().unwrap()).unwrap();
-        let external_changes = checked(&sdk, "work.wait", json!({"session_id":SESSION,"after":bookmark["watermark"],"limit":64})).await.data;
+        let tree_after = checked(&sdk, "work.list", json!({"run_id":flow["run_id"]}))
+            .await
+            .data;
+        let recovery = checked(
+            &sdk,
+            "run.recovery",
+            json!({"run_id":flow["run_id"],"kind":"child"}),
+        )
+        .await;
+        let recovery: Value =
+            serde_json::from_str(recovery.data["native_json"].as_str().unwrap()).unwrap();
+        let external_changes = checked(
+            &sdk,
+            "work.wait",
+            json!({"session_id":SESSION,"after":bookmark["watermark"],"limit":64}),
+        )
+        .await
+        .data;
         let after_events = evidence(&sdk, flow["run_id"].as_str().unwrap()).await;
-        let writes = after_events.iter().filter(|event| event["tool"] == "memory"
-            && event["args"]["operation"] == "remember").collect::<Vec<_>>();
+        let writes = after_events
+            .iter()
+            .filter(|event| event["tool"] == "memory" && event["args"]["operation"] == "remember")
+            .collect::<Vec<_>>();
         assert_eq!(writes.len(), 1, "{writes:?}");
         assert_eq!(writes[0]["run_id"], probe["run_id"]);
         assert_eq!(writes[0]["call_id"], probe["call_id"]);
         assert_eq!(writes[0]["result"], *original_receipt);
         assert_eq!(writes[0]["error"], false);
-        let action = checked(&sdk, "action.inspect", json!({"command_id":authorized["action_id"]})).await;
-        let action: Value = serde_json::from_str(action.data["native_json"].as_str().unwrap()).unwrap();
-        assert_eq!(action["sequence"], crash_snapshot.as_ref().unwrap()["action"]["sequence"]);
+        let action = checked(
+            &sdk,
+            "action.inspect",
+            json!({"command_id":authorized["action_id"]}),
+        )
+        .await;
+        let action: Value =
+            serde_json::from_str(action.data["native_json"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            action["sequence"],
+            crash_snapshot.as_ref().unwrap()["action"]["sequence"]
+        );
         assert_eq!(action["action"]["command_id"], authorized["action_id"]);
         assert_eq!(action["finished"], true);
         assert!(action["error"].is_null(), "{action}");
         let changes = external_changes["changes"].as_array().unwrap();
         assert_eq!(external_changes["more"], false);
         for kind in ["command_accepted", "command_finished"] {
-            assert_eq!(changes.iter().filter(|change| change["kind"] == kind
-                && change["work_id"] == gate["work_id"]).count(), 1, "{kind}: {changes:?}");
+            assert_eq!(
+                changes
+                    .iter()
+                    .filter(|change| change["kind"] == kind && change["work_id"] == gate["work_id"])
+                    .count(),
+                1,
+                "{kind}: {changes:?}"
+            );
         }
-        assert_eq!(changes.iter().filter(|change| change["kind"] == "run"
-            && change["native_status"] == "completed" && change["work_id"] == flow["work_id"]).count(), 1);
+        assert_eq!(
+            changes
+                .iter()
+                .filter(|change| change["kind"] == "run"
+                    && change["native_status"] == "completed"
+                    && change["work_id"] == flow["work_id"])
+                .count(),
+            1
+        );
         let second_exit = restarted.stop().await;
         let (_snapshot, store, _) = runtime_snapshot(&db_path);
         let lifecycle = memory_call_events(&store, flow["run_id"].as_str().unwrap(), probe).await;
-        assert_eq!(lifecycle, json!({"started":1,"resumed":1,"completed":1,"memory_write_starts":1}));
+        assert_eq!(
+            lifecycle,
+            json!({"started":1,"resumed":1,"completed":1,"memory_write_starts":1})
+        );
         let result = json!({"model":model,"context_window":window,"host_restart":{"first_exit":first_exit,"second_exit":second_exit,
             "same_database_inode":db_after.ino(),"crash_snapshot":crash_snapshot},"permission_receipts":permission_receipts,
             "initial_receipts":first,"bookmark":bookmark,"approval":authorized,"approval_after_restart":{
@@ -917,14 +1111,18 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
         if let Ok(path) = std::env::var("NOFY_LIVE_REPORT") {
             std::fs::write(path, serde_json::to_vec_pretty(&result).unwrap()).unwrap();
         }
-        eprintln!("{}", json!({"event":"memory_crash_observed","workflow_status":workflow_after["status"],"fully_recovered":result["fully_recovered"]}));
+        eprintln!(
+            "{}",
+            json!({"event":"memory_crash_observed","workflow_status":workflow_after["status"],"fully_recovered":result["fully_recovered"]})
+        );
         return;
     }
     let flow_finished = wait_status(&sdk, flow["work_id"].as_str().unwrap(), "completed").await;
     let final_turn = wait_status(&sdk, next, "completed").await;
     let action_id = &authorized["action_id"];
     let action = checked(&sdk, "action.inspect", json!({"command_id":action_id})).await;
-    let settled: Value = serde_json::from_str(action.data["native_json"].as_str().unwrap()).unwrap();
+    let settled: Value =
+        serde_json::from_str(action.data["native_json"].as_str().unwrap()).unwrap();
     assert_eq!(settled["action"]["command_id"], *action_id);
     assert_eq!(settled["finished"], true);
     assert!(settled["error"].is_null(), "{settled}");
@@ -932,7 +1130,10 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
         assert_eq!(settled["sequence"], snapshot["action"]["sequence"]);
     }
     let replayed = checked(&sdk, "work.control", consent).await.data;
-    assert_eq!(replayed, authorized, "approval replay changed the original receipt");
+    assert_eq!(
+        replayed, authorized,
+        "approval replay changed the original receipt"
+    );
     let expected = format!("{GLOBAL}|{CHILD}|{WORKFLOW}");
     assert!(
         final_turn["result"]["output"]
@@ -951,11 +1152,24 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     let changes = external_changes["changes"].as_array().unwrap();
     assert_eq!(external_changes["more"], false);
     for kind in ["command_accepted", "command_finished"] {
-        assert_eq!(changes.iter().filter(|change| change["kind"] == kind
-            && change["work_id"] == gate["work_id"]).count(), 1, "{kind}: {changes:?}");
+        assert_eq!(
+            changes
+                .iter()
+                .filter(|change| change["kind"] == kind && change["work_id"] == gate["work_id"])
+                .count(),
+            1,
+            "{kind}: {changes:?}"
+        );
     }
-    assert_eq!(changes.iter().filter(|change| change["kind"] == "run"
-        && change["native_status"] == "completed" && change["work_id"] == flow["work_id"]).count(), 1);
+    assert_eq!(
+        changes
+            .iter()
+            .filter(|change| change["kind"] == "run"
+                && change["native_status"] == "completed"
+                && change["work_id"] == flow["work_id"])
+            .count(),
+        1
+    );
     let session = checked(&sdk, "session.inspect", json!({"session_id":SESSION}))
         .await
         .data;
@@ -963,18 +1177,38 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     let worker_calls = evidence(&sdk, agent["run_id"].as_str().unwrap()).await;
     let workflow_calls = evidence(&sdk, flow["run_id"].as_str().unwrap()).await;
     let write_once = |entries: &[Value], area: &str, marker: &str| {
-        assert_eq!(entries.iter().filter(|entry| entry["tool"] == "memory"
-            && entry["error"] == false && entry["args"]["operation"] == "remember"
-            && entry["args"]["request"]["area"] == area
-            && entry["result"]["summary"].as_str().is_some_and(|value| value.contains(marker))).count(),
-            1, "expected a single write of {marker}: {entries:?}");
+        assert_eq!(
+            entries
+                .iter()
+                .filter(|entry| entry["tool"] == "memory"
+                    && entry["error"] == false
+                    && entry["args"]["operation"] == "remember"
+                    && entry["args"]["request"]["area"] == area
+                    && entry["result"]["summary"]
+                        .as_str()
+                        .is_some_and(|value| value.contains(marker)))
+                .count(),
+            1,
+            "expected a single write of {marker}: {entries:?}"
+        );
     };
     write_once(&first, "personal", GLOBAL);
     write_once(&worker_calls, "project", CHILD);
     write_once(&workflow_calls, "project", WORKFLOW);
-    assert_eq!(workflow_calls.iter().filter(|entry| entry["tool"] == "workflow_agent"
-        && entry["error"] == false).count(), 1, "{workflow_calls:?}");
-    assert!(!verification.iter().any(|entry| entry["tool"] == "sdk_work_start"), "{verification:?}");
+    assert_eq!(
+        workflow_calls
+            .iter()
+            .filter(|entry| entry["tool"] == "workflow_agent" && entry["error"] == false)
+            .count(),
+        1,
+        "{workflow_calls:?}"
+    );
+    assert!(
+        !verification
+            .iter()
+            .any(|entry| entry["tool"] == "sdk_work_start"),
+        "{verification:?}"
+    );
     let check = |entries: &[Value], tool: &str, item: &str| {
         entries.iter().any(|e| {
             e["tool"] == tool && e["error"] == false && e["result"].to_string().contains(item)
@@ -1011,7 +1245,12 @@ async fn run_background_restart(crash_after_approval: bool, crash_after_memory: 
     );
     let global_calls = evidence(&sdk, global).await;
     assert!(check(&global_calls, "memory", GLOBAL));
-    let wrong_scope = sdk.execute("work.inspect", json!({"session_id":global,"work_id":flow["work_id"]})).await;
+    let wrong_scope = sdk
+        .execute(
+            "work.inspect",
+            json!({"session_id":global,"work_id":flow["work_id"]}),
+        )
+        .await;
     assert!(wrong_scope.is_error(), "{wrong_scope:?}");
     let sessions = checked(&sdk, "session.list", json!({})).await.data;
     let listed = sessions["sessions"].as_array().unwrap();

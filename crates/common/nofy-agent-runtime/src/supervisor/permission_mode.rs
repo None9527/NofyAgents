@@ -85,13 +85,11 @@ fn git_command(args: &[String]) -> bool {
     }
     let force = args
         .iter()
-        .filter(|arg| matches!(arg.as_str(), "--force" | "--no-force") || short_flag(arg, 'f'))
-        .next_back()
+        .rfind(|arg| matches!(arg.as_str(), "--force" | "--no-force") || short_flag(arg, 'f'))
         .is_some_and(|arg| arg != "--no-force");
     let dry = args
         .iter()
-        .filter(|arg| matches!(arg.as_str(), "--dry-run" | "--no-dry-run") || short_flag(arg, 'n'))
-        .next_back()
+        .rfind(|arg| matches!(arg.as_str(), "--dry-run" | "--no-dry-run") || short_flag(arg, 'n'))
         .is_some_and(|arg| arg != "--no-dry-run");
     let tree = args
         .iter()
@@ -99,13 +97,12 @@ fn git_command(args: &[String]) -> bool {
     match command.as_str() {
         "reset" => args
             .iter()
-            .filter(|arg| {
+            .rfind(|arg| {
                 matches!(
                     arg.as_str(),
                     "--hard" | "--soft" | "--mixed" | "--merge" | "--keep" | "-p" | "--patch"
                 )
             })
-            .next_back()
             .is_some_and(|arg| arg == "--hard"),
         "clean" => !dry && force,
         "push" => {

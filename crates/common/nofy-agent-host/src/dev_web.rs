@@ -114,8 +114,7 @@ async fn check_request(
     if path.starts_with("/api/") {
         let request_origin = headers.get(header::ORIGIN);
         let same_origin = request_origin.is_some_and(|value| *value == origin);
-        if (request_origin.is_some() && !same_origin)
-            || (*request.method() != Method::GET && !same_origin)
+        if (!same_origin && (request_origin.is_some() || *request.method() != Method::GET))
             || headers
                 .get("sec-fetch-site")
                 .is_some_and(|value| value != "same-origin" && value != "none")
@@ -182,7 +181,7 @@ fn conversation_route(method: &Method, path: &str) -> bool {
                 | ["module-repositories", _, "packages"]
                 | ["module-repositories", _, "packages", _, _, "yank"]
         ) | (&Method::PATCH, ["sessions", _, "metadata"])
-          | (&Method::PUT | &Method::DELETE, ["module-repositories", _])
+            | (&Method::PUT | &Method::DELETE, ["module-repositories", _])
     )
 }
 

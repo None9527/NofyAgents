@@ -34,7 +34,9 @@ impl Observer {
         let pending = self.pending.clone();
         connection.update_hook(Some(move |_, _: &str, table: &str, _| {
             let topics = match table {
-                "agent_runtime_sessions" | "agent_runtime_session_profiles" | "agent_runtime_session_titles" => SESSIONS,
+                "agent_runtime_sessions"
+                | "agent_runtime_session_profiles"
+                | "agent_runtime_session_titles" => SESSIONS,
                 "agent_runtime_runs"
                 | "agent_runtime_threads"
                 | "agent_runtime_jobs"

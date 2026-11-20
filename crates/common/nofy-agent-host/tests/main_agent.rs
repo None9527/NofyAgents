@@ -749,33 +749,34 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
         );
         let state = get(&server, "/api/v1/runs/constructed-main").await;
         assert_eq!(state["execution"]["status"], "completed", "{state}");
-        let requests = evidence.requests.lock().unwrap();
-        for id in ["join-dynamic", "graph"] {
-            let (value, is_error) = requests
-                .iter()
-                .flat_map(|r| &r.messages)
-                .find_map(|message| match message {
-                    Message::Tool {
-                        call_id,
-                        content,
-                        is_error,
-                        ..
-                    } if call_id == id => Some((content, *is_error)),
-                    _ => None,
-                })
-                .unwrap();
-            assert!(!is_error, "{id}: {value}");
-            assert!(
-                value.to_string().contains("dynamic child completed"),
-                "{id}: {value}"
+        {
+            let requests = evidence.requests.lock().unwrap();
+            for id in ["join-dynamic", "graph"] {
+                let (value, is_error) = requests
+                    .iter()
+                    .flat_map(|r| &r.messages)
+                    .find_map(|message| match message {
+                        Message::Tool {
+                            call_id,
+                            content,
+                            is_error,
+                            ..
+                        } if call_id == id => Some((content, *is_error)),
+                        _ => None,
+                    })
+                    .unwrap();
+                assert!(!is_error, "{id}: {value}");
+                assert!(
+                    value.to_string().contains("dynamic child completed"),
+                    "{id}: {value}"
+                );
+            }
+            assert_eq!(
+                evidence.effects.load(Ordering::SeqCst),
+                2,
+                "Both structurally-created children must execute, not just receive prompts"
             );
         }
-        assert_eq!(
-            evidence.effects.load(Ordering::SeqCst),
-            2,
-            "Both structurally-created children must execute, not just receive prompts"
-        );
-        drop(requests);
         let before = evidence.models.load(Ordering::SeqCst);
         supervisor
             .execute_submitted(&registry, "constructed-main")

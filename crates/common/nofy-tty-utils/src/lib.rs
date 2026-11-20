@@ -48,6 +48,20 @@ pub use process_scope::{ProcessScope, global_process_scope};
 /// How long a shell gets to forward a hangup to its jobs before it is killed.
 pub const HANGUP_GRACE: std::time::Duration = std::time::Duration::from_millis(200);
 
+/// Read the terminating signal on platforms that report one.
+pub fn exit_signal(status: &std::process::ExitStatus) -> Option<i32> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        status.signal()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = status;
+        None
+    }
+}
+
 pub mod runtime;
 
 // ---------------------------------------------------------------------------

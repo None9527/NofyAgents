@@ -172,17 +172,29 @@ async fn exact_approval_and_durable_resume_execute_one_http_effect_through_the_o
         ("mode-full", "yolo", None, 7),
     ] {
         let thread = mode;
-        post(&server, "/api/v1/runs", json!({
-            "run_id":id,"thread_id":thread,"system":"managed-http-tool","release":release,
-            "program":"execute","approval_mode":mode
-        })).await;
+        post(
+            &server,
+            "/api/v1/runs",
+            json!({
+                "run_id":id,"thread_id":thread,"system":"managed-http-tool","release":release,
+                "program":"execute","approval_mode":mode
+            }),
+        )
+        .await;
         if let Some(scope) = scope {
             assert_eq!(outcome(&server, id).await["execution"]["status"], "paused");
             let approval = store.pending_approvals(id).await.unwrap().pop().unwrap();
             assert_eq!(calls.load(Ordering::SeqCst), expected_effects - 1);
             assert_eq!(
-                request(&server, reqwest::Method::POST, &format!("/api/v1/runs/{id}/approvals"), ADMIN,
-                    json!({"request":approval,"allow":true,"scope":scope,"continue_run":true})).await.0,
+                request(
+                    &server,
+                    reqwest::Method::POST,
+                    &format!("/api/v1/runs/{id}/approvals"),
+                    ADMIN,
+                    json!({"request":approval,"allow":true,"scope":scope,"continue_run":true})
+                )
+                .await
+                .0,
                 204
             );
         }
@@ -193,7 +205,9 @@ async fn exact_approval_and_durable_resume_execute_one_http_effect_through_the_o
                 }
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
         assert_eq!(calls.load(Ordering::SeqCst), expected_effects);
     }
     let mut guarded_document = serde_json::to_value(&document).unwrap();
@@ -205,35 +219,70 @@ async fn exact_approval_and_durable_resume_execute_one_http_effect_through_the_o
         ("guarded-risk-repeat", "guarded", "paused"),
         ("yolo-risk", "yolo", "completed"),
     ] {
-        post(&server, "/api/v1/runs", json!({
-            "run_id":id,"thread_id":id,"system":"managed-http-tool","release":release,
-            "program":"execute","approval_mode":mode
-        })).await;
+        post(
+            &server,
+            "/api/v1/runs",
+            json!({
+                "run_id":id,"thread_id":id,"system":"managed-http-tool","release":release,
+                "program":"execute","approval_mode":mode
+            }),
+        )
+        .await;
         assert_eq!(outcome(&server, id).await["execution"]["status"], expected);
         if expected == "paused" {
             let pending = store.pending_approvals(id).await.unwrap().pop().unwrap();
             assert!(pending.policy_id.is_none());
-            assert!(store.decide_scoped_and_continue(id, &pending, true,
-                nofy_agent_runtime::supervisor::ApprovalScope::Thread).await.is_err());
-            store.decide_scoped_and_continue(id, &pending, true, Default::default()).await.unwrap();
+            assert!(
+                store
+                    .decide_scoped_and_continue(
+                        id,
+                        &pending,
+                        true,
+                        nofy_agent_runtime::supervisor::ApprovalScope::Thread
+                    )
+                    .await
+                    .is_err()
+            );
+            store
+                .decide_scoped_and_continue(id, &pending, true, Default::default())
+                .await
+                .unwrap();
             tokio::time::timeout(Duration::from_secs(10), async {
                 loop {
-                    if outcome(&server, id).await["execution"]["status"] == "completed" { break; }
+                    if outcome(&server, id).await["execution"]["status"] == "completed" {
+                        break;
+                    }
                     tokio::time::sleep(Duration::from_millis(20)).await;
                 }
-            }).await.unwrap();
+            })
+            .await
+            .unwrap();
         }
     }
     assert_eq!(calls.load(Ordering::SeqCst), 10);
     let mut read_document = serde_json::to_value(&document).unwrap();
     read_document["modules"][0]["config"]["contract"]["effect"] = json!("read_only");
     let release = import(&server, &serde_json::from_value(read_document).unwrap()).await;
-    post(&server, "/api/v1/runs", json!({
-        "run_id":"build-read","thread_id":"build-read","system":"managed-http-tool",
-        "release":release,"program":"execute","approval_mode":"build"
-    })).await;
-    assert_eq!(outcome(&server, "build-read").await["execution"]["status"], "completed");
-    assert!(store.pending_approvals("build-read").await.unwrap().is_empty());
+    post(
+        &server,
+        "/api/v1/runs",
+        json!({
+            "run_id":"build-read","thread_id":"build-read","system":"managed-http-tool",
+            "release":release,"program":"execute","approval_mode":"build"
+        }),
+    )
+    .await;
+    assert_eq!(
+        outcome(&server, "build-read").await["execution"]["status"],
+        "completed"
+    );
+    assert!(
+        store
+            .pending_approvals("build-read")
+            .await
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(calls.load(Ordering::SeqCst), 11);
     stop.cancel();
     worker.await.unwrap();

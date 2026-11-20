@@ -13,10 +13,10 @@ Give a coding agent a goal, let it create and test an agent through CLI or MCP, 
 - **Create and compose agents.** Configure models, prompts, tools, context, policies, budgets, and sessions. CLI and MCP edit the same source of truth.
 - **Connect external implementations.** Use Rhai, standalone scripts/programs, HTTP, or external MCP tools. Ordinary business extensions do not require Rust kernel changes.
 - **Build, publish, and recover.** Build complete systems, inspect differences, activate generations, and observe events, approvals, cancellation, and recovery.
-- **Keep session state.** Seventeen session operations cover admission, subsequent turns, metadata, archives, and policy changes between turns.
+- **Keep session state.** Twenty session operations cover admission, subsequent turns, metadata, archives, and policy changes between turns.
 - **Share portable source.** Archives contain declarations, module source, and ordinary dependency lists. Credentials are injected separately; users install interpreters, compilers, and external libraries.
 
-Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 98 operations, including 96 inbound MCP tools. Secret values use a separate private local entry point.
+Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 104 operations, including 102 inbound MCP tools in the `full` toolset. Secret values use a separate private local entry point.
 
 ## Core concept: goals and recursive self-improvement (RSI)
 

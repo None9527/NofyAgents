@@ -177,7 +177,8 @@ async fn list(
     Query(page): Query<Page>,
 ) -> Result<Json<Vec<SessionState>>> {
     host.auth.require(&headers, Scope::Read)?;
-    let rows = host.store
+    let rows = host
+        .store
         .session_states(&page.after, page.limit, page.include_archived)
         .await?;
     Ok(Json(host.store.project_session_titles(rows).await?))

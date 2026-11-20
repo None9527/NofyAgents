@@ -387,13 +387,7 @@ async fn session_titles_skip_governed_models_and_require_a_completed_response() 
             .await
             .unwrap();
         assert_eq!(title.is_some(), limit.is_none());
-        assert_eq!(
-            calls.lock().unwrap().len(),
-            match limit {
-                Some(n) => n,
-                None => 2,
-            }
-        );
+        assert_eq!(calls.lock().unwrap().len(), limit.unwrap_or(2));
         assert_eq!(
             get(&server, "/api/v1/sessions/conversation").await["display_name"],
             "hello"
