@@ -206,8 +206,37 @@ async fn run_bounded(
         .await
         .map_err(|_| HostError::Unavailable("Git module acquisition timed out".into()))?
 }
+fn git_path(path: &Path) -> Result<String> {
+    let path = path
+        .to_str()
+        .ok_or_else(|| invalid("Git paths must be UTF-8"))?;
+    if cfg!(windows)
+        && let Some(verbatim) = path.strip_prefix(r"\\?\")
+    {
+        // Git for Windows can interpret the verbatim drive prefix as an SSH host.
+        // Only convert canonical paths with an equivalent ordinary Windows form.
+        let syntax = nofy_host_path::Syntax::Windows;
+        syntax
+            .check_normalized_absolute(path, path.len())
+            .map_err(|_| invalid("unsupported canonical Windows Git path"))?;
+        let path = if verbatim
+            .get(..4)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(r"UNC\"))
+        {
+            format!(r"\\{}", &verbatim[4..])
+        } else {
+            verbatim.to_owned()
+        };
+        syntax
+            .check_normalized_absolute(&path, path.len())
+            .map_err(|_| invalid("unsupported canonical Windows Git path"))?;
+        return Ok(path);
+    }
+    Ok(path.to_owned())
+}
+
 struct Tree {
-    directory: std::path::PathBuf,
+    directory: String,
     entries: BTreeMap<String, (String, bool)>,
     deadline: tokio::time::Instant,
     source_bytes: usize,
@@ -239,7 +268,7 @@ impl Tree {
         let bytes = run_bounded(
             &[
                 "--git-dir".into(),
-                self.directory.to_string_lossy().into_owned(),
+                self.directory.clone(),
                 "cat-file".into(),
                 "blob".into(),
                 object.clone(),
@@ -269,19 +298,24 @@ pub(super) async fn collect(
     };
     let directory = tempfile::tempdir_in(parent)
         .map_err(|_| HostError::Unavailable("Git acquisition staging is unavailable".into()))?;
-    let path = directory.path().join("repository.git");
+    let path = git_path(&directory.path().join("repository.git"))?;
+    let source = if Path::new(url).is_absolute() {
+        git_path(Path::new(url))?
+    } else {
+        url.clone()
+    };
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(*timeout_ms);
     run(
         &[
             "init".into(),
             "--quiet".into(),
             "--bare".into(),
-            path.to_string_lossy().into_owned(),
+            path.clone(),
         ],
         deadline,
     )
     .await?;
-    let prefix = vec!["--git-dir".to_owned(), path.to_string_lossy().into_owned()];
+    let prefix = vec!["--git-dir".to_owned(), path.clone()];
     let mut fetch = prefix.clone();
     fetch.extend([
         "fetch".into(),
@@ -289,7 +323,7 @@ pub(super) async fn collect(
         "--no-tags".into(),
         "--depth=1".into(),
         "--".into(),
-        url.clone(),
+        source,
         reference.clone(),
     ]);
     run(&fetch, deadline).await?;

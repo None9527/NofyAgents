@@ -307,7 +307,8 @@ async fn shared_module_cli_and_mcp_pin_edit_export_and_offline_rebuild() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn directory_and_real_git_snapshots_are_explicit_atomic_and_authorized() {
     let dir = tempfile::tempdir().unwrap();
-    let state = dir.path().join("kernel");
+    // On Windows this also exercises Git staging under a verbatim path.
+    let state = dir.path().canonicalize().unwrap().join("kernel");
     let kernel = host(&state).await;
     let server = serve(kernel.router()).await;
     let e = engine(&server.url, ADMIN);

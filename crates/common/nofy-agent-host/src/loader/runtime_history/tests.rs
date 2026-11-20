@@ -212,8 +212,15 @@ fn missing_authority_pointer_or_active_database_never_reopens_old_history() {
     }
     let dir = nofy_test_support::canonical_tempdir().unwrap();
     let (control, store) = setup(&dir.path().join("host"));
-    std::fs::remove_file(store.path().unwrap()).unwrap();
-    assert!(store.path().is_err());
+    let active = store.path().unwrap();
+    if cfg!(windows) {
+        // SQLite's cached connection does not share deletion on Windows.
+        drop(store);
+        std::fs::remove_file(active).unwrap();
+    } else {
+        std::fs::remove_file(active).unwrap();
+        assert!(store.path().is_err());
+    }
     let origin = control.authority.origin.clone();
     assert!(SqliteStore::open_placed(&origin, Arc::new(control), None).is_err());
 }
