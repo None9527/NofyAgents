@@ -79,6 +79,7 @@ async fn cached_stores_follow_real_generations_and_reverse_copies_latest_history
     assert_eq!(moved.phase, "completed");
     let external = store.path().unwrap();
     assert_ne!(external, origin);
+    nofy_private_fs::verify_private_dir(external.parent().unwrap()).unwrap();
     assert_eq!(other.path().unwrap(), external);
     assert_eq!(reopened.path().unwrap(), external);
     assert_eq!(inspect_snapshot(&external).unwrap(), initial);

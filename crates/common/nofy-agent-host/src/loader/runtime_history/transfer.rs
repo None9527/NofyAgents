@@ -295,6 +295,7 @@ impl Control {
     }
     fn verify(&self, record: &Record) -> Result<()> {
         let stage = self.stage(record)?;
+        let _private = nofy_private_fs::verify_private_dir(&stage).map_err(storage::unavailable)?;
         let owner: Value =
             serde_json::from_slice(&storage::read(&stage.join("owner.json"), 32768)?)
                 .map_err(|_| unavailable())?;
@@ -325,6 +326,11 @@ impl Control {
                 self.write_record(&record, true)?;
             }
             self.preflight_directory(&stage)?;
+            storage::directory(stage.parent().ok_or_else(unavailable)?)?;
+            let _created =
+                nofy_private_fs::ensure_private_dir(&stage).map_err(storage::unavailable)?;
+            let _private =
+                nofy_private_fs::verify_private_dir(&stage).map_err(storage::unavailable)?;
             let stage = storage::directory(&stage)?;
             storage::atomic(
                 &stage.join("owner.json"),
