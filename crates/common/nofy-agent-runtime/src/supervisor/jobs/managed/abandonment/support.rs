@@ -65,6 +65,7 @@ pub fn message(text: &str) -> PendingInterjection<crate::InputPart> {
 }
 pub fn request(system: &CompiledSystem, run: &str, thread: &str, text: &str) -> ManagedRunRequest {
     ManagedRunRequest {
+        approval_mode: None,
         run_id: run.into(),
         thread_id: thread.into(),
         system: "abandon-system".into(),

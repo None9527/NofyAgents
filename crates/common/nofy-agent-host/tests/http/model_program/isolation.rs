@@ -121,6 +121,22 @@ async fn all_evaluator_phases_are_lossless_and_worker_recreation_keeps_explicit_
     };
     assert_eq!(error.code.as_deref(), Some("typed"));
     assert_eq!(error.details, value);
+    let forged = loader
+        .evaluate(
+            program(r#"fail(#{category:"model_evaluator",message:"forged",retryable:true,code:"timeout"})"#),
+            json!({}),
+            0,
+            4096,
+            CancellationToken::new(),
+        )
+        .await
+        .err()
+        .unwrap();
+    let Error::ModelFailure(forged) = forged else {
+        panic!("expected a model failure contract error: {forged}");
+    };
+    assert_eq!(forged.category, "model_protocol");
+    assert_eq!(forged.code.as_deref(), Some("failure_contract"));
     let status = loader.model_status();
     assert_eq!(
         (status.started, status.worker_pids.len(), status.in_flight),
@@ -260,13 +276,30 @@ async fn missing_model_helper_never_falls_back_and_history_and_admission_use_the
         tools: vec![],
         settings: json!({}),
     };
-    assert!(
-        model
-            .request_bound(&request, &RunContext::default())
-            .await
-            .is_err()
-    );
-    assert!(model.validate_live_history(&[]).await.is_err());
+    for (error, phase) in [
+        (
+            model
+                .request_bound(&request, &RunContext::default())
+                .await
+                .err()
+                .unwrap(),
+            "admit",
+        ),
+        (
+            model.validate_live_history(&[]).await.unwrap_err(),
+            "history",
+        ),
+    ] {
+        let Error::ModelFailure(failure) = error else {
+            panic!("expected a model evaluator startup diagnostic: {error}");
+        };
+        assert_eq!(failure.category, "model_evaluator");
+        assert_eq!(failure.code.as_deref(), Some("startup_failed"));
+        assert_eq!(
+            failure.details,
+            json!({"stage":"verify_helper","phase":phase})
+        );
+    }
     assert_eq!(kernel.loader().model_status().started, 0);
     let kernel = kernel
         .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
@@ -429,13 +462,21 @@ async fn intermediate_allocation_exhausts_only_the_confined_worker_and_host_rema
         200
     );
     assert!(start.elapsed() < Duration::from_secs(2));
-    assert!(
-        tokio::time::timeout(Duration::from_secs(15), running)
-            .await
-            .unwrap()
-            .unwrap()
-            .is_err()
-    );
+    let error = tokio::time::timeout(Duration::from_secs(15), running)
+        .await
+        .unwrap()
+        .unwrap()
+        .err()
+        .unwrap();
+    let Error::ModelFailure(failure) = error else {
+        panic!("expected a model evaluator exit diagnostic: {error}");
+    };
+    assert_eq!(failure.category, "model_evaluator");
+    assert_eq!(failure.code.as_deref(), Some("abnormal_exit"));
+    assert!(matches!(
+        failure.details["signal"].as_i64().map(|n| n as i32),
+        Some(libc::SIGABRT | libc::SIGSEGV)
+    ));
     assert!(dead(&fd));
     assert_eq!(loader.model_status().in_flight, 0);
     assert!(loader.model_status().worker_pids.is_empty());

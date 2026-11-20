@@ -4,9 +4,12 @@ use super::*;
 mod initial;
 mod lifecycle;
 mod worker;
+pub(in crate::supervisor) use worker::cancel_queued;
 use initial::{reject_stale, settle_source};
 pub(super) use lifecycle::{finish, validate_begin};
 mod managed;
+pub(super) use managed::read_request as read_managed_request;
+pub(in crate::supervisor) use managed::actions::enqueue as enqueue_work_action;
 #[cfg(feature = "workflow")]
 pub use managed::{HumanRecoveryPage, HumanRecoveryTarget};
 mod replay;
@@ -76,6 +79,7 @@ fn status(value: &str) -> Result<JobStatus, Error> {
         "initializing" => Ok(JobStatus::Initializing),
         "running" => Ok(JobStatus::Running),
         "waiting" => Ok(JobStatus::Waiting),
+        "failed" => Ok(JobStatus::Failed),
         "closed" => Ok(JobStatus::Closed),
         "cancelled" => Ok(JobStatus::Cancelled),
         "abandoned" => Ok(JobStatus::Abandoned),

@@ -391,6 +391,28 @@ struct Connected {
 }
 #[async_trait::async_trait]
 impl ToolDispatch for Connected {
+    fn supports_committed_receipt(&self, args: &Value) -> bool {
+        super::operations::can_lookup_remember(&self.config, args)
+    }
+
+    async fn committed_receipt(
+        &self,
+        id: nofy_tool_protocol::ToolId,
+        args: &Value,
+        context: ToolCallContext,
+    ) -> Result<Option<TypedToolOutput>, nofy_tool_runtime::ToolError> {
+        let run = context.get::<RunContext>().ok_or_else(|| {
+            nofy_tool_runtime::ToolError::custom("memory_operation", "missing run context")
+        })?;
+        let args = args.clone();
+        self.resource
+            .run(self.config.clone(), &run, move |module| async move {
+                Ok(module.committed_receipt(id, &args, context).await)
+            })
+            .await
+            .map_err(|e| nofy_tool_runtime::ToolError::custom("memory_operation", e.to_string()))?
+    }
+
     async fn call(
         &self,
         id: nofy_tool_protocol::ToolId,

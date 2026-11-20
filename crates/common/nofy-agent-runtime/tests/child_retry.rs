@@ -1760,7 +1760,7 @@ mod workflows {
             assert!(
                 matches!(
                     store.job("root").await.unwrap().unwrap().status,
-                    JobStatus::Waiting
+                    JobStatus::Failed
                 ),
                 "{event}"
             );
@@ -1787,7 +1787,7 @@ mod workflows {
                     assert!(outcome.is_err());
                     assert!(matches!(
                         store.job("root").await.unwrap().unwrap().status,
-                        JobStatus::Waiting
+                        JobStatus::Failed
                     ));
                 } else {
                     assert!(

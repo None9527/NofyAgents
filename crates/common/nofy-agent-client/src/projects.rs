@@ -5,6 +5,30 @@ use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 impl Engine {
+    async fn default_project_template(&self, input: &Value) -> Result<Source> {
+        let index = match &self.templates {
+            Some(registry) => registry.list()?,
+            None if self.offline => {
+                return Err(Error::new(
+                    "local_input",
+                    "offline default project creation requires a local preset registry (--preset-dir)",
+                ));
+            }
+            None => self.client.get(&["api", "v1", "presets"]).await?.value()?,
+        };
+        let default = index.get("default").ok_or_else(|| {
+            Error::new(
+                "local_input",
+                "no default project preset; select a preset or use an empty project",
+            )
+        })?;
+        let mut selection =
+            json!({"preset":text(default,"id")?,"version":text(default,"version")?});
+        if let Some(agent) = input.get("agent") {
+            selection["agent"] = agent.clone();
+        }
+        self.template_source(&selection).await
+    }
     pub(crate) async fn template_source(&self, input: &Value) -> Result<Source> {
         let agent = input.get("agent").and_then(Value::as_str);
         if input.get("empty").and_then(Value::as_bool) == Some(true)
@@ -84,7 +108,11 @@ impl Engine {
             );
         }
         if op == "project.template" {
-            let source = self.template_source(input).await?;
+            let source = if input.get("preset").is_none() && input.get("empty").is_none() {
+                self.default_project_template(input).await?
+            } else {
+                self.template_source(input).await?
+            };
             let inspection = nofy_agent_project::inspect(&source, &FactoryKinds::new())?;
             let mut out = Envelope::ok(op, json!({"source":source,"inspection":inspection}));
             out.refs.insert(

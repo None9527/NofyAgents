@@ -101,11 +101,12 @@ pub(in crate::supervisor) fn finish(
     });
     let safe = initialized
         && job_state == "running"
-        && record.status != "failed"
         && checkpoint
             .as_ref()
             .is_some_and(|checkpoint| !checkpoint.state.has_pending_work());
-    let state = if record.status == "paused" {
+    let state = if record.status == "failed" {
+        "failed"
+    } else if record.status == "paused" {
         "waiting"
     } else if record.status == "cancelled" && !initialized {
         settle_source(

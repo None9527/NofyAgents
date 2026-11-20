@@ -1,7 +1,22 @@
 use super::*;
 use nofy_agent_models::worker::{self as abi, Operation, Reply, Request};
-use std::{collections::BTreeSet, process::Stdio};
+use std::{collections::BTreeSet, io, process::Stdio, time::Duration};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+fn start_failed(stage: &str, source: Option<io::Error>) -> Error {
+    let mut details = json!({"stage": stage});
+    if let Some(error) = source {
+        record_io_error(&mut details, &error);
+    }
+    EvaluatorFailure::Startup.failure(details).into()
+}
+
+fn record_io_error(details: &mut Value, error: &io::Error) {
+    details["io_kind"] = json!(format!("{:?}", error.kind()));
+    if let Some(errno) = error.raw_os_error() {
+        details["os_error"] = json!(errno);
+    }
+}
 
 pub(super) struct Worker {
     child: tokio::process::Child,
@@ -19,18 +34,21 @@ impl Worker {
     ) -> std::result::Result<Self, Error> {
         let prepared = loader.clone();
         let helper = tokio::task::spawn_blocking(move || {
-            let metadata =
-                std::fs::symlink_metadata(&prepared.prompt_root).map_err(|_| failed())?;
+            let metadata = std::fs::symlink_metadata(&prepared.prompt_root)
+                .map_err(|error| start_failed("prepare_scratch", Some(error)))?;
             if !metadata.is_dir()
-                || std::fs::canonicalize(&prepared.prompt_root).map_err(|_| failed())?
+                || std::fs::canonicalize(&prepared.prompt_root)
+                    .map_err(|error| start_failed("prepare_scratch", Some(error)))?
                     != prepared.prompt_root
             {
-                return Err(failed());
+                return Err(start_failed("validate_scratch", None));
             }
-            prepared.helper().map_err(|_| failed())
+            prepared
+                .helper()
+                .map_err(|_| start_failed("verify_helper", None))
         })
         .await
-        .map_err(|_| failed())??;
+        .map_err(|_| start_failed("prepare_worker", None))??;
         if loader.models.stop.is_cancelled() || cancel.is_cancelled() {
             return Err(Error::Cancelled);
         }
@@ -54,11 +72,7 @@ impl Worker {
             Default::default(),
             None,
         )
-        .map_err(|error| {
-            Error::Composition(format!(
-                "isolated model evaluator is unavailable or failed: {error}"
-            ))
-        })?;
+        .map_err(|_| start_failed("prepare_confinement", None))?;
         // Owner: the returned worker handle holds `child` (kill_on_drop); a
         // failed handoff below kills and waits for it before returning.
         #[allow(clippy::disallowed_methods)]
@@ -68,12 +82,12 @@ impl Worker {
             .stderr(Stdio::null())
             .kill_on_drop(true)
             .spawn()
-            .map_err(|_| failed())?;
+            .map_err(|error| start_failed("spawn", Some(error)))?;
         let parts = (child.id(), child.stdin.take(), child.stdout.take());
         let (Some(pid), Some(stdin), Some(stdout)) = parts else {
             let _ = child.start_kill();
             let _ = child.wait().await;
-            return Err(failed());
+            return Err(start_failed("open_pipes", None));
         };
         Ok(Self {
             child,
@@ -101,8 +115,43 @@ impl Worker {
         let _ = self.child.start_kill();
         self.child.wait().await.map(|_| ()).map_err(|_| failed())
     }
+    pub(super) async fn observe_exit(&mut self, failure: &mut ModelFailure) {
+        // A pipe can close just before wait() observes the exit. Take the
+        // status before retire() can send its own signal.
+        let Ok(Ok(status)) =
+            tokio::time::timeout(Duration::from_millis(100), self.child.wait()).await
+        else {
+            return;
+        };
+        if let Some(code) = status.code() {
+            failure.details["exit_code"] = json!(code);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::ExitStatusExt;
+            if let Some(signal) = status.signal() {
+                failure.details["signal"] = json!(signal);
+            }
+        }
+        if status.code() == Some(STARTUP_EXIT_CODE) {
+            failure.details["stage"] = json!("initialize_confinement");
+            *failure = EvaluatorFailure::Startup.failure(std::mem::take(&mut failure.details));
+        } else if !status.success() {
+            *failure = EvaluatorFailure::AbnormalExit.failure(std::mem::take(&mut failure.details));
+        }
+    }
+    fn ipc_failed(&self, stage: &str, source: Option<io::Error>) -> Error {
+        let mut details = json!({"stage": stage, "worker_pid": self.pid});
+        if let Some(error) = source {
+            record_io_error(&mut details, &error);
+        }
+        EvaluatorFailure::Ipc.failure(details).into()
+    }
     async fn exchange(&mut self, operation: Operation) -> std::result::Result<Reply, Error> {
-        self.sequence = self.sequence.checked_add(1).ok_or_else(failed)?;
+        self.sequence = self
+            .sequence
+            .checked_add(1)
+            .ok_or_else(|| self.ipc_failed("sequence", None))?;
         let bytes = abi::encode(&Request {
             protocol: abi::PROTOCOL.into(),
             sequence: self.sequence,
@@ -111,31 +160,45 @@ impl Worker {
         self.stdin
             .write_u32_le(bytes.len() as u32)
             .await
-            .map_err(|_| failed())?;
-        self.stdin.write_all(&bytes).await.map_err(|_| failed())?;
-        self.stdin.flush().await.map_err(|_| failed())?;
-        let size = self.stdout.read_u32_le().await.map_err(|_| failed())? as usize;
+            .map_err(|error| self.ipc_failed("write_request_header", Some(error)))?;
+        self.stdin
+            .write_all(&bytes)
+            .await
+            .map_err(|error| self.ipc_failed("write_request_body", Some(error)))?;
+        self.stdin
+            .flush()
+            .await
+            .map_err(|error| self.ipc_failed("flush_request", Some(error)))?;
+        let size = self
+            .stdout
+            .read_u32_le()
+            .await
+            .map_err(|error| self.ipc_failed("read_reply_header", Some(error)))?
+            as usize;
         if size == 0 || size > abi::MAX_FRAME {
-            return Err(failed());
+            return Err(self.ipc_failed("validate_reply_length", None));
         }
         let mut bytes = Vec::new();
-        bytes.try_reserve_exact(size).map_err(|_| failed())?;
+        bytes
+            .try_reserve_exact(size)
+            .map_err(|_| self.ipc_failed("allocate_reply", None))?;
         bytes.resize(size, 0);
         self.stdout
             .read_exact(&mut bytes)
             .await
-            .map_err(|_| failed())?;
-        let reply: Reply = serde_json::from_slice(&bytes).map_err(|_| failed())?;
+            .map_err(|error| self.ipc_failed("read_reply_body", Some(error)))?;
+        let reply: Reply =
+            serde_json::from_slice(&bytes).map_err(|_| self.ipc_failed("decode_reply", None))?;
         if reply.protocol != abi::PROTOCOL
             || reply.sequence != self.sequence
             || reply.cache.len() > abi::CACHE_ENTRIES
             || reply.cache.iter().any(|id| !abi::valid_id(id))
         {
-            return Err(failed());
+            return Err(self.ipc_failed("validate_reply", None));
         }
         let cache = reply.cache.iter().cloned().collect::<BTreeSet<_>>();
         if cache.len() != reply.cache.len() {
-            return Err(failed());
+            return Err(self.ipc_failed("validate_cache", None));
         }
         self.cache = cache;
         Ok(reply)
@@ -158,7 +221,7 @@ impl Worker {
             match reply.result {
                 Ok(None) if self.cache.contains(&id) => {}
                 Err(error) => return Ok(Err(error)),
-                _ => return Err(failed()),
+                _ => return Err(self.ipc_failed("validate_prepare", None)),
             }
         }
         let reply = self
@@ -170,7 +233,7 @@ impl Worker {
             })
             .await?;
         if !self.cache.contains(&id) {
-            return Err(failed());
+            return Err(self.ipc_failed("validate_cache", None));
         }
         match reply.result {
             Ok(Some(reply))
@@ -179,7 +242,7 @@ impl Worker {
                 Ok(Ok(reply))
             }
             Err(error) => Ok(Err(error)),
-            _ => Err(failed()),
+            _ => Err(self.ipc_failed("validate_evaluation", None)),
         }
     }
 }

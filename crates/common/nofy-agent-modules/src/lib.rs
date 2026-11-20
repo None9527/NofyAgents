@@ -5,3 +5,5 @@ pub mod prompt;
 pub mod rules;
 pub mod scope_program;
 pub mod skills;
+
+pub mod dynamic_assembly;

@@ -40,6 +40,8 @@ pub(super) async fn mcp(
     cmd.args([
         "mcp",
         "serve",
+        "--toolset",
+        "full",
         "--endpoint",
         url,
         "--token-file",

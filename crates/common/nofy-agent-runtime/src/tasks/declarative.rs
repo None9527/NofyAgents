@@ -127,8 +127,8 @@ impl ModuleFactory for TasksToolFactory {
                 "Spawn and coordinate resumable child agents. Children: {}. Tasks share parent budget; parent completion joins them. Poll results before using them.",
                 json!(choices)
             ),
-            json!({"type":"object","additionalProperties":false,"required":["action"],"properties":{"action":{"enum":["spawn","poll","wait","cancel","list"]},"task_id":{"type":"string","minLength":1,"maxLength":128},"tool":{"type":"string"},"arguments":{},"timeout_ms":{"type":"integer","minimum":0,"maximum":60000}}}),
-            Arc::new(TasksDispatch(drivers)),
+            task_schema(),
+            Arc::new(TasksDispatch(Some(drivers))),
         )
     }
 }
@@ -162,7 +162,50 @@ fn catalog(
     })?;
     Ok(ModuleInstance::ToolPack(tools))
 }
-struct TasksDispatch(Arc<Drivers>);
+/// Bind to the current invocation's task scope. The runtime installs it from
+/// the parent Agent's declared task binding.
+pub fn attached_work_tools() -> [crate::ToolEntry; 2] {
+    [
+        crate::ToolEntry {
+            definition: ToolDefinition::function(
+                "sdk_work_attached_targets",
+                Some(
+                    "Discover authorized drivers for attached Agent and Workflow work, with each driver's input schema.",
+                ),
+                json!({"type":"object","additionalProperties":false}),
+            ),
+            dispatch: Arc::new(TargetsDispatch),
+        },
+        crate::ToolEntry {
+            definition: ToolDefinition::function(
+                "sdk_work_task",
+                Some(
+                    "Spawn, poll, wait for, cancel, or list attached tasks. Discover drivers with sdk_work_attached_targets. Reuse task_id and input when retrying spawn. Inspect the execution tree with sdk_work_list.",
+                ),
+                task_schema(),
+            ),
+            dispatch: Arc::new(TasksDispatch(None)),
+        },
+    ]
+}
+
+fn task_schema() -> Value {
+    json!({
+        "type":"object",
+        "additionalProperties":false,
+        "required":["action"],
+        "properties":{
+            "action":{"enum":["spawn","poll","wait","cancel","list"]},
+            "task_id":{"type":"string","minLength":1,"maxLength":128,"description":"Required for spawn, poll, wait and cancel. Pick a stable unique ID in this parent invocation."},
+            "tool":{"type":"string","description":"Required for spawn. Use a driver exposed by this invocation."},
+            "arguments":{"description":"Required for spawn. Pass the driver's input object."},
+            "timeout_ms":{"type":"integer","minimum":0,"maximum":60000,"description":"Optional wait timeout in milliseconds. Wait defaults to 60000."}
+        }
+    })
+}
+
+struct TasksDispatch(Option<Arc<Drivers>>);
+struct TargetsDispatch;
 struct MessagesDispatch;
 fn field<'a>(args: &'a Value, key: &str) -> Result<&'a str, Error> {
     args.get(key)
@@ -203,7 +246,9 @@ impl ToolDispatch for TasksDispatch {
             let scope = ctx
                 .get::<Scope>()
                 .ok_or_else(|| Error::Composition("task scope unavailable".into()))?;
-            if scope.drivers.recovery_modes() != self.0.0.recovery_modes() {
+            if let Some(drivers) = &self.0
+                && scope.drivers.recovery_modes() != drivers.0.recovery_modes()
+            {
                 return Err(Error::Composition(
                     "tool.agent_tasks and binding.agent_tasks refer to different child drivers"
                         .into(),
@@ -239,6 +284,39 @@ impl ToolDispatch for TasksDispatch {
         .await;
         output(id, result)
     }
+}
+#[async_trait::async_trait]
+impl ToolDispatch for TargetsDispatch {
+    fn approval_effect(&self) -> nofy_tool_runtime::dispatch::ApprovalEffect {
+        nofy_tool_runtime::dispatch::ApprovalEffect::ReadOnly
+    }
+
+    async fn call(
+        &self,
+        id: nofy_tool_protocol::ToolId,
+        _: Value,
+        ctx: ToolCallContext,
+    ) -> ToolStream<TypedToolOutput> {
+        output(id, Ok(json!({"items": attached_work_targets(&ctx)})))
+    }
+}
+
+fn attached_work_targets(ctx: &ToolCallContext) -> Value {
+    let tools = ctx
+        .get::<Scope>()
+        .map(|scope| scope.drivers.definitions())
+        .unwrap_or_default();
+    let items = tools
+        .into_iter()
+        .map(|d| {
+            json!({
+                "tool": d.function.name,
+                "description": d.function.description,
+                "arguments_schema": d.function.parameters
+            })
+        })
+        .collect::<Vec<_>>();
+    json!(items)
 }
 #[async_trait::async_trait]
 impl ToolDispatch for MessagesDispatch {

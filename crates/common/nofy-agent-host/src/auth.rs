@@ -25,6 +25,7 @@ struct Key {
 }
 pub struct Authorizer {
     keys: Vec<Key>,
+    development_scopes: Option<BTreeSet<Scope>>,
 }
 impl Authorizer {
     pub fn new(keys: Vec<(String, BTreeSet<Scope>)>) -> Result<Self> {
@@ -49,7 +50,16 @@ impl Authorizer {
             }
             result.push(Key { digest, scopes });
         }
-        Ok(Self { keys: result })
+        Ok(Self {
+            keys: result,
+            development_scopes: None,
+        })
+    }
+    pub(crate) fn development() -> Self {
+        Self {
+            keys: Vec::new(),
+            development_scopes: Some(BTreeSet::from([Scope::Read, Scope::Execute, Scope::Edit, Scope::Publish])),
+        }
     }
     pub fn from_environment(references: Vec<AccessKeyReference>) -> Result<Self> {
         let mut keys = Vec::new();
@@ -101,6 +111,13 @@ impl Authorizer {
         self.check(headers, Some(scope))
     }
     fn check(&self, headers: &HeaderMap, scope: Option<Scope>) -> Result<()> {
+        if let Some(scopes) = &self.development_scopes {
+            return if scope.is_none_or(|scope| scopes.contains(&scope)) {
+                Ok(())
+            } else {
+                Err(HostError::Forbidden)
+            };
+        }
         let token = headers
             .get(axum::http::header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok())

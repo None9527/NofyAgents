@@ -314,21 +314,39 @@ async fn native_skill_child_keeps_model_scope_parent_floor_approval_budget_and_c
             assert_eq!(pending[0]["call"]["name"], "lookup");
             let model_before = requests.lock().unwrap().len();
             assert_eq!(model_before % 4, 2);
-            let (status, _) = request(
-                &server,
-                reqwest::Method::POST,
-                &format!("/api/v1/runs/{id}/approvals"),
-                ADMIN,
-                json!({"request":pending[0],"allow":true}),
-            )
-            .await;
-            assert_eq!(status, 204);
-            let action = json!({"run_id":id,"command_id":format!("resume-{id}"),"command":{"kind":"resume"}});
-            post(&server, "/api/v1/actions", action.clone()).await;
-            let receipt = action_result(&server, action["command_id"].as_str().unwrap()).await;
-            assert!(receipt["error"].is_null(), "{receipt}");
+            if id == "approved-child" {
+                let approval = serde_json::from_value(pending[0].clone()).unwrap();
+                host.store()
+                    .decide_scoped_and_continue(id, &approval, true, Default::default())
+                    .await
+                    .unwrap();
+                tokio::time::timeout(Duration::from_secs(10), async {
+                    loop {
+                        if outcome(&server, id).await["execution"]["status"] == status {
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                    }
+                })
+                .await
+                .unwrap();
+            } else {
+                let (status, _) = request(
+                    &server,
+                    reqwest::Method::POST,
+                    &format!("/api/v1/runs/{id}/approvals"),
+                    ADMIN,
+                    json!({"request":pending[0],"allow":true}),
+                )
+                .await;
+                assert_eq!(status, 204);
+                let action = json!({"run_id":id,"command_id":format!("resume-{id}"),"command":{"kind":"resume"}});
+                post(&server, "/api/v1/actions", action.clone()).await;
+                let receipt = action_result(&server, action["command_id"].as_str().unwrap()).await;
+                assert!(receipt["error"].is_null(), "{receipt}");
+                assert_eq!(post(&server, "/api/v1/actions", action).await, receipt);
+            }
             assert_eq!(calls.load(Ordering::SeqCst), before + 1);
-            assert_eq!(post(&server, "/api/v1/actions", action).await, receipt);
         }
         let result = outcome(&server, id).await;
         assert_eq!(result["execution"]["status"], status, "{result}");

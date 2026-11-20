@@ -9,6 +9,75 @@
     }
   ],
   "$defs": {
+    "WorkList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 256, "description": "Root run or background work ID. With no selector the embedded SDK lists the current tree."},
+        "session_id": {"type": "string", "minLength": 1, "maxLength": 256, "description": "List foreground turns and session-owned background roots."},
+        "view": {"enum": ["session"], "description": "Use the current session for an embedded query."},
+        "after": {"type": "string", "minLength": 1, "maxLength": 8192, "description": "Opaque cursor from the previous page of this run."},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 64, "default": 24, "description": "Maximum number of descendant nodes to return, in addition to the root."}
+      }
+    },
+    "WorkInspect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["work_id"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 256, "description": "Optional root to disambiguate or narrow work_id."},
+        "session_id": {"type": "string", "minLength": 1, "maxLength": 256, "description": "Optional session that must own the selected work."},
+        "work_id": {"type": "string", "minLength": 1, "maxLength": 1024, "description": "Exact work identity returned by work.list or work.start."},
+        "include_result": {"type": "boolean", "description": "Include the bounded output of a completed root, if available."}
+      }
+    },
+    "WorkTargets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {"type":"string","minLength":1,"maxLength":256,"description":"Session whose frozen release grants the background targets. Embedded tooling uses the caller's session."}
+      }
+    },
+    "WorkStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_id","program","release"],
+      "properties": {
+        "session_id": {"type":"string","minLength":1,"maxLength":256,"description":"Session that will own the work. Embedded tooling uses the caller's session."},
+        "command_id": {"type":"string","minLength":1,"maxLength":256,"description":"Stable start command identity. Replay the same command and input to obtain the same work ID."},
+        "program": {"type":"string","minLength":1,"maxLength":256,"description":"Approved program name returned by work.targets."},
+        "release": {"type":"string","pattern":"^[a-f0-9]{64}$","description":"Exact immutable release digest returned by work.targets."},
+        "text": {"type":"string","minLength":1,"maxLength":65536,"description":"Initial user text for an Agent target."},
+        "parameters": {"description":"Optional JSON value matching the Workflow target's parameters_schema from work.targets. Omit for Agent targets."}
+      }
+    },
+    "WorkWait": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {"type":"string","minLength":1,"maxLength":256,"description":"Restrict replay to one execution tree. May be a background work ID."},
+        "session_id": {"type":"string","minLength":1,"maxLength":256,"description":"Session to observe. Embedded tooling defaults to the current session."},
+        "after": {"type":"string","minLength":1,"maxLength":8192,"description":"Watermark from work.list or a previous work.wait in this scope. Omit to replay from the start."},
+        "work_ids": {"type":"array","maxItems":16,"uniqueItems":true,"description":"Optional exact logical work IDs to watch.","items":{"type":"string","minLength":1,"maxLength":1024}},
+        "limit": {"type":"integer","minimum":1,"maximum":64,"description":"Maximum number of committed changes in this response."},
+        "timeout_ms": {"type":"integer","minimum":0,"maximum":30000,"description":"Bounded wait for a matching change. Zero polls immediately."}
+      }
+    },
+    "WorkControl": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":["work_id","command_id","expected_revision","action"],
+      "properties": {
+        "run_id":{"type":"string","minLength":1,"maxLength":256,"description":"Optional root to restrict the selected work ID."},
+        "session_id":{"type":"string","minLength":1,"maxLength":256,"description":"Optional session that must own the selected work."},
+        "work_id":{"type":"string","minLength":1,"maxLength":1024,"description":"Exact logical work identity to control."},
+        "command_id":{"type":"string","minLength":1,"maxLength":256,"description":"Stable control command identity for exact replay."},
+        "expected_revision":{"type":"string","pattern":"^[a-f0-9]{64}$","description":"Exact revision returned by work.inspect."},
+        "action":{"enum":["cancel","resume","retry_model","human"],"description":"Apply a native control supported by the current work state. Human requires operator authorization."},
+        "ticket_json":{"$ref":"#/$defs/NativeJson","description":"Native tagged RunControlCommand for retry_model, using the exact model retry ticket."},
+        "response_json":{"$ref":"#/$defs/NativeJson","description":"Human response with expected_request, value, and optional workflow_path."}
+      }
+    },
     "Decimal": {
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)$",
@@ -307,12 +376,12 @@
         "preset": {
           "type": "string",
           "minLength": 1,
-          "description": "Id of a registered preset to instantiate (see `describe`)."
+          "description": "Id of a registered preset to instantiate (see `describe`); omit it to use the preset registry default."
         },
         "version": {
           "type": "string",
           "minLength": 1,
-          "description": "Version of the preset; the newest when omitted."
+          "description": "Version of the explicitly selected preset. Required when that preset has multiple versions."
         },
         "empty": {
           "const": true,
@@ -342,8 +411,18 @@
             "agent"
           ],
           "not": {
-            "required": [
-              "preset"
+            "anyOf": [
+              {"required": ["preset"]},
+              {"required": ["version"]}
+            ]
+          }
+        },
+        {
+          "not": {
+            "anyOf": [
+              {"required": ["preset"]},
+              {"required": ["empty"]},
+              {"required": ["version"]}
             ]
           }
         }

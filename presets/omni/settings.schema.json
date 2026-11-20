@@ -1,0 +1,288 @@
+{
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workspace_enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "workspace_enabled"
+        ]
+      },
+      "then": {
+        "required": [
+          "workspace",
+          "workspace_environment"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "command_enabled"
+        ]
+      },
+      "then": {
+        "required": [
+          "workspace",
+          "command_environment",
+          "process_tree"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "allowed_tools": {
+      "default": [
+        "task",
+        "agent_messages",
+        "ask_user",
+        "workflow_execute",
+        "workflow_agent",
+        "assemble",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "make_directory",
+        "list_files",
+        "search_files",
+        "run_command",
+        "sdk_schema",
+        "sdk_run_inspect",
+        "sdk_work_list",
+        "sdk_work_inspect",
+        "sdk_work_targets",
+        "sdk_work_attached_targets",
+        "sdk_work_start",
+        "sdk_work_wait",
+        "sdk_work_control",
+        "sdk_work_task",
+        "sdk_module_template",
+        "sdk_module_list",
+        "sdk_propose_prompt"
+      ],
+      "description": "Root allow-list inherited by descendants. Adding a tool does not automatically authorize it.",
+      "items": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "assembly_max_steps": {
+      "default": 32,
+      "maximum": 256,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "budget": {
+      "additionalProperties": false,
+      "default": {
+        "max_active_children": 4,
+        "max_child_calls": 8,
+        "max_depth": 4,
+        "max_model_calls": 64,
+        "max_tool_calls": 128
+      },
+      "description": "Shared root ledger limits. The child does not receive a fresh independent budget.",
+      "properties": {
+        "max_active_children": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_child_calls": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_concurrent_operations": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_depth": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_duration_ms": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_input_tokens": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_model_calls": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_output_tokens": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_steps": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_tool_calls": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_total_tokens": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "child_allowed_tools": {
+      "default": [
+        "agent_messages"
+      ],
+      "description": "Additional child restriction, intersected with the root floor. Nonempty by design; the underlying skill API treats an empty list as unrestricted.",
+      "items": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "child_max_steps": {
+      "default": 16,
+      "maximum": 4096,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "command_enabled": {
+      "default": false,
+      "type": "boolean"
+    },
+    "command_environment": {
+      "type": "object"
+    },
+    "compaction_keep_turns": {
+      "default": 2,
+      "maximum": 64,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "compaction_threshold_percent": {
+      "default": 75,
+      "maximum": 100,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "connection": {
+      "description": "Explicit provider endpoint, model allow-list and credential references. Never put credential values here.",
+      "type": "object"
+    },
+    "context_window": {
+      "default": 262144,
+      "maximum": 10000000,
+      "minimum": 256,
+      "type": "integer"
+    },
+    "evolution_enabled": {
+      "default": false,
+      "type": "boolean"
+    },
+    "max_nodes": {
+      "default": 64,
+      "maximum": 128,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "max_steps": {
+      "default": 32,
+      "maximum": 4096,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "model": {
+      "description": "A model admitted by connection.models.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "model_settings": {
+      "default": {},
+      "type": "object"
+    },
+    "process_tree": {
+      "type": "object"
+    },
+    "system_name": {
+      "default": "omni",
+      "minLength": 1,
+      "type": "string"
+    },
+    "workspace": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "workspace_enabled": {
+      "default": false,
+      "type": "boolean"
+    },
+    "workspace_environment": {
+      "type": "object"
+    }
+  },
+  "type": "object"
+}

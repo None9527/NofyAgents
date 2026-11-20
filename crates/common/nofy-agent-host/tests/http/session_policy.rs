@@ -263,3 +263,140 @@ async fn malformed_policy_output_rejects_start_without_dispatch_and_can_be_queri
         failed
     );
 }
+
+#[tokio::test]
+async fn rejected_turn_releases_fifo_and_legacy_wait_is_settled_from_its_receipt() {
+    let calls = Arc::new(Mutex::new(vec![]));
+    let provider = serve(
+        Router::new()
+            .route("/v1/chat/completions", route_post(super::provider))
+            .with_state(calls.clone()),
+    )
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let kernel = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let server = serve(kernel.router()).await;
+    let mut doc = serde_json::to_value(source(&provider.url, true)).unwrap();
+    doc["modules"].as_array_mut().unwrap().last_mut().unwrap()["config"]["source"] = json!(
+        r#"#{decision: if args.phase == "admit_turn" && args.session.busy { "deny" } else { "allow" },
+            reason: "busy policy", session_id: args.request.session_id, display_name: (), archive: false}"#
+    );
+    let doc: SystemDocument = serde_json::from_value(doc).unwrap();
+    let registry = kernel
+        .control()
+        .prepare(doc.clone())
+        .unwrap()
+        .registry()
+        .clone();
+    let release = import(&server, &doc).await;
+    post(&server, "/api/v1/sessions/start", start(&release, "start")).await;
+    let submit = |id| {
+        let mut body = run(&release, id);
+        body["thread_id"] = json!("first");
+        body
+    };
+    post(&server, "/api/v1/runs", submit("policy-denied")).await;
+    let store = kernel.store();
+    let supervisor = RunSupervisor::new(store.clone());
+    supervisor
+        .execute_submitted(&registry, "first")
+        .await
+        .unwrap();
+    for legacy in [false, true] {
+        if legacy {
+            // Recreate the former status while leaving the verified denial intact.
+            let db = rusqlite::Connection::open(store.path().unwrap()).unwrap();
+            db.execute(
+                "UPDATE agent_runtime_jobs SET status='waiting' WHERE run_id='policy-denied'",
+                [],
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            store.managed_queue_heads(0, 10).await.unwrap()[0].1,
+            "policy-denied"
+        );
+        let error = supervisor
+            .execute_queue_head(&registry, "policy-denied")
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("policy_rejected: busy policy"),
+            "{error}"
+        );
+        let receipt = get(&server, "/api/v1/runs/policy-denied").await;
+        assert_eq!(receipt["run"]["status"], "cancelled");
+        assert!(receipt["execution"].is_null());
+        assert!(store.managed_queue_heads(0, 10).await.unwrap().is_empty());
+    }
+    post(&server, "/api/v1/runs", submit("after-denial")).await;
+    supervisor
+        .execute_queue_head(&registry, "after-denial")
+        .await
+        .unwrap();
+    assert_eq!(
+        get(&server, "/api/v1/runs/after-denial").await["execution"]["status"],
+        "completed"
+    );
+    assert_eq!(calls.lock().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn session_titles_skip_governed_models_and_require_a_completed_response() {
+    let calls = Arc::new(Mutex::new(vec![]));
+    let provider = serve(
+        Router::new()
+            .route("/v1/chat/completions", route_post(super::provider))
+            .with_state(calls.clone()),
+    )
+    .await;
+    for limit in [Some(0), Some(1), None] {
+        calls.lock().unwrap().clear();
+        let dir = tempfile::tempdir().unwrap();
+        let kernel = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+        let server = serve(kernel.router()).await;
+        let mut doc = serde_json::to_value(document(&provider.url)).unwrap();
+        if let Some(limit) = limit {
+            doc["required_governance"] = json!([{"id":"quota","version":"1"}]);
+            doc["modules"].as_array_mut().unwrap().extend([
+                json!({"reference":{"id":"ledger","version":"1"},"factory":"resource.budget","config":{}}),
+                json!({"reference":{"id":"quota","version":"1"},"factory":"governance.budget_connected",
+                    "config":{"limits":{"max_model_calls":limit}},"dependencies":{"budget":{"id":"ledger","version":"1"}}}),
+            ]);
+        }
+        let doc: SystemDocument = serde_json::from_value(doc).unwrap();
+        let registry = kernel
+            .control()
+            .prepare(doc.clone())
+            .unwrap()
+            .registry()
+            .clone();
+        let release = import(&server, &doc).await;
+        post(&server, "/api/v1/sessions/start", start(&release, "start")).await;
+        let store = kernel.store();
+        let supervisor = RunSupervisor::new(store.clone());
+        supervisor
+            .execute_submitted(&registry, "first")
+            .await
+            .unwrap();
+        let (claim, waiting) = store.claim_session_title().await.unwrap();
+        assert_eq!(claim.is_some(), limit != Some(0));
+        assert!(!waiting);
+        let title = supervisor
+            .generate_session_title(&registry, "first", CancellationToken::new())
+            .await
+            .unwrap();
+        assert_eq!(title.is_some(), limit.is_none());
+        assert_eq!(
+            calls.lock().unwrap().len(),
+            match limit {
+                Some(n) => n,
+                None => 2,
+            }
+        );
+        assert_eq!(
+            get(&server, "/api/v1/sessions/conversation").await["display_name"],
+            "hello"
+        );
+    }
+}

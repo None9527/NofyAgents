@@ -7,6 +7,8 @@ description = "Resident declarative agent management API over the shared Nofy ru
 default-run = "nofy-agent-host"
 
 [dependencies]
+nofy-agent-client = { path = "../nofy-agent-client" }
+nofy-interjection-core = { path = "../nofy-interjection-core" }
 nofy-agent-project = { path = "../nofy-agent-project" }
 nofy-agent-modules = { path = "../nofy-agent-modules" }
 nofy-agent-models = { path = "../nofy-agent-models" }
@@ -55,7 +57,6 @@ libc = { workspace = true }
 [dev-dependencies]
 nofy-test-support = { workspace = true }
 nofy-memory-types = { path = "../nofy-memory-types" }
-nofy-interjection-core = { path = "../nofy-interjection-core" }
 
 [lints]
 workspace = true

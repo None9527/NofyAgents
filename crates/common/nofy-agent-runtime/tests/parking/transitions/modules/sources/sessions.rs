@@ -52,6 +52,7 @@ async fn source_selection_survives_prompt_only_update_and_explicit_session_hando
         .submit_session_turn(
             "session",
             SessionTurnCommand {
+                approval_mode: None,
                 command_id: "turn-two".into(),
                 source_run_id: "run".into(),
                 expected_source_revision: 2,

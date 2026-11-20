@@ -6,7 +6,7 @@ license.workspace = true
 description = "Product-independent declarative prompt, skill and permission modules"
 
 [dependencies]
-nofy-agent-runtime = { path = "../nofy-agent-runtime" }
+nofy-agent-runtime = { path = "../nofy-agent-runtime", features = ["workflow"] }
 nofy-tool-runtime = { path = "../nofy-tool-runtime" }
 nofy-tool-types = { path = "../nofy-tool-types" }
 nofy-tool-protocol = { path = "../nofy-tool-protocol" }

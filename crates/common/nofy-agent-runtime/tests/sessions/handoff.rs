@@ -58,6 +58,7 @@ async fn seed_write_failure_is_atomic_and_a_prepared_checkpoint_drift_never_disp
 }
 fn new(command: &str, run: &str, source: &str) -> SessionTurnCommand {
     SessionTurnCommand {
+        approval_mode: None,
         command_id: command.into(),
         source_run_id: source.into(),
         expected_source_revision: 0,
@@ -137,6 +138,7 @@ async fn admission_is_atomic_exact_and_cancellation_can_be_explicitly_rebound_wi
             .is_err()
     );
     let corrected = SessionTurnCommand {
+        approval_mode: None,
         command_id: "correct".into(),
         source_run_id: "one".into(),
         expected_source_revision: 0,

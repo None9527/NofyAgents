@@ -140,6 +140,7 @@ async fn model_evidence_and_management_ack_loss_replay_without_new_provider_effe
             supervisor
                 .submit_managed(
                     ManagedRunRequest {
+                        approval_mode: None,
                         run_id: "root".into(),
                         thread_id: "thread".into(),
                         system: "proof-system".into(),
@@ -257,6 +258,7 @@ async fn model_evidence_and_management_ack_loss_replay_without_new_provider_effe
                 supervisor
                     .submit_managed(
                         ManagedRunRequest {
+                            approval_mode: None,
                             run_id: "next".into(),
                             thread_id: "thread".into(),
                             system: "proof-system".into(),

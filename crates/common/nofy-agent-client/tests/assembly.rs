@@ -1,10 +1,13 @@
 use nofy_agent_client::*;
 use serde_json::{Value, json};
 use std::time::Duration;
+fn full_engine(client: KernelClient) -> Engine {
+    Engine::new(client).with_operation_view(Toolset::Full.sdk())
+}
 #[tokio::test]
 async fn every_operation_exposes_a_typed_guide_without_framework_source_or_kernel_io() {
     let engine =
-        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+        full_engine(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
     let contract = schema("AssemblyGuide").unwrap();
     let validator = jsonschema::validator_for(&contract).unwrap();
     for operation in OPERATIONS.iter() {
@@ -33,7 +36,7 @@ async fn ambiguous_create_and_precise_target_errors_return_actionable_guidance()
     .unwrap_err();
     assert_eq!(error.details["path"], "/target/project_id");
     let engine =
-        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+        full_engine(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
     let result = engine
         .execute(
             "agent.plan",
@@ -71,7 +74,7 @@ async fn every_guide_call_that_names_a_tool_also_names_its_cli_command() {
         }
     }
     let engine =
-        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+        full_engine(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
     let mut calls = 0;
     for operation in OPERATIONS.iter() {
         let result = engine

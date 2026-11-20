@@ -1,6 +1,8 @@
 //! Structured asynchronous children. The invocation owner outlives every child
 //! and is dropped before the supervisor releases its root fence.
 pub mod declarative;
+#[cfg(test)]
+mod duplex_tests;
 mod journal;
 mod messages;
 #[cfg(test)]
@@ -320,6 +322,36 @@ impl Scope {
             token.cancel();
         }
         self.peek(Some(id)).await
+    }
+    /// Nonblocking join preflight for the agent's idle safe point. Preserve
+    /// the same fail-closed child outcomes as the ordinary invocation join.
+    pub async fn has_running(&self) -> Result<bool, Error> {
+        let owner = self.owner.upgrade().ok_or(Error::Cancelled)?;
+        let journal = self.shared.journal.lock().await;
+        // Terminal outcomes and a failed commit are published under this same
+        // lock. Check failure after acquiring it, never against an older view.
+        if let Some(error) = &*owner
+            .failure
+            .lock()
+            .map_err(|_| Error::Checkpoint("task failure lock poisoned".into()))?
+        {
+            return Err(Error::Checkpoint(error.clone()));
+        }
+        let mut running = false;
+        for task in journal.value.tasks.values() {
+            match &task.outcome {
+                None => running = true,
+                Some(TaskOutcome::Paused(reason)) => {
+                    return Err(Error::GovernancePaused(reason.clone()));
+                }
+                Some(TaskOutcome::Checkpoint(error)) => {
+                    return Err(Error::Checkpoint(error.clone()));
+                }
+                Some(TaskOutcome::BudgetExceeded) => return Err(Error::BudgetExceeded),
+                _ => {}
+            }
+        }
+        Ok(running)
     }
     pub async fn finish(&self) -> Result<(), Error> {
         loop {

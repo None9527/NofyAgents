@@ -260,6 +260,8 @@ pub enum JobStatus {
     Initializing,
     Running,
     Waiting,
+    /// A recorded execution failure remains the queue head for explicit recovery.
+    Failed,
     Closed,
     Cancelled,
     Abandoned,

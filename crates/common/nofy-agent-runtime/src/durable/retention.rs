@@ -453,10 +453,15 @@ fn schema(tx: &Transaction<'_>) -> Result<(), Error> {
         "session_commands",
         "session_seeds",
         "session_profiles",
+        "session_titles", // Display metadata only; not a module reference source.
         "session_admissions",
         "session_ops",
         "session_branches",
         "retained_owners",
+        // Orchestration metadata. Frozen program snapshots are retained by jobs.
+        "work_owners",
+        "work_commands",
+        "work_changes",
     ];
     let mut statement = tx
         .prepare(

@@ -12,6 +12,10 @@ pub(crate) fn checkpoint_key(name: &str, thread_id: &str) -> String {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RunState {
+    /// Last run-tree report committed to this agent's transcript. Not a user
+    /// input receipt, authority grant, or acknowledgement on behalf of peers.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub agent_message_cursor: u64,
     #[serde(
         default,
         skip_serializing_if = "crate::mailbox::InputProgress::is_empty"

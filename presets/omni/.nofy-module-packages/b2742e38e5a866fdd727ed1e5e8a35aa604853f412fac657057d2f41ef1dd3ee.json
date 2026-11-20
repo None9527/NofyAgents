@@ -1,0 +1,15 @@
+{
+  "declaration": "module.json",
+  "files": {
+    "module.json": {
+      "content": "{\n  \"format\": \"nofy.module-package/v1\",\n  \"name\": \"dynamic-assembly\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Compile and run a bounded Agent or Workflow from declarations over explicitly bound models and tools.\",\n  \"parameters_schema\": {\n    \"type\": \"object\",\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"max_steps\": {\n        \"type\": \"integer\",\n        \"minimum\": 1,\n        \"maximum\": 256,\n        \"default\": 32\n      },\n      \"max_nodes\": {\n        \"type\": \"integer\",\n        \"minimum\": 1,\n        \"maximum\": 128,\n        \"default\": 64\n      }\n    }\n  },\n  \"inputs\": {\n    \"model\": \"model\",\n    \"tools\": \"tool_pack\"\n  },\n  \"modules\": [\n    {\n      \"reference\": {\n        \"$module\": \"tools\"\n      },\n      \"factory\": \"tool.dynamic_assembly\",\n      \"config\": {\n        \"name\": \"assemble\",\n        \"bindings\": {\n          \"model\": \"model\",\n          \"tools\": \"tool_pack\"\n        },\n        \"max_steps\": {\n          \"$parameter\": \"/max_steps\"\n        },\n        \"max_nodes\": {\n          \"$parameter\": \"/max_nodes\"\n        }\n      },\n      \"dependencies\": {\n        \"model\": {\n          \"$input\": \"model\"\n        },\n        \"tools\": {\n          \"$input\": \"tools\"\n        }\n      }\n    }\n  ],\n  \"exports\": {\n    \"tools\": \"tools\"\n  }\n}\n",
+      "encoding": "utf8",
+      "executable": false
+    },
+    "source-files.json": {
+      "content": "[\n  \"module.json\",\n  \"source-files.json\"\n]\n",
+      "encoding": "utf8",
+      "executable": false
+    }
+  }
+}

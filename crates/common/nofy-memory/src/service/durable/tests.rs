@@ -58,6 +58,62 @@ fn note() -> RememberRequest {
 }
 
 #[cfg(feature = "agent-runtime")]
+#[tokio::test]
+async fn remember_receipt_survives_reopen_and_binds_the_original_call_and_request() {
+    let temp = tempfile::tempdir().unwrap();
+    let service = open(temp.path());
+    assert_eq!(
+        service
+            .remember_for_call("original-call", note(), true)
+            .await
+            .unwrap(),
+        None
+    );
+    assert!(
+        service
+            .list(ListMemoryRequest { area: None })
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+
+    let original = service
+        .remember_for_call("original-call", note(), false)
+        .await
+        .unwrap()
+        .unwrap();
+    drop(service);
+    let reopened = open(temp.path());
+    for lookup_only in [true, false] {
+        assert_eq!(
+            reopened
+                .remember_for_call("original-call", note(), lookup_only)
+                .await
+                .unwrap(),
+            Some(original.clone())
+        );
+    }
+    let different_request = RememberRequest {
+        statement: "Release headings use red.".into(),
+        ..note()
+    };
+    assert!(matches!(
+        reopened
+            .remember_for_call("original-call", different_request, true)
+            .await,
+        Err(MemoryServiceError::Rejected(_))
+    ));
+    let items = reopened
+        .list(ListMemoryRequest { area: None })
+        .await
+        .unwrap()
+        .items;
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].target, original.target);
+}
+
+#[cfg(feature = "agent-runtime")]
 #[test]
 fn original_sdk_identity_bytes_are_preserved_and_durable_limits_change_identity() {
     let temp = tempfile::tempdir().unwrap();
@@ -87,6 +143,234 @@ fn original_sdk_identity_bytes_are_preserved_and_durable_limits_change_identity(
         durable.runtime_resource_identity(),
         bounded.runtime_resource_identity()
     );
+}
+
+#[cfg(feature = "agent-runtime")]
+#[tokio::test]
+async fn remember_recovers_a_committed_native_operation_without_an_index_receipt() {
+    for (snapshot_committed, legacy) in [(true, false), (false, false), (true, true)] {
+        let temp = tempfile::tempdir().unwrap();
+        let service = open(temp.path());
+        let request = note();
+        let call = service.remember_call("committed-call", &request).unwrap();
+        let id = OperationId::new();
+        let scope = service.scope_layout(&request.area);
+        let store = service.durable_store().unwrap();
+        assert!(store.claim_remember(&call, id).unwrap());
+        assert_eq!(
+            service
+                .remember_for_call("committed-call", request.clone(), true)
+                .await
+                .unwrap(),
+            None
+        );
+        let (target, generation) = {
+            let _guard = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root()).unwrap();
+            let (target, entry) = service.write_remembered_topic(&request, id).unwrap();
+            let generation = if snapshot_committed {
+                service.remember_undo(id, entry).unwrap();
+                store.remember_generation(&call, id).unwrap()
+            } else {
+                service.snapshot_generation().unwrap() + 1
+            };
+            (target, generation)
+        };
+        assert!(
+            store
+                .load_remember(&call)
+                .unwrap()
+                .unwrap()
+                .commit
+                .is_none()
+        );
+        if legacy {
+            store.0.execute(
+                "UPDATE nofy_memory_remember_calls_v1 SET request_hash=?3 WHERE owner=?1 AND call_key=?2",
+                params![call.owner, call.key, call.request_hash],
+            ).unwrap();
+        }
+        let path = scope
+            .topics_directory()
+            .join(format!("remembered-{}.md", target.id));
+        let modified = path.metadata().unwrap().modified().unwrap();
+        drop(store);
+        drop(service);
+
+        let reopened = open(temp.path());
+        for lookup_only in [true, false] {
+            let recovered = reopened
+                .remember_for_call("committed-call", request.clone(), lookup_only)
+                .await
+                .unwrap()
+                .unwrap();
+            assert_eq!(recovered.target, target);
+            assert_eq!(recovered.undo_token.operation_id, id.as_uuid().to_string());
+            assert_eq!(recovered.snapshot_generation, generation);
+        }
+        assert_eq!(reopened.snapshot_generation().unwrap(), generation);
+        assert_eq!(path.metadata().unwrap().modified().unwrap(), modified);
+        assert_eq!(
+            reopened
+                .list(ListMemoryRequest { area: None })
+                .await
+                .unwrap()
+                .items
+                .len(),
+            1
+        );
+    }
+}
+
+#[cfg(feature = "agent-runtime")]
+#[tokio::test]
+async fn remember_requires_the_committed_topic_hash_to_recover_a_pending_receipt() {
+    let temp = tempfile::tempdir().unwrap();
+    let service = open(temp.path());
+    let request = note();
+    let call = service.remember_call("changed-topic", &request).unwrap();
+    let id = OperationId::new();
+    let scope = service.scope_layout(&request.area);
+    let store = service.durable_store().unwrap();
+    assert!(store.claim_remember(&call, id).unwrap());
+    {
+        let _guard = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root()).unwrap();
+        let (target, entry) = service.write_remembered_topic(&request, id).unwrap();
+        service.remember_undo(id, entry).unwrap();
+        std::fs::write(
+            scope
+                .topics_directory()
+                .join(format!("remembered-{}.md", target.id)),
+            "Changed content.",
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        service
+            .remember_for_call("changed-topic", request, true)
+            .await
+            .unwrap(),
+        None
+    );
+    assert!(
+        store
+            .load_remember(&call)
+            .unwrap()
+            .unwrap()
+            .commit
+            .is_none()
+    );
+}
+
+#[cfg(feature = "agent-runtime")]
+#[tokio::test]
+async fn remember_pending_receipt_rejects_a_different_native_path_or_operation() {
+    let temp = tempfile::tempdir().unwrap();
+    let service = open(temp.path());
+    let request = note();
+    // A separate commit with identical content must still have distinct provenance.
+    let other = service.remember(request.clone()).await.unwrap();
+    let store = service.durable_store().unwrap();
+    let call = service.remember_call("pending-original", &request).unwrap();
+    let id = OperationId::new();
+    let scope = service.scope_layout(&request.area);
+    assert!(store.claim_remember(&call, id).unwrap());
+    let path = {
+        let _guard = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root()).unwrap();
+        let (target, entry) = service.write_remembered_topic(&request, id).unwrap();
+        service.remember_undo(id, entry).unwrap();
+        scope
+            .topics_directory()
+            .join(format!("remembered-{}.md", target.id))
+    };
+    let db = JournalMode::Wal.open(&scope.state_database()).unwrap();
+    db.execute(
+        "UPDATE operations SET target_path=?1 WHERE id=?2",
+        params![
+            scope
+                .topics_directory()
+                .join(format!("remembered-{}.md", other.target.id))
+                .to_str()
+                .unwrap(),
+            id.as_uuid().to_string()
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        service
+            .remember_for_call("pending-original", request.clone(), true)
+            .await
+            .unwrap(),
+        None
+    );
+    db.execute(
+        "UPDATE operations SET target_path=?1 WHERE id=?2",
+        params![path.to_str().unwrap(), id.as_uuid().to_string()],
+    )
+    .unwrap();
+
+    store.0.execute(
+        "UPDATE nofy_memory_remember_calls_v1 SET native_operation_id=?3 WHERE owner=?1 AND call_key=?2",
+        params![call.owner, call.key, other.undo_token.operation_id],
+    ).unwrap();
+    assert!(matches!(
+        service
+            .remember_for_call("pending-original", request, true)
+            .await,
+        Err(MemoryServiceError::Rejected(_))
+    ));
+}
+
+#[cfg(feature = "agent-runtime")]
+#[tokio::test]
+async fn opening_the_legacy_call_ledger_preserves_cached_receipts_and_unbound_claims() {
+    let temp = tempfile::tempdir().unwrap();
+    let service = open(temp.path());
+    let receipt = service
+        .remember_for_call("legacy-receipt", note(), false)
+        .await
+        .unwrap()
+        .unwrap();
+    let pending = service.remember_call("legacy-pending", &note()).unwrap();
+    let completed = service.remember_call("legacy-receipt", &note()).unwrap();
+    let store = service.durable_store().unwrap();
+    store.0.execute(
+        "UPDATE nofy_memory_remember_calls_v1 SET request_hash=?3 WHERE owner=?1 AND call_key=?2",
+        params![completed.owner, completed.key, completed.request_hash],
+    ).unwrap();
+    store
+        .0
+        .execute_batch(
+            "ALTER TABLE nofy_memory_remember_calls_v1 DROP COLUMN native_operation_id;
+         ALTER TABLE nofy_memory_remember_calls_v1 DROP COLUMN native_generation;",
+        )
+        .unwrap();
+    store.0.execute(
+        "INSERT INTO nofy_memory_remember_calls_v1(owner,call_key,request_hash) VALUES (?1,?2,?3)",
+        params![pending.owner,pending.key,pending.request_hash],
+    ).unwrap();
+    drop(store);
+    drop(service);
+    let reopened = open(temp.path());
+    assert_eq!(
+        reopened
+            .remember_for_call("legacy-receipt", note(), true)
+            .await
+            .unwrap(),
+        Some(receipt)
+    );
+    assert_eq!(
+        reopened
+            .remember_for_call("legacy-pending", note(), true)
+            .await
+            .unwrap(),
+        None
+    );
+    assert!(matches!(
+        reopened
+            .remember_for_call("legacy-pending", note(), false)
+            .await,
+        Err(MemoryServiceError::Unavailable(_))
+    ));
 }
 
 #[test]

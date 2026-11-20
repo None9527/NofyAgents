@@ -206,6 +206,102 @@ async fn hook_permission_pause_requires_original_approval_and_is_not_an_effect_t
 }
 
 #[tokio::test]
+async fn approval_decision_continues_the_waiting_hook_workflow() {
+    let (service, counts, _) = fixture(false, false).await;
+    let directory = tempfile::tempdir().unwrap();
+    let host = host(directory.path(), Arc::new(AtomicUsize::new(0))).await;
+    let server = serve(host.router()).await;
+    let mut doc = source(&service.url, true, "before_model", false);
+    let graph = json!({
+        "host":{"name":"hook-workflow-host"}, "entry":r("hook-workflow"),
+        "tool_runtimes":[{"reference":r("hook-tools"),"definition":{
+            "name":"hook-tools", "tool_packs":[r("close-tool")], "policies":[r("approval")]
+        }}],
+        "workflows":[{
+            "reference":r("hook-workflow"), "input_schema":{"type":"object"},
+            "output_schema":{"type":"object"},
+            "nodes":[{"id":"gate", "input":{"from":"literal","value":{}},
+                "action":{"kind":"tool", "runtime":r("hook-tools"), "tool":"close_effect"}}],
+            "output":{"from":"node", "node":"gate"}
+        }]
+    });
+    let modules = doc["modules"].as_array_mut().unwrap();
+    *modules
+        .iter_mut()
+        .find(|m| m["reference"] == r("close-handler"))
+        .unwrap() = json!({
+        "reference":r("close-handler"), "factory":"hook.workflow_connected", "config":{},
+        "dependencies":{"workflow":r("hook-graph")}
+    });
+    modules.extend([
+        json!({"reference":r("approval"), "factory":"policy.approval", "config":{}}),
+        json!({"reference":r("hook-graph"), "factory":"resource.workflow",
+            "config":{"document":graph,"bindings":{"effect":"tool_pack","approval":"policy"}},
+            "dependencies":{"effect":r("close-tool"),"approval":r("approval")}}),
+    ]);
+    let release = post(&server, "/api/v1/import", doc).await["bundle"]["digest"].clone();
+    post(
+        &server,
+        "/api/v1/runs",
+        json!({"run_id":"root","thread_id":"thread",
+        "system":"model-evidence","release":release,"program":"execute",
+        "input":{"text":"finish","attachments":[]}}),
+    )
+    .await;
+    let stop = CancellationToken::new();
+    let worker = tokio::spawn({
+        let stop = stop.clone();
+        async move { host.run_worker(stop, 2).await.unwrap() }
+    });
+    let paused = outcome(&server, "root").await;
+    assert_eq!(
+        paused["execution"]["outcome"]["Paused"]["reason"]["kind"],
+        "hook_workflow_paused"
+    );
+    assert_eq!(values(&counts), [0, 0, 0]);
+    let (_, approvals) = request(
+        &server,
+        reqwest::Method::GET,
+        "/api/v1/runs/root/approvals",
+        VIEW,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(approvals.as_array().unwrap().len(), 1);
+    let (status, _) = request(
+        &server,
+        reqwest::Method::POST,
+        "/api/v1/runs/root/approvals",
+        ADMIN,
+        json!({"request":approvals[0],"allow":true,"continue_run":true}),
+    )
+    .await;
+    assert_eq!(status, 204);
+    tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            let (_, row) = request(
+                &server,
+                reqwest::Method::GET,
+                "/api/v1/runs/root",
+                VIEW,
+                Value::Null,
+            )
+            .await;
+            match row["execution"]["status"].as_str() {
+                Some("completed") => break,
+                Some("failed") => panic!("workflow continuation failed: {row}"),
+                _ => tokio::time::sleep(Duration::from_millis(25)).await,
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(values(&counts), [1, 1, 0]);
+    stop.cancel();
+    worker.await.unwrap();
+}
+
+#[tokio::test]
 async fn workflow_fact_hook_recovers_against_its_original_graph_checkpoint() {
     let (service, counts, gate) = fixture(true, false).await;
     let directory = tempfile::tempdir().unwrap();

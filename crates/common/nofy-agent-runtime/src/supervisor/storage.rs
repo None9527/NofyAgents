@@ -1,4 +1,29 @@
 use super::*;
+
+pub(super) fn approval_is_open(tx: &rusqlite::Transaction<'_>, run: &str) -> Result<bool, Error> {
+    tx.query_row(
+        "SELECT NOT EXISTS(
+            SELECT 1 FROM agent_runtime_runs r
+            WHERE json_extract(r.payload,'$.status') NOT IN ('running','paused')
+              AND (r.id=?1 OR EXISTS(SELECT 1 FROM agent_runtime_children c
+                WHERE c.root_id=r.id AND json_extract(c.payload,'$.run_id')=?1))
+        ) AND NOT EXISTS(
+            SELECT 1 FROM agent_runtime_children c WHERE json_extract(c.payload,'$.run_id')=?1
+              AND json_extract(c.payload,'$.status') NOT IN ('running','paused')
+        ) AND NOT EXISTS(
+            SELECT 1 FROM agent_runtime_cancel k WHERE k.acknowledged=0
+              AND (json_extract(k.address,'$.run_id')=?1 OR (
+                json_extract(k.address,'$.run_id')=json_extract(k.address,'$.root_run_id')
+                AND EXISTS(SELECT 1 FROM agent_runtime_children c
+                  WHERE c.root_id=json_extract(k.address,'$.root_run_id')
+                    AND json_extract(c.payload,'$.run_id')=?1)
+              ))
+        )",
+        [run],
+        |row| row.get(0),
+    )
+    .map_err(db_error)
+}
 mod status;
 
 impl SqliteStore {
@@ -149,11 +174,22 @@ impl SqliteStore {
         }).await
     }
     pub async fn pending_approvals(&self, run_id: &str) -> Result<Vec<ApprovalRequest>, Error> {
+        Ok(self.pending_approval_options(run_id).await?.into_iter().map(|item| item.request).collect())
+    }
+
+    pub async fn pending_approval_options(&self, run_id: &str) -> Result<Vec<PendingApproval>, Error> {
         let id = run_id.to_string();
         self.transaction(move |tx| {
-            let mut statement=tx.prepare("SELECT payload FROM agent_runtime_approvals WHERE run_id=?1 AND decision IS NULL ORDER BY key").map_err(db_error)?;
-            statement.query_map([id],|row|row.get::<_,String>(0)).map_err(db_error)?
-                .map(|row|serde_json::from_str(&row.map_err(db_error)?).map_err(db_error)).collect()
+            if !approval_is_open(tx, &id)? { return Ok(vec![]); }
+            let mut statement=tx.prepare("SELECT payload,json_type(payload,'$._rule_offer.anchors.session')='text' FROM agent_runtime_approvals WHERE run_id=?1 AND decision IS NULL ORDER BY key").map_err(db_error)?;
+            statement.query_map([id],|row|Ok((row.get::<_,String>(0)?,row.get::<_,Option<bool>>(1)?))).map_err(db_error)?
+                .map(|row| {
+                    let (payload, can_allow_for_session) = row.map_err(db_error)?;
+                    Ok(PendingApproval {
+                        request: serde_json::from_str(&payload).map_err(db_error)?,
+                        can_allow_for_session: can_allow_for_session.unwrap_or(false),
+                    })
+                }).collect()
         }).await
     }
     /// Decisions are idempotent but cannot be changed or applied to a different

@@ -303,6 +303,54 @@ impl NofyMemoryService {
             .cloned()
             .ok_or(MemoryServiceError::NotFound)
     }
+
+    // Callers hold the scope write guard through receipt finalization.
+    fn write_remembered_topic(
+        &self,
+        request: &RememberRequest,
+        operation_id: OperationId,
+    ) -> MemoryServiceResult<(MemoryTarget, UndoEntry)> {
+        self.ensure_undo_ready(&request.area, None)?;
+        let observation = self.observation(request)?;
+        let topic_id = Uuid::new_v4();
+        let title = request
+            .title
+            .as_deref()
+            .map(str::trim)
+            .filter(|title| !title.is_empty())
+            .map(str::to_owned)
+            .unwrap_or_else(|| summarize(&observation.statement));
+        let relative_path = PathBuf::from(format!("remembered-{topic_id}.md"));
+        let content = topic_content(topic_id, 1, observation.id, &title, &observation.statement);
+        let hash = content_hash(&content);
+        let entry = UndoEntry::Created {
+            area: request.area.clone(),
+            relative_path: relative_path.clone(),
+            current_hash: hash.clone(),
+        };
+        self.prepare_undo(
+            operation_id,
+            &topic_id.to_string(),
+            &entry,
+            observation.id,
+            None,
+            content.len(),
+        )?;
+        ObservationStore::new(self.config.root.clone())
+            .persist(&observation, ObservationStatus::Active)
+            .map_err(internal_error)?;
+        self.access(&request.area)?
+            .create_topic(operation_id, &relative_path, &content)
+            .map_err(internal_error)?;
+        self.refresh_index()?;
+        Ok((
+            MemoryTarget {
+                id: topic_id.to_string(),
+                expected_hash: Some(hash.as_str().to_owned()),
+            },
+            entry,
+        ))
+    }
 }
 
 #[async_trait::async_trait]
@@ -383,48 +431,13 @@ impl MemoryService for NofyMemoryService {
         let scope_layout = self.scope_layout(&request.area);
         let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope_layout.root())
             .map_err(internal_error)?;
-        self.ensure_undo_ready(&request.area, None)?;
-        let observation = self.observation(&request)?;
-        let topic_id = Uuid::new_v4();
-        let title = request
-            .title
-            .as_deref()
-            .map(str::trim)
-            .filter(|title| !title.is_empty())
-            .map(str::to_owned)
-            .unwrap_or_else(|| summarize(&observation.statement));
-        let relative_path = PathBuf::from(format!("remembered-{topic_id}.md"));
-        let content = topic_content(topic_id, 1, observation.id, &title, &observation.statement);
         let operation_id = OperationId::new();
-        let hash = content_hash(&content);
-        let entry = UndoEntry::Created {
-            area: request.area.clone(),
-            relative_path: relative_path.clone(),
-            current_hash: hash.clone(),
-        };
-        self.prepare_undo(
-            operation_id,
-            &topic_id.to_string(),
-            &entry,
-            observation.id,
-            None,
-            content.len(),
-        )?;
-        ObservationStore::new(self.config.root.clone())
-            .persist(&observation, ObservationStatus::Active)
-            .map_err(internal_error)?;
-        self.access(&request.area)?
-            .create_topic(operation_id, &relative_path, &content)
-            .map_err(internal_error)?;
-        self.refresh_index()?;
+        let (target, entry) = self.write_remembered_topic(&request, operation_id)?;
         let undo_token = self.remember_undo(operation_id, entry)?;
         Ok(RememberReceipt {
-            target: MemoryTarget {
-                id: topic_id.to_string(),
-                expected_hash: Some(hash.as_str().to_owned()),
-            },
+            target,
             area_label: request.area.user_label().to_owned(),
-            summary: observation.statement,
+            summary: request.statement.trim().to_owned(),
             undo_token,
             snapshot_generation: self.next_generation()?,
         })

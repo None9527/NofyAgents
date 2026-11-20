@@ -69,6 +69,7 @@ fn setup(
 }
 fn request(system: &CompiledSystem, id: &str) -> ManagedRunRequest {
     ManagedRunRequest {
+        approval_mode: None,
         run_id: id.into(),
         thread_id: "thread".into(),
         system: "managed".into(),

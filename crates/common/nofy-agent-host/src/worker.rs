@@ -40,6 +40,9 @@ pub(crate) async fn run(
         let Some(history) = host.runtime_history.execution()? else {
             continue;
         };
+        if let Err(error) = host.evolution.advance(&host).await {
+            eprintln!("Omni evolution: {error}");
+        }
         // Refresh trusted metadata outside all module factories. A broken
         // optional runtime catalog must not terminate unrelated HTTP/SDK work.
         let _ = host.loader.refresh_async().await;
@@ -105,7 +108,7 @@ pub(crate) async fn run(
                             .admit_execution(&host.store, &id, None)
                             .await?;
                         host.supervisor
-                            .execute_submitted(&host.registry, &id)
+                            .execute_queue_head(&host.registry, &id)
                             .await
                             .map(|_| ())
                             .map_err(HostError::from)

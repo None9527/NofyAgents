@@ -1,0 +1,28 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "main-agent-instructions",
+  "version": "0.1.0",
+  "description": "Versioned main coordinator instructions; runtime authority comes from bindings, not this prompt.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "reference": {
+        "$module": "prompt"
+      },
+      "factory": "prompt.static",
+      "config": {
+        "text": {
+          "$file": "prompt.md"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "prompt": "prompt"
+  }
+}

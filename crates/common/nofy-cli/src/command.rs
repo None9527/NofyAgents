@@ -1,6 +1,6 @@
 use crate::positional;
 use clap::{Arg, ArgAction, Command};
-use nofy_agent_client::{OPERATIONS, Operation, SCHEMAS};
+use nofy_agent_client::{OPERATIONS, Operation, SCHEMAS, Toolset};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -271,6 +271,7 @@ fn group_about(path: &str) -> Option<&'static str> {
         "session" => "Durable sessions and their turns",
         "system" => "Published deployments: validate, publish, activate and roll back",
         "terminal" => "Interactive process resources",
+        "work" => "Inspect durable Agent and Workflow execution trees",
         _ => return None,
     })
 }
@@ -341,9 +342,9 @@ fn global_help(key: &str) -> &'static str {
         _ => "",
     }
 }
-pub fn cli() -> Command {
+pub fn cli(toolset: Toolset) -> Command {
     let mut root = Node::default();
-    for o in OPERATIONS.iter() {
+    for o in toolset.sdk().operations() {
         let mut node = &mut root;
         for name in o.cli.split_whitespace().skip(1) {
             node = node.children.entry(name.into()).or_default();
@@ -353,7 +354,14 @@ pub fn cli() -> Command {
     let mut cmd = tree(String::new(), "nofy".into(), root)
         .version(env!("CARGO_PKG_VERSION"))
         .about("Develop and control declarative Agents through one kernel")
-        .after_help(crate::output::root_help());
+        .after_help(if toolset == Toolset::Full {
+            crate::output::root_help()
+        } else {
+            "Choose --toolset development, operations or full for additional commands. `nofy describe` lists the selected operations.".into()
+        })
+        .arg(Arg::new("toolset").long("toolset").global(true)
+            .value_parser(Toolset::NAMES).default_value("run")
+            .help("Operation visibility for CLI, SDK discovery and MCP"));
     for key in [
         "endpoint",
         "token_env",
@@ -489,7 +497,9 @@ mod tests {
 
     #[test]
     fn the_generated_command_tree_is_well_formed() {
-        cli().debug_assert();
+        for name in Toolset::NAMES {
+            cli(name.parse().unwrap()).debug_assert();
+        }
     }
 
     #[test]
@@ -508,7 +518,7 @@ mod tests {
             }
         }
         let mut problems = Vec::new();
-        walk(&cli(), "nofy", &mut problems);
+        walk(&cli(Toolset::Full), "nofy", &mut problems);
         assert!(
             problems.is_empty(),
             "commands without a description: {problems:?}"
@@ -540,7 +550,7 @@ mod tests {
 
     #[test]
     fn leaf_help_is_the_catalog_summary() {
-        let root = cli();
+        let root = cli(Toolset::Full);
         for operation in OPERATIONS.iter() {
             let mut node = &root;
             for name in operation.cli.split_whitespace().skip(1) {

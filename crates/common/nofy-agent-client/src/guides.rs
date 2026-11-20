@@ -64,24 +64,25 @@ fn step(id: &str, operation: &str, arguments: Value, outcome: &str) -> Value {
 impl Engine {
     pub(crate) async fn schema_result(&self, input: &Value) -> Result<Envelope> {
         if let Some(name) = input.get("operation").and_then(Value::as_str) {
-            let descriptor = crate::operation(name)?;
-            return Ok(Envelope::ok(
-                "schema",
-                json!({"operation":name,"input":schema(&descriptor.input_schema)?,"output":schema(&descriptor.output_schema)?,"guide":with_cli(operation_guide(descriptor)?)}),
-            ));
+            return crate::authoring::operation_schema(self.operation_view(), name);
         }
         if let Some(id) = input.get("preset").and_then(Value::as_str) {
+            self.require_operation("project.template")?;
             let source = self
                 .template_source(&json!({"preset":id,"version":input["version"]}))
                 .await?;
             return Ok(Envelope::ok("schema", with_cli(preset_guide(id, &source)?)));
         }
         if let Some(package) = input.get("package") {
+            self.require_operation("module.inspect")?;
             let package = self.package_view(package).await?;
             return Ok(Envelope::ok(
                 "schema",
                 json!({"package":package,"guide":with_cli(package_guide(&package))}),
             ));
+        }
+        if self.operation_view().toolset() == Toolset::Run {
+            self.require_operation("agent.build")?;
         }
         let name = text(input, "factory")?;
         let catalog = self.client.factories().await?;

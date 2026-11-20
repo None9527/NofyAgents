@@ -358,6 +358,7 @@ async fn policy_selection_crosses_session_roots_and_survives_a_later_prompt_only
         .submit_session_turn(
             "session",
             SessionTurnCommand {
+                approval_mode: None,
                 command_id: "bind-two".into(),
                 source_run_id: "run".into(),
                 expected_source_revision: 2,

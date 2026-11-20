@@ -112,6 +112,32 @@ impl MemoryAccess {
         Ok(())
     }
 
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn proves_topic_creation(
+        &self,
+        id: OperationId,
+        relative_topic: &Path,
+        expected: &ContentHash,
+    ) -> Result<bool, AccessError> {
+        let target = self.topic_target(relative_topic)?;
+        let relative = scope_relative_string(self.scope.root(), &target)?;
+        if !self.state.proves_topic_creation(
+            id,
+            &target.to_string_lossy(),
+            &relative,
+            expected.as_str(),
+        )? {
+            return Ok(false);
+        }
+        match std::fs::symlink_metadata(&target) {
+            Ok(metadata) if metadata.is_file() => {}
+            Ok(_) => return Ok(false),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error.into()),
+        }
+        Ok(hash_bytes(&std::fs::read(target)?) == expected.as_str())
+    }
+
     pub fn update_topic(
         &self,
         operation_id: OperationId,

@@ -270,6 +270,13 @@ async fn pending_approval_fifo_mail_and_durable_cancel_keep_original_identity_ac
         outcome(&server, "cancelled").await["execution"]["status"],
         "paused"
     );
+    // Record the pending cancellation while no worker can consume it. The
+    // preserve-across-transfer assertion then describes one durable state.
+    stop_worker(&host, stop, worker).await;
+    drop(server);
+    drop(host);
+    let host = crate::host(&dir.path().join("host"), Arc::new(AtomicUsize::new(0))).await;
+    let server = serve(host.router()).await;
     let cancelled = post(
         &server,
         "/api/v1/runs/cancelled/cancel",
@@ -287,6 +294,7 @@ async fn pending_approval_fifo_mail_and_durable_cancel_keep_original_identity_ac
         json!({"command_id":"resume-cancelled","run_id":"cancelled","command":{"kind":"resume"}}),
     )
     .await;
+    let (stop, worker) = start(&host);
     let cancelled = action_result(&server, "resume-cancelled").await;
     assert!(cancelled["error"].is_null(), "{cancelled}");
     assert_eq!(

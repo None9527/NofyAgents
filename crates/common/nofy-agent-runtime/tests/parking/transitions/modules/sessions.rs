@@ -33,6 +33,7 @@ async fn tools_and_hook_epoch_cross_roots_and_the_next_live_update_preserves_inh
         .modules
         .unwrap();
     let input = SessionTurnCommand {
+        approval_mode: None,
         command_id: "bind-two".into(),
         source_run_id: "run".into(),
         expected_source_revision: 1,
@@ -131,6 +132,7 @@ async fn tools_and_hook_epoch_cross_roots_and_the_next_live_update_preserves_inh
         .submit_session_turn(
             "session",
             SessionTurnCommand {
+                approval_mode: None,
                 command_id: "bind-three".into(),
                 source_run_id: "two".into(),
                 expected_source_revision: 1,

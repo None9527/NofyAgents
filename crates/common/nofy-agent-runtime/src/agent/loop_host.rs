@@ -39,10 +39,10 @@ impl RunHost for AgentHost<'_> {
                     .capabilities
                     .get::<crate::reconciliation::ReconciliationInput>()
                     .is_some_and(|receipt| receipt.matches(&self.context, &self.state, &call))
-                || self
-                    .tools
-                    .get(&call.name)
-                    .is_some_and(|entry| entry.dispatch.is_resumable())
+                || self.tools.get(&call.name).is_some_and(|entry| {
+                    entry.dispatch.is_resumable()
+                        || entry.dispatch.supports_committed_receipt(&call.arguments)
+                })
             {
                 return self.tool(call, true).await;
             }
@@ -96,6 +96,9 @@ impl RunHost for AgentHost<'_> {
             return Ok(control);
         }
         if self.state.complete {
+            if let Some(control) = self.coordinate_children().await? {
+                return Ok(control);
+            }
             return Ok(Step::Complete(RunOutcome::Completed {
                 output: self.state.output.clone(),
                 state: self.state.clone(),

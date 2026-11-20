@@ -297,6 +297,7 @@ impl Agent {
             crate::mailbox::finish_user_command(&mut state, &id, is_error)?;
         }
         if let Some(message) = message {
+            state.agent_message_cursor = 0;
             state.control_sequence = 0;
             state.input_progress = Default::default();
             if let Some(initial) = context
@@ -307,6 +308,7 @@ impl Agent {
                 state.execution_run_id = Some(context.run_id.clone());
             }
             if crate::model_journal::enabled(&context)
+                || self.spec.settings.input_delivery.duplex
                 || self.recipe.is_some()
                 || context
                     .capabilities
@@ -405,7 +407,30 @@ impl Agent {
             initial.0.acknowledge().await?;
         }
         *driver_started = true;
-        match drive(&mut host).await {
+        let result = drive(&mut host).await;
+        if self.workflow_entry
+            && let Some(call) = &self.direct_tool
+            && let Ok(RunOutcome::Completed { state, .. }) = &result
+            && let Some(error) = state
+                .messages
+                .iter()
+                .rev()
+                .find_map(|message| match message {
+                    Message::Tool {
+                        call_id,
+                        content,
+                        is_error: true,
+                    } if call_id == &call.id => Some(content),
+                    _ => None,
+                })
+        {
+            let reason = error
+                .get("error")
+                .and_then(|value| value.as_str())
+                .map_or_else(|| error.to_string(), str::to_owned);
+            return Err(Error::Tool(reason));
+        }
+        match result {
             Err(Error::Cancelled) => Ok(RunOutcome::Cancelled { state: host.state }),
             Err(Error::BudgetExceeded) => Ok(RunOutcome::BudgetExceeded { state: host.state }),
             Err(Error::GovernancePaused(reason)) => Ok(RunOutcome::Paused {

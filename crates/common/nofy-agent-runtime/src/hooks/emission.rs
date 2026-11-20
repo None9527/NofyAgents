@@ -110,17 +110,32 @@ impl HookBus {
                 });
             }
             let decision = if let Some(cached) = cached {
-                if let Some(command) = primitive::reconciled(&child).await?
-                    && let Some(sink) = context
-                        .capabilities
-                        .get::<crate::events::EventSinkBinding>()
+                let command = primitive::reconciled(&child).await?;
+                if let Some(sink) = context
+                    .capabilities
+                    .get::<crate::events::EventSinkBinding>()
                 {
-                    let key = crate::system::content_digest(&(
-                        "hook-reconciled",
-                        &command,
-                        &event.id,
-                        &registration.identity,
-                    ))?;
+                    let (status, key) = if let Some(command) = &command {
+                        (
+                            "reconciled",
+                            crate::system::content_digest(&(
+                                "hook-reconciled",
+                                command,
+                                &event.id,
+                                &registration.identity,
+                            ))?,
+                        )
+                    } else {
+                        (
+                            "replayed",
+                            crate::system::content_digest(&(
+                                "hook-decision-replay",
+                                &self.identity,
+                                &event.id,
+                                &registration.identity,
+                            ))?,
+                        )
+                    };
                     sink.0
                         .record_once(
                             event.scope.clone(),
@@ -128,8 +143,8 @@ impl HookBus {
                                 event_id: event.id.clone(),
                                 event_name: event.name.clone(),
                                 hook: registration.identity.clone(),
-                                status: "reconciled".into(),
-                                detail: Some(command),
+                                status: status.into(),
+                                detail: command,
                             },
                             &key,
                         )

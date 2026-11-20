@@ -24,6 +24,24 @@ impl RunSupervisor {
         registry: &crate::registry::ModuleRegistry,
         run_id: &str,
     ) -> Result<Option<RunOutcome>, Error> {
+        self.execute_job(registry, run_id, false).await
+    }
+
+    /// Recheck queue eligibility under the run lease before consuming a wait.
+    pub async fn execute_queue_head(
+        &self,
+        registry: &crate::registry::ModuleRegistry,
+        run_id: &str,
+    ) -> Result<Option<RunOutcome>, Error> {
+        self.execute_job(registry, run_id, true).await
+    }
+
+    async fn execute_job(
+        &self,
+        registry: &crate::registry::ModuleRegistry,
+        run_id: &str,
+        require_runnable: bool,
+    ) -> Result<Option<RunOutcome>, Error> {
         let job = self
             .store
             .execution_job(run_id)
@@ -64,7 +82,9 @@ impl RunSupervisor {
                 self.ttl,
             )
             .await?;
-        let result = self.execute_submitted_leased(&compiled, job, &lease).await;
+        let result = self
+            .execute_submitted_leased(&compiled, job, &lease, require_runnable)
+            .await;
         let released = self.store.release(&lease).await;
         match result {
             Ok(result) => {
@@ -79,6 +99,7 @@ impl RunSupervisor {
         compiled: &ExecutionPlan,
         job: ExecutionJobRecord,
         lease: &Lease,
+        require_runnable: bool,
     ) -> Result<Option<RunOutcome>, Error> {
         let root = job.submission.run_id.clone();
         let lease_check = lease.clone();
@@ -89,6 +110,12 @@ impl RunSupervisor {
             ensure_not_parked(tx,&lease_check.key)?;
             let (sequence,_,saved,state)=load(tx,&root)?.ok_or_else(||Error::Checkpoint("job disappeared".into()))?;
             if state=="cancelled" || state=="closed" || state=="abandoned" {return Ok(None);}
+            if require_runnable && matches!(state.as_str(), "waiting" | "failed") {
+                let sql = format!("SELECT EXISTS(SELECT 1 FROM agent_runtime_jobs j WHERE j.run_id=?1 AND {})", managed::RUNNABLE_JOB);
+                if !tx.query_row(&sql, [&root], |row| row.get::<_, bool>(0)).map_err(db_error)? {
+                    return Ok(None);
+                }
+            }
             verify_plan(tx,&root,expected.as_ref())?;
             ensure_live_owner(tx,&lease_check.key,&root,&saved.submission.snapshot)?;
             let head:Option<u64>=tx.query_row("SELECT sequence FROM agent_runtime_jobs WHERE thread_key=?1 AND status NOT IN ('closed','cancelled','abandoned') ORDER BY sequence LIMIT 1",[&lease_check.key],|row|row.get(0)).optional().map_err(db_error)?;
@@ -134,37 +161,43 @@ impl RunSupervisor {
         let run = run_id.to_string();
         let clock = self.store.clock.clone();
         self.store
-            .transaction(move |tx| {
-                let (_, _, saved, state) = load(tx, &run)?
-                    .ok_or_else(|| Error::Checkpoint("job does not exist".into()))?;
-                if state == "cancelled" {
-                    return Ok(());
-                }
-                let exists: bool = tx
-                    .query_row(
-                        "SELECT EXISTS(SELECT 1 FROM agent_runtime_runs WHERE id=?1)",
-                        [&run],
-                        |row| row.get(0),
-                    )
-                    .map_err(db_error)?;
-                if state != "queued" || exists {
-                    return Err(Error::Checkpoint(
-                        "job already has a worker; cancel its run instead".into(),
-                    ));
-                }
-                settle_source(
-                    tx,
-                    &saved,
-                    Some("queued run cancelled before it started"),
-                    clock.now_ms(),
-                )?;
-                tx.execute(
-                    "UPDATE agent_runtime_jobs SET status='cancelled' WHERE run_id=?1",
-                    [run],
-                )
-                .map_err(db_error)?;
-                Ok(())
-            })
+            .transaction(move |tx| cancel_queued(tx, &run, clock.now_ms()))
             .await
     }
+}
+
+pub(in crate::supervisor) fn cancel_queued(
+    tx: &rusqlite::Transaction<'_>,
+    run: &str,
+    now: u64,
+) -> Result<(), Error> {
+    let (_, _, saved, state) =
+        load(tx, run)?.ok_or_else(|| Error::Checkpoint("job does not exist".into()))?;
+    if state == "cancelled" {
+        return Ok(());
+    }
+    let exists: bool = tx
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM agent_runtime_runs WHERE id=?1)",
+            [run],
+            |row| row.get(0),
+        )
+        .map_err(db_error)?;
+    if state != "queued" || exists {
+        return Err(Error::Checkpoint(
+            "job already has a worker; cancel its run instead".into(),
+        ));
+    }
+    settle_source(
+        tx,
+        &saved,
+        Some("queued run cancelled before it started"),
+        now,
+    )?;
+    tx.execute(
+        "UPDATE agent_runtime_jobs SET status='cancelled' WHERE run_id=?1",
+        [run],
+    )
+    .map_err(db_error)?;
+    Ok(())
 }

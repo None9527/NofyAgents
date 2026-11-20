@@ -3,16 +3,38 @@ mod config;
 mod input;
 mod output;
 mod positional;
-use nofy_agent_client::{Envelope, Error, Result, refs_from_input};
+use nofy_agent_client::{Envelope, Error, Result, Toolset, refs_from_input};
 use serde_json::{Value, json};
 use std::{io::Read, path::Path};
 
 #[tokio::main]
 async fn main() {
-    let matches = command::cli().get_matches();
+    let args: Vec<_> = std::env::args_os().collect();
+    let mut flags = args.iter().skip(1);
+    let mut toolset = Toolset::default();
+    while let Some(arg) = flags.next() {
+        if arg == "--" {
+            break;
+        }
+        let name = if arg == "--toolset" {
+            flags.next().and_then(|value| value.to_str())
+        } else {
+            arg.to_str()
+                .and_then(|value| value.strip_prefix("--toolset="))
+        };
+        if let Some(name) = name {
+            match name.parse() {
+                Ok(value) => toolset = value,
+                Err(error) => command::cli(toolset)
+                    .error(clap::error::ErrorKind::InvalidValue, format!("{error}"))
+                    .exit(),
+            }
+        }
+    }
+    let matches = command::cli(toolset).get_matches_from(args);
     let (op, leaf) = command::selected(&matches);
     let mcp = op == "mcp.serve";
-    let result = run(&op, leaf).await;
+    let result = run(&op, leaf, toolset).await;
     let code = match result {
         Ok(code) => code,
         Err(e) => {
@@ -29,12 +51,12 @@ async fn main() {
     };
     std::process::exit(code);
 }
-async fn run(op: &str, m: &clap::ArgMatches) -> Result<i32> {
+async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
     let http_mcp = op == "mcp.serve"
         && m.get_one::<String>("transport")
             .is_some_and(|s| s == "http");
     let settings = config::load(m, http_mcp)?;
-    let engine = &settings.engine;
+    let engine = &settings.engine.clone().with_operation_view(toolset.sdk());
     if op == "mcp.serve" {
         let result = if http_mcp {
             let address = m
@@ -56,6 +78,7 @@ async fn run(op: &str, m: &clap::ArgMatches) -> Result<i32> {
         result.map_err(|e| Error::new("unavailable", e.to_string()))?;
         return Ok(0);
     }
+    engine.require_operation(op)?;
     if m.get_flag("wait") && !matches!(op, "run.start" | "session.start" | "session.turn") {
         return Err(Error::new(
             "local_input",

@@ -159,23 +159,6 @@ async fn raw_run_and_next_turn_cannot_bypass_busy_policy_and_keep_input() {
         .execute_submitted(&registry, "one")
         .await
         .unwrap();
-    assert!(
-        supervisor
-            .execute_submitted(&registry, "two")
-            .await
-            .is_err()
-    );
-    let blocked = store.execution_job("two").await.unwrap().unwrap();
-    assert_eq!(blocked.digest, frozen.digest);
-    assert!(matches!(blocked.status, JobStatus::Waiting));
-    assert!(store.execution_record("two").await.unwrap().is_none());
-    let proof = store
-        .session_policy_admission("conversation", "two")
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(proof["phase"], "rejected");
-    assert_eq!(calls.load(Ordering::SeqCst), 1);
     let program::ProgramSnapshot::Agent { snapshot } =
         system.program("chat").unwrap().snapshot.program.clone()
     else {
@@ -197,32 +180,38 @@ async fn raw_run_and_next_turn_cannot_bypass_busy_policy_and_keep_input() {
         .await
         .unwrap();
     let original = store.execution_job("three").await.unwrap().unwrap();
-    assert!(
-        supervisor
-            .execute_submitted(&registry, "three")
+    // Both ingresses froze a busy decision while a predecessor was queued.
+    for (run, digest) in [("two", frozen.digest), ("three", original.digest)] {
+        let error = supervisor
+            .execute_submitted(&registry, run)
             .await
-            .is_err()
-    );
-    assert_eq!(
-        store.execution_job("three").await.unwrap().unwrap().digest,
-        original.digest
-    );
-    assert_eq!(
-        store
-            .input_status(&envelope.address, "next-mail")
+            .unwrap_err();
+        assert!(error.to_string().contains("policy_rejected"), "{error}");
+        let rejected = store.execution_job(run).await.unwrap().unwrap();
+        assert_eq!(rejected.digest, digest);
+        assert!(matches!(rejected.status, JobStatus::Cancelled));
+        assert!(store.execution_record(run).await.unwrap().is_none());
+        let proof = store
+            .session_policy_admission("conversation", run)
             .await
             .unwrap()
-            .unwrap()
-            .digest,
-        accepted.digest
-    );
-    assert!(store.execution_record("three").await.unwrap().is_none());
-    assert!(
-        supervisor
-            .session_command(mutation("blocked-close", "0", SessionChange::Close), None)
-            .await
-            .is_err()
-    );
+            .unwrap();
+        assert_eq!(proof["phase"], "rejected");
+    }
+    let input = store
+        .input_status(&envelope.address, "next-mail")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(input.digest, accepted.digest);
+    assert_eq!(input.status, InputStatus::Rejected);
+    assert!(input.reason.is_some());
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    let closed = supervisor
+        .session_command(mutation("close", "0", SessionChange::Close), None)
+        .await
+        .unwrap();
+    assert_eq!(closed.session_revision.as_deref(), Some("1"));
 }
 
 #[tokio::test]

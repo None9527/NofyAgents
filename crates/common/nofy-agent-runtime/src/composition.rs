@@ -154,6 +154,11 @@ async fn child_hook(
 
 #[async_trait::async_trait]
 impl ToolDispatch for ChildAgent {
+    fn approval_effect(&self) -> nofy_tool_runtime::dispatch::ApprovalEffect {
+        // The delegate's concrete tool calls inherit the parent's approval mode.
+        nofy_tool_runtime::dispatch::ApprovalEffect::SessionControl
+    }
+
     fn is_resumable(&self) -> bool {
         true
     }

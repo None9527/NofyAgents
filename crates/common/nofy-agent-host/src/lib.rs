@@ -2,9 +2,15 @@
 //! Supervisor; HTTP connections only admit commands and replay durable facts.
 mod api;
 pub mod auth;
+mod authoring;
 pub mod credentials;
+pub mod dev_web;
+pub mod evolution;
+pub mod feature_authoring;
 pub mod loader;
 pub mod native;
+mod title_worker;
+mod work;
 mod worker;
 use auth::Authorizer;
 use nofy_agent_runtime::{
@@ -24,6 +30,8 @@ pub enum HostError {
     Source(#[from] nofy_agent_project::Error),
     #[error(transparent)]
     Control(#[from] nofy_agent_runtime::control::ControlError),
+    #[error("runtime history changed since planning. Obtain and review a fresh transfer plan")]
+    RuntimeHistoryPlanStale,
     #[error("invalid request: {0}")]
     Invalid(String),
     #[error("not found")]
@@ -49,6 +57,7 @@ pub struct KernelHost {
     pub(crate) registry: Arc<ModuleRegistry>,
     pub(crate) auth: Arc<Authorizer>,
     pub(crate) wake: Arc<tokio::sync::Notify>,
+    pub(crate) work: Arc<work::WorkService>,
     pub(crate) stop: CancellationToken,
     pub(crate) credentials: Option<Arc<credentials::FileCredentials>>,
     pub(crate) loader: loader::Loader,
@@ -58,6 +67,8 @@ pub struct KernelHost {
     pub(crate) projects: nofy_agent_project::ProjectStore,
     pub(crate) module_library: nofy_agent_project::repository::ModuleStore,
     pub(crate) templates: Option<nofy_agent_project::TemplateRegistry>,
+    pub(crate) evolution: evolution::Evolution,
+    feature_authoring: Arc<feature_authoring::Authoring>,
 }
 impl KernelHost {
     /// Explicit paths and installed factories are process bootstrap concerns.
@@ -75,6 +86,7 @@ impl KernelHost {
         let directory = directory.to_path_buf();
         let project_directory = directory.join("projects");
         let module_directory = directory.join("module-repositories");
+        let evolution_path = directory.join("omni-evolution.sqlite");
         let (catalog, store, loader, runtime_history, state_guard) =
             tokio::task::spawn_blocking(move || -> Result<_> {
                 // The state directory holds credentials, releases and run history.
@@ -116,19 +128,49 @@ impl KernelHost {
             nofy_agent_runtime::governance::declarative::ConnectedBudgetFactory,
         ))?;
         loader.register(&mut registry)?;
+        let module_library = nofy_agent_project::repository::ModuleStore::open(&module_directory)?;
+        registry.register_factory(Arc::new(authoring::AuthoringFactory(
+            module_library.clone(),
+        )))?;
+        let work = Arc::new(work::WorkService {
+            store: store.clone(),
+            background: Default::default(),
+        });
+        registry.register_factory(Arc::new(work::Factory(Arc::downgrade(&work))))?;
+        let evolution = evolution::Evolution::new(store.clone(), evolution_path);
+        registry.register_factory(Arc::new(evolution::ProposalFactory(evolution.clone())))?;
+        let feature_authoring = Arc::new(feature_authoring::Authoring::default());
+        registry.register_factory(Arc::new(feature_authoring::Factory(Arc::downgrade(
+            &feature_authoring,
+        ))))?;
+        let control = ControlPlane::new(Arc::new(catalog), registry.clone());
+        let supervisor =
+            Arc::new(RunSupervisor::new(store.clone()).with_session_registry(registry.clone()));
+        let registry = Arc::new(registry);
+        let wake = Arc::new(tokio::sync::Notify::new());
+        work.background
+            .set(work::Background {
+                control: control.clone(),
+                registry: registry.clone(),
+                supervisor: supervisor.clone(),
+                loader: loader.clone(),
+                wake: wake.clone(),
+            })
+            .map_err(|_| HostError::Unavailable("work service already initialized".into()))?;
         Ok(Self {
             _state_guard: Arc::new(state_guard),
             projects: nofy_agent_project::ProjectStore::open(&project_directory)?,
-            module_library: nofy_agent_project::repository::ModuleStore::open(&module_directory)?,
+            module_library,
             templates: None,
-            control: ControlPlane::new(Arc::new(catalog), registry.clone()),
-            supervisor: Arc::new(
-                RunSupervisor::new(store.clone()).with_session_registry(registry.clone()),
-            ),
+            evolution,
+            feature_authoring,
+            control,
+            supervisor,
             store,
-            registry: Arc::new(registry),
+            registry,
             auth: Arc::new(auth),
-            wake: Arc::new(tokio::sync::Notify::new()),
+            wake,
+            work,
             stop: CancellationToken::new(),
             credentials: None,
             loader,

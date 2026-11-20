@@ -188,7 +188,7 @@ impl SqliteStore {
         }).await
     }
 }
-pub(super) fn enqueue(
+pub(in crate::supervisor) fn enqueue(
     tx: &rusqlite::Transaction<'_>,
     action: &ManagedAction,
     trusted_transition: bool,

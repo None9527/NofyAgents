@@ -99,7 +99,13 @@ impl RunSupervisor {
         if children.is_empty() {
             return Ok(page);
         }
-        let registry = registry.clone();
+        // Accepted systems can add constraints beyond the bootstrap host floor.
+        // Reuse managed restoration without weakening standalone snapshot checks.
+        let registry = if self.store.managed_run(root).await?.is_some() {
+            super::super::restore_scope(&record.snapshot, registry)?
+        } else {
+            registry.clone()
+        };
         let graphs = tokio::task::spawn_blocking(move || locations(record.snapshot, registry))
             .await
             .map_err(|e| {

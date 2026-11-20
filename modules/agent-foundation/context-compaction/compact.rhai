@@ -39,13 +39,15 @@ if args.phase == "plan" {
     #{kind:"sample",request:#{messages:history,tools:[],settings:args.parameters.model_settings},data:#{}}
 } else if args.phase == "finish" {
     let response = args.response;
-    if response.output.trim().len() == 0 || response.tool_calls.len() > 0 || response.info.refusal != () {
+    let summary = response.output;
+    summary.trim();
+    if summary.len() == 0 || response.tool_calls.len() > 0 || response.info.refusal != () {
         throw "compaction requires a complete textual summary";
     }
     if response.info.stop_reason == "length" || response.info.stop_reason == "max_tokens" || response.info.stop_reason == "max_output_tokens" {
         throw "compaction summary was truncated";
     }
-    let messages = [args.state.messages[0], #{role:"assistant",content:"[Compacted history]\n"+response.output,tool_calls:[]}];
+    let messages = [args.state.messages[0], #{role:"assistant",content:"[Compacted history]\n"+summary,tool_calls:[]}];
     for i in args.plan.keep..args.state.messages.len() { messages.push(args.state.messages[i]); }
     let after = bytes(messages);
     if after >= args.plan.before_bytes { throw "compaction did not reduce context; original history is retained"; }

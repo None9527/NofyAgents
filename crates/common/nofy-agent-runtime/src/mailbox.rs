@@ -8,6 +8,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 #[cfg(feature = "sqlite")]
 mod sqlite;
+#[cfg(feature = "sqlite")]
+pub(crate) use sqlite::cancel_in_transaction;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -156,18 +158,19 @@ pub(crate) fn validate_message(message: &PendingInterjection<InputPart>) -> Resu
         || (message.text.is_empty() && message.attachments.is_empty())
     {
         return Err(Error::Composition(
-            "input requires text up to 64 KiB and at most eight images".into(),
+            "input requires text up to 64 KiB and at most eight text/image attachments".into(),
         ));
     }
     for part in &message.attachments {
         match part {
+            InputPart::Text { text } if text.len() <= 65536 => {}
             InputPart::Image { url }
                 if url.starts_with("https://")
                     || url.starts_with("http://")
                     || url.starts_with("data:image/") => {}
             _ => {
                 return Err(Error::Composition(
-                    "input attachments must be HTTP(S)/data images".into(),
+                    "input attachments must be text up to 64 KiB or HTTP(S)/data images".into(),
                 ));
             }
         }

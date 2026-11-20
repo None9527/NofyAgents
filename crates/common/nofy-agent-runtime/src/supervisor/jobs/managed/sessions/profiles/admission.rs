@@ -269,14 +269,39 @@ impl RunSupervisor {
                 .await?;
         }
         let id = run.to_owned();
-        self.store.transaction(move|tx|{
-            let i=read_intent(tx,&id)?.ok_or_else(||Error::Checkpoint("session admission missing".into()))?;
-            let p=i.proposal.ok_or_else(||policy::invalid("policy decision missing"))?;
-            if p.decision!=policy::Decision::Allow {
-                tx.execute("UPDATE agent_runtime_jobs SET status='waiting' WHERE run_id=?1 AND status='queued'",[id]).map_err(db_error)?;
+        let clock = self.store.clock.clone();
+        self.store
+            .transaction(move |tx| {
+                let i = read_intent(tx, &id)?
+                    .ok_or_else(|| Error::Checkpoint("session admission missing".into()))?;
+                let p = i.proposal.ok_or_else(|| policy::invalid("policy decision missing"))?;
+                if p.decision == policy::Decision::Allow {
+                    return Ok(None);
+                }
+                let (_, hash, saved, _) = load(tx, &id)?
+                    .ok_or_else(|| Error::Checkpoint("rejected session job missing".into()))?;
+                if i.job_digest != hash {
+                    return Err(Error::Checkpoint("rejected session job identity changed".into()));
+                }
+                // A denial before execution is terminal. Older databases may
+                // still have it recorded as waiting, with no run to resume.
+                let changed = tx.execute(
+                    "UPDATE agent_runtime_jobs SET status='cancelled' WHERE run_id=?1
+                     AND status IN ('queued','initializing','waiting')
+                     AND NOT EXISTS(SELECT 1 FROM agent_runtime_runs WHERE id=?1)",
+                    [&id],
+                ).map_err(db_error)?;
+                if changed != 0 {
+                    let now = clock.now_ms();
+                    settle_source(tx, &saved, Some(&p.reason), now)?;
+                    finish(tx, &saved.submission.thread_key(), now)?;
+                }
                 Ok(Some(p.reason))
-            } else {Ok(None)}
-        }).await?.map_or(Ok(()),|reason|Err(Error::Composition(format!("policy_rejected: {reason}"))))
+            })
+            .await?
+            .map_or(Ok(()), |reason| {
+                Err(Error::Composition(format!("policy_rejected: {reason}")))
+            })
     }
 }
 impl SqliteStore {

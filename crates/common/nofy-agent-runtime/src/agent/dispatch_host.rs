@@ -78,10 +78,33 @@ impl AgentHost<'_> {
             .map(|floor| floor.0.iter().map(|(_, policy)| policy.clone()).collect())
             .unwrap_or_default();
         policies.extend(self.agent.policies.iter().cloned());
+        let policy_context = self.context.clone();
+        #[cfg(feature = "sqlite")]
+        let policy_context = {
+            let mut context = policy_context;
+            if let Some(policy) = context.capabilities.get::<crate::supervisor::TurnApprovalPolicy>() {
+                let session_control = match dispatch.recovery_identity().as_deref() {
+                    Some("agent-messages/v1") => true,
+                    Some("agent-tasks/v1") => matches!(
+                        call.arguments["action"].as_str(),
+                        Some("poll" | "list" | "wait" | "cancel")
+                    ),
+                    _ => false,
+                };
+                context.capabilities.insert(crate::supervisor::ToolApprovalState {
+                    composition: self.agent.composition.clone(),
+                    approved: Default::default(),
+                    session_control,
+                    effect: dispatch.approval_effect(),
+                });
+                policies.push(policy);
+            }
+            context
+        };
         for policy in policies {
             let admission = crate::governance::await_resource(
                 &self.context,
-                policy.admit(&call, &self.state, &self.context),
+                policy.admit(&call, &self.state, &policy_context),
             )
             .await?;
             if self.context.cancel.is_cancelled() {

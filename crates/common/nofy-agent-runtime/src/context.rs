@@ -53,6 +53,8 @@ pub(crate) struct RunServices {
     #[cfg(feature = "sqlite")]
     supervisor: Option<std::sync::Arc<crate::supervisor::SupervisedIdentity>>,
     #[cfg(feature = "sqlite")]
+    turn_approval: Option<std::sync::Arc<crate::supervisor::TurnApprovalPolicy>>,
+    #[cfg(feature = "sqlite")]
     parking: Option<std::sync::Arc<crate::supervisor::jobs::ParkBinding>>,
     #[cfg(feature = "sqlite")]
     hook_effects: Option<std::sync::Arc<crate::hooks::primitive::NativeControl>>,
@@ -71,6 +73,8 @@ impl RunServices {
             #[cfg(feature = "sqlite")]
             supervisor: context.capabilities.get(),
             #[cfg(feature = "sqlite")]
+            turn_approval: context.capabilities.get(),
+            #[cfg(feature = "sqlite")]
             parking: context.capabilities.get(),
             #[cfg(feature = "sqlite")]
             hook_effects: context.capabilities.get(),
@@ -81,6 +85,10 @@ impl RunServices {
         context.thread_id = self.thread_id;
         context.run_id = self.run_id;
         context.cancel = self.cancel;
+        #[cfg(feature = "sqlite")]
+        if let Some(policy) = self.turn_approval {
+            context.capabilities.insert_arc(policy);
+        }
         if let Some(events) = self.events {
             context.capabilities.insert_arc(events);
         }

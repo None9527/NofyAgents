@@ -4,7 +4,7 @@ use nofy_agent_host::{
     KernelHost,
     auth::{AccessKeyReference, Authorizer},
     credentials::FileCredentials,
-    native,
+    dev_web, native,
 };
 use nofy_agent_runtime::control::ApplyCommand;
 use nofy_agent_runtime::credentials::EnvironmentCredentials;
@@ -38,12 +38,23 @@ struct Args {
     /// Independent trusted source grants; never obtained from a deployment.
     #[arg(long)]
     source_policy_file: Option<PathBuf>,
+    /// Trusted local JSON grant for one Omni prompt evolution.
+    #[arg(long)]
+    evolution_config: Option<PathBuf>,
     /// External versioned source-template registry, containing index.json.
     #[arg(long)]
     preset_dir: Option<PathBuf>,
     /// Register an explicit source module directory: --module-dir name=/absolute/path.
     #[arg(long)]
     module_dir: Vec<String>,
+    /// Serve a built Web frontend with direct conversation access for development.
+    #[arg(long)]
+    dev_web_dist: Option<PathBuf>,
+    #[arg(long, default_value = "127.0.0.1:5173", requires = "dev_web_dist")]
+    dev_web_listen: SocketAddr,
+    /// Explicit development origin required for a non-loopback Web listener.
+    #[arg(long, requires = "dev_web_dist")]
+    dev_web_origin: Option<String>,
 }
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "linux")]
@@ -115,16 +126,48 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 .await?;
         }
     }
+    if let Some(path) = args.evolution_config {
+        host = host.with_evolution(serde_json::from_slice(&tokio::fs::read(path).await?)?)?;
+    }
+    if host.prepare_session_titles().await.is_err() {
+        eprintln!("Nofy session title backfill could not complete");
+    }
     check_listen(args.listen, args.allow_non_loopback)?;
     let listener = tokio::net::TcpListener::bind(args.listen).await?;
+    let dev_web = match args.dev_web_dist {
+        Some(dist) => Some(
+            dev_web::bind(
+                &host,
+                &dist,
+                args.dev_web_listen,
+                args.dev_web_origin.as_deref(),
+            )
+            .await?,
+        ),
+        None => None,
+    };
     eprintln!("Nofy kernel listening on http://{}", listener.local_addr()?);
     let shutdown = CancellationToken::new();
     let server_stop = shutdown.clone();
     let server = axum::serve(listener, host.router())
         .with_graceful_shutdown(async move { server_stop.cancelled().await });
-    let worker = host.run_worker(shutdown.clone(), args.concurrency);
+    let worker = async {
+        let (result, ()) = tokio::join!(
+            host.run_worker(shutdown.clone(), args.concurrency),
+            host.run_session_titles(shutdown.clone()),
+        );
+        result
+    };
     tokio::pin!(worker);
-    let server = std::future::IntoFuture::into_future(server);
+    let server = async {
+        tokio::try_join!(std::future::IntoFuture::into_future(server), async {
+            match dev_web {
+                Some(web) => web.serve(shutdown.clone()).await,
+                None => Ok(()),
+            }
+        })?;
+        Ok::<_, std::io::Error>(())
+    };
     tokio::pin!(server);
     tokio::select! {
         result=&mut server=>{host.shutdown();shutdown.cancel();result?;worker.await?;}

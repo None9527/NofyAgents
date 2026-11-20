@@ -64,6 +64,7 @@ async fn accepted_human_decision_and_lost_final_action_ack_replay_without_repeat
     let store = SqliteStore::open(&database).unwrap();
     let supervisor = RunSupervisor::new(store.clone());
     let request = ManagedRunRequest {
+        approval_mode: None,
         run_id: "root".into(),
         thread_id: "thread".into(),
         system: "lost-human-ack".into(),
