@@ -2,6 +2,42 @@ use super::*;
 use crate::{auth::Authorizer, native};
 use nofy_agent_runtime::credentials::EnvironmentCredentials;
 
+#[cfg(unix)]
+#[tokio::test]
+async fn journal_reopens_from_the_resolved_state_directory() {
+    let dir = tempfile::tempdir().unwrap();
+    let parent = dir.path().join("parent");
+    let alias = dir.path().join("alias");
+    std::fs::create_dir(&parent).unwrap();
+    std::os::unix::fs::symlink(&parent, &alias).unwrap();
+    let credentials =
+        Arc::new(EnvironmentCredentials::new("evolution", "NOFY_EVOLUTION_TEST_").unwrap());
+    let registry = native::registry(credentials).unwrap();
+
+    let host = KernelHost::open(
+        &alias.join("state"),
+        registry.clone(),
+        Authorizer::development(),
+    )
+    .await
+    .unwrap();
+    let journal = &host.evolution.journal;
+    journal.initialize().unwrap();
+    journal
+        .save("proposal", "grant", None, "receipt".into())
+        .await
+        .unwrap();
+    drop(host);
+
+    let host = KernelHost::open(&parent.join("state"), registry, Authorizer::development())
+        .await
+        .unwrap();
+    assert_eq!(
+        host.evolution.journal.load("proposal").await.unwrap(),
+        Some((1, "grant".into(), "receipt".into()))
+    );
+}
+
 async fn publish(host: &KernelHost, version: &str) -> String {
     let reference = json!({"id":"sdk","version":version});
     let doc = serde_json::from_value(json!({

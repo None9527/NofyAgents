@@ -72,7 +72,21 @@ impl Worker {
             Default::default(),
             None,
         )
-        .map_err(|_| start_failed("prepare_confinement", None))?;
+        .map_err(|error| {
+            let mut details = json!({"stage": "prepare_confinement"});
+            if let nofy_isolation::Error::Refused(refusal) = error {
+                details["reason"] = json!(nofy_isolation::ERROR_CODE);
+                details["backend"] = json!(refusal.backend);
+                details["missing_capabilities"] = json!(
+                    refusal
+                        .shortfalls
+                        .iter()
+                        .map(|shortfall| shortfall.capability.name())
+                        .collect::<Vec<_>>()
+                );
+            }
+            Error::from(EvaluatorFailure::Startup.failure(details))
+        })?;
         // Owner: the returned worker handle holds `child` (kill_on_drop); a
         // failed handoff below kills and waits for it before returning.
         #[allow(clippy::disallowed_methods)]

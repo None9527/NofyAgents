@@ -27,15 +27,20 @@ impl Grant {
     fn validate(&self, private_root: &Path) -> Result<()> {
         use std::path::Component;
         if !self.path.is_absolute()
-            || self.path == Path::new("/")
+            || self.path.parent().is_none()
             || self
                 .path
                 .to_str()
                 .is_none_or(|s| s.len() > 4096 || s.chars().any(char::is_control))
-            || self
-                .path
-                .components()
-                .any(|part| !matches!(part, Component::RootDir | Component::Normal(_)))
+            || self.path.components().any(|part| match part {
+                Component::RootDir | Component::Normal(_) => false,
+                Component::Prefix(_) => self.path.to_str().is_none_or(|path| {
+                    nofy_host_path::Syntax::Windows
+                        .check_normalized_absolute(path, 4096)
+                        .is_err()
+                }),
+                _ => true,
+            })
             || self.path.starts_with(private_root)
             || private_root.starts_with(&self.path)
             || ["/proc", "/sys", "/dev", "/run"]

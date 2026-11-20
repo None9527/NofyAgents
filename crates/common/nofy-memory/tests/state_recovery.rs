@@ -249,6 +249,7 @@ fn sqlite_busy_is_bounded_and_never_partially_enqueues() {
     let layout = UnifiedMemoryLayout::new(temp.path());
     let scope = layout.personal_scope();
     let state = UnifiedState::open(layout.meta_database(), scope.state_database()).unwrap();
+    let busy_timeout = state.meta_settings().unwrap().busy_timeout_ms;
     let blocker = Connection::open(layout.meta_database()).unwrap();
     blocker.busy_timeout(std::time::Duration::ZERO).unwrap();
     blocker.execute_batch("BEGIN EXCLUSIVE").unwrap();
@@ -257,6 +258,8 @@ fn sqlite_busy_is_bounded_and_never_partially_enqueues() {
     assert!(state.enqueue_capture_job("blocked-job", "{}", 1).is_err());
     assert!(started.elapsed() < std::time::Duration::from_secs(7));
     blocker.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(state.meta_settings().unwrap().busy_timeout_ms, busy_timeout);
+    state.enqueue_capture_job("ready-job", "{}", 2).unwrap();
 
     let verifier = Connection::open(layout.meta_database()).unwrap();
     let count: i64 = verifier
@@ -267,4 +270,12 @@ fn sqlite_busy_is_bounded_and_never_partially_enqueues() {
         )
         .unwrap();
     assert_eq!(count, 0);
+    assert_eq!(
+        state
+            .claim_capture_job("worker", 2, 10)
+            .unwrap()
+            .unwrap()
+            .job_id,
+        "ready-job"
+    );
 }

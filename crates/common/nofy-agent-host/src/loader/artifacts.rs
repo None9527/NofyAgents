@@ -132,9 +132,14 @@ impl ArtifactStore {
             }
         }
         let target = storage::directory(&target)?;
+        let files: std::collections::BTreeMap<_, _> = bundle
+            .files
+            .iter()
+            .map(|(name, text)| (Path::new(name), text))
+            .collect();
         let mut directories = std::collections::BTreeSet::new();
-        for name in bundle.files.keys() {
-            let mut parent = Path::new(name).parent();
+        for name in files.keys() {
+            let mut parent = name.parent();
             while let Some(path) = parent.filter(|p| !p.as_os_str().is_empty()) {
                 directories.insert(path.to_owned());
                 parent = path.parent();
@@ -158,12 +163,8 @@ impl ArtifactStore {
                     pending.push(path);
                     continue;
                 }
-                let relative = path
-                    .strip_prefix(&target)
-                    .map_err(storage::unavailable)?
-                    .to_str()
-                    .ok_or_else(|| HostError::Unavailable("non-UTF8 artifact path".into()))?;
-                let text = bundle.files.get(relative).ok_or_else(|| {
+                let relative = path.strip_prefix(&target).map_err(storage::unavailable)?;
+                let text = files.get(relative).ok_or_else(|| {
                     HostError::Unavailable("unexpected artifact cache entry".into())
                 })?;
                 if storage::read(&path, 1024 * 1024)? != text.as_bytes() {

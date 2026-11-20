@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use nofy_sqlite_journal::JournalMode;
 use rusqlite::{Connection, OptionalExtension, params};
@@ -104,12 +105,34 @@ impl UnifiedState {
         payload: &str,
         now: i64,
     ) -> Result<(), StateError> {
-        self.meta.execute(
-            "INSERT OR IGNORE INTO capture_jobs
-             (id, payload, state, generation, created_at, updated_at)
-             VALUES (?1, ?2, 'queued', 0, ?3, ?3)",
-            params![job_id, payload, now],
-        )?;
+        let timeout = Duration::from_millis(self.meta.pragma_query_value(
+            None,
+            "busy_timeout",
+            |row| row.get(0),
+        )?);
+        // SQLite may start a new busy wait at another lock in the same statement.
+        // Share one deadline across all attempts of this atomic insert.
+        self.meta.busy_timeout(Duration::ZERO)?;
+        let start = Instant::now();
+        let inserted = loop {
+            let result = self.meta.execute(
+                "INSERT OR IGNORE INTO capture_jobs
+                 (id, payload, state, generation, created_at, updated_at)
+                 VALUES (?1, ?2, 'queued', 0, ?3, ?3)",
+                params![job_id, payload, now],
+            );
+            let remaining = timeout.saturating_sub(start.elapsed());
+            let busy = result.as_ref().is_err_and(|error| {
+                error.sqlite_error_code() == Some(rusqlite::ErrorCode::DatabaseBusy)
+            });
+            if !busy || remaining.is_zero() {
+                break result;
+            }
+            std::thread::sleep(remaining.min(Duration::from_millis(20)));
+        };
+        let restored = self.meta.busy_timeout(timeout);
+        inserted?;
+        restored?;
         Ok(())
     }
 

@@ -136,10 +136,7 @@ async fn run_bounded(
     command
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_CONFIG_NOSYSTEM", "1")
-        .env(
-            "GIT_CONFIG_GLOBAL",
-            if cfg!(windows) { "NUL" } else { "/dev/null" },
-        )
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
         .env(
             "GIT_ASKPASS",
             if cfg!(windows) { "echo" } else { "/bin/false" },
@@ -193,8 +190,13 @@ async fn run_bounded(
             read_output(stderr, "stderr bytes per command", MAX_COMMAND_STDERR),
         )?;
         if !status.success() {
+            let stage = match args {
+                [option, _, verb, ..] if option == "--git-dir" => verb.as_str(),
+                [verb, ..] => verb.as_str(),
+                [] => "command",
+            };
             return Err(HostError::Unavailable(format!(
-                "Git module acquisition failed (exit {:?}); inspect the configured source and reference",
+                "Git module acquisition failed during {stage} (exit {:?}); inspect the configured source and reference",
                 status.code()
             )));
         }

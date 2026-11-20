@@ -196,9 +196,10 @@ impl Control {
         Ok(())
     }
     fn preflight_directory(&self, directory: &Path) -> Result<()> {
-        let mut current = PathBuf::new();
-        for component in directory.components() {
-            current.push(component.as_os_str());
+        // Walk complete rooted paths, including the root, rather than probing
+        // a Windows volume prefix before adding its root separator.
+        let ancestors: Vec<_> = directory.ancestors().collect();
+        for current in ancestors.into_iter().rev() {
             match current.symlink_metadata() {
                 Ok(meta) if !meta.is_dir() || meta.file_type().is_symlink() => {
                     return Err(invalid(

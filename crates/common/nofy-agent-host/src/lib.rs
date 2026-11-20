@@ -86,7 +86,6 @@ impl KernelHost {
         let directory = directory.to_path_buf();
         let project_directory = directory.join("projects");
         let module_directory = directory.join("module-repositories");
-        let evolution_path = directory.join("omni-evolution.sqlite");
         let (catalog, store, loader, runtime_history, state_guard) =
             tokio::task::spawn_blocking(move || -> Result<_> {
                 // The state directory holds credentials, releases and run history.
@@ -137,7 +136,10 @@ impl KernelHost {
             background: Default::default(),
         });
         registry.register_factory(Arc::new(work::Factory(Arc::downgrade(&work))))?;
-        let evolution = evolution::Evolution::new(store.clone(), evolution_path);
+        let evolution = evolution::Evolution::new(
+            store.clone(),
+            loader.private_root.join("omni-evolution.sqlite"),
+        );
         registry.register_factory(Arc::new(evolution::ProposalFactory(evolution.clone())))?;
         let feature_authoring = Arc::new(feature_authoring::Authoring::default());
         registry.register_factory(Arc::new(feature_authoring::Factory(Arc::downgrade(
