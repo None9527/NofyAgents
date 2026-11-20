@@ -1,5 +1,74 @@
 use super::*;
 #[tokio::test]
+async fn rejected_workflow_entry_is_failed_work() {
+    let dir = tempfile::tempdir().unwrap();
+    let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let server = serve(host.router()).await;
+    let stop = CancellationToken::new();
+    let worker_stop = stop.clone();
+    let worker_host = host.clone();
+    let worker = tokio::spawn(async move { worker_host.run_worker(worker_stop, 1).await.unwrap() });
+    let source = json!({"schema_version":1,"name":"workflow-admission","modules":[
+        {"reference":{"id":"scope","version":"1"},"factory":"policy.tool_scope","config":{"allowed":["other"]}},
+        {"reference":{"id":"local","version":"1"},"factory":"resource.http","config":{"base_url":"http://127.0.0.1:9/","methods":["POST"]}},
+        {"reference":{"id":"tool","version":"1"},"factory":"tool.http_connected","config":{"contract":{"name":"ordinary"},"path":"effect","method":"POST"},
+            "dependencies":{"connection":{"id":"local","version":"1"}}}],
+        "required_policies":[{"id":"scope","version":"1"}],"programs":{
+            "flow":{"kind":"workflow","input":{},"document":{"host":{"name":"scope-workflow"},
+                 "entry":{"id":"entry","version":"1"},"workflows":[{"reference":{"id":"entry","version":"1"},
+                 "input_schema":true,"output_schema":true,"nodes":[{"id":"one","action":{"kind":"transform"},"input":{"from":"literal","value":"allowed"}}],
+                 "output":{"from":"node","node":"one"}}]}},
+            "tool":{"kind":"tool","definition":{"name":"scope-tool","tool_packs":[{"id":"tool","version":"1"}]},
+                "call":{"id":"ordinary-call","name":"ordinary","arguments":{}}}}});
+    for (run, program, permitted) in [
+        ("workflow-denied", "flow", false),
+        ("tool-denied", "tool", false),
+        ("workflow-permitted", "flow", true),
+    ] {
+        let mut source = source.clone();
+        if permitted {
+            source["modules"][0]["config"]["allowed"] = json!(["workflow_execute"]);
+        }
+        let release = post(&server, "/api/v1/import", source).await["bundle"]["digest"].clone();
+        post(
+            &server,
+            "/api/v1/runs",
+            json!({"run_id":run,"thread_id":run,"system":"workflow-admission",
+            "release":release,"program":program}),
+        )
+        .await;
+        let finished = outcome(&server, run).await;
+        let work = post(
+            &server,
+            "/api/v1/work/inspect",
+            json!({"work_id":run,"include_result":true}),
+        )
+        .await;
+        assert_eq!(
+            work["status"],
+            if program == "flow" && !permitted {
+                "failed"
+            } else {
+                "completed"
+            },
+            "{finished}"
+        );
+        assert_eq!(work["status"], finished["execution"]["status"]);
+        if program == "tool" {
+            assert_eq!(
+                result(&finished)["error"],
+                "tool outside configured scope: ordinary"
+            );
+        }
+        if permitted {
+            assert_eq!(work["result"]["value"], "allowed");
+        }
+    }
+    stop.cancel();
+    worker.await.unwrap();
+}
+
+#[tokio::test]
 async fn inline_workflow_resources_require_resource_scope_before_any_publication_or_draft_write() {
     let dir = tempfile::tempdir().unwrap();
     let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;

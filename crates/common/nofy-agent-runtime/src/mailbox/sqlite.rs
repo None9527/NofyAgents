@@ -159,47 +159,53 @@ impl MailboxSender for SqliteStore {
     }
     async fn cancel(&self, address: &InputAddress, command_id: &str) -> Result<u64, Error> {
         let address = address.clone();
-        let key = address.key()?;
         let command_id = command_id.to_string();
-        if command_id.trim().is_empty() || command_id.len() > 256 {
-            return Err(Error::Composition("cancel ID must be 1..=256 bytes".into()));
-        }
-        self.transaction(move |tx| {
-            recipient(tx, &address, false, false)?;
-            let old = tx
-                .query_row(
-                    "SELECT sequence FROM agent_runtime_cancel WHERE address=?1 AND command_id=?2",
-                    params![key, command_id],
-                    |row| row.get(0),
-                )
-                .optional()
-                .map_err(db_error)?;
-            if let Some(old) = old {
-                return Ok(old);
-            }
-            let (_, status) = recipient(tx, &address, true, false)?;
-            if terminal(&status) {
-                return Err(Error::Checkpoint("cannot cancel a completed run".into()));
-            }
-            let total: u64 = tx
-                .query_row(
-                    "SELECT COUNT(*) FROM agent_runtime_cancel WHERE address=?1",
-                    [&key],
-                    |row| row.get(0),
-                )
-                .map_err(db_error)?;
-            if total >= 8192 {
-                return Err(Error::Checkpoint("cancel journal capacity exceeded".into()));
-            }
-            tx.execute(
-                "INSERT INTO agent_runtime_cancel(address,command_id) VALUES(?1,?2)",
-                params![key, command_id],
-            )
-            .map_err(db_error)?;
-            u64::try_from(tx.last_insert_rowid()).map_err(db_error)
-        })
-        .await
+        self.transaction(move |tx| cancel_in_transaction(tx, &address, &command_id))
+            .await
     }
+}
+
+pub(crate) fn cancel_in_transaction(
+    tx: &Transaction<'_>,
+    address: &InputAddress,
+    command_id: &str,
+) -> Result<u64, Error> {
+    let key = address.key()?;
+    if command_id.trim().is_empty() || command_id.len() > 256 {
+        return Err(Error::Composition("cancel ID must be 1..=256 bytes".into()));
+    }
+    recipient(tx, address, false, false)?;
+    let old = tx
+        .query_row(
+            "SELECT sequence FROM agent_runtime_cancel WHERE address=?1 AND command_id=?2",
+            params![key, command_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(db_error)?;
+    if let Some(old) = old {
+        return Ok(old);
+    }
+    let (_, status) = recipient(tx, address, true, false)?;
+    if terminal(&status) {
+        return Err(Error::Checkpoint("cannot cancel a completed run".into()));
+    }
+    let total: u64 = tx
+        .query_row(
+            "SELECT COUNT(*) FROM agent_runtime_cancel WHERE address=?1",
+            [&key],
+            |row| row.get(0),
+        )
+        .map_err(db_error)?;
+    if total >= 8192 {
+        return Err(Error::Checkpoint("cancel journal capacity exceeded".into()));
+    }
+    tx.execute(
+        "INSERT INTO agent_runtime_cancel(address,command_id) VALUES(?1,?2)",
+        params![key, command_id],
+    )
+    .map_err(db_error)?;
+    u64::try_from(tx.last_insert_rowid()).map_err(db_error)
 }
 
 #[async_trait::async_trait]

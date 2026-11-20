@@ -147,6 +147,8 @@ pub enum ModelChunk {
 }
 pub type ModelStream = BoxStream<'static, Result<ModelChunk, Error>>;
 
+pub const MODEL_EVALUATOR_FAILURE_CATEGORY: &str = "model_evaluator";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelFailure {
     pub category: String,

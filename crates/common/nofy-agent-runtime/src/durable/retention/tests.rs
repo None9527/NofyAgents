@@ -423,3 +423,124 @@ async fn cancelled_waiters_do_not_scan_and_started_reads_retain_their_admission(
     assert!(matches!(result,Err(error) if error.is_cancelled()));
     assert_eq!(permits, 1);
 }
+
+#[tokio::test]
+async fn session_titles_are_metadata_preserved_by_snapshot_copy_and_reopen() {
+    use crate::durable::transport::{copy_snapshot, inspect_snapshot};
+
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("source.sqlite");
+    let target = dir.path().join("target.sqlite");
+    let store = SqliteStore::open(&source).unwrap();
+    let (_, program, calls) = program();
+    RunSupervisor::new(store.clone())
+        .submit_program(ProgramSubmission::for_program(&program, "thread", "run", None).unwrap())
+        .await
+        .unwrap();
+    let before = inventory(&store).await.unwrap();
+    assert_eq!(before.value, vec!["job"]);
+    let snapshot_before = inspect_snapshot(&source).unwrap();
+    store
+        .transaction(|tx| {
+            tx.execute(
+                "INSERT INTO agent_runtime_session_titles(session_id,run_id,title,pending) VALUES(?1,?2,?3,?4)",
+                rusqlite::params!["session", "run", "Summarize project notes", 1],
+            )
+            .map_err(db_error)?;
+            Ok(())
+        })
+        .await
+        .unwrap();
+
+    let after = inventory(&store).await.unwrap();
+    assert_eq!(after.value, before.value);
+    assert_eq!(
+        serde_json::to_value(&after.coverage).unwrap(),
+        serde_json::to_value(&before.coverage).unwrap()
+    );
+    let snapshot = inspect_snapshot(&source).unwrap();
+    assert_ne!(snapshot.fingerprint, snapshot_before.fingerprint);
+    assert_eq!(
+        copy_snapshot(&source, &target, &snapshot).unwrap(),
+        snapshot
+    );
+    let copied = inspect_snapshot_modules(&target, (), |_, _, _| Ok(())).unwrap();
+    assert_eq!(copied.coverage.fingerprint, before.coverage.fingerprint);
+
+    let reopened = SqliteStore::open(&target).unwrap();
+    let title: (String, String, i64) = reopened
+        .transaction(|tx| {
+            tx.query_row(
+                "SELECT run_id,title,pending FROM agent_runtime_session_titles WHERE session_id=?1",
+                ["session"],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .map_err(db_error)
+        })
+        .await
+        .unwrap();
+    assert_eq!(title, ("run".into(), "Summarize project notes".into(), 1));
+    let retained = inventory(&reopened).await.unwrap();
+    assert_eq!(retained.value, before.value);
+    assert_eq!(retained.coverage.fingerprint, before.coverage.fingerprint);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    // Recognizing display metadata must not allow an unknown configuration table.
+    reopened
+        .transaction(|tx| {
+            tx.execute_batch("CREATE TABLE agent_runtime_future_config(payload TEXT)")
+                .map_err(db_error)?;
+            Ok(())
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        inventory(&reopened).await,
+        Err(Error::Checkpoint(message)) if message == "unrecognized retained runtime table"
+    ));
+    assert!(matches!(
+        inspect_snapshot_modules(&target, (), |_, _, _| Ok(())),
+        Err(Error::Checkpoint(message)) if message == "unrecognized retained runtime table"
+    ));
+}
+
+#[tokio::test]
+async fn snapshots_without_session_titles_are_read_without_migration_and_reopen_additively() {
+    use crate::durable::transport::inspect_snapshot;
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("historical.sqlite");
+    // Simulate a version-one snapshot made before the additive metadata table.
+    drop(SqliteStore::open(&path).unwrap());
+    {
+        let db = Connection::open(&path).unwrap();
+        db.execute_batch("DROP TABLE agent_runtime_session_titles")
+            .unwrap();
+    }
+    let before = inspect_snapshot(&path).unwrap();
+    let historical = inspect_snapshot_modules(&path, 0, |count, _, modules| {
+        *count += modules.len();
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(historical.value, 0);
+    assert_eq!(inspect_snapshot(&path).unwrap(), before);
+
+    let reopened = SqliteStore::open(&path).unwrap();
+    let count: i64 = reopened
+        .transaction(|tx| {
+            tx.query_row(
+                "SELECT COUNT(*) FROM agent_runtime_session_titles",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(db_error)
+        })
+        .await
+        .unwrap();
+    assert_eq!(count, 0);
+    assert_eq!(
+        inventory(&reopened).await.unwrap().coverage.fingerprint,
+        historical.coverage.fingerprint
+    );
+}

@@ -5,10 +5,13 @@ use crate::program::{CompiledProgram, ExecutionPlan, RunSnapshot};
 mod child_retry;
 mod control;
 mod execution;
+mod permission_mode;
 mod scoped_approvals;
 mod storage;
+mod work;
 pub use control::{ChildCancelResumeCommand, RunControlCommand};
 pub use scoped_approvals::{ApprovalGrant, ApprovalScope};
+pub use work::*;
 #[cfg(feature = "workflow")]
 mod control_tree;
 mod durable_events;
@@ -36,6 +39,8 @@ pub struct RunRecord<S = CompilationSnapshot> {
     pub status: String,
     pub outcome: Option<RunOutcome>,
     pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_failure: Option<crate::model::ModelFailure>,
 }
 pub type ExecutionRecord = RunRecord<RunSnapshot>;
 
@@ -189,6 +194,14 @@ pub struct ApprovalRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingApproval {
+    #[serde(flatten)]
+    pub request: ApprovalRequest,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub can_allow_for_session: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChildReconciliation {
     pub child_run_id: String,
     /// Exact child model operation. Legacy callers may omit it only when unambiguous.
@@ -281,6 +294,85 @@ impl crate::events::EventSink for DurableEventSink {
 pub struct DurableApprovalPolicy {
     store: SqliteStore,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalMode {
+    #[serde(rename = "ask", alias = "build")]
+    Build,
+    #[serde(rename = "auto", alias = "guarded")]
+    Guarded,
+    #[serde(rename = "full_access", alias = "yolo")]
+    Yolo,
+}
+
+pub(crate) struct TurnApprovalPolicy {
+    pub store: SqliteStore,
+    pub mode: ApprovalMode,
+}
+
+pub(crate) struct ToolApprovalState {
+    pub composition: String,
+    pub approved: std::sync::atomic::AtomicBool,
+    pub session_control: bool,
+    pub effect: nofy_tool_runtime::dispatch::ApprovalEffect,
+}
+
+#[async_trait::async_trait]
+impl Policy for TurnApprovalPolicy {
+    async fn admit(
+        &self,
+        call: &ToolCall,
+        state: &RunState,
+        context: &RunContext,
+    ) -> Result<Admission, Error> {
+        let approval = context
+            .capabilities
+            .get::<ToolApprovalState>()
+            .ok_or_else(|| {
+                Error::Composition("turn approval requires the current tool policy state".into())
+            })?;
+        if approval.session_control || approval.approved.load(std::sync::atomic::Ordering::Relaxed)
+        {
+            return Ok(Admission::Allow);
+        }
+        let policy = DurableApprovalPolicy::new(self.store.clone());
+        use nofy_tool_runtime::dispatch::ApprovalEffect;
+        match self.mode {
+            ApprovalMode::Yolo => Ok(Admission::Allow),
+            ApprovalMode::Guarded => {
+                if permission_mode::guarded_command(call)? {
+                    policy.admit(call, state, context).await
+                } else {
+                    Ok(Admission::Allow)
+                }
+            }
+            ApprovalMode::Build
+                if matches!(
+                    approval.effect,
+                    ApprovalEffect::ReadOnly | ApprovalEffect::SessionControl
+                ) =>
+            {
+                Ok(Admission::Allow)
+            }
+            ApprovalMode::Build => {
+                let mut context = context.clone();
+                context
+                    .capabilities
+                    .insert(crate::policy::rules::RuleApprovalHint {
+                        policy_id: crate::system::digest_bytes(b"nofy.turn.ask.v1"),
+                        rule_key: crate::system::digest(&(
+                            &approval.composition,
+                            &call.name,
+                            &call.arguments,
+                        ))?,
+                        summary: serde_json::json!({"tool":call.name}),
+                    });
+                policy.admit(call, state, &context).await
+            }
+        }
+    }
+}
 impl DurableApprovalPolicy {
     pub fn new(store: SqliteStore) -> Self {
         Self { store }
@@ -326,7 +418,14 @@ impl Policy for DurableApprovalPolicy {
             )
         };
         Ok(match decision {
-            Some(true) => Admission::Allow,
+            Some(true) => {
+                if let Some(approval) = context.capabilities.get::<ToolApprovalState>() {
+                    approval
+                        .approved
+                        .store(true, std::sync::atomic::Ordering::Relaxed);
+                }
+                Admission::Allow
+            }
             Some(false) => Admission::Deny("denied by recorded approval decision".into()),
             None => Admission::Pause(
                 serde_json::json!({"kind":"approval","request":request,"scope_offer":offer}),

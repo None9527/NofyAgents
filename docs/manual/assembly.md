@@ -69,3 +69,11 @@ describe 默认返回精简目录，按 schema(factory/operation) 获取选中�
 run.inspect 默认 view=status，返回 nofy.run-status/v1：原任务身份、实际执行状态、精确 live revision、子状态计数与输出预览。预览提供 bytes/truncated，不冒充完整输出；不重复传输实现快照和历史。需要完整检查点、children 或原始 outcome 时显式用 view=full。CLI 的 nofy run inspect --view full 与 MCP 使用同一选择。
 
 新增工具不会自动修改 required_policies。coding 预设的 policy.tool_scope 明确列出可调用名称；加入 ask_user、agent_tasks 等工具时，同步配置其允许名单，子 Agent 继续继承根策略。遇到审批暂停，按 run.approvals → run.decide → run.control resume 处理原请求；这不增加目录或网络资源。Human 问题使用 run.recovery(kind=human) 返回的 command 模板和 response_schema，详见[问询与升级](human-and-escalation.md)。
+
+## 主 Agent 源码预设
+
+`main-agent@0.1.0` 提供已经接线的主 Agent、异步子任务、运行树消息与持久 Human 工作流。初始模型槽刻意为空，按 [预设使用说明](../../presets/main-agent/README.md) 显式配置模型及业务工具；子任务继续继承根策略与共享预算。此项为 P5a 装配切片，不代表原生隔离、完整 RSI 或长期记忆装配已经完成。
+
+## 可复用主 Agent 仓库与动态装配
+
+`main-agent@0.2.0` 位于 `presets/main-agent-composable`，使用 `modules/module-repository.json` 中的版本化组件和嵌入的源码摘要锁。它增加受限的 `assemble`：模型提交真实 Agent/Workflow 声明，由原内核编译执行，只能引用预先绑定的模型与工具。源码注册、原生工厂注册、执行权限三者分离。详见[仓库与能力契约](main-agent-repository.md)和[独立交付包](main-agent-distribution.md)。长期跨调用后台任务、动态 Human 恢复、自动组件发布和 RSI 不在此项验收范围内。

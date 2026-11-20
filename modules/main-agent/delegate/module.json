@@ -1,0 +1,89 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "main-agent-delegate",
+  "version": "0.1.0",
+  "description": "A bounded existing skill child with an explicit additional child allow-list.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "child_allowed_tools": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 128,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "default": [
+          "agent_messages"
+        ],
+        "description": "Additional child restriction, intersected with the root floor. Nonempty by design; the underlying skill API treats an empty list as unrestricted."
+      },
+      "child_max_steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4096,
+        "default": 16
+      },
+      "model_settings": {
+        "type": "object",
+        "default": {}
+      }
+    }
+  },
+  "inputs": {
+    "model": "model",
+    "tools": "tool_pack"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "delegate"
+      },
+      "factory": "tool.skills",
+      "config": {
+        "skill_tool_name": "task",
+        "skills": [
+          {
+            "name": "delegate",
+            "description": "Complete one bounded subtask and return verified results or blockers.",
+            "path": "/definitions/main-agent/delegate.json",
+            "scope": "delegate",
+            "body": {
+              "$file": "child.md"
+            },
+            "allowed_tools": {
+              "$parameter": "/child_allowed_tools"
+            }
+          }
+        ],
+        "execution": {
+          "default_model": "model",
+          "tool_packs": [
+            "tools"
+          ],
+          "max_steps": {
+            "$parameter": "/child_max_steps"
+          },
+          "model_settings": {
+            "$parameter": "/model_settings"
+          }
+        }
+      },
+      "dependencies": {
+        "model": {
+          "$input": "model"
+        },
+        "tools": {
+          "$input": "tools"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "tools": "delegate"
+  }
+}

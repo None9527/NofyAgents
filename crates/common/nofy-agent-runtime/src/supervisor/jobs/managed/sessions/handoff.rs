@@ -26,6 +26,8 @@ impl SessionTurnInput {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionTurnCommand {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_mode: Option<ApprovalMode>,
     pub command_id: String,
     pub source_run_id: String,
     pub expected_source_revision: u64,
@@ -226,6 +228,9 @@ impl RunSupervisor {
                     insert(tx,Saved{submission,source:None},now)?;
                 }
                 SessionTurnInput::Queued {submission_digest,..} => {
+                    if command.approval_mode.is_some() {
+                        return Err(Error::Composition("an adopted turn retains its original approval mode".into()));
+                    }
                     let (_,digest,_,state)=load(tx,&run)?.ok_or_else(||Error::Checkpoint("queued session turn missing".into()))?;
                     if *submission_digest!=digest || state!="queued" {
                         return Err(Error::Checkpoint("queued session input changed or already started".into()));
@@ -241,7 +246,7 @@ impl RunSupervisor {
                 if count>=10000 {return Err(Error::Checkpoint("managed run capacity exceeded".into()));}
                 let request=ManagedRunRequest {run_id:run.clone(),thread_id:binding.session.thread_id.clone(),
                     system:binding.session.system.clone(),release:binding.session.release.clone(),program:binding.session.program.clone(),
-                    input:saved.submission.input,parameters:None};
+                    input:saved.submission.input,parameters:None,approval_mode:command.approval_mode};
                 tx.execute("INSERT INTO agent_runtime_managed_runs(run_id,digest,payload) VALUES(?1,?2,?3)",params![run,request_digest(&request)?,serde_json::to_string(&request).map_err(db_error)?]).map_err(db_error)?;
             }
             let accepted=SessionTurnAdmission {protocol:"nofy.session.turn/v1".into(),session_id,revision:command.expected_binding_revision+1,command,submission_digest:job_hash};

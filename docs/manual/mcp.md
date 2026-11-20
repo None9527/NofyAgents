@@ -8,11 +8,20 @@ Codex 等外部 Agent 通过标准 MCP 操作内核中的源码工程、模块�
 
 完整工具及参数入口见 [operations.json](operations.json) 和 [contracts.schema.json](contracts.schema.json)。普通开发操作在 CLI 与 MCP 中一一对应；密钥正文注入保留为独立的私有本地入口，不向模型提供读取密钥值的工具。
 
-MCP `tools/list` 返回明确的 name、description、inputSchema、结果对象 Schema 及可用注解；工具目录固定公开 96 项已实现适配操作；describe 读取实际内核工厂、权限和 Session 能力，调用时以内核授权为准。每个调用仍由内核重新检查权限。操作目录中的权限提示和工具注解不代替授权。
+MCP、CLI 和 SDK `Engine` 默认使用 `run` 工具集，共 21 项会话和运行操作，含 `work.*` 的发现、启动、查询、等待和控制。`tools/list`、`tools/call`、`nofy_describe` 和操作 Schema 查询使用同一份可见目录。每次操作的权限由 Host 检查。
 
-每个工具的 description 以该操作自己的一句话摘要开头（操作目录的 `summary`，97 条互不相同），其后是统一的读取说明；输入模式的每个字段都带 description。注解由目录推导而不是手写：`readOnlyHint` 对应只需 read 作用域的操作；`idempotentHint` 对只读操作以及带 `command_id` 的写操作为真，因为内核按 `command_id` 重放已记录的结果而不是再执行一次；其余写操作的 `destructiveHint` 保守地为真。测试对照操作目录校验这些注解。调用未知工具时，错误信息和 `data.suggestions` 给出最接近的工具名。
+| 工具集 | 可用范围 |
+|---|---|
+| `run` | 启动和续接会话、查看运行、审批、控制、取消及恢复 |
+| `development` | 包含运行工具，以及源码工程、模块装配、构建、发布候选和计划 |
+| `operations` | 包含运行工具，以及激活、回滚、资源、权限、预算和仓库管理 |
+| `full` | 完整目录，MCP 共 102 项。凭据写入和删除通过 CLI 或 SDK 私有入口提供 |
 
-机器目录中的 Schema 文件引用用于维护契约；实际 tools/list 会内联工具需要的本地 `$defs`，不会要求客户端读取服务端文件路径。客户端可配置工具允许列表来控制暴露范围，完整目录仍可通过 describe/schema 查询。
+CLI 用 `--toolset development`、`--toolset operations` 或 `--toolset full` 选择目录。MCP 启动参数同样使用 `--toolset`，对整个连接生效。SDK 可用 `engine.with_operation_view(Toolset::Development.sdk())` 选择相同视图。Omni 的 Host 原生编排工具由声明挂载，查询操作契约时使用同一份开发视图。
+
+工具描述以操作目录的 `summary` 开头，输入字段带有说明。只读注解对应 Read 作用域。支持精确重放的写操作可用原 `command_id` 获取已登记回执。调用未知工具会返回接近的名称。
+
+实际 `tools/list` 会内联当前工具所需的 `$defs`。`nofy://schemas/operations` 也返回当前工具集。完整契约 Schema 资源由 `full` 提供，项目源码和归档资源随对应操作暴露。
 
 ## 启动 stdio Server
 

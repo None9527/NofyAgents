@@ -80,6 +80,7 @@ pub(super) fn inspect(path: &Path, root: &Path, meta: bool) -> TransportResult<S
             "metadata",
             "capture_jobs",
             "capture_outcomes",
+            "nofy_memory_remember_calls_v1",
             "nofy_service_undo_v1",
         ]
     } else {

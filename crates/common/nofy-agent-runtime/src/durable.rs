@@ -37,7 +37,10 @@ pub struct SqliteStore {
     pub(crate) clock: Arc<dyn Clock>,
     retention_work: Arc<tokio::sync::Semaphore>,
     admission: Option<Arc<dyn crate::admission::CommitAdmission>>,
+    observer: Arc<observe::Observer>,
 }
+mod observe;
+pub use observe::RuntimeChanges;
 struct PlacedConnection {
     db: Connection,
     path: PathBuf,
@@ -187,6 +190,8 @@ impl SqliteStore {
             CREATE TABLE IF NOT EXISTS agent_runtime_session_commands(command_id TEXT PRIMARY KEY,session_id TEXT NOT NULL,run_id TEXT NOT NULL,revision INTEGER NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL,UNIQUE(run_id,revision));
             CREATE TABLE IF NOT EXISTS agent_runtime_session_seeds(run_id TEXT PRIMARY KEY,command_id TEXT NOT NULL UNIQUE,digest TEXT NOT NULL,payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS agent_runtime_session_profiles(session_id TEXT PRIMARY KEY,digest TEXT NOT NULL,payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS agent_runtime_session_titles(session_id TEXT PRIMARY KEY,run_id TEXT NOT NULL,title TEXT NOT NULL,pending INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS agent_runtime_session_titles_pending ON agent_runtime_session_titles(session_id) WHERE pending=1;
             CREATE TABLE IF NOT EXISTS agent_runtime_session_admissions(run_id TEXT PRIMARY KEY,session_id TEXT NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS agent_runtime_session_ops(command_id TEXT PRIMARY KEY,session_id TEXT NOT NULL,digest TEXT NOT NULL,payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS agent_runtime_session_branches(session_id TEXT PRIMARY KEY,parent_session_id TEXT NOT NULL,command_id TEXT NOT NULL UNIQUE,digest TEXT NOT NULL,payload TEXT NOT NULL);
@@ -195,6 +200,8 @@ impl SqliteStore {
             CREATE INDEX IF NOT EXISTS agent_runtime_session_branch_parent ON agent_runtime_session_branches(parent_session_id,session_id);
             CREATE TABLE IF NOT EXISTS agent_runtime_retained_owners(version INTEGER NOT NULL DEFAULT 1,kind TEXT NOT NULL,key TEXT NOT NULL,root_id TEXT NOT NULL,composition_digest TEXT NOT NULL,PRIMARY KEY(kind,key));")
             .map_err(db_error)?;
+            tx.execute_batch(include_str!("supervisor/work/schema.sql"))
+                .map_err(db_error)?;
             let versions = tx
                 .prepare("SELECT version FROM agent_runtime_schema")
                 .map_err(db_error)?
@@ -210,6 +217,19 @@ impl SqliteStore {
                     "unsupported runtime database schema".into(),
                 ));
             }
+            // Older runtimes recorded execution failures as waiting queue heads.
+            // Confirm the original submission and leave its recovery state intact.
+            tx.execute(
+                "UPDATE agent_runtime_jobs AS j SET status='failed'
+                 WHERE j.status='waiting' AND EXISTS (
+                   SELECT 1 FROM agent_runtime_runs r
+                   WHERE r.id=j.run_id AND r.thread_key=j.thread_key
+                     AND json_extract(r.payload,'$.submission')=j.digest
+                     AND json_extract(r.payload,'$.status')='failed'
+                 )",
+                [],
+            )
+            .map_err(db_error)?;
             crate::admission::marker::check(&effective, admission.as_deref())?;
             if let Some(policy) = &admission {
                 retention::commit::initialize(&tx)?;
@@ -249,6 +269,8 @@ impl SqliteStore {
         let schema = connection
             .pragma_query_value(None, "schema_version", |r| r.get(0))
             .map_err(db_error)?;
+        let observer = Arc::new(observe::Observer::new());
+        observer.attach(&connection);
         Ok(Self {
             connection: Arc::new(Mutex::new(PlacedConnection {
                 db: connection,
@@ -257,6 +279,7 @@ impl SqliteStore {
                 schema,
             })),
             path: anchor,
+            observer,
             identity,
             placement,
             clock,
@@ -350,6 +373,7 @@ impl SqliteStore {
                 let schema = db
                     .pragma_query_value(None, "schema_version", |r| r.get(0))
                     .map_err(db_error)?;
+                store.observer.attach(&db);
                 *placed = PlacedConnection {
                     db,
                     path: location.path.clone(),
@@ -362,6 +386,7 @@ impl SqliteStore {
                 .pragma_update(None, "query_only", !location.writable)
                 .map_err(db_error)?;
             let known_schema = placed.schema;
+            store.observer.clear();
             let tx = placed
                 .db
                 .transaction_with_behavior(if location.writable {
@@ -421,10 +446,15 @@ impl SqliteStore {
             )?;
             tx.commit().map_err(db_error)?;
             placed.schema = schema;
+            store.observer.committed();
             Ok(result)
         })
         .await
         .map_err(db_error)?
+    }
+    /// Changes committed through this resident store and its clones.
+    pub fn observe(&self) -> tokio::sync::watch::Receiver<RuntimeChanges> {
+        self.observer.subscribe()
     }
     pub async fn acquire(
         &self,

@@ -53,6 +53,7 @@ pub fn registry(credentials: Arc<dyn CredentialProvider>) -> Result<ModuleRegist
         Arc::new(nofy_agent_runtime::session_policy::RulesFactory),
         Arc::new(nofy_agent_modules::rules::RulesFactory),
         Arc::new(nofy_agent_modules::skills::SkillsFactory::context()),
+        Arc::new(nofy_agent_modules::dynamic_assembly::DynamicAssemblyFactory),
         Arc::new(
             nofy_agent_modules::skills::SkillsFactory::tools()
                 .with_substitution_limits(skill_substitution_limits()),

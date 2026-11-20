@@ -443,7 +443,7 @@ async fn failed_factory_restore_never_creates_a_run_or_sends_model_io() {
 }
 
 #[tokio::test]
-async fn losing_initial_source_ack_keeps_job_waiting_and_never_repeats_initial_input() {
+async fn losing_initial_source_ack_preserves_failed_job_and_input_once() {
     let temp = tempfile::tempdir().unwrap();
     let store = SqliteStore::open(&temp.path().join("runtime.db")).unwrap();
     let (model, seen, _) = echo(None);
@@ -471,7 +471,7 @@ async fn losing_initial_source_ack_keeps_job_waiting_and_never_repeats_initial_i
     assert_eq!(seen.lock().unwrap().len(), 1);
     assert!(matches!(
         store.job("queued").await.unwrap().unwrap().status,
-        JobStatus::Waiting
+        JobStatus::Failed
     ));
     assert_eq!(
         store

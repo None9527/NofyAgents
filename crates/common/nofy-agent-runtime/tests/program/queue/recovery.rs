@@ -32,7 +32,7 @@ async fn all_programs_recover_record_before_checkpoint_and_checkpoint_before_ack
             assert!(store.execution_record("root").await.unwrap().is_some());
             assert!(matches!(
                 store.program_job("root").await.unwrap().unwrap().status,
-                JobStatus::Waiting
+                JobStatus::Failed
             ));
             let cp = store.load(&program.checkpoint_key("thread")).await.unwrap();
             assert_eq!(cp.is_some(), window == "ack");
@@ -150,7 +150,8 @@ async fn v2_next_turn_ack_failure_keeps_the_committed_input_once_after_reopen() 
 #[tokio::test]
 async fn queued_model_failure_waits_for_explicit_control_and_does_not_skip_to_a_peer() {
     let temp = tempfile::tempdir().unwrap();
-    let store = SqliteStore::open(&temp.path().join("runtime.db")).unwrap();
+    let path = temp.path().join("runtime.db");
+    let store = SqliteStore::open(&path).unwrap();
     let setup = setup(&store, false, false, true, false);
     let agent = agent(&setup);
     let program = CompiledProgram::for_agent(&agent).unwrap();
@@ -178,8 +179,52 @@ async fn queued_model_failure_waits_for_explicit_control_and_does_not_skip_to_a_
     assert_eq!(setup.models.load(Ordering::SeqCst), 1);
     assert!(matches!(
         store.program_job("root").await.unwrap().unwrap().status,
-        JobStatus::Waiting
+        JobStatus::Failed
     ));
+    let record = store.execution_record("root").await.unwrap().unwrap();
+    assert_eq!(record.status, "failed");
+    let checkpoint = store
+        .load(&program.checkpoint_key("thread"))
+        .await
+        .unwrap()
+        .unwrap();
+    let sql = rusqlite::Connection::open(&path).unwrap();
+    assert_eq!(
+        sql.execute(
+            "UPDATE agent_runtime_jobs SET status='waiting' WHERE run_id='root'",
+            [],
+        )
+        .unwrap(),
+        1
+    );
+    drop(sql);
+    let reopened = SqliteStore::open(&path).unwrap();
+    let supervisor = RunSupervisor::new(reopened.clone());
+    assert!(matches!(
+        reopened.program_job("root").await.unwrap().unwrap().status,
+        JobStatus::Failed
+    ));
+    let restored = reopened.execution_record("root").await.unwrap().unwrap();
+    assert_eq!(restored.error, record.error);
+    assert_eq!(
+        serde_json::to_value(
+            reopened
+                .load(&program.checkpoint_key("thread"))
+                .await
+                .unwrap()
+                .unwrap()
+        )
+        .unwrap(),
+        serde_json::to_value(checkpoint).unwrap()
+    );
+    assert!(
+        supervisor
+            .execute_queue_head(&setup.registry, "root")
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(setup.models.load(Ordering::SeqCst), 1);
     assert!(
         supervisor
             .execute_submitted(&setup.registry, "peer")

@@ -14,6 +14,7 @@ fn adopt(
     let source = source.to_owned();
     async move {
         SessionTurnCommand {
+            approval_mode: None,
             command_id: command,
             source_run_id: source,
             expected_source_revision: revision,
@@ -52,6 +53,7 @@ async fn changed_model_prompt_carries_into_queued_and_chained_roots_without_rewr
         .await
         .unwrap();
     let three = SessionTurnCommand {
+        approval_mode: None,
         command_id: "bind-three".into(),
         source_run_id: "two".into(),
         expected_source_revision: 0,

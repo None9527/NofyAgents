@@ -71,6 +71,16 @@ pub struct UnifiedState {
     scope: Connection,
 }
 
+pub(crate) fn increment_snapshot_generation(meta: &Connection) -> rusqlite::Result<u64> {
+    meta.query_row(
+        "INSERT INTO metadata(key, value) VALUES ('snapshot_generation', '1')
+         ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(metadata.value AS INTEGER) + 1 AS TEXT)
+         RETURNING CAST(value AS INTEGER)",
+        [],
+        |row| row.get(0),
+    )
+}
+
 impl UnifiedState {
     pub fn open(meta_database: PathBuf, scope_database: PathBuf) -> Result<Self, StateError> {
         let meta = open_database(&meta_database, UNIFIED_META_SCHEMA_SQL)?;
@@ -553,14 +563,7 @@ impl UnifiedState {
     }
 
     pub fn bump_snapshot_generation(&self) -> Result<u64, StateError> {
-        let generation = self.meta.query_row(
-            "INSERT INTO metadata(key, value) VALUES ('snapshot_generation', '1')
-             ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(metadata.value AS INTEGER) + 1 AS TEXT)
-             RETURNING CAST(value AS INTEGER)",
-            [],
-            |row| row.get::<_, u64>(0),
-        )?;
-        Ok(generation)
+        Ok(increment_snapshot_generation(&self.meta)?)
     }
 
     pub fn observation_view(
@@ -645,6 +648,26 @@ impl UnifiedState {
             .optional()?
             .map(|phase| parse_operation_phase(&phase))
             .transpose()
+    }
+
+    #[cfg(feature = "agent-runtime")]
+    pub(crate) fn proves_topic_creation(
+        &self,
+        id: OperationId,
+        target: &str,
+        topic_path: &str,
+        expected_hash: &str,
+    ) -> Result<bool, StateError> {
+        Ok(self.scope.query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM operations o JOIN topic_changes c ON c.operation_id = o.id
+                 WHERE o.id = ?1 AND o.kind = 'canonical_replace' AND o.phase = 'completed'
+                   AND o.target_path = ?2 AND o.expected_hash = ?4
+                   AND c.topic_id = ?3 AND c.previous_hash IS NULL AND c.next_hash = ?4
+             )",
+            params![id.as_uuid().to_string(), target, topic_path, expected_hash],
+            |row| row.get(0),
+        )?)
     }
 
     pub fn complete_topic_change(

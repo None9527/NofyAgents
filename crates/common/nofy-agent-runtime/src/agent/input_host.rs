@@ -45,7 +45,7 @@ fn validate_view(message: &Message, images: bool) -> Result<(), Error> {
     }
 }
 impl AgentHost<'_> {
-    fn start_mailbox_input(&mut self) -> Result<(), Error> {
+    pub(super) fn start_mailbox_input(&mut self) -> Result<(), Error> {
         if self.closing && self.state.complete {
             // A new completion needs its own hook and capture identity. This
             // commits with the accepted input, retaining the root's counters.

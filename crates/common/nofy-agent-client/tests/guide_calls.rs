@@ -1,4 +1,7 @@
 use nofy_agent_client::*;
+fn full_engine(client: KernelClient) -> Engine {
+    Engine::new(client).with_operation_view(Toolset::Full.sdk())
+}
 use serde_json::{Value, json};
 use std::time::Duration;
 
@@ -27,7 +30,7 @@ fn verify_calls(value: &Value) {
 #[tokio::test]
 async fn every_guide_call_names_a_current_operation_and_human_recovery_is_explicit() {
     let engine =
-        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+        full_engine(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
     for op in OPERATIONS.iter() {
         let result = engine
             .execute("schema", json!({"operation":op.operation}))

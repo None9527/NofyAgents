@@ -10,7 +10,189 @@ const TABLE: &str = "CREATE TABLE IF NOT EXISTS nofy_service_undo_v1(
  owner TEXT NOT NULL, token TEXT NOT NULL, area TEXT NOT NULL, target TEXT NOT NULL,
  phase TEXT NOT NULL, payload TEXT, bytes INTEGER NOT NULL, undo_id TEXT, receipt TEXT,
  PRIMARY KEY(owner,token));
- CREATE INDEX IF NOT EXISTS nofy_undo_scope ON nofy_service_undo_v1(area,target,phase);";
+ CREATE INDEX IF NOT EXISTS nofy_undo_scope ON nofy_service_undo_v1(area,target,phase);
+ CREATE TABLE IF NOT EXISTS nofy_memory_remember_calls_v1(
+ owner TEXT NOT NULL, call_key TEXT NOT NULL, request_hash TEXT NOT NULL, receipt TEXT,
+ native_operation_id TEXT, native_generation INTEGER,
+ PRIMARY KEY(owner,call_key));";
+
+#[cfg(feature = "agent-runtime")]
+#[derive(Serialize, Deserialize)]
+struct RememberCommit {
+    target: MemoryTarget,
+    undo_token: UndoToken,
+    snapshot_generation: u64,
+}
+
+#[cfg(feature = "agent-runtime")]
+impl RememberCommit {
+    fn receipt(self, request: &RememberRequest) -> RememberReceipt {
+        RememberReceipt {
+            target: self.target,
+            area_label: request.area.user_label().to_owned(),
+            summary: request.statement.trim().to_owned(),
+            undo_token: self.undo_token,
+            snapshot_generation: self.snapshot_generation,
+        }
+    }
+}
+
+#[cfg(feature = "agent-runtime")]
+struct RememberCall {
+    owner: String,
+    key: String,
+    request_hash: String,
+}
+
+#[cfg(feature = "agent-runtime")]
+impl RememberCall {
+    fn bound_request_hash(&self, id: OperationId) -> String {
+        let mut digest = blake3::Hasher::new_derive_key("nofy memory remember call binding v2");
+        digest.update(self.owner.as_bytes());
+        digest.update(self.key.as_bytes());
+        digest.update(self.request_hash.as_bytes());
+        digest.update(id.as_uuid().as_bytes());
+        format!("v2:{}", digest.finalize().to_hex())
+    }
+}
+
+#[cfg(feature = "agent-runtime")]
+struct RememberClaim {
+    commit: Option<RememberCommit>,
+    native_id: Option<OperationId>,
+}
+
+#[cfg(feature = "agent-runtime")]
+impl NofyMemoryService {
+    pub(crate) async fn remember_for_call(
+        &self,
+        operation_id: &str,
+        request: RememberRequest,
+        lookup_only: bool,
+    ) -> MemoryServiceResult<Option<RememberReceipt>> {
+        self.require_enabled()?;
+        if self.durable_undo.is_none() {
+            return if lookup_only {
+                Ok(None)
+            } else {
+                self.remember(request).await.map(Some)
+            };
+        }
+        let call = self.remember_call(operation_id, &request)?;
+        let scope = self.scope_layout(&request.area);
+        let _scope_write = crate::scope_write_lock::ScopeWriteGuard::acquire(scope.root())
+            .map_err(internal_error)?;
+        let store = self.durable_store()?;
+        let fresh_id = OperationId::new();
+        let (native_id, target) = if !lookup_only && store.claim_remember(&call, fresh_id)? {
+            let (target, entry) = self.write_remembered_topic(&request, fresh_id)?;
+            self.remember_undo(fresh_id, entry)?;
+            (fresh_id, target)
+        } else {
+            let Some(RememberClaim { commit, native_id }) = store.load_remember(&call)? else {
+                return pending_remember(lookup_only);
+            };
+            if let Some(commit) = commit {
+                return Ok(Some(commit.receipt(&request)));
+            }
+            let Some(native_id) = native_id else {
+                return pending_remember(lookup_only);
+            };
+            let Some(target) =
+                self.verify_remembered_topic(&store, &call, &request.area, native_id)?
+            else {
+                return pending_remember(lookup_only);
+            };
+            (native_id, target)
+        };
+        let commit = RememberCommit {
+            target,
+            undo_token: UndoToken {
+                operation_id: native_id.as_uuid().to_string(),
+                generation: 1,
+            },
+            snapshot_generation: store.remember_generation(&call, native_id)?,
+        };
+        store.complete_remember(&call, native_id, &commit)?;
+        Ok(Some(commit.receipt(&request)))
+    }
+
+    fn remember_call(
+        &self,
+        operation_id: &str,
+        request: &RememberRequest,
+    ) -> MemoryServiceResult<RememberCall> {
+        Ok(RememberCall {
+            owner: self.undo_owner(),
+            key: blake3::hash(operation_id.as_bytes()).to_hex().to_string(),
+            request_hash: blake3::hash(&serde_json::to_vec(request).map_err(internal_error)?)
+                .to_hex()
+                .to_string(),
+        })
+    }
+
+    fn verify_remembered_topic(
+        &self,
+        store: &Store,
+        call: &RememberCall,
+        area: &MemoryArea,
+        native_id: OperationId,
+    ) -> MemoryServiceResult<Option<MemoryTarget>> {
+        let token = native_id.as_uuid().to_string();
+        let row = match store.load(&call.owner, &token) {
+            Ok(row) => row,
+            Err(MemoryServiceError::NotFound) => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        if &row.area != area {
+            return Err(corrupt());
+        }
+        if !matches!(row.phase.as_str(), "prepared" | "available") {
+            return Ok(None);
+        }
+        let Some(Data {
+            entry:
+                UndoEntry::Created {
+                    relative_path,
+                    current_hash,
+                    ..
+                },
+            ..
+        }) = row.data
+        else {
+            return Err(corrupt());
+        };
+        if relative_path != PathBuf::from(format!("remembered-{}.md", row.target)) {
+            return Err(corrupt());
+        }
+        if !self
+            .access(area)?
+            .proves_topic_creation(native_id, &relative_path, &current_hash)
+            .map_err(internal_error)?
+        {
+            return Ok(None);
+        }
+        if row.phase == "prepared" {
+            self.refresh_index()?;
+            self.activate_undo(native_id, area)?;
+        }
+        Ok(Some(MemoryTarget {
+            id: row.target,
+            expected_hash: Some(current_hash.as_str().to_owned()),
+        }))
+    }
+}
+
+#[cfg(feature = "agent-runtime")]
+fn pending_remember(lookup_only: bool) -> MemoryServiceResult<Option<RememberReceipt>> {
+    if lookup_only {
+        Ok(None)
+    } else {
+        Err(MemoryServiceError::Unavailable(
+            "memory call has no committed receipt".into(),
+        ))
+    }
+}
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -55,6 +237,117 @@ struct Row {
     receipt: Option<UndoReceipt>,
 }
 struct Store(Connection);
+
+#[cfg(feature = "agent-runtime")]
+impl Store {
+    fn claim_remember(&self, call: &RememberCall, id: OperationId) -> MemoryServiceResult<bool> {
+        // This autocommit precedes observation and topic writes. A conflicting
+        // claim must recover its existing native operation instead of writing.
+        let inserted = self.0.execute(
+            "INSERT INTO nofy_memory_remember_calls_v1(owner,call_key,request_hash,native_operation_id)
+             VALUES (?1,?2,?3,?4) ON CONFLICT(owner,call_key) DO NOTHING",
+            params![call.owner, call.key, call.bound_request_hash(id), id.as_uuid().to_string()],
+        ).map_err(internal_error)?;
+        Ok(inserted == 1)
+    }
+
+    fn load_remember(&self, call: &RememberCall) -> MemoryServiceResult<Option<RememberClaim>> {
+        let row: Option<(String, Option<String>, Option<String>)> = self
+            .0
+            .query_row(
+                "SELECT request_hash,receipt,native_operation_id FROM nofy_memory_remember_calls_v1
+             WHERE owner=?1 AND call_key=?2",
+                params![call.owner, call.key],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()
+            .map_err(internal_error)?;
+        let Some((digest, receipt, id)) = row else {
+            return Ok(None);
+        };
+        let native_id = id.as_deref().map(operation).transpose()?;
+        if digest != call.request_hash
+            && native_id.is_none_or(|id| digest != call.bound_request_hash(id))
+        {
+            return Err(MemoryServiceError::Rejected(
+                "memory call identity does not match its bound request and native operation".into(),
+            ));
+        }
+        Ok(Some(RememberClaim {
+            commit: receipt
+                .as_deref()
+                .map(|value| serde_json::from_str(value).map_err(|_| corrupt()))
+                .transpose()?,
+            native_id,
+        }))
+    }
+
+    fn remember_generation(
+        &self,
+        call: &RememberCall,
+        id: OperationId,
+    ) -> MemoryServiceResult<u64> {
+        let tx =
+            rusqlite::Transaction::new_unchecked(&self.0, rusqlite::TransactionBehavior::Immediate)
+                .map_err(internal_error)?;
+        let binding = call.bound_request_hash(id);
+        let id = id.as_uuid().to_string();
+        let current: Option<u64> = tx
+            .query_row(
+                "SELECT native_generation FROM nofy_memory_remember_calls_v1
+             WHERE owner=?1 AND call_key=?2 AND native_operation_id=?3
+               AND request_hash IN (?4,?5)",
+                params![call.owner, call.key, id, call.request_hash, binding],
+                |row| row.get(0),
+            )
+            .map_err(internal_error)?;
+        let generation = if let Some(generation) = current {
+            generation
+        } else {
+            let generation =
+                crate::state::increment_snapshot_generation(&tx).map_err(internal_error)?;
+            tx.execute(
+                "UPDATE nofy_memory_remember_calls_v1 SET native_generation=?4
+                 WHERE owner=?1 AND call_key=?2 AND native_operation_id=?3",
+                params![call.owner, call.key, id, generation],
+            )
+            .map_err(internal_error)?;
+            generation
+        };
+        tx.commit().map_err(internal_error)?;
+        Ok(generation)
+    }
+
+    fn complete_remember(
+        &self,
+        call: &RememberCall,
+        id: OperationId,
+        commit: &RememberCommit,
+    ) -> MemoryServiceResult<()> {
+        let stored = self
+            .0
+            .execute(
+                "UPDATE nofy_memory_remember_calls_v1 SET receipt=?7
+             WHERE owner=?1 AND call_key=?2 AND request_hash IN (?3,?4) AND native_operation_id=?5
+               AND native_generation=?6 AND receipt IS NULL",
+                params![
+                    call.owner,
+                    call.key,
+                    call.request_hash,
+                    call.bound_request_hash(id),
+                    id.as_uuid().to_string(),
+                    commit.snapshot_generation,
+                    serde_json::to_string(commit).map_err(internal_error)?
+                ],
+            )
+            .map_err(internal_error)?;
+        if stored != 1 {
+            return Err(corrupt());
+        }
+        Ok(())
+    }
+}
+
 fn corrupt() -> MemoryServiceError {
     MemoryServiceError::Unavailable("invalid durable memory undo ledger".into())
 }
@@ -108,6 +401,25 @@ impl Store {
                 rusqlite::Transaction::new_unchecked(&db, rusqlite::TransactionBehavior::Immediate)
                     .map_err(internal_error)?;
             tx.execute_batch(TABLE).map_err(internal_error)?;
+            for (column, sql) in [
+                (
+                    "native_operation_id",
+                    "ALTER TABLE nofy_memory_remember_calls_v1 ADD COLUMN native_operation_id TEXT",
+                ),
+                (
+                    "native_generation",
+                    "ALTER TABLE nofy_memory_remember_calls_v1 ADD COLUMN native_generation INTEGER",
+                ),
+            ] {
+                let exists: bool = tx.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('nofy_memory_remember_calls_v1') WHERE name=?1)",
+                    [column],
+                    |row| row.get(0),
+                ).map_err(internal_error)?;
+                if !exists {
+                    tx.execute(sql, []).map_err(internal_error)?;
+                }
+            }
             tx.execute(
                 "INSERT OR IGNORE INTO metadata(key,value) VALUES ('memory_undo_protocol',?1)",
                 [PROTOCOL],

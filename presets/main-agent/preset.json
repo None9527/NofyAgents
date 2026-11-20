@@ -1,0 +1,326 @@
+{
+  "format": "nofy.preset/v1",
+  "system": {
+    "schema_version": 1,
+    "name": {
+      "$parameter": "/system_name"
+    },
+    "required_policies": [
+      {
+        "$module": "floor"
+      }
+    ],
+    "required_governance": [
+      {
+        "$module": "quota"
+      }
+    ],
+    "modules": [
+      {
+        "reference": {
+          "$module": "prompt"
+        },
+        "factory": "prompt.static",
+        "config": {
+          "text": {
+            "$file": "prompt.md"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "messages"
+        },
+        "factory": "tool.agent_messages",
+        "config": {}
+      },
+      {
+        "reference": {
+          "$module": "child-tools"
+        },
+        "factory": "tool.compose",
+        "config": {
+          "packs": [
+            "messages"
+          ]
+        },
+        "dependencies": {
+          "messages": {
+            "$module": "messages"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "delegate"
+        },
+        "factory": "tool.skills",
+        "config": {
+          "skill_tool_name": "task",
+          "skills": [
+            {
+              "name": "delegate",
+              "description": "Complete one bounded subtask and return verified results or blockers.",
+              "path": "/definitions/main-agent/delegate.json",
+              "scope": "delegate",
+              "body": {
+                "$file": "child.md"
+              },
+              "allowed_tools": {
+                "$parameter": "/child_allowed_tools"
+              }
+            }
+          ],
+          "execution": {
+            "default_model": "model",
+            "tool_packs": [
+              "tools"
+            ],
+            "max_steps": {
+              "$parameter": "/child_max_steps"
+            },
+            "model_settings": {
+              "$parameter": "/model_settings"
+            }
+          }
+        },
+        "dependencies": {
+          "model": {
+            "$module": "model"
+          },
+          "tools": {
+            "$module": "child-tools"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "tasks-resource"
+        },
+        "factory": "resource.agent_tasks",
+        "config": {},
+        "dependencies": {
+          "children": {
+            "$module": "delegate"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "tasks-binding"
+        },
+        "factory": "binding.agent_tasks",
+        "config": {},
+        "dependencies": {
+          "tasks": {
+            "$module": "tasks-resource"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "tasks"
+        },
+        "factory": "tool.agent_tasks",
+        "config": {},
+        "dependencies": {
+          "tasks": {
+            "$module": "tasks-resource"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "human-workflow"
+        },
+        "factory": "resource.workflow",
+        "config": {
+          "document": {
+            "host": {
+              "name": "main-agent-human"
+            },
+            "entry": {
+              "id": "ask",
+              "version": "1"
+            },
+            "workflows": [
+              {
+                "reference": {
+                  "id": "ask",
+                  "version": "1"
+                },
+                "input_schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "question"
+                  ],
+                  "properties": {
+                    "question": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "output_schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "answer"
+                  ],
+                  "properties": {
+                    "answer": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "nodes": [
+                  {
+                    "id": "answer",
+                    "needs": [],
+                    "input": {
+                      "from": "input",
+                      "pointer": ""
+                    },
+                    "action": {
+                      "kind": "human",
+                      "response_schema": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "answer"
+                        ],
+                        "properties": {
+                          "answer": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ],
+                "output": {
+                  "from": "node",
+                  "node": "answer",
+                  "pointer": ""
+                }
+              }
+            ]
+          },
+          "bindings": {}
+        }
+      },
+      {
+        "reference": {
+          "$module": "ask-user"
+        },
+        "factory": "tool.workflow_connected",
+        "config": {
+          "name": "ask_user",
+          "description": "Ask a human a question and wait for the exact durable response. This answer does not grant tool, filesystem, network, or budget permissions."
+        },
+        "dependencies": {
+          "workflow": {
+            "$module": "human-workflow"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "main-tools"
+        },
+        "factory": "tool.compose",
+        "config": {
+          "packs": [
+            "tasks",
+            "messages",
+            "human"
+          ]
+        },
+        "dependencies": {
+          "tasks": {
+            "$module": "tasks"
+          },
+          "messages": {
+            "$module": "messages"
+          },
+          "human": {
+            "$module": "ask-user"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "floor"
+        },
+        "factory": "policy.tool_scope",
+        "config": {
+          "allowed": {
+            "$parameter": "/allowed_tools"
+          }
+        }
+      },
+      {
+        "reference": {
+          "$module": "ledger"
+        },
+        "factory": "resource.budget",
+        "config": {}
+      },
+      {
+        "reference": {
+          "$module": "quota"
+        },
+        "factory": "governance.budget_connected",
+        "config": {
+          "limits": {
+            "$parameter": "/budget"
+          }
+        },
+        "dependencies": {
+          "budget": {
+            "$module": "ledger"
+          }
+        }
+      }
+    ],
+    "programs": {
+      "main": {
+        "kind": "agent",
+        "definition": {
+          "schema_version": 1,
+          "name": "main-agent",
+          "prompt": {
+            "$module": "prompt"
+          },
+          "tool_packs": [
+            {
+              "$module": "main-tools"
+            }
+          ],
+          "bindings": [
+            {
+              "$module": "tasks-binding"
+            }
+          ],
+          "settings": {
+            "input_delivery": { "duplex": true },
+            "scope_identity": "hashed_v2",
+            "max_steps": {
+              "$parameter": "/max_steps"
+            },
+            "model": {
+              "$parameter": "/model_settings"
+            }
+          }
+        }
+      }
+    }
+  }
+}

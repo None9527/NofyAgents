@@ -367,6 +367,16 @@ impl EnvironmentGuard for Guard {
 }
 #[async_trait::async_trait]
 impl ToolDispatch for Dispatch {
+    fn approval_effect(&self) -> nofy_tool_runtime::dispatch::ApprovalEffect {
+        use nofy_agent_executors::config::EffectSemantics;
+        use nofy_tool_runtime::dispatch::ApprovalEffect;
+
+        match self.config.contract.effect {
+            EffectSemantics::ReadOnly => ApprovalEffect::ReadOnly,
+            _ => ApprovalEffect::Unknown,
+        }
+    }
+
     async fn call(
         &self,
         id: nofy_tool_protocol::ToolId,

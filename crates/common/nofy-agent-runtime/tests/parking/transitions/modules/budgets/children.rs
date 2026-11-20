@@ -258,6 +258,7 @@ async fn session_seed_and_later_prompt_updates_keep_original_budget_root_and_upd
         .submit_session_turn(
             "session",
             SessionTurnCommand {
+                approval_mode: None,
                 command_id: "bind-two".into(),
                 source_run_id: "run".into(),
                 expected_source_revision: 1,

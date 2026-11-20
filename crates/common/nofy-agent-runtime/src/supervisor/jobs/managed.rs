@@ -2,7 +2,7 @@
 //! lease. A network request never owns the lifetime of a model/tool execution.
 use super::*;
 mod abandonment;
-mod actions;
+pub(in crate::supervisor) mod actions;
 pub use abandonment::Abandonment;
 pub(in crate::supervisor) use abandonment::ensure_thread_open;
 #[cfg(feature = "workflow")]
@@ -11,6 +11,7 @@ mod human;
 pub use human::{HumanRecoveryPage, HumanRecoveryTarget};
 pub(super) mod parking;
 mod query;
+pub(in crate::supervisor) use query::RUNNABLE_JOB;
 pub(super) mod sessions;
 pub(in crate::supervisor) mod transition;
 use crate::system::{CompiledSystem, bounded_name, content_digest};
@@ -66,6 +67,8 @@ pub(super) fn restore_scope(
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ManagedRunRequest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_mode: Option<ApprovalMode>,
     pub run_id: String,
     pub thread_id: String,
     pub system: String,
@@ -194,7 +197,7 @@ fn request_digest(request: &ManagedRunRequest) -> Result<String, Error> {
     }
     content_digest(request)
 }
-fn read_request(
+pub(in crate::supervisor) fn read_request(
     tx: &rusqlite::Transaction<'_>,
     run: &str,
 ) -> Result<Option<ManagedRunRequest>, Error> {
@@ -225,6 +228,15 @@ impl RunSupervisor {
         request: ManagedRunRequest,
         system: &CompiledSystem,
     ) -> Result<ManagedRun, Error> {
+        self.submit_owned_work(request, system, None).await
+    }
+
+    pub(in crate::supervisor) async fn submit_owned_work(
+        &self,
+        request: ManagedRunRequest,
+        system: &CompiledSystem,
+        ownership: Option<crate::supervisor::work::WorkOwnership>,
+    ) -> Result<ManagedRun, Error> {
         let hash = request_digest(&request)?;
         if request.system != system.bundle.document.name || request.release != system.bundle.digest
         {
@@ -245,8 +257,12 @@ impl RunSupervisor {
             &request.run_id,
             request.input.clone(),
         )?;
-        let now = self.store.clock.now_ms();
+        let clock = self.store.clock.clone();
         self.store.transaction(move |tx| {
+            let now = clock.now_ms();
+            if let Some(ownership) = &ownership {
+                ownership.admit(tx, &request, &hash, now)?;
+            }
             if let Some(previous) = read_request(tx, &request.run_id)? {
                 if request_digest(&previous)? != hash {
                     return Err(Error::Checkpoint("managed run ID reused with different request".into()));

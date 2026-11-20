@@ -47,10 +47,14 @@ pub enum DeliveryMode {
 pub struct InputDelivery {
     pub steering: DeliveryMode,
     pub follow_up: DeliveryMode,
+    /// Keep a completed model turn receptive while its owned children run.
+    /// Agent reports are delivered only at a settled completion boundary.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub duplex: bool,
 }
 impl InputDelivery {
     pub fn is_default(&self) -> bool {
-        self.steering == DeliveryMode::All && self.follow_up == DeliveryMode::All
+        self.steering == DeliveryMode::All && self.follow_up == DeliveryMode::All && !self.duplex
     }
 }
 

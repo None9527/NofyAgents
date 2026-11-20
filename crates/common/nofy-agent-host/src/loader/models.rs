@@ -5,9 +5,12 @@ use nofy_agent_models::{
     declarative::Protocol,
     execution::{Evaluation, Executor},
 };
-use nofy_agent_runtime::Error;
+use nofy_agent_runtime::{
+    Error,
+    model::{MODEL_EVALUATOR_FAILURE_CATEGORY, ModelFailure},
+};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use tokio::sync::{Mutex, Semaphore};
 use tokio_util::sync::CancellationToken;
@@ -15,9 +18,48 @@ mod process;
 use process::Worker;
 
 const SLOTS: usize = 2;
+pub(super) const STARTUP_EXIT_CODE: i32 = 126;
 fn failed() -> Error {
     Error::Composition("isolated model evaluator is unavailable or failed".into())
 }
+
+#[derive(Clone, Copy)]
+enum EvaluatorFailure {
+    Startup,
+    Ipc,
+    Timeout,
+    AbnormalExit,
+}
+
+impl EvaluatorFailure {
+    fn code(self) -> &'static str {
+        match self {
+            Self::Startup => "startup_failed",
+            Self::Ipc => "ipc_interrupted",
+            Self::Timeout => "timeout",
+            Self::AbnormalExit => "abnormal_exit",
+        }
+    }
+
+    fn failure(self, details: Value) -> ModelFailure {
+        let message = match self {
+            Self::Startup => "isolated model evaluator failed to start",
+            Self::Ipc => "isolated model evaluator IPC was interrupted",
+            Self::Timeout => "isolated model evaluator exceeded its deadline",
+            Self::AbnormalExit => "isolated model evaluator exited abnormally",
+        };
+        ModelFailure {
+            category: MODEL_EVALUATOR_FAILURE_CATEGORY.into(),
+            message: message.into(),
+            status: None,
+            retryable: false,
+            retry_after_ms: None,
+            code: Some(self.code().into()),
+            details,
+        }
+    }
+}
+
 struct Slot {
     worker: Arc<Mutex<Option<Worker>>>,
     pid: AtomicU32,
@@ -128,6 +170,12 @@ impl Pool {
         let slot = &self.slots[index];
         let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
             + std::time::Duration::from_secs(5);
+        let phase = match input.get("phase").and_then(Value::as_str) {
+            Some(phase @ ("admit" | "history" | "request" | "event" | "finish" | "http_error")) => {
+                Some(phase.to_owned())
+            }
+            _ => None,
+        };
         // Metadata preparation and retirement are owned to completion, even
         // when the caller is gone. Never detach a blocking preparation job.
         let ready = async {
@@ -147,31 +195,49 @@ impl Pool {
             Ok::<_, Error>(())
         }
         .await;
-        let result = if let Err(error) = ready {
+        let mut result = if let Err(error) = ready {
             Err(error)
         } else {
-            let operation = guard
-                .as_mut()
-                .ok_or_else(failed)?
-                .evaluate(program, input, spent, cap);
+            let worker = guard.as_mut().ok_or_else(failed)?;
+            let pid = worker.pid();
+            let operation = worker.evaluate(program, input, spent, cap);
             tokio::pin!(operation);
             tokio::select! { biased;
                 _ = self.stop.cancelled() => Err(Error::Cancelled),
                 _ = cancel.cancelled() => Err(Error::Cancelled),
-                result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| Err(failed())),
+                result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
+                    Err(EvaluatorFailure::Timeout.failure(json!({
+                        "stage": "exchange", "timeout_ms": timeout.as_millis(), "worker_pid": pid,
+                    })).into())
+                }),
             }
+        };
+        let failed_step = result.is_err();
+        let diagnostic = match &mut result {
+            Err(Error::ModelFailure(failure))
+                if failure.category == MODEL_EVALUATOR_FAILURE_CATEGORY =>
+            {
+                if let Some(phase) = phase {
+                    failure.details["phase"] = json!(phase);
+                }
+                Some(failure)
+            }
+            _ => None,
         };
         // A valid typed program failure leaves the worker usable. Broken IPC,
         // a timeout or cancellation requires physical retirement first.
-        if result.is_err()
-            && let Some(worker) = guard.as_mut()
-        {
+        if failed_step && let Some(worker) = guard.as_mut() {
+            if let Some(failure) = diagnostic
+                && failure.code.as_deref() == Some(EvaluatorFailure::Ipc.code())
+            {
+                worker.observe_exit(failure).await;
+            }
             if worker.retire().await.is_err() {
                 self.cleanup_failed.store(true, Ordering::SeqCst);
-                return Err(failed());
+            } else {
+                *guard = None;
+                slot.pid.store(0, Ordering::SeqCst);
             }
-            *guard = None;
-            slot.pid.store(0, Ordering::SeqCst);
         }
         result?.map_err(nofy_agent_models::worker::Failure::into_runtime)
     }

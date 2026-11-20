@@ -7,11 +7,12 @@ impl SqliteStore {
         crate::system::bounded_name(run)?;
         let id = run.to_owned();
         self.transaction(move |tx| {
-            let execution: Option<Value> = tx.query_row(
+            let result = tx.query_row(
                 "SELECT json_extract(payload,'$.run_id'), json_extract(payload,'$.status'),
                 substr(json_extract(payload,'$.error'),1,4096), length(CAST(json_extract(payload,'$.error') AS BLOB)),
                 substr(json_extract(payload,'$.outcome.Completed.output'),1,4096),
-                length(CAST(json_extract(payload,'$.outcome.Completed.output') AS BLOB))
+                length(CAST(json_extract(payload,'$.outcome.Completed.output') AS BLOB)),
+                json_extract(payload,'$.model_failure')
                 FROM agent_runtime_runs WHERE id=?1", [&id], |row| {
                     let owner: String = row.get(0)?;
                     let status: String = row.get(1)?;
@@ -19,10 +20,19 @@ impl SqliteStore {
                     let error_bytes: Option<u64> = row.get(3)?;
                     let preview: Option<String> = row.get(4)?;
                     let bytes: Option<u64> = row.get(5)?;
-                    Ok(json!({"run_id":owner,"status":status,"error":error,"error_bytes":error_bytes,
+                    let model_failure: Option<String> = row.get(6)?;
+                    let execution = json!({"run_id":owner,"status":status,"error":error,"error_bytes":error_bytes,
                         "error_truncated":error_bytes.is_some_and(|n| n > error.as_ref().map_or(0, |s| s.len() as u64)),
-                        "output":preview.as_ref().map(|text| json!({"preview":text,"bytes":bytes,"truncated":bytes.is_some_and(|n| n > text.len() as u64)}))}))
+                        "output":preview.as_ref().map(|text| json!({"preview":text,"bytes":bytes,"truncated":bytes.is_some_and(|n| n > text.len() as u64)}))});
+                    Ok((execution, model_failure))
                 }).optional().map_err(db_error)?;
+            let mut execution = None;
+            if let Some((mut status, model_failure)) = result {
+                if let Some(failure) = model_failure {
+                    status["model_failure"] = serde_json::from_str(&failure).map_err(db_error)?;
+                }
+                execution = Some(status);
+            }
             if execution.as_ref().is_some_and(|e| e["run_id"] != id) {
                 return Err(Error::Checkpoint("execution status owner changed".into()));
             }

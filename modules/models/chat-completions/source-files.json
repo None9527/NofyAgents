@@ -1,0 +1,7 @@
+[
+  "chat_completions.rhai",
+  "common.rhai",
+  "module.json",
+  "parameters.schema.json",
+  "source-files.json"
+]

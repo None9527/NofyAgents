@@ -5,6 +5,7 @@ pub(super) mod branches;
 pub(super) mod handoff;
 pub use branches::{ForkSource, SessionBranch, SessionFork};
 pub(in crate::supervisor) mod profiles;
+mod titles;
 pub use handoff::{SessionSeedInfo, SessionTurnAdmission, SessionTurnCommand, SessionTurnInput};
 pub use profiles::admission::SessionPolicyEpoch;
 pub use profiles::{
@@ -139,6 +140,7 @@ fn member(
     if id != binding.session.id || old_sequence != sequence || old_hash != hash {
         return Err(Error::Checkpoint("session turn admission changed".into()));
     }
+    titles::register(tx, &id, &saved, true)?;
     Ok(())
 }
 

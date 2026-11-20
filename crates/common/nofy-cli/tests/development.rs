@@ -1,4 +1,4 @@
-use nofy_agent_client::{Engine, KernelClient};
+use nofy_agent_client::{Engine, KernelClient, Toolset};
 use nofy_agent_host::{
     KernelHost,
     auth::{Authorizer, Scope},
@@ -92,8 +92,12 @@ async fn host(path: &Path) -> KernelHost {
 }
 fn engine(url: &str, token: &str) -> Engine {
     Engine::new(KernelClient::new(url, Some(token.into()), Duration::from_secs(10)).unwrap())
+        .with_operation_view(Toolset::Full.sdk())
 }
 async fn cli(url: &str, args: &[&str]) -> (i32, Value) {
+    cli_with_toolset(url, args, Some(Toolset::Full)).await
+}
+async fn cli_with_toolset(url: &str, args: &[&str], toolset: Option<Toolset>) -> (i32, Value) {
     let config = tempfile::NamedTempFile::new().unwrap();
     std::fs::write(config.path(), "[profiles.local]\n").unwrap();
     let output = tokio::process::Command::new(env!("CARGO_BIN_EXE_nofy"))
@@ -109,6 +113,11 @@ async fn cli(url: &str, args: &[&str]) -> (i32, Value) {
             "--format",
             "json",
         ])
+        .args(
+            toolset
+                .into_iter()
+                .flat_map(|set| ["--toolset", set.name()]),
+        )
         .args(args)
         .output()
         .await
@@ -402,6 +411,8 @@ async fn cli_and_official_stdio_client_share_source_publish_run_and_session_stat
     command.args([
         "mcp",
         "serve",
+        "--toolset",
+        "full",
         "--endpoint",
         &server.url,
         "--token-file",
@@ -592,3 +603,61 @@ mod repositories;
 
 #[path = "development/assembly.rs"]
 mod assembly;
+
+#[path = "development/omni.rs"]
+mod omni;
+
+#[path = "development/evolution.rs"]
+mod evolution;
+
+#[path = "development/feature_evolution.rs"]
+mod feature_evolution;
+
+#[path = "development/toolsets.rs"]
+mod toolsets;
+
+#[path = "development/context_compaction_live.rs"]
+mod context_compaction_live;
+
+#[path = "development/workspace_live.rs"]
+mod workspace_live;
+
+#[cfg(target_os = "linux")]
+#[path = "development/process_tree_live.rs"]
+mod process_tree_live;
+
+#[cfg(target_os = "linux")]
+#[path = "development/stdio_live.rs"]
+mod stdio_live;
+
+#[cfg(target_os = "linux")]
+#[path = "development/scoped_skill_live.rs"]
+mod scoped_skill_live;
+
+#[path = "development/recipe_live.rs"]
+mod recipe_live;
+
+#[path = "development/session_policy_live.rs"]
+mod session_policy_live;
+
+#[path = "development/event_live.rs"]
+mod event_live;
+
+#[path = "development/fallback_live.rs"]
+mod fallback_live;
+
+#[path = "development/runtime_store_live.rs"]
+mod runtime_store_live;
+
+#[path = "development/memory_learning_live.rs"]
+mod memory_learning_live;
+
+#[path = "development/background_work.rs"]
+mod background_work;
+
+#[cfg(target_os = "linux")]
+#[path = "development/runtime_images_live.rs"]
+mod runtime_images_live;
+
+#[path = "development/todo_live.rs"]
+mod todo_live;

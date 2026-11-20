@@ -1,3 +1,5 @@
+#[cfg(feature = "sqlite")]
+use nofy_agent_runtime::events::RunEvent;
 use nofy_agent_runtime::{hooks::*, registry::*, *};
 use serde_json::json;
 use std::sync::{
@@ -59,6 +61,88 @@ fn registration(id: &str, event: &str, handler: Arc<dyn HookHandler>) -> Arc<Hoo
 }
 fn context() -> RunContext {
     RunContext::new("thread", "run")
+}
+
+#[cfg(feature = "sqlite")]
+#[derive(Default)]
+struct InterruptedHookAudit(Mutex<Vec<(String, String)>>);
+
+#[cfg(feature = "sqlite")]
+#[async_trait::async_trait]
+impl events::EventSink for InterruptedHookAudit {
+    async fn record(&self, _: events::EventScope, event: RunEvent) -> Result<(), Error> {
+        if matches!(event, RunEvent::Hook { status, .. } if status == "completed") {
+            return Err(Error::Checkpoint("audit delivery interrupted".into()));
+        }
+        Ok(())
+    }
+
+    async fn record_once(
+        &self,
+        _: events::EventScope,
+        event: RunEvent,
+        key: &str,
+    ) -> Result<(), Error> {
+        if let RunEvent::Hook {
+            event_id, status, ..
+        } = event
+        {
+            assert_eq!(status, "replayed");
+            self.0.lock().unwrap().push((event_id, key.into()));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "sqlite")]
+#[tokio::test]
+async fn durable_hook_decision_replay_has_stable_audit_identity() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runtime.sqlite");
+    let (handler, calls, event) = handler(HookDecision::Continue);
+    let bus = HookBus::new(
+        EventCatalog::runtime(),
+        vec![registration("audit", "before_tool", handler)],
+    )
+    .unwrap();
+    let sink = Arc::new(InterruptedHookAudit::default());
+    let attach = || {
+        let mut run = context();
+        let store = durable::SqliteStore::open(&path).unwrap();
+        run.capabilities
+            .insert(HookJournalBinding(HookJournal::new(Arc::new(store))));
+        run.capabilities
+            .insert(events::EventSinkBinding(sink.clone()));
+        run
+    };
+    let first = bus
+        .emit(
+            &runtime_owner(),
+            "before_tool",
+            "original-call",
+            json!({}),
+            &attach(),
+        )
+        .await;
+    assert!(matches!(first, Err(Error::Checkpoint(_))));
+    for _ in 0..2 {
+        let result = bus
+            .emit(
+                &runtime_owner(),
+                "before_tool",
+                "original-call",
+                json!({}),
+                &attach(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.control, HookDecision::Continue);
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    let audit = sink.0.lock().unwrap();
+    assert_eq!(audit.len(), 2);
+    assert_eq!(audit[0].0, event.lock().unwrap().as_ref().unwrap().id);
+    assert_eq!(audit[0], audit[1]);
 }
 
 #[tokio::test]

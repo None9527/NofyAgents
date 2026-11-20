@@ -128,6 +128,7 @@ async fn root_evidence_survives_acceptance_and_final_ack_loss_for_agent_and_tool
         supervisor
             .submit_managed(
                 ManagedRunRequest {
+                    approval_mode: None,
                     run_id: "root".into(),
                     thread_id: "thread".into(),
                     system: "root-system".into(),
@@ -219,6 +220,7 @@ async fn root_evidence_survives_acceptance_and_final_ack_loss_for_agent_and_tool
             supervisor
                 .submit_managed(
                     ManagedRunRequest {
+                        approval_mode: None,
                         run_id: "next".into(),
                         thread_id: "thread".into(),
                         system: "root-system".into(),

@@ -1,6 +1,6 @@
 use nofy_agent_client::{
-    CATALOG, Engine, Envelope, Error, OPERATIONS, Operation, SCHEMA_JSON, SCHEMAS, nearest,
-    refs_from_input, schema,
+    Engine, Envelope, Error, Operation, SCHEMA_JSON, SCHEMAS, Toolset, nearest, refs_from_input,
+    schema,
 };
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler, ServiceExt, model::*, service::RequestContext,
@@ -16,15 +16,17 @@ pub struct NofyServer {
 }
 impl NofyServer {
     pub fn stdio(engine: Engine) -> Self {
+        let visibility = engine.operation_view().toolset().mcp();
         Self {
-            engine,
+            engine: engine.with_operation_view(visibility),
             http_identity: false,
         }
     }
     pub fn http(mut engine: Engine) -> Self {
         engine.client = engine.client.without_token();
+        let visibility = engine.operation_view().toolset().mcp();
         Self {
-            engine,
+            engine: engine.with_operation_view(visibility),
             http_identity: true,
         }
     }
@@ -63,7 +65,7 @@ impl ServerHandler for NofyServer {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
             .with_protocol_version(ProtocolVersion::V_2025_11_25)
             .with_server_info(Implementation::new("nofy-agent-mcp",env!("CARGO_PKG_VERSION")))
-            .with_instructions("Start with nofy_describe, then nofy_schema(operation/factory/preset/package). Returned guides explain public parameters, dependency ports, valid slots, execution prerequisites, ordered calls, NativeJson body encoding and recovery. Framework source is not needed. Resolve guide placeholders before calls; do not send $input/$result as runtime values. Use agent.configure for preset settings. Targets are managed projects with exact revision CAS or explicit Source collections with digest CAS. Factory presence does not prove an environment is ready. Verify actual execution and tool effects. Credentials are provisioned through the private CLI. MCP cancellation only stops waiting; inspect original business IDs before retrying.")
+            .with_instructions("Start with nofy_describe to see this connection's toolset and nofy_schema for an operation's exact contract. Check business state and receipts separately from request acceptance. Cancelling an MCP request stops waiting; inspect its original business IDs before retrying.")
     }
     async fn initialize(
         &self,
@@ -84,9 +86,9 @@ impl ServerHandler for NofyServer {
         context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
         no_cursor(request)?;
-        self.engine(&context)?;
+        let engine = self.engine(&context)?;
         let mut tools = vec![];
-        for operation in OPERATIONS.iter().filter(|o| o.mcp_tool.is_some()) {
+        for operation in engine.operation_view().operations() {
             let input = schema(&operation.input_schema)
                 .map_err(protocol_error)?
                 .as_object()
@@ -120,18 +122,21 @@ impl ServerHandler for NofyServer {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
-        let operation = OPERATIONS
-            .iter()
+        let engine = self.engine(&context)?;
+        let view = engine.operation_view();
+        let operation = view
+            .operations()
             .find(|o| o.mcp_tool.as_deref() == Some(request.name.as_ref()))
             .ok_or_else(|| {
                 let suggestions = nearest(
                     request.name.as_ref(),
-                    OPERATIONS.iter().filter_map(|o| o.mcp_tool.as_deref()),
+                    view.operations().filter_map(|o| o.mcp_tool.as_deref()),
                 );
                 let message = if suggestions.is_empty() {
                     format!(
-                        "unknown Nofy tool `{}`; tools/list returns every tool",
-                        request.name
+                        "Nofy tool `{}` is unavailable in the `{}` toolset",
+                        request.name,
+                        view.toolset().name()
                     )
                 } else {
                     format!(
@@ -140,9 +145,11 @@ impl ServerHandler for NofyServer {
                         suggestions.join(" or ")
                     )
                 };
-                McpError::invalid_params(message, Some(json!({"suggestions": suggestions})))
+                McpError::invalid_params(
+                    message,
+                    Some(json!({"toolset":view.toolset().name(),"suggestions":suggestions})),
+                )
             })?;
-        let engine = self.engine(&context)?;
         let input = Value::Object(request.arguments.unwrap_or_default());
         let output = tokio::select! {biased;
             _ = context.ct.cancelled() => {
@@ -173,15 +180,24 @@ impl ServerHandler for NofyServer {
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         no_cursor(request)?;
-        self.engine(&context)?;
-        Ok(ListResourcesResult::with_all_items(vec![
-            Resource::new("nofy://schemas/contracts", "Nofy operation contracts")
-                .with_mime_type("application/schema+json"),
+        let engine = self.engine(&context)?;
+        let mut resources = vec![
             Resource::new("nofy://schemas/operations", "Nofy operation catalog")
                 .with_mime_type("application/json"),
-            Resource::new("nofy://presets/index", "Registered source presets")
-                .with_mime_type("application/json"),
-        ]))
+        ];
+        if engine.operation_view().toolset() == Toolset::Full {
+            resources.push(
+                Resource::new("nofy://schemas/contracts", "Nofy operation contracts")
+                    .with_mime_type("application/schema+json"),
+            );
+        }
+        if engine.require_operation("project.template").is_ok() {
+            resources.push(
+                Resource::new("nofy://presets/index", "Registered source presets")
+                    .with_mime_type("application/json"),
+            );
+        }
+        Ok(ListResourcesResult::with_all_items(resources))
     }
     async fn list_resource_templates(
         &self,
@@ -189,19 +205,27 @@ impl ServerHandler for NofyServer {
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, McpError> {
         no_cursor(request)?;
-        self.engine(&context)?;
-        Ok(ListResourceTemplatesResult::with_all_items(vec![
-            ResourceTemplate::new(
-                "nofy://projects/{project_id}/source",
-                "Managed source project",
-            )
-            .with_mime_type("application/json"),
-            ResourceTemplate::new(
-                "nofy://source-archives/{digest}{?offset,limit}",
-                "Source archive chunk (base64 with offset, total, eof)",
-            )
-            .with_mime_type("application/json"),
-        ]))
+        let engine = self.engine(&context)?;
+        let mut templates = vec![];
+        if engine.require_operation("agent.export").is_ok() {
+            templates.push(
+                ResourceTemplate::new(
+                    "nofy://projects/{project_id}/source",
+                    "Managed source project",
+                )
+                .with_mime_type("application/json"),
+            );
+        }
+        if engine.require_operation("project.pack").is_ok() {
+            templates.push(
+                ResourceTemplate::new(
+                    "nofy://source-archives/{digest}{?offset,limit}",
+                    "Source archive chunk (base64 with offset, total, eof)",
+                )
+                .with_mime_type("application/json"),
+            );
+        }
+        Ok(ListResourceTemplatesResult::with_all_items(templates))
     }
     async fn read_resource(
         &self,
@@ -229,9 +253,12 @@ fn bearer(headers: &axum::http::HeaderMap) -> Option<String> {
 }
 async fn read_resource(engine: &Engine, uri: &str) -> nofy_agent_client::Result<String> {
     match uri {
-        "nofy://schemas/contracts" => return Ok(SCHEMA_JSON.into()),
-        "nofy://schemas/operations" => return Ok(CATALOG.to_string()),
+        "nofy://schemas/contracts" if engine.operation_view().toolset() == Toolset::Full => {
+            return Ok(SCHEMA_JSON.into());
+        }
+        "nofy://schemas/operations" => return Ok(engine.operation_view().catalog().to_string()),
         "nofy://presets/index" => {
+            engine.require_operation("project.template")?;
             return Ok(match &engine.templates {
                 Some(r) => r.list()?.to_string(),
                 None => engine.client.get(&["api", "v1", "presets"]).await?.text,
@@ -251,6 +278,7 @@ async fn read_resource(engine: &Engine, uri: &str) -> nofy_agent_client::Result<
     let parts: Vec<_> = url.path_segments().into_iter().flatten().collect();
     match url.host_str() {
         Some("projects") if parts.len() == 2 && parts[1] == "source" && url.query().is_none() => {
+            engine.require_operation("agent.export")?;
             Ok(engine
                 .client
                 .get(&["api", "v1", "projects", parts[0], "source"])
@@ -258,6 +286,7 @@ async fn read_resource(engine: &Engine, uri: &str) -> nofy_agent_client::Result<
                 .text)
         }
         Some("source-archives") if parts.len() == 1 => {
+            engine.require_operation("project.pack")?;
             let mut query = vec![];
             let mut seen = std::collections::BTreeSet::new();
             for (k, v) in url.query_pairs() {
@@ -460,6 +489,10 @@ const READ_ONLY: &[&str] = &[
     "system.programs",
     "run.list",
     "run.inspect",
+    "work.list",
+    "work.inspect",
+    "work.targets",
+    "work.wait",
     "run.events",
     "run.approvals",
     "run.recovery",
@@ -487,6 +520,7 @@ fn readonly(op: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nofy_agent_client::OPERATIONS;
     use std::collections::BTreeSet;
 
     fn tools() -> impl Iterator<Item = &'static Operation> {

@@ -12,7 +12,7 @@ impl Agent {
         }
         self.spec.settings.scope_identity = scheme;
     }
-    pub(super) fn sampled_model(&self) -> Result<&dyn Model, Error> {
+    pub(crate) fn sampled_model(&self) -> Result<&dyn Model, Error> {
         self.model.as_deref().ok_or_else(|| {
             Error::Composition("a tool program cannot request a model completion".into())
         })
@@ -32,6 +32,7 @@ impl Agent {
             },
             model: None,
             direct_tool: None,
+            workflow_entry: false,
             event_program: None,
             prompt: Arc::new(crate::StaticPrompt(String::new())),
             tools,

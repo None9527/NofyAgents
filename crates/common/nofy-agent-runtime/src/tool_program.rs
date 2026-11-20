@@ -100,6 +100,11 @@ impl ToolRuntime {
         Ok(self)
     }
     #[cfg(feature = "workflow")]
+    pub(crate) fn with_workflow_entry(mut self, entry: crate::ToolEntry) -> Result<Self, Error> {
+        self.agent.workflow_entry = true;
+        self.with_entry(entry)
+    }
+    #[cfg(feature = "workflow")]
     pub(crate) fn single(entry: crate::ToolEntry) -> Result<Self, Error> {
         Self {
             agent: Agent::tool_program("workflow-node".into(), ToolCatalog::new()),

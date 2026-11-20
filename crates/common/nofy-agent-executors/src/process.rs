@@ -276,19 +276,20 @@ impl ToolDispatch for ProcessDispatch {
                     .await
                     .map_err(|_| crate::tool_error("process_wait", "process wait failed"))
             };
-            let (written, stdout, stderr, status) = tokio::join!(
-                write,
+            // Output is a hard budget: stop the operation as soon as its read
+            // fails. OwnedChild then terminates the process group on drop.
+            // Keep other results together so a closed stdin does not hide a
+            // nonzero exit and its diagnostics.
+            let (stdout, (written, stderr, status)) = tokio::try_join!(
                 read_bounded(stdout, self.config.contract.max_output_bytes),
-                read_diagnostic(stderr),
-                wait
-            );
+                async { Ok::<_, ToolError>(tokio::join!(write, read_diagnostic(stderr), wait)) },
+            )?;
             let status = status?;
             if !status.success() {
                 return Err(exit_error(status, stderr?, &self.environment.env));
             }
             written?;
             stderr?;
-            let stdout = stdout?;
             let value = serde_json::from_slice(&stdout)
                 .map_err(|_| crate::tool_error("invalid_output", "process stdout is not JSON"))?;
             crate::output(&self.config.contract, value)

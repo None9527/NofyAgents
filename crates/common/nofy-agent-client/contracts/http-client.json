@@ -1,0 +1,119 @@
+{
+  "protocol": "nofy.client/v1",
+  "kernel_protocol": "nofy.kernel/v1",
+  "transports": [
+    "http-sse"
+  ],
+  "authentication": {
+    "scheme": "bearer",
+    "header": "Authorization",
+    "token_in_url": false,
+    "access": "/api/v1/access",
+    "scope_authority": "server"
+  },
+  "events": {
+    "protocol": "nofy.events/v1",
+    "event_protocol": "nofy.event/v1",
+    "page": "/api/v1/runs/{run_id}/events",
+    "stream": "/api/v1/runs/{run_id}/stream",
+    "query": {
+      "encoding": "exact",
+      "after": "0",
+      "limit": 100
+    },
+    "limit_max": 1000,
+    "cursor_type": "canonical_decimal_string",
+    "cursor_max": "9223372036854775807",
+    "ordering": "ascending_global_cursor_filtered_by_root_run",
+    "resume_header": "Last-Event-ID",
+    "resume_header_precedence": true,
+    "resume_exclusive": true,
+    "sse_event": "runtime",
+    "sse_error_event": "error",
+    "heartbeat_seconds": 10,
+    "delivery": "at_least_once",
+    "empty_page_cursor": "requested_after",
+    "terminal_state": "inspect_run_snapshot"
+  },
+  "schemas": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "cursor",
+        "event_json"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "nofy.event/v1"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "event_json": {
+          "type": "string",
+          "description": "Opaque native EventEnvelope JSON; preserve raw text for exact native numbers and business data."
+        }
+      }
+    }
+  },
+  "sessions": {
+    "list": "/api/v1/sessions",
+    "inspect": "/api/v1/sessions/{session_id}",
+    "start": "/api/v1/sessions/start",
+    "turn": "/api/v1/sessions/{session_id}/turns",
+    "turn_binding": "/api/v1/sessions/{session_id}/turns/{run_id}",
+    "command_receipt": "/api/v1/sessions/{session_id}/commands/{command_id}",
+    "capabilities": "/api/v1/sessions/capabilities",
+    "revision_type": "canonical_decimal_string",
+    "command_phases": [
+      "prepared",
+      "applied",
+      "rejected"
+    ]
+  },
+  "workspace_changes": {
+    "stream": "/api/v1/workspace/changes",
+    "sse_event": "workspace",
+    "topics": ["sessions", "runs"],
+    "reconnect": "reconcile_authoritative_snapshots",
+    "scope": "read"
+  },
+  "commands": {
+    "writes_auto_retry": false,
+    "stable_identity_required": true,
+    "same_identity_changed_payload": "rejected",
+    "uncertain_delivery": "inspect_original_receipt_or_binding_then_replay_unchanged_request",
+    "receipt_is_execution_completion": false,
+    "run_status": "/api/v1/runs/{run_id}",
+    "managed_action_receipt": "/api/v1/actions/{command_id}",
+    "approvals": "/api/v1/runs/{run_id}/approvals",
+    "approval_default_scope": "once",
+    "identity_scope": "operation_specific",
+    "guarded_replays": [
+      "session_commands",
+      "session_turns",
+      "managed_actions",
+      "run_submission",
+      "mailbox_inputs"
+    ],
+    "approval_resume": "explicit_managed_action_after_decision",
+    "input_receipt": "/api/v1/runs/{root_run_id}/inputs/{input_id}",
+    "input_receipt_query": [
+      "run_id",
+      "thread_id",
+      "agent"
+    ],
+    "input_receipt_scope": "read",
+    "input_receipt_response": "native_MailDelivery",
+    "input_receipt_not_found": "404_for_missing_or_mismatched_recipient_or_input"
+  },
+  "compatibility": {
+    "default_event_encoding": "native",
+    "exact_encoding": "opt_in",
+    "unknown_runtime_event": "preserve_and_advance_only_after_consuming",
+    "native_json": "preserve_raw_text; parse_with_lossless_numbers_if_reused_as_command_data"
+  }
+}

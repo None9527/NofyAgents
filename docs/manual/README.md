@@ -20,6 +20,7 @@
 | [模块仓库](repositories.md) | 来源登记、不可变版本、声明组合、共享源码与离线导出 |
 | [Session](sessions.md) | 规则/源码策略、20 项操作、接纳、生命周期与恢复 |
 | [MCP](mcp.md) | stdio、Streamable HTTP、Codex 配置、工具与归档资源 |
+| [Web 客户端协议](client-protocol.md) | HTTP/SSE、字符串游标、断线续读、命令回执与传输适配边界 |
 | [协议](protocol.md) | 结果信封、精确版本、并发更新、权限、幂等和部分完成 |
 | [操作目录](operations.json) | 98 项操作，其中 96 项开放为 MCP 工具 |
 | [契约 Schema](contracts.schema.json) | CLI/MCP 共用输入输出；原生 DTO 仍由内核校验 |

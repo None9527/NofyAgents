@@ -65,7 +65,62 @@ pub(super) fn admit_url(value: &str, library: &ModuleStore) -> Result<()> {
     }
     Ok(())
 }
+// These caps bound captured command output and materialized source bytes per
+// acquisition. Git's fetch staging, network traffic, and concurrent syncs are
+// separate resource boundaries.
+const MAX_COMMAND_STDOUT: usize = 8 * 1024 * 1024;
+const MAX_COMMAND_STDERR: usize = 256 * 1024;
+const MAX_SOURCE_FILE: usize = 8 * 1024 * 1024;
+const MAX_SOURCE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_SOURCE_FILES: usize = 4096;
+
+fn size_limit(resource: &str, limit: usize) -> HostError {
+    let mut error = nofy_agent_project::Error::new(
+        "repository_size_limit",
+        format!("Git module acquisition exceeded its {resource} limit ({limit})"),
+    );
+    // Preserve the existing HTTP error catalog's top-level "invalid" code.
+    error.details = serde_json::json!({
+        "reason": "repository_size_limit",
+        "resource": resource,
+        "limit": limit,
+    });
+    error.into()
+}
+
+async fn read_output(
+    reader: impl tokio::io::AsyncRead + Unpin,
+    resource: &str,
+    limit: usize,
+) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    reader
+        .take(limit as u64 + 1)
+        .read_to_end(&mut bytes)
+        .await
+        .map_err(|_| HostError::Unavailable("Git acquisition I/O failed".into()))?;
+    if bytes.len() > limit {
+        return Err(size_limit(resource, limit));
+    }
+    Ok(bytes)
+}
+
 async fn run(args: &[String], deadline: tokio::time::Instant) -> Result<Vec<u8>> {
+    run_bounded(
+        args,
+        deadline,
+        "stdout bytes per command",
+        MAX_COMMAND_STDOUT,
+    )
+    .await
+}
+
+async fn run_bounded(
+    args: &[String],
+    deadline: tokio::time::Instant,
+    stdout_resource: &str,
+    stdout_limit: usize,
+) -> Result<Vec<u8>> {
     if tokio::time::Instant::now() >= deadline {
         return Err(HostError::Unavailable(
             "Git module acquisition timed out".into(),
@@ -115,29 +170,28 @@ async fn run(args: &[String], deadline: tokio::time::Instant) -> Result<Vec<u8>>
             .into(),
         )
     })?;
-    let mut stdout = owned
+    let stdout = owned
         .child
         .stdout
         .take()
         .ok_or_else(|| invalid("Git stdout unavailable"))?;
-    let mut stderr = owned
+    let stderr = owned
         .child
         .stderr
         .take()
         .ok_or_else(|| invalid("Git stderr unavailable"))?;
     let operation = async {
-        let out = async {
-            let mut bytes = vec![];
-            stdout.read_to_end(&mut bytes).await?;
-            Ok::<_, std::io::Error>(bytes)
-        };
-        let err = async {
-            let mut bytes = vec![];
-            stderr.read_to_end(&mut bytes).await?;
-            Ok::<_, std::io::Error>(bytes)
-        };
-        let (status, output, _diagnostic) = tokio::try_join!(owned.child.wait(), out, err)
-            .map_err(|_| HostError::Unavailable("Git acquisition I/O failed".into()))?;
+        let (status, output, _diagnostic) = tokio::try_join!(
+            async {
+                owned
+                    .child
+                    .wait()
+                    .await
+                    .map_err(|_| HostError::Unavailable("Git acquisition I/O failed".into()))
+            },
+            read_output(stdout, stdout_resource, stdout_limit),
+            read_output(stderr, "stderr bytes per command", MAX_COMMAND_STDERR),
+        )?;
         if !status.success() {
             return Err(HostError::Unavailable(format!(
                 "Git module acquisition failed (exit {:?}); inspect the configured source and reference",
@@ -154,9 +208,11 @@ struct Tree {
     directory: std::path::PathBuf,
     entries: BTreeMap<String, (String, bool)>,
     deadline: tokio::time::Instant,
+    source_bytes: usize,
+    source_files: usize,
 }
 impl Tree {
-    async fn read(&self, path: &str) -> Result<File> {
+    async fn read(&mut self, path: &str) -> Result<File> {
         nofy_agent_project::safe_path(path)?;
         let (object, executable) = self.entries.get(path).ok_or_else(|| {
             nofy_agent_project::Error::new(
@@ -169,7 +225,16 @@ impl Tree {
                 "module sources must be regular Git blobs, not symlinks or submodules",
             ));
         }
-        let bytes = run(
+        if self.source_files >= MAX_SOURCE_FILES {
+            return Err(size_limit("source file reads", MAX_SOURCE_FILES));
+        }
+        let remaining = MAX_SOURCE_BYTES - self.source_bytes;
+        let (resource, limit) = if remaining < MAX_SOURCE_FILE {
+            ("remaining source bytes per acquisition", remaining)
+        } else {
+            ("bytes per source file", MAX_SOURCE_FILE)
+        };
+        let bytes = run_bounded(
             &[
                 "--git-dir".into(),
                 self.directory.to_string_lossy().into_owned(),
@@ -178,8 +243,12 @@ impl Tree {
                 object.clone(),
             ],
             self.deadline,
+            resource,
+            limit,
         )
         .await?;
+        self.source_files += 1;
+        self.source_bytes += bytes.len();
         Ok(File::bytes(&bytes, *executable))
     }
 }
@@ -262,10 +331,12 @@ pub(super) async fn collect(
         };
         entries.insert(name.to_owned(), (object, parts[0] == "100755"));
     }
-    let tree = Tree {
+    let mut tree = Tree {
         directory: path,
         entries,
         deadline,
+        source_bytes: 0,
+        source_files: 0,
     };
     let root = if subdirectory.is_empty() {
         String::new()
@@ -312,4 +383,24 @@ pub(super) async fn collect(
         })?);
     }
     Ok((sources, commit))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn capture_budget_accepts_exact_limit_and_rejects_extra_bytes() {
+        let bytes = read_output(&b"test"[..], "test bytes", 4).await.unwrap();
+        assert_eq!(bytes, b"test");
+        let error = read_output(&b"test"[..], "test bytes", 3)
+            .await
+            .unwrap_err();
+        let HostError::Source(error) = error else {
+            panic!("expected a structured module source error");
+        };
+        assert_eq!(error.code, "repository_size_limit");
+        assert_eq!(error.details["resource"], "test bytes");
+        assert_eq!(error.details["limit"], 3);
+    }
 }

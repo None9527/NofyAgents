@@ -280,25 +280,46 @@ async fn scope_permissions_stale_plans_and_abort_are_explicit() {
     let mut stale = selection(&release, false);
     stale["command_id"] = json!("stale");
     stale["fingerprint"] = first["fingerprint"].clone();
-    assert_eq!(
-        request(
-            &server,
-            reqwest::Method::POST,
-            "/api/v1/runtime/storage/prepare",
-            ADMIN,
-            stale
-        )
-        .await
-        .0,
-        409
-    );
+    let (status, rejected) = request(
+        &server,
+        reqwest::Method::POST,
+        "/api/v1/runtime/storage/prepare",
+        ADMIN,
+        stale.clone(),
+    )
+    .await;
+    assert_eq!(status, 409, "{rejected}");
+    assert_eq!(rejected["error"]["code"], "conflict");
+    assert_eq!(rejected["error"]["details"]["reason"], "stale_plan");
+    let receipt_path = "/api/v1/runtime/storage/transfers/stale";
+    let (status, _) = request(
+        &server,
+        reqwest::Method::GET,
+        receipt_path,
+        ADMIN,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, 404);
     assert_eq!(current(&server).await["writable"], true);
     let fresh = plan(&server, &release, false).await;
-    prepare(&server, &release, false, "abort", &fresh).await;
+    assert_ne!(fresh["fingerprint"], first["fingerprint"]);
+    prepare(&server, &release, false, "stale", &fresh).await;
+    let (status, reused) = request(
+        &server,
+        reqwest::Method::POST,
+        "/api/v1/runtime/storage/prepare",
+        ADMIN,
+        stale,
+    )
+    .await;
+    assert_eq!(status, 409, "{reused}");
+    assert_eq!(reused["error"]["code"], "conflict");
+    assert!(reused["error"]["details"].is_null());
     let receipt = post(
         &server,
         "/api/v1/runtime/storage/abort",
-        command("abort", &fresh),
+        command("stale", &fresh),
     )
     .await;
     assert_eq!(receipt["phase"], "aborted");
@@ -306,7 +327,7 @@ async fn scope_permissions_stale_plans_and_abort_are_explicit() {
         post(
             &server,
             "/api/v1/runtime/storage/apply",
-            command("abort", &fresh)
+            command("stale", &fresh)
         )
         .await,
         receipt

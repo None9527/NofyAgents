@@ -167,3 +167,7 @@ require_capability 的 early return 必须写 NOFY_SKIP_REPORT；CI 收集报告
 - 改动装配/状态身份/恢复范围大，必须在平台原语验证后推进，不做大爆炸重写。
 - RSI 与独立打包依赖 P2–P5 的稳定契约，不提前堆新框架。
 - 原生安全后端是多批工作；持续按可验证切片推进，只在对应原生证据齐全后声明完成，不把目录/编译通过当作安全执行交付。
+
+## P5a 接续：主 Agent 产品装配（2026-11-09）
+
+在 opt-in managed SDK 入口之后并行推进 P5 的声明装配切片。新增 `main-agent@0.1.0` 源码预设，复用 `tool.skills`、`resource/binding/tool.agent_tasks`、消息板、Human workflow、根权限与共享预算，不新增运行时或模型循环。模型和业务工具由操作者显式装配；源配置/导出使用原公共工程 API。P3/P4 原生隔离仍未完成，不以该切片跨越其安全准入，RSI/长期记忆/动态工作流生成仍待后续。原 Windows 小栈 bare consumer 门保持原样，不将其失败改为允许失败。实际本地验收另见 `docs/verification/main-agent-preset.md`。

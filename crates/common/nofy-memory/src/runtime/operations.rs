@@ -1,5 +1,7 @@
 use super::*;
-use nofy_tool_runtime::{ToolCallContext, ToolDispatch, ToolStream, TypedToolOutput};
+use nofy_tool_runtime::{
+    ToolCallContext, ToolDispatch, ToolError, ToolStream, TypedToolOutput, dispatch::ToolOperation,
+};
 use serde_json::{Value, json};
 
 pub(super) const OPERATIONS: &[&str] = &[
@@ -53,6 +55,34 @@ impl MemoryOperation {
     }
 }
 impl MemoryModule {
+    async fn remember_for_tool(
+        &self,
+        request: RememberRequest,
+        context: &RunContext,
+        operation: Arc<ToolOperation>,
+        lookup_only: bool,
+    ) -> Result<Option<Value>, Error> {
+        if !self.config.operations.iter().any(|name| name == "remember") {
+            return Err(Error::Tool("memory operation is not admitted".into()));
+        }
+        if context.cancel.is_cancelled() {
+            return Err(Error::Cancelled);
+        }
+        require(self.areas(context, true), &request.area).map_err(operation_error)?;
+        let resource = self.resource.clone();
+        tokio::task::spawn_blocking(move || {
+            futures::executor::block_on(resource.service.remember_for_call(
+                &operation.0,
+                request,
+                lookup_only,
+            ))
+            .and_then(|receipt| receipt.map(encode).transpose())
+            .map_err(operation_error)
+        })
+        .await
+        .map_err(|_| Error::Tool("memory worker failed".into()))?
+    }
+
     pub async fn execute(
         &self,
         operation: MemoryOperation,
@@ -216,6 +246,41 @@ fn require(areas: &[MemoryArea], area: &MemoryArea) -> MemoryServiceResult<()> {
 }
 #[async_trait::async_trait]
 impl ToolDispatch for MemoryModule {
+    fn supports_committed_receipt(&self, args: &Value) -> bool {
+        can_lookup_remember(&self.config, args)
+    }
+
+    async fn committed_receipt(
+        &self,
+        id: nofy_tool_protocol::ToolId,
+        args: &Value,
+        ctx: ToolCallContext,
+    ) -> Result<Option<TypedToolOutput>, ToolError> {
+        if id.as_str() != self.config.tool_name {
+            return Err(tool_error(Error::Tool(
+                "memory tool identity mismatch".into(),
+            )));
+        }
+        if !self.supports_committed_receipt(args) {
+            return Ok(None);
+        }
+        let run = ctx
+            .get::<RunContext>()
+            .ok_or_else(|| ToolError::custom("memory_operation", "missing run context"))?;
+        let identity = ctx
+            .get::<ToolOperation>()
+            .ok_or_else(|| ToolError::custom("memory_operation", "missing operation identity"))?;
+        let operation = serde_json::from_value(args.clone())
+            .map_err(|e| ToolError::custom("memory_operation", e.to_string()))?;
+        let MemoryOperation::Remember(request) = operation else {
+            return Ok(None);
+        };
+        self.remember_for_tool(request, &run, identity, true)
+            .await
+            .map(|value| value.map(|value| TypedToolOutput::from_value(id, value)))
+            .map_err(tool_error)
+    }
+
     async fn call(
         &self,
         id: nofy_tool_protocol::ToolId,
@@ -230,17 +295,37 @@ impl ToolDispatch for MemoryModule {
                 .get::<RunContext>()
                 .ok_or_else(|| Error::Tool("memory tool requires a run context".into()))?;
             let operation = serde_json::from_value(args).map_err(|e| Error::Tool(e.to_string()))?;
-            self.execute(operation, &context).await
+            match (operation, ctx.get::<ToolOperation>()) {
+                (MemoryOperation::Remember(request), Some(identity)) => self
+                    .remember_for_tool(request, &context, identity, false)
+                    .await?
+                    .ok_or_else(|| Error::Tool("missing completed memory receipt".into())),
+                (operation, _) => self.execute(operation, &context).await,
+            }
         }
         .await;
         nofy_tool_runtime::terminal_only(
             result
                 .map(|value| TypedToolOutput::from_value(id, value))
-                .map_err(|e| {
-                    nofy_tool_runtime::ToolError::custom("memory_operation", e.to_string())
-                }),
+                .map_err(tool_error),
         )
     }
+}
+
+pub(super) fn can_lookup_remember(config: &MemoryModuleConfig, args: &Value) -> bool {
+    args.get("operation").and_then(Value::as_str) == Some("remember")
+        && config.operations.iter().any(|name| name == "remember")
+}
+
+fn operation_error(error: MemoryServiceError) -> Error {
+    match error {
+        MemoryServiceError::Internal(_) => Error::Tool("canonical memory operation failed".into()),
+        error => Error::Tool(error.to_string()),
+    }
+}
+
+fn tool_error(error: Error) -> ToolError {
+    ToolError::custom("memory_operation", error.to_string())
 }
 
 fn request_schema(operation: &str) -> Value {

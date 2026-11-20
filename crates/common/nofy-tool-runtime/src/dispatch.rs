@@ -30,6 +30,11 @@ use crate::tool::{ToolStream, ToolStreamItem, TypedToolOutput};
 /// at JSON-RPC wire encode/decode boundaries.
 #[async_trait]
 pub trait ToolDispatch: Send + Sync {
+    /// The effect of the bound implementation. Unclassified tools require review.
+    fn approval_effect(&self) -> ApprovalEffect {
+        ApprovalEffect::Unknown
+    }
+
     /// Opt-in recovery protocol for a durable orchestrator, NOT permission to
     /// retry an arbitrary side effect. The same call identity must reattach to
     /// persisted work, including after the caller dies before seeing a result.
@@ -42,6 +47,21 @@ pub trait ToolDispatch: Send + Sync {
     /// runtime rejects resumable registration without a nonempty identity.
     fn recovery_identity(&self) -> Option<String> {
         None
+    }
+
+    fn supports_committed_receipt(&self, _args: &Value) -> bool {
+        false
+    }
+
+    /// Read the terminal result of an already committed effect. This method
+    /// must never execute the effect. The runtime supplies the operation key.
+    async fn committed_receipt(
+        &self,
+        _tool_id: ToolId,
+        _args: &Value,
+        _ctx: ToolCallContext,
+    ) -> Result<Option<TypedToolOutput>, ToolError> {
+        Ok(None)
     }
 
     /// Streaming dispatch. The returned stream MUST end with exactly one
@@ -81,6 +101,17 @@ pub trait ToolDispatch: Send + Sync {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ApprovalEffect {
+    ReadOnly,
+    SessionControl,
+    Unknown,
+}
+
 /// Explicit recovery invocation. Absent/false means a fresh invocation.
 #[derive(Debug, Clone, Copy)]
 pub struct ResumeInvocation(pub bool);
+
+/// The runtime's durable operation key, reused on recovery of the same call.
+#[derive(Debug, Clone)]
+pub struct ToolOperation(pub String);

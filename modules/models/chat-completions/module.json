@@ -1,0 +1,108 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "model-chat-completions",
+  "version": "0.1.0",
+  "description": "Frozen Chat Completions protocol and model adapter; connection and secret references supplied explicitly.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "connection": {
+        "type": "object"
+      },
+      "model": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required": [
+      "connection",
+      "model"
+    ]
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "reference": {
+        "$module": "connection"
+      },
+      "factory": "resource.model_connection",
+      "config": {
+        "$parameter": "/connection"
+      }
+    },
+    {
+      "reference": {
+        "$module": "artifact"
+      },
+      "factory": "resource.artifact",
+      "config": {
+        "bundle": {
+          "schema_version": 1,
+          "files": {
+            "common.rhai": {
+              "$file": "common.rhai"
+            },
+            "chat_completions.rhai": {
+              "$file": "chat_completions.rhai"
+            },
+            "parameters.schema.json": {
+              "$file": "parameters.schema.json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "protocol"
+      },
+      "factory": "resource.model_protocol",
+      "config": {
+        "source": {
+          "kind": "artifact",
+          "entries": [
+            "common.rhai",
+            "chat_completions.rhai"
+          ],
+          "settings_schema": "parameters.schema.json"
+        },
+        "capabilities": {
+          "streaming": true,
+          "image_input": true,
+          "structured_output": true
+        },
+        "limits": {
+          "max_requests": 6
+        }
+      },
+      "dependencies": {
+        "artifact": {
+          "$module": "artifact"
+        }
+      }
+    },
+    {
+      "reference": {
+        "$module": "model"
+      },
+      "factory": "model.programmed",
+      "config": {
+        "model": {
+          "$parameter": "/model"
+        }
+      },
+      "dependencies": {
+        "connection": {
+          "$module": "connection"
+        },
+        "protocol": {
+          "$module": "protocol"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "model": "model"
+  }
+}

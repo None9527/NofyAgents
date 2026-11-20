@@ -1,3 +1,4 @@
+use super::client_protocol::{EventEncoding, EventPage, exact_event, exact_page};
 use super::*;
 use axum::response::sse::{Event, KeepAlive, Sse};
 use nofy_agent_runtime::{
@@ -5,8 +6,11 @@ use nofy_agent_runtime::{
     supervisor::{ApprovalRequest, jobs::*},
 };
 use std::{convert::Infallible, time::Duration};
+mod input_receipts;
+
 pub(super) fn router() -> Router<KernelHost> {
     Router::new()
+        .merge(crate::work::router())
         .route("/api/v1/runs", post(submit).get(list))
         .route("/api/v1/runs/{id}", get(inspect))
         .route("/api/v1/runs/{id}/versions", get(versions))
@@ -15,6 +19,10 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/runs/{id}/approvals", get(approvals).post(decide))
         .route("/api/v1/runs/{id}/cancel", post(cancel))
         .route("/api/v1/runs/{id}/inputs", post(input))
+        .route(
+            "/api/v1/runs/{id}/inputs/{input_id}",
+            get(input_receipts::inspect),
+        )
         .route("/api/v1/runs/{id}/recovery", get(recovery))
         .route("/api/v1/runs/{id}/recovery/root", get(root_recovery))
         .route("/api/v1/runs/{id}/recovery/models", get(model_recovery))
@@ -80,7 +88,7 @@ async fn list(
 }
 #[derive(Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum RunView {
+pub(crate) enum RunView {
     Status,
     #[default]
     Full,
@@ -97,18 +105,24 @@ async fn inspect(
     Query(query): Query<InspectQuery>,
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
-    let run = managed(&host, &id).await?;
-    if matches!(query.view, RunView::Status) {
-        let mut result = host.store.execution_status(&id).await?;
+    inspect_run(&host.store, &id, query.view).await.map(Json)
+}
+
+pub(crate) async fn inspect_run(store: &SqliteStore, id: &str, view: RunView) -> Result<Value> {
+    let run = store.managed_run(id).await?.ok_or(HostError::NotFound)?;
+    if matches!(view, RunView::Status) {
+        let mut result = store.execution_status(id).await?;
         result["format"] = json!("nofy.run-status/v1");
         result["run"] = json!({"sequence":run.sequence,"status":run.status,"request":{"run_id":run.request.run_id,"thread_id":run.request.thread_id,"system":run.request.system,"release":run.request.release,"program":run.request.program}});
         result["details_read"] =
             json!({"operation":"run.inspect","arguments":{"run_id":id,"view":"full"}});
-        return Ok(Json(result));
+        return Ok(result);
     }
-    Ok(Json(
-        json!({"run":run,"execution":host.store.execution_record(&id).await?,"children":host.store.children(&id).await?,"parking":host.store.parking(&id).await?,"live":host.store.live_execution(&id).await?.map(|live|live.info())}),
-    ))
+    Ok(
+        json!({"run":run,"execution":store.execution_record(id).await?,
+        "children":store.children(id).await?,"parking":store.parking(id).await?,
+        "live":store.live_execution(id).await?.map(|live|live.info())}),
+    )
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -234,44 +248,58 @@ async fn events(
     State(host): State<KernelHost>,
     headers: HeaderMap,
     Path(id): Path<String>,
-    Query(page): Query<Page>,
+    Query(page): Query<EventPage>,
 ) -> Result<Json<Value>> {
     host.auth.require(&headers, Scope::Read)?;
     managed(&host, &id).await?;
-    Ok(Json(
-        json!({"events":host.store.events(&id,page.after,page.limit).await?}),
-    ))
+    let after = page.cursor()?;
+    let events = host.store.events(&id, after, page.limit).await?;
+    Ok(Json(match page.encoding {
+        EventEncoding::Native => json!({"events":events}),
+        EventEncoding::Exact => exact_page(&events, after)?,
+    }))
 }
 async fn stream(
     State(host): State<KernelHost>,
     headers: HeaderMap,
     Path(id): Path<String>,
-    Query(page): Query<Page>,
+    Query(page): Query<EventPage>,
 ) -> Result<Response> {
     host.auth.require(&headers, Scope::Read)?;
     managed(&host, &id).await?;
-    if !(1..=1000).contains(&page.limit) || page.after > i64::MAX as u64 {
-        return Err(HostError::Invalid("invalid event cursor/page limit".into()));
-    }
-    let after = match headers.get("last-event-id") {
-        Some(value) => value
-            .to_str()
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
-            .filter(|v| *v <= i64::MAX as u64)
-            .ok_or_else(|| HostError::Invalid("invalid Last-Event-ID".into()))?,
-        None => page.after,
-    };
+    let after = page.resume_after(&headers)?;
+    let mut changes = host.store.observe();
     let frames = async_stream::stream! {
         let mut after=after;
         loop {
+            let observed = changes.borrow_and_update().events;
             let events=tokio::select! {biased;_=host.stop.cancelled()=>return,result=host.store.events(&id,after,page.limit)=>result};
             match events {
                 Ok(events)=>{
-                    if events.is_empty() {tokio::select! {biased;_=host.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(200))=>{}};continue;}
+                    if events.is_empty() {
+                        loop {
+                            tokio::select! {
+                                biased;
+                                _ = host.stop.cancelled() => return,
+                                result = changes.changed() => if result.is_err() { return },
+                            }
+                            if changes.borrow_and_update().events != observed { break; }
+                        }
+                        // Batch bursts of committed tokens without querying an idle journal.
+                        tokio::select! {
+                            biased;
+                            _ = host.stop.cancelled() => return,
+                            _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                        }
+                        continue;
+                    }
                     for event in events {
                         after=event.cursor;
-                        match serde_json::to_string(&event) {
+                        let data = match page.encoding {
+                            EventEncoding::Native => serde_json::to_string(&event),
+                            EventEncoding::Exact => exact_event(&event).and_then(|event| serde_json::to_string(&event)),
+                        };
+                        match data {
                             Ok(data)=>yield Ok::<_,Infallible>(Event::default().id(after.to_string()).event("runtime").data(data)),
                             Err(_)=>return,
                         }
@@ -289,12 +317,12 @@ async fn approvals(
     State(host): State<KernelHost>,
     headers: HeaderMap,
     Path(id): Path<String>,
-) -> Result<Json<Vec<ApprovalRequest>>> {
+) -> Result<Json<Vec<nofy_agent_runtime::supervisor::PendingApproval>>> {
     host.auth.require(&headers, Scope::Read)?;
     managed(&host, &id).await?;
-    let mut requests = host.store.pending_approvals(&id).await?;
+    let mut requests = host.store.pending_approval_options(&id).await?;
     for child in host.store.children(&id).await? {
-        requests.extend(host.store.pending_approvals(&child.run_id).await?);
+        requests.extend(host.store.pending_approval_options(&child.run_id).await?);
     }
     Ok(Json(requests))
 }
@@ -303,6 +331,8 @@ async fn approvals(
 struct Decision {
     request: ApprovalRequest,
     allow: bool,
+    #[serde(default)]
+    continue_run: bool,
     #[serde(default)]
     scope: nofy_agent_runtime::supervisor::ApprovalScope,
 }
@@ -326,9 +356,16 @@ async fn decide(
             "approval is outside this run tree".into(),
         ));
     }
-    host.store
-        .decide_scoped(&decision.request, decision.allow, decision.scope)
-        .await?;
+    if decision.continue_run {
+        host.store
+            .decide_scoped_and_continue(&id, &decision.request, decision.allow, decision.scope)
+            .await?;
+        host.wake.notify_one();
+    } else {
+        host.store
+            .decide_scoped(&decision.request, decision.allow, decision.scope)
+            .await?;
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 #[derive(Deserialize)]

@@ -1,10 +1,13 @@
 use super::*;
+use axum::response::sse::{Event, KeepAlive, Sse};
 use nofy_agent_runtime::{session_policy::Frozen, supervisor::jobs::*};
+use std::{convert::Infallible, time::Duration};
 mod lifecycle;
 use lifecycle::*;
 
 pub(super) fn router() -> Router<KernelHost> {
     Router::new()
+        .route("/api/v1/workspace/changes", get(changes))
         .route("/api/v1/sessions", post(create).get(list))
         .route("/api/v1/sessions/capabilities", get(capabilities))
         .route("/api/v1/sessions/start", post(start))
@@ -26,6 +29,33 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/sessions/{id}/unarchive", post(unarchive))
         .route("/api/v1/sessions/{id}/reconfigure", post(reconfigure))
         .route("/api/v1/sessions/{id}/commands/{command_id}", get(command))
+}
+async fn changes(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Response> {
+    host.auth.require(&headers, Scope::Read)?;
+    let mut changes = host.store.observe();
+    let frames = async_stream::stream! {
+        let mut previous = *changes.borrow_and_update();
+        // This stream carries invalidations. Every connection reconciles from
+        // authoritative reads, so invalidations need no independent replay log.
+        yield Ok::<_, Infallible>(Event::default().event("workspace").data(r#"{"sessions":true,"runs":true}"#));
+        loop {
+            tokio::select! {
+                biased;
+                _ = host.stop.cancelled() => break,
+                result = changes.changed() => if result.is_err() { break },
+            }
+            let current = *changes.borrow_and_update();
+            let sessions = previous.sessions != current.sessions;
+            let runs = previous.runs != current.runs;
+            previous = current;
+            if sessions || runs {
+                yield Ok(Event::default().event("workspace").data(json!({"sessions":sessions,"runs":runs}).to_string()));
+            }
+        }
+    };
+    Ok(Sse::new(frames)
+        .keep_alive(KeepAlive::new().interval(Duration::from_secs(10)))
+        .into_response())
 }
 async fn system(
     host: &KernelHost,
@@ -147,11 +177,10 @@ async fn list(
     Query(page): Query<Page>,
 ) -> Result<Json<Vec<SessionState>>> {
     host.auth.require(&headers, Scope::Read)?;
-    Ok(Json(
-        host.store
-            .session_states(&page.after, page.limit, page.include_archived)
-            .await?,
-    ))
+    let rows = host.store
+        .session_states(&page.after, page.limit, page.include_archived)
+        .await?;
+    Ok(Json(host.store.project_session_titles(rows).await?))
 }
 async fn inspect(
     State(host): State<KernelHost>,
@@ -159,7 +188,9 @@ async fn inspect(
     Path(id): Path<String>,
 ) -> Result<Json<SessionState>> {
     host.auth.require(&headers, Scope::Read)?;
-    Ok(Json(state(&host, &id).await?))
+    let session = state(&host, &id).await?;
+    let mut projected = host.store.project_session_titles(vec![session]).await?;
+    projected.pop().map(Json).ok_or(HostError::NotFound)
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

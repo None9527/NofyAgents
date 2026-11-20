@@ -3,6 +3,7 @@ use crate::{RunContext, ToolCall};
 use futures::StreamExt;
 use nofy_tool_runtime::{
     ToolCallContext, ToolDispatch, ToolError, ToolStreamItem, TypedToolOutput,
+    dispatch::ToolOperation,
 };
 use std::future::Future;
 
@@ -135,12 +136,12 @@ pub(crate) async fn reconcile_tool(
 }
 
 /// Execute an already admitted tool. Hosts must validate its schema and apply
-/// their policy floor first. Recovery only reattaches dispatchers declaring an
-/// immutable resumable contract; primitive effects require a cached receipt.
+/// their policy floor first. An uncertain primitive effect needs a committed
+/// receipt before the runtime can complete its original invocation.
 pub async fn dispatch_tool<F, Fut>(
     dispatch: &dyn ToolDispatch,
     call: &ToolCall,
-    context: ToolCallContext,
+    mut context: ToolCallContext,
     operation_id: &str,
     revision: &str,
     resume: bool,
@@ -155,11 +156,26 @@ where
         .ok_or_else(|| Error::Tool("missing run context".into()))?;
     let fingerprint = fingerprint(dispatch, call, revision)?;
     let reconciliation = context.get::<crate::reconciliation::ToolReconciliation>();
+    let resumable = dispatch.is_resumable();
+    let lookup = resume
+        && !resumable
+        && reconciliation.is_none()
+        && dispatch.supports_committed_receipt(&call.arguments);
+    context.insert(ToolOperation(operation_id.to_owned()));
+    let id = nofy_tool_protocol::ToolId::new(&call.name).map_err(|e| Error::Tool(e.to_string()))?;
+    let committed = if lookup {
+        tokio::select! { biased;
+            _ = run.cancel.cancelled() => return Err(runtime::cancellation(&run)),
+            result = dispatch.committed_receipt(id.clone(), &call.arguments, context.clone()) => result,
+        }
+    } else {
+        Ok(None)
+    };
     let cost = BudgetCost {
         tool_calls: 1,
         ..Default::default()
     };
-    let activity = if dispatch.is_resumable() {
+    let activity = if resumable {
         BudgetActivity::None
     } else {
         BudgetActivity::Operation
@@ -171,7 +187,7 @@ where
         cost,
         activity,
         false,
-        (resume && dispatch.is_resumable()) || reconciliation.is_some(),
+        (resume && resumable) || reconciliation.is_some() || matches!(&committed, Ok(Some(_))),
     )
     .await?
     {
@@ -181,17 +197,35 @@ where
         }
         runtime::GroupAdmission::Ready(held) => held,
     };
-    if let Some(receipt) = reconciliation {
+    let recovered = if let Some(receipt) = reconciliation {
         if receipt.0.call != *call
             || receipt.0.thread_id != run.thread_id
             || receipt.0.run_id != run.run_id
-            || dispatch.is_resumable()
+            || resumable
         {
             return Err(Error::Checkpoint(
                 "tool reconciliation scope/controller mismatch".into(),
             ));
         }
-        let result = reconciled_result(call, &receipt.0.result, receipt.0.is_error)?;
+        Some(reconciled_result(
+            call,
+            &receipt.0.result,
+            receipt.0.is_error,
+        )?)
+    } else {
+        match committed {
+            Ok(Some(output)) => Some(Ok(output)),
+            Ok(None) if !lookup || !held.is_empty() => None,
+            _ => {
+                return Err(Error::GovernancePaused(serde_json::json!({
+                    "kind": "uncertain_tool",
+                    "call_id": call.id,
+                    "operation_id": operation_id
+                })));
+            }
+        }
+    };
+    if let Some(result) = recovered {
         runtime::settle(
             &held,
             BudgetReceipt {
@@ -204,7 +238,6 @@ where
         return Ok(result);
     }
     let control = context.get::<crate::composition::ChildControl>();
-    let id = nofy_tool_protocol::ToolId::new(&call.name).map_err(|e| Error::Tool(e.to_string()))?;
     let execute = async {
         let mut stream = dispatch.call(id, call.arguments.clone(), context).await;
         while let Some(item) = stream.next().await {
@@ -228,7 +261,7 @@ where
     {
         return Ok(result);
     }
-    if dispatch.is_resumable() && result.is_err() {
+    if resumable && result.is_err() {
         return Ok(result);
     }
     runtime::settle(

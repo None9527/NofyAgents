@@ -216,7 +216,7 @@ pub fn compile_workflow(
     let host = root
         .runtime
         .constrain_descendants()?
-        .with_entry(graph_tool)?;
+        .with_workflow_entry(graph_tool)?;
     Ok(CompiledWorkflow {
         snapshot,
         environment,

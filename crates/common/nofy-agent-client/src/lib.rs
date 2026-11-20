@@ -1,10 +1,13 @@
+pub mod authoring;
 mod contract;
 mod guides;
 mod module_template;
 mod operations;
 mod projects;
 mod repositories;
+mod toolset;
 mod transport;
 pub use contract::*;
 pub use operations::{Engine, refs_from_input};
+pub use toolset::{OperationView, Toolset};
 pub use transport::{KernelClient, Native};

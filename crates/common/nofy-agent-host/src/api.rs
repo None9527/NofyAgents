@@ -1,4 +1,5 @@
 use crate::loader::deployment::DeploymentFile;
+mod composer;
 use crate::{auth::Scope, *};
 use axum::{
     Json, Router,
@@ -17,6 +18,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 mod budgets;
 mod cache;
+mod client_protocol;
 mod credentials;
 mod development;
 mod loader;
@@ -28,6 +30,7 @@ mod references;
 mod rejections;
 mod repositories;
 mod runs;
+pub(crate) use runs::{RunView, inspect_run};
 mod runtime_history;
 mod sessions;
 mod sources;
@@ -50,7 +53,8 @@ impl IntoResponse for HostError {
             Self::NotFound | Self::Control(ControlError::NotFound(_)) => {
                 (StatusCode::NOT_FOUND, "not_found")
             }
-            Self::Control(ControlError::Conflict { .. } | ControlError::CommandConflict) => {
+            Self::Control(ControlError::Conflict { .. } | ControlError::CommandConflict)
+            | Self::RuntimeHistoryPlanStale => {
                 (StatusCode::CONFLICT, "conflict")
             }
             Self::Control(ControlError::Busy) => (StatusCode::SERVICE_UNAVAILABLE, "busy"),
@@ -92,6 +96,9 @@ impl IntoResponse for HostError {
             _ => (StatusCode::UNPROCESSABLE_ENTITY, "invalid"),
         };
         let mut error = json!({"code":code,"message":self.to_string()});
+        if matches!(&self, Self::RuntimeHistoryPlanStale) {
+            error["details"] = json!({"reason":"stale_plan"});
+        }
         // A source error can say more than its message: which paths, which
         // references, which digests. It is structured data the kernel itself
         // built, so it travels, within a bound.
@@ -118,6 +125,7 @@ async fn authenticate(
 pub(crate) fn router(host: KernelHost) -> Router {
     Router::new()
         .route("/api/v1/access", get(access))
+        .route("/api/v1/protocol", get(client_protocol::describe))
         .route("/api/v1/catalog", get(catalog))
         .route("/api/v1/modules", get(modules))
         .route("/api/v1/modules/dependencies", post(dependencies))
@@ -150,6 +158,7 @@ pub(crate) fn router(host: KernelHost) -> Router {
         .merge(unload::router())
         .merge(credentials::router())
         .merge(loader::router())
+        .merge(composer::router())
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
         .layer(middleware::from_fn_with_state(
             host.clone(),
@@ -418,6 +427,7 @@ mod tests {
                 actual: Some(1),
             }),
             HostError::Control(ControlError::CommandConflict),
+            HostError::RuntimeHistoryPlanStale,
             HostError::Control(ControlError::Busy),
             HostError::Control(ControlError::Storage("x".into())),
             HostError::Control(ControlError::CommitUncertain("x".into())),

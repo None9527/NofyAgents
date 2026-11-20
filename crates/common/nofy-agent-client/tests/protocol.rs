@@ -1,4 +1,7 @@
 use nofy_agent_client::*;
+fn full_engine(client: KernelClient) -> Engine {
+    Engine::new(client).with_operation_view(Toolset::Full.sdk())
+}
 use serde_json::{Value, json};
 use std::{
     sync::{
@@ -29,7 +32,7 @@ async fn native_u64_versions_remain_exact_without_rewriting_business_json() {
     let server=serve(axum::Router::new().route("/api/v1/apply",axum::routing::post(|axum::Json(body):axum::Json<Value>|async move{
         assert_eq!(body["expected_generation"].as_u64(),Some(u64::MAX));axum::Json(json!({"command":{"command_id":"same-id"},"active":{"generation":u64::MAX,"release":"published"}}))
     })).route("/api/v1/runs",axum::routing::post(|body:String|async move{assert!(body.contains("18446744073709551615"));axum::Json(json!({"sequence":u64::MAX,"request":{"run_id":"original","thread_id":"thread","parameters":{"generation":u64::MAX}}}))}))).await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let apply=engine.execute("system.apply",json!({"system":"coder","release":"published","command_id":"same-id","expected_generation":u64::MAX.to_string()})).await;
     assert!(!apply.is_error(), "{apply:?}");
     assert_eq!(apply.refs["generation"], Some(u64::MAX.to_string()));
@@ -59,7 +62,7 @@ async fn interrupted_writes_keep_original_business_ids_and_never_retry() {
     ))
     .await;
     let engine =
-        Engine::new(KernelClient::new(&server.url, None, Duration::from_millis(40)).unwrap());
+        full_engine(KernelClient::new(&server.url, None, Duration::from_millis(40)).unwrap());
     let output=engine.execute("system.apply",json!({"system":"coder","release":"published","command_id":"original-command","expected_generation":null})).await;
     assert_eq!(output.status, "unconfirmed");
     assert_eq!(output.refs["command_id"], Some("original-command".into()));
@@ -145,7 +148,7 @@ async fn opaque_native_budget_and_source_cursors_are_returned_and_forwarded_unch
             ),
     )
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let first = engine.execute("budget.list", json!({})).await;
     assert_eq!(first.next_cursor.as_deref(), Some(opaque));
     let next = engine
@@ -173,7 +176,7 @@ async fn original_run_without_a_live_update_exposes_native_revision_zero() {
         }),
     ))
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let result = engine
         .execute("run.inspect", json!({"run_id":"original"}))
         .await;
@@ -195,7 +198,7 @@ async fn extractor_rejections_expose_missing_native_fields_without_echoing_value
             (axum::http::StatusCode::UNPROCESSABLE_ENTITY, "Failed to deserialize the JSON body into the target type: unknown variant `private-business-value`")
         }))).await;
     let client = KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap();
-    let engine = Engine::new(client.clone());
+    let engine = full_engine(client.clone());
     let result = engine
         .execute(
             "run.control",
@@ -241,7 +244,7 @@ async fn a_kernel_that_classifies_its_own_rejection_keeps_the_field_and_the_unco
             ),
     )
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
 
     let rejected = engine
         .execute("run.control", json!({"action_json":"{}"}))
@@ -305,7 +308,7 @@ async fn a_catalogued_code_without_its_own_guidance_explains_itself_from_the_con
         }),
     ))
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let result = engine
         .execute("run.control", json!({"action_json":"{}"}))
         .await;
@@ -329,7 +332,7 @@ async fn creating_from_a_missing_preset_names_the_preset_not_the_new_agent() {
         )
     }))
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let result = engine
         .execute(
             "agent.create",
@@ -373,7 +376,7 @@ async fn naming_only_the_repository_gives_the_same_call_for_every_front_end() {
             ),
     )
     .await;
-    let engine = Engine::new(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
+    let engine = full_engine(KernelClient::new(&server.url, None, Duration::from_secs(2)).unwrap());
     let added = engine
         .execute("repository.add", json!({"repository": "lib"}))
         .await;
@@ -413,7 +416,7 @@ fn schema_required(name: &str) -> Value {
 #[tokio::test]
 async fn the_module_template_is_a_valid_package_and_says_what_it_is() {
     let engine =
-        Engine::new(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
+        full_engine(KernelClient::new("http://127.0.0.1:1", None, Duration::from_secs(1)).unwrap());
     for (input, name, factory) in [
         (json!({}), "my-module", "tool.rhai"),
         (

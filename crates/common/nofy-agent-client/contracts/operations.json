@@ -283,11 +283,15 @@
       "native_routes": [
         {
           "method": "GET",
+          "path": "/api/v1/presets"
+        },
+        {
+          "method": "GET",
           "path": "/api/v1/presets/{id}"
         }
       ],
       "mapping_note": "Source targets execute pure Rust transforms; project targets use managed routes where listed. Composite actions additionally use the native publish/apply APIs.",
-      "summary": "Return the complete source set of an empty project or of a versioned preset."
+      "summary": "Return the complete source set of the registry default, an explicit versioned preset, or an empty project."
     },
     {
       "operation": "project.inspect",
@@ -981,6 +985,90 @@
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
       "summary": "List durable runs, one cursor page at a time."
+    },
+    {
+      "operation": "work.list",
+      "cli": "nofy work list",
+      "mcp_tool": "nofy_work_list",
+      "input_schema": "contracts.schema.json#/$defs/WorkList",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["read"],
+      "authority": "Host Read scope externally and current root Agent session scope in process",
+      "native_routes": [{"method": "POST", "path": "/api/v1/work/list"}],
+      "mapping_note": "Result data carries root, items and next_cursor. Supply run_id when calling through a transport.",
+      "summary": "Read one page of a run tree with child Agents, Workflow nodes and known blockers."
+    },
+    {
+      "operation": "work.inspect",
+      "cli": "nofy work inspect",
+      "mcp_tool": "nofy_work_inspect",
+      "input_schema": "contracts.schema.json#/$defs/WorkInspect",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["read"],
+      "authority": "Host Read scope externally and current root Agent session scope in process",
+      "native_routes": [{"method": "POST", "path": "/api/v1/work/inspect"}],
+      "mapping_note": "Resolve work_id from work.list and supply its root run_id when calling through a transport.",
+      "summary": "Read an exact work node and its current blocked or settled state."
+    },
+    {
+      "operation": "work.targets",
+      "cli": "nofy work targets",
+      "mcp_tool": "nofy_work_targets",
+      "input_schema": "contracts.schema.json#/$defs/WorkTargets",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["read"],
+      "authority": "Host Read scope externally, caller session and frozen release in process",
+      "native_routes": [{"method":"POST","path":"/api/v1/work/{operation}"}],
+      "mapping_note": "The background array carries the exact approved programs and releases.",
+      "summary": "Discover the Agent and Workflow programs approved for background work."
+    },
+    {
+      "operation": "work.start",
+      "cli": "nofy work start",
+      "mcp_tool": "nofy_work_start",
+      "input_schema": "contracts.schema.json#/$defs/WorkStart",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["execute"],
+      "authority": "Execute scope or the embedded caller's session, plus explicit target grant in the frozen release",
+      "native_routes": [{"method":"POST","path":"/api/v1/work/{operation}"}],
+      "mapping_note": "Managed admission records the stable logical ID and session ownership before execution.",
+      "summary": "Start an approved Agent or Workflow as durable session-owned background work."
+    },
+    {
+      "operation": "work.wait",
+      "cli": "nofy work wait",
+      "mcp_tool": "nofy_work_wait",
+      "input_schema": "contracts.schema.json#/$defs/WorkWait",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["read"],
+      "authority": "Host Read scope externally or an authorized embedded session or root",
+      "native_routes": [{"method":"POST","path":"/api/v1/work/{operation}"}],
+      "mapping_note": "Replay committed changes after the returned watermark; polling may return no changes.",
+      "summary": "Wait for or replay committed work changes after a durable watermark."
+    },
+    {
+      "operation": "work.control",
+      "cli": "nofy work control",
+      "mcp_tool": "nofy_work_control",
+      "input_schema": "contracts.schema.json#/$defs/WorkControl",
+      "output_schema": "contracts.schema.json#/$defs/Result",
+      "interface_state": "implemented",
+      "capability_origin": "existing-native-api-adapter",
+      "scope_hint": ["execute"],
+      "authority": "Host Execute scope externally or the embedded caller's owned background work",
+      "native_routes": [{"method":"POST","path":"/api/v1/work/{operation}"}],
+      "mapping_note": "Control acts at the inspected revision and returns a durable admission receipt.",
+      "summary": "Submit a revision-checked cancellation, resume or model retry for a work item."
     },
     {
       "operation": "run.inspect",

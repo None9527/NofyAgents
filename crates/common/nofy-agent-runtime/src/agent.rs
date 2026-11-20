@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, sync::Arc};
 mod context_host;
+mod coordination_host;
 mod dispatch_host;
 mod event_host;
 mod execution;
@@ -172,6 +173,7 @@ impl AgentBuilder {
             spec,
             model: Some(model),
             direct_tool: None,
+            workflow_entry: false,
             event_program: None,
             prompt,
             tools,
@@ -196,6 +198,7 @@ pub struct Agent {
     spec: AgentSpec,
     model: Option<Arc<dyn Model>>,
     direct_tool: Option<ToolCall>,
+    pub(crate) workflow_entry: bool,
     event_program: Option<crate::event_program::BoundEvent>,
     prompt: Arc<dyn Prompt>,
     tools: ToolCatalog,

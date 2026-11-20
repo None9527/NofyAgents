@@ -362,7 +362,7 @@ impl Control {
         }
         let (plan, before) = self.plan_locked(target, store.now_ms())?;
         if plan.fingerprint != fingerprint {
-            return Err(conflict());
+            return Err(HostError::RuntimeHistoryPlanStale);
         }
         let binding = self.binding(
             target,

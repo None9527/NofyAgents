@@ -8,6 +8,7 @@ pub struct Engine {
     pub client: KernelClient,
     pub templates: Option<TemplateRegistry>,
     pub offline: bool,
+    visibility: OperationView,
 }
 impl Engine {
     pub fn new(client: KernelClient) -> Self {
@@ -15,7 +16,18 @@ impl Engine {
             client,
             templates: None,
             offline: false,
+            visibility: Toolset::default().sdk(),
         }
+    }
+    pub fn with_operation_view(mut self, visibility: OperationView) -> Self {
+        self.visibility = visibility;
+        self
+    }
+    pub fn operation_view(&self) -> OperationView {
+        self.visibility
+    }
+    pub fn require_operation(&self, name: &str) -> Result<()> {
+        self.visibility.require(name)
     }
     pub fn with_templates(mut self, templates: TemplateRegistry) -> Self {
         self.templates = Some(templates);
@@ -28,7 +40,10 @@ impl Engine {
     }
     pub async fn execute(&self, operation_name: &str, input: Value) -> Envelope {
         let initial = refs_from_input(&input);
-        let result = match validate(operation_name, &input) {
+        let result = match self
+            .require_operation(operation_name)
+            .and_then(|()| validate(operation_name, &input))
+        {
             Ok(()) => self.dispatch(operation_name, &input).await,
             Err(e) => Err(e),
         };
@@ -104,6 +119,23 @@ impl Engine {
             return self.repository_operation(op, input).await;
         }
         match op {
+            "work.list" | "work.inspect" | "work.targets" | "work.start" | "work.wait" | "work.control" => {
+                let path = op.strip_prefix("work.").expect("work operation");
+                let data = self.client.send("POST", &["api", "v1", "work", path], input).await?.value()?;
+                let next_cursor = if op == "work.wait" && data["more"] == true {
+                    data["watermark"].as_str()
+                } else {
+                    data["next_cursor"].as_str()
+                }.map(str::to_owned);
+                let mut result = Envelope::ok(op, data);
+                for key in ["work_id","run_id","session_id","command_id"] {
+                    if let Some(id) = result.data[key].as_str() {
+                        result.refs.insert(key.into(),Some(id.into()));
+                    }
+                }
+                result.next_cursor = next_cursor;
+                Ok(result)
+            }
             "run.steer" | "run.follow_up" => {
                 let kind = if op == "run.steer" { "interject" } else { "follow_up" };
                 let envelope = json!({"address":{"root_run_id":input["root_run_id"],"run_id":input["run_id"],"thread_id":input["thread_id"],"agent":input["agent"]},"input_id":input["input_id"],"input":{"kind":kind,"message":{"text":input["text"],"attachments":input.get("attachments").cloned().unwrap_or(json!([]))}}});
@@ -139,21 +171,26 @@ impl Engine {
                     error.details = json!({"client_contract_revision":CATALOG["contract_revision"],"kernel_contract_revision":server_revision,"remedy":"Use the kernel built with this operation catalog, then reconnect MCP and call describe again."});
                     return Err(error);
                 }
-                let templates = match &self.templates {
-                    Some(t) => t.list()?,
-                    None => self.client.get(&["api", "v1", "presets"]).await?.value()?,
+                let templates = if self.require_operation("project.template").is_ok() {
+                    match &self.templates {
+                        Some(t) => t.list()?,
+                        None => self.client.get(&["api", "v1", "presets"]).await?.value()?,
+                    }
+                } else {
+                    Value::Null
                 };
                 let sessions = self
                     .client
                     .get(&["api", "v1", "sessions", "capabilities"])
                     .await?
                     .value()?;
-                let repositories = self
-                    .client
-                    .get(&["api", "v1", "module-repositories"])
-                    .await?
-                    .value()?;
-                let mut operations: Vec<_> = CATALOG["operations"]
+                let repositories = if self.require_operation("repository.list").is_ok() {
+                    self.client.get(&["api", "v1", "module-repositories"]).await?.value()?
+                } else {
+                    Value::Null
+                };
+                let catalog = self.visibility.catalog();
+                let mut operations: Vec<_> = catalog["operations"]
                     .as_array()
                     .into_iter()
                     .flatten()
@@ -169,7 +206,7 @@ impl Engine {
                     })
                     .cloned()
                     .collect();
-                let mut inventory = factories["factories"].clone();
+                let mut inventory = if self.visibility.toolset() == Toolset::Run { json!([]) } else { factories["factories"].clone() };
                 if input["include_details"] != true {
                     for operation in &mut operations {
                         if let Some(fields) = operation.as_object_mut() {
@@ -191,10 +228,13 @@ impl Engine {
                 if repositories["repositories"].as_array().is_some_and(Vec::is_empty) {
                     hints.push(json!({"about":"module_repositories","message":"No module repositories are registered. Create one with `nofy repository add <id>` and publish packages with `nofy module publish <id> --directory <dir>`, or start the kernel with --module-dir <id>=<absolute path> to serve a directory of packages."}));
                 }
-                Ok(Envelope::ok(
-                    op,
-                    json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"hints":hints,"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":crate::guides::with_cli(crate::guides::bootstrap()),"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts or describe(include_details=true) for full inventories."}),
-                ))
+                let guide = if self.visibility.toolset() == Toolset::Full {
+                    crate::guides::with_cli(crate::guides::bootstrap())
+                } else {
+                    json!({"summary":"Choose an operation from this toolset and query schema(operation) for its contract and guide."})
+                };
+                let data = json!({"protocol":PROTOCOL,"contract_revision":CATALOG["contract_revision"],"toolset":self.visibility.toolset().name(),"hints":hints,"inventory_view":if input["include_details"]==true {"full"}else{"summary"},"operations":operations,"access":access,"factories":inventory,"presets":templates["presets"],"session_control":sessions,"module_repositories":repositories["repositories"],"kernel_capabilities":factories["development"],"guide":guide,"native_json":"Native DTO JSON is returned as data.native_json for the explicitly selected endpoint/view; refs contain exact public identities. Query schema(factory/operation) for precise contracts."});
+                Ok(Envelope::ok(op, data))
             }
             "schema" => self.schema_result(input).await,
             "draft.get" => {
@@ -471,7 +511,7 @@ impl Engine {
         input: Value,
         secret: zeroize::Zeroizing<String>,
     ) -> Envelope {
-        let result=async{validate("credential.put",&input)?;
+        let result=async{self.require_operation("credential.put")?;validate("credential.put",&input)?;
             native("credential.put",self.client.send("PUT",&["api","v1","credentials",text(&input,"reference")?],&json!({"expected_revision":exact(&input["expected_revision"] )?,"value":secret.as_str()})).await?)}.await;
         match result {
             Ok(mut v) => {

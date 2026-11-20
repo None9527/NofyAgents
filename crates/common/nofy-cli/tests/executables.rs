@@ -31,6 +31,8 @@ fn nofy(args: &[&str]) -> Run {
             "NOFY_TOKEN_FOR_TEST",
             "--format",
             "json",
+            "--toolset",
+            "development",
         ])
         .args(args)
         .output()

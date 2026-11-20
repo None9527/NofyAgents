@@ -1,0 +1,60 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "dynamic-assembly",
+  "version": "0.1.0",
+  "description": "Compile and run a bounded Agent or Workflow from declarations over explicitly bound models and tools.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "max_steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 256,
+        "default": 32
+      },
+      "max_nodes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 128,
+        "default": 64
+      }
+    }
+  },
+  "inputs": {
+    "model": "model",
+    "tools": "tool_pack"
+  },
+  "modules": [
+    {
+      "reference": {
+        "$module": "tools"
+      },
+      "factory": "tool.dynamic_assembly",
+      "config": {
+        "name": "assemble",
+        "bindings": {
+          "model": "model",
+          "tools": "tool_pack"
+        },
+        "max_steps": {
+          "$parameter": "/max_steps"
+        },
+        "max_nodes": {
+          "$parameter": "/max_nodes"
+        }
+      },
+      "dependencies": {
+        "model": {
+          "$input": "model"
+        },
+        "tools": {
+          "$input": "tools"
+        }
+      }
+    }
+  ],
+  "exports": {
+    "tools": "tools"
+  }
+}

@@ -30,6 +30,7 @@ pub fn worker_entry() -> Option<i32> {
     if args.next().as_deref() != Some(std::ffi::OsStr::new(WORKER_ARG)) {
         return None;
     }
+    let mut failure_code = nofy_isolation::RUNNER_FAILURE_EXIT_CODE;
     let result = (|| -> std::result::Result<(), Box<dyn std::error::Error>> {
         let wire = args.next().ok_or("missing isolation profile")?;
         if wire.len() > 65536 {
@@ -39,6 +40,9 @@ pub fn worker_entry() -> Option<i32> {
             serde_json::from_str(wire.to_str().ok_or("invalid profile encoding")?)?;
         let program = args.next().ok_or("missing program")?;
         let arguments = args.collect::<Vec<_>>();
+        if program == "--evaluate-model" {
+            failure_code = super::models::STARTUP_EXIT_CODE;
+        }
         let stack_bytes = if program == "--evaluate-scope" {
             Some(2 * 1024 * 1024)
         } else if program == "--evaluate-model" || program == "--evaluate-code" {
@@ -60,6 +64,7 @@ pub fn worker_entry() -> Option<i32> {
             return super::scopes::worker_evaluate();
         }
         if program == "--evaluate-model" {
+            failure_code = nofy_isolation::RUNNER_FAILURE_EXIT_CODE;
             return nofy_agent_models::worker::run();
         }
         if program == "--evaluate-code" {
@@ -97,7 +102,7 @@ pub fn worker_entry() -> Option<i32> {
         // The one signature a caller uses to tell "the confinement could not be
         // applied" from "the command ended on its own".
         eprintln!("{}: {error}", nofy_isolation::RUNNER_FAILURE_MARKER);
-        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+        Some(failure_code)
     } else {
         Some(0)
     }

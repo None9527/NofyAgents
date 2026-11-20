@@ -177,6 +177,7 @@ fn typed_failure(value: Value) -> Result<Error, Error> {
     let failure: nofy_agent_runtime::model::ModelFailure =
         serde_json::from_value(value).map_err(|_| failure("failure_contract"))?;
     if failure.category.is_empty()
+        || failure.category == nofy_agent_runtime::model::MODEL_EVALUATOR_FAILURE_CATEGORY
         || failure.category.len() > 128
         || failure.message.len() > 4096
         || failure.code.as_ref().is_some_and(|c| c.len() > 256)

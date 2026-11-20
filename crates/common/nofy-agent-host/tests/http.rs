@@ -54,6 +54,8 @@ mod abandonment;
 mod approval;
 #[path = "http/budget.rs"]
 mod budget;
+#[path = "http/client_protocol.rs"]
+mod client_protocol;
 #[path = "http/code.rs"]
 mod code;
 #[path = "http/credentials.rs"]
@@ -74,6 +76,8 @@ mod hook_recovery;
 mod human;
 #[path = "http/human_hook.rs"]
 mod human_hook;
+#[path = "http/input_receipts.rs"]
+mod input_receipts;
 #[path = "http/lifecycle.rs"]
 mod lifecycle;
 #[cfg(target_os = "linux")]

@@ -116,6 +116,29 @@ impl SqliteStore {
         allow: bool,
         scope: ApprovalScope,
     ) -> Result<(), Error> {
+        self.record_approval(request, allow, scope, None).await
+    }
+
+    /// Persist the decision and its continuation together. The queue resumes
+    /// the matching checkpoint after the original worker releases its lease.
+    pub async fn decide_scoped_and_continue(
+        &self,
+        root_run_id: &str,
+        request: &ApprovalRequest,
+        allow: bool,
+        scope: ApprovalScope,
+    ) -> Result<(), Error> {
+        self.record_approval(request, allow, scope, Some(root_run_id.to_owned()))
+            .await
+    }
+
+    async fn record_approval(
+        &self,
+        request: &ApprovalRequest,
+        allow: bool,
+        scope: ApprovalScope,
+        continue_root: Option<String>,
+    ) -> Result<(), Error> {
         let request = request.clone();
         let clock = self.clock.clone();
         self.transaction(move |tx| {
@@ -134,6 +157,9 @@ impl SqliteStore {
             if original != call || decision.is_some_and(|old| old != allow) {
                 return Err(invalid("decision conflicts with original call"));
             }
+            if decision.is_none() && !super::storage::approval_is_open(tx, &request.run_id)? {
+                return Err(invalid("approval run is no longer active"));
+            }
             let mut payload: Value = serde_json::from_str(&payload).map_err(db_error)?;
             if decision.is_some()
                 && payload
@@ -143,6 +169,21 @@ impl SqliteStore {
                     != scope.name()
             {
                 return Err(invalid("recorded decision scope cannot be changed"));
+            }
+            if let Some(root) = &continue_root {
+                let belongs = tx
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_runs m WHERE m.run_id=?1
+                     AND (m.run_id=?2 OR EXISTS(SELECT 1 FROM agent_runtime_children c
+                       WHERE c.root_id=m.run_id AND json_extract(c.payload,'$.run_id')=?2)))",
+                        params![root, request.run_id],
+                        |row| row.get::<_, bool>(0),
+                    )
+                    .map_err(db_error)?;
+                if !belongs {
+                    return Err(invalid("approval is outside this managed run tree"));
+                }
+                payload["_continue_root"] = json!(root);
             }
             if scope != ApprovalScope::Once {
                 let offer: Offer = serde_json::from_value(

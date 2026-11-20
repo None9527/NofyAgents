@@ -1,0 +1,17 @@
+{
+  "format": "nofy.module-repository/v1",
+  "packages": [
+    "agent-foundation/context-compaction",
+    "agent-foundation/agent-task",
+    "agent-foundation/plan",
+    "agent-foundation/agent-collaboration",
+    "agent-foundation/ask-user",
+    "agent-foundation/execution-escalation",
+    "agent-foundation/resilience",
+    "main-agent/guardrails",
+    "main-agent/delegate",
+    "main-agent/instructions",
+    "main-agent/dynamic-assembly",
+    "models/chat-completions"
+  ]
+}
