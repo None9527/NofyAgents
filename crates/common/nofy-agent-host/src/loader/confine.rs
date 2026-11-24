@@ -1490,14 +1490,13 @@ mod tests {
 
     #[test]
     fn seatbelt_golden_profile_parameterizes_roots_blocks_escapes_and_fcntl() {
-        let mut files = Filesystem {
+        let files = Filesystem {
             read_only: vec!["/usr/share/dict".into()],
             read_write: vec!["/work/project".into()],
             executable: vec!["/opt/tools/bin".into()],
             private_mounts: false,
             protected: vec!["/work/project/secrets/key.pem".into()],
         };
-        files.protect_mandatory();
         let policy = Confinement {
             filesystem: Some(files),
             network: Network::Denied,

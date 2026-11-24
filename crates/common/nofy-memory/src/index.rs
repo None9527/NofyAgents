@@ -2848,17 +2848,22 @@ mod tests {
         let v2 = format!("<!-- nofy-memory: id={id}; revision=1 -->\n# Racy\n\nWord gamma.\n");
         assert_eq!(v1.len(), v2.len());
 
-        // Pin to the current whole second (nanos == 0) so the file is racy-clean.
+        // Open the index first so SQLite initialization latency cannot push the
+        // wall clock past the pinned whole-second window.
+        let mut index =
+            UnifiedMemoryIndex::open(&root, project_id, MemoryIndexConfig::default(), 4).unwrap();
+
+        // Pin to a whole second (nanos == 0) at/ahead of the current clock so
+        // the file stays deterministically racy-clean across both refreshes even
+        // if slow CI I/O crosses a wall-clock second boundary.
         let now_secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let coarse_time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(now_secs);
+        let coarse_time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(now_secs + 60);
         std::fs::write(&topic, &v1).unwrap();
         set_file_mtime(&topic, coarse_time);
 
-        let mut index =
-            UnifiedMemoryIndex::open(&root, project_id, MemoryIndexConfig::default(), 4).unwrap();
         index.refresh().unwrap();
 
         // Overwrite with identical length AND identical whole-second mtime.

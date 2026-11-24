@@ -68,12 +68,29 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if let Some(code) = nofy_agent_host::loader::isolation::worker_entry() {
         std::process::exit(code);
     }
-    tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(nofy_tty_utils::runtime::capped_worker_threads().get())
-        .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
-        .enable_all()
-        .build()?
-        .block_on(run())
+    // Windows defaults the OS main thread to a 1 MiB stack, while
+    // `tokio::runtime::Builder::thread_stack_size` only sizes worker threads.
+    // Run the resident host runtime on a dedicated `WORKER_STACK_BYTES` thread
+    // so `block_on(run())` and `worker::run` never overflow the main stack.
+    let result = std::thread::Builder::new()
+        .name("nofy-host-main".into())
+        .stack_size(nofy_agent_host::WORKER_STACK_BYTES)
+        .spawn(|| -> std::result::Result<(), String> {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(nofy_tty_utils::runtime::capped_worker_threads().get())
+                .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
+                .enable_all()
+                .build()
+                .map_err(|err| err.to_string())?
+                .block_on(run())
+                .map_err(|err| err.to_string())
+        })?
+        .join();
+    match result {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(message)) => Err(message.into()),
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
