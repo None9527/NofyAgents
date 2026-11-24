@@ -109,6 +109,14 @@ pub struct UnifiedRebuildResult {
     pub chunks: usize,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct UnifiedRefreshStats {
+    pub files_skipped: usize,
+    pub files_hashed: usize,
+    pub files_reindexed: usize,
+    pub files_removed: usize,
+}
+
 #[derive(Debug, Error)]
 pub enum UnifiedIndexError {
     #[error("unified index database failed: {0}")]
@@ -137,6 +145,7 @@ pub struct MemoryIndex {
     /// Whether sqlite-vec loaded successfully (FTS always available).
     vec_available: bool,
     embedding_dimensions: usize,
+    last_refresh_stats: UnifiedRefreshStats,
 }
 
 impl UnifiedMemoryIndex {
@@ -187,27 +196,34 @@ impl UnifiedMemoryIndex {
         })
     }
 
-    /// Rebuild only scopes whose canonical files or status ledger changed.
+    /// Incrementally refresh only files or status ledgers that changed.
     pub fn refresh(&mut self) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
         let personal_scope = self.layout.personal_scope();
         let project_scope = self.layout.project_scope(self.project_id);
-        let personal = if self.personal.needs_unified_rebuild(&personal_scope)? {
-            self.personal
-                .rebuild_unified_scope(&personal_scope, &MemoryScope::Personal)?
-        } else {
-            UnifiedRebuildResult::default()
-        };
-        let project = if self.project.needs_unified_rebuild(&project_scope)? {
-            self.project
-                .rebuild_unified_scope(&project_scope, &MemoryScope::Project(self.project_id))?
-        } else {
-            UnifiedRebuildResult::default()
-        };
+        let personal = self
+            .personal
+            .refresh_unified_scope(&personal_scope, &MemoryScope::Personal)?;
+        let project = self
+            .project
+            .refresh_unified_scope(&project_scope, &MemoryScope::Project(self.project_id))?;
         Ok(UnifiedRebuildResult {
             topics: personal.topics + project.topics,
             observations: personal.observations + project.observations,
             chunks: personal.chunks + project.chunks,
         })
+    }
+
+    pub fn last_refresh_stats(&self) -> UnifiedRefreshStats {
+        UnifiedRefreshStats {
+            files_skipped: self.personal.last_refresh_stats.files_skipped
+                + self.project.last_refresh_stats.files_skipped,
+            files_hashed: self.personal.last_refresh_stats.files_hashed
+                + self.project.last_refresh_stats.files_hashed,
+            files_reindexed: self.personal.last_refresh_stats.files_reindexed
+                + self.project.last_refresh_stats.files_reindexed,
+            files_removed: self.personal.last_refresh_stats.files_removed
+                + self.project.last_refresh_stats.files_removed,
+        }
     }
 
     pub fn repair_required(&self) -> bool {
@@ -225,15 +241,26 @@ impl UnifiedMemoryIndex {
         let layout = UnifiedMemoryLayout::new(root);
         for scope in [layout.personal_scope(), layout.project_scope(project_id)] {
             let database = scope.root().join("index.sqlite");
-            for path in [
-                database.clone(),
-                PathBuf::from(format!("{}-wal", database.display())),
-                PathBuf::from(format!("{}-shm", database.display())),
-            ] {
-                match std::fs::remove_file(path) {
-                    Ok(()) => {}
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                    Err(error) => return Err(error),
+            let mut candidates = vec![database.clone()];
+            for mode in [JournalMode::for_db_path(&database), JournalMode::Truncate] {
+                let effective = mode.effective_db_path(&database);
+                if !candidates.contains(&effective) {
+                    candidates.push(effective);
+                }
+            }
+            for db in candidates {
+                let mut paths = vec![db.clone()];
+                for suffix in ["-journal", "-wal", "-shm"] {
+                    let mut sidecar = db.as_os_str().to_os_string();
+                    sidecar.push(suffix);
+                    paths.push(PathBuf::from(sidecar));
+                }
+                for path in paths {
+                    match std::fs::remove_file(path) {
+                        Ok(()) => {}
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                        Err(error) => return Err(error),
+                    }
                 }
             }
         }
@@ -324,7 +351,17 @@ impl MemoryIndex {
         }
         db.execute_batch(
             "CREATE INDEX IF NOT EXISTS idx_chunks_object ON chunks(object_id, object_kind);
-             CREATE INDEX IF NOT EXISTS idx_chunks_scope ON chunks(scope_kind, project_id);",
+             CREATE INDEX IF NOT EXISTS idx_chunks_scope ON chunks(scope_kind, project_id);
+             CREATE TABLE IF NOT EXISTS indexed_files (
+                 path TEXT PRIMARY KEY,
+                 file_kind TEXT NOT NULL,
+                 size INTEGER NOT NULL,
+                 mtime_secs INTEGER NOT NULL,
+                 mtime_nanos INTEGER NOT NULL,
+                 content_hash TEXT NOT NULL,
+                 indexed_at_secs INTEGER NOT NULL,
+                 indexed_at_nanos INTEGER NOT NULL
+             );",
         )?;
 
         // Store/verify embedding dimensions in meta table
@@ -373,6 +410,7 @@ impl MemoryIndex {
             chunk_config: config,
             vec_available,
             embedding_dimensions: dimensions,
+            last_refresh_stats: UnifiedRefreshStats::default(),
         })
     }
 
@@ -537,19 +575,43 @@ impl MemoryIndex {
         scope_layout: &ScopeLayout,
         scope: &MemoryScope,
     ) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
-        let fingerprint = scope_fingerprint(scope_layout)?;
+        self.last_refresh_stats = UnifiedRefreshStats::default();
+        let now = current_file_timestamp();
         let mut topics = Vec::new();
         collect_markdown_files(&scope_layout.topics_directory(), &mut topics)?;
+        topics.sort();
 
         let mut observation_files = Vec::new();
         collect_markdown_files(
             &scope_layout.observations_directory(),
             &mut observation_files,
         )?;
+        observation_files.sort();
         let statuses = read_observation_statuses(&scope_layout.state_database())?;
-        let mut observations = Vec::new();
-        for path in observation_files {
+        let statuses_hash = hash_observation_statuses(&statuses);
+
+        let mut final_hashes = Vec::with_capacity(topics.len() + observation_files.len());
+        let mut parsed_topics = Vec::with_capacity(topics.len());
+        for path in topics {
+            let stat = stat_file(&path)?;
             let bytes = std::fs::read(&path)?;
+            let content_hash = hash_bytes(&bytes);
+            let path_str = path.to_string_lossy().into_owned();
+            self.last_refresh_stats.files_hashed += 1;
+            final_hashes.push((path_str.clone(), content_hash.clone()));
+            parsed_topics.push((path, path_str, bytes, content_hash, stat));
+        }
+
+        let mut observation_records = Vec::with_capacity(observation_files.len());
+        let mut all_obs_files = Vec::with_capacity(observation_files.len());
+        for path in observation_files {
+            let stat = stat_file(&path)?;
+            let bytes = std::fs::read(&path)?;
+            let content_hash = hash_bytes(&bytes);
+            let path_str = path.to_string_lossy().into_owned();
+            self.last_refresh_stats.files_hashed += 1;
+            final_hashes.push((path_str.clone(), content_hash.clone()));
+            all_obs_files.push((path_str, stat, content_hash.clone()));
             let observation: Observation = serde_json::from_str(&observation_json(&bytes)?)?;
             if &observation.scope != scope {
                 tracing::warn!(path = %path.display(), "ignoring observation stored in the wrong scope");
@@ -559,184 +621,382 @@ impl MemoryIndex {
                 .get(&observation.id.as_uuid().to_string())
                 .cloned()
                 .unwrap_or_else(|| "active".to_owned());
-            observations.push((path, bytes, observation, status));
+            observation_records.push((path, content_hash, observation, status));
         }
 
-        // Corrections are immutable evidence. Their supersedes edges are the
-        // authoritative projection even if an interrupted writer has not yet
-        // updated the older observation's mutable status row.
-        let superseded: HashSet<String> = observations
-            .iter()
-            .filter(|(_, _, observation, status)| {
-                *status == "active" && observation.kind == ObservationKind::UserCorrection
-            })
-            .flat_map(|(_, _, observation, _)| {
-                observation
-                    .supersedes
-                    .iter()
-                    .map(|id| id.as_uuid().to_string())
-            })
-            .collect();
+        let fingerprint = fingerprint_from_hashes(&mut final_hashes, &statuses);
+        let superseded = superseded_observation_ids(&observation_records);
 
         self.clear_derived_index()?;
         let mut result = UnifiedRebuildResult::default();
-        for path in topics {
-            let bytes = std::fs::read(&path)?;
-            let text = String::from_utf8_lossy(&bytes).into_owned();
-            let relative = path
-                .strip_prefix(scope_layout.topics_directory())
-                .unwrap_or(&path)
-                .to_string_lossy();
-            let metadata = parse_topic_metadata(&text);
-            let scope_key = scope_key(scope);
-            let validity = match scope {
-                MemoryScope::Personal => None,
-                MemoryScope::Project(_) => metadata.validity.as_ref(),
-            };
-            let object_id = metadata.id.unwrap_or_else(|| {
-                uuid::Uuid::new_v5(
-                    &uuid::Uuid::NAMESPACE_URL,
-                    format!("nofy-topic:{scope_key}:{relative}").as_bytes(),
-                )
-                .to_string()
-            });
-            result.chunks += self.index_unified_text(
-                &path,
-                &object_id,
-                "topic",
+        let tx = self.db.transaction()?;
+        for (path, path_str, bytes, content_hash, stat) in parsed_topics {
+            result.chunks += insert_topic_in_tx(
+                &tx,
+                &self.chunk_config,
+                scope_layout,
                 scope,
-                validity,
-                metadata.revision,
-                &hash_bytes(&bytes),
-                None,
-                "active",
-                &text,
-                file_created_at(&path),
+                &path,
+                &bytes,
+                &content_hash,
             )?;
+            upsert_indexed_file_in_tx(&tx, &path_str, "topic", stat, &content_hash, now)?;
             result.topics += 1;
+            self.last_refresh_stats.files_reindexed += 1;
         }
-        for (path, bytes, observation, mut status) in observations {
+        for (path, content_hash, observation, mut status) in observation_records {
             if superseded.contains(&observation.id.as_uuid().to_string()) {
                 status = "superseded".to_owned();
             }
-            result.chunks += self.index_unified_text(
-                &path,
-                &observation.id.as_uuid().to_string(),
-                "observation",
-                scope,
-                observation.project_validity.as_ref(),
-                1,
-                &hash_bytes(&bytes),
-                Some(observation_kind_name(observation.kind)),
-                &status,
-                &observation.statement,
-                observation.created_at.timestamp(),
+            result.chunks += insert_unified_text_in_tx(
+                &tx,
+                &self.chunk_config,
+                &UnifiedDocument {
+                    path: &path,
+                    object_id: &observation.id.as_uuid().to_string(),
+                    object_kind: "observation",
+                    scope,
+                    validity: observation.project_validity.as_ref(),
+                    revision: 1,
+                    object_hash: &content_hash,
+                    observation_kind: Some(observation_kind_name(observation.kind)),
+                    observation_status: &status,
+                    text: &observation.statement,
+                    created_at: observation.created_at.timestamp(),
+                },
             )?;
             result.observations += 1;
+            self.last_refresh_stats.files_reindexed += 1;
         }
-        self.db
-            .execute(schema::UPSERT_META_SQL, params!["repair_required", "0"])?;
-        self.db.execute(
+        for (path_str, stat, content_hash) in all_obs_files {
+            upsert_indexed_file_in_tx(&tx, &path_str, "observation", stat, &content_hash, now)?;
+        }
+        tx.execute(schema::UPSERT_META_SQL, params!["repair_required", "0"])?;
+        tx.execute(schema::UPSERT_META_SQL, params!["indexed_files_ready", "1"])?;
+        tx.execute(
+            schema::UPSERT_META_SQL,
+            params!["observation_statuses_hash", statuses_hash],
+        )?;
+        tx.execute(
             schema::UPSERT_META_SQL,
             params!["canonical_fingerprint", fingerprint],
         )?;
+        tx.commit()?;
         Ok(result)
     }
 
-    fn needs_unified_rebuild(&self, scope_layout: &ScopeLayout) -> Result<bool, UnifiedIndexError> {
-        if self.repair_required() {
-            return Ok(true);
+    fn refresh_unified_scope(
+        &mut self,
+        scope_layout: &ScopeLayout,
+        scope: &MemoryScope,
+    ) -> Result<UnifiedRebuildResult, UnifiedIndexError> {
+        if self.repair_required() || !self.indexed_files_ready()? {
+            return self.rebuild_unified_scope(scope_layout, scope);
         }
-        let stored = self
+        self.last_refresh_stats = UnifiedRefreshStats::default();
+        let now = current_file_timestamp();
+        let mut topic_paths = Vec::new();
+        collect_markdown_files(&scope_layout.topics_directory(), &mut topic_paths)?;
+        topic_paths.sort();
+
+        let mut obs_paths = Vec::new();
+        collect_markdown_files(&scope_layout.observations_directory(), &mut obs_paths)?;
+        obs_paths.sort();
+
+        let cached_files = self.load_indexed_files()?;
+        let statuses = read_observation_statuses(&scope_layout.state_database())?;
+        let statuses_hash = hash_observation_statuses(&statuses);
+        let stored_statuses_hash: Option<String> = self
             .db
-            .query_row(schema::GET_META_SQL, ["canonical_fingerprint"], |row| {
-                row.get::<_, String>(0)
+            .query_row(schema::GET_META_SQL, ["observation_statuses_hash"], |row| {
+                row.get(0)
             })
             .optional()?;
-        Ok(stored.as_deref() != Some(scope_fingerprint(scope_layout)?.as_str()))
+        let statuses_changed = stored_statuses_hash.as_deref() != Some(statuses_hash.as_str());
+
+        let mut seen_paths = HashSet::with_capacity(topic_paths.len() + obs_paths.len());
+        let mut final_hashes = Vec::with_capacity(topic_paths.len() + obs_paths.len());
+        let mut dirty_topics = Vec::new();
+        let mut stat_updates = Vec::new();
+
+        for path in topic_paths {
+            let path_str = path.to_string_lossy().into_owned();
+            seen_paths.insert(path_str.clone());
+            let stat = stat_file(&path)?;
+            if let Some(cached) = cached_files.get(&path_str)
+                && can_skip_hash(cached, "topic", stat, now)
+            {
+                self.last_refresh_stats.files_skipped += 1;
+                final_hashes.push((path_str, cached.content_hash.clone()));
+                continue;
+            }
+            let bytes = std::fs::read(&path)?;
+            let content_hash = hash_bytes(&bytes);
+            self.last_refresh_stats.files_hashed += 1;
+            final_hashes.push((path_str.clone(), content_hash.clone()));
+            if let Some(cached) = cached_files.get(&path_str)
+                && cached.file_kind == "topic"
+                && cached.content_hash == content_hash
+            {
+                if let Some(stat) = stat
+                    && !stat.is_symlink
+                {
+                    stat_updates.push((path_str, "topic", stat, content_hash));
+                }
+            } else {
+                dirty_topics.push((path, path_str, bytes, content_hash, stat));
+            }
+        }
+
+        let mut obs_dirty = false;
+        let mut obs_prefetched: HashMap<String, (Vec<u8>, String, Option<FileStat>)> =
+            HashMap::new();
+        for path in &obs_paths {
+            let path_str = path.to_string_lossy().into_owned();
+            seen_paths.insert(path_str.clone());
+            let stat = stat_file(path)?;
+            if let Some(cached) = cached_files.get(&path_str)
+                && can_skip_hash(cached, "observation", stat, now)
+            {
+                self.last_refresh_stats.files_skipped += 1;
+                final_hashes.push((path_str, cached.content_hash.clone()));
+                continue;
+            }
+            let bytes = std::fs::read(path)?;
+            let content_hash = hash_bytes(&bytes);
+            self.last_refresh_stats.files_hashed += 1;
+            final_hashes.push((path_str.clone(), content_hash.clone()));
+            if let Some(cached) = cached_files.get(&path_str)
+                && cached.file_kind == "observation"
+                && cached.content_hash == content_hash
+            {
+                if let Some(stat) = stat
+                    && !stat.is_symlink
+                {
+                    stat_updates.push((
+                        path_str.clone(),
+                        "observation",
+                        stat,
+                        content_hash.clone(),
+                    ));
+                }
+            } else {
+                obs_dirty = true;
+            }
+            obs_prefetched.insert(path_str, (bytes, content_hash, stat));
+        }
+
+        let mut removed_topics = Vec::new();
+        let mut removed_obs_count = 0usize;
+        for (path_str, record) in &cached_files {
+            if !seen_paths.contains(path_str) {
+                if record.file_kind == "topic" {
+                    removed_topics.push(path_str.clone());
+                } else {
+                    removed_obs_count += 1;
+                    obs_dirty = true;
+                }
+            }
+        }
+
+        let fingerprint = fingerprint_from_hashes(&mut final_hashes, &statuses);
+        let stored_fp: Option<String> = self
+            .db
+            .query_row(schema::GET_META_SQL, ["canonical_fingerprint"], |row| {
+                row.get(0)
+            })
+            .optional()?;
+        let needs_obs_sync = obs_dirty || statuses_changed;
+
+        if dirty_topics.is_empty() && removed_topics.is_empty() && !needs_obs_sync {
+            if stored_fp.as_deref() != Some(fingerprint.as_str()) {
+                return self.rebuild_unified_scope(scope_layout, scope);
+            }
+            if !stat_updates.is_empty() {
+                let tx = self.db.transaction()?;
+                for (path_str, kind, stat, content_hash) in stat_updates {
+                    upsert_indexed_file_in_tx(
+                        &tx,
+                        &path_str,
+                        kind,
+                        Some(stat),
+                        &content_hash,
+                        now,
+                    )?;
+                }
+                tx.commit()?;
+            }
+            return Ok(UnifiedRebuildResult::default());
+        }
+
+        let obs_rebuild = if needs_obs_sync {
+            let mut observation_records = Vec::with_capacity(obs_paths.len());
+            let mut all_obs_files = Vec::with_capacity(obs_paths.len());
+            for path in obs_paths {
+                let path_str = path.to_string_lossy().into_owned();
+                let (bytes, content_hash, stat) = match obs_prefetched.remove(&path_str) {
+                    Some(existing) => existing,
+                    None => {
+                        let stat = stat_file(&path)?;
+                        let bytes = std::fs::read(&path)?;
+                        let content_hash = hash_bytes(&bytes);
+                        self.last_refresh_stats.files_hashed += 1;
+                        (bytes, content_hash, stat)
+                    }
+                };
+                all_obs_files.push((path_str, stat, content_hash.clone()));
+                let observation: Observation = serde_json::from_str(&observation_json(&bytes)?)?;
+                if &observation.scope != scope {
+                    tracing::warn!(path = %path.display(), "ignoring observation stored in the wrong scope");
+                    continue;
+                }
+                let status = statuses
+                    .get(&observation.id.as_uuid().to_string())
+                    .cloned()
+                    .unwrap_or_else(|| "active".to_owned());
+                observation_records.push((path, content_hash, observation, status));
+            }
+            Some((observation_records, all_obs_files))
+        } else {
+            None
+        };
+
+        let mut result = UnifiedRebuildResult::default();
+        let tx = self.db.transaction()?;
+        for path_str in &removed_topics {
+            delete_path_in_tx(&tx, self.vec_available, path_str)?;
+            tx.execute("DELETE FROM indexed_files WHERE path = ?1", [path_str])?;
+            self.last_refresh_stats.files_removed += 1;
+        }
+        for (path, path_str, bytes, content_hash, stat) in dirty_topics {
+            delete_path_in_tx(&tx, self.vec_available, &path_str)?;
+            result.chunks += insert_topic_in_tx(
+                &tx,
+                &self.chunk_config,
+                scope_layout,
+                scope,
+                &path,
+                &bytes,
+                &content_hash,
+            )?;
+            upsert_indexed_file_in_tx(&tx, &path_str, "topic", stat, &content_hash, now)?;
+            result.topics += 1;
+            self.last_refresh_stats.files_reindexed += 1;
+        }
+        if let Some((observation_records, all_obs_files)) = obs_rebuild {
+            let existing_obs_paths = {
+                let mut stmt = tx.prepare(
+                    "SELECT DISTINCT path FROM chunks WHERE origin = 'canonical' AND object_kind = 'observation'",
+                )?;
+                stmt.query_map([], |row| row.get::<_, String>(0))?
+                    .collect::<Result<Vec<_>, _>>()?
+            };
+            for path_str in existing_obs_paths {
+                delete_path_in_tx(&tx, self.vec_available, &path_str)?;
+            }
+            tx.execute(
+                "DELETE FROM indexed_files WHERE file_kind = 'observation'",
+                [],
+            )?;
+            self.last_refresh_stats.files_removed += removed_obs_count;
+            let superseded = superseded_observation_ids(&observation_records);
+            for (path, content_hash, observation, mut status) in observation_records {
+                if superseded.contains(&observation.id.as_uuid().to_string()) {
+                    status = "superseded".to_owned();
+                }
+                result.chunks += insert_unified_text_in_tx(
+                    &tx,
+                    &self.chunk_config,
+                    &UnifiedDocument {
+                        path: &path,
+                        object_id: &observation.id.as_uuid().to_string(),
+                        object_kind: "observation",
+                        scope,
+                        validity: observation.project_validity.as_ref(),
+                        revision: 1,
+                        object_hash: &content_hash,
+                        observation_kind: Some(observation_kind_name(observation.kind)),
+                        observation_status: &status,
+                        text: &observation.statement,
+                        created_at: observation.created_at.timestamp(),
+                    },
+                )?;
+                result.observations += 1;
+                self.last_refresh_stats.files_reindexed += 1;
+            }
+            for (path_str, stat, content_hash) in all_obs_files {
+                upsert_indexed_file_in_tx(&tx, &path_str, "observation", stat, &content_hash, now)?;
+            }
+        }
+        for (path_str, kind, stat, content_hash) in stat_updates {
+            if kind == "topic" || !needs_obs_sync {
+                upsert_indexed_file_in_tx(&tx, &path_str, kind, Some(stat), &content_hash, now)?;
+            }
+        }
+        tx.execute(schema::UPSERT_META_SQL, params!["repair_required", "0"])?;
+        tx.execute(schema::UPSERT_META_SQL, params!["indexed_files_ready", "1"])?;
+        tx.execute(
+            schema::UPSERT_META_SQL,
+            params!["observation_statuses_hash", statuses_hash],
+        )?;
+        tx.execute(
+            schema::UPSERT_META_SQL,
+            params!["canonical_fingerprint", fingerprint],
+        )?;
+        tx.commit()?;
+        Ok(result)
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn index_unified_text(
-        &mut self,
-        path: &Path,
-        object_id: &str,
-        object_kind: &str,
-        scope: &MemoryScope,
-        validity: Option<&ProjectValidity>,
-        revision: u64,
-        object_hash: &str,
-        observation_kind: Option<&str>,
-        observation_status: &str,
-        text: &str,
-        created_at: i64,
-    ) -> Result<usize, rusqlite::Error> {
-        let chunks = chunk_markdown(text, &self.chunk_config);
-        let path_text = path.to_string_lossy();
-        let (scope_kind, project_id) = match scope {
-            MemoryScope::Personal => ("personal", None),
-            MemoryScope::Project(project_id) => ("project", Some(project_id.as_uuid().to_string())),
-        };
-        let (validity_kind, git_ref, anchor_commit) = match validity {
-            None | Some(ProjectValidity::ProjectWide) => ("project_wide", None, None),
-            Some(ProjectValidity::BranchLocal {
-                git_ref,
-                anchor_commit,
-            }) => (
-                "branch_local",
-                Some(git_ref.as_str()),
-                Some(anchor_commit.as_str()),
-            ),
-        };
-        let source = format!("{scope_kind}_{object_kind}");
-        let now = chrono::Utc::now().timestamp();
-        let transaction = self.db.transaction()?;
-        for (position, chunk) in chunks.iter().enumerate() {
-            let chunk_id = format!("{object_kind}:{object_id}:{position}");
-            transaction.execute(
-                "INSERT INTO chunks
-                 (id, path, start_line, end_line, text, hash, source, origin,
-                  object_id, object_kind, scope_kind, project_id, validity_kind,
-                  git_ref, anchor_commit, revision, object_hash, observation_kind,
-                  observation_status, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'canonical', ?8, ?9,
-                         ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
-                params![
-                    chunk_id,
-                    path_text.as_ref(),
-                    chunk.start_line as i64,
-                    chunk.end_line as i64,
-                    chunk.text,
-                    chunk_hash(&chunk.text),
-                    source,
-                    object_id,
-                    object_kind,
-                    scope_kind,
-                    project_id,
-                    validity_kind,
-                    git_ref,
-                    anchor_commit,
-                    revision as i64,
-                    object_hash,
-                    observation_kind,
-                    observation_status,
-                    created_at,
-                    now,
-                ],
-            )?;
-            let rowid = transaction.last_insert_rowid();
-            transaction.execute(
-                "INSERT INTO chunks_fts(rowid, text) VALUES (?1, ?2)",
-                params![rowid, chunk.text],
-            )?;
+    fn indexed_files_ready(&self) -> Result<bool, rusqlite::Error> {
+        let ready: Option<String> = self
+            .db
+            .query_row(schema::GET_META_SQL, ["indexed_files_ready"], |row| {
+                row.get(0)
+            })
+            .optional()?;
+        Ok(ready.as_deref() == Some("1"))
+    }
+
+    fn load_indexed_files(&self) -> Result<HashMap<String, IndexedFileRecord>, rusqlite::Error> {
+        let mut stmt = self.db.prepare(
+            "SELECT path, file_kind, size, mtime_secs, mtime_nanos, content_hash, indexed_at_secs, indexed_at_nanos
+             FROM indexed_files",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            let mtime_nanos = u32::try_from(row.get::<_, i64>(4)?).unwrap_or(0);
+            let indexed_at_nanos = u32::try_from(row.get::<_, i64>(7)?).unwrap_or(0);
+            Ok((
+                row.get::<_, String>(0)?,
+                IndexedFileRecord {
+                    file_kind: row.get(1)?,
+                    size: row.get(2)?,
+                    mtime: FileTimestamp {
+                        secs: row.get(3)?,
+                        nanos: mtime_nanos,
+                    },
+                    content_hash: row.get(5)?,
+                    indexed_at: FileTimestamp {
+                        secs: row.get(6)?,
+                        nanos: indexed_at_nanos,
+                    },
+                },
+            ))
+        })?;
+        let mut map = HashMap::new();
+        for row in rows {
+            let (path, record) = row?;
+            map.insert(path, record);
         }
-        transaction.commit()?;
-        Ok(chunks.len())
+        Ok(map)
     }
 
     fn clear_derived_index(&mut self) -> Result<(), rusqlite::Error> {
         let transaction = self.db.transaction()?;
         transaction.execute(schema::UPSERT_META_SQL, params!["repair_required", "1"])?;
+        transaction.execute(
+            "DELETE FROM meta WHERE key IN ('indexed_files_ready', 'observation_statuses_hash', 'canonical_fingerprint')",
+            [],
+        )?;
         transaction.execute(
             "INSERT INTO chunks_fts(chunks_fts) VALUES('delete-all')",
             [],
@@ -745,6 +1005,7 @@ impl MemoryIndex {
             transaction.execute("DELETE FROM chunks_vec", [])?;
         }
         transaction.execute("DELETE FROM chunks", [])?;
+        transaction.execute("DELETE FROM indexed_files", [])?;
         transaction.commit()
     }
 
@@ -1316,13 +1577,11 @@ fn collect_markdown_files(directory: &Path, files: &mut Vec<PathBuf>) -> std::io
 }
 
 fn read_observation_statuses(database: &Path) -> Result<HashMap<String, String>, rusqlite::Error> {
-    if !database.is_file() {
+    let mode = JournalMode::for_db_path(database);
+    if !mode.effective_db_path(database).is_file() {
         return Ok(HashMap::new());
     }
-    let connection = rusqlite::Connection::open_with_flags(
-        database,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )?;
+    let connection = mode.open_readonly(database)?;
     let mut statement =
         connection.prepare("SELECT observation_id, status FROM observation_states")?;
     statement
@@ -1330,25 +1589,367 @@ fn read_observation_statuses(database: &Path) -> Result<HashMap<String, String>,
         .collect()
 }
 
-fn scope_fingerprint(scope: &ScopeLayout) -> Result<String, UnifiedIndexError> {
-    let mut paths = Vec::new();
-    collect_markdown_files(&scope.topics_directory(), &mut paths)?;
-    collect_markdown_files(&scope.observations_directory(), &mut paths)?;
-    paths.sort();
-    let mut hasher = blake3::Hasher::new();
-    for path in paths {
-        hasher.update(path.to_string_lossy().as_bytes());
-        hasher.update(&std::fs::read(path)?);
+const RACY_CLEAN_MARGIN_NANOS: i128 = 50_000_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FileTimestamp {
+    secs: i64,
+    nanos: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FileStat {
+    size: i64,
+    mtime: FileTimestamp,
+    is_symlink: bool,
+}
+
+#[derive(Debug, Clone)]
+struct IndexedFileRecord {
+    file_kind: String,
+    size: i64,
+    mtime: FileTimestamp,
+    content_hash: String,
+    indexed_at: FileTimestamp,
+}
+
+struct UnifiedDocument<'a> {
+    path: &'a Path,
+    object_id: &'a str,
+    object_kind: &'a str,
+    scope: &'a MemoryScope,
+    validity: Option<&'a ProjectValidity>,
+    revision: u64,
+    object_hash: &'a str,
+    observation_kind: Option<&'a str>,
+    observation_status: &'a str,
+    text: &'a str,
+    created_at: i64,
+}
+
+fn system_time_to_timestamp(time: std::time::SystemTime) -> Option<FileTimestamp> {
+    match time.duration_since(std::time::UNIX_EPOCH) {
+        Ok(duration) => Some(FileTimestamp {
+            secs: i64::try_from(duration.as_secs()).ok()?,
+            nanos: duration.subsec_nanos(),
+        }),
+        Err(error) => {
+            let duration = error.duration();
+            let secs = i64::try_from(duration.as_secs()).ok()?;
+            let nanos = duration.subsec_nanos();
+            if nanos == 0 {
+                Some(FileTimestamp {
+                    secs: secs.checked_neg()?,
+                    nanos: 0,
+                })
+            } else {
+                Some(FileTimestamp {
+                    secs: secs.checked_add(1)?.checked_neg()?,
+                    nanos: 1_000_000_000 - nanos,
+                })
+            }
+        }
     }
-    let mut statuses: Vec<_> = read_observation_statuses(&scope.state_database())?
-        .into_iter()
-        .collect();
-    statuses.sort();
-    for (id, status) in statuses {
+}
+
+fn current_file_timestamp() -> FileTimestamp {
+    system_time_to_timestamp(std::time::SystemTime::now())
+        .unwrap_or(FileTimestamp { secs: 0, nanos: 0 })
+}
+
+fn stat_file(path: &Path) -> std::io::Result<Option<FileStat>> {
+    let meta = std::fs::symlink_metadata(path)?;
+    if meta.file_type().is_symlink() {
+        return Ok(Some(FileStat {
+            size: 0,
+            mtime: FileTimestamp { secs: 0, nanos: 0 },
+            is_symlink: true,
+        }));
+    }
+    if !meta.is_file() {
+        return Ok(None);
+    }
+    let Ok(size) = i64::try_from(meta.len()) else {
+        return Ok(None);
+    };
+    let Some(mtime) = meta.modified().ok().and_then(system_time_to_timestamp) else {
+        return Ok(None);
+    };
+    Ok(Some(FileStat {
+        size,
+        mtime,
+        is_symlink: false,
+    }))
+}
+
+fn is_racy_clean(mtime: FileTimestamp, indexed_at: FileTimestamp, now: FileTimestamp) -> bool {
+    if mtime.nanos == 0 {
+        return indexed_at.secs <= mtime.secs || now.secs <= mtime.secs;
+    }
+    let elapsed = |later: FileTimestamp, earlier: FileTimestamp| -> Option<i128> {
+        let later_ns = i128::from(later.secs) * 1_000_000_000 + i128::from(later.nanos);
+        let earlier_ns = i128::from(earlier.secs) * 1_000_000_000 + i128::from(earlier.nanos);
+        later_ns.checked_sub(earlier_ns)
+    };
+    elapsed(indexed_at, mtime).is_none_or(|delta| delta < RACY_CLEAN_MARGIN_NANOS)
+        || elapsed(now, mtime).is_none_or(|delta| delta < RACY_CLEAN_MARGIN_NANOS)
+}
+
+fn can_skip_hash(
+    cached: &IndexedFileRecord,
+    file_kind: &str,
+    stat: Option<FileStat>,
+    now: FileTimestamp,
+) -> bool {
+    let Some(stat) = stat else {
+        return false;
+    };
+    if stat.is_symlink
+        || cached.size < 0
+        || cached.file_kind != file_kind
+        || cached.size != stat.size
+        || cached.mtime != stat.mtime
+    {
+        return false;
+    }
+    !is_racy_clean(stat.mtime, cached.indexed_at, now)
+}
+
+fn hash_observation_statuses(statuses: &HashMap<String, String>) -> String {
+    let mut pairs: Vec<(&String, &String)> = statuses.iter().collect();
+    pairs.sort_unstable();
+    let mut hasher = blake3::Hasher::new();
+    for (id, status) in pairs {
+        hasher.update((id.len() as u64).to_le_bytes().as_slice());
+        hasher.update(id.as_bytes());
+        hasher.update((status.len() as u64).to_le_bytes().as_slice());
+        hasher.update(status.as_bytes());
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+fn fingerprint_from_hashes(
+    files: &mut [(String, String)],
+    statuses: &HashMap<String, String>,
+) -> String {
+    files.sort_unstable();
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"nofy-index-v2:");
+    for (path, content_hash) in files.iter() {
+        hasher.update((path.len() as u64).to_le_bytes().as_slice());
+        hasher.update(path.as_bytes());
+        hasher.update(content_hash.as_bytes());
+    }
+    let mut status_pairs: Vec<(&String, &String)> = statuses.iter().collect();
+    status_pairs.sort_unstable();
+    for (id, status) in status_pairs {
+        hasher.update((id.len() as u64).to_le_bytes().as_slice());
         hasher.update(id.as_bytes());
         hasher.update(status.as_bytes());
     }
-    Ok(hasher.finalize().to_hex().to_string())
+    hasher.finalize().to_hex().to_string()
+}
+
+fn superseded_observation_ids(
+    observations: &[(PathBuf, String, Observation, String)],
+) -> HashSet<String> {
+    // Corrections are immutable evidence. Their supersedes edges are the
+    // authoritative projection even if an interrupted writer has not yet
+    // updated the older observation's mutable status row.
+    observations
+        .iter()
+        .filter(|(_, _, observation, status)| {
+            *status == "active" && observation.kind == ObservationKind::UserCorrection
+        })
+        .flat_map(|(_, _, observation, _)| {
+            observation
+                .supersedes
+                .iter()
+                .map(|id| id.as_uuid().to_string())
+        })
+        .collect()
+}
+
+fn delete_path_in_tx(
+    tx: &rusqlite::Transaction<'_>,
+    vec_available: bool,
+    path_str: &str,
+) -> Result<usize, rusqlite::Error> {
+    let existing = {
+        let mut stmt = tx.prepare("SELECT rowid, id, text FROM chunks WHERE path = ?1")?;
+        stmt.query_map(params![path_str], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?
+    };
+    for (rowid, chunk_id, text) in &existing {
+        tx.execute(
+            "INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', ?1, ?2)",
+            params![rowid, text],
+        )?;
+        if vec_available {
+            let _ = tx.execute(
+                "DELETE FROM chunks_vec WHERE chunk_id = ?1",
+                params![chunk_id],
+            );
+        }
+        tx.execute("DELETE FROM chunks WHERE id = ?1", params![chunk_id])?;
+    }
+    Ok(existing.len())
+}
+
+fn upsert_indexed_file_in_tx(
+    tx: &rusqlite::Transaction<'_>,
+    path_str: &str,
+    file_kind: &str,
+    stat: Option<FileStat>,
+    content_hash: &str,
+    indexed_at: FileTimestamp,
+) -> Result<(), rusqlite::Error> {
+    let (size, mtime_secs, mtime_nanos) = match stat {
+        Some(stat) if !stat.is_symlink => (stat.size, stat.mtime.secs, i64::from(stat.mtime.nanos)),
+        _ => (-1, 0, 0),
+    };
+    tx.execute(
+        "INSERT INTO indexed_files
+         (path, file_kind, size, mtime_secs, mtime_nanos, content_hash, indexed_at_secs, indexed_at_nanos)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         ON CONFLICT(path) DO UPDATE SET
+             file_kind = excluded.file_kind,
+             size = excluded.size,
+             mtime_secs = excluded.mtime_secs,
+             mtime_nanos = excluded.mtime_nanos,
+             content_hash = excluded.content_hash,
+             indexed_at_secs = excluded.indexed_at_secs,
+             indexed_at_nanos = excluded.indexed_at_nanos",
+        params![
+            path_str,
+            file_kind,
+            size,
+            mtime_secs,
+            mtime_nanos,
+            content_hash,
+            indexed_at.secs,
+            i64::from(indexed_at.nanos),
+        ],
+    )?;
+    Ok(())
+}
+
+fn insert_topic_in_tx(
+    tx: &rusqlite::Transaction<'_>,
+    chunk_config: &MemoryIndexConfig,
+    scope_layout: &ScopeLayout,
+    scope: &MemoryScope,
+    path: &Path,
+    bytes: &[u8],
+    content_hash: &str,
+) -> Result<usize, rusqlite::Error> {
+    let text = String::from_utf8_lossy(bytes);
+    let relative = path
+        .strip_prefix(scope_layout.topics_directory())
+        .unwrap_or(path)
+        .to_string_lossy();
+    let metadata = parse_topic_metadata(&text);
+    let scope_key = scope_key(scope);
+    let validity = match scope {
+        MemoryScope::Personal => None,
+        MemoryScope::Project(_) => metadata.validity.as_ref(),
+    };
+    let object_id = metadata.id.unwrap_or_else(|| {
+        uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_URL,
+            format!("nofy-topic:{scope_key}:{relative}").as_bytes(),
+        )
+        .to_string()
+    });
+    insert_unified_text_in_tx(
+        tx,
+        chunk_config,
+        &UnifiedDocument {
+            path,
+            object_id: &object_id,
+            object_kind: "topic",
+            scope,
+            validity,
+            revision: metadata.revision,
+            object_hash: content_hash,
+            observation_kind: None,
+            observation_status: "active",
+            text: &text,
+            created_at: file_created_at(path),
+        },
+    )
+}
+
+fn insert_unified_text_in_tx(
+    tx: &rusqlite::Transaction<'_>,
+    chunk_config: &MemoryIndexConfig,
+    doc: &UnifiedDocument<'_>,
+) -> Result<usize, rusqlite::Error> {
+    let chunks = chunk_markdown(doc.text, chunk_config);
+    let path_text = doc.path.to_string_lossy();
+    let (scope_kind, project_id) = match doc.scope {
+        MemoryScope::Personal => ("personal", None),
+        MemoryScope::Project(project_id) => ("project", Some(project_id.as_uuid().to_string())),
+    };
+    let (validity_kind, git_ref, anchor_commit) = match doc.validity {
+        None | Some(ProjectValidity::ProjectWide) => ("project_wide", None, None),
+        Some(ProjectValidity::BranchLocal {
+            git_ref,
+            anchor_commit,
+        }) => (
+            "branch_local",
+            Some(git_ref.as_str()),
+            Some(anchor_commit.as_str()),
+        ),
+    };
+    let source = format!("{scope_kind}_{}", doc.object_kind);
+    let now = chrono::Utc::now().timestamp();
+    for (position, chunk) in chunks.iter().enumerate() {
+        let chunk_id = format!("{}:{}:{position}", doc.object_kind, doc.object_id);
+        tx.execute(
+            "INSERT INTO chunks
+             (id, path, start_line, end_line, text, hash, source, origin,
+              object_id, object_kind, scope_kind, project_id, validity_kind,
+              git_ref, anchor_commit, revision, object_hash, observation_kind,
+              observation_status, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'canonical', ?8, ?9,
+                     ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+            params![
+                chunk_id,
+                path_text.as_ref(),
+                chunk.start_line as i64,
+                chunk.end_line as i64,
+                chunk.text,
+                chunk_hash(&chunk.text),
+                source,
+                doc.object_id,
+                doc.object_kind,
+                scope_kind,
+                project_id,
+                validity_kind,
+                git_ref,
+                anchor_commit,
+                doc.revision as i64,
+                doc.object_hash,
+                doc.observation_kind,
+                doc.observation_status,
+                doc.created_at,
+                now,
+            ],
+        )?;
+        let rowid = tx.last_insert_rowid();
+        tx.execute(
+            "INSERT INTO chunks_fts(rowid, text) VALUES (?1, ?2)",
+            params![rowid, chunk.text],
+        )?;
+    }
+    Ok(chunks.len())
 }
 
 fn observation_json(bytes: &[u8]) -> Result<String, std::io::Error> {
@@ -2087,5 +2688,209 @@ mod tests {
         drop(idx);
         let storage = test_storage(&tmp);
         MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536).unwrap();
+    }
+
+    #[test]
+    fn test_delete_derived_indexes_removes_truncate_per_host_and_journal_sidecars() {
+        let tmp = TempDir::new().unwrap();
+        let project_id = ProjectId::new();
+        let layout = UnifiedMemoryLayout::new(tmp.path());
+
+        let mut expected_removed = Vec::new();
+        for scope in [layout.personal_scope(), layout.project_scope(project_id)] {
+            std::fs::create_dir_all(scope.root()).unwrap();
+            let base = scope.root().join("index.sqlite");
+            let per_host = JournalMode::Truncate.effective_db_path(&base);
+            for db in [base, per_host] {
+                for suffix in ["", "-journal", "-wal", "-shm"] {
+                    let mut p = db.as_os_str().to_os_string();
+                    p.push(suffix);
+                    let path = PathBuf::from(p);
+                    std::fs::write(&path, b"placeholder").unwrap();
+                    expected_removed.push(path);
+                }
+            }
+        }
+
+        UnifiedMemoryIndex::delete_derived_indexes(tmp.path(), project_id).unwrap();
+
+        for path in expected_removed {
+            assert!(
+                !path.exists(),
+                "expected derived index artifact to be removed: {}",
+                path.display()
+            );
+        }
+    }
+
+    fn set_file_mtime(path: &Path, time: std::time::SystemTime) {
+        let file = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+        file.set_modified(time).unwrap();
+    }
+
+    #[test]
+    fn unified_refresh_skips_unmodified_files_and_recomputes_same_length_mtime_edits() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("memory");
+        let project_id = ProjectId::new();
+        let topics_dir = root.join("personal/topics");
+        std::fs::create_dir_all(&topics_dir).unwrap();
+
+        let id_a = uuid::Uuid::new_v4();
+        let id_b = uuid::Uuid::new_v4();
+        let id_c = uuid::Uuid::new_v4();
+        let topic_a = topics_dir.join("a.md");
+        let topic_b = topics_dir.join("b.md");
+        let topic_c = topics_dir.join("c.md");
+
+        let body_a =
+            format!("<!-- nofy-memory: id={id_a}; revision=1 -->\n# A\n\nKeep zebra note.\n");
+        let body_b_v1 =
+            format!("<!-- nofy-memory: id={id_b}; revision=1 -->\n# B\n\nToken alpha value.\n");
+        let body_b_v2 =
+            format!("<!-- nofy-memory: id={id_b}; revision=1 -->\n# B\n\nToken bravo value.\n");
+        let body_c =
+            format!("<!-- nofy-memory: id={id_c}; revision=1 -->\n# C\n\nDrop quartz note.\n");
+        assert_eq!(
+            body_b_v1.len(),
+            body_b_v2.len(),
+            "same-length edit precondition"
+        );
+
+        let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(5);
+        for (path, content) in [
+            (&topic_a, &body_a),
+            (&topic_b, &body_b_v1),
+            (&topic_c, &body_c),
+        ] {
+            std::fs::write(path, content).unwrap();
+            set_file_mtime(path, old_time);
+        }
+
+        let mut index =
+            UnifiedMemoryIndex::open(&root, project_id, MemoryIndexConfig::default(), 4).unwrap();
+        let first = index.refresh().unwrap();
+        assert_eq!(first.topics, 3);
+        let first_stats = index.last_refresh_stats();
+        assert_eq!(first_stats.files_hashed, 3);
+        assert_eq!(first_stats.files_reindexed, 3);
+
+        // Second refresh with unmodified files past the racy-clean window must skip all disk reads & blake3.
+        let second = index.refresh().unwrap();
+        assert_eq!(second, UnifiedRebuildResult::default());
+        let second_stats = index.last_refresh_stats();
+        assert_eq!(second_stats.files_skipped, 3);
+        assert_eq!(second_stats.files_hashed, 0);
+        assert_eq!(second_stats.files_reindexed, 0);
+
+        // Overwrite topic_b with the EXACT same byte length and an updated mtime.
+        let newer_time = std::time::SystemTime::now() - std::time::Duration::from_secs(2);
+        std::fs::write(&topic_b, &body_b_v2).unwrap();
+        set_file_mtime(&topic_b, newer_time);
+
+        let third = index.refresh().unwrap();
+        assert_eq!(third.topics, 1);
+        let third_stats = index.last_refresh_stats();
+        assert_eq!(third_stats.files_skipped, 2);
+        assert_eq!(third_stats.files_hashed, 1);
+        assert_eq!(third_stats.files_reindexed, 1);
+
+        assert!(
+            !index.indexes()[0]
+                .search_fts("bravo", 10)
+                .unwrap()
+                .is_empty(),
+            "same-length modified file must be reindexed"
+        );
+        assert!(
+            index.indexes()[0]
+                .search_fts("alpha", 10)
+                .unwrap()
+                .is_empty(),
+            "stale token from same-length file must be removed"
+        );
+        assert!(
+            !index.indexes()[0]
+                .search_fts("zebra", 10)
+                .unwrap()
+                .is_empty(),
+            "untouched file must remain indexed"
+        );
+
+        // Delete topic_c: remaining two files are still skipped, deleted file is removed.
+        std::fs::remove_file(&topic_c).unwrap();
+        let fourth = index.refresh().unwrap();
+        assert_eq!(fourth.topics, 0);
+        let fourth_stats = index.last_refresh_stats();
+        assert_eq!(fourth_stats.files_skipped, 2);
+        assert_eq!(fourth_stats.files_hashed, 0);
+        assert_eq!(fourth_stats.files_removed, 1);
+        assert!(
+            index.indexes()[0]
+                .search_fts("quartz", 10)
+                .unwrap()
+                .is_empty(),
+            "deleted topic must be removed from FTS"
+        );
+    }
+
+    #[test]
+    fn unified_refresh_rehashes_racy_clean_whole_second_and_forced_rebuild() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("memory");
+        let project_id = ProjectId::new();
+        let topics_dir = root.join("personal/topics");
+        std::fs::create_dir_all(&topics_dir).unwrap();
+
+        let id = uuid::Uuid::new_v4();
+        let topic = topics_dir.join("racy.md");
+        let v1 = format!("<!-- nofy-memory: id={id}; revision=1 -->\n# Racy\n\nWord delta.\n");
+        let v2 = format!("<!-- nofy-memory: id={id}; revision=1 -->\n# Racy\n\nWord gamma.\n");
+        assert_eq!(v1.len(), v2.len());
+
+        // Pin to the current whole second (nanos == 0) so the file is racy-clean.
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let coarse_time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(now_secs);
+        std::fs::write(&topic, &v1).unwrap();
+        set_file_mtime(&topic, coarse_time);
+
+        let mut index =
+            UnifiedMemoryIndex::open(&root, project_id, MemoryIndexConfig::default(), 4).unwrap();
+        index.refresh().unwrap();
+
+        // Overwrite with identical length AND identical whole-second mtime.
+        std::fs::write(&topic, &v2).unwrap();
+        set_file_mtime(&topic, coarse_time);
+
+        let refreshed = index.refresh().unwrap();
+        assert_eq!(refreshed.topics, 1);
+        let stats = index.last_refresh_stats();
+        assert_eq!(stats.files_skipped, 0);
+        assert_eq!(stats.files_hashed, 1);
+        assert!(
+            !index.indexes()[0]
+                .search_fts("gamma", 10)
+                .unwrap()
+                .is_empty(),
+            "racy-clean same-second edit must never be skipped"
+        );
+        assert!(
+            index.indexes()[0]
+                .search_fts("delta", 10)
+                .unwrap()
+                .is_empty()
+        );
+
+        // Forced rebuild always re-hashes even old files.
+        let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(10);
+        set_file_mtime(&topic, old_time);
+        index.refresh().unwrap();
+        index.rebuild().unwrap();
+        let rebuild_stats = index.last_refresh_stats();
+        assert_eq!(rebuild_stats.files_skipped, 0);
+        assert_eq!(rebuild_stats.files_hashed, 1);
     }
 }

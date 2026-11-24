@@ -111,32 +111,70 @@ pub(crate) fn validate(
         timeout_ms: 10_000,
         ..RetentionLimits::default()
     });
-    let mut statement = tx.prepare("SELECT kind,length(CAST(payload AS BLOB)),payload,key FROM temp.nofy_retained_writes ORDER BY sequence LIMIT 100001").map_err(db_error)?;
+    let mut statement = tx
+        .prepare("SELECT kind,length(CAST(payload AS BLOB)),payload,key FROM temp.nofy_retained_writes ORDER BY sequence LIMIT 100001")
+        .map_err(db_error)?;
     let mut rows = statement.query([]).map_err(db_error)?;
-    let mut records = Vec::new();
+    let mut producers = Vec::new();
+    let mut live_versions = Vec::new();
+    let mut identities = Vec::new();
     while let Some(row) = rows.next().map_err(db_error)? {
         let kind: String = row.get(0).map_err(db_error)?;
         let size: u64 = row.get(1).map_err(db_error)?;
         let key: String = row.get(3).map_err(db_error)?;
         account(&mut scan, size, key.len())?;
-        records.push((kind, row.get::<_, String>(2).map_err(db_error)?, key));
+        let payload: String = row.get(2).map_err(db_error)?;
+        match kind.as_str() {
+            "live_version" => live_versions.push((kind, payload, key)),
+            "checkpoint" | "child" => identities.push((kind, payload, key)),
+            _ => producers.push((kind, payload, key)),
+        }
     }
     drop(rows);
     drop(statement);
     // Identity-only rows may refer to an already admitted job/live snapshot.
-    // Resolve that coverage in this transaction, including its uncommitted rows.
-    if inherited.is_none()
-        && records
-            .iter()
-            .any(|(k, _, _)| matches!(k.as_str(), "checkpoint" | "child" | "live_version"))
-    {
-        let mut coverage = Scan::new(RetentionLimits::default());
+    // Validate producers in this transaction first, then resolve prior coverage
+    // via O(1) indexed lookups in `agent_runtime_composition_digests`.
+    if inherited.is_none() && (!live_versions.is_empty() || !identities.is_empty()) {
         schema(tx)?;
-        read_sources(tx, &mut coverage, |_, _| Ok(()))?;
-        scan.known_compositions = coverage.known_compositions;
+    }
+    for (kind, payload, _key) in producers {
+        let origin = RetentionOrigin {
+            kind: kind.clone(),
+            key: String::new(),
+            slot: String::new(),
+        };
+        decode::record(&kind, &payload, &origin, &mut scan, |origin, modules| {
+            validate_modules(permit, inherited, policy, &origin.kind, modules)
+        })?;
         scan.check()?;
     }
-    for (kind, payload, key) in records {
+    for (kind, payload, _key) in live_versions {
+        if inherited.is_none()
+            && let Some(digest) = live_before_composition_digest(&payload)
+            && !scan.known_compositions.contains(&digest)
+            && has_composition_digest(tx, &digest)?
+        {
+            scan.known_compositions.insert(digest);
+        }
+        let origin = RetentionOrigin {
+            kind: kind.clone(),
+            key: String::new(),
+            slot: String::new(),
+        };
+        decode::record(&kind, &payload, &origin, &mut scan, |origin, modules| {
+            validate_modules(permit, inherited, policy, &origin.kind, modules)
+        })?;
+        scan.check()?;
+    }
+    for (kind, payload, key) in identities {
+        if inherited.is_none()
+            && let Ok(digest) = composition_digest(&payload)
+            && !scan.known_compositions.contains(&digest)
+            && has_composition_digest(tx, &digest)?
+        {
+            scan.known_compositions.insert(digest);
+        }
         let origin = RetentionOrigin {
             kind: kind.clone(),
             key: String::new(),
@@ -166,9 +204,105 @@ pub(crate) fn validate(
             "new retained {kind} composition lacks a certified declaration snapshot"
         )));
     }
+    if !scan.produced_compositions.is_empty() {
+        let mut insert = tx
+            .prepare_cached(
+                "INSERT OR IGNORE INTO agent_runtime_composition_digests(digest) VALUES(?1)",
+            )
+            .map_err(db_error)?;
+        for digest in &scan.produced_compositions {
+            insert.execute([digest]).map_err(db_error)?;
+        }
+    }
     tx.execute("DELETE FROM temp.nofy_retained_writes", [])
         .map_err(db_error)?;
     Ok(())
+}
+
+const NEEDS_COMPOSITION_BACKFILL_SQL: &str = "SELECT
+    NOT EXISTS(SELECT 1 FROM agent_runtime_composition_digests)
+    AND (
+        EXISTS(SELECT 1 FROM agent_runtime_jobs)
+        OR EXISTS(SELECT 1 FROM agent_runtime_runs)
+        OR EXISTS(SELECT 1 FROM agent_runtime_live_versions)
+        OR EXISTS(SELECT 1 FROM agent_runtime_session_seeds)
+        OR EXISTS(
+            SELECT 1 FROM agent_runtime_session_ops
+            WHERE json_valid(payload)
+              AND json_extract(payload, '$.prepared.submission.composition_digest') IS NOT NULL
+        )
+    )";
+
+pub(crate) fn needs_composition_backfill(tx: &Transaction<'_>) -> Result<bool, Error> {
+    tx.query_row(NEEDS_COMPOSITION_BACKFILL_SQL, [], |r| r.get(0))
+        .map_err(db_error)
+}
+
+pub(crate) fn backfill_composition_digests(tx: &Transaction<'_>) -> Result<(), Error> {
+    let mut insert = tx
+        .prepare_cached(
+            "INSERT OR IGNORE INTO agent_runtime_composition_digests(digest) VALUES(?1)",
+        )
+        .map_err(db_error)?;
+    for sql in [
+        "SELECT json_extract(payload, '$.submission.composition_digest') FROM agent_runtime_jobs WHERE json_valid(payload)",
+        "SELECT json_extract(payload, '$.info.composition_digest') FROM agent_runtime_session_seeds WHERE json_valid(payload)",
+        "SELECT json_extract(payload, '$.prepared.submission.composition_digest') FROM agent_runtime_session_ops WHERE json_valid(payload) AND json_extract(payload, '$.prepared.submission.composition_digest') IS NOT NULL",
+    ] {
+        let mut stmt = tx.prepare(sql).map_err(db_error)?;
+        let mut rows = stmt.query([]).map_err(db_error)?;
+        while let Some(row) = rows.next().map_err(db_error)? {
+            let value: Option<String> = row.get(0).map_err(db_error)?;
+            if let Some(digest) = value
+                && digest.len() == 64
+                && digest.bytes().all(|b| b.is_ascii_hexdigit())
+            {
+                insert
+                    .execute([digest.to_ascii_lowercase()])
+                    .map_err(db_error)?;
+            }
+        }
+    }
+    for sql in [
+        "SELECT json_extract(payload, '$.composition') FROM agent_runtime_runs WHERE json_valid(payload)",
+        "SELECT json_extract(payload, '$.after.composition') FROM agent_runtime_live_versions WHERE json_valid(payload)",
+    ] {
+        let mut stmt = tx.prepare(sql).map_err(db_error)?;
+        let mut rows = stmt.query([]).map_err(db_error)?;
+        while let Some(row) = rows.next().map_err(db_error)? {
+            let value: Option<String> = row.get(0).map_err(db_error)?;
+            if let Some(text) = value {
+                let digest = format!("{:x}", Sha256::digest(text.as_bytes()));
+                insert.execute([digest]).map_err(db_error)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn has_composition_digest(tx: &Transaction<'_>, digest: &str) -> Result<bool, Error> {
+    tx.prepare_cached(
+        "SELECT EXISTS(SELECT 1 FROM agent_runtime_composition_digests WHERE digest=?1)",
+    )
+    .map_err(db_error)?
+    .query_row([digest], |r| r.get(0))
+    .map_err(db_error)
+}
+
+fn live_before_composition_digest(payload: &str) -> Option<String> {
+    #[derive(Deserialize)]
+    struct LiveBefore {
+        before: LiveCheckpoint,
+    }
+    #[derive(Deserialize)]
+    struct LiveCheckpoint {
+        composition: String,
+    }
+    let row: LiveBefore = serde_json::from_str(payload).ok()?;
+    Some(format!(
+        "{:x}",
+        Sha256::digest(row.before.composition.as_bytes())
+    ))
 }
 fn composition_digest(payload: &str) -> Result<String, Error> {
     #[derive(Deserialize)]

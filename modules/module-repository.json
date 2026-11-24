@@ -12,6 +12,10 @@
     "main-agent/delegate",
     "main-agent/instructions",
     "main-agent/dynamic-assembly",
-    "models/chat-completions"
+    "models/chat-completions",
+    "models/responses",
+    "models/messages",
+    "workspace/files",
+    "workspace/command"
   ]
 }

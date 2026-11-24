@@ -39,6 +39,10 @@ struct ResourceConfig {
     methods: BTreeSet<Method>,
     #[serde(default)]
     credential_refs: BTreeSet<String>,
+    #[serde(default)]
+    allow_insecure_http: bool,
+    #[serde(default)]
+    allow_private_networks: bool,
 }
 struct HttpResource {
     config: ResourceConfig,
@@ -54,8 +58,18 @@ impl HttpResource {
                 let methods = self.config.methods.clone();
                 let refs = self.config.credential_refs.clone();
                 let credentials = self.credentials.clone();
+                let allow_insecure_http = self.config.allow_insecure_http;
+                let allow_private_networks = self.config.allow_private_networks;
                 tokio::task::spawn_blocking(move || {
-                    HttpConnection::install(&base, "declarative-v1", methods, refs, credentials)
+                    HttpConnection::install_with_policy(
+                        &base,
+                        "declarative-v1",
+                        methods,
+                        refs,
+                        credentials,
+                        allow_insecure_http,
+                        allow_private_networks,
+                    )
                 })
                 .await
                 .map_err(|_| {
@@ -94,7 +108,9 @@ impl ModuleFactory for HttpResourceFactory {
             ModuleKind::Resource,
             json!({"type":"object","additionalProperties":false,"required":["base_url","methods"],"properties":{
                 "base_url":{"type":"string","maxLength":16384},"methods":{"type":"array","minItems":1,"maxItems":5,"uniqueItems":true,"items":{"enum":["GET","POST","PUT","PATCH","DELETE"]}},
-                "credential_refs":{"type":"array","maxItems":1024,"uniqueItems":true,"items":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_]+$"}}
+                "credential_refs":{"type":"array","maxItems":1024,"uniqueItems":true,"items":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_]+$"}},
+                "allow_insecure_http":{"type":"boolean"},
+                "allow_private_networks":{"type":"boolean"}
             }}),
             Default::default(),
         )
@@ -108,6 +124,12 @@ impl ModuleFactory for HttpResourceFactory {
         let config: ResourceConfig = serde_json::from_value(value.clone())
             .map_err(|_| crate::composition("invalid HTTP resource"))?;
         let base = crate::http::connection::base(&config.base_url)?;
+        crate::http::connection::validate_network_policy(
+            &base,
+            !config.credential_refs.is_empty(),
+            config.allow_insecure_http,
+            config.allow_private_networks,
+        )?;
         let identity = serde_json::to_string(&(
             "http-resource-v1",
             nofy_agent_runtime::system::content_digest(value)?,

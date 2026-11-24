@@ -1,0 +1,181 @@
+{
+  "parameters": {
+    "command_environment_resolved": {
+      "$if": {
+        "condition": {
+          "$setting": "/command_enabled"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/command_environment"
+        }
+      }
+    },
+    "command_namespace_enabled": {
+      "$if": {
+        "condition": {
+          "$setting": "/command_enabled"
+        },
+        "else": false,
+        "then": {
+          "$lookup": {
+            "key": {
+              "$setting": "/command_isolation"
+            },
+            "value": {
+              "namespace": true,
+              "process_tree": false
+            }
+          }
+        }
+      }
+    },
+    "command_process_namespace": {
+      "$if": {
+        "condition": {
+          "$parameter": "/command_namespace_enabled"
+        },
+        "else": null,
+        "then": {
+          "$coalesce": [
+            {
+              "$setting": "/process_namespace"
+            },
+            {}
+          ]
+        }
+      }
+    },
+    "command_process_tree": {
+      "$if": {
+        "condition": {
+          "$parameter": "/command_process_tree_enabled"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/process_tree"
+        }
+      }
+    },
+    "command_process_tree_enabled": {
+      "$if": {
+        "condition": {
+          "$setting": "/command_enabled"
+        },
+        "else": false,
+        "then": {
+          "$lookup": {
+            "key": {
+              "$setting": "/command_isolation"
+            },
+            "value": {
+              "namespace": false,
+              "process_tree": true
+            }
+          }
+        }
+      }
+    },
+    "command_workspace": {
+      "$if": {
+        "condition": {
+          "$setting": "/command_enabled"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/workspace"
+        }
+      }
+    },
+    "files_environment": {
+      "$if": {
+        "condition": {
+          "$setting": "/workspace_enabled"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/workspace_environment"
+        }
+      }
+    },
+    "files_workspace": {
+      "$if": {
+        "condition": {
+          "$setting": "/workspace_enabled"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/workspace"
+        }
+      }
+    },
+    "messages_connection": {
+      "$if": {
+        "condition": {
+          "$parameter": "/use_messages"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/connection"
+        }
+      }
+    },
+    "messages_model": {
+      "$if": {
+        "condition": {
+          "$parameter": "/use_messages"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/model"
+        }
+      }
+    },
+    "responses_connection": {
+      "$if": {
+        "condition": {
+          "$parameter": "/use_responses"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/connection"
+        }
+      }
+    },
+    "responses_model": {
+      "$if": {
+        "condition": {
+          "$parameter": "/use_responses"
+        },
+        "else": null,
+        "then": {
+          "$setting": "/model"
+        }
+      }
+    },
+    "use_messages": {
+      "$lookup": {
+        "key": {
+          "$setting": "/model_protocol"
+        },
+        "value": {
+          "chat_completions": false,
+          "messages": true,
+          "responses": false
+        }
+      }
+    },
+    "use_responses": {
+      "$lookup": {
+        "key": {
+          "$setting": "/model_protocol"
+        },
+        "value": {
+          "chat_completions": false,
+          "messages": false,
+          "responses": true
+        }
+      }
+    }
+  }
+}

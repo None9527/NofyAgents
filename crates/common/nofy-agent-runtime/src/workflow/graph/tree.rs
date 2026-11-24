@@ -69,6 +69,15 @@ impl Frame {
             )
             .await
     }
+
+    pub(super) async fn observe_running_as_waiting(&self) -> Result<(), Error> {
+        for (id, progress) in &self.state.nodes {
+            if matches!(progress, NodeProgress::Running { .. }) {
+                self.observe_node(id, Some("waiting")).await?;
+            }
+        }
+        Ok(())
+    }
 }
 pub(super) async fn observe_iteration(
     parent: &RunContext,

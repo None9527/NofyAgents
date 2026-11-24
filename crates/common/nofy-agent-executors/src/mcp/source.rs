@@ -168,15 +168,13 @@ impl ToolSource for Source {
 impl Source {
     async fn discover(&self, context: &ToolCallContext) -> Result<ToolSnapshot, ToolError> {
         let session = Arc::new(session::Session::new(self.connection.open(context).await?));
-        let mut state = session.state.lock().await;
-        state
-            .initialize(&session.connection, context, self.config.max_catalog_bytes)
+        session
+            .initialize(context, self.config.max_catalog_bytes)
             .await?;
-        let tools = state
-            .catalog(&session.connection, context, &self.config)
-            .await?;
+        let tools = session.catalog(context, &self.config).await?;
+        let server = session.server_info().await;
         let catalog_digest = digest(&tools)?;
-        let revision = digest(&(REVISION, &self.identity, &state.server, &catalog_digest))?;
+        let revision = digest(&(REVISION, &self.identity, &server, &catalog_digest))?;
         if let Some(allowed) = &self.config.allowed_tools
             && allowed.iter().any(|name| !tools.contains_key(name))
         {
@@ -218,7 +216,6 @@ impl Source {
                 })
                 .map_err(|_| protocol("MCP tool names collide or require explicit aliases"))?;
         }
-        drop(state);
         Ok(ToolSnapshot { revision, catalog })
     }
 }
@@ -243,25 +240,25 @@ impl ToolDispatch for Dispatch {
             .map(|c| c.0.clone())
             .unwrap_or_default();
         let operation = async {
+            if cancel.is_cancelled() {
+                return Err(crate::tool_error("cancelled", "MCP tool cancelled"));
+            }
             if id.as_str() != self.contract.name {
                 return Err(protocol("MCP call differs from its local catalog binding"));
             }
             crate::validate_input(&self.contract, &args)?;
-            let mut state = self.session.state.lock().await;
-            let current = state
-                .catalog(&self.session.connection, &context, &self.config)
-                .await?;
+            let current = self.session.catalog(&context, &self.config).await?;
             if digest(&current)? != self.catalog_digest {
                 return Err(crate::tool_error(
                     "mcp_catalog_changed",
                     "MCP catalog differs from the admitted snapshot; call was not sent",
                 ));
             }
-            let value = state
+            let value = self
+                .session
                 .request(
-                    &self.session.connection,
                     "tools/call",
-                    json!({"name":self.remote_name,"arguments":args}),
+                    json!({"name": self.remote_name, "arguments": args}),
                     &context,
                     self.config.max_output_bytes,
                 )

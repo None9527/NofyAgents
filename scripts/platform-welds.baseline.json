@@ -7,8 +7,6 @@
   "libc_call": {
     "nofy-agent-host": 7,
     "nofy-agent-project": 2,
-    "nofy-cli": 2,
-    "nofy-goal": 1,
     "nofy-memory": 3,
     "nofy-sqlite-journal": 5
   },
@@ -17,8 +15,6 @@
     "nofy-agent-host": 9,
     "nofy-agent-project": 6,
     "nofy-agent-runtime": 5,
-    "nofy-cli": 2,
-    "nofy-goal": 5,
     "nofy-memory": 5,
     "nofy-sqlite-journal": 1
   },
@@ -37,9 +33,7 @@
     "nofy-agent-models": 1,
     "nofy-agent-project": 2
   },
-  "inode_identity": {
-    "nofy-goal": 1
-  },
+  "inode_identity": {},
   "unix_ipc": {},
   "process_signal": {},
   "linux_only_tests": {

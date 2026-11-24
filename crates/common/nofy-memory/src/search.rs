@@ -348,7 +348,7 @@ pub(crate) fn unified_search_ranked(
         sorted_results.push(candidates[position].clone());
         sorted_relevance.push(ranking[position]);
     }
-    super::mmr::mmr_rerank(&mut sorted_results, &sorted_relevance, &config.mmr);
+    super::mmr::mmr_rerank(&mut sorted_results, &sorted_relevance, &config.mmr)?;
     sorted_results.truncate(config.max_results);
     Ok(sorted_results)
 }
@@ -570,7 +570,7 @@ fn hybrid_search_merge_scoped(
 
     // MMR diversity re-ranking (opt-in, applied before truncation)
     if apply_mmr {
-        super::mmr::mmr_rerank(&mut results, &relevance, &config.mmr);
+        super::mmr::mmr_rerank(&mut results, &relevance, &config.mmr)?;
     }
 
     results.truncate(config.max_results);

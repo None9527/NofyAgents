@@ -72,10 +72,11 @@ async fn system_file_registers_http_tool_and_hook_then_edits_them_without_host_r
     )
     .await;
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let state = dir.path().join("state");
+    let path = state.join("credentials.json");
     let credentials = Arc::new(FileCredentials::open(&path, "http-project", None).unwrap());
     let host = KernelHost::open(
-        dir.path(),
+        &state,
         native::registry(credentials.clone()).unwrap(),
         auth(),
     )

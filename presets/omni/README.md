@@ -2,7 +2,7 @@
 
 With the Nofy preset registry configured, `nofy --toolset development project init PROJECT` selects Omni. For a local checkout, append `--preset-dir ./presets --offline`. Its program is `main`. Configure `connection` and `model` through the SDK development view or `nofy --toolset development agent configure main --project PROJECT --offline --settings @SETTINGS.json`. Build and publish through the development toolset, then activate through the operations toolset.
 
-The model connection uses credential references. The root has coordination, bounded child assembly, and durable user questions. To enable workspace files, set `workspace_enabled`, `workspace`, and `workspace_environment` using the `resource.process_local` contract. Commands separately require `command_enabled`, `command_environment`, `workspace`, and `process_tree`. Writes and commands use the existing approval policy.
+The model connection uses credential references. Select the wire protocol with `model_protocol` (`chat_completions` by default, or `responses` / `messages`). The root has coordination, bounded child assembly, and durable user questions. To enable workspace files, set `workspace_enabled`, `workspace`, and `workspace_environment` using the `resource.process_local` contract. Commands separately require `command_enabled`, `command_environment`, `workspace`, and either `process_tree` (`command_isolation: "process_tree"`, default) or `command_isolation: "namespace"` with optional `process_namespace` limits. Writes and commands use the existing approval policy.
 
 Omni mounts `tool.sdk_authoring` by default. The model reads SDK operation contracts, generates module templates and queries the Host's module catalog in-process. A model connection is the only connection required for the authoring tools. MCP remains available to external clients.
 
@@ -21,7 +21,7 @@ The checked-in source is reproducible with `cargo run --locked -p nofy-agent-pro
 
 ## Context compaction
 
-Omni uses the configured model to summarize earlier turns and keeps the current turn intact. The automatic threshold defaults to 75% of `context_window`, which defaults to 262,144 tokens. Set `context_window` to the limit advertised by your model. The policy estimates tokens from serialized message length, and `compaction_keep_turns` controls the number of earlier user turns kept intact during automatic compaction. Enter `/compact` at the start of a new user turn to request compaction explicitly.
+Omni uses the configured model to summarize earlier turns and keeps the current turn intact. The automatic threshold defaults to 75% of `context_window`, which defaults to 262,144 tokens. Set `context_window` to the limit advertised by your model. The policy (`context-compaction@0.2.2`) estimates tokens using a tiered UTF-8/CJK heuristic (ASCII bytes divided by 4, non-ASCII/CJK characters at ~1.5 tokens each), and `compaction_keep_turns` controls the number of earlier user turns kept intact during automatic compaction. Enter `/compact` at the start of a new user turn (with or without attachments) to request compaction explicitly.
 
 Successful compaction persists the summary in session history and emits a `ModelUsage` event with `provider.purpose` set to `context_compaction`. The ignored `context_compaction_live` tests exercise explicit and automatic compaction against the endpoint selected by `NOFY_LIVE_MODEL_URL` and `NOFY_LIVE_MODEL`.
 

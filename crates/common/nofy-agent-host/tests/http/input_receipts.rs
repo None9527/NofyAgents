@@ -32,7 +32,7 @@ async fn lookup(url: reqwest::Url, token: Option<&str>) -> (u16, Value) {
 async fn input_receipt_http_is_read_only_scoped_and_payload_bound() {
     let dir = tempfile::tempdir().unwrap();
     let kernel = KernelHost::open(
-        dir.path(),
+        &dir.path().join("state"),
         native::registry(Arc::new(Credentials(Arc::new(AtomicUsize::new(0))))).unwrap(),
         Authorizer::new(vec![
             (

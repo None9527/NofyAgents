@@ -80,7 +80,7 @@ impl SqliteStore {
             return Ok(true);
         }
         let (caller, root) = (caller.to_owned(), root.to_owned());
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             tx.query_row(
                 "WITH here AS (
                    SELECT session_id,sequence FROM agent_runtime_session_turns WHERE run_id=?1
@@ -121,7 +121,7 @@ impl SqliteStore {
             None => String::new(),
         };
         let root = root.to_owned();
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let Some(root_node) = root_node(tx, &root)? else {
                 return Ok(None);
             };
@@ -165,7 +165,7 @@ impl SqliteStore {
             return Err(Error::Composition("invalid work identity".into()));
         }
         let (root, work) = (root.to_owned(), work.to_owned());
-        self.transaction(move |tx| inspect_node(tx, &root, &work))
+        self.read_transaction(move |tx| inspect_node(tx, &root, &work))
             .await
     }
 }
@@ -306,6 +306,10 @@ fn finish_node(tx: &rusqlite::Transaction<'_>, node: &mut WorkNode) -> Result<()
             });
         }
     }
+    let is_root = node.run_id == node.root_run_id;
+    if is_root && node.native_status == "paused" && node.blocked_by.is_none() {
+        node.blocked_by = reconciliation_blocker(tx, &node.run_id)?;
+    }
     node.status = if node.blocked_by.is_some() {
         "waiting"
     } else {
@@ -317,7 +321,6 @@ fn finish_node(tx: &rusqlite::Transaction<'_>, node: &mut WorkNode) -> Result<()
         }
     }
     .into();
-    let is_root = node.run_id == node.root_run_id;
     let active = matches!(node.status.as_str(), "queued" | "running" | "waiting");
     node.cancellation_pending = active
         && tx
@@ -340,9 +343,6 @@ fn finish_node(tx: &rusqlite::Transaction<'_>, node: &mut WorkNode) -> Result<()
     }
     if matches!(node.blocked_by, Some(WorkBlocker::HumanInput { .. })) {
         node.actions.push("human");
-    }
-    if is_root && node.native_status == "paused" && node.blocked_by.is_none() {
-        node.blocked_by = reconciliation_blocker(tx, &node.run_id)?;
     }
     let change: Option<i64> = tx
         .query_row(
@@ -474,5 +474,164 @@ mod tests {
             reconciliation_reason(&json!({"kind":"approval"}), "root"),
             None
         );
+    }
+
+    #[tokio::test]
+    async fn reconciliation_blocked_paused_root_hides_and_rejects_resume() {
+        let state = tempfile::tempdir().unwrap();
+        let store = SqliteStore::open(&state.path().join("runtime.sqlite")).unwrap();
+
+        let release = crate::system::content_digest(&"rel").unwrap();
+        let managed_row = |run_id: &str| {
+            let req = jobs::ManagedRunRequest {
+                approval_mode: None,
+                run_id: run_id.into(),
+                thread_id: run_id.into(),
+                system: "sys".into(),
+                release: release.clone(),
+                program: "agent-program".into(),
+                input: None,
+                parameters: None,
+            };
+            (
+                crate::system::content_digest(&req).unwrap(),
+                serde_json::to_string(&req).unwrap(),
+            )
+        };
+
+        for reason in ["budget_uncertain", "uncertain_tool", "uncertain_hook"] {
+            let run_id = format!("root-{reason}");
+            let (managed_digest, managed) = managed_row(&run_id);
+            let run_payload = json!({
+                "status": "paused",
+                "snapshot": { "program": { "kind": "agent" } },
+                "outcome": {
+                    "Paused": {
+                        "reason": { "kind": reason, "operation_id": "op-1" }
+                    }
+                }
+            })
+            .to_string();
+            let run_id_tx = run_id.clone();
+            store
+                .transaction(move |tx| {
+                    tx.execute(
+                        "INSERT INTO agent_runtime_managed_runs(run_id, digest, payload) VALUES(?1, ?2, ?3)",
+                        params![run_id_tx, managed_digest, managed],
+                    )
+                    .map_err(db_error)?;
+                    tx.execute(
+                        "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status) VALUES(?1, ?1, ?2, '{}', 'paused')",
+                        params![run_id_tx, managed_digest],
+                    )
+                    .map_err(db_error)?;
+                    tx.execute(
+                        "INSERT INTO agent_runtime_runs(id, thread_key, payload) VALUES(?1, ?1, ?2)",
+                        params![run_id_tx, run_payload],
+                    )
+                    .map_err(db_error)?;
+                    Ok(())
+                })
+                .await
+                .unwrap();
+
+            let node = store
+                .work_inspect(&run_id, &run_id)
+                .await
+                .unwrap()
+                .expect("managed paused root must be inspectable");
+            assert_eq!(node.status, "waiting");
+            assert!(
+                matches!(
+                    node.blocked_by,
+                    Some(WorkBlocker::Reconciliation {
+                        run_id: ref blocker_run,
+                        reason: actual_reason,
+                    }) if blocker_run == &run_id && actual_reason == reason
+                ),
+                "expected reconciliation blocker for {reason}"
+            );
+            assert!(
+                !node.actions.contains(&"resume"),
+                "reconciliation-blocked root must not advertise resume for {reason}"
+            );
+            assert!(node.actions.contains(&"cancel"));
+
+            let control = store
+                .control_work(
+                    "scope",
+                    &run_id,
+                    WorkCommand {
+                        work_id: run_id.clone(),
+                        command_id: format!("resume-{reason}"),
+                        expected_revision: node.revision.clone(),
+                        action: WorkAction::Resume,
+                    },
+                    None,
+                )
+                .await;
+            assert!(
+                matches!(control, Err(Error::Composition(ref msg)) if msg.contains("control unavailable")),
+                "control_work(Resume) must fail for reconciliation-blocked root ({reason}): {control:?}"
+            );
+        }
+
+        // Non-reconciliation paused roots continue to expose and accept resume.
+        let resumable_id = "root-resumable".to_string();
+        let (managed_digest, managed) = managed_row(&resumable_id);
+        let run_payload = json!({
+            "status": "paused",
+            "snapshot": { "program": { "kind": "agent" } },
+            "outcome": {
+                "Paused": {
+                    "reason": { "kind": "manual" }
+                }
+            }
+        })
+        .to_string();
+        let resumable_tx = resumable_id.clone();
+        store
+            .transaction(move |tx| {
+                tx.execute(
+                    "INSERT INTO agent_runtime_managed_runs(run_id, digest, payload) VALUES(?1, ?2, ?3)",
+                    params![resumable_tx, managed_digest, managed],
+                )
+                .map_err(db_error)?;
+                tx.execute(
+                    "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status) VALUES(?1, ?1, ?2, '{}', 'paused')",
+                    params![resumable_tx, managed_digest],
+                )
+                .map_err(db_error)?;
+                tx.execute(
+                    "INSERT INTO agent_runtime_runs(id, thread_key, payload) VALUES(?1, ?1, ?2)",
+                    params![resumable_tx, run_payload],
+                )
+                .map_err(db_error)?;
+                Ok(())
+            })
+            .await
+            .unwrap();
+
+        let node = store
+            .work_inspect(&resumable_id, &resumable_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(node.blocked_by.is_none());
+        assert!(node.actions.contains(&"resume"));
+        store
+            .control_work(
+                "scope",
+                &resumable_id,
+                WorkCommand {
+                    work_id: resumable_id.clone(),
+                    command_id: "resume-ok".into(),
+                    expected_revision: node.revision,
+                    action: WorkAction::Resume,
+                },
+                None,
+            )
+            .await
+            .unwrap();
     }
 }

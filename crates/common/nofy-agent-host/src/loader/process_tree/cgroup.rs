@@ -22,6 +22,7 @@ fn io(error: std::io::Error) -> HostError {
 fn name(value: &str) -> Result<std::ffi::CString> {
     if value.is_empty()
         || value.len() > 255
+        || matches!(value, "." | "..")
         || value
             .bytes()
             .any(|b| !b.is_ascii_alphanumeric() && !b"-_.@\\".contains(&b))
@@ -30,9 +31,11 @@ fn name(value: &str) -> Result<std::ffi::CString> {
     }
     std::ffi::CString::new(value).map_err(|_| failed("invalid control name"))
 }
-fn control(directory: &File, field: &str, write: bool) -> Result<File> {
+fn open_control_raw(directory: &File, field: &str, write: bool) -> Result<std::io::Result<File>> {
     let field = name(field)?;
-    // SAFETY: the directory is a live owned descriptor; field is one component.
+    // SAFETY: `directory` is a live owned directory descriptor and `field` is a
+    // validated single-component NUL-terminated C string (neither `.` nor `..`);
+    // `O_NOFOLLOW | O_CLOEXEC` prevents symlink traversal and descriptor leaks.
     let fd = unsafe {
         libc::openat(
             directory.as_raw_fd(),
@@ -46,9 +49,21 @@ fn control(directory: &File, field: &str, write: bool) -> Result<File> {
         )
     };
     if fd < 0 {
-        return Err(io(std::io::Error::last_os_error()));
+        return Ok(Err(std::io::Error::last_os_error()));
     }
-    Ok(unsafe { File::from_raw_fd(fd) })
+    // SAFETY: `fd` was just returned >= 0 by `openat` above and has no other
+    // owner; transferring it to `File` ensures it closes on drop.
+    Ok(Ok(unsafe { File::from_raw_fd(fd) }))
+}
+fn control(directory: &File, field: &str, write: bool) -> Result<File> {
+    open_control_raw(directory, field, write)?.map_err(io)
+}
+fn control_optional(directory: &File, field: &str, write: bool) -> Result<Option<File>> {
+    match open_control_raw(directory, field, write)? {
+        Ok(file) => Ok(Some(file)),
+        Err(error) if error.raw_os_error() == Some(libc::ENOENT) => Ok(None),
+        Err(error) => Err(io(error)),
+    }
 }
 fn read(directory: &File, field: &str) -> Result<String> {
     let mut result = String::new();
@@ -68,6 +83,10 @@ fn write(directory: &File, field: &str, value: &str) -> Result<()> {
 }
 fn child(directory: &File, value: &str) -> Result<File> {
     let value = name(value)?;
+    // SAFETY: `directory` is a live owned directory descriptor and `value` is a
+    // validated single-component NUL-terminated C string; `O_DIRECTORY |
+    // O_NOFOLLOW | O_CLOEXEC` opens only a direct child directory without
+    // following symlinks or leaking across `exec`.
     let fd = unsafe {
         libc::openat(
             directory.as_raw_fd(),
@@ -78,10 +97,15 @@ fn child(directory: &File, value: &str) -> Result<File> {
     if fd < 0 {
         return Err(io(std::io::Error::last_os_error()));
     }
+    // SAFETY: `fd` was just returned >= 0 by `openat` above and is uniquely
+    // owned here; wrapping in `File` guarantees closure on drop.
     Ok(unsafe { File::from_raw_fd(fd) })
 }
 fn mkdir(directory: &File, value: &str) -> Result<()> {
     let value = name(value)?;
+    // SAFETY: `directory` is a live owned directory descriptor and `value` is a
+    // validated single-component NUL-terminated C string; non-zero return is
+    // mapped to `last_os_error()`.
     if unsafe { libc::mkdirat(directory.as_raw_fd(), value.as_ptr(), 0o700) } != 0 {
         return Err(io(std::io::Error::last_os_error()));
     }
@@ -89,6 +113,9 @@ fn mkdir(directory: &File, value: &str) -> Result<()> {
 }
 fn remove(directory: &File, value: &str) -> Result<()> {
     let value = name(value)?;
+    // SAFETY: `directory` is a live owned directory descriptor and `value` is a
+    // validated single-component NUL-terminated C string; `AT_REMOVEDIR` removes
+    // only an empty child directory without following symlinks.
     if unsafe { libc::unlinkat(directory.as_raw_fd(), value.as_ptr(), libc::AT_REMOVEDIR) } != 0 {
         return Err(io(std::io::Error::last_os_error()));
     }
@@ -109,14 +136,20 @@ fn open(path: &Path) -> Result<File> {
             _ => return Err(failed("noncanonical cgroup path")),
         }
     }
+    // SAFETY: `libc::statfs` is a C ABI struct of integer/array fields for
+    // which the all-zero bit pattern is valid.
     let mut filesystem: libc::statfs = unsafe { std::mem::zeroed() };
+    // SAFETY: `current` is an open directory FD and `&mut filesystem` is a
+    // valid aligned writable `libc::statfs` out-pointer for `fstatfs(2)`.
     if unsafe { libc::fstatfs(current.as_raw_fd(), &mut filesystem) } != 0 {
         return Err(io(std::io::Error::last_os_error()));
     }
     if filesystem.f_type as u64 != 0x63677270 {
         return Err(failed("root is not cgroup v2"));
     }
-    if current.metadata().map_err(io)?.uid() != unsafe { libc::geteuid() } {
+    // SAFETY: `geteuid` takes no pointer arguments and cannot fail per POSIX.
+    let euid = unsafe { libc::geteuid() };
+    if current.metadata().map_err(io)?.uid() != euid {
         return Err(failed("delegation root is not owned by the current UID"));
     }
     Ok(current)
@@ -143,8 +176,13 @@ impl Identity {
     }
 }
 
+pub(super) struct Preflight {
+    pub(super) root: File,
+    pub(super) swap_control: bool,
+}
+
 /// Read-only facility check. No process moves or controller reconfiguration.
-pub(super) fn preflight(config: &Config) -> Result<File> {
+pub(super) fn preflight(config: &Config) -> Result<Preflight> {
     config.validate()?;
     let root = open(&config.cgroup_root)?;
     if read(&root, "cgroup.type")?.trim() != "domain"
@@ -173,11 +211,22 @@ pub(super) fn preflight(config: &Config) -> Result<File> {
         .find(|ancestor| current.starts_with(ancestor))
         .filter(|p| p.starts_with("/sys/fs/cgroup"))
         .ok_or_else(|| failed("no delegated common ancestor"))?;
-    // Opening for write checks effective ACL/ownership without moving anything.
+    // Opening for write checks effective ACL/ownership without moving anything
+    // or triggering a kill (cgroup.kill acts only on write(2), not open(2)).
     let common = open(common)?;
     control(&common, "cgroup.procs", true)?;
     control(&root, "cgroup.procs", true)?;
-    Ok(root)
+    control(&root, "cgroup.kill", true).map_err(|error| {
+        failed(&format!(
+            "delegation root requires writable cgroup.kill: {error}"
+        ))
+    })?;
+    // Probe whether the host kernel exposes writable swap accounting
+    // (`memory.swap.max`). Absence (`ENOENT`, e.g. `swapaccount=0` or
+    // `CONFIG_MEMCG_SWAP=n`) is tolerated and recorded so `acquire()` skips it
+    // cleanly rather than failing mid-setup; permission errors still fail fast.
+    let swap_control = control_optional(&root, "memory.swap.max", true)?.is_some();
+    Ok(Preflight { root, swap_control })
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -329,10 +378,9 @@ impl Manager {
     pub fn open(private_directory: &Path) -> Result<Self> {
         let root = storage::directory(private_directory)?;
         let metadata = std::fs::symlink_metadata(&root).map_err(io)?;
-        if root != private_directory
-            || metadata.uid() != unsafe { libc::geteuid() }
-            || metadata.mode() & 0o077 != 0
-        {
+        // SAFETY: `geteuid` takes no pointer arguments and cannot fail per POSIX.
+        let euid = unsafe { libc::geteuid() };
+        if root != private_directory || metadata.uid() != euid || metadata.mode() & 0o077 != 0 {
             return Err(failed(
                 "journal requires an explicit private owner-only directory",
             ));
@@ -404,7 +452,7 @@ impl Manager {
         if self.workers.stopped() {
             return Err(failed("manager is shutting down"));
         }
-        let root = preflight(config)?;
+        let preflight = preflight(config)?;
         let _transaction = lock(&self.root.join("catalog.lock"))?;
         if self.workers.stopped() {
             return Err(failed("manager is shutting down"));
@@ -422,7 +470,7 @@ impl Manager {
         let record = Record {
             version: 1,
             root: config.cgroup_root.clone(),
-            root_identity: Identity::of(&root)?,
+            root_identity: Identity::of(&preflight.root)?,
             name: directory
                 .file_name()
                 .and_then(|s| s.to_str())
@@ -434,7 +482,7 @@ impl Manager {
         let mut job = Job {
             directory,
             record,
-            root,
+            root: preflight.root,
             group: None,
             _active: active,
             owner: std::process::id(),
@@ -447,26 +495,49 @@ impl Manager {
             job.finished = true;
             return Err(error);
         }
-        let group = child(&job.root, &job.record.name)?;
-        job.record.group_identity = Some(Identity::of(&group)?);
-        job.group = Some(group);
-        job.record.put(&job.directory, true)?;
-        let group = job.group.as_ref().expect("created group");
-        write(group, "pids.max", &config.limits.max_processes.to_string())?;
-        write(
-            group,
-            "memory.max",
-            &config.limits.max_memory_bytes.to_string(),
-        )?;
-        write(group, "memory.swap.max", "0")?;
-        write(group, "memory.oom.group", "1")?;
-        write(
-            group,
-            "cpu.max",
-            &format!("{} 100000", config.limits.cpu_percent * 1000),
-        )?;
-        write(group, "cgroup.max.depth", "0")?;
-        write(group, "cgroup.max.descendants", "0")?;
+        let setup = (|| -> Result<()> {
+            let group = child(&job.root, &job.record.name)?;
+            job.record.group_identity = Some(Identity::of(&group)?);
+            let group = job.group.insert(group);
+            job.record.put(&job.directory, true)?;
+            write(group, "pids.max", &config.limits.max_processes.to_string())?;
+            write(
+                group,
+                "memory.max",
+                &config.limits.max_memory_bytes.to_string(),
+            )?;
+            if preflight.swap_control
+                && let Some(mut swap_max) = control_optional(group, "memory.swap.max", true)?
+            {
+                swap_max.write_all(b"0").map_err(io)?;
+            }
+            write(group, "memory.oom.group", "1")?;
+            write(
+                group,
+                "cpu.max",
+                &format!("{} 100000", config.limits.cpu_percent * 1000),
+            )?;
+            write(group, "cgroup.max.depth", "0")?;
+            write(group, "cgroup.max.descendants", "0")?;
+            Ok(())
+        })();
+        if let Err(error) = setup {
+            // If setup failed after creating the empty cgroup directory, verify
+            // its identity and roll back both the cgroup and journal record so
+            // no orphan cgroup remains. Only erase the journal if rmdir succeeds.
+            if let Some(group) = job.group.take() {
+                let verified = Identity::of(&group)
+                    .and_then(|id| child(&job.root, &job.record.name).and_then(|c| id.verify(&c)));
+                drop(group);
+                if verified.is_ok()
+                    && remove(&job.root, &job.record.name).is_ok()
+                    && erase_record(&job.directory).is_ok()
+                {
+                    job.finished = true;
+                }
+            }
+            return Err(error);
+        }
         // The recorded identity is durable before a membership FD can escape.
         Ok(job)
     }
@@ -508,12 +579,28 @@ impl Job {
             "cgroup.procs",
             true,
         )?;
+        // SAFETY: Runs between `fork` and `exec` in the child process and calls
+        // only async-signal-safe `libc::write` on the live `O_CLOEXEC`
+        // `cgroup.procs` descriptor with a static 1-byte buffer (`b"0"`), plus
+        // non-allocating `io::Error::last_os_error()` / `from_raw_os_error()`.
+        // `membership` remains owned by this closure in the parent until
+        // `command` is dropped and closes on `exec` in the child.
         unsafe {
             command.pre_exec(move || {
-                if libc::write(membership.as_raw_fd(), b"0".as_ptr().cast(), 1) != 1 {
-                    return Err(std::io::Error::last_os_error());
+                loop {
+                    let n = libc::write(membership.as_raw_fd(), b"0".as_ptr().cast(), 1);
+                    if n == 1 {
+                        return Ok(());
+                    }
+                    if n < 0 {
+                        let error = std::io::Error::last_os_error();
+                        if error.raw_os_error() == Some(libc::EINTR) {
+                            continue;
+                        }
+                        return Err(error);
+                    }
+                    return Err(std::io::Error::from_raw_os_error(libc::EIO));
                 }
-                Ok(())
             });
         }
         Ok(())
@@ -590,5 +677,36 @@ mod tests {
         assert!(try_lock(&path).unwrap().is_none());
         drop(next);
         assert!(try_lock(&path).unwrap().is_some());
+    }
+
+    #[test]
+    fn control_name_rejects_dot_traversal_and_optional_probe_handles_enoent_and_symlinks() {
+        assert!(name(".").is_err());
+        assert!(name("..").is_err());
+        assert!(name("a/b").is_err());
+        assert!(name("memory.swap.max").is_ok());
+
+        let directory = tempfile::tempdir().unwrap();
+        let dir_fd = File::open(directory.path()).unwrap();
+        // Missing control file (e.g. host without memory.swap.max) returns Ok(None).
+        assert!(
+            control_optional(&dir_fd, "memory.swap.max", true)
+                .unwrap()
+                .is_none()
+        );
+        // Existing regular control file returns Ok(Some(_)) and accepts writes.
+        let swap_path = directory.path().join("memory.swap.max");
+        std::fs::write(&swap_path, "").unwrap();
+        let mut handle = control_optional(&dir_fd, "memory.swap.max", true)
+            .unwrap()
+            .expect("existing control file must open");
+        handle.write_all(b"0").unwrap();
+        assert_eq!(std::fs::read_to_string(&swap_path).unwrap(), "0");
+
+        // Symlinked control file is refused by O_NOFOLLOW.
+        let symlink_path = directory.path().join("cgroup.kill");
+        std::os::unix::fs::symlink(&swap_path, &symlink_path).unwrap();
+        assert!(control(&dir_fd, "cgroup.kill", true).is_err());
+        assert!(control_optional(&dir_fd, "cgroup.kill", true).is_err());
     }
 }

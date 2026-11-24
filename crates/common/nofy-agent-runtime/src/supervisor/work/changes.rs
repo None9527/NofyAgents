@@ -83,7 +83,7 @@ impl SqliteStore {
             }
             None => String::new(),
         };
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let mut query = tx.prepare(
                 "SELECT run_id FROM (
                    SELECT run_id FROM agent_runtime_session_turns WHERE session_id=?1 AND run_id>?2
@@ -123,12 +123,13 @@ impl SqliteStore {
             .map(|c| parse_cursor(c, mode, scope))
             .transpose()?
             .unwrap_or(0);
-        let mut changes = self.observe();
+        let mut changes = self.observe_work();
         let deadline = tokio::time::Instant::now() + timeout;
         loop {
+            let observed = *changes.borrow_and_update();
             let scope_id = scope.to_owned();
             let ids = work_ids.clone();
-            let page = self.transaction(move |tx| {
+            let page = self.read_transaction(move |tx| {
                 let max = high_watermark(tx)?;
                 if after > max {
                     return Err(Error::Composition("work change cursor is ahead of the journal".into()));
@@ -168,6 +169,9 @@ impl SqliteStore {
                     watermark: cursor(mode, scope, after),
                     more: page.2,
                 });
+            }
+            if *changes.borrow_and_update() != observed {
+                continue;
             }
             tokio::select! {
                 _ = changes.changed() => {},

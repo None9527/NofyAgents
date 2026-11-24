@@ -12,6 +12,12 @@ impl CompiledWorkflow {
         let Some(cp) = store.load(&key).await? else {
             return Ok(None);
         };
+        let spec = self
+            .environment
+            .plans
+            .get(reference)
+            .ok_or_else(|| invalid("unknown workflow version"))?
+            .spec();
         if cp.version != 1 || cp.composition != self.identity() {
             return Err(Error::Checkpoint(
                 "workflow state composition changed".into(),
@@ -19,7 +25,7 @@ impl CompiledWorkflow {
         }
         let state: WorkflowProgress =
             serde_json::from_value(cp.state.data).map_err(|e| Error::Checkpoint(e.to_string()))?;
-        validate_state(&state, run_id, reference)?;
+        validate_state(&state, run_id, reference, spec)?;
         Ok(Some(state))
     }
     /// The caller must provide the same lease-fenced store as the active run.
@@ -62,7 +68,7 @@ impl CompiledWorkflow {
         }
         let mut state: WorkflowProgress =
             serde_json::from_value(cp.state.data).map_err(|e| Error::Checkpoint(e.to_string()))?;
-        validate_state(&state, &response.run_id, &response.reference)?;
+        validate_state(&state, &response.run_id, &response.reference, spec)?;
         let receipt = HumanReceipt {
             command_id: response.command_id,
             value: response.value,

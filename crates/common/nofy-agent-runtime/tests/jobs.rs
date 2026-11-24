@@ -1008,3 +1008,815 @@ fn restart_between_run_record_and_initial_checkpoint_never_duplicates_user_input
         1
     );
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn lease_loss_cancels_and_waits_for_bounded_async_cleanup_before_returning_error() {
+    use nofy_agent_runtime::tasks::declarative::*;
+    use nofy_tool_protocol::ToolId;
+    use nofy_tool_runtime::{ToolCallContext, ToolDispatch, ToolStream, TypedToolOutput};
+    use nofy_tool_types::ToolDefinition;
+
+    struct ParentSpawner {
+        parent_waiting: Arc<Notify>,
+    }
+    #[async_trait::async_trait]
+    impl Model for ParentSpawner {
+        async fn complete(
+            &self,
+            request: ModelRequest,
+            _: &RunContext,
+        ) -> Result<ModelResponse, Error> {
+            if !request
+                .messages
+                .iter()
+                .any(|m| matches!(m, Message::Tool { .. }))
+            {
+                return Ok(ModelResponse {
+                    tool_calls: vec![ToolCall {
+                        id: "spawn-bg".into(),
+                        name: "agent_tasks".into(),
+                        arguments: json!({
+                            "action": "spawn",
+                            "task_id": "bg-worker",
+                            "tool": "bg_driver",
+                            "arguments": {}
+                        }),
+                    }],
+                    ..Default::default()
+                });
+            }
+            self.parent_waiting.notify_one();
+            std::future::pending().await
+        }
+    }
+    struct BgCleanupDispatch {
+        child_started: Arc<Notify>,
+        cleanup_finished: Arc<AtomicBool>,
+    }
+    #[async_trait::async_trait]
+    impl ToolDispatch for BgCleanupDispatch {
+        fn is_resumable(&self) -> bool {
+            true
+        }
+        fn recovery_identity(&self) -> Option<String> {
+            Some("test.bg_cleanup/v1".into())
+        }
+        async fn call(
+            &self,
+            id: ToolId,
+            _: Value,
+            _: ToolCallContext,
+        ) -> ToolStream<TypedToolOutput> {
+            struct BlockingCleanupGuard(Arc<AtomicBool>);
+            impl Drop for BlockingCleanupGuard {
+                fn drop(&mut self) {
+                    // Simulate cleanup work awaited by tasks::Owner::shutdown().
+                    std::thread::sleep(Duration::from_millis(80));
+                    self.0.store(true, Ordering::SeqCst);
+                }
+            }
+            let _guard = BlockingCleanupGuard(self.cleanup_finished.clone());
+            self.child_started.notify_one();
+            std::future::pending::<()>().await;
+            nofy_tool_runtime::terminal_only(Ok(TypedToolOutput::from_value(id, json!({}))))
+        }
+    }
+
+    let temp = tempfile::tempdir().unwrap();
+    let clock = Arc::new(ManualClock(AtomicU64::new(1000)));
+    let store =
+        SqliteStore::open_with_clock(&temp.path().join("runtime.db"), clock.clone()).unwrap();
+    let parent_waiting = Arc::new(Notify::new());
+    let child_started = Arc::new(Notify::new());
+    let cleanup_finished = Arc::new(AtomicBool::new(false));
+
+    let mut reg = ModuleRegistry::default();
+    reg.register_factory(Arc::new(InstanceFactory::new(
+        "host.parent_model",
+        "1",
+        ModuleInstance::Model(Arc::new(ParentSpawner {
+            parent_waiting: parent_waiting.clone(),
+        })),
+    )))
+    .unwrap();
+    reg.register_factory(Arc::new(InstanceFactory::new(
+        "host.prompt",
+        "1",
+        ModuleInstance::Prompt(Arc::new(StaticPrompt("system".into()))),
+    )))
+    .unwrap();
+    for (id, factory, config) in [
+        ("parent_model", "host.parent_model", json!({})),
+        ("prompt", "host.prompt", json!({})),
+    ] {
+        reg.define(ModuleDefinition {
+            reference: ModuleRef::new(id, "1"),
+            factory: factory.into(),
+            config,
+            dependencies: BTreeMap::new(),
+        })
+        .unwrap();
+    }
+    let mut drivers = ToolCatalog::new();
+    drivers
+        .insert(ToolEntry {
+            definition: ToolDefinition::function(
+                "bg_driver",
+                Some("Background cleanup test driver"),
+                json!({"type": "object"}),
+            ),
+            dispatch: Arc::new(BgCleanupDispatch {
+                child_started: child_started.clone(),
+                cleanup_finished: cleanup_finished.clone(),
+            }),
+        })
+        .unwrap();
+    let resource = TasksResourceFactory
+        .build(
+            &json!({}),
+            &BTreeMap::from([("children".into(), ModuleInstance::ToolPack(drivers))]),
+        )
+        .unwrap();
+    let deps = BTreeMap::from([("tasks".into(), resource)]);
+    for (id, instance) in [
+        ("tasks", TasksToolFactory.build(&json!({}), &deps).unwrap()),
+        (
+            "binding",
+            TasksBindingFactory.build(&json!({}), &deps).unwrap(),
+        ),
+    ] {
+        reg.register_factory(Arc::new(InstanceFactory::new(id, "1", instance)))
+            .unwrap();
+        reg.define(ModuleDefinition {
+            reference: ModuleRef::new(id, "1"),
+            factory: id.into(),
+            config: json!({}),
+            dependencies: BTreeMap::new(),
+        })
+        .unwrap();
+    }
+    let compiled = compile_agent(
+        serde_json::from_value(json!({
+            "name": "parent",
+            "model": {"id": "parent_model", "version": "1"},
+            "prompt": {"id": "prompt", "version": "1"},
+            "tool_packs": [{"id": "tasks", "version": "1"}],
+            "bindings": [{"id": "binding", "version": "1"}]
+        }))
+        .unwrap(),
+        &reg,
+    )
+    .unwrap();
+
+    let supervisor = RunSupervisor::new(store.clone())
+        .with_lease_ttl(Duration::from_millis(90))
+        .unwrap();
+    let worker = tokio::spawn(async move {
+        supervisor
+            .execute(
+                &compiled,
+                RunInput::new("hold-until-lease-lost"),
+                RunContext::new("thread", "lease-drain"),
+            )
+            .await
+    });
+
+    tokio::time::timeout(Duration::from_secs(3), async {
+        tokio::join!(child_started.notified(), parent_waiting.notified());
+    })
+    .await
+    .unwrap();
+
+    // Advance the manual clock past the lease TTL so the next renewal sees true lease loss.
+    clock.0.store(5000, Ordering::SeqCst);
+
+    let outcome = tokio::time::timeout(Duration::from_secs(3), worker)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        matches!(outcome, Err(Error::Checkpoint(ref msg)) if msg.contains("lease fence lost or expired")),
+        "expected lease loss error, got {outcome:?}"
+    );
+    assert!(
+        cleanup_finished.load(Ordering::SeqCst),
+        "supervisor must wait for tasks::Owner::shutdown() cleanup before returning lease loss error"
+    );
+    // Run receipt must remain unfinalized ('running'), never misclassified as user-cancelled.
+    assert_eq!(
+        store
+            .execution_record("lease-drain")
+            .await
+            .unwrap()
+            .unwrap()
+            .status,
+        "running"
+    );
+}
+
+#[tokio::test]
+async fn managed_action_renews_lease_continuously_without_expiring_across_ttl() {
+    struct SlowResumeModel {
+        calls: Arc<AtomicUsize>,
+        started: Arc<Notify>,
+        release: Arc<Notify>,
+    }
+    #[async_trait::async_trait]
+    impl Model for SlowResumeModel {
+        async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+            let n = self.calls.fetch_add(1, Ordering::SeqCst);
+            if n == 0 {
+                return Err(model::ModelFailure {
+                    category: "transient".into(),
+                    message: "fail-once".into(),
+                    status: Some(503),
+                    retryable: false,
+                    retry_after_ms: None,
+                    code: None,
+                    details: Value::Null,
+                }
+                .into());
+            }
+            self.started.notify_one();
+            self.release.notified().await;
+            Ok(ModelResponse {
+                output: "renewed-ok".into(),
+                ..Default::default()
+            })
+        }
+    }
+
+    use nofy_agent_runtime::system::*;
+    let temp = tempfile::tempdir().unwrap();
+    let clock = Arc::new(ManualClock(AtomicU64::new(1000)));
+    let store =
+        SqliteStore::open_with_clock(&temp.path().join("runtime.db"), clock.clone()).unwrap();
+    let started = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut reg = ModuleRegistry::default();
+    reg.register_factory(Arc::new(InstanceFactory::new(
+        "host.model",
+        "1",
+        ModuleInstance::Model(Arc::new(SlowResumeModel {
+            calls,
+            started: started.clone(),
+            release: release.clone(),
+        })),
+    )))
+    .unwrap();
+    reg.register_factory(Arc::new(InstanceFactory::new(
+        "host.prompt",
+        "1",
+        ModuleInstance::Prompt(Arc::new(StaticPrompt("system".into()))),
+    )))
+    .unwrap();
+    reg.register_factory(Arc::new(
+        GovernanceFactory::new(BTreeMap::from([(
+            "root".into(),
+            Arc::new(
+                InstalledBudget::install(
+                    Arc::new(store.clone()),
+                    BudgetLimits {
+                        max_model_calls: Some(10),
+                        ..Default::default()
+                    },
+                    "host@1",
+                    1,
+                )
+                .unwrap(),
+            ),
+        )]))
+        .unwrap(),
+    ))
+    .unwrap();
+    let doc: SystemDocument = serde_json::from_value(json!({
+        "schema_version": 1,
+        "name": "renew-sys",
+        "modules": [
+            {"reference": {"id": "model", "version": "1"}, "factory": "host.model", "config": {}},
+            {"reference": {"id": "prompt", "version": "1"}, "factory": "host.prompt", "config": {}},
+            {"reference": {"id": "budget", "version": "1"}, "factory": "governance.budget", "config": {"resource": "root"}}
+        ],
+        "programs": {
+            "chat": {
+                "kind": "agent",
+                "definition": {
+                    "name": "renew-agent",
+                    "model": {"id": "model", "version": "1"},
+                    "prompt": {"id": "prompt", "version": "1"},
+                    "governance": [{"id": "budget", "version": "1"}]
+                }
+            }
+        }
+    }))
+    .unwrap();
+    let system = compile_system(doc, &reg).unwrap();
+    let supervisor = RunSupervisor::new(store.clone())
+        .with_lease_ttl(Duration::from_millis(120))
+        .unwrap();
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "renew-run".into(),
+                thread_id: "thread".into(),
+                system: "renew-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "chat".into(),
+                input: Some(message("hello")),
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+    assert!(
+        supervisor
+            .execute_submitted(&reg, "renew-run")
+            .await
+            .is_err()
+    );
+
+    let ticket = supervisor
+        .root_model_retry_ticket("renew-run")
+        .await
+        .unwrap()
+        .unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "retry-renew".into(),
+            run_id: "renew-run".into(),
+            command: ManagedCommand::Control {
+                control: nofy_agent_runtime::supervisor::RunControlCommand::RetryModel(
+                    nofy_agent_runtime::governance::ModelRetryCommand {
+                        command_id: "retry-renew".into(),
+                        ticket,
+                    },
+                ),
+            },
+        })
+        .await
+        .unwrap();
+
+    let worker = {
+        let store = store.clone();
+        let reg = reg.clone();
+        tokio::spawn(async move {
+            RunSupervisor::new(store)
+                .with_lease_ttl(Duration::from_millis(120))
+                .unwrap()
+                .execute_managed_action(&reg, "retry-renew")
+                .await
+        })
+    };
+
+    tokio::time::timeout(Duration::from_secs(3), started.notified())
+        .await
+        .unwrap();
+    // Advance clock well past the original 120ms TTL in small increments; continuous
+    // renewal keeps the lease alive across the entire managed action lifecycle.
+    for _ in 0..8 {
+        clock.0.fetch_add(30, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_millis(45)).await;
+    }
+    release.notify_one();
+
+    let receipt = tokio::time::timeout(Duration::from_secs(3), worker)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(receipt.finished && receipt.error.is_none(), "{receipt:?}");
+    assert!(matches!(
+        receipt.outcome,
+        Some(RunOutcome::Completed { ref output, .. }) if output == "renewed-ok"
+    ));
+}
+
+#[tokio::test]
+async fn work_command_and_work_owner_capacities_prune_terminal_history_without_touching_active() {
+    use nofy_agent_runtime::supervisor::{WorkAction, WorkCommand};
+
+    let dir = tempfile::tempdir().unwrap();
+    let store = SqliteStore::open(&dir.path().join("work-gc.sqlite")).unwrap();
+    let physical = store.path().unwrap();
+    let (model, _, _) = echo(None);
+    let reg = registry(&store, model, "1", None);
+    let document: nofy_agent_runtime::system::SystemDocument = serde_json::from_value(json!({
+        "schema_version": 1,
+        "name": "work-gc-sys",
+        "modules": [
+            {"reference": {"id": "model", "version": "1"}, "factory": "host.model", "config": {}},
+            {"reference": {"id": "prompt", "version": "1"}, "factory": "host.prompt", "config": {}},
+            {"reference": {"id": "budget", "version": "1"}, "factory": "governance.budget", "config": {"resource": "root"}}
+        ],
+        "programs": {
+            "worker": {
+                "kind": "agent",
+                "definition": {
+                    "name": "worker-agent",
+                    "model": {"id": "model", "version": "1"},
+                    "prompt": {"id": "prompt", "version": "1"}
+                }
+            }
+        }
+    }))
+    .unwrap();
+    let system = nofy_agent_runtime::system::compile_system(document, &reg).unwrap();
+    let supervisor = RunSupervisor::new(store.clone());
+
+    // Submit a queued managed run for work_commands testing.
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "cmd-target".into(),
+                thread_id: "cmd-thread".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("hello")),
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+
+    // Seed 1,024 pending work commands (backed by unsettled managed actions) -> must reject.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut act_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_managed_actions(command_id, run_id, digest, payload, result)
+                     VALUES(?1, 'cmd-target', 'd', '{}', NULL)",
+                )
+                .unwrap();
+            let mut cmd_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_work_commands(scope, command_id, digest, receipt)
+                     VALUES('scope-a', ?1, 'd', ?2)",
+                )
+                .unwrap();
+            for i in 0..1_024u64 {
+                let act_id = format!("work-act-{i:04}");
+                let cmd_id = format!("work-cmd-{i:04}");
+                let receipt = json!({
+                    "work_id": "cmd-target",
+                    "run_id": "cmd-target",
+                    "command_id": &cmd_id,
+                    "phase": "accepted",
+                    "cancellation_cursor": null,
+                    "action_id": &act_id
+                })
+                .to_string();
+                act_stmt.execute([&act_id]).unwrap();
+                cmd_stmt
+                    .execute(rusqlite::params![&cmd_id, &receipt])
+                    .unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    let revision = store
+        .work_list("cmd-target", None, 16)
+        .await
+        .unwrap()
+        .unwrap()
+        .root
+        .revision;
+    let err = store
+        .control_work(
+            "scope-a",
+            "cmd-target",
+            WorkCommand {
+                work_id: "cmd-target".into(),
+                command_id: "blocked-cmd".into(),
+                expected_revision: revision,
+                action: WorkAction::Cancel,
+            },
+            None,
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("work command capacity exceeded"),
+        "expected capacity error when all work commands are pending, got: {err}"
+    );
+
+    // Keep oldest 5 actions pending and settle actions 5..205 -> control_work must prune completed batch and succeed.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        raw.execute(
+            "UPDATE agent_runtime_managed_actions
+             SET result = '{\"outcome\":null,\"error\":null}'
+             WHERE command_id >= 'work-act-0005' AND command_id < 'work-act-0205'",
+            [],
+        )
+        .unwrap();
+    }
+
+    let revision = store
+        .work_list("cmd-target", None, 16)
+        .await
+        .unwrap()
+        .unwrap()
+        .root
+        .revision;
+    let receipt = store
+        .control_work(
+            "scope-a",
+            "cmd-target",
+            WorkCommand {
+                work_id: "cmd-target".into(),
+                command_id: "admitted-cmd".into(),
+                expected_revision: revision,
+                action: WorkAction::Cancel,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(receipt["phase"], "settled");
+
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        let pending_zero_kept: bool = raw
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM agent_runtime_work_commands WHERE scope='scope-a' AND command_id='work-cmd-0000')",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            pending_zero_kept,
+            "oldest pending work command must be preserved"
+        );
+        let completed_five_pruned: bool = raw
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM agent_runtime_work_commands WHERE scope='scope-a' AND command_id='work-cmd-0005')",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            !completed_five_pruned,
+            "oldest completed work command must be pruned"
+        );
+    }
+
+    // Now test agent_runtime_work_owners per-session pruning (capacity 64) + active limit 4.
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "origin-run".into(),
+                thread_id: "origin-thread".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("origin")),
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+    supervisor
+        .execute_submitted(&reg, "origin-run")
+        .await
+        .unwrap();
+    supervisor
+        .create_session(SessionRequest {
+            id: "sess-gc".into(),
+            root_run_id: "origin-run".into(),
+        })
+        .await
+        .unwrap();
+
+    // Seed 64 settled (closed) background work owners for sess-gc.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut job_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status)
+                     VALUES(?1, ?2, 'd', '{}', 'closed')",
+                )
+                .unwrap();
+            let mut owner_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_work_owners(work_id, run_id, session_id, origin_run_id, command_id, request_digest, kind)
+                     VALUES(?1, ?2, 'sess-gc', 'origin-run', ?3, 'd', 'agent')",
+                )
+                .unwrap();
+            for i in 0..64u64 {
+                let work_id = format!("work-old-{i:03}");
+                let run_id = format!("work-run-old-{i:03}");
+                let cmd_id = format!("bg-cmd-{i:03}");
+                job_stmt
+                    .execute(rusqlite::params![&run_id, &run_id])
+                    .unwrap();
+                owner_stmt
+                    .execute(rusqlite::params![&work_id, &run_id, &cmd_id])
+                    .unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    // Starting background work #65 must prune oldest 16 terminal work owners and succeed.
+    let admitted = supervisor
+        .start_work(
+            "sess-gc",
+            "origin-run",
+            "bg-fresh-1",
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "ignored".into(),
+                thread_id: "ignored".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("bg-1")),
+                parameters: None,
+            },
+            &system,
+            None,
+            0,
+        )
+        .await
+        .unwrap();
+    assert_eq!(admitted.session_id, "sess-gc");
+
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        let count: u64 = raw
+            .query_row(
+                "SELECT COUNT(*) FROM agent_runtime_work_owners WHERE session_id='sess-gc'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 64 - 16 + 1);
+        let oldest_exists: bool = raw
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM agent_runtime_work_owners WHERE work_id='work-old-000')",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(!oldest_exists, "oldest terminal work owner must be pruned");
+    }
+
+    // Active concurrency cap (4 unsettled background runs) must remain strictly enforced.
+    for i in 2..=4u64 {
+        supervisor
+            .start_work(
+                "sess-gc",
+                "origin-run",
+                &format!("bg-fresh-{i}"),
+                ManagedRunRequest {
+                    approval_mode: None,
+                    run_id: "ignored".into(),
+                    thread_id: "ignored".into(),
+                    system: "work-gc-sys".into(),
+                    release: system.bundle.digest.clone(),
+                    program: "worker".into(),
+                    input: Some(message("bg")),
+                    parameters: None,
+                },
+                &system,
+                None,
+                0,
+            )
+            .await
+            .unwrap();
+    }
+    let active_err = supervisor
+        .start_work(
+            "sess-gc",
+            "origin-run",
+            "bg-fresh-5",
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "ignored".into(),
+                thread_id: "ignored".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("bg-5")),
+                parameters: None,
+            },
+            &system,
+            None,
+            0,
+        )
+        .await
+        .err()
+        .expect("5th active background run must fail");
+    assert!(
+        active_err
+            .to_string()
+            .contains("four unsettled background runs"),
+        "expected active background cap error, got: {active_err}"
+    );
+
+    // A session with 64 non-terminal work owners cannot prune any of them and must fail closed at capacity.
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "origin-full".into(),
+                thread_id: "origin-full-thread".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("origin-full")),
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+    supervisor
+        .execute_submitted(&reg, "origin-full")
+        .await
+        .unwrap();
+    supervisor
+        .create_session(SessionRequest {
+            id: "sess-all-active".into(),
+            root_run_id: "origin-full".into(),
+        })
+        .await
+        .unwrap();
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut job_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status)
+                     VALUES(?1, ?2, 'd', '{}', 'queued')",
+                )
+                .unwrap();
+            let mut owner_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_work_owners(work_id, run_id, session_id, origin_run_id, command_id, request_digest, kind)
+                     VALUES(?1, ?2, 'sess-all-active', 'origin-full', ?3, 'd', 'agent')",
+                )
+                .unwrap();
+            for i in 0..64u64 {
+                let work_id = format!("work-active-{i:03}");
+                let run_id = format!("work-run-active-{i:03}");
+                let cmd_id = format!("bg-active-{i:03}");
+                job_stmt
+                    .execute(rusqlite::params![&run_id, &run_id])
+                    .unwrap();
+                owner_stmt
+                    .execute(rusqlite::params![&work_id, &run_id, &cmd_id])
+                    .unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+    let owner_cap_err = supervisor
+        .start_work(
+            "sess-all-active",
+            "origin-full",
+            "bg-active-65",
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "ignored".into(),
+                thread_id: "ignored".into(),
+                system: "work-gc-sys".into(),
+                release: system.bundle.digest.clone(),
+                program: "worker".into(),
+                input: Some(message("bg-65")),
+                parameters: None,
+            },
+            &system,
+            None,
+            0,
+        )
+        .await
+        .err()
+        .expect("65th active background owner must fail");
+    assert!(
+        owner_cap_err
+            .to_string()
+            .contains("background work capacity or run identity conflict"),
+        "expected work owner capacity error when all owners are active, got: {owner_cap_err}"
+    );
+}

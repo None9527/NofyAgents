@@ -6,6 +6,39 @@ use crate::loader::{
 use nofy_agent_runtime::artifact::ArtifactBundle;
 #[derive(Clone)]
 pub(super) struct ManagementAdmission(pub std::sync::Arc<tokio::sync::OwnedSemaphorePermit>);
+
+pub(super) const MANAGEMENT_ADMISSION_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_secs(30);
+
+pub(super) async fn acquire_management_work(
+    host: &KernelHost,
+    context: &str,
+) -> Result<tokio::sync::OwnedSemaphorePermit> {
+    acquire_management_work_within(host, context, MANAGEMENT_ADMISSION_TIMEOUT).await
+}
+
+pub(super) async fn acquire_management_work_within(
+    host: &KernelHost,
+    context: &str,
+    timeout: std::time::Duration,
+) -> Result<tokio::sync::OwnedSemaphorePermit> {
+    if host.stop.is_cancelled() {
+        return Err(HostError::Unavailable("host is shutting down".into()));
+    }
+    let acquire = host.loader.management_work.clone().acquire_owned();
+    tokio::select! {
+        biased;
+        _ = host.stop.cancelled() => Err(HostError::Unavailable("host is shutting down".into())),
+        result = tokio::time::timeout(timeout, acquire) => match result {
+            Ok(Ok(permit)) => Ok(permit),
+            Ok(Err(_)) => Err(HostError::Unavailable(format!("{context} is shutting down"))),
+            Err(_) => Err(HostError::Unavailable(format!(
+                "{context} timed out waiting for management admission"
+            ))),
+        },
+    }
+}
+
 pub(super) async fn resource_backpressure(
     State(host): State<KernelHost>,
     mut request: axum::extract::Request,
@@ -33,10 +66,9 @@ pub(super) async fn resource_backpressure(
     // Runs, cancellation, approvals, actions and event streams never wait here.
     // This layer executes after authentication and before JSON extraction.
     let _permit = if heavy {
-        Some(std::sync::Arc::new(tokio::select! {biased;
-            _=host.stop.cancelled()=>return Err(HostError::Unavailable("host is shutting down".into())),
-            permit=host.loader.management_work.clone().acquire_owned()=>permit.map_err(|e|HostError::Unavailable(e.to_string()))?,
-        }))
+        Some(std::sync::Arc::new(
+            acquire_management_work(&host, "management work").await?,
+        ))
     } else {
         None
     };
@@ -234,7 +266,9 @@ mod tests {
         .unwrap();
         let auth =
             Authorizer::new(vec![(token.into(), [Scope::Read, Scope::Execute].into())]).unwrap();
-        let host = KernelHost::open(dir.path(), registry, auth).await.unwrap();
+        let host = KernelHost::open(&dir.path().join("state"), registry, auth)
+            .await
+            .unwrap();
         let held = host
             .loader
             .management_work
@@ -330,5 +364,43 @@ mod tests {
         drop(held);
         stop.cancel();
         server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn management_admission_returns_503_when_wait_times_out() {
+        use crate::{auth::Authorizer, native};
+        use nofy_agent_runtime::credentials::EnvironmentCredentials;
+        let dir = tempfile::tempdir().unwrap();
+        let registry = native::registry(std::sync::Arc::new(
+            EnvironmentCredentials::new("admission-timeout", "NOFY_ADMISSION_TIMEOUT_").unwrap(),
+        ))
+        .unwrap();
+        let auth = Authorizer::new(vec![(
+            "admission-timeout-fixture-0000000000001".into(),
+            [Scope::Read].into(),
+        )])
+        .unwrap();
+        let host = KernelHost::open(&dir.path().join("state"), registry, auth)
+            .await
+            .unwrap();
+        let held = host
+            .loader
+            .management_work
+            .clone()
+            .acquire_many_owned(2)
+            .await
+            .unwrap();
+        let error = acquire_management_work_within(
+            &host,
+            "management test",
+            std::time::Duration::from_millis(30),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(
+            error.into_response().status(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        drop(held);
     }
 }

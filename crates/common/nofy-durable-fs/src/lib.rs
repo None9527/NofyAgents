@@ -108,13 +108,47 @@ pub fn sync_file(path: &Path) -> io::Result<()> {
     }
 }
 
-/// Windows system errors that mean "somebody has it open right now": access denied
-/// and the sharing and lock violations. Antivirus and indexers hold a freshly
-/// written file for a moment without delete sharing, and the move succeeds when
-/// they let go.
+/// Win32 system error codes relevant to transient rename contention.
 #[cfg_attr(not(windows), allow(dead_code))]
+const ERROR_ACCESS_DENIED: i32 = 5;
+#[cfg_attr(not(windows), allow(dead_code))]
+const ERROR_SHARING_VIOLATION: i32 = 32;
+#[cfg_attr(not(windows), allow(dead_code))]
+const ERROR_LOCK_VIOLATION: i32 = 33;
+
+/// Pause between retry attempts in [`windows_move`].
+#[cfg_attr(not(windows), allow(dead_code))]
+const RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Bounded total attempts for transient sharing/lock contention (`<= ~2s`).
+#[cfg_attr(not(windows), allow(dead_code))]
+const SHARING_MAX_ATTEMPTS: u32 = 40;
+
+/// Tight cap for `ERROR_ACCESS_DENIED` (5): allows a brief pending-delete or
+/// antivirus scan hold (`3 * 50ms = 150ms <= 200ms`) without stalling a
+/// blocking thread for 2 seconds on a permanent ACL/permission denial.
+#[cfg_attr(not(windows), allow(dead_code))]
+const ACCESS_DENIED_MAX_ATTEMPTS: u32 = 4;
+
+/// Maximum total attempts permitted for a Windows system error (`1` = no retry).
+///
+/// Sharing and lock violations (`32`, `33`) receive the full transient retry
+/// budget; `ERROR_ACCESS_DENIED` (`5`) receives only a short bounded cap so a
+/// real permission error returns promptly.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn retry_attempts_for(system_error: i32) -> u32 {
+    match system_error {
+        ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION => SHARING_MAX_ATTEMPTS,
+        ERROR_ACCESS_DENIED => ACCESS_DENIED_MAX_ATTEMPTS,
+        _ => 1,
+    }
+}
+
+/// Windows system errors that mean "somebody has it open right now": sharing
+/// and lock violations, plus brief access-denied contention.
+#[cfg(test)]
 fn busy_for_a_moment(system_error: i32) -> bool {
-    matches!(system_error, 5 | 32 | 33)
+    retry_attempts_for(system_error) > 1
 }
 
 /// The path in extended-length form, so a long state directory (over 260
@@ -132,7 +166,7 @@ fn extended_length(absolute: &str) -> String {
 
 #[cfg(windows)]
 fn windows_move(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
-    use std::{os::windows::ffi::OsStrExt, time::Duration};
+    use std::os::windows::ffi::OsStrExt;
     use windows::{
         Win32::Storage::FileSystem::{
             MOVE_FILE_FLAGS, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
@@ -161,8 +195,9 @@ fn windows_move(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
         flags |= MOVEFILE_REPLACE_EXISTING;
     }
     // A bounded wait, because callers hold this on a blocking thread.
-    const ATTEMPTS: u32 = 40;
-    for attempt in 1..=ATTEMPTS {
+    let mut attempt: u32 = 1;
+    let mut access_denied_retries: u32 = 0;
+    loop {
         // SAFETY: both buffers are NUL-terminated UTF-16 that outlive the call, and
         // MoveFileExW only reads them.
         let moved = unsafe { MoveFileExW(PCWSTR(from.as_ptr()), PCWSTR(to.as_ptr()), flags) };
@@ -179,13 +214,21 @@ fn windows_move(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
                 }
             }
         };
-        let busy = error.raw_os_error().is_some_and(busy_for_a_moment);
-        if !busy || attempt == ATTEMPTS {
+        let code = error.raw_os_error();
+        let max_attempts = code.map_or(1, retry_attempts_for);
+        let should_retry = match code {
+            Some(ERROR_ACCESS_DENIED) => {
+                access_denied_retries += 1;
+                access_denied_retries < ACCESS_DENIED_MAX_ATTEMPTS && attempt < SHARING_MAX_ATTEMPTS
+            }
+            _ => attempt < max_attempts,
+        };
+        if !should_retry {
             return Err(error);
         }
-        std::thread::sleep(Duration::from_millis(50));
+        attempt += 1;
+        std::thread::sleep(RETRY_INTERVAL);
     }
-    unreachable!("the loop returns on its last attempt")
 }
 
 #[cfg(test)]
@@ -277,13 +320,27 @@ mod tests {
 
     #[test]
     fn only_a_moment_of_contention_is_retried() {
-        // access denied, sharing violation, lock violation
-        for code in [5, 32, 33] {
+        // sharing violation and lock violation get the full bounded retry budget
+        for code in [ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION] {
             assert!(busy_for_a_moment(code), "{code}");
+            assert_eq!(retry_attempts_for(code), SHARING_MAX_ATTEMPTS, "{code}");
         }
+        // access denied is capped to a short window (<= 200ms) so permanent ACL denials do not stall for 2s
+        assert!(busy_for_a_moment(ERROR_ACCESS_DENIED));
+        assert_eq!(
+            retry_attempts_for(ERROR_ACCESS_DENIED),
+            ACCESS_DENIED_MAX_ATTEMPTS
+        );
+        let max_access_denied_wait_ms =
+            u128::from(ACCESS_DENIED_MAX_ATTEMPTS - 1) * RETRY_INTERVAL.as_millis();
+        assert!(
+            max_access_denied_wait_ms <= 200,
+            "access denied wait {max_access_denied_wait_ms}ms exceeds 200ms cap"
+        );
         // file exists, already exists, file not found, path not found
         for code in [80, 183, 2, 3] {
             assert!(!busy_for_a_moment(code), "{code}");
+            assert_eq!(retry_attempts_for(code), 1, "{code}");
         }
     }
 

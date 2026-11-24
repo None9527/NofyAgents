@@ -40,6 +40,37 @@ fn plain(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+fn find_case_collision(dir: &Path, id: &str) -> Result<Option<String>> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+    for entry in entries {
+        let path = entry?.path();
+        if path.extension().is_some_and(|e| e == "json")
+            && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+            && stem != id
+            && stem.eq_ignore_ascii_case(id)
+        {
+            return Ok(Some(stem.to_owned()));
+        }
+    }
+    Ok(None)
+}
+fn has_exact_entry(dir: &Path, file_name: &str) -> Result<bool> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(e.into()),
+    };
+    for entry in entries {
+        if entry?.file_name() == std::ffi::OsStr::new(file_name) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 impl ProjectStore {
     pub fn open(path: &Path) -> Result<Self> {
         if !path.is_absolute() {
@@ -64,7 +95,7 @@ impl ProjectStore {
     }
     fn lock(&self, id: &str) -> Result<std::fs::File> {
         safe_id(id)?;
-        let p = self.root.join(format!("{id}.lock"));
+        let p = self.root.join(format!("{}.lock", id.to_ascii_lowercase()));
         plain(&p)?;
         let f = std::fs::OpenOptions::new()
             .read(true)
@@ -75,20 +106,47 @@ impl ProjectStore {
         f.lock_exclusive()?;
         Ok(f)
     }
+    fn ensure_no_case_collision(&self, id: &str) -> Result<()> {
+        if let Some(existing) = find_case_collision(self.root.as_ref(), id)? {
+            return Err(Error::new(
+                "conflict",
+                format!("project ID `{id}` conflicts with existing project `{existing}`"),
+            ));
+        }
+        if let Some(existing) = find_case_collision(&self.root.join("deleted"), id)? {
+            return Err(Error::new(
+                "conflict",
+                format!("project ID `{id}` conflicts with deleted project `{existing}`"),
+            ));
+        }
+        Ok(())
+    }
     fn read(&self, id: &str) -> Result<Option<ProjectView>> {
         safe_id(id)?;
-        let p = self.root.join(format!("{id}.json"));
+        let exact_file = format!("{id}.json");
+        let p = self.root.join(&exact_file);
         plain(&p)?;
-        let bytes = match std::fs::read(p) {
+        let bytes = match std::fs::read(&p) {
             Ok(b) => b,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
         };
         let view: ProjectView = serde_json::from_slice(&bytes)?;
-        if view.project_id != id
-            || view.source.digest()? != view.source_digest
-            || view.revision.parse::<u64>().is_err()
-        {
+        if view.project_id != id {
+            // On a case-insensitive volume, opening `{id}.json` can resolve to a
+            // differently cased project file. Treat a missing exact directory entry
+            // as absent rather than surfacing a 503 integrity failure.
+            if view.project_id.eq_ignore_ascii_case(id)
+                && !has_exact_entry(self.root.as_ref(), &exact_file)?
+            {
+                return Ok(None);
+            }
+            return Err(Error::new(
+                "local_io",
+                "project record failed integrity verification",
+            ));
+        }
+        if view.source.digest()? != view.source_digest || view.revision.parse::<u64>().is_err() {
             return Err(Error::new(
                 "local_io",
                 "project record failed integrity verification",
@@ -117,6 +175,7 @@ impl ProjectStore {
         change: impl FnOnce(Option<&Source>) -> Result<Source>,
     ) -> Result<ProjectView> {
         let _lock = self.lock(id)?;
+        self.ensure_no_case_collision(id)?;
         let before = self.read(id)?;
         if before.as_ref().map(|v| v.revision.as_str()) != expected {
             return Err(Error::new("conflict", "project revision changed"));
@@ -166,12 +225,20 @@ impl ProjectStore {
             ));
         }
         let mut ids = vec![];
+        let mut folded = std::collections::BTreeMap::<String, String>::new();
         for entry in std::fs::read_dir(self.root.as_ref())? {
             let path = entry?.path();
             if path.extension().is_some_and(|e| e == "json")
                 && let Some(id) = path.file_stem().and_then(|s| s.to_str())
             {
                 safe_id(id)?;
+                let key = id.to_ascii_lowercase();
+                if let Some(existing) = folded.insert(key, id.to_owned()) {
+                    return Err(Error::new(
+                        "conflict",
+                        format!("project ID `{id}` conflicts with existing project `{existing}`"),
+                    ));
+                }
                 if id > after {
                     ids.push(id.to_owned());
                 }
@@ -326,5 +393,140 @@ impl TemplateRegistry {
             source.refresh_manifest()?;
         }
         Ok(source)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn store_rejects_ascii_case_colliding_project_ids_with_conflict_and_preserves_valid_projects() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ProjectStore::open(dir.path()).unwrap();
+        let source = Source::empty("coder", "demo").unwrap();
+
+        let created = store.put("demo", None, source.clone()).unwrap();
+        assert_eq!(created.project_id, "demo");
+        assert_eq!(created.revision, "0");
+
+        // Creating a differently cased variant must return 409 conflict, never 503.
+        let err = store.put("Demo", None, source.clone()).unwrap_err();
+        assert_eq!(err.code, "conflict");
+        let err = store.put("DEMO", None, source.clone()).unwrap_err();
+        assert_eq!(err.code, "conflict");
+
+        // Getting a differently cased variant returns not_found, not 503.
+        assert_eq!(store.get("Demo").unwrap_err().code, "not_found");
+
+        // Existing valid project remains readable, updatable, and listable.
+        let mut updated = source.clone();
+        updated
+            .files
+            .insert("note.txt".into(), File::text("updated"));
+        updated.refresh_manifest().unwrap();
+        let rev1 = store.put("demo", Some("0"), updated).unwrap();
+        assert_eq!(rev1.revision, "1");
+
+        // Mixed-case unique project IDs remain fully supported.
+        let mixed = store
+            .put("MyApp", None, Source::empty("coder", "MyApp").unwrap())
+            .unwrap();
+        assert_eq!(mixed.project_id, "MyApp");
+        let listed: Vec<_> = store
+            .list("", 10)
+            .unwrap()
+            .into_iter()
+            .map(|v| v.project_id)
+            .collect();
+        assert_eq!(listed, vec!["MyApp".to_owned(), "demo".to_owned()]);
+
+        // Deleting `demo` blocks `Demo` (tombstone collision) while allowing exact `demo` recreation.
+        store.delete("demo", "1").unwrap();
+        assert_eq!(
+            store.put("Demo", None, source.clone()).unwrap_err().code,
+            "conflict"
+        );
+        let recreated = store.put("demo", None, source).unwrap();
+        assert_eq!(recreated.revision, "2");
+    }
+
+    #[test]
+    fn store_serializes_concurrent_case_colliding_creates() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ProjectStore::open(dir.path()).unwrap();
+        let left = store.clone();
+        let right = store.clone();
+        let src_a = Source::empty("coder", "demo").unwrap();
+        let src_b = Source::empty("coder", "Demo").unwrap();
+        let t1 = std::thread::spawn(move || left.put("demo", None, src_a));
+        let t2 = std::thread::spawn(move || right.put("Demo", None, src_b));
+        let results = [t1.join().unwrap(), t2.join().unwrap()];
+        assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
+        let err = results
+            .iter()
+            .find_map(|r| r.as_ref().err())
+            .expect("second racing case-colliding create must fail");
+        assert_eq!(err.code, "conflict");
+    }
+
+    #[test]
+    fn store_list_detects_preexisting_case_colliding_files_and_read_keeps_corruption_check() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ProjectStore::open(dir.path()).unwrap();
+        let src_lower = Source::empty("coder", "demo").unwrap();
+        let src_upper = Source::empty("coder", "Demo").unwrap();
+
+        let lower_view = ProjectView {
+            project_id: "demo".into(),
+            revision: "0".into(),
+            source_digest: src_lower.digest().unwrap(),
+            source: src_lower.clone(),
+        };
+        let upper_view = ProjectView {
+            project_id: "Demo".into(),
+            revision: "0".into(),
+            source_digest: src_upper.digest().unwrap(),
+            source: src_upper,
+        };
+        std::fs::write(
+            dir.path().join("demo.json"),
+            serde_json::to_vec(&lower_view).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("Demo.json"),
+            serde_json::to_vec(&upper_view).unwrap(),
+        )
+        .unwrap();
+
+        let case_sensitive = has_exact_entry(dir.path(), "demo.json").unwrap()
+            && has_exact_entry(dir.path(), "Demo.json").unwrap();
+        if case_sensitive {
+            // Both list("", ..) and paginated list("z", ..) surface conflict for colliding entries.
+            assert_eq!(store.list("", 10).unwrap_err().code, "conflict");
+            assert_eq!(store.list("z", 10).unwrap_err().code, "conflict");
+        }
+
+        // Exact-entry tampering (Demo.json storing project_id="demo") still triggers integrity check.
+        for name in ["demo.json", "Demo.json"] {
+            if let Err(err) = std::fs::remove_file(dir.path().join(name)) {
+                assert_eq!(err.kind(), std::io::ErrorKind::NotFound, "{err}");
+            }
+        }
+        let tampered = ProjectView {
+            project_id: "demo".into(),
+            revision: "0".into(),
+            source_digest: src_lower.digest().unwrap(),
+            source: src_lower,
+        };
+        std::fs::write(
+            dir.path().join("Demo.json"),
+            serde_json::to_vec(&tampered).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(store.get("Demo").unwrap_err().code, "local_io");
+        assert!(has_exact_entry(dir.path(), "Demo.json").unwrap());
+        assert!(!has_exact_entry(dir.path(), "demo.json").unwrap());
     }
 }

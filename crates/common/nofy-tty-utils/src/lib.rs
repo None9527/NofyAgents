@@ -62,6 +62,31 @@ pub fn exit_signal(status: &std::process::ExitStatus) -> Option<i32> {
     }
 }
 
+/// Wait for a process shutdown signal: `SIGINT` or `SIGTERM` on Unix,
+/// `Ctrl+C` elsewhere.
+///
+/// Resident services use this so systemd/Docker `SIGTERM` runs the same
+/// graceful shutdown, lease release, and child-process teardown path as
+/// interactive `Ctrl+C`.
+pub async fn shutdown_signal() -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+        let mut terminate = signal(SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            received = terminate.recv() => {
+                let _ = received;
+                Ok(())
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await
+    }
+}
+
 pub mod runtime;
 
 // ---------------------------------------------------------------------------
@@ -106,14 +131,130 @@ pub fn detach_from_tty() -> io::Result<()> {
 }
 
 // ---------------------------------------------------------------------------
+// Windows process creation flags combinator
+// ---------------------------------------------------------------------------
+
+/// Bitflags representing Windows `CreateProcessW` creation options managed by
+/// `nofy-tty-utils`.
+///
+/// Rust's `CommandExt::creation_flags` replaces the stored flag word on every
+/// call rather than OR-ing bits, so sequential calls to `detach_command`
+/// (`CREATE_NO_WINDOW`), `new_process_group` (`CREATE_NEW_PROCESS_GROUP`), and
+/// suspended launch (`CREATE_SUSPENDED`) would otherwise clobber each other.
+/// Combine flags with [`Self::union`] or `|` and apply them once via
+/// [`apply_windows_creation_flags`] / [`apply_windows_creation_flags_std`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct WindowsCreationFlags(u32);
+
+impl WindowsCreationFlags {
+    pub const NONE: Self = Self(0);
+    pub const CREATE_SUSPENDED: Self = Self(0x0000_0004);
+    pub const CREATE_NEW_PROCESS_GROUP: Self = Self(0x0000_0200);
+    pub const CREATE_NO_WINDOW: Self = Self(0x0800_0000);
+
+    pub const fn bits(self) -> u32 {
+        self.0
+    }
+
+    pub const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    pub const fn contains(self, other: Self) -> bool {
+        (self.0 & other.0) == other.0
+    }
+}
+
+impl std::ops::BitOr for WindowsCreationFlags {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.union(rhs)
+    }
+}
+
+impl std::ops::BitOrAssign for WindowsCreationFlags {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+}
+
+/// Build the combined Windows `CreateProcessW` flag word for detach, new
+/// process group, and suspended launch without clobbering individual bits.
+pub const fn windows_creation_flags_for(
+    detach: bool,
+    new_group: bool,
+    suspended: bool,
+) -> WindowsCreationFlags {
+    let mut flags = WindowsCreationFlags::NONE;
+    if detach {
+        flags = flags.union(WindowsCreationFlags::CREATE_NO_WINDOW);
+    }
+    if new_group {
+        flags = flags.union(WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP);
+    }
+    if suspended {
+        flags = flags.union(WindowsCreationFlags::CREATE_SUSPENDED);
+    }
+    flags
+}
+
+#[cfg(windows)]
+const _: () = {
+    use windows::Win32::System::Threading::{
+        CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, CREATE_SUSPENDED,
+    };
+    assert!(WindowsCreationFlags::CREATE_SUSPENDED.bits() == CREATE_SUSPENDED.0);
+    assert!(WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP.bits() == CREATE_NEW_PROCESS_GROUP.0);
+    assert!(WindowsCreationFlags::CREATE_NO_WINDOW.bits() == CREATE_NO_WINDOW.0);
+};
+
+/// Apply a combined [`WindowsCreationFlags`] mask to a `tokio::process::Command`
+/// in a single `creation_flags` call (no-op on non-Windows platforms).
+pub fn apply_windows_creation_flags(
+    cmd: &mut tokio::process::Command,
+    flags: WindowsCreationFlags,
+) {
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(flags.bits());
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (cmd, flags);
+    }
+}
+
+/// Apply a combined [`WindowsCreationFlags`] mask to a `std::process::Command`
+/// in a single `creation_flags` call (no-op on non-Windows platforms).
+pub fn apply_windows_creation_flags_std(
+    cmd: &mut std::process::Command,
+    flags: WindowsCreationFlags,
+) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(flags.bits());
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (cmd, flags);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // tokio::process::Command wrapper
 // ---------------------------------------------------------------------------
 
 /// Detach a `tokio::process::Command` from the parent's controlling TTY/console.
 ///
-/// - Unix: `pre_exec` hook calling `setsid` (EPERM fallback: `setpgid`).
-/// - Windows: `CREATE_NO_WINDOW`. Do NOT add `DETACHED_PROCESS` — it
-///   breaks stdio pipe inheritance for grandchildren (`cmd.exe` → `node`).
+/// - Unix: `pre_exec` hook calling `setsid` (EPERM fallback: `setpgid`), which
+///   both detaches from the controlling TTY and starts a new process group.
+/// - Windows: `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP` applied in one
+///   call so neither flag overwrites the other. Do NOT add `DETACHED_PROCESS` —
+///   it breaks stdio pipe inheritance for grandchildren (`cmd.exe` → `node`).
+///
+/// When combining additional Windows creation flags (e.g. `CREATE_SUSPENDED`),
+/// use [`apply_windows_creation_flags`] so subsequent calls do not clobber flags.
 pub fn detach_command(cmd: &mut tokio::process::Command) {
     #[cfg(unix)]
     {
@@ -125,9 +266,20 @@ pub fn detach_command(cmd: &mut tokio::process::Command) {
     }
     #[cfg(windows)]
     {
-        use windows::Win32::System::Threading::CREATE_NO_WINDOW;
-        cmd.creation_flags(CREATE_NO_WINDOW.0);
+        apply_windows_creation_flags(
+            cmd,
+            WindowsCreationFlags::CREATE_NO_WINDOW | WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP,
+        );
     }
+}
+
+/// Detach a `tokio::process::Command` from the controlling console AND place it
+/// in its own process group without clobbering Windows `creation_flags`.
+pub fn detach_and_group_command(cmd: &mut tokio::process::Command) {
+    // On Unix, `setsid()` already creates a new session and process group;
+    // calling `process_group(0)` beforehand would make `setsid()` fail with EPERM.
+    // On Windows, `detach_command` ORs `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP`.
+    detach_command(cmd);
 }
 
 /// Configure a short-lived search child ([`detach_command`], no stdin) that is
@@ -286,10 +438,17 @@ pub fn detach_std_command(cmd: &mut std::process::Command) {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-        use windows::Win32::System::Threading::CREATE_NO_WINDOW;
-        cmd.creation_flags(CREATE_NO_WINDOW.0);
+        apply_windows_creation_flags_std(
+            cmd,
+            WindowsCreationFlags::CREATE_NO_WINDOW | WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP,
+        );
     }
+}
+
+/// Detach a `std::process::Command` from the controlling console AND place it
+/// in its own process group without clobbering Windows `creation_flags`.
+pub fn detach_and_group_std_command(cmd: &mut std::process::Command) {
+    detach_std_command(cmd);
 }
 
 // ---------------------------------------------------------------------------
@@ -335,8 +494,10 @@ fn bind_to_parent_death(parent_pid: u32, armed_thread: std::thread::ThreadId) ->
     // Parent already gone (pdeathsig can no longer fire): exit instead of
     // orphaning. A reparented child sees a ppid different from the pid the
     // spawn site captured.
-    // SAFETY: getppid/_exit are async-signal-safe and take no pointers.
+    // SAFETY: getppid is async-signal-safe and takes no pointers.
     if unsafe { libc::getppid() } as u32 != parent_pid {
+        // SAFETY: _exit is async-signal-safe and terminates the forked child
+        // immediately without running parent atexit handlers.
         unsafe { libc::_exit(0) };
     }
     Ok(())
@@ -465,6 +626,10 @@ pub async fn reap_killed_bounded(
 
 /// Configure a command so the spawned child becomes the leader of a new
 /// process group.
+///
+/// On Windows, prefer [`detach_and_group_command`] or
+/// [`apply_windows_creation_flags`] when also detaching from the console
+/// (`CREATE_NO_WINDOW`), because `Command::creation_flags` replaces prior flags.
 pub fn new_process_group(cmd: &mut tokio::process::Command) {
     #[cfg(unix)]
     {
@@ -472,8 +637,7 @@ pub fn new_process_group(cmd: &mut tokio::process::Command) {
     }
     #[cfg(windows)]
     {
-        use windows::Win32::System::Threading::CREATE_NEW_PROCESS_GROUP;
-        cmd.creation_flags(CREATE_NEW_PROCESS_GROUP.0);
+        apply_windows_creation_flags(cmd, WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP);
     }
 }
 
@@ -554,10 +718,135 @@ pub struct ProcessGroup {
     hangup_first: bool,
 }
 
+// SAFETY: A Windows Job Object HANDLE is an opaque kernel object handle that can
+// be shared and closed safely from any thread in the owning process.
 #[cfg(windows)]
 unsafe impl Send for ProcessGroup {}
+// SAFETY: Job Object operations (`AssignProcessToJobObject`, `TerminateJobObject`)
+// are kernel-synchronized and safe to invoke concurrently across threads.
 #[cfg(windows)]
 unsafe impl Sync for ProcessGroup {}
+
+/// Encode an executable path and argument list into a Windows `CreateProcessW`
+/// command line following `CommandLineToArgvW` quoting rules.
+pub fn encode_windows_command_line(
+    program: &std::path::Path,
+    args: &[std::ffi::OsString],
+) -> io::Result<String> {
+    let mut out = String::new();
+    let program_str = program.to_str().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "program path is not valid UTF-8",
+        )
+    })?;
+    push_windows_arg(&mut out, program_str)?;
+    for arg in args {
+        let arg_str = arg.to_str().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "command argument is not valid UTF-8",
+            )
+        })?;
+        out.push(' ');
+        push_windows_arg(&mut out, arg_str)?;
+    }
+    Ok(out)
+}
+
+fn push_windows_arg(out: &mut String, arg: &str) -> io::Result<()> {
+    if arg.contains('\0') {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "command argument contains NUL byte",
+        ));
+    }
+    let needs_quotes = arg.is_empty()
+        || arg
+            .chars()
+            .any(|c| matches!(c, ' ' | '\t' | '\n' | '\r' | '\x0B' | '"'));
+    if !needs_quotes {
+        out.push_str(arg);
+        return Ok(());
+    }
+    out.push('"');
+    let mut backslashes = 0usize;
+    for ch in arg.chars() {
+        if ch == '\\' {
+            backslashes += 1;
+        } else if ch == '"' {
+            for _ in 0..(backslashes * 2 + 1) {
+                out.push('\\');
+            }
+            out.push('"');
+            backslashes = 0;
+        } else {
+            for _ in 0..backslashes {
+                out.push('\\');
+            }
+            out.push(ch);
+            backslashes = 0;
+        }
+    }
+    for _ in 0..(backslashes * 2) {
+        out.push('\\');
+    }
+    out.push('"');
+    Ok(())
+}
+
+/// Owned handle to a Windows child process started via
+/// [`ProcessGroup::spawn_suspended_in_job`] (created with `CREATE_SUSPENDED`,
+/// assigned to the Job Object, and resumed via `ResumeThread` so no grandchild
+/// can escape before Job attachment).
+#[cfg(windows)]
+pub struct WindowsJobProcess {
+    handle: windows::Win32::Foundation::HANDLE,
+    pid: u32,
+}
+
+// SAFETY: A Windows process HANDLE is an opaque kernel object handle that can
+// be moved and closed safely across threads in the owning process.
+#[cfg(windows)]
+unsafe impl Send for WindowsJobProcess {}
+// SAFETY: Waiting on or querying a Win32 process HANDLE is thread-safe in the kernel.
+#[cfg(windows)]
+unsafe impl Sync for WindowsJobProcess {}
+
+#[cfg(windows)]
+impl WindowsJobProcess {
+    pub fn id(&self) -> u32 {
+        self.pid
+    }
+
+    pub fn wait(&self) -> io::Result<u32> {
+        use windows::Win32::Foundation::WAIT_FAILED;
+        use windows::Win32::System::Threading::{
+            GetExitCodeProcess, INFINITE, WaitForSingleObject,
+        };
+        // SAFETY: `self.handle` is a valid owned process handle for the lifetime of `self`.
+        let waited = unsafe { WaitForSingleObject(self.handle, INFINITE) };
+        if waited == WAIT_FAILED {
+            return Err(io::Error::last_os_error());
+        }
+        let mut exit_code: u32 = 0;
+        // SAFETY: `self.handle` is valid and `exit_code` is a writable `u32`.
+        unsafe { GetExitCodeProcess(self.handle, &mut exit_code) }
+            .map_err(|e| io::Error::other(format!("GetExitCodeProcess: {e}")))?;
+        Ok(exit_code)
+    }
+}
+
+#[cfg(windows)]
+impl Drop for WindowsJobProcess {
+    fn drop(&mut self) {
+        if !self.handle.is_invalid() {
+            // SAFETY: `self.handle` is owned exclusively by `WindowsJobProcess`
+            // and closed exactly once on drop.
+            let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.handle) };
+        }
+    }
+}
 
 impl ProcessGroup {
     pub fn new() -> io::Result<Self> {
@@ -579,12 +868,18 @@ impl ProcessGroup {
             };
             use windows::core::PCWSTR;
 
+            // SAFETY: Creating an anonymous Job Object with default security
+            // attributes passes no caller pointers and returns an owned handle.
             let job = unsafe { CreateJobObjectW(None, PCWSTR::null()) }
                 .map_err(|e| io::Error::other(format!("CreateJobObjectW: {e}")))?;
 
+            // SAFETY: `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` is a plain C struct
+            // for which all-zero is a valid initial state.
             let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
+            // SAFETY: `job` is a valid newly created Job Object handle and `info`
+            // outlives the call with its exact byte size passed.
             let result = unsafe {
                 SetInformationJobObject(
                     job,
@@ -594,6 +889,7 @@ impl ProcessGroup {
                 )
             };
             if let Err(e) = result {
+                // SAFETY: `job` is a valid owned handle that will not be used again.
                 let _ = unsafe { CloseHandle(job) };
                 return Err(io::Error::other(format!("SetInformationJobObject: {e}")));
             }
@@ -603,6 +899,148 @@ impl ProcessGroup {
                 hangup_first: false,
             })
         }
+    }
+
+    /// Assign an already-open Windows process handle directly to this Job Object.
+    #[cfg(windows)]
+    pub fn attach_handle(
+        &mut self,
+        process_handle: windows::Win32::Foundation::HANDLE,
+    ) -> io::Result<()> {
+        use windows::Win32::System::JobObjects::AssignProcessToJobObject;
+        if process_handle.is_invalid() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "ProcessGroup::attach_handle: invalid process handle",
+            ));
+        }
+        // SAFETY: `self.job` is a valid owned Job Object handle and `process_handle`
+        // was verified non-null/non-invalid by the check above.
+        unsafe { AssignProcessToJobObject(self.job, process_handle) }
+            .map_err(|e| io::Error::other(format!("AssignProcessToJobObject: {e}")))
+    }
+
+    /// Bind a `CREATE_SUSPENDED` Windows child process to this Job Object and
+    /// then resume its primary thread via `ResumeThread`.
+    ///
+    /// Because the child is still suspended during `AssignProcessToJobObject`,
+    /// no user code or grandchild can spawn before the Job boundary takes effect.
+    /// On failure, the suspended child is terminated before returning an error.
+    #[cfg(windows)]
+    pub fn attach_suspended_and_resume(
+        &mut self,
+        process_handle: windows::Win32::Foundation::HANDLE,
+        primary_thread: windows::Win32::Foundation::HANDLE,
+    ) -> io::Result<()> {
+        use windows::Win32::System::Threading::{ResumeThread, TerminateProcess};
+        if process_handle.is_invalid() || primary_thread.is_invalid() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "ProcessGroup::attach_suspended_and_resume: invalid process or thread handle",
+            ));
+        }
+        if let Err(error) = self.attach_handle(process_handle) {
+            // SAFETY: `process_handle` was verified valid; terminate the suspended
+            // child so it cannot leak after a failed Job assignment.
+            let _ = unsafe { TerminateProcess(process_handle, 1) };
+            return Err(error);
+        }
+        // SAFETY: `primary_thread` was verified valid and belongs to the child
+        // process just assigned to `self.job`.
+        let prev_suspend_count = unsafe { ResumeThread(primary_thread) };
+        if prev_suspend_count == u32::MAX {
+            let error = io::Error::last_os_error();
+            let _ = self.terminate_job(1);
+            // SAFETY: `process_handle` is still valid; best-effort cleanup on resume failure.
+            let _ = unsafe { TerminateProcess(process_handle, 1) };
+            return Err(io::Error::other(format!("ResumeThread: {error}")));
+        }
+        Ok(())
+    }
+
+    /// Spawn a Windows process with `CREATE_SUSPENDED` OR'd into `flags`, assign
+    /// it to this Job Object before any code runs, and resume its primary thread.
+    #[cfg(windows)]
+    pub fn spawn_suspended_in_job(
+        &mut self,
+        program: &std::path::Path,
+        args: &[std::ffi::OsString],
+        cwd: Option<&std::path::Path>,
+        flags: WindowsCreationFlags,
+    ) -> io::Result<WindowsJobProcess> {
+        use std::mem::{size_of, zeroed};
+        use std::os::windows::ffi::OsStrExt;
+        use windows::Win32::Foundation::CloseHandle;
+        use windows::Win32::System::Threading::{
+            CreateProcessW, PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
+        };
+        use windows::core::{PCWSTR, PWSTR};
+
+        let mut cmd_wide: Vec<u16> = encode_windows_command_line(program, args)?
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let cwd_wide: Option<Vec<u16>> = match cwd {
+            Some(dir) => {
+                let text = dir.to_str().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "cwd is not valid UTF-8")
+                })?;
+                if text.contains('\0') {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "cwd contains NUL byte",
+                    ));
+                }
+                Some(
+                    std::ffi::OsStr::new(text)
+                        .encode_wide()
+                        .chain(std::iter::once(0))
+                        .collect(),
+                )
+            }
+            None => None,
+        };
+        // SAFETY: `STARTUPINFOW` and `PROCESS_INFORMATION` are plain Win32 C structs
+        // for which all-zero is a valid initial representation.
+        let mut startup: STARTUPINFOW = unsafe { zeroed() };
+        startup.cb = size_of::<STARTUPINFOW>() as u32;
+        // SAFETY: `PROCESS_INFORMATION` is initialized by `CreateProcessW` on success.
+        let mut proc_info: PROCESS_INFORMATION = unsafe { zeroed() };
+        let combined = flags.union(WindowsCreationFlags::CREATE_SUSPENDED);
+        let cwd_ptr = cwd_wide
+            .as_ref()
+            .map_or(PCWSTR::null(), |buf| PCWSTR(buf.as_ptr()));
+        // SAFETY: `cmd_wide` is a writable NUL-terminated UTF-16 buffer, `cwd_ptr`
+        // is either null or NUL-terminated UTF-16, and `startup`/`proc_info` are
+        // properly sized and aligned for `CreateProcessW`.
+        unsafe {
+            CreateProcessW(
+                PCWSTR::null(),
+                Some(PWSTR(cmd_wide.as_mut_ptr())),
+                None,
+                None,
+                false,
+                PROCESS_CREATION_FLAGS(combined.bits()),
+                None,
+                cwd_ptr,
+                &startup,
+                &mut proc_info,
+            )
+        }
+        .map_err(|e| io::Error::other(format!("CreateProcessW: {e}")))?;
+
+        let attached = self.attach_suspended_and_resume(proc_info.hProcess, proc_info.hThread);
+        // SAFETY: `hThread` was returned by `CreateProcessW` and is closed once here.
+        let _ = unsafe { CloseHandle(proc_info.hThread) };
+        if let Err(error) = attached {
+            // SAFETY: `hProcess` was returned by `CreateProcessW`; close on error path.
+            let _ = unsafe { CloseHandle(proc_info.hProcess) };
+            return Err(error);
+        }
+        Ok(WindowsJobProcess {
+            handle: proc_info.hProcess,
+            pid: proc_info.dwProcessId,
+        })
     }
 
     pub fn attach(&mut self, child: &tokio::process::Child) -> io::Result<()> {
@@ -631,20 +1069,21 @@ impl ProcessGroup {
         #[cfg(windows)]
         {
             use windows::Win32::Foundation::CloseHandle;
-            use windows::Win32::System::JobObjects::AssignProcessToJobObject;
             use windows::Win32::System::Threading::{
                 OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
             };
 
+            // SAFETY: `OpenProcess` takes only access rights and a PID, returning
+            // an owned process handle on success.
             let process_handle =
                 unsafe { OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, false, pid) }
                     .map_err(|e| io::Error::other(format!("OpenProcess({pid}): {e}")))?;
 
-            let assign_result = unsafe { AssignProcessToJobObject(self.job, process_handle) };
+            let assign_result = self.attach_handle(process_handle);
+            // SAFETY: `process_handle` was opened above and is closed exactly once here.
             let _ = unsafe { CloseHandle(process_handle) };
 
-            assign_result
-                .map_err(|e| io::Error::other(format!("AssignProcessToJobObject({pid}): {e}")))
+            assign_result.map_err(|e| io::Error::other(format!("attach_pid({pid}): {e}")))
         }
     }
 
@@ -736,6 +1175,7 @@ impl ProcessGroup {
     #[cfg(windows)]
     fn terminate_job(&self, exit_code: u32) -> io::Result<()> {
         use windows::Win32::System::JobObjects::TerminateJobObject;
+        // SAFETY: `self.job` is a valid owned Job Object handle for the lifetime of `self`.
         unsafe { TerminateJobObject(self.job, exit_code) }
             .map_err(|e| io::Error::other(format!("TerminateJobObject: {e}")))
     }
@@ -744,6 +1184,7 @@ impl ProcessGroup {
 #[cfg(windows)]
 impl Drop for ProcessGroup {
     fn drop(&mut self) {
+        // SAFETY: `self.job` is owned exclusively by `ProcessGroup` and closed once on drop.
         let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.job) };
     }
 }
@@ -777,18 +1218,15 @@ impl OwnedChild {
     /// Start `command` and enrol the child in a new process group.
     ///
     /// Configure `command` first (`detach_command`, sandbox preparation): this
-    /// only adds `kill_on_drop` and owns the result.
+    /// only adds `kill_on_drop` and owns the result. On Windows the Job Object
+    /// is created before spawning to fail fast and narrow the attach window;
+    /// callers needing zero-window `CREATE_SUSPENDED` launch can use
+    /// [`ProcessGroup::spawn_suspended_in_job`].
     pub fn spawn(command: &mut tokio::process::Command) -> Result<Self, OwnedChildError> {
         command.kill_on_drop(true);
+        let mut group = ProcessGroup::new().map_err(OwnedChildError::Group)?;
         #[allow(clippy::disallowed_methods)] // this type is the owner
         let mut child = command.spawn().map_err(OwnedChildError::Spawn)?;
-        let mut group = match ProcessGroup::new() {
-            Ok(group) => group,
-            Err(error) => {
-                let _ = child.start_kill();
-                return Err(OwnedChildError::Group(error));
-            }
-        };
         if let Err(error) = group.attach(&child) {
             let _ = child.start_kill();
             return Err(OwnedChildError::Attach(error));
@@ -1005,27 +1443,30 @@ pub fn dup_tui_stderr() -> io::Result<std::fs::File> {
     }
     #[cfg(not(unix))]
     {
-        // On Windows, `redirect_native_stderr` is a no-op, so fd 2 is
-        // always the real stderr. We use `try_clone()` on a temporarily
-        // created File to get an independently-owned handle via
-        // `DuplicateHandle` — avoiding the `from_raw_handle` footgun
-        // where `File` would take ownership of the process stderr handle
-        // and close it on drop.
-        use std::os::windows::io::{AsRawHandle, FromRawHandle};
+        // On Windows, `redirect_native_stderr` is a no-op, so STD_ERROR_HANDLE
+        // is the real process stderr when attached. Validate it is neither null
+        // (GUI/detached process without stderr) nor INVALID_HANDLE_VALUE before
+        // borrowing and duplicating it into an independently-owned `File`.
+        use std::os::windows::io::BorrowedHandle;
+        // SAFETY: `GetStdHandle` queries a process-wide standard handle with a
+        // constant selector and takes no caller pointers.
         let stderr_handle = unsafe {
             windows::Win32::System::Console::GetStdHandle(
                 windows::Win32::System::Console::STD_ERROR_HANDLE,
             )
             .map_err(|e| io::Error::other(format!("GetStdHandle: {e}")))?
         };
-        // Create a temporary File from the raw handle, clone it (which
-        // calls DuplicateHandle internally), then forget the original so
-        // it doesn't close the process stderr handle.
-        let temp = unsafe { std::fs::File::from_raw_handle(stderr_handle.0 as _) };
-        let cloned = temp.try_clone();
-        // Prevent `temp` from closing the process stderr handle.
-        std::mem::forget(temp);
-        cloned
+        if stderr_handle.is_invalid() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "standard error handle is null or invalid",
+            ));
+        }
+        // SAFETY: `stderr_handle` was verified non-null and not INVALID_HANDLE_VALUE,
+        // and the process stderr handle remains open for the duration of this borrow.
+        let borrowed = unsafe { BorrowedHandle::borrow_raw(stderr_handle.0 as _) };
+        let owned = borrowed.try_clone_to_owned()?;
+        Ok(std::fs::File::from(owned))
     }
 }
 
@@ -1089,6 +1530,53 @@ mod tests {
     fn detach_std_command_does_not_panic() {
         let mut cmd = std::process::Command::new("echo");
         detach_std_command(&mut cmd);
+    }
+
+    #[test]
+    fn windows_creation_flags_combine_with_bitwise_or_without_clobbering() {
+        let combined =
+            WindowsCreationFlags::CREATE_NO_WINDOW | WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP;
+        assert!(combined.contains(WindowsCreationFlags::CREATE_NO_WINDOW));
+        assert!(combined.contains(WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP));
+        assert!(!combined.contains(WindowsCreationFlags::CREATE_SUSPENDED));
+        assert_eq!(combined.bits(), 0x0800_0200);
+
+        let all = windows_creation_flags_for(true, true, true);
+        assert!(all.contains(WindowsCreationFlags::CREATE_NO_WINDOW));
+        assert!(all.contains(WindowsCreationFlags::CREATE_NEW_PROCESS_GROUP));
+        assert!(all.contains(WindowsCreationFlags::CREATE_SUSPENDED));
+        assert_eq!(all.bits(), 0x0800_0204);
+
+        let mut cmd = tokio::process::Command::new("echo");
+        detach_and_group_command(&mut cmd);
+        apply_windows_creation_flags(&mut cmd, all);
+        let mut std_cmd = std::process::Command::new("echo");
+        detach_and_group_std_command(&mut std_cmd);
+        apply_windows_creation_flags_std(&mut std_cmd, all);
+    }
+
+    #[test]
+    fn encode_windows_command_line_handles_spaces_quotes_backslashes_and_nul() {
+        use std::ffi::OsString;
+        use std::path::Path;
+        let line = encode_windows_command_line(
+            Path::new(r"C:\Program Files\Nofy\tool.exe"),
+            &[
+                OsString::from("--flag"),
+                OsString::from(""),
+                OsString::from(r#"say "hi""#),
+                OsString::from(r"C:\dir with space\"),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            line,
+            r#""C:\Program Files\Nofy\tool.exe" --flag "" "say \"hi\"" "C:\dir with space\\""#
+        );
+        assert!(
+            encode_windows_command_line(Path::new("tool.exe"), &[OsString::from("bad\0arg")])
+                .is_err()
+        );
     }
 
     #[test]

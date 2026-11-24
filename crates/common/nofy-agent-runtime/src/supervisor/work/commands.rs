@@ -40,6 +40,40 @@ pub struct WorkControlReceipt {
     pub action_id: Option<String>,
 }
 
+const WORK_COMMAND_CAPACITY: u64 = 1_024;
+const WORK_COMMAND_PRUNE_BATCH: i64 = 128;
+
+const PRUNE_COMPLETED_WORK_COMMANDS_SQL: &str = "DELETE FROM agent_runtime_work_commands
+WHERE rowid IN (
+    SELECT c.rowid
+    FROM agent_runtime_work_commands c
+    WHERE c.scope = ?1
+      AND json_valid(c.receipt)
+      AND (
+          json_extract(c.receipt, '$.phase') = 'settled'
+          OR json_extract(c.receipt, '$.action_id') IS NOT NULL
+          OR json_extract(c.receipt, '$.cancellation_cursor') IS NOT NULL
+      )
+      AND (
+          json_extract(c.receipt, '$.action_id') IS NULL
+          OR NOT EXISTS (
+              SELECT 1 FROM agent_runtime_managed_actions a
+              WHERE a.command_id = json_extract(c.receipt, '$.action_id')
+                AND a.result IS NULL
+          )
+      )
+      AND (
+          json_extract(c.receipt, '$.cancellation_cursor') IS NULL
+          OR NOT EXISTS (
+              SELECT 1 FROM agent_runtime_cancel k
+              WHERE k.sequence = CAST(json_extract(c.receipt, '$.cancellation_cursor') AS INTEGER)
+                AND k.acknowledged = 0
+          )
+      )
+    ORDER BY c.rowid ASC
+    LIMIT ?2
+)";
+
 impl SqliteStore {
     pub async fn control_work(
         &self,
@@ -75,12 +109,27 @@ impl SqliteStore {
             if node.revision != command.expected_revision {
                 return Err(Error::Checkpoint(format!("stale work revision; current revision is {}", node.revision)));
             }
-            let count: u64 = tx.query_row(
-                "SELECT COUNT(*) FROM agent_runtime_work_commands WHERE scope=?1",
-                [&scope], |row| row.get(0),
-            ).map_err(db_error)?;
-            if count >= 1024 {
-                return Err(Error::Checkpoint("work command capacity exceeded".into()));
+            let count: u64 = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM agent_runtime_work_commands WHERE scope=?1",
+                    [&scope],
+                    |row| row.get(0),
+                )
+                .map_err(db_error)?;
+            if count >= WORK_COMMAND_CAPACITY {
+                let needed = i64::try_from(
+                    count
+                        .saturating_sub(WORK_COMMAND_CAPACITY)
+                        .saturating_add(1),
+                )
+                .unwrap_or(i64::MAX);
+                let limit = needed.max(WORK_COMMAND_PRUNE_BATCH);
+                let pruned = tx
+                    .execute(PRUNE_COMPLETED_WORK_COMMANDS_SQL, params![&scope, limit])
+                    .map_err(db_error)?;
+                if count.saturating_sub(pruned as u64) >= WORK_COMMAND_CAPACITY {
+                    return Err(Error::Checkpoint("work command capacity exceeded".into()));
+                }
             }
             let mut receipt = WorkControlReceipt {
                 work_id: node.work_id.clone(), run_id: node.run_id.clone(),

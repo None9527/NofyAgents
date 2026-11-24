@@ -5,7 +5,27 @@
       "assembly": {
         "bindings": {
           "model": {
-            "$module": "provider.model"
+            "$if": {
+              "condition": {
+                "$parameter": "/use_responses"
+              },
+              "else": {
+                "$if": {
+                  "condition": {
+                    "$parameter": "/use_messages"
+                  },
+                  "else": {
+                    "$module": "provider.model"
+                  },
+                  "then": {
+                    "$module": "provider-messages.model"
+                  }
+                }
+              },
+              "then": {
+                "$module": "provider-responses.model"
+              }
+            }
           },
           "tools": {
             "$module": "child-tools"
@@ -30,13 +50,74 @@
         "repository": "nofy",
         "version": "0.1.0"
       },
+      "command": {
+        "bindings": {},
+        "digest": "5365f7ae6a261deb658b8a22106bb1ebf1c97beeb3cba6a8c87fd16138216a42",
+        "exports": {
+          "command": "command"
+        },
+        "factories": {
+          "command": "tool.process_tree_artifact",
+          "command-code": "resource.artifact",
+          "process-namespace": "resource.process_namespace_limits",
+          "process-tree": "resource.process_tree_limits",
+          "project-execute": "resource.directory",
+          "terminal-runtime": "resource.process_local"
+        },
+        "name": "workspace-command",
+        "parameters": {
+          "enabled": {
+            "$parameter": "/command_enabled"
+          },
+          "environment": {
+            "$parameter": "/command_environment_resolved"
+          },
+          "namespace_enabled": {
+            "$parameter": "/command_namespace_enabled"
+          },
+          "process_namespace": {
+            "$parameter": "/command_process_namespace"
+          },
+          "process_tree": {
+            "$parameter": "/command_process_tree"
+          },
+          "process_tree_enabled": {
+            "$parameter": "/command_process_tree_enabled"
+          },
+          "workspace": {
+            "$parameter": "/command_workspace"
+          }
+        },
+        "repository": "nofy",
+        "version": "0.1.0"
+      },
       "compaction": {
         "bindings": {
           "model": {
-            "$module": "provider.model"
+            "$if": {
+              "condition": {
+                "$parameter": "/use_responses"
+              },
+              "else": {
+                "$if": {
+                  "condition": {
+                    "$parameter": "/use_messages"
+                  },
+                  "else": {
+                    "$module": "provider.model"
+                  },
+                  "then": {
+                    "$module": "provider-messages.model"
+                  }
+                }
+              },
+              "then": {
+                "$module": "provider-responses.model"
+              }
+            }
           }
         },
-        "digest": "b8d55838da32c55d14d4a1f49dcd4e6992eb034d3e1efd782f58a07741f88f4b",
+        "digest": "c48a1cce4db8f15bfd690d9a27faa96a5389b07bfbfb0205a2bcf690fa78e803",
         "exports": {
           "journal": "journal",
           "policy": "policy"
@@ -58,7 +139,7 @@
           }
         },
         "repository": "nofy",
-        "version": "0.2.1"
+        "version": "0.2.2"
       },
       "coordination": {
         "bindings": {
@@ -86,7 +167,27 @@
       "delegate": {
         "bindings": {
           "model": {
-            "$module": "provider.model"
+            "$if": {
+              "condition": {
+                "$parameter": "/use_responses"
+              },
+              "else": {
+                "$if": {
+                  "condition": {
+                    "$parameter": "/use_messages"
+                  },
+                  "else": {
+                    "$module": "provider.model"
+                  },
+                  "then": {
+                    "$module": "provider-messages.model"
+                  }
+                }
+              },
+              "then": {
+                "$module": "provider-responses.model"
+              }
+            }
           },
           "tools": {
             "$module": "child-tools"
@@ -113,6 +214,48 @@
         },
         "repository": "nofy",
         "version": "0.1.0"
+      },
+      "files": {
+        "bindings": {},
+        "digest": "4ae061824cd89e83cf13edf2c1de999b1901c920e28d0b9c4f324d198b7c93b8",
+        "exports": {
+          "cwd": "cwd",
+          "edit": "file-edit",
+          "list": "file-list",
+          "mkdir": "directory-create",
+          "read": "file-read",
+          "rules": "rules",
+          "search": "file-search",
+          "write": "file-write"
+        },
+        "factories": {
+          "cwd": "binding.cwd",
+          "directory-create": "tool.process_artifact",
+          "file-edit": "tool.process_artifact",
+          "file-list": "tool.process_artifact",
+          "file-read": "tool.process_artifact",
+          "file-search": "tool.process_artifact",
+          "file-write": "tool.process_artifact",
+          "files-code": "resource.artifact",
+          "project-read": "resource.directory",
+          "project-write": "resource.directory",
+          "rules": "context.rules",
+          "runtime": "resource.process_local"
+        },
+        "name": "workspace-files",
+        "parameters": {
+          "enabled": {
+            "$parameter": "/workspace_enabled"
+          },
+          "environment": {
+            "$parameter": "/files_environment"
+          },
+          "workspace": {
+            "$parameter": "/files_workspace"
+          }
+        },
+        "repository": "nofy",
+        "version": "0.2.0"
       },
       "guardrails": {
         "bindings": {},
@@ -176,6 +319,60 @@
         },
         "repository": "nofy",
         "version": "0.1.0"
+      },
+      "provider-messages": {
+        "bindings": {},
+        "digest": "b94e31c61451afec7d89e27c04c5a0d5634194799c371d4835a8608f7448ac94",
+        "exports": {
+          "model": "model"
+        },
+        "factories": {
+          "artifact": "resource.artifact",
+          "connection": "resource.model_connection",
+          "model": "model.programmed",
+          "protocol": "resource.model_protocol"
+        },
+        "name": "model-messages",
+        "parameters": {
+          "connection": {
+            "$parameter": "/messages_connection"
+          },
+          "enabled": {
+            "$parameter": "/use_messages"
+          },
+          "model": {
+            "$parameter": "/messages_model"
+          }
+        },
+        "repository": "nofy",
+        "version": "0.1.0"
+      },
+      "provider-responses": {
+        "bindings": {},
+        "digest": "c94b26099e2c9f05e22107f657d04048d831af68900f25be231d0adc3e1044ba",
+        "exports": {
+          "model": "model"
+        },
+        "factories": {
+          "artifact": "resource.artifact",
+          "connection": "resource.model_connection",
+          "model": "model.programmed",
+          "protocol": "resource.model_protocol"
+        },
+        "name": "model-responses",
+        "parameters": {
+          "connection": {
+            "$parameter": "/responses_connection"
+          },
+          "enabled": {
+            "$parameter": "/use_responses"
+          },
+          "model": {
+            "$parameter": "/responses_model"
+          }
+        },
+        "repository": "nofy",
+        "version": "0.1.0"
       }
     },
     "modules": [
@@ -218,7 +415,6 @@
       {
         "config": {
           "packs": [
-            "tasks",
             "messages",
             "human",
             "assembly"
@@ -233,395 +429,11 @@
           },
           "messages": {
             "$module": "coordination.messages"
-          },
-          "tasks": {
-            "$module": "coordination.tools"
           }
         },
         "factory": "tool.compose",
         "reference": {
           "$module": "main-tools"
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "files": [
-                {
-                  "content": {
-                    "$file": "rules.md"
-                  },
-                  "file_name": "coding-rules.md",
-                  "file_path": "/definitions/coding/rules.md"
-                }
-              ]
-            },
-            "factory": "context.rules",
-            "reference": {
-              "$module": "rules"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "cwd": {
-                "$parameter": "/workspace"
-              }
-            },
-            "factory": "binding.cwd",
-            "reference": {
-              "$module": "cwd"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "access": "read_only",
-              "path": {
-                "$parameter": "/workspace"
-              }
-            },
-            "factory": "resource.directory",
-            "reference": {
-              "$module": "project-read"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "access": "read_write",
-              "path": {
-                "$parameter": "/workspace"
-              }
-            },
-            "factory": "resource.directory",
-            "reference": {
-              "$module": "project-write"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$parameter": "/workspace_environment"
-            },
-            "factory": "resource.process_local",
-            "reference": {
-              "$module": "runtime"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/command_enabled",
-          "value": {
-            "config": {
-              "$parameter": "/command_environment"
-            },
-            "factory": "resource.process_local",
-            "reference": {
-              "$module": "terminal-runtime"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/command_enabled",
-          "value": {
-            "config": {
-              "$parameter": "/process_tree"
-            },
-            "factory": "resource.process_tree_limits",
-            "reference": {
-              "$module": "process-tree"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/command_enabled",
-          "value": {
-            "config": {
-              "access": "read_write_execute",
-              "path": {
-                "$parameter": "/workspace"
-              }
-            },
-            "factory": "resource.directory",
-            "reference": {
-              "$module": "project-execute"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/command_enabled",
-          "value": {
-            "config": {
-              "bundle": {
-                "files": {
-                  "command.py": {
-                    "$file": "modules/command/command.py"
-                  },
-                  "manifest.json": {
-                    "$file": "modules/command/manifest.json"
-                  }
-                },
-                "schema_version": 1
-              }
-            },
-            "factory": "resource.artifact",
-            "reference": {
-              "$module": "command-code"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/command_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/command/manifest.json",
-                "pointer": "/tool"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "command-code"
-              },
-              "environment": {
-                "$module": "terminal-runtime"
-              },
-              "tree": {
-                "$module": "process-tree"
-              },
-              "workspace": {
-                "$module": "project-execute"
-              }
-            },
-            "factory": "tool.process_tree_artifact",
-            "reference": {
-              "$module": "command"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "bundle": {
-                "files": {
-                  "files.py": {
-                    "$file": "modules/files/files.py"
-                  },
-                  "manifest.json": {
-                    "$file": "modules/files/manifest.json"
-                  },
-                  "workspace.py": {
-                    "$file": "modules/files/workspace.py"
-                  }
-                },
-                "schema_version": 1
-              }
-            },
-            "factory": "resource.artifact",
-            "reference": {
-              "$module": "files-code"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/read_file"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-read"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "file-read"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/write_file"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-write"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "file-write"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/edit_file"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-write"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "file-edit"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/make_directory"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-write"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "directory-create"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/list_files"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-read"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "file-list"
-            }
-          }
-        }
-      },
-      {
-        "$when": {
-          "parameter": "/workspace_enabled",
-          "value": {
-            "config": {
-              "$json": {
-                "path": "modules/files/manifest.json",
-                "pointer": "/tools/search_files"
-              }
-            },
-            "dependencies": {
-              "artifact": {
-                "$module": "files-code"
-              },
-              "environment": {
-                "$module": "runtime"
-              },
-              "workspace": {
-                "$module": "project-read"
-              }
-            },
-            "factory": "tool.process_artifact",
-            "reference": {
-              "$module": "file-search"
-            }
-          }
         }
       },
       {
@@ -702,7 +514,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "cwd"
+                  "$module": "files.cwd"
                 }
               }
             },
@@ -720,13 +532,33 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "rules"
+                  "$module": "files.rules"
                 }
               }
             }
           ],
           "model": {
-            "$module": "provider.model"
+            "$if": {
+              "condition": {
+                "$parameter": "/use_responses"
+              },
+              "else": {
+                "$if": {
+                  "condition": {
+                    "$parameter": "/use_messages"
+                  },
+                  "else": {
+                    "$module": "provider.model"
+                  },
+                  "then": {
+                    "$module": "provider-messages.model"
+                  }
+                }
+              },
+              "then": {
+                "$module": "provider-responses.model"
+              }
+            }
           },
           "name": "omni",
           "prompt": {
@@ -767,7 +599,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "file-read"
+                  "$module": "files.file-read"
                 }
               }
             },
@@ -775,7 +607,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "file-write"
+                  "$module": "files.file-write"
                 }
               }
             },
@@ -783,7 +615,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "file-edit"
+                  "$module": "files.file-edit"
                 }
               }
             },
@@ -791,7 +623,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "directory-create"
+                  "$module": "files.directory-create"
                 }
               }
             },
@@ -799,7 +631,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "file-list"
+                  "$module": "files.file-list"
                 }
               }
             },
@@ -807,7 +639,7 @@
               "$when": {
                 "parameter": "/workspace_enabled",
                 "value": {
-                  "$module": "file-search"
+                  "$module": "files.file-search"
                 }
               }
             },
@@ -815,7 +647,7 @@
               "$when": {
                 "parameter": "/command_enabled",
                 "value": {
-                  "$module": "command"
+                  "$module": "command.command"
                 }
               }
             }

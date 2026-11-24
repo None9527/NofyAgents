@@ -214,7 +214,7 @@ async fn model_status_is_read_only_metadata_without_work_or_private_configuratio
     ])
     .unwrap();
     let kernel = KernelHost::open(
-        dir.path(),
+        &dir.path().join("state"),
         native::registry(Arc::new(Credentials(reads.clone()))).unwrap(),
         auth,
     )

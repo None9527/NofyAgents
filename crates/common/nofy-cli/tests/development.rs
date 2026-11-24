@@ -82,6 +82,11 @@ async fn host(path: &Path) -> KernelHost {
         "these tests run the real kernel helper at {}; build it first with `cargo build -p nofy-agent-host`",
         binary.display()
     );
+    #[cfg(unix)]
+    if path.exists() {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     KernelHost::open(path, native::registry(credentials).unwrap(), auth)
         .await
         .unwrap()

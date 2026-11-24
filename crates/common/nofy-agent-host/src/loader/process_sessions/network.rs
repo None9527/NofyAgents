@@ -225,6 +225,159 @@ async fn connect(config: &Config, host: &str, port: u16) -> std::io::Result<toki
         )
     }))
 }
+const CONNECT_ESTABLISHED: &[u8] = b"HTTP/1.1 200 Connection Established\r\n\r\n";
+
+struct ParsedRequest {
+    host: String,
+    port: u16,
+    request: Option<Vec<u8>>,
+}
+
+fn is_http_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.bytes().all(|b| {
+            b.is_ascii_alphanumeric()
+                || matches!(
+                    b,
+                    b'!' | b'#'
+                        | b'$'
+                        | b'%'
+                        | b'&'
+                        | b'\''
+                        | b'*'
+                        | b'+'
+                        | b'-'
+                        | b'.'
+                        | b'^'
+                        | b'_'
+                        | b'`'
+                        | b'|'
+                        | b'~'
+                )
+        })
+}
+
+fn parse_proxy_head(head: &str) -> std::io::Result<ParsedRequest> {
+    let head = head
+        .strip_suffix("\r\n\r\n")
+        .ok_or_else(|| std::io::Error::other("invalid proxy header"))?;
+    let mut lines = head.split("\r\n");
+    let first = lines.next().unwrap_or("");
+    if first.bytes().any(|b| b < 0x20 || b == 0x7f) {
+        return Err(std::io::Error::other("invalid proxy request line"));
+    }
+    let parts = first.split(' ').collect::<Vec<_>>();
+    if parts.len() != 3 || !is_http_token(parts[0]) || !matches!(parts[2], "HTTP/1.0" | "HTTP/1.1")
+    {
+        return Err(std::io::Error::other("invalid proxy request line"));
+    }
+    let mut headers = Vec::new();
+    let mut has_transfer_encoding = false;
+    let mut content_length_count = 0usize;
+    for line in lines {
+        if line.is_empty()
+            || line.starts_with([' ', '\t'])
+            || line.chars().any(|c| c.is_control() && c != '\t')
+        {
+            return Err(std::io::Error::other("invalid proxy header field"));
+        }
+        let (raw_name, value) = line
+            .split_once(':')
+            .ok_or_else(|| std::io::Error::other("invalid proxy header field"))?;
+        let name = raw_name.trim();
+        if !is_http_token(name) {
+            return Err(std::io::Error::other("invalid proxy header field"));
+        }
+        let lower = name.to_ascii_lowercase();
+        if lower == "transfer-encoding" {
+            has_transfer_encoding = true;
+        } else if lower == "content-length" {
+            let trimmed_value = value.trim();
+            if trimmed_value.is_empty()
+                || !trimmed_value.bytes().all(|b| b.is_ascii_digit())
+                || trimmed_value.parse::<u64>().is_err()
+            {
+                return Err(std::io::Error::other("invalid Content-Length header"));
+            }
+            content_length_count += 1;
+        }
+        headers.push((name, lower, value));
+    }
+    if content_length_count > 1 {
+        return Err(std::io::Error::other("duplicate Content-Length header"));
+    }
+    if has_transfer_encoding && content_length_count > 0 {
+        return Err(std::io::Error::other(
+            "conflicting Transfer-Encoding and Content-Length headers",
+        ));
+    }
+    if parts[0] == "CONNECT" {
+        let authority = parts[1]
+            .parse::<axum::http::uri::Authority>()
+            .map_err(|_| std::io::Error::other("invalid CONNECT authority"))?;
+        if authority.as_str().contains('@') {
+            return Err(std::io::Error::other("CONNECT credentials forbidden"));
+        }
+        let port = authority
+            .port_u16()
+            .ok_or_else(|| std::io::Error::other("CONNECT requires explicit port"))?;
+        return Ok(ParsedRequest {
+            host: authority
+                .host()
+                .trim_matches(['[', ']'])
+                .to_ascii_lowercase(),
+            port,
+            request: None,
+        });
+    }
+    let url = url::Url::parse(parts[1])
+        .map_err(|_| std::io::Error::other("HTTP proxy requires absolute URI"))?;
+    if url.scheme() != "http"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(std::io::Error::other("invalid HTTP proxy URL"));
+    }
+    let host = url
+        .host_str()
+        .ok_or_else(|| std::io::Error::other("proxy host missing"))?
+        .trim_matches(['[', ']'])
+        .to_ascii_lowercase();
+    let port = url
+        .port_or_known_default()
+        .ok_or_else(|| std::io::Error::other("proxy port missing"))?;
+    let path = format!(
+        "{}{}",
+        url.path(),
+        url.query().map(|q| format!("?{q}")).unwrap_or_default()
+    );
+    let mut request = format!(
+        "{} {} {}\r\nHost: {}\r\nConnection: close\r\n",
+        parts[0],
+        path,
+        parts[2],
+        &url[url::Position::BeforeHost..url::Position::AfterPort]
+    );
+    for (name, lower, value) in headers {
+        if !matches!(
+            lower.as_str(),
+            "host" | "connection" | "proxy-connection" | "proxy-authorization"
+        ) {
+            request.push_str(name);
+            request.push(':');
+            request.push_str(value);
+            request.push_str("\r\n");
+        }
+    }
+    request.push_str("\r\n");
+    Ok(ParsedRequest {
+        host,
+        port,
+        request: Some(request.into_bytes()),
+    })
+}
+
 async fn proxy(client: &mut tokio::net::UnixStream, config: &Config) -> std::io::Result<()> {
     let idle = Duration::from_millis(config.idle_timeout_ms);
     let operation = async {
@@ -246,108 +399,63 @@ async fn proxy(client: &mut tokio::net::UnixStream, config: &Config) -> std::io:
                 return Ok(());
             }
             header.extend_from_slice(&buffer[..n]);
+            if (header.len() as u64) > config.max_bytes_per_connection {
+                return Err(std::io::Error::other(
+                    "proxy connection byte limit exceeded",
+                ));
+            }
         };
         if end > 16384 {
             return Err(std::io::Error::other("proxy header exceeds 16 KiB"));
         }
         let head = std::str::from_utf8(&header[..end])
             .map_err(|_| std::io::Error::other("invalid proxy header"))?;
-        let mut lines = head.split("\r\n");
-        let first = lines.next().unwrap_or("");
-        let parts = first.split(' ').collect::<Vec<_>>();
-        if parts.len() != 3 || !matches!(parts[2], "HTTP/1.0" | "HTTP/1.1") {
-            return Err(std::io::Error::other("invalid proxy request line"));
-        }
-        let (host, port, request) = if parts[0] == "CONNECT" {
-            let authority = parts[1]
-                .parse::<axum::http::uri::Authority>()
-                .map_err(|_| std::io::Error::other("invalid CONNECT authority"))?;
-            if authority.as_str().contains('@') {
-                return Err(std::io::Error::other("CONNECT credentials forbidden"));
-            }
-            let port = authority
-                .port_u16()
-                .ok_or_else(|| std::io::Error::other("CONNECT requires explicit port"))?;
-            (
-                authority
-                    .host()
-                    .trim_matches(['[', ']'])
-                    .to_ascii_lowercase(),
-                port,
-                None,
-            )
+        let parsed = parse_proxy_head(head)?;
+        let trailing = &header[end..];
+        let initial_bytes = if let Some(request) = &parsed.request {
+            let written = (request.len() as u64).saturating_add(trailing.len() as u64);
+            (header.len() as u64).max(written)
         } else {
-            let url = url::Url::parse(parts[1])
-                .map_err(|_| std::io::Error::other("HTTP proxy requires absolute URI"))?;
-            if url.scheme() != "http"
-                || !url.username().is_empty()
-                || url.password().is_some()
-                || url.fragment().is_some()
-            {
-                return Err(std::io::Error::other("invalid HTTP proxy URL"));
-            }
-            let host = url
-                .host_str()
-                .ok_or_else(|| std::io::Error::other("proxy host missing"))?
-                .trim_matches(['[', ']'])
-                .to_ascii_lowercase();
-            let port = url
-                .port_or_known_default()
-                .ok_or_else(|| std::io::Error::other("proxy port missing"))?;
-            let path = format!(
-                "{}{}",
-                url.path(),
-                url.query().map(|q| format!("?{q}")).unwrap_or_default()
-            );
-            let mut request = format!(
-                "{} {} {}\r\nHost: {}\r\nConnection: close\r\n",
-                parts[0],
-                path,
-                parts[2],
-                &url[url::Position::BeforeHost..url::Position::AfterPort]
-            );
-            for line in lines.filter(|line| !line.is_empty()) {
-                if line.starts_with([' ', '\t'])
-                    || line.chars().any(|c| c.is_control() && c != '\t')
-                {
-                    return Err(std::io::Error::other("invalid proxy header field"));
-                }
-                let (name, _) = line
-                    .split_once(':')
-                    .ok_or_else(|| std::io::Error::other("invalid proxy header field"))?;
-                if !matches!(
-                    name.to_ascii_lowercase().as_str(),
-                    "host" | "connection" | "proxy-connection" | "proxy-authorization"
-                ) {
-                    request.push_str(line);
-                    request.push_str("\r\n");
-                }
-            }
-            request.push_str("\r\n");
-            (host, port, Some(request.into_bytes()))
+            (header.len() as u64).saturating_add(CONNECT_ESTABLISHED.len() as u64)
         };
-        let mut remote = match tokio::time::timeout(idle, connect(config, &host, port)).await {
-            Ok(Ok(stream)) => stream,
-            _ => {
-                client
+        if initial_bytes > config.max_bytes_per_connection {
+            return Err(std::io::Error::other(
+                "proxy connection byte limit exceeded",
+            ));
+        }
+        let mut remote =
+            match tokio::time::timeout(idle, connect(config, &parsed.host, parsed.port)).await {
+                Ok(Ok(stream)) => stream,
+                _ => {
+                    client
                     .write_all(
                         b"HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
                     )
                     .await?;
-                return Ok(());
-            }
-        };
-        if let Some(request) = request {
-            remote.write_all(&request).await?;
+                    return Ok(());
+                }
+            };
+        if let Some(request) = parsed.request {
+            tokio::time::timeout(idle, remote.write_all(&request))
+                .await
+                .map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::TimedOut, "proxy write timeout")
+                })??;
         } else {
-            client
-                .write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-                .await?;
+            tokio::time::timeout(idle, client.write_all(CONNECT_ESTABLISHED))
+                .await
+                .map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::TimedOut, "proxy write timeout")
+                })??;
         }
-        if end < header.len() {
-            remote.write_all(&header[end..]).await?;
+        if !trailing.is_empty() {
+            tokio::time::timeout(idle, remote.write_all(trailing))
+                .await
+                .map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::TimedOut, "proxy write timeout")
+                })??;
         }
-        let count = Arc::new(std::sync::atomic::AtomicU64::new(header.len() as u64));
+        let count = Arc::new(std::sync::atomic::AtomicU64::new(initial_bytes));
         let (cr, cw) = client.split();
         let (rr, rw) = remote.split();
         tokio::try_join!(
@@ -396,5 +504,172 @@ async fn copy(
             .map_err(|_| {
                 std::io::Error::new(std::io::ErrorKind::TimedOut, "proxy write timeout")
             })??;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn local_config(port: u16, max_bytes_per_connection: u64) -> Config {
+        Config {
+            allowed: vec![Destination {
+                host: "127.0.0.1".into(),
+                ports: [port].into_iter().collect(),
+                allow_private: true,
+            }],
+            max_connections: 4,
+            max_bytes_per_connection,
+            idle_timeout_ms: 5000,
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_http_method_tokens_and_request_line_injection() {
+        for bad in [
+            "GET\nInjected: 1 http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            "GET\rInjected: 1 http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            "GET\t http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            "G\x00ET http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            "GET/1 http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            " http://127.0.0.1:8080/ HTTP/1.1\r\n\r\n",
+            "GET http://127.0.0.1:8080/\nEvil HTTP/1.1\r\n\r\n",
+            "CONNECT\nEvil 127.0.0.1:443 HTTP/1.1\r\n\r\n",
+        ] {
+            assert!(parse_proxy_head(bad).is_err(), "accepted: {bad:?}");
+        }
+        assert!(parse_proxy_head("GET http://127.0.0.1:8080/ok HTTP/1.1\r\n\r\n").is_ok());
+        assert!(parse_proxy_head("MKCOL http://127.0.0.1:8080/ok HTTP/1.1\r\n\r\n").is_ok());
+    }
+
+    #[test]
+    fn trims_header_names_before_filtering_and_rejects_smuggling() {
+        // Spaced hop-by-hop and Host headers must be stripped after trim.
+        let parsed = parse_proxy_head(
+            "GET http://127.0.0.1:8080/path HTTP/1.1\r\n\
+             Host : evil.example\r\n\
+             Host\t: evil2.example\r\n\
+             Connection : keep-alive\r\n\
+             Proxy-Connection : keep-alive\r\n\
+             Proxy-Authorization : Basic secret\r\n\
+             X-Allowed : value\r\n\r\n",
+        )
+        .unwrap();
+        let forwarded = String::from_utf8(parsed.request.unwrap()).unwrap();
+        assert!(
+            forwarded
+                .starts_with("GET /path HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nConnection: close\r\n")
+        );
+        assert!(!forwarded.contains("evil.example"), "{forwarded}");
+        assert!(!forwarded.contains("evil2.example"), "{forwarded}");
+        assert!(!forwarded.contains("keep-alive"), "{forwarded}");
+        assert!(!forwarded.contains("secret"), "{forwarded}");
+        assert!(forwarded.contains("X-Allowed: value\r\n"), "{forwarded}");
+
+        // Invalid header field names must be rejected.
+        for bad_header in [
+            "GET http://127.0.0.1:8080/ HTTP/1.1\r\nBad Name: 1\r\n\r\n",
+            "GET http://127.0.0.1:8080/ HTTP/1.1\r\n: value\r\n\r\n",
+            "GET http://127.0.0.1:8080/ HTTP/1.1\r\nFoo\nBar: 1\r\n\r\n",
+            "GET http://127.0.0.1:8080/ HTTP/1.1\r\n\tFolded: 1\r\n\r\n",
+        ] {
+            assert!(parse_proxy_head(bad_header).is_err(), "{bad_header:?}");
+        }
+
+        // Request smuggling combinations must be rejected.
+        for smuggling in [
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nTransfer-Encoding: chunked\r\nContent-Length: 5\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nContent-Length: 5\r\nTransfer-Encoding: chunked\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nTransfer-Encoding : chunked\r\nContent-Length : 5\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nContent-Length: 5\r\nContent-Length: 5\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nContent-Length: 5\r\nContent-Length : 10\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nContent-Length: 5, 5\r\n\r\n",
+            "POST http://127.0.0.1:8080/ HTTP/1.1\r\nContent-Length: -1\r\n\r\n",
+            "CONNECT 127.0.0.1:8080 HTTP/1.1\r\nTransfer-Encoding: chunked\r\nContent-Length: 0\r\n\r\n",
+            "CONNECT 127.0.0.1:8080 HTTP/1.1\r\nContent-Length: 1\r\nContent-Length: 1\r\n\r\n",
+        ] {
+            assert!(
+                parse_proxy_head(smuggling).is_err(),
+                "accepted: {smuggling:?}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn enforces_max_bytes_per_connection_including_initial_header_and_trailing_bytes() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let hits = Arc::new(AtomicUsize::new(0));
+        let hits_clone = hits.clone();
+        let server = tokio::spawn(async move {
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    break;
+                };
+                hits_clone.fetch_add(1, Ordering::SeqCst);
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 2048];
+                    let _ = socket.read(&mut buf).await;
+                    let body = "r".repeat(512);
+                    let resp = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
+                    );
+                    let _ = socket.write_all(resp.as_bytes()).await;
+                });
+            }
+        });
+
+        let config = local_config(port, 1024);
+
+        // 1. Initial header + trailing body exceeding 1024 bytes is rejected before upstream connect.
+        let (mut client, mut broker_side) = tokio::net::UnixStream::pair().unwrap();
+        let body = "A".repeat(1000);
+        let oversized = format!(
+            "POST http://127.0.0.1:{port}/upload HTTP/1.1\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        assert!(oversized.len() > 1024);
+        client.write_all(oversized.as_bytes()).await.unwrap();
+        client.shutdown().await.unwrap();
+        let err = proxy(&mut broker_side, &config).await.unwrap_err();
+        assert!(err.to_string().contains("byte limit"), "{err}");
+        assert_eq!(hits.load(Ordering::SeqCst), 0);
+
+        // 2. Initial header + trailing body under 1024 counts against total budget, so a 512-byte
+        // upstream response pushes total > 1024 and aborts the connection.
+        let (mut client, mut broker_side) = tokio::net::UnixStream::pair().unwrap();
+        let body = "B".repeat(600);
+        let under = format!(
+            "POST http://127.0.0.1:{port}/upload HTTP/1.1\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        assert!(under.len() < 1024);
+        let proxy_task = tokio::spawn(async move { proxy(&mut broker_side, &config).await });
+        client.write_all(under.as_bytes()).await.unwrap();
+        let mut response = Vec::new();
+        let _ = client.read_to_end(&mut response).await;
+        let err = proxy_task.await.unwrap().unwrap_err();
+        assert!(err.to_string().contains("byte limit"), "{err}");
+        assert_eq!(hits.load(Ordering::SeqCst), 1);
+
+        // 3. CONNECT request with trailing payload exceeding 1024 bytes is rejected before connect.
+        let config = local_config(port, 1024);
+        let (mut client, mut broker_side) = tokio::net::UnixStream::pair().unwrap();
+        let connect_req = format!(
+            "CONNECT 127.0.0.1:{port} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n{}",
+            "C".repeat(1000)
+        );
+        client.write_all(connect_req.as_bytes()).await.unwrap();
+        client.shutdown().await.unwrap();
+        let err = proxy(&mut broker_side, &config).await.unwrap_err();
+        assert!(err.to_string().contains("byte limit"), "{err}");
+        assert_eq!(hits.load(Ordering::SeqCst), 1);
+
+        server.abort();
     }
 }

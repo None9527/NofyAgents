@@ -26,10 +26,11 @@ async fn live_credential_api_rotates_without_republishing_and_never_exports_valu
     ))
     .await;
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let state = dir.path().join("state");
+    let path = state.join("credentials.json");
     let credentials = Arc::new(FileCredentials::open(&path, "live-project", None).unwrap());
     let host = KernelHost::open(
-        dir.path(),
+        &state,
         native::registry(credentials.clone()).unwrap(),
         auth(),
     )

@@ -79,6 +79,10 @@ async fn blocking<T: Send + 'static>(
         .await
         .map_err(|_| HostError::Unavailable("module repository worker failed".into()))?
 }
+fn same_host_path(a: &std::path::Path, b: &std::path::Path) -> bool {
+    nofy_host_path::starts_with(a, b) && nofy_host_path::starts_with(b, a)
+}
+
 fn admit(origin: &RepositoryOrigin, library: &ModuleStore) -> Result<()> {
     origin.validate()?;
     match origin {
@@ -93,10 +97,10 @@ fn admit(origin: &RepositoryOrigin, library: &ModuleStore) -> Result<()> {
                 .ok_or_else(|| HostError::Unavailable("module store parent missing".into()))?
                 .canonicalize()
                 .map_err(|_| HostError::Unavailable("host state is unavailable".into()))?;
-            if canonical != *host_path
+            if !same_host_path(&canonical, host_path)
                 || !canonical.is_dir()
-                || canonical.starts_with(&private)
-                || private.starts_with(&canonical)
+                || nofy_host_path::starts_with(&canonical, &private)
+                || nofy_host_path::starts_with(&private, &canonical)
             {
                 return Err(HostError::Invalid(
                     "module source requires a canonical directory outside private host state"
@@ -303,4 +307,20 @@ async fn source(
     host.auth.require(&headers, Scope::Read)?;
     let store = host.module_library.clone();
     Ok(Json(blocking(move || Ok(store.source(&digest)?)).await?))
+}
+
+#[cfg(test)]
+mod path_prefix_tests {
+    #[test]
+    fn windows_verbatim_and_plain_directory_sources_enforce_canonical_and_private_boundaries() {
+        let win = nofy_host_path::Syntax::Windows;
+        let same = |a: &str, b: &str| win.starts_with(a, b) && win.starts_with(b, a);
+        let overlap = |a: &str, b: &str| win.starts_with(a, b) || win.starts_with(b, a);
+
+        assert!(same(r"\\?\C:\modules\repo", r"C:\modules\repo"));
+        assert!(!same(r"\\?\C:\modules\other", r"C:\modules\repo"));
+        assert!(overlap(r"\\?\C:\nofy\state\modules", r"C:\nofy\state"));
+        assert!(overlap(r"C:\nofy\state", r"\\?\c:\NOFY\state\modules"));
+        assert!(!overlap(r"\\?\C:\modules\repo", r"\\?\C:\nofy\state"));
+    }
 }

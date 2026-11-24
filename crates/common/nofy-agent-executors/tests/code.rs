@@ -246,3 +246,31 @@ async fn execution_request_preserves_limits_and_reports_typed_errors() {
         .unwrap_err();
     assert_eq!(error.details.as_ref().unwrap()["code"], "output_limit");
 }
+
+#[tokio::test]
+async fn raw_whitelist_forbids_sleep_blocks_container_bombs_and_times_out_promptly() {
+    for expr in ["sleep(1)", "sleep(0.5)", "Fn(\"sleep\").call(1)"] {
+        let entry = build(config(expr)).unwrap();
+        assert!(call(&entry, json!({}), Default::default()).await.is_err());
+    }
+    let bomb = build(config(
+        "let a = [1, 2, 3, 4]; for i in 0..20 { a = [a, a]; } a",
+    ))
+    .unwrap();
+    assert!(call(&bomb, json!({}), Default::default()).await.is_err());
+
+    let mut slow = config("loop { let s = args.data.contains(\"missing\"); }");
+    slow["max_operations"] = json!(10_000_000);
+    slow["contract"]["timeout_ms"] = json!(15);
+    let entry = build(slow).unwrap();
+    let started = std::time::Instant::now();
+    let error = call(
+        &entry,
+        json!({"data": "x".repeat(500_000)}),
+        Default::default(),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.details.as_ref().unwrap()["code"], "timeout");
+    assert!(started.elapsed() < std::time::Duration::from_secs(1));
+}

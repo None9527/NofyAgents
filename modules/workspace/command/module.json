@@ -1,0 +1,455 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "workspace-command",
+  "version": "0.1.0",
+  "description": "Confined workspace run_command tool supporting either delegated cgroup v2 (resource.process_tree_limits) or per-process namespace isolation (resource.process_namespace_limits).",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "When false, emits no modules so presets can toggle command execution conditionally."
+      },
+      "process_tree_enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Select the delegated cgroup v2 process-tree isolation backend (resource.process_tree_limits)."
+      },
+      "namespace_enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Select the per-process namespace isolation backend (resource.process_namespace_limits)."
+      },
+      "workspace": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute workspace root directory."
+      },
+      "environment": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "executable",
+              "paths"
+            ],
+            "properties": {
+              "executable": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "prefix_args": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 4096
+                }
+              },
+              "env": {
+                "type": "object",
+                "maxProperties": 32,
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "paths": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "execute": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Explicit local process runtime configuration for resource.process_local."
+      },
+      "process_tree": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cgroup_root"
+            ],
+            "properties": {
+              "cgroup_root": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "limits": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "max_processes": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 512
+                  },
+                  "max_memory_bytes": {
+                    "type": "integer",
+                    "minimum": 67108864,
+                    "maximum": 8589934592
+                  },
+                  "cpu_percent": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 800
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Delegated cgroup v2 process-tree limits for resource.process_tree_limits."
+      },
+      "process_namespace": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "filesystem_mode": {
+                "enum": [
+                  "read_only",
+                  "workspace_write",
+                  "full_access"
+                ],
+                "default": "full_access"
+              },
+              "writable_directories": {
+                "type": "array",
+                "maxItems": 8,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32,
+                  "pattern": "^[A-Z][A-Z0-9_]*$"
+                }
+              },
+              "network_proxy": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "allowed"
+                    ],
+                    "properties": {
+                      "allowed": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 64,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "host",
+                            "ports"
+                          ],
+                          "properties": {
+                            "host": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 253
+                            },
+                            "ports": {
+                              "type": "array",
+                              "uniqueItems": true,
+                              "minItems": 1,
+                              "maxItems": 64,
+                              "items": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "allow_private": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      },
+                      "max_connections": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 32
+                      },
+                      "max_bytes_per_connection": {
+                        "type": "integer",
+                        "minimum": 1024,
+                        "maximum": 1073741824
+                      },
+                      "idle_timeout_ms": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 120000
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cpu_seconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600
+              },
+              "address_space_bytes": {
+                "type": "integer",
+                "minimum": 67108864,
+                "maximum": 17179869184
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Per-process namespace isolation limits for resource.process_namespace_limits."
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "enabled": {
+              "const": true
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "workspace",
+            "environment"
+          ],
+          "properties": {
+            "workspace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "environment": {
+              "type": "object"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "process_tree"
+              ],
+              "properties": {
+                "process_tree_enabled": {
+                  "const": true
+                },
+                "namespace_enabled": {
+                  "const": false
+                },
+                "process_tree": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "required": [
+                "process_namespace"
+              ],
+              "properties": {
+                "process_tree_enabled": {
+                  "const": false
+                },
+                "namespace_enabled": {
+                  "const": true
+                },
+                "process_namespace": {
+                  "type": "object"
+                }
+              }
+            }
+          ]
+        },
+        "else": {
+          "properties": {
+            "process_tree_enabled": {
+              "const": false
+            },
+            "namespace_enabled": {
+              "const": false
+            }
+          }
+        }
+      }
+    ]
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "terminal-runtime"
+          },
+          "factory": "resource.process_local",
+          "config": {
+            "$parameter": "/environment"
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/process_tree_enabled",
+        "value": {
+          "reference": {
+            "$module": "process-tree"
+          },
+          "factory": "resource.process_tree_limits",
+          "config": {
+            "$parameter": "/process_tree"
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/namespace_enabled",
+        "value": {
+          "reference": {
+            "$module": "process-namespace"
+          },
+          "factory": "resource.process_namespace_limits",
+          "config": {
+            "$parameter": "/process_namespace"
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "project-execute"
+          },
+          "factory": "resource.directory",
+          "config": {
+            "path": {
+              "$parameter": "/workspace"
+            },
+            "access": "read_write_execute"
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "command-code"
+          },
+          "factory": "resource.artifact",
+          "config": {
+            "bundle": {
+              "schema_version": 1,
+              "files": {
+                "command.py": {
+                  "$file": "command.py"
+                },
+                "manifest.json": {
+                  "$file": "manifest.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "command"
+          },
+          "factory": "tool.process_tree_artifact",
+          "config": {
+            "$json": {
+              "path": "manifest.json",
+              "pointer": "/tool"
+            }
+          },
+          "dependencies": {
+            "environment": {
+              "$module": "terminal-runtime"
+            },
+            "artifact": {
+              "$module": "command-code"
+            },
+            "tree": {
+              "$if": {
+                "condition": {
+                  "$parameter": "/namespace_enabled"
+                },
+                "then": {
+                  "$module": "process-namespace"
+                },
+                "else": {
+                  "$module": "process-tree"
+                }
+              }
+            },
+            "workspace": {
+              "$module": "project-execute"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "exports": {
+    "command": "command"
+  }
+}

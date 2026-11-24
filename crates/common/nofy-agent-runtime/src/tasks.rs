@@ -9,7 +9,7 @@ mod messages;
 mod tests;
 use crate::composition::{ChildControl, ChildOutcome, ParentCheckpointer};
 use crate::{Checkpointer, Error, RunContext, RunState, ToolCatalog};
-use futures::{FutureExt, StreamExt};
+use futures::StreamExt;
 use journal::Journal;
 pub(crate) use messages::Board;
 use nofy_tool_runtime::{ToolCallContext, ToolStreamItem};
@@ -53,6 +53,15 @@ enum TaskOutcome {
 struct Shared {
     journal: AsyncMutex<Journal<Ledger>>,
     notify: Notify,
+}
+struct PreparedLaunch {
+    task_id: String,
+    tool_id: nofy_tool_protocol::ToolId,
+    entry: crate::ToolEntry,
+    arguments: Value,
+    token: CancellationToken,
+    ctx: ToolCallContext,
+    control: ChildControl,
 }
 /// Only the invocation owns this value. Task futures never hold it strongly.
 pub(crate) struct Owner {
@@ -112,22 +121,39 @@ impl Scope {
         ))
     }
     pub async fn recover(&self) -> Result<(), Error> {
+        let owner = self.owner.upgrade().ok_or(Error::Cancelled)?;
         let mut journal = self.shared.journal.lock().await;
-        let tasks = journal.value.tasks.clone();
-        for (id, task) in tasks {
+        let mut pending_ids = Vec::new();
+        let mut prepared = Vec::new();
+        for (id, task) in &journal.value.tasks {
             if matches!(
                 task.outcome,
                 None | Some(TaskOutcome::Paused(_) | TaskOutcome::Checkpoint(_))
             ) {
-                journal
-                    .value
-                    .tasks
-                    .get_mut(&id)
-                    .expect("recorded task")
-                    .outcome = None;
-                journal.commit().await?;
-                self.launch(id, task, true)?;
+                prepared.push(self.prepare_launch(id.clone(), task.clone(), true)?);
+                pending_ids.push(id.clone());
             }
+        }
+        if prepared.is_empty() {
+            return Ok(());
+        }
+        let previous: Vec<(String, Option<TaskOutcome>)> = pending_ids
+            .iter()
+            .filter_map(|id| {
+                let task = journal.value.tasks.get_mut(id)?;
+                Some((id.clone(), task.outcome.take()))
+            })
+            .collect();
+        if let Err(error) = journal.commit().await {
+            for (id, old) in previous {
+                if let Some(task) = journal.value.tasks.get_mut(&id) {
+                    task.outcome = old;
+                }
+            }
+            return Err(error);
+        }
+        for launch in prepared {
+            self.start_prepared(&owner, launch);
         }
         Ok(())
     }
@@ -178,13 +204,22 @@ impl Scope {
             identity,
             outcome: None,
         };
+        let owner = self.owner.upgrade().ok_or(Error::Cancelled)?;
+        let prepared = self.prepare_launch(task_id.into(), task.clone(), false)?;
         journal.value.tasks.insert(task_id.into(), task.clone());
-        journal.commit().await?;
-        self.launch(task_id.into(), task.clone(), false)?;
+        if let Err(error) = journal.commit().await {
+            journal.value.tasks.remove(task_id);
+            return Err(error);
+        }
+        self.start_prepared(&owner, prepared);
         Ok(view(task_id, &task))
     }
-    fn launch(&self, task_id: String, task: Task, resume: bool) -> Result<(), Error> {
-        let owner = self.owner.upgrade().ok_or(Error::Cancelled)?;
+    fn prepare_launch(
+        &self,
+        task_id: String,
+        task: Task,
+        resume: bool,
+    ) -> Result<PreparedLaunch, Error> {
         let entry = self
             .drivers
             .get(&task.tool)
@@ -193,14 +228,11 @@ impl Scope {
         if entry.dispatch.recovery_identity().as_deref() != Some(task.identity.as_str()) {
             return Err(Error::Checkpoint("task driver changed on recovery".into()));
         }
+        let tool_id = nofy_tool_protocol::ToolId::new(task.tool)
+            .map_err(|e| Error::Checkpoint(format!("invalid task tool name on recovery: {e}")))?;
         let token = self.context.cancel.child_token();
-        owner
-            .cancels
-            .lock()
-            .expect("task cancellation lock")
-            .insert(task_id.clone(), token.clone());
         let mut context = self.context.clone();
-        context.cancel = token;
+        context.cancel = token.clone();
         let mut ctx = crate::tools::call_context(&task.call_id, &context)?;
         ctx.insert(crate::context::ToolInvocationState(Arc::new(task.state)));
         ctx.insert(nofy_tool_runtime::ResumeInvocation(resume));
@@ -209,6 +241,31 @@ impl Scope {
         }
         let control = ChildControl::default();
         ctx.insert(control.clone());
+        Ok(PreparedLaunch {
+            task_id,
+            tool_id,
+            entry,
+            arguments: task.arguments,
+            token,
+            ctx,
+            control,
+        })
+    }
+    fn start_prepared(&self, owner: &Arc<Owner>, prepared: PreparedLaunch) {
+        let PreparedLaunch {
+            task_id,
+            tool_id,
+            entry,
+            arguments,
+            token,
+            ctx,
+            control,
+        } = prepared;
+        owner
+            .cancels
+            .lock()
+            .expect("task cancellation lock")
+            .insert(task_id.clone(), token);
         let shared = self.shared.clone();
         let failure = owner.failure.clone();
         owner
@@ -216,64 +273,41 @@ impl Scope {
             .lock()
             .expect("task owner lock")
             .spawn(async move {
-                let run = std::panic::AssertUnwindSafe(async move {
-                    let mut stream = entry
-                        .dispatch
-                        .call(
-                            nofy_tool_protocol::ToolId::new(task.tool).expect("compiled tool name"),
-                            task.arguments,
-                            ctx,
-                        )
-                        .await;
-                    let mut result = None;
-                    while let Some(item) = stream.next().await {
-                        if let ToolStreamItem::Terminal(terminal) = item {
-                            if result.is_some() {
-                                result = Some(TaskOutcome::Failed(
-                                    "child returned multiple terminal results".into(),
-                                ));
-                                break;
-                            }
-                            result = Some(match terminal {
-                                Ok(output) => TaskOutcome::Completed(output.value),
-                                Err(e) => TaskOutcome::Failed(e.to_string()),
-                            });
+                let mut stream = entry.dispatch.call(tool_id, arguments, ctx).await;
+                let mut result = None;
+                while let Some(item) = stream.next().await {
+                    if let ToolStreamItem::Terminal(terminal) = item {
+                        if result.is_some() {
+                            result = Some(TaskOutcome::Failed(
+                                "child returned multiple terminal results".into(),
+                            ));
+                            break;
                         }
+                        result = Some(match terminal {
+                            Ok(output) => TaskOutcome::Completed(output.value),
+                            Err(e) => TaskOutcome::Failed(e.to_string()),
+                        });
                     }
-                    match control.0.lock().expect("task control lock").take() {
-                        Some(ChildOutcome::Paused(reason)) => TaskOutcome::Paused(reason),
-                        Some(ChildOutcome::Cancelled) => TaskOutcome::Cancelled,
-                        Some(ChildOutcome::BudgetExceeded) => TaskOutcome::BudgetExceeded,
-                        Some(ChildOutcome::Failed(error)) => TaskOutcome::Failed(error),
-                        Some(ChildOutcome::Checkpoint(error)) => TaskOutcome::Checkpoint(error),
-                        None => result.unwrap_or_else(|| {
-                            TaskOutcome::Failed("child ended without a terminal result".into())
-                        }),
-                    }
-                })
-                // Effective only in unwinding builds (tests). Release and dev use
-                // `panic = "abort"` (see the workspace Cargo.toml), where a panic
-                // here ends the process and recovery restarts from checkpoints.
-                .catch_unwind()
-                .await;
-                let outcome = run.unwrap_or_else(|_| {
-                    TaskOutcome::Checkpoint(
-                        "child task panicked; inspect child recovery before resuming".into(),
-                    )
-                });
+                }
+                let outcome = match control.0.lock().expect("task control lock").take() {
+                    Some(ChildOutcome::Paused(reason)) => TaskOutcome::Paused(reason),
+                    Some(ChildOutcome::Cancelled) => TaskOutcome::Cancelled,
+                    Some(ChildOutcome::BudgetExceeded) => TaskOutcome::BudgetExceeded,
+                    Some(ChildOutcome::Failed(error)) => TaskOutcome::Failed(error),
+                    Some(ChildOutcome::Checkpoint(error)) => TaskOutcome::Checkpoint(error),
+                    None => result.unwrap_or_else(|| {
+                        TaskOutcome::Failed("child ended without a terminal result".into())
+                    }),
+                };
                 let mut journal = shared.journal.lock().await;
-                journal
-                    .value
-                    .tasks
-                    .get_mut(&task_id)
-                    .expect("persisted task")
-                    .outcome = Some(outcome);
+                if let Some(task) = journal.value.tasks.get_mut(&task_id) {
+                    task.outcome = Some(outcome);
+                }
                 if let Err(error) = journal.commit().await {
                     *failure.lock().expect("task failure lock") = Some(error.to_string());
                 }
                 shared.notify.notify_waiters();
             });
-        Ok(())
     }
     pub async fn read(&self, task_id: Option<&str>, wait_ms: u64) -> Result<Value, Error> {
         let deadline =

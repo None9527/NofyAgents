@@ -879,7 +879,7 @@ fn open_database(path: &Path, schema: &str) -> Result<Connection, StateError> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let connection = JournalMode::Wal.open(path)?;
+    let connection = JournalMode::for_db_path(path).open(path)?;
     connection.pragma_update(None, "foreign_keys", true)?;
     connection.execute_batch(schema)?;
     connection.pragma_update(None, "user_version", UNIFIED_STATE_SCHEMA_VERSION)?;

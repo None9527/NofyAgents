@@ -1,13 +1,76 @@
 use super::*;
 use axum::response::sse::{Event, KeepAlive, Sse};
 use nofy_agent_runtime::{session_policy::Frozen, supervisor::jobs::*};
-use std::{convert::Infallible, time::Duration};
+use std::{
+    convert::Infallible,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
 mod lifecycle;
 use lifecycle::*;
 
+const MAX_WORKSPACE_STREAMS: usize = 64;
+const MAX_WORKSPACE_STREAM_LIFETIME: Duration = Duration::from_secs(3600);
+const WORKSPACE_COALESCE_WINDOW: Duration = Duration::from_millis(100);
+
+struct WorkspaceStreamLimiter {
+    max_streams: usize,
+    active: AtomicUsize,
+}
+
+struct WorkspaceStreamPermit {
+    limiter: Arc<WorkspaceStreamLimiter>,
+}
+
+impl WorkspaceStreamLimiter {
+    fn new(max_streams: usize) -> Self {
+        Self {
+            max_streams,
+            active: AtomicUsize::new(0),
+        }
+    }
+
+    fn try_acquire(self: &Arc<Self>) -> Result<WorkspaceStreamPermit> {
+        let mut current = self.active.load(Ordering::Acquire);
+        loop {
+            if current >= self.max_streams {
+                return Err(HostError::Unavailable(
+                    "too many concurrent workspace change streams".into(),
+                ));
+            }
+            match self.active.compare_exchange_weak(
+                current,
+                current + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    return Ok(WorkspaceStreamPermit {
+                        limiter: self.clone(),
+                    });
+                }
+                Err(observed) => current = observed,
+            }
+        }
+    }
+}
+
+impl Drop for WorkspaceStreamPermit {
+    fn drop(&mut self) {
+        self.limiter.active.fetch_sub(1, Ordering::Release);
+    }
+}
+
 pub(super) fn router() -> Router<KernelHost> {
+    let changes_limiter = Arc::new(WorkspaceStreamLimiter::new(MAX_WORKSPACE_STREAMS));
     Router::new()
-        .route("/api/v1/workspace/changes", get(changes))
+        .route(
+            "/api/v1/workspace/changes",
+            get(changes).layer(axum::Extension(changes_limiter)),
+        )
         .route("/api/v1/sessions", post(create).get(list))
         .route("/api/v1/sessions/capabilities", get(capabilities))
         .route("/api/v1/sessions/start", post(start))
@@ -30,32 +93,74 @@ pub(super) fn router() -> Router<KernelHost> {
         .route("/api/v1/sessions/{id}/reconfigure", post(reconfigure))
         .route("/api/v1/sessions/{id}/commands/{command_id}", get(command))
 }
-async fn changes(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Response> {
+async fn changes(
+    State(host): State<KernelHost>,
+    axum::Extension(limiter): axum::Extension<Arc<WorkspaceStreamLimiter>>,
+    headers: HeaderMap,
+) -> Result<Response> {
     host.auth.require(&headers, Scope::Read)?;
-    let mut changes = host.store.observe();
+    let permit = limiter.try_acquire()?;
+    Ok(build_workspace_stream(
+        host,
+        permit,
+        WORKSPACE_COALESCE_WINDOW,
+        MAX_WORKSPACE_STREAM_LIFETIME,
+    )
+    .into_response())
+}
+
+fn build_workspace_stream(
+    host: KernelHost,
+    permit: WorkspaceStreamPermit,
+    coalesce_window: Duration,
+    max_lifetime: Duration,
+) -> Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>> {
+    let mut changes = host.store.observe_workspace();
     let frames = async_stream::stream! {
+        let _permit = permit;
+        let deadline = tokio::time::Instant::now() + max_lifetime;
         let mut previous = *changes.borrow_and_update();
         // This stream carries invalidations. Every connection reconciles from
         // authoritative reads, so invalidations need no independent replay log.
-        yield Ok::<_, Infallible>(Event::default().event("workspace").data(r#"{"sessions":true,"runs":true}"#));
+        yield Ok::<_, Infallible>(
+            Event::default()
+                .event("workspace")
+                .data(r#"{"sessions":true,"runs":true}"#),
+        );
         loop {
+            if tokio::time::Instant::now() >= deadline {
+                break;
+            }
             tokio::select! {
                 biased;
                 _ = host.stop.cancelled() => break,
-                result = changes.changed() => if result.is_err() { break },
+                _ = tokio::time::sleep_until(deadline) => break,
+                result = changes.changed() => {
+                    if result.is_err() {
+                        break;
+                    }
+                }
+            }
+            let coalesce_until = deadline.min(tokio::time::Instant::now() + coalesce_window);
+            tokio::select! {
+                biased;
+                _ = host.stop.cancelled() => break,
+                _ = tokio::time::sleep_until(coalesce_until) => {},
             }
             let current = *changes.borrow_and_update();
             let sessions = previous.sessions != current.sessions;
             let runs = previous.runs != current.runs;
             previous = current;
             if sessions || runs {
-                yield Ok(Event::default().event("workspace").data(json!({"sessions":sessions,"runs":runs}).to_string()));
+                yield Ok(
+                    Event::default()
+                        .event("workspace")
+                        .data(json!({ "sessions": sessions, "runs": runs }).to_string()),
+                );
             }
         }
     };
-    Ok(Sse::new(frames)
-        .keep_alive(KeepAlive::new().interval(Duration::from_secs(10)))
-        .into_response())
+    Sse::new(frames).keep_alive(KeepAlive::new().interval(Duration::from_secs(10)))
 }
 async fn system(
     host: &KernelHost,
@@ -336,4 +441,170 @@ async fn capabilities(State(host): State<KernelHost>, headers: HeaderMap) -> Res
         "policy_output_schema":nofy_agent_runtime::session_policy::proposal_schema(),
         "operations":["start","create","fork","rewind","tree","list","inspect","turn","turns","binding","route","policy","plan","metadata","close","reopen","archive","unarchive","reconfigure","command"]}),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{auth::Authorizer, native};
+    use axum::response::IntoResponse;
+    use futures::StreamExt;
+    use nofy_agent_runtime::{
+        Model, ModelRequest, ModelResponse, RunContext,
+        credentials::EnvironmentCredentials,
+        registry::{InstanceFactory, ModuleInstance},
+    };
+
+    struct DummyModel;
+
+    #[async_trait::async_trait]
+    impl Model for DummyModel {
+        async fn complete(
+            &self,
+            _: ModelRequest,
+            _: &RunContext,
+        ) -> std::result::Result<ModelResponse, nofy_agent_runtime::Error> {
+            Ok(ModelResponse {
+                output: "ok".into(),
+                ..Default::default()
+            })
+        }
+    }
+
+    #[test]
+    fn workspace_stream_limiter_enforces_cap_and_releases_on_drop() {
+        let limiter = Arc::new(WorkspaceStreamLimiter::new(2));
+        let p1 = limiter.try_acquire().unwrap();
+        let p2 = limiter.try_acquire().unwrap();
+        let err = limiter.try_acquire().err().unwrap();
+        assert_eq!(
+            err.into_response().status(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+
+        drop(p1);
+        let p3 = limiter.try_acquire().unwrap();
+        drop((p2, p3));
+        assert_eq!(limiter.active.load(Ordering::Acquire), 0);
+    }
+
+    #[tokio::test]
+    async fn workspace_changes_coalesces_bursts_and_closes_at_max_lifetime() {
+        let dir = tempfile::tempdir().unwrap();
+        let token = "workspace-stream-fixture-000000000001".to_string();
+        let mut registry = native::registry(Arc::new(
+            EnvironmentCredentials::new("sessions", "NOFY_SESSIONS_FIXTURE_").unwrap(),
+        ))
+        .unwrap();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "test.dummy_model",
+                "1",
+                ModuleInstance::Model(Arc::new(DummyModel)),
+            )))
+            .unwrap();
+        let auth = Authorizer::new(vec![(
+            token,
+            [Scope::Read, Scope::Execute, Scope::Publish].into(),
+        )])
+        .unwrap();
+        let host = KernelHost::open(&dir.path().join("state"), registry, auth)
+            .await
+            .unwrap();
+        let document: SystemDocument = serde_json::from_value(json!({
+            "schema_version": 1,
+            "name": "ws-test",
+            "modules": [
+                {
+                    "reference": { "id": "model", "version": "1" },
+                    "factory": "test.dummy_model",
+                    "config": {}
+                },
+                {
+                    "reference": { "id": "prompt", "version": "1" },
+                    "factory": "prompt.static",
+                    "config": { "text": "hello" }
+                }
+            ],
+            "programs": {
+                "main": {
+                    "kind": "agent",
+                    "definition": {
+                        "name": "main",
+                        "model": { "id": "model", "version": "1" },
+                        "prompt": { "id": "prompt", "version": "1" }
+                    }
+                }
+            }
+        }))
+        .unwrap();
+        let compiled = SystemFile::Source(document)
+            .prepare(&host.registry)
+            .unwrap();
+
+        let limiter = Arc::new(WorkspaceStreamLimiter::new(1));
+        let permit = limiter.try_acquire().unwrap();
+        let response = build_workspace_stream(
+            host.clone(),
+            permit,
+            Duration::from_millis(80),
+            Duration::from_millis(350),
+        )
+        .into_response();
+        let mut body = response.into_body().into_data_stream();
+
+        // First frame is emitted immediately on subscribe.
+        let initial = tokio::time::timeout(Duration::from_secs(2), body.next())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(
+            String::from_utf8_lossy(&initial).contains(r#"{"sessions":true,"runs":true}"#),
+            "unexpected initial frame: {}",
+            String::from_utf8_lossy(&initial)
+        );
+
+        // Submit 6 rapid runs within the coalesce window; they must merge into 1 frame.
+        for idx in 0..6 {
+            let request = ManagedRunRequest {
+                approval_mode: None,
+                run_id: format!("burst-run-{idx}"),
+                thread_id: format!("burst-thread-{idx}"),
+                system: "ws-test".into(),
+                release: compiled.bundle.digest.clone(),
+                program: "main".into(),
+                input: Some(
+                    serde_json::from_value(json!({"text": "hello", "attachments": []})).unwrap(),
+                ),
+                parameters: None,
+            };
+            host.supervisor
+                .submit_managed(request, &compiled)
+                .await
+                .unwrap();
+        }
+
+        let mut coalesced_frames = 0usize;
+        while let Some(chunk) = tokio::time::timeout(Duration::from_secs(2), body.next())
+            .await
+            .expect("stream must terminate at max_lifetime")
+        {
+            let bytes = chunk.unwrap();
+            let text = String::from_utf8_lossy(&bytes);
+            if text.contains("event: workspace") {
+                coalesced_frames += 1;
+            }
+        }
+        assert_eq!(
+            coalesced_frames, 1,
+            "rapid burst of 6 commits should coalesce into a single workspace frame"
+        );
+        drop(body);
+        assert_eq!(
+            limiter.active.load(Ordering::Acquire),
+            0,
+            "stream permit must be released after max_lifetime closes the stream"
+        );
+    }
 }

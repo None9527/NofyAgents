@@ -17,6 +17,11 @@ impl CredentialProvider for Credentials {
     }
 }
 async fn ready(path: &Path) -> KernelHost {
+    #[cfg(unix)]
+    if path.exists() {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     KernelHost::open(
         path,
         crate::native::registry(Arc::new(Credentials)).unwrap(),

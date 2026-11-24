@@ -2707,6 +2707,7 @@ dependencies = [
  "anyhow",
  "axum",
  "nofy-agent-client",
+ "nofy-tty-utils",
  "reqwest 0.12.24",
  "rmcp",
  "serde_json",
@@ -2821,7 +2822,11 @@ dependencies = [
  "nofy-agent-mcp",
  "nofy-agent-project",
  "nofy-agent-runtime",
+ "nofy-durable-fs",
+ "nofy-host-path",
+ "nofy-private-fs",
  "nofy-test-support",
+ "nofy-tty-utils",
  "reqwest 0.12.24",
  "rmcp",
  "serde",
@@ -2859,20 +2864,6 @@ dependencies = [
  "fs2",
  "tempfile",
  "windows 0.61.3",
-]
-
-[[package]]
-name = "nofy-goal"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "libc",
- "serde",
- "serde_json",
- "tempfile",
- "tokio-util",
- "tracing",
- "uuid",
 ]
 
 [[package]]

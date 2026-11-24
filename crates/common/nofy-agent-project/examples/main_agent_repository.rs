@@ -44,16 +44,154 @@ fn main() -> Result<()> {
     });
     let schema_path = "settings.schema.json";
     let mut schema = source.json(schema_path)?;
-    schema["properties"]["connection"] = json!({"type":"object","description":"Explicit provider endpoint, model allow-list and credential references. Never put credential values here."});
+    schema["properties"]["connection"] = json!({
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Explicit provider endpoint, model allow-list and credential references. Never put credential values here.",
+        "required": ["base_url", "models"],
+        "properties": {
+            "base_url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Canonical provider API base URL ending in '/', e.g. https://api.example.invalid/v1/."
+            },
+            "models": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1024,
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1, "maxLength": 256},
+                "description": "Explicit model IDs admitted on this connection."
+            },
+            "headers": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {"maxLength": 256},
+                "additionalProperties": {"type": "string", "maxLength": 8192},
+                "description": "Non-secret static HTTP headers sent with each request."
+            },
+            "query": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {"maxLength": 256},
+                "additionalProperties": {"type": "string", "maxLength": 8192},
+                "description": "Non-secret static query parameters."
+            },
+            "header_credentials": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {"maxLength": 256},
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["reference"],
+                    "properties": {
+                        "reference": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_]{1,128}$",
+                            "description": "Logical credential reference resolved by the Host credential provider."
+                        },
+                        "prefix": {
+                            "type": "string",
+                            "maxLength": 64,
+                            "description": "Optional header value prefix such as 'Bearer '."
+                        }
+                    }
+                },
+                "description": "Map of header name to logical credential reference (never raw secrets)."
+            },
+            "tls": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "system_roots": {"type": "boolean"},
+                    "roots_pem": {
+                        "type": "array",
+                        "maxItems": 32,
+                        "items": {"type": "string", "maxLength": 1048576}
+                    },
+                    "identity_ref": {
+                        "anyOf": [
+                            {"type": "string", "pattern": "^[A-Za-z0-9_]{1,128}$"},
+                            {"type": "null"}
+                        ]
+                    }
+                },
+                "description": "Optional TLS trust roots and client identity reference."
+            },
+            "proxy_url": {
+                "type": ["string", "null"],
+                "maxLength": 4096,
+                "description": "Optional HTTP/HTTPS proxy URL."
+            },
+            "allow_insecure_http": {
+                "type": "boolean",
+                "description": "Explicit opt-in for non-HTTPS endpoints (e.g. loopback local models)."
+            },
+            "timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600000,
+                "description": "Total HTTP request timeout in milliseconds."
+            },
+            "idle_timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600000,
+                "description": "Stream idle timeout in milliseconds."
+            },
+            "max_concurrency": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32,
+                "description": "Maximum concurrent requests on this connection."
+            },
+            "endpoint_limits": {
+                "type": "object",
+                "maxProperties": 1024,
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["max_input_tokens", "max_output_tokens"],
+                    "properties": {
+                        "max_input_tokens": {"type": "integer", "minimum": 1, "maximum": 9007199254740991u64},
+                        "max_output_tokens": {"type": "integer", "minimum": 1, "maximum": 9007199254740991u64}
+                    }
+                },
+                "description": "Optional per-model input/output token limits."
+            }
+        }
+    });
+    if let Some(budget_props) = schema
+        .pointer_mut("/properties/budget/properties")
+        .and_then(Value::as_object_mut)
+    {
+        const JS_MAX_SAFE_INT: u64 = 9_007_199_254_740_991;
+        for field in budget_props.values_mut() {
+            if field
+                .get("maximum")
+                .and_then(Value::as_u64)
+                .is_some_and(|max| max > JS_MAX_SAFE_INT)
+            {
+                field["maximum"] = json!(JS_MAX_SAFE_INT);
+            }
+        }
+    }
     schema["properties"]["model"] = json!({"type":"string","minLength":1,"description":"A model admitted by connection.models."});
     schema["properties"]["max_nodes"] =
         json!({"type":"integer","minimum":1,"maximum":128,"default":64});
     schema["properties"]["assembly_max_steps"] =
         json!({"type":"integer","minimum":1,"maximum":256,"default":32});
-    schema["properties"]["allowed_tools"]["default"]
+    let allowed = schema["properties"]["allowed_tools"]["default"]
         .as_array_mut()
-        .unwrap()
-        .push(json!("assemble"));
+        .unwrap();
+    if !allowed.contains(&json!("workflow_agent")) {
+        allowed.push(json!("workflow_agent"));
+    }
+    if !allowed.contains(&json!("assemble")) {
+        allowed.push(json!("assemble"));
+    }
     source.put_json(schema_path, &schema)?;
     source.put_json("preset.json", &json!({
         "format":"nofy.preset/v1", "system": {

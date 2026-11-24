@@ -378,7 +378,8 @@ fn main_agent_delegates_messages_and_reopens_human_without_repeating_effect() {
         let evidence = Arc::new(Evidence::default());
         let registry = registry(evidence.clone());
         let dir = tempfile::tempdir().unwrap();
-        let host = KernelHost::open(dir.path(), registry.clone(), auth())
+        let state = dir.path().join("state");
+        let host = KernelHost::open(&state, registry.clone(), auth())
             .await
             .unwrap();
         let server = serve(&host).await;
@@ -436,7 +437,7 @@ fn main_agent_delegates_messages_and_reopens_human_without_repeating_effect() {
         drop(server);
         drop(host);
         // Reopen the durable host before admitting and executing the exact returned command.
-        let reopened = KernelHost::open(dir.path(), registry.clone(), auth())
+        let reopened = KernelHost::open(&state, registry.clone(), auth())
             .await
             .unwrap();
         let server = serve(&reopened).await;
@@ -477,7 +478,7 @@ fn main_agent_root_floor_blocks_child_effect_and_budget_is_shared() {
             let evidence = Arc::new(Evidence::default());
             let registry = registry(evidence.clone());
             let dir = tempfile::tempdir().unwrap();
-            let host = KernelHost::open(dir.path(), registry.clone(), auth())
+            let host = KernelHost::open(&dir.path().join("state"), registry.clone(), auth())
                 .await
                 .unwrap();
             let server = serve(&host).await;
@@ -532,7 +533,7 @@ fn composable_source(registry: &ModuleRegistry, effect: bool) -> Source {
     let kinds = kinds(registry);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let (packages, revision) = load_repository_directory(&root.join("modules")).unwrap();
-    assert_eq!(packages.len(), 12);
+    assert_eq!(packages.len(), 16);
     let temporary = tempfile::tempdir().unwrap();
     let store = ModuleStore::open(temporary.path()).unwrap();
     let repo = store
@@ -628,7 +629,8 @@ fn composable_repository_is_pinned_exportable_and_provider_source_is_complete() 
     // Prepare uses the actual host factory set, but never invokes the model.
     runtime().block_on(async {
         let temporary = tempfile::tempdir().unwrap();
-        let host = KernelHost::open(temporary.path(), registry.clone(), auth())
+        let state = temporary.path().join("state");
+        let host = KernelHost::open(&state, registry.clone(), auth())
             .await
             .unwrap();
         host.control()
@@ -729,7 +731,8 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
         let source = composable_source(&registry, true);
         let document = system(&source, &registry);
         let dir = tempfile::tempdir().unwrap();
-        let host = KernelHost::open(dir.path(), registry.clone(), auth())
+        let state = dir.path().join("state");
+        let host = KernelHost::open(&state, registry.clone(), auth())
             .await
             .unwrap();
         let server = serve(&host).await;
@@ -794,7 +797,8 @@ fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
         let registry = registry(evidence.clone());
         let document = system(&composable_source(&registry, true), &registry);
         let temporary = tempfile::tempdir().unwrap();
-        let host = KernelHost::open(temporary.path(), registry.clone(), auth())
+        let state = temporary.path().join("state");
+        let host = KernelHost::open(&state, registry.clone(), auth())
             .await
             .unwrap();
         let server = serve(&host).await;
@@ -823,9 +827,7 @@ fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
         drop(execution_registry);
         drop(server);
         drop(host);
-        let host = KernelHost::open(temporary.path(), registry, auth())
-            .await
-            .unwrap();
+        let host = KernelHost::open(&state, registry, auth()).await.unwrap();
         let server = serve(&host).await;
         assert_eq!(
             get(&server, "/api/v1/runs/composable-human/recovery/humans").await,

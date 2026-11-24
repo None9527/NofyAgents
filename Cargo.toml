@@ -14,7 +14,6 @@ members = [
     "crates/common/nofy-agent-modules",
     "crates/common/nofy-agent-runtime",
     "crates/common/nofy-compaction",
-    "crates/common/nofy-goal",
     "crates/common/nofy-host-path",
     "crates/common/nofy-interjection-core",
     "crates/common/nofy-durable-fs",

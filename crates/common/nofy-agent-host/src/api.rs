@@ -14,7 +14,7 @@ use nofy_agent_runtime::{
     registry::ModuleKind,
     system::*,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 mod budgets;
 mod cache;
@@ -138,6 +138,7 @@ pub(crate) fn router(host: KernelHost) -> Router {
         .route("/api/v1/releases/{release}/programs", get(programs))
         .route("/api/v1/plan", post(plan))
         .route("/api/v1/apply", post(apply))
+        .route("/api/v1/systems", get(systems))
         .route("/api/v1/systems/{name}/history", get(history))
         .route("/api/v1/systems/{name}/active", get(active))
         .merge(runs::router())
@@ -322,6 +323,14 @@ async fn publish(
         .await?
         .and_then(|v| v.data.drafts.get(&request.draft).cloned())
         .ok_or(HostError::NotFound)?;
+    if draft.revision != request.revision {
+        return Err(HostError::Control(
+            nofy_agent_runtime::control::ControlError::Conflict {
+                expected: Some(request.revision),
+                actual: Some(draft.revision),
+            },
+        ));
+    }
     resources(&host, &headers, &draft.document)?;
     Ok(Json(
         host.control
@@ -363,6 +372,86 @@ async fn apply(
     resources(&host, &headers, &bundle.document)?;
     Ok(Json(host.control.apply(request).await?))
 }
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+struct ActiveSystemSummary {
+    name: String,
+    release: String,
+    generation: u64,
+    default_program: Option<String>,
+    programs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+struct ActiveSystemsView {
+    systems: Vec<ActiveSystemSummary>,
+    default_system: Option<String>,
+}
+
+fn default_program_name(
+    programs: &std::collections::BTreeMap<String, ProgramDefinition>,
+) -> Option<String> {
+    if matches!(programs.get("main"), Some(ProgramDefinition::Agent { .. })) {
+        return Some("main".to_owned());
+    }
+    if let Some((name, _)) = programs
+        .iter()
+        .find(|(_, program)| matches!(program, ProgramDefinition::Agent { .. }))
+    {
+        return Some(name.clone());
+    }
+    if programs.contains_key("main") {
+        return Some("main".to_owned());
+    }
+    programs.keys().next().cloned()
+}
+
+fn select_default_system(systems: &[ActiveSystemSummary]) -> Option<String> {
+    for preferred in ["omni", "main-agent"] {
+        if systems.iter().any(|system| system.name == preferred) {
+            return Some(preferred.to_owned());
+        }
+    }
+    systems.first().map(|system| system.name.clone())
+}
+
+async fn systems(
+    State(host): State<KernelHost>,
+    headers: HeaderMap,
+) -> Result<Json<ActiveSystemsView>> {
+    host.auth.require(&headers, Scope::Read)?;
+    let Some(catalog) = host.control.inspect().await? else {
+        return Ok(Json(ActiveSystemsView {
+            systems: Vec::new(),
+            default_system: None,
+        }));
+    };
+    let systems: Vec<ActiveSystemSummary> = catalog
+        .data
+        .active
+        .iter()
+        .map(|(name, activation)| {
+            let publication = catalog.data.publications.get(&activation.release);
+            let default_program =
+                publication.and_then(|pub_| default_program_name(&pub_.bundle.document.programs));
+            let programs = publication
+                .map(|pub_| pub_.bundle.document.programs.keys().cloned().collect())
+                .unwrap_or_default();
+            ActiveSystemSummary {
+                name: name.clone(),
+                release: activation.release.clone(),
+                generation: activation.generation,
+                default_program,
+                programs,
+            }
+        })
+        .collect();
+    let default_system = select_default_system(&systems);
+    Ok(Json(ActiveSystemsView {
+        systems,
+        default_system,
+    }))
+}
+
 async fn history(
     State(host): State<KernelHost>,
     headers: HeaderMap,
@@ -517,5 +606,58 @@ mod tests {
             (status, &body["error"]["code"]),
             (503, &json!("unavailable"))
         );
+    }
+
+    #[test]
+    fn default_system_and_program_selection_prefers_omni_then_main_agent_then_lexicographical() {
+        assert_eq!(select_default_system(&[]), None);
+
+        let summary = |name: &str| ActiveSystemSummary {
+            name: name.into(),
+            release: "r1".into(),
+            generation: 1,
+            default_program: Some("main".into()),
+            programs: vec!["main".into()],
+        };
+        assert_eq!(
+            select_default_system(&[summary("alpha"), summary("zeta")]),
+            Some("alpha".into())
+        );
+        assert_eq!(
+            select_default_system(&[summary("alpha"), summary("main-agent"), summary("zeta")]),
+            Some("main-agent".into())
+        );
+        assert_eq!(
+            select_default_system(&[summary("alpha"), summary("main-agent"), summary("omni")]),
+            Some("omni".into())
+        );
+        assert_eq!(
+            select_default_system(&[summary("omni")]),
+            Some("omni".into())
+        );
+
+        // Agent programs are preferred over tool programs; `main` agent wins over other agents.
+        let doc: SystemDocument = serde_json::from_value(json!({
+            "schema_version": 1,
+            "name": "coding",
+            "modules": [],
+            "programs": {
+                "alpha": {
+                    "kind": "tool",
+                    "definition": { "name": "alpha" },
+                    "call": { "id": "1", "name": "t", "arguments": {} }
+                },
+                "chat": {
+                    "kind": "agent",
+                    "definition": {
+                        "name": "chat",
+                        "model": { "id": "m", "version": "1" },
+                        "prompt": { "id": "p", "version": "1" }
+                    }
+                }
+            }
+        }))
+        .unwrap();
+        assert_eq!(default_program_name(&doc.programs), Some("chat".into()));
     }
 }

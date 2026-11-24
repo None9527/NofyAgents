@@ -29,24 +29,101 @@ pub fn emit(envelope: &Envelope, format: &str) -> Result<()> {
     out.flush()?;
     Ok(())
 }
+/// Validate the output file path and return its existing parent directory.
+fn prepare_output_parent(path: &Path) -> Result<&Path> {
+    if path.as_os_str().is_empty() || path.file_name().is_none() {
+        return Err(Error::new(
+            "local_input",
+            "output path must name a file, not a directory",
+        ));
+    }
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let meta = std::fs::metadata(parent).map_err(|e| {
+        Error::new(
+            "local_io",
+            format!(
+                "output parent directory `{}` is unavailable: {e}",
+                parent.display()
+            ),
+        )
+    })?;
+    if !meta.is_dir() {
+        return Err(Error::new(
+            "local_io",
+            format!("output parent `{}` is not a directory", parent.display()),
+        ));
+    }
+    Ok(parent)
+}
+
+/// Flush, fsync, and atomically persist a completed temporary file to `path`
+/// through `nofy-durable-fs`.
+fn persist_temp_file(
+    mut file: tempfile::NamedTempFile,
+    parent: &Path,
+    path: &Path,
+    replace: bool,
+) -> Result<()> {
+    file.as_file_mut().flush().map_err(|e| {
+        Error::new(
+            "local_io",
+            format!(
+                "cannot flush temporary output for `{}`: {e}",
+                path.display()
+            ),
+        )
+    })?;
+    file.as_file().sync_all().map_err(|e| {
+        Error::new(
+            "local_io",
+            format!("cannot sync temporary output for `{}`: {e}", path.display()),
+        )
+    })?;
+    let persisted = if replace {
+        nofy_durable_fs::persist_file(file, path)
+    } else {
+        nofy_durable_fs::persist_new_file(file, path)
+    };
+    if let Err(io_err) = persisted {
+        let detail = if !replace && io_err.kind() == std::io::ErrorKind::AlreadyExists {
+            format!(
+                "output file `{}` already exists (pass --replace to overwrite)",
+                path.display()
+            )
+        } else {
+            format!("cannot persist output file `{}`: {io_err}", path.display())
+        };
+        return Err(Error::new("local_io", detail));
+    }
+    nofy_durable_fs::sync_directory(parent).map_err(|e| {
+        Error::new(
+            "local_io",
+            format!("cannot sync output directory `{}`: {e}", parent.display()),
+        )
+    })?;
+    Ok(())
+}
+
 fn save(
     path: &Path,
     replace: bool,
     write: impl FnOnce(&mut std::fs::File) -> Result<()>,
 ) -> Result<()> {
-    let parent = path
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    let mut file = tempfile::NamedTempFile::new_in(parent)?;
+    let parent = prepare_output_parent(path)?;
+    let mut file = tempfile::NamedTempFile::new_in(parent).map_err(|e| {
+        Error::new(
+            "local_io",
+            format!(
+                "cannot create temporary output in `{}`: {e}",
+                parent.display()
+            ),
+        )
+    })?;
     write(file.as_file_mut())?;
-    file.as_file().sync_all()?;
-    if replace {
-        file.persist(path).map_err(|e| e.error)?;
-    } else {
-        file.persist_noclobber(path).map_err(|e| e.error)?;
-    }
-    Ok(())
+    persist_temp_file(file, parent, path, replace)
 }
 pub fn persist_local(input: &Input, output: &mut Envelope) -> Result<()> {
     if output.is_error() {
@@ -141,11 +218,16 @@ pub async fn persist_output(
 async fn download(engine: &Engine, digest: &str, path: &Path, replace: bool) -> Result<()> {
     use base64::Engine as _;
     use sha2::{Digest, Sha256};
-    let parent = path
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    let mut file = tempfile::NamedTempFile::new_in(parent)?;
+    let parent = prepare_output_parent(path)?;
+    let mut file = tempfile::NamedTempFile::new_in(parent).map_err(|e| {
+        Error::new(
+            "local_io",
+            format!(
+                "cannot create temporary archive in `{}`: {e}",
+                parent.display()
+            ),
+        )
+    })?;
     let mut offset = 0u64;
     let mut expected_total = None;
     let mut hash = Sha256::new();
@@ -209,13 +291,7 @@ async fn download(engine: &Engine, digest: &str, path: &Path, replace: bool) -> 
             "archive checksum mismatch",
         ));
     }
-    file.as_file().sync_all()?;
-    if replace {
-        file.persist(path).map_err(|e| e.error)?;
-    } else {
-        file.persist_noclobber(path).map_err(|e| e.error)?;
-    }
-    Ok(())
+    persist_temp_file(file, parent, path, replace)
 }
 fn number(v: &Value, key: &str) -> Result<u64> {
     v[key]
@@ -404,6 +480,57 @@ mod tests {
         }
         assert!(help.contains("any other kernel error"));
         assert!(help.contains("needs you"), "exit 8 (--wait) must be listed");
+    }
+
+    #[test]
+    fn atomic_save_enforces_noclobber_replace_cleanup_and_path_validation() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("result.json");
+
+        save(&target, false, |f| {
+            f.write_all(b"first")?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"first");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+
+        // Noclobber fails with local_io (exit 9), keeps original content, leaves no temp file.
+        let err = save(&target, false, |f| {
+            f.write_all(b"second")?;
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(err.code, "local_io");
+        assert!(err.message.contains("--replace"), "{}", err.message);
+        assert_eq!(std::fs::read(&target).unwrap(), b"first");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+
+        // Writer failure aborts atomically without touching the existing file or leaking temps.
+        let aborted = save(&target, true, |f| {
+            f.write_all(b"partial")?;
+            Err(Error::new("local_io", "simulated write failure"))
+        })
+        .unwrap_err();
+        assert_eq!(aborted.code, "local_io");
+        assert_eq!(std::fs::read(&target).unwrap(), b"first");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+
+        // Explicit replace atomically updates the file.
+        save(&target, true, |f| {
+            f.write_all(b"replaced")?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"replaced");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+
+        // Empty path fails with local_input; missing parent fails with local_io.
+        let empty_err = save(Path::new(""), false, |_| Ok(())).unwrap_err();
+        assert_eq!(empty_err.code, "local_input");
+        let missing_parent = dir.path().join("no-such-dir").join("out.json");
+        let parent_err = save(&missing_parent, false, |_| Ok(())).unwrap_err();
+        assert_eq!(parent_err.code, "local_io");
     }
 }
 

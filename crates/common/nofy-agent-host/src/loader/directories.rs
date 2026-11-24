@@ -23,6 +23,10 @@ pub(super) struct Grant {
     pub path: PathBuf,
     pub access: Access,
 }
+fn same_host_path(a: &Path, b: &Path) -> bool {
+    nofy_host_path::starts_with(a, b) && nofy_host_path::starts_with(b, a)
+}
+
 impl Grant {
     fn validate(&self, private_root: &Path) -> Result<()> {
         use std::path::Component;
@@ -41,11 +45,11 @@ impl Grant {
                 }),
                 _ => true,
             })
-            || self.path.starts_with(private_root)
-            || private_root.starts_with(&self.path)
+            || nofy_host_path::starts_with(&self.path, private_root)
+            || nofy_host_path::starts_with(private_root, &self.path)
             || ["/proc", "/sys", "/dev", "/run"]
                 .iter()
-                .any(|root| self.path.starts_with(root))
+                .any(|root| nofy_host_path::starts_with(&self.path, Path::new(root)))
         {
             return Err(HostError::Invalid(
                 "directory grant has an unsafe root".into(),
@@ -58,7 +62,7 @@ impl Grant {
         runtime_history::check_protected(private_root, &self.path)?;
         let canonical = std::fs::canonicalize(&self.path)
             .map_err(|_| HostError::Invalid("declared directory is unavailable".into()))?;
-        if canonical != self.path || !canonical.is_dir() {
+        if !same_host_path(&canonical, &self.path) || !canonical.is_dir() {
             return Err(HostError::Invalid(
                 "directory must be an existing canonical directory".into(),
             ));
@@ -163,4 +167,38 @@ pub(super) fn preflight(document: &SystemDocument, private_root: &Path) -> Resul
 }
 pub(super) fn preflight_config(value: &Value, private_root: &Path) -> Result<()> {
     config(value, private_root)?.preflight(private_root)
+}
+
+#[cfg(test)]
+mod path_prefix_tests {
+    fn paths_overlap_with(syntax: nofy_host_path::Syntax, a: &str, b: &str) -> bool {
+        syntax.starts_with(a, b) || syntax.starts_with(b, a)
+    }
+
+    fn same_path_with(syntax: nofy_host_path::Syntax, a: &str, b: &str) -> bool {
+        syntax.starts_with(a, b) && syntax.starts_with(b, a)
+    }
+
+    #[test]
+    fn windows_verbatim_and_plain_paths_agree_on_prefix_and_canonical_identity() {
+        let win = nofy_host_path::Syntax::Windows;
+        assert!(paths_overlap_with(
+            win,
+            r"C:\nofy\state\sub",
+            r"\\?\c:\NOFY\state"
+        ));
+        assert!(paths_overlap_with(win, r"\\?\C:\nofy\state", r"C:\nofy"));
+        assert!(!paths_overlap_with(
+            win,
+            r"C:\nofy\state-other",
+            r"\\?\C:\nofy\state"
+        ));
+        assert!(same_path_with(win, r"\\?\C:\work\proj", r"C:\work\proj"));
+        assert!(same_path_with(win, r"\\?\C:\work\proj", r"c:\WORK\PROJ"));
+        assert!(!same_path_with(
+            win,
+            r"\\?\C:\work\proj\sub",
+            r"C:\work\proj"
+        ));
+    }
 }

@@ -100,9 +100,24 @@ pub(super) fn validate_state(
     state: &WorkflowProgress,
     run: &str,
     reference: &crate::registry::ModuleRef,
+    spec: &WorkflowSpec,
 ) -> Result<(), Error> {
     if state.version != 1 || state.run_id != run || &state.reference != reference {
         return Err(Error::Checkpoint("workflow state identity changed".into()));
+    }
+    let known = |id: &str| spec.nodes.iter().any(|node| node.id == id);
+    if state.nodes.keys().any(|id| !known(id))
+        || state.human.keys().any(|id| !known(id))
+        || state.recovering.as_deref().is_some_and(|id| !known(id))
+        || matches!(
+            &state.halted,
+            Some(GraphHalt::Failed { node, .. } | GraphHalt::Paused { node, .. })
+                if !known(node)
+        )
+    {
+        return Err(Error::Checkpoint(
+            "workflow checkpoint references unknown node".into(),
+        ));
     }
     Ok(())
 }
@@ -135,4 +150,104 @@ pub(super) async fn save_progress(
         )
         .await?;
     Ok(next)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_spec(reference: &crate::registry::ModuleRef) -> WorkflowSpec {
+        serde_json::from_value(json!({
+            "reference": reference,
+            "input_schema": true,
+            "output_schema": true,
+            "parallelism": 2,
+            "nodes": [
+                {
+                    "id": "step_a",
+                    "needs": [],
+                    "input": { "from": "literal", "value": 1 },
+                    "action": { "kind": "transform" }
+                }
+            ],
+            "output": { "from": "node", "node": "step_a", "pointer": "" }
+        }))
+        .unwrap()
+    }
+
+    fn base_progress(reference: &crate::registry::ModuleRef) -> WorkflowProgress {
+        WorkflowProgress {
+            version: 1,
+            run_id: "run-1".into(),
+            reference: reference.clone(),
+            input: json!({}),
+            nodes: BTreeMap::from([(
+                "step_a".into(),
+                NodeProgress::Completed {
+                    attempt: 0,
+                    output: json!(1),
+                },
+            )]),
+            output: None,
+            facts: Default::default(),
+            started: true,
+            human: BTreeMap::new(),
+            halted: None,
+            control_epoch: 0,
+            recovering: None,
+        }
+    }
+
+    #[test]
+    fn validate_state_accepts_known_nodes_and_rejects_unknown_node_keys() {
+        let reference = crate::registry::ModuleRef::new("main", "1");
+        let spec = sample_spec(&reference);
+
+        let valid = base_progress(&reference);
+        validate_state(&valid, "run-1", &reference, &spec).unwrap();
+
+        let mut unknown_node = base_progress(&reference);
+        unknown_node.nodes.insert(
+            "ghost".into(),
+            NodeProgress::Running {
+                attempt: 0,
+                input: json!({}),
+            },
+        );
+        assert!(matches!(
+            validate_state(&unknown_node, "run-1", &reference, &spec),
+            Err(Error::Checkpoint(_))
+        ));
+
+        let mut unknown_human = base_progress(&reference);
+        unknown_human.human.insert(
+            "ghost".into(),
+            HumanReceipt {
+                command_id: "cmd".into(),
+                value: json!(true),
+                request: json!({}),
+            },
+        );
+        assert!(matches!(
+            validate_state(&unknown_human, "run-1", &reference, &spec),
+            Err(Error::Checkpoint(_))
+        ));
+
+        let mut unknown_recovering = base_progress(&reference);
+        unknown_recovering.recovering = Some("ghost".into());
+        assert!(matches!(
+            validate_state(&unknown_recovering, "run-1", &reference, &spec),
+            Err(Error::Checkpoint(_))
+        ));
+
+        let mut unknown_halted = base_progress(&reference);
+        unknown_halted.halted = Some(GraphHalt::Failed {
+            node: "ghost".into(),
+            error: "boom".into(),
+        });
+        assert!(matches!(
+            validate_state(&unknown_halted, "run-1", &reference, &spec),
+            Err(Error::Checkpoint(_))
+        ));
+    }
 }

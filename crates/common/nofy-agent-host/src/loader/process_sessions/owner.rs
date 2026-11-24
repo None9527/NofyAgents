@@ -113,6 +113,7 @@ impl Manager {
         );
         let session_id =
             storage::hash(&serde_json::to_vec(&(owner, resource, start_id)).map_err(unavailable)?);
+        self.prune_terminal_async().await;
         let (ready, result) = oneshot::channel();
         {
             let _gate = self.0.gate.lock().map_err(unavailable)?;
@@ -161,12 +162,16 @@ impl Manager {
                     },
                     inputs: BTreeMap::new(),
                     launch_digest: digest,
+                    finished_at_ms: None,
                 }),
                 commands,
                 changed: Default::default(),
                 stop: CancellationToken::new(),
+                persist_lock: tokio::sync::Mutex::new(()),
+                persisted_revision: AtomicU64::new(0),
+                persist_scheduled: AtomicBool::new(false),
+                removed: AtomicBool::new(false),
             });
-            self.persist(&live)?;
             self.0
                 .entries
                 .lock()
@@ -211,25 +216,59 @@ impl Manager {
             columns: 80,
         };
         let started = self
-            .start(&owner, "namespace-one-shot", &id, launch, limits, hold)
+            .start(&owner, ONE_SHOT_RESOURCE, &id, launch, limits, hold)
             .await?;
         let session = started["session_id"]
             .as_str()
             .ok_or_else(|| unavailable("missing session receipt"))?;
-        let live = self.entry(session, &owner, "namespace-one-shot")?;
+        let live = self.entry(session, &owner, ONE_SHOT_RESOURCE)?;
         let dropped = CancellationToken::new();
         let _drop = dropped.clone().drop_guard();
         let stop = live.stop.clone();
         let observed = live.clone();
+        let watcher_manager = self.clone();
+        let watcher_session = session.to_string();
         self.0.tasks.spawn(async move {
-            let finished=async {loop {let changed=observed.changed.notified();tokio::pin!(changed);changed.as_mut().enable();if observed.record.lock().unwrap_or_else(|e|e.into_inner()).terminal(){break;}changed.await;}};
-            tokio::select!{biased;_=cancel.cancelled()=>stop.cancel(),_=dropped.cancelled()=>stop.cancel(),_=finished=>{}}
+            let wait_terminal = async {
+                loop {
+                    let changed = observed.changed.notified();
+                    tokio::pin!(changed);
+                    changed.as_mut().enable();
+                    let is_terminal = {
+                        let guard = observed.record.lock().unwrap_or_else(|e| e.into_inner());
+                        guard.terminal()
+                    };
+                    if is_terminal {
+                        break;
+                    }
+                    changed.await;
+                }
+            };
+            tokio::pin!(wait_terminal);
+            let abandoned = tokio::select! {
+                biased;
+                _ = cancel.cancelled() => {
+                    stop.cancel();
+                    false
+                }
+                _ = dropped.cancelled() => {
+                    stop.cancel();
+                    true
+                }
+                _ = &mut wait_terminal => false,
+            };
+            if abandoned {
+                wait_terminal.await;
+                watcher_manager
+                    .remove_terminal_record(&watcher_session, &observed)
+                    .await;
+            }
         });
         let operation = async {
             self.write(
                 session,
                 &owner,
-                "namespace-one-shot",
+                ONE_SHOT_RESOURCE,
                 "stdin",
                 invocation.input,
                 true,
@@ -239,7 +278,11 @@ impl Manager {
                 let notification = live.changed.notified();
                 tokio::pin!(notification);
                 notification.as_mut().enable();
-                if live.record.lock().map_err(unavailable)?.terminal() {
+                let is_terminal = {
+                    let record = live.record.lock().map_err(unavailable)?;
+                    record.terminal()
+                };
+                if is_terminal {
                     break;
                 }
                 notification.await;
@@ -248,23 +291,28 @@ impl Manager {
         };
         let result = operation.await;
         if result.is_err() {
-            self.close(session, &owner, "namespace-one-shot").await?;
+            let _ = self.close(session, &owner, ONE_SHOT_RESOURCE).await;
         }
-        result?;
-        let r = live.record.lock().map_err(unavailable)?;
-        if r.state != "exited" || r.stdout.offset > 0 || r.stderr.offset > 0 {
-            return Err(unavailable(
-                r.error
-                    .as_deref()
-                    .unwrap_or("command timed out or output exceeded its limit"),
-            ));
-        }
-        use std::os::unix::process::ExitStatusExt;
-        Ok(process_tree::Output {
-            status: std::process::ExitStatus::from_raw(r.exit_code.unwrap_or(125) << 8),
-            stdout: r.stdout.data.clone(),
-            stderr: r.stderr.data.clone(),
-        })
+        let outcome = match result {
+            Ok(()) => {
+                let r = live.record.lock().map_err(unavailable)?;
+                if r.state != "exited" || r.stdout.offset > 0 || r.stderr.offset > 0 {
+                    Err(unavailable(r.error.as_deref().unwrap_or(
+                        "command timed out or output exceeded its limit",
+                    )))
+                } else {
+                    use std::os::unix::process::ExitStatusExt;
+                    Ok(process_tree::Output {
+                        status: std::process::ExitStatus::from_raw(r.exit_code.unwrap_or(125) << 8),
+                        stdout: r.stdout.data.clone(),
+                        stderr: r.stderr.data.clone(),
+                    })
+                }
+            }
+            Err(error) => Err(error),
+        };
+        self.remove_terminal_record(session, &live).await;
+        outcome
     }
 }
 pub(super) async fn write(
@@ -314,7 +362,7 @@ pub(super) async fn write(
         record.revision += 1;
     }
     // Durable before delivery; ambiguous outcomes must never cause a second write.
-    manager.persist(&live)?;
+    manager.persist_async(&live).await?;
     let (reply, result) = oneshot::channel();
     live.commands
         .send(Command::Input {
@@ -366,76 +414,236 @@ async fn run(
     mut inbox: mpsc::Receiver<Command>,
     ready: oneshot::Sender<Result<()>>,
 ) {
+    let (session_id, is_one_shot) = {
+        let r = live.record.lock().unwrap_or_else(|e| e.into_inner());
+        (r.session_id.clone(), r.resource == ONE_SHOT_RESOURCE)
+    };
     let mut ready = Some(ready);
     let mut network_owner = None;
-    let result=async {
-        let mut command=tokio::process::Command::new(&launch.helper);
-        command.arg(super::super::process_tree::bootstrap::ARG).arg(wire).env_clear().current_dir("/").kill_on_drop(true);
-        let mut terminal=if launch.terminal {Some(io::Terminal::open(launch.rows,launch.columns).map_err(unavailable)?)} else {None};
-        if let Some(terminal)=&terminal {terminal.configure(&mut command).map_err(unavailable)?;}
-        else {command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());}
-        let gate=io::gate(&mut command).map_err(unavailable)?;
-        let broker=launch.profile.session.as_ref().and_then(|s|s.limits.network_proxy.clone()).map(|config|network::Broker::prepare(&mut command,config)).transpose()?;
+    let result = async {
+        manager.persist_async(&live).await?;
+        let mut command = tokio::process::Command::new(&launch.helper);
+        command
+            .arg(super::super::process_tree::bootstrap::ARG)
+            .arg(wire)
+            .env_clear()
+            .current_dir("/")
+            .kill_on_drop(true);
+        let mut terminal = if launch.terminal {
+            Some(io::Terminal::open(launch.rows, launch.columns).map_err(unavailable)?)
+        } else {
+            None
+        };
+        if let Some(terminal) = &terminal {
+            terminal.configure(&mut command).map_err(unavailable)?;
+        } else {
+            command
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+        }
+        let gate = io::gate(&mut command).map_err(unavailable)?;
+        let broker = launch
+            .profile
+            .session
+            .as_ref()
+            .and_then(|s| s.limits.network_proxy.clone())
+            .map(|config| network::Broker::prepare(&mut command, config))
+            .transpose()?;
         // Owner: this session task (kill_on_drop; stop/timeout/handoff failure all kill and wait).
         #[allow(clippy::disallowed_methods)]
-        let mut child=command.spawn().map_err(unavailable)?;
+        let mut child = command.spawn().map_err(unavailable)?;
         drop(command);
-        if let Some(broker)=broker {
-            let stop=CancellationToken::new();let signal=stop.clone();let process=live.stop.clone();
-            let task=tokio::spawn(async move {let result=broker.run(signal).await;if result.is_err(){process.cancel();}result});
-            network_owner=Some((stop,task));
-        }
-        let streams=(||->Result<(io::Reader,Option<io::Reader>,io::Writer)>{
-            if let Some(terminal)=&mut terminal {
-                terminal.release_slave().map_err(unavailable)?;let (read,write)=terminal.streams().map_err(unavailable)?;Ok((read,None,write))
-            } else {Ok((Box::new(child.stdout.take().ok_or_else(||unavailable("missing stdout"))?),Some(Box::new(child.stderr.take().ok_or_else(||unavailable("missing stderr"))?)),Box::new(child.stdin.take().ok_or_else(||unavailable("missing stdin"))?)))}
-        })();
-        let (stdout,stderr,writer)=match streams {Ok(v)=>v,Err(e)=>{let _=child.start_kill();let _=child.wait().await;return Err(e);}};
-        {let mut r=live.record.lock().map_err(unavailable)?;r.state="running".into();r.revision+=1;}
-        let handoff=manager.persist(&live).and_then(|()|io::commit(&gate).map_err(unavailable));drop(gate);
-        if let Err(error)=handoff {let _=child.start_kill();let _=child.wait().await;return Err(error);}
-        let _=ready.take().expect("one start receipt").send(Ok(()));
-        let out=tokio::spawn(pump(stdout,live.clone(),false,launch.output_limit));
-        let err=stderr.map(|r|tokio::spawn(pump(r,live.clone(),true,launch.output_limit)));
-        let deadline=tokio::time::sleep(launch.timeout);tokio::pin!(deadline);
-        let mut writer=Some(writer);
-        let (state,status,error)=loop {
-            tokio::select! {biased;
-                _=manager.0.stop.cancelled()=>break ("closed",None,None),
-                _=live.stop.cancelled()=>break ("closed",None,None),
-                _=&mut deadline=>break ("timed_out",None,Some("declared process timeout reached".to_string())),
-                status=child.wait()=>{match status{Ok(status)=>break("exited",status.code(),None),Err(error)=>break("failed",None,Some(error.to_string()))}},
-                command=inbox.recv()=>match command {
-                    None=>break ("closed",None,None),
-                    Some(Command::Resize{rows,columns,reply})=>{let result=terminal.as_ref().ok_or_else(||HostError::Invalid("session is not a PTY".into())).and_then(|t|t.resize(rows,columns).map_err(unavailable));let _=reply.send(result);},
-                    Some(Command::Input{id,mut bytes,eof,reply})=>{
-                        if eof && launch.terminal {bytes.push(4);}
-                        let delivery=async {let Some(stream)=&mut writer else{return Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe,"stdin already closed"));};stream.write_all(&bytes).await?;stream.flush().await?;Ok(())};
-                        let delivered=tokio::select!{biased;_=manager.0.stop.cancelled()=>Err(unavailable("host stopped during input; delivery uncertain")),_=live.stop.cancelled()=>Err(unavailable("session stopped during input; delivery uncertain")),_=&mut deadline=>Err(unavailable("input timed out; delivery uncertain")),r=delivery=>r.map_err(unavailable)};
-                        if eof {writer.take();}
-                        {let mut r=live.record.lock().unwrap_or_else(|e|e.into_inner());if let Some(receipt)=r.inputs.get_mut(&id){receipt.state=if delivered.is_ok(){"committed"}else{"uncertain"}.into();}r.revision+=1;}
-                        let persistence=manager.persist(&live);let failed=delivered.is_err()||persistence.is_err();let _=reply.send(delivered.and(persistence));
-                        if failed {break("failed",None,Some("input delivery failed or receipt is uncertain".into()));}
-                    }
+        if let Some(broker) = broker {
+            let stop = CancellationToken::new();
+            let signal = stop.clone();
+            let process = live.stop.clone();
+            let task = tokio::spawn(async move {
+                let result = broker.run(signal).await;
+                if result.is_err() {
+                    process.cancel();
                 }
+                result
+            });
+            network_owner = Some((stop, task));
+        }
+        let streams = (|| -> Result<(io::Reader, Option<io::Reader>, io::Writer)> {
+            if let Some(terminal) = &mut terminal {
+                terminal.release_slave().map_err(unavailable)?;
+                let (read, write) = terminal.streams().map_err(unavailable)?;
+                Ok((read, None, write))
+            } else {
+                let stdout = child
+                    .stdout
+                    .take()
+                    .ok_or_else(|| unavailable("missing stdout"))?;
+                let stderr = child
+                    .stderr
+                    .take()
+                    .ok_or_else(|| unavailable("missing stderr"))?;
+                let stdin = child
+                    .stdin
+                    .take()
+                    .ok_or_else(|| unavailable("missing stdin"))?;
+                Ok((Box::new(stdout), Some(Box::new(stderr)), Box::new(stdin)))
+            }
+        })();
+        let (stdout, stderr, writer) = match streams {
+            Ok(v) => v,
+            Err(e) => {
+                let _ = child.start_kill();
+                let _ = child.wait().await;
+                return Err(e);
+            }
+        };
+        {
+            let mut r = live.record.lock().map_err(unavailable)?;
+            r.state = "running".into();
+            r.revision += 1;
+        }
+        let handoff = match manager.persist_async(&live).await {
+            Ok(()) => io::commit(&gate).map_err(unavailable),
+            Err(error) => Err(error),
+        };
+        drop(gate);
+        if let Err(error) = handoff {
+            let _ = child.start_kill();
+            let _ = child.wait().await;
+            return Err(error);
+        }
+        if let Some(ready) = ready.take() {
+            let _ = ready.send(Ok(()));
+        }
+        let out = tokio::spawn(pump(stdout, live.clone(), false, launch.output_limit));
+        let err = stderr.map(|r| tokio::spawn(pump(r, live.clone(), true, launch.output_limit)));
+        let deadline = tokio::time::sleep(launch.timeout);
+        tokio::pin!(deadline);
+        let mut writer = Some(writer);
+        let (state, status, error) = loop {
+            tokio::select! {
+                biased;
+                _ = manager.0.stop.cancelled() => break ("closed", None, None),
+                _ = live.stop.cancelled() => break ("closed", None, None),
+                _ = &mut deadline => {
+                    break (
+                        "timed_out",
+                        None,
+                        Some("declared process timeout reached".to_string()),
+                    )
+                }
+                status = child.wait() => match status {
+                    Ok(status) => break ("exited", status.code(), None),
+                    Err(error) => break ("failed", None, Some(error.to_string())),
+                },
+                command = inbox.recv() => match command {
+                    None => break ("closed", None, None),
+                    Some(Command::Resize { rows, columns, reply }) => {
+                        let result = terminal
+                            .as_ref()
+                            .ok_or_else(|| HostError::Invalid("session is not a PTY".into()))
+                            .and_then(|t| t.resize(rows, columns).map_err(unavailable));
+                        let _ = reply.send(result);
+                    }
+                    Some(Command::Input { id, mut bytes, eof, reply }) => {
+                        if eof && launch.terminal {
+                            bytes.push(4);
+                        }
+                        let delivery = async {
+                            let Some(stream) = &mut writer else {
+                                return Err(std::io::Error::new(
+                                    std::io::ErrorKind::BrokenPipe,
+                                    "stdin already closed",
+                                ));
+                            };
+                            stream.write_all(&bytes).await?;
+                            stream.flush().await?;
+                            Ok(())
+                        };
+                        let delivered = tokio::select! {
+                            biased;
+                            _ = manager.0.stop.cancelled() => Err(unavailable(
+                                "host stopped during input; delivery uncertain",
+                            )),
+                            _ = live.stop.cancelled() => Err(unavailable(
+                                "session stopped during input; delivery uncertain",
+                            )),
+                            _ = &mut deadline => Err(unavailable(
+                                "input timed out; delivery uncertain",
+                            )),
+                            r = delivery => r.map_err(unavailable),
+                        };
+                        if eof {
+                            writer.take();
+                        }
+                        {
+                            let mut r = live.record.lock().unwrap_or_else(|e| e.into_inner());
+                            if let Some(receipt) = r.inputs.get_mut(&id) {
+                                receipt.state = if delivered.is_ok() {
+                                    "committed"
+                                } else {
+                                    "uncertain"
+                                }
+                                .into();
+                            }
+                            r.revision += 1;
+                        }
+                        let persistence = manager.persist_async(&live).await;
+                        let failed = delivered.is_err() || persistence.is_err();
+                        let _ = reply.send(delivered.and(persistence));
+                        if failed {
+                            break (
+                                "failed",
+                                None,
+                                Some("input delivery failed or receipt is uncertain".into()),
+                            );
+                        }
+                    }
+                },
             }
         };
         // Killing the owned outer helper kills its PID 1, then every descendant.
-        if state!="exited" {let _=child.start_kill();}
-        let _=child.wait().await;drop(writer);drop(terminal);
-        let output=out.await.map_err(unavailable).and_then(|r|r.map_err(unavailable));
-        let errors=if let Some(err)=err{err.await.map_err(unavailable).and_then(|r|r.map_err(unavailable))}else{Ok(())};
-        {let mut r=live.record.lock().map_err(unavailable)?;r.state=state.into();r.exit_code=status;r.error=error.or_else(||output.err().or_else(||errors.err()).map(|e|e.to_string()));for input in r.inputs.values_mut().filter(|v|v.state=="prepared"){input.state="uncertain".into();}r.revision+=1;}
-        Ok::<(),HostError>(())
-    }.await;
+        if state != "exited" {
+            let _ = child.start_kill();
+        }
+        let _ = child.wait().await;
+        drop(writer);
+        drop(terminal);
+        let output = out
+            .await
+            .map_err(unavailable)
+            .and_then(|r| r.map_err(unavailable));
+        let errors = if let Some(err) = err {
+            err.await
+                .map_err(unavailable)
+                .and_then(|r| r.map_err(unavailable))
+        } else {
+            Ok(())
+        };
+        {
+            let mut r = live.record.lock().map_err(unavailable)?;
+            r.state = state.into();
+            r.exit_code = status;
+            r.finished_at_ms = Some(now_ms());
+            r.error =
+                error.or_else(|| output.err().or_else(|| errors.err()).map(|e| e.to_string()));
+            for input in r.inputs.values_mut().filter(|v| v.state == "prepared") {
+                input.state = "uncertain".into();
+            }
+            r.revision += 1;
+        }
+        Ok::<(), HostError>(())
+    }
+    .await;
     if let Some((stop, task)) = network_owner {
         stop.cancel();
         let _ = task.await;
     }
+    let startup_failed = ready.is_some();
     if let Err(error) = result {
         {
             let mut r = live.record.lock().unwrap_or_else(|e| e.into_inner());
             r.state = "failed".into();
+            r.finished_at_ms = Some(now_ms());
             r.error = Some(error.to_string());
             r.revision += 1;
         }
@@ -443,9 +651,17 @@ async fn run(
             let _ = ready.send(Err(error));
         }
     }
-    if let Err(error) = manager.persist(&live) {
+    if startup_failed && is_one_shot {
+        manager.remove_terminal_record(&session_id, &live).await;
+        live.changed.notify_waiters();
+        return;
+    }
+    if let Err(error) = manager.persist_async(&live).await {
         let mut r = live.record.lock().unwrap_or_else(|e| e.into_inner());
         r.error = Some(format!("completion persistence is uncertain: {error}"));
     }
     live.changed.notify_waiters();
+    if !is_one_shot {
+        manager.prune_terminal_async().await;
+    }
 }

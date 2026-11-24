@@ -30,8 +30,13 @@ CREATE INDEX IF NOT EXISTS agent_runtime_work_changes_node
     ON agent_runtime_work_changes(root_id,run_id,cursor);
 CREATE INDEX IF NOT EXISTS agent_runtime_work_children_root
     ON agent_runtime_children(root_id,key);
+CREATE INDEX IF NOT EXISTS idx_agent_runtime_children_run_id
+    ON agent_runtime_children(json_extract(payload,'$.run_id'),root_id);
 CREATE INDEX IF NOT EXISTS agent_runtime_work_approval_run
     ON agent_runtime_approvals(run_id,decision,key);
+CREATE INDEX IF NOT EXISTS idx_agent_runtime_cancel_unack
+    ON agent_runtime_cancel(acknowledged,json_extract(address,'$.run_id'),json_extract(address,'$.root_run_id'))
+    WHERE acknowledged=0;
 
 CREATE TRIGGER IF NOT EXISTS agent_runtime_work_queued AFTER INSERT ON agent_runtime_managed_runs
 BEGIN

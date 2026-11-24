@@ -44,6 +44,8 @@ pub struct HttpConnection {
     methods: BTreeSet<Method>,
     credential_refs: BTreeSet<String>,
     credentials: Arc<dyn CredentialProvider>,
+    allow_insecure_http: bool,
+    allow_private_networks: bool,
     identity: String,
 }
 impl HttpConnection {
@@ -56,24 +58,59 @@ impl HttpConnection {
         credential_refs: BTreeSet<String>,
         credentials: Arc<dyn CredentialProvider>,
     ) -> Result<Self, Error> {
+        Self::install_with_policy(
+            base,
+            revision,
+            methods,
+            credential_refs,
+            credentials,
+            false,
+            false,
+        )
+    }
+    pub fn install_with_policy(
+        base: &str,
+        revision: &str,
+        methods: BTreeSet<Method>,
+        credential_refs: BTreeSet<String>,
+        credentials: Arc<dyn CredentialProvider>,
+        allow_insecure_http: bool,
+        allow_private_networks: bool,
+    ) -> Result<Self, Error> {
         let base = connection::base(base)?;
         if revision.trim().is_empty() || methods.is_empty() {
             return Err(crate::composition("HTTP methods/revision required"));
         }
-        let client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .no_proxy()
-            .build()
+        connection::validate_network_policy(
+            &base,
+            !credential_refs.is_empty(),
+            allow_insecure_http,
+            allow_private_networks,
+        )?;
+        let client = connection::build_client(&base, allow_private_networks, false)
             .map_err(|_| crate::composition("HTTP client initialization failed"))?;
-        let identity =
+        let identity = if allow_insecure_http || allow_private_networks {
+            serde_json::to_string(&(
+                base.as_str(),
+                revision,
+                &methods,
+                &credential_refs,
+                allow_insecure_http,
+                allow_private_networks,
+            ))
+            .map_err(|e| crate::composition(e.to_string()))?
+        } else {
             serde_json::to_string(&(base.as_str(), revision, &methods, &credential_refs))
-                .map_err(|e| crate::composition(e.to_string()))?;
+                .map_err(|e| crate::composition(e.to_string()))?
+        };
         Ok(Self {
             base,
             client,
             methods,
             credential_refs,
             credentials,
+            allow_insecure_http,
+            allow_private_networks,
             identity,
         })
     }
@@ -207,10 +244,17 @@ impl ToolDispatch for HttpDispatch {
                     "mapped HTTP input exceeds byte limit",
                 ));
             }
+            connection::validate_runtime_request(
+                &self.endpoint,
+                self.config.credential_ref.is_some(),
+                self.connection.allow_insecure_http,
+                self.connection.allow_private_networks,
+            )?;
             let mut request = self
                 .connection
                 .client
-                .request(self.config.method.wire(), self.endpoint.clone());
+                .request(self.config.method.wire(), self.endpoint.clone())
+                .timeout(Duration::from_millis(self.config.contract.timeout_ms));
             if self.config.method == Method::Get {
                 let fields = input.as_object().ok_or_else(|| {
                     crate::tool_error("input_mapping", "GET input must be an object")
@@ -239,10 +283,13 @@ impl ToolDispatch for HttpDispatch {
                 let secret = self.connection.credentials.resolve(reference, &ctx).await?;
                 request = request.bearer_auth(secret);
             }
-            let mut response = request
-                .send()
-                .await
-                .map_err(|_| crate::tool_error("http_transport", "HTTP request failed"))?;
+            let mut response = request.send().await.map_err(|error| {
+                if error.is_timeout() {
+                    crate::tool_error("timeout", "HTTP tool timed out")
+                } else {
+                    crate::tool_error("http_transport", "HTTP request failed")
+                }
+            })?;
             if !response.status().is_success() {
                 return Err(crate::tool_error(
                     "http_status",
@@ -250,11 +297,13 @@ impl ToolDispatch for HttpDispatch {
                 ));
             }
             let mut bytes = Vec::new();
-            while let Some(chunk) = response
-                .chunk()
-                .await
-                .map_err(|_| crate::tool_error("http_transport", "HTTP response interrupted"))?
-            {
+            while let Some(chunk) = response.chunk().await.map_err(|error| {
+                if error.is_timeout() {
+                    crate::tool_error("timeout", "HTTP tool timed out")
+                } else {
+                    crate::tool_error("http_transport", "HTTP response interrupted")
+                }
+            })? {
                 if chunk.len()
                     > self
                         .config

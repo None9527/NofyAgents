@@ -79,6 +79,7 @@ fn children(root: &Path) -> BTreeSet<u32> {
             );
         }
     }
+    let canonical_root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     candidates
         .into_iter()
         .filter(|pid| {
@@ -91,11 +92,18 @@ fn children(root: &Path) -> BTreeSet<u32> {
             {
                 return false;
             }
-            let Ok(profile) = serde_json::from_slice::<Value>(args[2]) else {
+            if !args.get(2).is_some_and(|arg| arg.starts_with(b"fd:")) {
+                return false;
+            }
+            let cmdline = String::from_utf8_lossy(&command);
+            assert!(
+                !cmdline.contains("parent_pid") && !cmdline.contains("private_root"),
+                "isolation profile leaked into /proc/{pid}/cmdline: {cmdline}"
+            );
+            let Ok(cwd) = std::fs::read_link(format!("/proc/{pid}/cwd")) else {
                 return false;
             };
-            profile["parent_pid"] == std::process::id()
-                && profile["private_root"] == root.to_str().unwrap()
+            cwd.starts_with(&canonical_root)
         })
         .collect()
 }
@@ -121,6 +129,7 @@ async fn one_child(root: &Path) -> (u32, OwnedFd) {
 #[tokio::test]
 async fn missing_helper_has_no_fallback_and_binding_does_not_change_portable_identity() {
     let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("state");
     let engines = native::registry(Arc::new(Credentials(Arc::new(AtomicUsize::new(0))))).unwrap();
     assert!(
         !engines
@@ -128,7 +137,7 @@ async fn missing_helper_has_no_fallback_and_binding_does_not_change_portable_ide
             .iter()
             .any(|factory| factory.factory == "tool.rhai")
     );
-    let host = unbound_host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let host = unbound_host(&state, Arc::new(AtomicUsize::new(0))).await;
     let definition: Value = json!({"schema_version":1,"name":"pure-code","modules":[{
         "reference":{"id":"method","version":"1"},"factory":"tool.rhai",
         "config":{"contract":{"name":"method"},"source":"complete(#{result:args.n*2});"}}
@@ -196,8 +205,9 @@ async fn missing_helper_has_no_fallback_and_binding_does_not_change_portable_ide
 #[tokio::test]
 async fn code_status_requires_read_and_never_runs_code_or_reads_credentials() {
     let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("state");
     let reads = Arc::new(AtomicUsize::new(0));
-    let host = host(dir.path(), reads.clone()).await;
+    let host = host(&state, reads.clone()).await;
     let server = serve(host.router()).await;
     let (status, body) = request(
         &server,
@@ -214,11 +224,11 @@ async fn code_status_requires_read_and_never_runs_code_or_reads_credentials() {
         "started":0,"helper_bound":true,"stopping":false})
     );
     assert_eq!(reads.load(Ordering::SeqCst), 0);
-    assert!(!body.to_string().contains(dir.path().to_str().unwrap()));
+    assert!(!body.to_string().contains(state.to_str().unwrap()));
     let execute = Authorizer::new(vec![(ADMIN.into(), [Scope::Execute].into())]).unwrap();
     let other = tempfile::tempdir().unwrap();
     let limited = KernelHost::open(
-        other.path(),
+        &other.path().join("state"),
         native::registry(Arc::new(Credentials(reads))).unwrap(),
         execute,
     )
@@ -243,10 +253,11 @@ async fn code_status_requires_read_and_never_runs_code_or_reads_credentials() {
 #[tokio::test]
 async fn cancelled_dropped_and_queued_calls_reap_children_before_reuse_and_shutdown() {
     let dir = tempfile::tempdir().unwrap();
-    let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let state = dir.path().join("state");
+    let host = host(&state, Arc::new(AtomicUsize::new(0))).await;
     let loader = host.loader();
     let first = spawn(loader, heavy(), Default::default());
-    let (pid, first_fd) = one_child(dir.path()).await;
+    let (pid, first_fd) = one_child(&state).await;
     let status = std::fs::read_to_string(format!("/proc/{pid}/status")).unwrap();
     assert!(status.contains("CapEff:\t0000000000000000"));
     assert!(
@@ -272,8 +283,8 @@ async fn cancelled_dropped_and_queued_calls_reap_children_before_reuse_and_shutd
     signal(&first_fd, libc::SIGSTOP);
     let cancel = CancellationToken::new();
     let second = spawn(loader, heavy(), cancel.clone());
-    until(|| children(dir.path()).len() == 2).await;
-    let second_pid = *children(dir.path()).iter().find(|id| **id != pid).unwrap();
+    until(|| children(&state).len() == 2).await;
+    let second_pid = *children(&state).iter().find(|id| **id != pid).unwrap();
     let second_fd = pidfd(second_pid);
     signal(&second_fd, libc::SIGSTOP);
     assert_eq!(loader.code_status().in_flight, 2);
@@ -316,7 +327,7 @@ async fn cancelled_dropped_and_queued_calls_reap_children_before_reuse_and_shutd
         json!(42)
     );
     let active = spawn(loader, heavy(), Default::default());
-    let (_, fd) = one_child(dir.path()).await;
+    let (_, fd) = one_child(&state).await;
     signal(&fd, libc::SIGSTOP);
     let owned = host.clone();
     let worker = tokio::spawn(async move { owned.run_worker(Default::default(), 1).await });
@@ -339,12 +350,13 @@ async fn cancelled_dropped_and_queued_calls_reap_children_before_reuse_and_shutd
 #[tokio::test]
 async fn tool_deadline_is_not_replaced_by_the_prompt_and_scope_five_second_boundary() {
     let dir = tempfile::tempdir().unwrap();
-    let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let state = dir.path().join("state");
+    let host = host(&state, Arc::new(AtomicUsize::new(0))).await;
     let mut source = heavy();
     source.timeout_ms = 6500;
     let begin = std::time::Instant::now();
     let task = spawn(host.loader(), source, Default::default());
-    let (pid, fd) = one_child(dir.path()).await;
+    let (pid, fd) = one_child(&state).await;
     signal(&fd, libc::SIGSTOP);
     let limits = std::fs::read_to_string(format!("/proc/{pid}/limits")).unwrap();
     let cpu = limits
@@ -370,12 +382,13 @@ async fn tool_deadline_is_not_replaced_by_the_prompt_and_scope_five_second_bound
 #[tokio::test]
 async fn killed_code_worker_does_not_kill_the_host_or_replay_a_failed_step() {
     let dir = tempfile::tempdir().unwrap();
-    let host = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let state = dir.path().join("state");
+    let host = host(&state, Arc::new(AtomicUsize::new(0))).await;
     let server = serve(host.router()).await;
     let mut task = spawn(host.loader(), heavy(), Default::default());
     let (_, fd) = tokio::select! {
         result = &mut task => panic!("worker ended before process observation: {result:?}"),
-        child = one_child(dir.path()) => child,
+        child = one_child(&state) => child,
     };
     signal(&fd, libc::SIGKILL);
     assert_eq!(
@@ -404,7 +417,7 @@ async fn killed_code_worker_does_not_kill_the_host_or_replay_a_failed_step() {
         json!(42)
     );
     assert_eq!(host.loader().code_status().started, 2);
-    assert!(children(dir.path()).is_empty());
+    assert!(children(&state).is_empty());
     host.shutdown();
 }
 
@@ -436,6 +449,7 @@ async fn code_owner_death_process() {
 #[tokio::test]
 async fn owner_death_kills_a_stopped_code_worker_before_any_recovery() {
     let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("state");
     let mut owner = tokio::process::Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
@@ -444,7 +458,7 @@ async fn owner_death_kills_a_stopped_code_worker_before_any_recovery() {
         ])
         .env_clear()
         .env("RUST_MIN_STACK", "16777216")
-        .env("NOFY_CODE_DEATH_STATE", dir.path())
+        .env("NOFY_CODE_DEATH_STATE", &state)
         .kill_on_drop(true)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::inherit())
@@ -452,7 +466,7 @@ async fn owner_death_kills_a_stopped_code_worker_before_any_recovery() {
         .unwrap();
     let owner_pid = owner.id().unwrap();
     let owner_fd = pidfd(owner_pid);
-    let ready = dir.path().join("owner-ready.json");
+    let ready = state.join("owner-ready.json");
     until(|| ready.exists() || owner.try_wait().unwrap().is_some()).await;
     let evidence: Value = serde_json::from_slice(&std::fs::read(ready).unwrap()).unwrap();
     assert_eq!(evidence["owner"], owner_pid);

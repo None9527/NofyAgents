@@ -197,6 +197,19 @@ pub(super) fn apply_network(network: bool, terminal: bool) -> io::Result<()> {
         442, // new mount API, including mount_setattr
         434,
         438, // pidfd signal/getfd; no escape through outside descriptors
+        libc::SYS_fchmod,
+        libc::SYS_fchmodat,
+        452, // fchmodat2, including AT_EMPTY_PATH
+        libc::SYS_setxattr,
+        libc::SYS_lsetxattr,
+        libc::SYS_fsetxattr,
+        libc::SYS_removexattr,
+        libc::SYS_lremovexattr,
+        libc::SYS_fremovexattr,
+        463, // setxattrat
+        466, // removexattrat
+        libc::SYS_fallocate,
+        libc::SYS_userfaultfd,
     ];
     for syscall in denied {
         if network && syscall == libc::SYS_socket {
@@ -233,8 +246,10 @@ pub(super) fn apply_network(network: bool, terminal: bool) -> io::Result<()> {
         stmt(libc::BPF_RET | libc::BPF_K, DENY),
     ]);
     filter.push(stmt(libc::BPF_RET | libc::BPF_K, ALLOW));
+    let filter_len = u16::try_from(filter.len())
+        .map_err(|_| io::Error::other("tree seccomp filter exceeds BPF instruction limit"))?;
     let program = sock_fprog {
-        len: filter.len() as u16,
+        len: filter_len,
         filter: filter.as_mut_ptr(),
     };
     for (resource, value) in [
@@ -246,12 +261,31 @@ pub(super) fn apply_network(network: bool, terminal: bool) -> io::Result<()> {
             rlim_cur: value,
             rlim_max: value,
         };
+        // SAFETY: `&limit` is a valid initialized `libc::rlimit` struct for
+        // the duration of `setrlimit`, lowering resource limits exclusively on
+        // this disposable single-threaded guest helper before `exec`.
         if unsafe { libc::setrlimit(resource, &limit) } != 0 {
             return Err(io::Error::last_os_error());
         }
     }
-    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
-        || unsafe { libc::prctl(libc::PR_SET_SECCOMP, 2, &program as *const sock_fprog) } != 0
+    // SAFETY: Single-threaded disposable guest helper; passing all five ABI
+    // arguments sets `PR_SET_NO_NEW_PRIVS` so unprivileged seccomp installation
+    // succeeds below.
+    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // SAFETY: `filter` remains live and unmodified while `prctl` copies the
+    // `program.len` classic BPF instructions into the kernel, `NO_NEW_PRIVS` is
+    // already set, and all five ABI arguments are passed.
+    if unsafe {
+        libc::prctl(
+            libc::PR_SET_SECCOMP,
+            libc::SECCOMP_MODE_FILTER as libc::c_ulong,
+            &program as *const sock_fprog,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+        )
+    } != 0
     {
         return Err(io::Error::last_os_error());
     }

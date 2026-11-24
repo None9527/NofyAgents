@@ -30,7 +30,7 @@ mod syntax;
 mod windows;
 
 pub use identity::{FileIdentity, FileKind, Timestamp};
-pub use open::{open_no_follow, open_no_follow_nonblocking};
+pub use open::{open_no_follow, open_no_follow_nonblocking, pinned_executable_path};
 pub use syntax::{
     PathError, Syntax, check_normalized_absolute, eq_fold, fold, is_reserved_device_name,
     starts_with, windows_cannot_hold,

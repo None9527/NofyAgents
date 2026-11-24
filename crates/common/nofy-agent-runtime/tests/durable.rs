@@ -578,3 +578,177 @@ async fn child_reconciliation_settles_the_primitive_budget_before_the_child_cont
         .await
         .unwrap();
 }
+
+#[tokio::test]
+async fn events_single_insert_eliminates_update_double_write_and_preserves_monotonic_cursors() {
+    use nofy_agent_runtime::mailbox::{InputAddress, MailEnvelope, MailInput, MailboxSender};
+    use nofy_agent_runtime::supervisor::jobs::JobSubmission;
+    use nofy_interjection_core::PendingInterjection;
+
+    struct StaticReply;
+    #[async_trait::async_trait]
+    impl Model for StaticReply {
+        async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+            Ok(ModelResponse {
+                output: "ok".into(),
+                ..Default::default()
+            })
+        }
+    }
+
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("events-single-write.sqlite");
+    let store = SqliteStore::open(&path).unwrap();
+    let physical = store.path().unwrap();
+
+    // Install a strict trigger rejecting any UPDATE on agent_runtime_events.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        raw.execute_batch(
+            "CREATE TRIGGER forbid_event_double_write
+             BEFORE UPDATE ON agent_runtime_events
+             BEGIN
+                 SELECT RAISE(ABORT, 'event update double-write forbidden');
+             END;",
+        )
+        .unwrap();
+    }
+
+    let mut registry = ModuleRegistry::default();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "test.model",
+            "1",
+            ModuleInstance::Model(Arc::new(StaticReply)),
+        )))
+        .unwrap();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "test.prompt",
+            "1",
+            ModuleInstance::Prompt(Arc::new(StaticPrompt("system".into()))),
+        )))
+        .unwrap();
+    registry
+        .define(ModuleDefinition {
+            reference: ModuleRef::new("model", "1"),
+            factory: "test.model".into(),
+            config: json!({}),
+            dependencies: Default::default(),
+        })
+        .unwrap();
+    registry
+        .define(ModuleDefinition {
+            reference: ModuleRef::new("prompt", "1"),
+            factory: "test.prompt".into(),
+            config: json!({}),
+            dependencies: Default::default(),
+        })
+        .unwrap();
+    let compiled = nofy_agent_runtime::compile::compile_agent(
+        serde_json::from_value(json!({
+            "name": "single-write-agent",
+            "model": {"id": "model", "version": "1"},
+            "prompt": {"id": "prompt", "version": "1"}
+        }))
+        .unwrap(),
+        &registry,
+    )
+    .unwrap();
+
+    let supervisor = RunSupervisor::new(store.clone());
+    supervisor
+        .submit(JobSubmission::for_agent(
+            &compiled,
+            "thread-1",
+            "run-1",
+            PendingInterjection {
+                text: "turn-1".into(),
+                attachments: Vec::new(),
+            },
+        ))
+        .await
+        .unwrap();
+    let outcome = supervisor
+        .execute_submitted(&registry, "run-1")
+        .await
+        .unwrap();
+    assert!(matches!(outcome, Some(RunOutcome::Completed { .. })));
+
+    // Enqueue and execute a NextTurn so jobs::initial::input_event also runs under the trigger.
+    MailboxSender::submit(
+        &store,
+        MailEnvelope {
+            address: InputAddress::for_run(
+                "single-write-agent",
+                &RunContext::new("thread-1", "run-1"),
+            ),
+            input_id: "next-1".into(),
+            input: MailInput::NextTurn {
+                run_id: "run-2".into(),
+                snapshot: compiled.snapshot.clone(),
+                message: PendingInterjection {
+                    text: "turn-2".into(),
+                    attachments: Vec::new(),
+                },
+            },
+        },
+    )
+    .await
+    .unwrap();
+    let outcome2 = supervisor
+        .execute_submitted(&registry, "run-2")
+        .await
+        .unwrap();
+    assert!(matches!(outcome2, Some(RunOutcome::Completed { .. })));
+
+    let events1 = store.events("run-1", 0, 1000).await.unwrap();
+    let events2 = store.events("run-2", 0, 1000).await.unwrap();
+    assert!(!events1.is_empty());
+    assert!(!events2.is_empty());
+    for pair in events1.windows(2) {
+        assert!(pair[1].cursor > pair[0].cursor);
+    }
+    let max_before_delete = events1
+        .iter()
+        .chain(events2.iter())
+        .map(|e| e.cursor)
+        .max()
+        .unwrap();
+
+    // Deleting the newest event row must not cause cursor reuse (sqlite_sequence preserved).
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(Duration::from_secs(5)).unwrap();
+        raw.execute(
+            "DELETE FROM agent_runtime_events WHERE id = ?1",
+            [max_before_delete as i64],
+        )
+        .unwrap();
+    }
+
+    supervisor
+        .submit(JobSubmission::for_agent(
+            &compiled,
+            "thread-1",
+            "run-3",
+            PendingInterjection {
+                text: "turn-3".into(),
+                attachments: Vec::new(),
+            },
+        ))
+        .await
+        .unwrap();
+    supervisor
+        .execute_submitted(&registry, "run-3")
+        .await
+        .unwrap();
+    let events3 = store.events("run-3", 0, 1000).await.unwrap();
+    assert!(
+        events3[0].cursor > max_before_delete,
+        "cursor {} must exceed previous high-water {}",
+        events3[0].cursor,
+        max_before_delete
+    );
+}

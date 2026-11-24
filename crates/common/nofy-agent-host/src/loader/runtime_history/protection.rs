@@ -12,7 +12,7 @@ struct Protected {
     roots: BTreeSet<PathBuf>,
 }
 fn overlap(a: &Path, b: &Path) -> bool {
-    a.starts_with(b) || b.starts_with(a)
+    nofy_host_path::starts_with(a, b) || nofy_host_path::starts_with(b, a)
 }
 fn registry(root: &Path) -> Result<Option<Protected>> {
     let file = root.join("protected-roots.json");
@@ -170,5 +170,32 @@ impl Control {
     }
     pub(crate) fn exclusive_resources(&self) -> Result<HistoryLease> {
         Self::file_lease(&self.host_root.join("loader/lifecycle/lease.lock"), true)
+    }
+}
+
+#[cfg(test)]
+mod path_prefix_tests {
+    use super::*;
+
+    #[test]
+    fn overlap_handles_host_and_windows_verbatim_paths() {
+        assert!(overlap(Path::new("/a/b/c"), Path::new("/a/b")));
+        assert!(overlap(Path::new("/a/b"), Path::new("/a/b/c")));
+        assert!(!overlap(Path::new("/a/bc"), Path::new("/a/b")));
+
+        let win = nofy_host_path::Syntax::Windows;
+        let win_overlap = |a: &str, b: &str| win.starts_with(a, b) || win.starts_with(b, a);
+        assert!(win_overlap(
+            r"\\?\C:\history\.nofy-runtime-history\abc",
+            r"C:\history"
+        ));
+        assert!(win_overlap(
+            r"C:\history\.nofy-runtime-history\abc\sub",
+            r"\\?\c:\HISTORY\.nofy-runtime-history\abc"
+        ));
+        assert!(!win_overlap(
+            r"\\?\C:\history-other\.nofy-runtime-history\abc",
+            r"C:\history"
+        ));
     }
 }

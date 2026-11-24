@@ -434,9 +434,12 @@ mod imp {
         let Ok(cpath) = std::ffi::CString::new(path.as_os_str().as_bytes()) else {
             return false;
         };
-        // SAFETY: statfs is zero-initializable POD; cpath is NUL-terminated
-        // and st is a valid out-pointer for the duration of the call.
+        // SAFETY: `libc::statfs` is a C ABI struct of integer/array fields
+        // for which the all-zero bit pattern is valid.
         let mut st: libc::statfs = unsafe { std::mem::zeroed() };
+        // SAFETY: `cpath` is a valid NUL-terminated C string and `&mut st` is
+        // a valid, properly aligned writable `libc::statfs` out-pointer for
+        // the duration of the syscall; non-zero returns fail closed to `false`.
         if unsafe { libc::statfs(cpath.as_ptr(), &mut st) } != 0 {
             return false;
         }
@@ -455,9 +458,12 @@ mod imp {
         let Ok(cpath) = std::ffi::CString::new(path.as_os_str().as_bytes()) else {
             return false;
         };
-        // SAFETY: statfs is zero-initializable POD; cpath is NUL-terminated
-        // and st is a valid out-pointer for the duration of the call.
+        // SAFETY: `libc::statfs` is a C ABI struct of integer/array fields
+        // for which the all-zero bit pattern is valid.
         let mut st: libc::statfs = unsafe { std::mem::zeroed() };
+        // SAFETY: `cpath` is a valid NUL-terminated C string and `&mut st` is
+        // a valid, properly aligned writable `libc::statfs` out-pointer for
+        // the duration of the syscall; non-zero returns fail closed to `false`.
         if unsafe { libc::statfs(cpath.as_ptr(), &mut st) } != 0 {
             return false;
         }
@@ -502,8 +508,10 @@ mod imp {
         // for its drive type; any failure → local (historical behavior).
         let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
         let mut root = [0u16; 261];
-        // SAFETY: wide is NUL-terminated; root is a valid out-buffer whose
-        // length is passed in characters, as the API requires.
+        // SAFETY: `wide` is NUL-terminated and `root` is a valid writable
+        // UTF-16 buffer of length `root.len()` characters; when
+        // `GetVolumePathNameW` returns non-zero it guarantees `root` is
+        // NUL-terminated before `GetDriveTypeW` reads it.
         unsafe {
             if GetVolumePathNameW(wide.as_ptr(), root.as_mut_ptr(), root.len() as u32) == 0 {
                 return false;

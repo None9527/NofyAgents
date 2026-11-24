@@ -26,7 +26,7 @@ fn public(path: &Path, private_root: &Path) -> Result<()> {
         || path == Path::new("/tmp")
         || ["/nofy", "/proc", "/sys", "/dev", "/run"]
             .iter()
-            .any(|p| path.starts_with(p))
+            .any(|p| nofy_host_path::starts_with(path, Path::new(p)))
     {
         return Err(HostError::Invalid(
             "local dependency exposes a reserved or private root".into(),
@@ -132,7 +132,7 @@ impl Config {
         if !self
             .paths
             .iter()
-            .any(|m| m.execute && self.executable.starts_with(&m.path))
+            .any(|m| m.execute && nofy_host_path::starts_with(&self.executable, &m.path))
         {
             return Err(HostError::Invalid(
                 "local executable requires an explicit executable path grant".into(),
@@ -155,7 +155,11 @@ impl Config {
             .map_err(|_| HostError::Invalid("declared local executable is unavailable".into()))?;
         public(&program, private_root)?;
         runtime_history::check_protected(private_root, &program)?;
-        if !program.is_file() || !executable.iter().any(|p| program.starts_with(p)) {
+        if !program.is_file()
+            || !executable
+                .iter()
+                .any(|p| nofy_host_path::starts_with(&program, p))
+        {
             return Err(HostError::Invalid(
                 "local executable resolves outside its execution grants".into(),
             ));
@@ -192,3 +196,15 @@ pub(super) fn preflight(document: &SystemDocument, private_root: &Path) -> Resul
 
 #[cfg(all(test, target_os = "linux"))]
 mod tests;
+
+#[cfg(test)]
+mod path_prefix_tests {
+    #[test]
+    fn windows_verbatim_executable_matches_plain_execution_root_and_blocks_private_root() {
+        let win = nofy_host_path::Syntax::Windows;
+        assert!(win.starts_with(r"\\?\C:\Tools\python\python.exe", r"C:\tools\python"));
+        assert!(win.starts_with(r"C:\Tools\python\python.exe", r"\\?\c:\TOOLS\PYTHON"));
+        assert!(!win.starts_with(r"\\?\C:\Tools\python2\python.exe", r"C:\Tools\python"));
+        assert!(win.starts_with(r"C:\nofy\state\loader", r"\\?\C:\nofy\state"));
+    }
+}

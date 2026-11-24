@@ -43,6 +43,12 @@ impl Default for Workers {
         }))
     }
 }
+const MAX_CLEANUP_ATTEMPTS: usize = 12;
+const INITIAL_CLEANUP_BACKOFF: Duration = Duration::from_millis(200);
+const MAX_CLEANUP_BACKOFF: Duration = Duration::from_secs(2);
+const MAX_REAP_ATTEMPTS: usize = 10;
+const REAP_WAIT_BOUND: Duration = Duration::from_secs(5);
+
 fn unavailable(message: impl std::fmt::Display) -> HostError {
     HostError::Unavailable(format!("process-tree supervision: {message}"))
 }
@@ -172,10 +178,11 @@ impl Manager {
             let mut sender = Some(sender);
             let deadline = tokio::time::Instant::now() + invocation.timeout;
             let stopped = async {
-                tokio::select! { biased;
-                    _=dropped.cancelled()=>{},
-                    _=cancel.cancelled()=>{},
-                    _=manager.workers.0.stop.cancelled()=>{},
+                tokio::select! {
+                    biased;
+                    _ = dropped.cancelled() => {}
+                    _ = cancel.cancelled() => {}
+                    _ = manager.workers.0.stop.cancelled() => {}
                 }
             };
             tokio::pin!(stopped);
@@ -206,12 +213,14 @@ impl Manager {
                 invocation.output_limit,
                 deadline,
                 &mut stopped,
+                &manager.workers.0.stop,
             )
             .await;
             // Always stop by the pinned original group, including setup/IO
             // errors. The child has been waited before physical return below.
             let mut result = Some(result);
-            loop {
+            let mut backoff = INITIAL_CLEANUP_BACKOFF;
+            for attempt in 1..=MAX_CLEANUP_ATTEMPTS {
                 let cleanup = tokio::task::spawn_blocking(move || {
                     let result = job.finish_inner();
                     (job, result)
@@ -220,23 +229,24 @@ impl Manager {
                 let (returned, cleanup) = match cleanup {
                     Ok(value) => value,
                     Err(error) => {
+                        eprintln!(
+                            "process-tree cleanup task failed: {error}; releasing worker slot while durable journal remains intact"
+                        );
                         respond(
                             &mut sender,
                             Err(unavailable(format!(
                                 "cleanup owner lost: {error}; resources retained"
                             ))),
                         );
-                        // Unknown ownership is not proof of physical return.
-                        // Keep held resources and the tracked slot until the
-                        // host exits; the durable journal remains recoverable.
-                        std::future::pending::<()>().await;
                         return;
                     }
                 };
                 job = returned;
                 match cleanup {
                     Ok(()) => {
-                        respond(&mut sender, result.take().expect("one result"));
+                        if let Some(outcome) = result.take() {
+                            respond(&mut sender, outcome);
+                        }
                         break;
                     }
                     Err(error) => {
@@ -246,7 +256,23 @@ impl Manager {
                                 "cleanup incomplete: {error}; resources retained"
                             ))),
                         );
-                        tokio::time::sleep(Duration::from_secs(1)).await;
+                        if attempt == MAX_CLEANUP_ATTEMPTS || manager.workers.stopped() {
+                            eprintln!(
+                                "process-tree cleanup stopped after {attempt} attempt(s): {error}; releasing worker slot while durable journal remains for recovery"
+                            );
+                            break;
+                        }
+                        tokio::select! {
+                            biased;
+                            _ = manager.workers.0.stop.cancelled() => {
+                                eprintln!(
+                                    "process-tree cleanup interrupted by shutdown: {error}; releasing worker slot while durable journal remains for recovery"
+                                );
+                                break;
+                            }
+                            _ = tokio::time::sleep(backoff) => {}
+                        }
+                        backoff = (backoff * 2).min(MAX_CLEANUP_BACKOFF);
                     }
                 }
             }
@@ -277,6 +303,42 @@ async fn read(mut stream: impl AsyncRead + Unpin, limit: usize) -> std::io::Resu
         bytes.extend_from_slice(&buffer[..count]);
     }
 }
+async fn reap_child(child: &mut tokio::process::Child, stop: &CancellationToken) {
+    let mut backoff = Duration::from_millis(50);
+    for attempt in 1..=MAX_REAP_ATTEMPTS {
+        let wait_result = tokio::select! {
+            biased;
+            _ = stop.cancelled() => {
+                let _ = tokio::time::timeout(Duration::from_millis(250), child.wait()).await;
+                return;
+            }
+            res = tokio::time::timeout(REAP_WAIT_BOUND, child.wait()) => res,
+        };
+        match wait_result {
+            Ok(Ok(_)) => return,
+            Ok(Err(error)) => {
+                if attempt == MAX_REAP_ATTEMPTS {
+                    eprintln!("process-tree child wait failed after {attempt} attempts: {error}");
+                    return;
+                }
+            }
+            Err(_) => {
+                eprintln!(
+                    "process-tree child wait timed out after {}s",
+                    REAP_WAIT_BOUND.as_secs()
+                );
+                return;
+            }
+        }
+        tokio::select! {
+            biased;
+            _ = stop.cancelled() => return,
+            _ = tokio::time::sleep(backoff) => {}
+        }
+        backoff = (backoff * 2).min(Duration::from_secs(1));
+    }
+}
+
 async fn run_command(
     job: &Job,
     helper: PathBuf,
@@ -285,14 +347,16 @@ async fn run_command(
     limit: usize,
     deadline: tokio::time::Instant,
     stopped: &mut (impl std::future::Future<Output = ()> + Unpin),
+    manager_stop: &CancellationToken,
 ) -> Result<Output> {
     if tokio::time::Instant::now() >= deadline {
         return Err(unavailable("timed out before launch"));
     }
     // Resolve an already-completed stop before any command or pre-exec hook.
-    tokio::select! { biased;
-        _=&mut *stopped=>return Err(unavailable("cancelled before launch")),
-        _=std::future::ready(())=>{},
+    tokio::select! {
+        biased;
+        _ = &mut *stopped => return Err(unavailable("cancelled before launch")),
+        _ = std::future::ready(()) => {}
     }
     let mut command = tokio::process::Command::new(helper);
     command
@@ -312,9 +376,7 @@ async fn run_command(
     let (Some(mut stdin), Some(stdout), Some(stderr)) = pipes else {
         let _ = job.request_stop();
         let _ = child.start_kill();
-        while child.wait().await.is_err() {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        reap_child(&mut child, manager_stop).await;
         return Err(unavailable("missing supervised process pipe"));
     };
     let result = {
@@ -340,21 +402,17 @@ async fn run_command(
                 stderr,
             })
         };
-        tokio::select! { biased;
-            _=&mut *stopped=>Err(unavailable("cancelled")),
-            _=tokio::time::sleep_until(deadline)=>Err(unavailable("timed out")),
-            result=io=>result.map_err(unavailable),
+        tokio::select! {
+            biased;
+            _ = &mut *stopped => Err(unavailable("cancelled")),
+            _ = tokio::time::sleep_until(deadline) => Err(unavailable("timed out")),
+            result = io => result.map_err(unavailable),
         }
     };
     // start_kill only targets this owned, unreleased child. cgroup.kill and
     // PID init death cover descendants independently of sessions or PGIDs.
     let _ = job.request_stop();
     let _ = child.start_kill();
-    loop {
-        match child.wait().await {
-            Ok(_) => break,
-            Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
-        }
-    }
+    reap_child(&mut child, manager_stop).await;
     result
 }

@@ -27,16 +27,17 @@ pub(super) fn directory(path: &Path) -> Result<PathBuf> {
     std::fs::canonicalize(path).map_err(unavailable)
 }
 pub(super) fn read(path: &Path, max: u64) -> Result<Vec<u8>> {
-    let meta = std::fs::symlink_metadata(path).map_err(unavailable)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let file = nofy_host_path::open_no_follow(&options, path).map_err(unavailable)?;
+    let meta = file.metadata().map_err(unavailable)?;
     if !meta.is_file() || meta.len() > max {
         return Err(HostError::Unavailable(
             "invalid loader file type or size".into(),
         ));
     }
     let mut bytes = Vec::new();
-    File::open(path)
-        .map_err(unavailable)?
-        .take(max + 1)
+    file.take(max.saturating_add(1))
         .read_to_end(&mut bytes)
         .map_err(unavailable)?;
     if bytes.len() as u64 > max {
@@ -70,13 +71,6 @@ pub(super) fn unlock_local(file: &File, owner: u32) {
 pub(super) fn lock(root: &Path) -> Result<StoreLock> {
     let commit = super::admission::resource_lease(root)?;
     let path = root.join("catalog.lock");
-    if path.exists()
-        && !std::fs::symlink_metadata(&path)
-            .map_err(unavailable)?
-            .is_file()
-    {
-        return Err(HostError::Unavailable("invalid loader lock".into()));
-    }
     let mut options = OpenOptions::new();
     options.read(true).write(true).create(true);
     #[cfg(unix)]
@@ -84,7 +78,10 @@ pub(super) fn lock(root: &Path) -> Result<StoreLock> {
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let file = options.open(path).map_err(unavailable)?;
+    let file = nofy_host_path::open_no_follow(&options, &path).map_err(unavailable)?;
+    if !file.metadata().map_err(unavailable)?.is_file() {
+        return Err(HostError::Unavailable("invalid loader lock".into()));
+    }
     let start = std::time::Instant::now();
     loop {
         match fs2::FileExt::try_lock_exclusive(&file) {

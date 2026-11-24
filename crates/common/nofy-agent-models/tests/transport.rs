@@ -604,3 +604,188 @@ async fn operation_limits_stop_programs_before_network_and_do_not_poison_followi
         .await
         .unwrap();
 }
+
+#[tokio::test]
+async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker_and_stateless_fallback() {
+    use nofy_agent_models::{
+        declarative::Protocol,
+        execution::{Evaluation, Executor, Trusted},
+    };
+    use tokio_util::sync::CancellationToken;
+
+    struct StatelessFallback(Trusted);
+    #[async_trait::async_trait]
+    impl Executor for StatelessFallback {
+        async fn evaluate(
+            &self,
+            program: Arc<Protocol>,
+            input: Value,
+            spent: u64,
+            cap: usize,
+            cancel: CancellationToken,
+        ) -> Result<Evaluation, Error> {
+            self.0.evaluate(program, input, spent, cap, cancel).await
+        }
+    }
+
+    const FRAME_COUNT: usize = 3000;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/v1/", listener.local_addr().unwrap());
+    let router = Router::new().route(
+        "/v1/chat/completions",
+        post(|Json(_body): Json<Value>| async move {
+            let mut events = Vec::with_capacity(FRAME_COUNT + 3);
+            for i in 0..FRAME_COUNT {
+                let piece = format!("t{i:04}-");
+                let payload = json!({
+                    "id": "chat-long",
+                    "choices": [{"index": 0, "delta": {"content": piece}, "finish_reason": null}]
+                });
+                events.push(Ok::<_, Infallible>(
+                    Event::default().event("message").data(payload.to_string()),
+                ));
+            }
+            events.push(Ok::<_, Infallible>(
+                Event::default()
+                    .event("message")
+                    .data(
+                        json!({"id":"chat-long","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]})
+                            .to_string(),
+                    ),
+            ));
+            events.push(Ok::<_, Infallible>(
+                Event::default()
+                    .event("message")
+                    .data(
+                        json!({"id":"chat-long","choices":[],"usage":{"prompt_tokens":100,"completion_tokens":FRAME_COUNT}})
+                            .to_string(),
+                    ),
+            ));
+            events.push(Ok::<_, Infallible>(
+                Event::default().event("message").data("[DONE]"),
+            ));
+            Sse::new(futures::stream::iter(events)).into_response()
+        }),
+    );
+    let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+
+    let source = format!(
+        "{}\n{}",
+        include_str!("../../../../presets/coding/modules/models/common.rhai"),
+        include_str!("../../../../presets/coding/modules/models/chat_completions.rhai")
+    );
+    let proto_cfg = json!({
+        "source": {"kind": "inline", "text": source},
+        "capabilities": {"streaming": true, "image_input": true, "structured_output": true},
+        "limits": {"max_operations": 50_000_000, "max_frames": 10_000}
+    });
+    let conn_cfg = json!({
+        "base_url": url,
+        "models": ["long-model"],
+        "allow_insecure_http": true,
+        "max_concurrency": 2
+    });
+    let expected_output: String = (0..FRAME_COUNT).map(|i| format!("t{i:04}-")).collect();
+    let prompt = "context ".repeat(4096);
+
+    // 1. Stateful O(N) streaming path with 3,000 SSE frames + ~32 KiB initial prompt.
+    let stateful_proto = ProtocolFactory::trusted()
+        .build(&proto_cfg, &BTreeMap::new())
+        .unwrap();
+    let stateful_conn = ConnectionFactory::new(authority())
+        .unwrap()
+        .build(&conn_cfg, &BTreeMap::new())
+        .unwrap();
+    let ModuleInstance::Model(stateful_model) = ProgrammedModelFactory::default()
+        .build(
+            &json!({"model": "long-model"}),
+            &BTreeMap::from([
+                ("protocol".into(), stateful_proto),
+                ("connection".into(), stateful_conn),
+            ]),
+        )
+        .unwrap()
+    else {
+        panic!("model");
+    };
+    let req = ModelRequest {
+        messages: vec![Message::User { content: prompt }],
+        tools: vec![],
+        settings: json!({"stream": true}),
+    };
+    let started = std::time::Instant::now();
+    let mut stream = stateful_model
+        .stream(req.clone(), &RunContext::default())
+        .await
+        .unwrap();
+    let mut streamed_text = String::new();
+    let mut delta_count = 0usize;
+    let mut completed = None;
+    while let Some(chunk) = stream.next().await {
+        match chunk.unwrap() {
+            ModelChunk::Delta(ModelDelta::Text { text }) => {
+                streamed_text.push_str(&text);
+                delta_count += 1;
+            }
+            ModelChunk::Delta(_) => {}
+            ModelChunk::Completed(response) => completed = Some(response),
+        }
+    }
+    let elapsed = started.elapsed();
+    let stateful_response = completed.expect("completed response");
+    assert_eq!(delta_count, FRAME_COUNT);
+    assert_eq!(streamed_text, expected_output);
+    assert_eq!(stateful_response.output, expected_output);
+    assert_eq!(
+        (
+            stateful_response.input_tokens,
+            stateful_response.output_tokens
+        ),
+        (100, FRAME_COUNT as u64)
+    );
+    assert!(
+        elapsed < Duration::from_secs(15),
+        "3,000-frame stateful SSE stream took too long: {elapsed:?}"
+    );
+
+    // 2. Verify custom Executor without begin_stream transparently falls back
+    // and produces identical output on a representative stream.
+    let fallback_proto = ProtocolFactory::new(Arc::new(StatelessFallback(Trusted)))
+        .build(&proto_cfg, &BTreeMap::new())
+        .unwrap();
+    let fallback_conn = ConnectionFactory::new(authority())
+        .unwrap()
+        .build(&conn_cfg, &BTreeMap::new())
+        .unwrap();
+    let ModuleInstance::Model(fallback_model) = ProgrammedModelFactory::default()
+        .build(
+            &json!({"model": "long-model"}),
+            &BTreeMap::from([
+                ("protocol".into(), fallback_proto),
+                ("connection".into(), fallback_conn),
+            ]),
+        )
+        .unwrap()
+    else {
+        panic!("model");
+    };
+    let fallback_response = fallback_model
+        .complete(
+            ModelRequest {
+                messages: vec![Message::User {
+                    content: "short".into(),
+                }],
+                tools: vec![],
+                settings: json!({"stream": true}),
+            },
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(fallback_response.output, stateful_response.output);
+    assert_eq!(
+        fallback_response.output_tokens,
+        stateful_response.output_tokens
+    );
+    task.abort();
+}

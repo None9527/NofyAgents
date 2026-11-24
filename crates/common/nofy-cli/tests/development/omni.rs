@@ -371,7 +371,448 @@ async fn default_omni_template_and_explicit_empty_or_legacy_remain_reachable() {
     let main = &built["system"]["programs"]["main"]["definition"];
     let packs = main["tool_packs"].as_array().unwrap();
     assert!(packs.iter().any(|pack| pack["id"] == "main-tools"));
-    assert!(packs.iter().any(|pack| pack["id"] == "file-read"));
-    assert!(packs.iter().any(|pack| pack["id"] == "file-edit"));
-    assert!(!packs.iter().any(|pack| pack["id"] == "command"));
+    assert!(packs.iter().any(|pack| pack["id"] == "files.file-read"));
+    assert!(packs.iter().any(|pack| pack["id"] == "files.file-edit"));
+    assert!(!packs.iter().any(|pack| pack["id"] == "command.command"));
+    let main_tools = built["system"]["modules"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|module| module["reference"]["id"] == "main-tools")
+        .unwrap();
+    assert!(
+        main_tools["dependencies"].get("tasks").is_none(),
+        "dead coordination.tools wire must be removed from omni main-tools"
+    );
+}
+
+#[tokio::test]
+async fn omni_supports_model_protocol_selection_and_command_isolation_backends() {
+    let directory = tempfile::tempdir().unwrap();
+    let kernel = host(directory.path()).await;
+    let server = serve(kernel.router()).await;
+    let sdk = engine(&server.url, ADMIN);
+    let template = checked(&sdk, "project.template", json!({})).await;
+    let base: Source = serde_json::from_value(template.data["source"].clone()).unwrap();
+
+    for (protocol, expected_model_id, expected_script, absent_script) in [
+        (
+            "chat_completions",
+            "provider.model",
+            "chat_completions.rhai",
+            "responses.rhai",
+        ),
+        (
+            "responses",
+            "provider-responses.model",
+            "responses.rhai",
+            "messages.rhai",
+        ),
+        (
+            "messages",
+            "provider-messages.model",
+            "messages.rhai",
+            "responses.rhai",
+        ),
+    ] {
+        let configured = checked(
+            &sdk,
+            "agent.configure",
+            json!({
+                "agent": "main",
+                "target": {"kind": "source", "source": base, "expected_digest": base.digest().unwrap()},
+                "include_source": true,
+                "settings": {
+                    "model_protocol": protocol,
+                    "connection": {
+                        "base_url": "https://example.invalid/v1/",
+                        "models": ["test-model"],
+                        "header_credentials": {}
+                    },
+                    "model": "test-model"
+                }
+            }),
+        )
+        .await;
+        let built = checked(
+            &sdk,
+            "agent.build",
+            json!({"agent": "main", "target": {"kind": "source", "source": configured.data["source"]}}),
+        )
+        .await;
+        let deployment: Value =
+            serde_json::from_str(built.data["deployment_json"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            deployment["system"]["programs"]["main"]["definition"]["model"]["id"],
+            expected_model_id
+        );
+        let rendered = built.data["deployment_json"].as_str().unwrap();
+        assert!(rendered.contains(expected_script), "{protocol}");
+        assert!(!rendered.contains(absent_script), "{protocol}");
+    }
+
+    // Namespace isolation builds without requiring cgroup process_tree.
+    let namespace_cfg = checked(
+        &sdk,
+        "agent.configure",
+        json!({
+            "agent": "main",
+            "target": {"kind": "source", "source": base, "expected_digest": base.digest().unwrap()},
+            "include_source": true,
+            "settings": {
+                "connection": {
+                    "base_url": "https://example.invalid/v1/",
+                    "models": ["test-model"],
+                    "header_credentials": {}
+                },
+                "model": "test-model",
+                "command_enabled": true,
+                "command_isolation": "namespace",
+                "workspace": "/tmp/omni-workspace",
+                "command_environment": {
+                    "executable": "/usr/bin/python3",
+                    "paths": [{"path": "/usr", "execute": true}]
+                },
+                "process_namespace": {
+                    "filesystem_mode": "workspace_write",
+                    "cpu_seconds": 60
+                }
+            }
+        }),
+    )
+    .await;
+    let ns_built = checked(
+        &sdk,
+        "agent.build",
+        json!({"agent": "main", "target": {"kind": "source", "source": namespace_cfg.data["source"]}}),
+    )
+    .await;
+    let ns_deployment: Value =
+        serde_json::from_str(ns_built.data["deployment_json"].as_str().unwrap()).unwrap();
+    let ns_modules = ns_deployment["system"]["modules"].as_array().unwrap();
+    assert!(
+        ns_modules
+            .iter()
+            .any(|m| m["factory"] == "resource.process_namespace_limits")
+    );
+    assert!(
+        !ns_modules
+            .iter()
+            .any(|m| m["factory"] == "resource.process_tree_limits")
+    );
+    let ns_cmd = ns_modules
+        .iter()
+        .find(|m| m["reference"]["id"] == "command.command")
+        .unwrap();
+    assert_eq!(
+        ns_cmd["dependencies"]["tree"]["id"],
+        "command.process-namespace"
+    );
+
+    // Default command_isolation ("process_tree") preserves cgroup compatibility.
+    let tree_cfg = checked(
+        &sdk,
+        "agent.configure",
+        json!({
+            "agent": "main",
+            "target": {"kind": "source", "source": base, "expected_digest": base.digest().unwrap()},
+            "include_source": true,
+            "settings": {
+                "connection": {
+                    "base_url": "https://example.invalid/v1/",
+                    "models": ["test-model"],
+                    "header_credentials": {}
+                },
+                "model": "test-model",
+                "command_enabled": true,
+                "workspace": "/tmp/omni-workspace",
+                "command_environment": {
+                    "executable": "/usr/bin/python3",
+                    "paths": [{"path": "/usr", "execute": true}]
+                },
+                "process_tree": {
+                    "cgroup_root": "/sys/fs/cgroup/nofy-test",
+                    "limits": {"max_processes": 16, "max_memory_bytes": 134217728, "cpu_percent": 100}
+                }
+            }
+        }),
+    )
+    .await;
+    let tree_built = checked(
+        &sdk,
+        "agent.build",
+        json!({"agent": "main", "target": {"kind": "source", "source": tree_cfg.data["source"]}}),
+    )
+    .await;
+    let tree_deployment: Value =
+        serde_json::from_str(tree_built.data["deployment_json"].as_str().unwrap()).unwrap();
+    let tree_modules = tree_deployment["system"]["modules"].as_array().unwrap();
+    assert!(
+        tree_modules
+            .iter()
+            .any(|m| m["factory"] == "resource.process_tree_limits")
+    );
+    assert!(
+        !tree_modules
+            .iter()
+            .any(|m| m["factory"] == "resource.process_namespace_limits")
+    );
+    let tree_cmd = tree_modules
+        .iter()
+        .find(|m| m["reference"]["id"] == "command.command")
+        .unwrap();
+    assert_eq!(
+        tree_cmd["dependencies"]["tree"]["id"],
+        "command.process-tree"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn omni_compaction_v022_handles_cjk_token_pressure_and_user_parts_manual_compact() {
+    let directory = tempfile::tempdir().unwrap();
+    let kernel = host(directory.path()).await;
+    let server = serve(kernel.router()).await;
+    let sdk = engine(&server.url, ADMIN);
+    let stop = tokio_util::sync::CancellationToken::new();
+    let provider = serve(axum::Router::new().route(
+        "/v1/chat/completions",
+        axum::routing::post(|axum::Json(body): axum::Json<Value>| async move {
+            let messages = body["messages"].as_array().unwrap();
+            let is_compaction = messages.first().is_some_and(|m| {
+                m["role"] == "system"
+                    && m["content"]
+                        .as_str()
+                        .is_some_and(|s| s.contains("Summarize prior conversation"))
+            });
+            let reply = if is_compaction {
+                "KEY-SUMMARY-OK"
+            } else {
+                "TURN-OK"
+            };
+            axum::response::Sse::new(futures::stream::iter(
+                nofy_test_support::sse::chat_completion_events_exact(reply, "test-model")
+                    .into_iter()
+                    .map(Ok::<_, std::convert::Infallible>),
+            ))
+        }),
+    ))
+    .await;
+
+    let template = checked(&sdk, "project.template", json!({})).await;
+    let base: Source = serde_json::from_value(template.data["source"].clone()).unwrap();
+    let configured = checked(
+        &sdk,
+        "agent.configure",
+        json!({
+            "agent": "main",
+            "target": {"kind": "source", "source": base, "expected_digest": base.digest().unwrap()},
+            "include_source": true,
+            "settings": {
+                "connection": {
+                    "base_url": format!("{}/v1/", provider.url),
+                    "models": ["test-model"],
+                    "header_credentials": {},
+                    "allow_insecure_http": true
+                },
+                "model": "test-model",
+                "model_settings": {"stream": true},
+                "context_window": 1024,
+                "compaction_threshold_percent": 75,
+                "compaction_keep_turns": 0
+            }
+        }),
+    )
+    .await;
+    let release = publish_release(&sdk, &configured.data["source"]).await;
+    let worker_stop = stop.clone();
+    let worker = tokio::spawn(async move { kernel.run_worker(worker_stop, 2).await.unwrap() });
+
+    let wait_done = |id: String| {
+        let sdk = engine(&server.url, ADMIN);
+        async move {
+            tokio::time::timeout(Duration::from_secs(30), async {
+                loop {
+                    let outcome =
+                        checked(&sdk, "run.inspect", json!({"run_id": id, "view": "full"})).await;
+                    let record: Value =
+                        serde_json::from_str(outcome.data["native_json"].as_str().unwrap())
+                            .unwrap();
+                    match record["execution"]["status"].as_str() {
+                        Some("completed") => return record,
+                        Some("failed" | "paused" | "cancelled" | "budget_exceeded") => {
+                            panic!("{id}: {}", record["execution"]["error"])
+                        }
+                        _ => tokio::time::sleep(Duration::from_millis(30)).await,
+                    }
+                }
+            })
+            .await
+            .unwrap()
+        }
+    };
+
+    // Case 1a (control): 180 ASCII chars stays well below 75% of 1024 tokens (768 tokens).
+    let ascii_req = json!({
+        "run_id": "ascii-turn-1",
+        "thread_id": "ascii-session",
+        "system": "omni",
+        "release": release,
+        "program": "main",
+        "input": {"text": "a".repeat(180), "attachments": []}
+    });
+    let ascii_started = checked(
+        &sdk,
+        "session.start",
+        json!({"session_id": "ascii-session", "command_id": "ascii-turn-1", "expected_session_revision": null, "request_json": ascii_req.to_string()}),
+    )
+    .await;
+    wait_done("ascii-turn-1".into()).await;
+    let ascii_turn2 = json!({
+        "command_id": "ascii-turn-2",
+        "source_run_id": "ascii-turn-1",
+        "expected_source_revision": 0,
+        "turn": {"kind": "new", "run_id": "ascii-turn-2", "input": {"text": "next", "attachments": []}}
+    });
+    checked(
+        &sdk,
+        "session.turn",
+        json!({"session_id": "ascii-session", "expected_session_revision": ascii_started.data["session_revision"], "request_json": ascii_turn2.to_string()}),
+    )
+    .await;
+    let ascii_final = wait_done("ascii-turn-2".into()).await;
+    let ascii_messages = ascii_final
+        .pointer("/execution/outcome/Completed/state/messages")
+        .and_then(Value::as_array)
+        .unwrap();
+    assert!(
+        !ascii_messages.iter().any(|m| {
+            m["role"] == "assistant"
+                && m["content"]
+                    .as_str()
+                    .is_some_and(|c| c.starts_with("[Compacted history]"))
+        }),
+        "180 ASCII chars must stay below 768-token threshold: {ascii_messages:?}"
+    );
+
+    // Case 1b: 180 Chinese characters (~270 CJK tokens) pushes total past 768 tokens
+    // even though raw character count matches Case 1a (legacy chars/4 would miss this).
+    let cjk_text = "中".repeat(180);
+    let cjk_req = json!({
+        "run_id": "cjk-turn-1",
+        "thread_id": "cjk-session",
+        "system": "omni",
+        "release": release,
+        "program": "main",
+        "input": {"text": cjk_text, "attachments": []}
+    });
+    let started = checked(
+        &sdk,
+        "session.start",
+        json!({"session_id": "cjk-session", "command_id": "cjk-turn-1", "expected_session_revision": null, "request_json": cjk_req.to_string()}),
+    )
+    .await;
+    wait_done("cjk-turn-1".into()).await;
+    let turn2 = json!({
+        "command_id": "cjk-turn-2",
+        "source_run_id": "cjk-turn-1",
+        "expected_source_revision": 0,
+        "turn": {"kind": "new", "run_id": "cjk-turn-2", "input": {"text": "next", "attachments": []}}
+    });
+    checked(
+        &sdk,
+        "session.turn",
+        json!({"session_id": "cjk-session", "expected_session_revision": started.data["session_revision"], "request_json": turn2.to_string()}),
+    )
+    .await;
+    let cjk_final = wait_done("cjk-turn-2".into()).await;
+    let cjk_messages = cjk_final
+        .pointer("/execution/outcome/Completed/state/messages")
+        .and_then(Value::as_array)
+        .unwrap();
+    assert!(
+        cjk_messages.iter().any(|m| {
+            m["role"] == "assistant"
+                && m["content"]
+                    .as_str()
+                    .is_some_and(|c| c.starts_with("[Compacted history]\nKEY-SUMMARY-OK"))
+        }),
+        "expected CJK auto-compaction summary: {cjk_messages:?}"
+    );
+
+    // Case 2: Manual /compact on a user_parts turn (with attachment) triggers below threshold.
+    let manual_cfg = checked(
+        &sdk,
+        "agent.configure",
+        json!({
+            "agent": "main",
+            "target": {"kind": "source", "source": base, "expected_digest": base.digest().unwrap()},
+            "include_source": true,
+            "settings": {
+                "connection": {
+                    "base_url": format!("{}/v1/", provider.url),
+                    "models": ["test-model"],
+                    "header_credentials": {},
+                    "allow_insecure_http": true
+                },
+                "model": "test-model",
+                "model_settings": {"stream": true},
+                "context_window": 262144,
+                "compaction_threshold_percent": 75,
+                "compaction_keep_turns": 2
+            }
+        }),
+    )
+    .await;
+    let manual_release = publish_release(&sdk, &manual_cfg.data["source"]).await;
+    let seed_req = json!({
+        "run_id": "parts-turn-1",
+        "thread_id": "parts-session",
+        "system": "omni",
+        "release": manual_release,
+        "program": "main",
+        "input": {"text": "remember a long prior context ".repeat(20), "attachments": []}
+    });
+    let parts_started = checked(
+        &sdk,
+        "session.start",
+        json!({"session_id": "parts-session", "command_id": "parts-turn-1", "expected_session_revision": null, "request_json": seed_req.to_string()}),
+    )
+    .await;
+    wait_done("parts-turn-1".into()).await;
+    let compact_parts = json!({
+        "command_id": "parts-turn-2",
+        "source_run_id": "parts-turn-1",
+        "expected_source_revision": 0,
+        "turn": {
+            "kind": "new",
+            "run_id": "parts-turn-2",
+            "input": {
+                "text": "/compact keep essentials",
+                "attachments": [{"type": "text", "text": "attached note"}]
+            }
+        }
+    });
+    checked(
+        &sdk,
+        "session.turn",
+        json!({"session_id": "parts-session", "expected_session_revision": parts_started.data["session_revision"], "request_json": compact_parts.to_string()}),
+    )
+    .await;
+    let parts_final = wait_done("parts-turn-2".into()).await;
+    let parts_messages = parts_final
+        .pointer("/execution/outcome/Completed/state/messages")
+        .and_then(Value::as_array)
+        .unwrap();
+    assert!(
+        parts_messages.iter().any(|m| {
+            m["role"] == "assistant"
+                && m["content"]
+                    .as_str()
+                    .is_some_and(|c| c.starts_with("[Compacted history]\nKEY-SUMMARY-OK"))
+        }),
+        "expected /compact on user_parts turn to compact: {parts_messages:?}"
+    );
+
+    stop.cancel();
+    worker.await.unwrap();
 }

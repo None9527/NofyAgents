@@ -1,5 +1,5 @@
 [
+  "compact.rhai",
   "module.json",
-  "source-files.json",
-  "compact.rhai"
+  "source-files.json"
 ]

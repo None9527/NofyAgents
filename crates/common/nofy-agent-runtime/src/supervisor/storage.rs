@@ -1,5 +1,36 @@
 use super::*;
 
+const NEXT_EVENT_ID_SQL: &str = "SELECT MAX(seq) FROM (
+    SELECT COALESCE(MAX(id), 0) AS seq FROM agent_runtime_events
+    UNION ALL
+    SELECT COALESCE(
+        (SELECT seq FROM sqlite_sequence WHERE name = 'agent_runtime_events'),
+        0
+    ) AS seq
+)";
+
+pub(in crate::supervisor) fn append_event(
+    tx: &rusqlite::Transaction<'_>,
+    root_id: &str,
+    mut envelope: crate::events::EventEnvelope,
+) -> Result<u64, Error> {
+    let max_id: i64 = tx
+        .query_row(NEXT_EVENT_ID_SQL, [], |row| row.get(0))
+        .map_err(db_error)?;
+    let next_id = max_id
+        .checked_add(1)
+        .ok_or_else(|| Error::Checkpoint("event cursor exhausted".into()))?;
+    let cursor = u64::try_from(next_id).map_err(db_error)?;
+    envelope.cursor = cursor;
+    let payload = serde_json::to_string(&envelope).map_err(db_error)?;
+    tx.execute(
+        "INSERT INTO agent_runtime_events(id, root_id, payload) VALUES(?1, ?2, ?3)",
+        params![next_id, root_id, payload],
+    )
+    .map_err(db_error)?;
+    Ok(cursor)
+}
+
 pub(super) fn approval_is_open(tx: &rusqlite::Transaction<'_>, run: &str) -> Result<bool, Error> {
     tx.query_row(
         "SELECT NOT EXISTS(
@@ -42,7 +73,7 @@ impl SqliteStore {
         }
         let id = run_id.to_string();
         let after = i64::try_from(after).map_err(db_error)?;
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let mut statement=tx.prepare("SELECT id,payload FROM agent_runtime_events WHERE root_id=?1 AND id>?2 ORDER BY id LIMIT ?3").map_err(db_error)?;
             statement.query_map(params![id,after,limit],|row|Ok((row.get::<_,i64>(0)?,row.get::<_,String>(1)?))).map_err(db_error)?
                 .map(|row| {
@@ -55,7 +86,7 @@ impl SqliteStore {
     }
     pub async fn children(&self, root_run_id: &str) -> Result<Vec<ChildRunRecord>, Error> {
         let id = root_run_id.to_string();
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let mut statement = tx
                 .prepare("SELECT payload FROM agent_runtime_children WHERE root_id=?1 ORDER BY key")
                 .map_err(db_error)?;
@@ -78,7 +109,7 @@ impl SqliteStore {
         run_id: &str,
     ) -> Result<Option<RunRecord<S>>, Error> {
         let id = run_id.to_string();
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let row: Option<String> = tx
                 .query_row(
                     "SELECT payload FROM agent_runtime_runs WHERE id=?1",
@@ -187,7 +218,7 @@ impl SqliteStore {
         run_id: &str,
     ) -> Result<Vec<PendingApproval>, Error> {
         let id = run_id.to_string();
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             if !approval_is_open(tx, &id)? { return Ok(vec![]); }
             let mut statement=tx.prepare("SELECT payload,json_type(payload,'$._rule_offer.anchors.session')='text' FROM agent_runtime_approvals WHERE run_id=?1 AND decision IS NULL ORDER BY key").map_err(db_error)?;
             statement.query_map([id],|row|Ok((row.get::<_,String>(0)?,row.get::<_,Option<bool>>(1)?))).map_err(db_error)?

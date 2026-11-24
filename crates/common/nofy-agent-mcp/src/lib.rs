@@ -394,22 +394,60 @@ pub fn http_router(
             authenticate,
         ))
 }
+pub fn check_listen(address: SocketAddr, allow_non_loopback: bool) -> Result<(), String> {
+    if address.ip().is_loopback() {
+        return Ok(());
+    }
+    if !allow_non_loopback {
+        return Err(format!(
+            "refusing to listen on non-loopback address {address}: the MCP HTTP server is plain HTTP \
+             with Bearer tokens; pass --allow-non-loopback only behind TLS termination or a tunnel"
+        ));
+    }
+    eprintln!(
+        "warning: MCP HTTP server listening on non-loopback {address} without TLS; \
+         access tokens are sent in clear text unless a TLS proxy or tunnel protects this port"
+    );
+    Ok(())
+}
+
+fn effective_allowed_hosts(listen: SocketAddr, hosts: Vec<String>) -> Vec<String> {
+    if !hosts.is_empty() {
+        return hosts;
+    }
+    let mut defaults = vec![listen.to_string()];
+    if listen.port() == 80 {
+        defaults.push(match listen.ip() {
+            std::net::IpAddr::V4(ip) => ip.to_string(),
+            std::net::IpAddr::V6(ip) => format!("[{ip}]"),
+        });
+    }
+    if listen.ip().is_loopback() {
+        defaults.push(format!("localhost:{}", listen.port()));
+        if listen.port() == 80 {
+            defaults.push("localhost".into());
+        }
+    }
+    defaults
+}
+
 pub async fn serve_http(
     engine: Engine,
     listen: SocketAddr,
+    allow_non_loopback: bool,
     origins: Vec<String>,
     hosts: Vec<String>,
 ) -> anyhow::Result<()> {
+    check_listen(listen, allow_non_loopback).map_err(anyhow::Error::msg)?;
     let listener = tokio::net::TcpListener::bind(listen).await?;
+    let bound = listener.local_addr()?;
+    let hosts = effective_allowed_hosts(bound, hosts);
     let cancel = CancellationToken::new();
     let shutdown = cancel.clone();
-    eprintln!(
-        "Nofy MCP listening at http://{}/mcp",
-        listener.local_addr()?
-    );
+    eprintln!("Nofy MCP listening at http://{bound}/mcp");
     axum::serve(listener, http_router(engine, origins, hosts, cancel))
         .with_graceful_shutdown(async move {
-            let _ = tokio::signal::ctrl_c().await;
+            let _ = nofy_tty_utils::shutdown_signal().await;
             shutdown.cancel();
         })
         .await?;
@@ -653,5 +691,107 @@ mod tests {
                 assert!(schema.is_object(), "{}: {reference}", operation.operation);
             }
         }
+    }
+
+    #[test]
+    fn loopback_listen_is_allowed_and_non_loopback_requires_opt_in() {
+        for loopback in ["127.0.0.1:7332", "[::1]:7332", "127.0.0.2:1"] {
+            assert!(check_listen(loopback.parse().unwrap(), false).is_ok());
+        }
+        for exposed in ["0.0.0.0:7332", "[::]:7332", "192.168.1.5:7332"] {
+            let address = exposed.parse().unwrap();
+            assert!(check_listen(address, false).is_err(), "{exposed}");
+            assert!(check_listen(address, true).is_ok(), "{exposed}");
+        }
+    }
+
+    #[test]
+    fn empty_allowed_hosts_defaults_to_the_listening_address() {
+        assert_eq!(
+            effective_allowed_hosts("127.0.0.1:7332".parse().unwrap(), vec![]),
+            vec!["127.0.0.1:7332", "localhost:7332"]
+        );
+        assert_eq!(
+            effective_allowed_hosts("[::1]:7332".parse().unwrap(), vec![]),
+            vec!["[::1]:7332", "localhost:7332"]
+        );
+        assert_eq!(
+            effective_allowed_hosts("192.168.1.5:7332".parse().unwrap(), vec![]),
+            vec!["192.168.1.5:7332"]
+        );
+        assert_eq!(
+            effective_allowed_hosts(
+                "127.0.0.1:7332".parse().unwrap(),
+                vec!["mcp.example.com".into()]
+            ),
+            vec!["mcp.example.com"]
+        );
+    }
+
+    #[tokio::test]
+    async fn default_allowed_hosts_rejects_mismatched_host_headers_against_dns_rebinding() {
+        let auth_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let auth_addr = auth_listener.local_addr().unwrap();
+        let auth_app = axum::Router::new().fallback(|| async {
+            (
+                axum::http::StatusCode::OK,
+                axum::Json(json!({"scopes":["read"]})),
+            )
+        });
+        let auth_server = tokio::spawn(async move {
+            axum::serve(auth_listener, auth_app).await.unwrap();
+        });
+        let client = nofy_agent_client::KernelClient::new(
+            &format!("http://{auth_addr}"),
+            None,
+            std::time::Duration::from_secs(5),
+        )
+        .unwrap();
+        let engine = Engine::new(client);
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bound = listener.local_addr().unwrap();
+        let hosts = effective_allowed_hosts(bound, vec![]);
+        let cancel = CancellationToken::new();
+        let router = http_router(engine, vec![], hosts, cancel.clone());
+        let mcp_server = tokio::spawn(async move {
+            axum::serve(listener, router).await.unwrap();
+        });
+
+        let http = reqwest::Client::new();
+        let url = format!("http://{bound}/mcp");
+        let rebount = http
+            .post(&url)
+            .bearer_auth("test-token")
+            .header(reqwest::header::HOST, "attacker.example")
+            .json(&json!({}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(rebount.status(), reqwest::StatusCode::FORBIDDEN);
+
+        let wrong_port = http
+            .post(&url)
+            .bearer_auth("test-token")
+            .header(reqwest::header::HOST, "127.0.0.1:1")
+            .json(&json!({}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(wrong_port.status(), reqwest::StatusCode::FORBIDDEN);
+
+        let matched = http
+            .post(&url)
+            .bearer_auth("test-token")
+            .header(reqwest::header::HOST, bound.to_string())
+            .json(&json!({}))
+            .send()
+            .await
+            .unwrap();
+        assert_ne!(matched.status(), reqwest::StatusCode::FORBIDDEN);
+
+        cancel.cancel();
+        mcp_server.abort();
+        auth_server.abort();
     }
 }

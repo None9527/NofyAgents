@@ -319,3 +319,105 @@ async fn message_board_persists_idempotence_and_filters_recipients() {
         json!([])
     );
 }
+
+#[tokio::test]
+async fn recover_preflights_all_tasks_before_clearing_outcomes_or_launching_any() {
+    let count = Arc::new(AtomicUsize::new(0));
+    let barrier = Arc::new(tokio::sync::Barrier::new(1));
+    let mut components = Components::default();
+    components
+        .models
+        .insert("driver".into(), Arc::new(EffectDriver));
+    components.prompts.insert(
+        "prompt".into(),
+        Arc::new(StaticPrompt("execute effect".into())),
+    );
+    let mut effects = ToolCatalog::new();
+    effects
+        .insert(ToolEntry::typed(Effect {
+            count: count.clone(),
+            barrier,
+        }))
+        .unwrap();
+    components.tool_packs.insert("effects".into(), effects);
+    let valid_child = AgentBuilder::new("valid-child")
+        .model("driver")
+        .prompt("prompt")
+        .tools("effects")
+        .compile(&components)
+        .unwrap();
+    let valid_entry = valid_child.as_tool("valid_child", "Valid child");
+    let valid_identity = valid_entry.dispatch.recovery_identity().unwrap();
+
+    let mut drivers = ToolCatalog::new();
+    drivers.insert(valid_entry).unwrap();
+
+    let store: Arc<dyn Checkpointer> = Arc::new(InMemoryCheckpointer::default());
+    let mut context = RunContext::new("parent-thread", "parent-run");
+    context.capabilities.insert(Drivers(drivers));
+
+    let key =
+        serde_json::to_string(&("agent-tasks/v1", &context.thread_id, &context.run_id)).unwrap();
+    let mut ledger = Ledger::default();
+    ledger.tasks.insert(
+        "a-valid".into(),
+        Task {
+            tool: "valid_child".into(),
+            arguments: json!({"prompt": "run"}),
+            call_id: "call-a".into(),
+            state: RunState::default(),
+            identity: valid_identity,
+            outcome: Some(TaskOutcome::Paused(json!({"kind": "approval"}))),
+        },
+    );
+    ledger.tasks.insert(
+        "b-missing-driver".into(),
+        Task {
+            tool: "removed_child".into(),
+            arguments: json!({"prompt": "run"}),
+            call_id: "call-b".into(),
+            state: RunState::default(),
+            identity: "stale-identity".into(),
+            outcome: Some(TaskOutcome::Paused(json!({"kind": "approval"}))),
+        },
+    );
+    store
+        .save(
+            &key,
+            None,
+            crate::Checkpoint {
+                version: 1,
+                revision: 1,
+                composition: "parent".into(),
+                state: RunState {
+                    data: serde_json::to_value(&ledger).unwrap(),
+                    complete: true,
+                    ..Default::default()
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    let (scope, owner) = Scope::open(&context, Some(store.clone()), "parent")
+        .await
+        .unwrap();
+    assert!(matches!(scope.recover().await, Err(Error::Checkpoint(_))));
+
+    // Task "a-valid" must never have been launched and its persisted checkpoint
+    // outcome must remain intact without bumping the revision.
+    tokio::task::yield_now().await;
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    let checkpoint = store.load(&key).await.unwrap().unwrap();
+    assert_eq!(checkpoint.revision, 1);
+    let saved: Ledger = serde_json::from_value(checkpoint.state.data).unwrap();
+    assert!(matches!(
+        saved.tasks["a-valid"].outcome,
+        Some(TaskOutcome::Paused(_))
+    ));
+    assert!(matches!(
+        saved.tasks["b-missing-driver"].outcome,
+        Some(TaskOutcome::Paused(_))
+    ));
+    owner.shutdown().await;
+}

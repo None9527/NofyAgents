@@ -3,7 +3,7 @@
 use super::*;
 use nofy_agent_models::{
     declarative::Protocol,
-    execution::{Evaluation, Executor},
+    execution::{Evaluation, Executor, StreamExecutor},
 };
 use nofy_agent_runtime::{
     Error,
@@ -11,7 +11,7 @@ use nofy_agent_runtime::{
 };
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use tokio::sync::{Mutex, Semaphore};
 use tokio_util::sync::CancellationToken;
 mod process;
@@ -63,11 +63,13 @@ impl EvaluatorFailure {
 struct Slot {
     worker: Arc<Mutex<Option<Worker>>>,
     pid: AtomicU32,
+    active_streams: AtomicUsize,
 }
 pub(super) struct Pool {
     slots: Vec<Slot>,
     work: Arc<Semaphore>,
     started: AtomicU64,
+    next_stream_id: AtomicU64,
     watching: AtomicBool,
     cleanup_failed: AtomicBool,
     stop: CancellationToken,
@@ -95,10 +97,12 @@ impl Pool {
                 .map(|_| Slot {
                     worker: Arc::new(Mutex::new(None)),
                     pid: AtomicU32::new(0),
+                    active_streams: AtomicUsize::new(0),
                 })
                 .collect(),
             work: Arc::new(Semaphore::new(SLOTS)),
             started: AtomicU64::new(0),
+            next_stream_id: AtomicU64::new(1),
             watching: AtomicBool::new(false),
             cleanup_failed: AtomicBool::new(false),
             stop,
@@ -142,76 +146,62 @@ impl Pool {
         }
         error.map_or(Ok(()), Err)
     }
-    async fn evaluate(
+    async fn acquire_slot(
+        &self,
+        cancel: &CancellationToken,
+    ) -> std::result::Result<(usize, tokio::sync::OwnedMutexGuard<Option<Worker>>), Error> {
+        let mut order: Vec<usize> = (0..self.slots.len()).collect();
+        order.sort_by_key(|index| self.slots[*index].active_streams.load(Ordering::Relaxed));
+        if let Some(found) = order.into_iter().find_map(|index| {
+            self.slots[index]
+                .worker
+                .clone()
+                .try_lock_owned()
+                .ok()
+                .map(|guard| (index, guard))
+        }) {
+            return Ok(found);
+        }
+        tokio::select! { biased;
+            _ = self.stop.cancelled() => Err(Error::Cancelled),
+            _ = cancel.cancelled() => Err(Error::Cancelled),
+            guard = self.slots[0].worker.clone().lock_owned() => Ok((0, guard)),
+        }
+    }
+    async fn ensure_worker(
         &self,
         loader: &Loader,
-        program: Arc<Protocol>,
-        input: Value,
-        spent: u64,
-        cap: usize,
-        cancel: CancellationToken,
-    ) -> std::result::Result<Evaluation, Error> {
-        let (index, mut guard) = if let Some(found) =
-            self.slots.iter().enumerate().find_map(|(index, slot)| {
-                slot.worker
-                    .clone()
-                    .try_lock_owned()
-                    .ok()
-                    .map(|guard| (index, guard))
-            }) {
-            found
-        } else {
-            tokio::select! { biased;
-                _ = self.stop.cancelled() => return Err(Error::Cancelled),
-                _ = cancel.cancelled() => return Err(Error::Cancelled),
-                guard = self.slots[0].worker.clone().lock_owned() => (0, guard),
-            }
-        };
-        let slot = &self.slots[index];
-        let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
-            + std::time::Duration::from_secs(5);
-        let phase = match input.get("phase").and_then(Value::as_str) {
-            Some(phase @ ("admit" | "history" | "request" | "event" | "finish" | "http_error")) => {
-                Some(phase.to_owned())
-            }
-            _ => None,
-        };
+        slot: &Slot,
+        guard: &mut Option<Worker>,
+        cancel: &CancellationToken,
+    ) -> std::result::Result<(), Error> {
         // Metadata preparation and retirement are owned to completion, even
         // when the caller is gone. Never detach a blocking preparation job.
-        let ready = async {
-            if let Some(worker) = guard.as_mut()
-                && worker.expired()?
-            {
-                worker.retire().await?;
-                *guard = None;
-                slot.pid.store(0, Ordering::SeqCst);
-            }
-            if guard.is_none() {
-                let worker = Worker::start(loader, &cancel).await?;
-                slot.pid.store(worker.pid(), Ordering::SeqCst);
-                self.started.fetch_add(1, Ordering::SeqCst);
-                *guard = Some(worker);
-            }
-            Ok::<_, Error>(())
+        if let Some(worker) = guard.as_mut()
+            && worker.expired()?
+        {
+            worker.retire().await?;
+            *guard = None;
+            slot.pid.store(0, Ordering::SeqCst);
         }
-        .await;
-        let mut result = if let Err(error) = ready {
-            Err(error)
-        } else {
-            let worker = guard.as_mut().ok_or_else(failed)?;
-            let pid = worker.pid();
-            let operation = worker.evaluate(program, input, spent, cap);
-            tokio::pin!(operation);
-            tokio::select! { biased;
-                _ = self.stop.cancelled() => Err(Error::Cancelled),
-                _ = cancel.cancelled() => Err(Error::Cancelled),
-                result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
-                    Err(EvaluatorFailure::Timeout.failure(json!({
-                        "stage": "exchange", "timeout_ms": timeout.as_millis(), "worker_pid": pid,
-                    })).into())
-                }),
-            }
-        };
+        if guard.is_none() {
+            let worker = Worker::start(loader, cancel).await?;
+            slot.pid.store(worker.pid(), Ordering::SeqCst);
+            self.started.fetch_add(1, Ordering::SeqCst);
+            *guard = Some(worker);
+        }
+        Ok(())
+    }
+    async fn finish_step<T>(
+        &self,
+        slot: &Slot,
+        guard: &mut Option<Worker>,
+        mut result: std::result::Result<
+            std::result::Result<T, nofy_agent_models::worker::Failure>,
+            Error,
+        >,
+        phase: Option<String>,
+    ) -> std::result::Result<T, Error> {
         let failed_step = result.is_err();
         let diagnostic = match &mut result {
             Err(Error::ModelFailure(failure))
@@ -241,7 +231,347 @@ impl Pool {
         }
         result?.map_err(nofy_agent_models::worker::Failure::into_runtime)
     }
+    async fn evaluate(
+        &self,
+        loader: &Loader,
+        program: Arc<Protocol>,
+        input: Value,
+        spent: u64,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Evaluation, Error> {
+        let (index, mut guard) = self.acquire_slot(&cancel).await?;
+        let slot = &self.slots[index];
+        let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
+            + std::time::Duration::from_secs(5);
+        let phase = match input.get("phase").and_then(Value::as_str) {
+            Some(phase @ ("admit" | "history" | "request" | "event" | "finish" | "http_error")) => {
+                Some(phase.to_owned())
+            }
+            _ => None,
+        };
+        let ready = self.ensure_worker(loader, slot, &mut guard, &cancel).await;
+        let result = if let Err(error) = ready {
+            Err(error)
+        } else {
+            let worker = guard.as_mut().ok_or_else(failed)?;
+            let pid = worker.pid();
+            let operation = worker.evaluate(program, input, spent, cap);
+            tokio::pin!(operation);
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => Err(Error::Cancelled),
+                _ = cancel.cancelled() => Err(Error::Cancelled),
+                result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
+                    Err(EvaluatorFailure::Timeout.failure(json!({
+                        "stage": "exchange", "timeout_ms": timeout.as_millis(), "worker_pid": pid,
+                    })).into())
+                }),
+            }
+        };
+        self.finish_step(slot, &mut guard, result, phase).await
+    }
+    async fn begin_stream(
+        &self,
+        loader: &Loader,
+        program: Arc<Protocol>,
+        state: Value,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<(usize, u32, u64), Error> {
+        let (index, mut guard) = self.acquire_slot(&cancel).await?;
+        let slot = &self.slots[index];
+        let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
+            + std::time::Duration::from_secs(5);
+        let stream_id = self.next_stream_id.fetch_add(1, Ordering::SeqCst);
+        let ready = self.ensure_worker(loader, slot, &mut guard, &cancel).await;
+        let (pid, result) = if let Err(error) = ready {
+            (0, Err(error))
+        } else {
+            let worker = guard.as_mut().ok_or_else(failed)?;
+            let pid = worker.pid();
+            let operation = worker.begin_stream(program, stream_id, state, cap);
+            tokio::pin!(operation);
+            let result = tokio::select! { biased;
+                _ = self.stop.cancelled() => Err(Error::Cancelled),
+                _ = cancel.cancelled() => Err(Error::Cancelled),
+                result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
+                    Err(EvaluatorFailure::Timeout.failure(json!({
+                        "stage": "begin_stream", "timeout_ms": timeout.as_millis(), "worker_pid": pid,
+                    })).into())
+                }),
+            };
+            (pid, result)
+        };
+        self.finish_step(slot, &mut guard, result, Some("event".into()))
+            .await?;
+        slot.active_streams.fetch_add(1, Ordering::Relaxed);
+        Ok((index, pid, stream_id))
+    }
+    async fn push_event(
+        &self,
+        slot_index: usize,
+        worker_pid: u32,
+        stream_id: u64,
+        program: Arc<Protocol>,
+        frame: Value,
+        spent: u64,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Evaluation, Error> {
+        let slot = &self.slots[slot_index];
+        let mut guard = tokio::select! { biased;
+            _ = self.stop.cancelled() => return Err(Error::Cancelled),
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            guard = slot.worker.clone().lock_owned() => guard,
+        };
+        let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
+            + std::time::Duration::from_secs(5);
+        let result = match guard.as_mut() {
+            Some(worker) if worker.pid() == worker_pid => {
+                if worker.expired()? {
+                    Err(EvaluatorFailure::Ipc
+                        .failure(json!({
+                            "stage": "stream_worker_expired",
+                            "worker_pid": worker_pid,
+                        }))
+                        .into())
+                } else {
+                    let operation = worker.push_event(program, stream_id, frame, spent, cap);
+                    tokio::pin!(operation);
+                    tokio::select! { biased;
+                        _ = self.stop.cancelled() => Err(Error::Cancelled),
+                        _ = cancel.cancelled() => Err(Error::Cancelled),
+                        result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
+                            Err(EvaluatorFailure::Timeout.failure(json!({
+                                "stage": "push_event", "timeout_ms": timeout.as_millis(), "worker_pid": worker_pid,
+                            })).into())
+                        }),
+                    }
+                }
+            }
+            _ => Err(EvaluatorFailure::Ipc
+                .failure(json!({
+                    "stage": "stream_worker_lost",
+                    "worker_pid": worker_pid,
+                }))
+                .into()),
+        };
+        self.finish_step(slot, &mut guard, result, Some("event".into()))
+            .await
+    }
+    async fn finish_stream(
+        &self,
+        slot_index: usize,
+        worker_pid: u32,
+        stream_id: u64,
+        program: Arc<Protocol>,
+        spent: u64,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Evaluation, Error> {
+        let slot = &self.slots[slot_index];
+        let mut guard = tokio::select! { biased;
+            _ = self.stop.cancelled() => return Err(Error::Cancelled),
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            guard = slot.worker.clone().lock_owned() => guard,
+        };
+        let timeout = std::time::Duration::from_millis(program.limits.step_timeout_ms)
+            + std::time::Duration::from_secs(5);
+        let result = match guard.as_mut() {
+            Some(worker) if worker.pid() == worker_pid => {
+                if worker.expired()? {
+                    Err(EvaluatorFailure::Ipc
+                        .failure(json!({
+                            "stage": "stream_worker_expired",
+                            "worker_pid": worker_pid,
+                        }))
+                        .into())
+                } else {
+                    let operation = worker.finish_stream(program, stream_id, spent, cap);
+                    tokio::pin!(operation);
+                    tokio::select! { biased;
+                        _ = self.stop.cancelled() => Err(Error::Cancelled),
+                        _ = cancel.cancelled() => Err(Error::Cancelled),
+                        result = tokio::time::timeout(timeout, &mut operation) => result.unwrap_or_else(|_| {
+                            Err(EvaluatorFailure::Timeout.failure(json!({
+                                "stage": "finish_stream", "timeout_ms": timeout.as_millis(), "worker_pid": worker_pid,
+                            })).into())
+                        }),
+                    }
+                }
+            }
+            _ => Err(EvaluatorFailure::Ipc
+                .failure(json!({
+                    "stage": "stream_worker_lost",
+                    "worker_pid": worker_pid,
+                }))
+                .into()),
+        };
+        self.finish_step(slot, &mut guard, result, Some("finish".into()))
+            .await
+    }
+    async fn abort_stream(&self, slot_index: usize, worker_pid: u32, stream_id: u64) {
+        if self.stop.is_cancelled() {
+            return;
+        }
+        let Ok(Ok(_permit)) = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            self.work.clone().acquire_owned(),
+        )
+        .await
+        else {
+            return;
+        };
+        let slot = &self.slots[slot_index];
+        let Ok(mut guard) = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            slot.worker.clone().lock_owned(),
+        )
+        .await
+        else {
+            return;
+        };
+        let Some(worker) = guard.as_mut() else {
+            return;
+        };
+        if worker.pid() != worker_pid {
+            return;
+        }
+        let failed_abort = match worker.expired() {
+            Ok(false) => {
+                let operation = worker.abort_stream(stream_id);
+                !matches!(
+                    tokio::time::timeout(std::time::Duration::from_millis(500), operation).await,
+                    Ok(Ok(()))
+                )
+            }
+            _ => true,
+        };
+        if failed_abort {
+            if worker.retire().await.is_err() {
+                self.cleanup_failed.store(true, Ordering::SeqCst);
+            } else {
+                *guard = None;
+                slot.pid.store(0, Ordering::SeqCst);
+            }
+        }
+    }
 }
+
+struct HostStream {
+    loader: Loader,
+    slot_index: usize,
+    worker_pid: u32,
+    stream_id: u64,
+    program: Arc<Protocol>,
+    active: AtomicBool,
+}
+
+impl HostStream {
+    fn deactivate(&self) -> bool {
+        if self.active.swap(false, Ordering::SeqCst) {
+            self.loader.models.slots[self.slot_index]
+                .active_streams
+                .fetch_sub(1, Ordering::Relaxed);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl Drop for HostStream {
+    fn drop(&mut self) {
+        if self.deactivate() {
+            let pool = self.loader.models.clone();
+            let slot_index = self.slot_index;
+            let worker_pid = self.worker_pid;
+            let stream_id = self.stream_id;
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                handle.spawn(async move {
+                    pool.abort_stream(slot_index, worker_pid, stream_id).await;
+                });
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl StreamExecutor for HostStream {
+    async fn push_event(
+        &self,
+        frame: Value,
+        spent: u64,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Evaluation, Error> {
+        let cancel = cancel.child_token();
+        let _on_drop = cancel.clone().drop_guard();
+        let permit = tokio::select! { biased;
+            _ = self.loader.models.stop.cancelled() => return Err(Error::Cancelled),
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            permit = self.loader.models.work.clone().acquire_owned() => permit.map_err(|_| failed())?,
+        };
+        let loader = self.loader.clone();
+        let slot_index = self.slot_index;
+        let worker_pid = self.worker_pid;
+        let stream_id = self.stream_id;
+        let program = self.program.clone();
+        tokio::spawn(async move {
+            let _permit = permit;
+            loader
+                .models
+                .push_event(
+                    slot_index, worker_pid, stream_id, program, frame, spent, cap, cancel,
+                )
+                .await
+        })
+        .await
+        .map_err(|_| failed())?
+    }
+
+    async fn finish(
+        &self,
+        spent: u64,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Evaluation, Error> {
+        self.deactivate();
+        let cancel = cancel.child_token();
+        let _on_drop = cancel.clone().drop_guard();
+        let permit = tokio::select! { biased;
+            _ = self.loader.models.stop.cancelled() => return Err(Error::Cancelled),
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            permit = self.loader.models.work.clone().acquire_owned() => permit.map_err(|_| failed())?,
+        };
+        let loader = self.loader.clone();
+        let slot_index = self.slot_index;
+        let worker_pid = self.worker_pid;
+        let stream_id = self.stream_id;
+        let program = self.program.clone();
+        tokio::spawn(async move {
+            let _permit = permit;
+            loader
+                .models
+                .finish_stream(
+                    slot_index, worker_pid, stream_id, program, spent, cap, cancel,
+                )
+                .await
+        })
+        .await
+        .map_err(|_| failed())?
+    }
+
+    async fn abort(&self) {
+        if self.deactivate() {
+            self.loader
+                .models
+                .abort_stream(self.slot_index, self.worker_pid, self.stream_id)
+                .await;
+        }
+    }
+}
+
 impl Loader {
     pub fn model_status(&self) -> ModelStatus {
         ModelStatus {
@@ -295,5 +625,41 @@ impl Executor for Loader {
         })
         .await
         .map_err(|_| failed())?
+    }
+
+    async fn begin_stream(
+        &self,
+        program: Arc<Protocol>,
+        state: Value,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> std::result::Result<Option<Box<dyn StreamExecutor>>, Error> {
+        let cancel = cancel.child_token();
+        let _on_drop = cancel.clone().drop_guard();
+        let permit = tokio::select! { biased;
+            _ = self.models.stop.cancelled() => return Err(Error::Cancelled),
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            permit = self.models.work.clone().acquire_owned() => permit.map_err(|_| failed())?,
+        };
+        Pool::watch(&self.models);
+        let loader = self.clone();
+        let stream_program = program.clone();
+        let (slot_index, worker_pid, stream_id) = tokio::spawn(async move {
+            let _permit = permit;
+            loader
+                .models
+                .begin_stream(&loader, program, state, cap, cancel)
+                .await
+        })
+        .await
+        .map_err(|_| failed())??;
+        Ok(Some(Box::new(HostStream {
+            loader: self.clone(),
+            slot_index,
+            worker_pid,
+            stream_id,
+            program: stream_program,
+            active: AtomicBool::new(true),
+        })))
     }
 }

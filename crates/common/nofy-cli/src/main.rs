@@ -7,8 +7,24 @@ use nofy_agent_client::{Envelope, Error, Result, Toolset, refs_from_input};
 use serde_json::{Value, json};
 use std::{io::Read, path::Path};
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(nofy_tty_utils::runtime::capped_worker_threads().get())
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("unavailable: failed to initialize async runtime: {error}");
+            std::process::exit(1);
+        }
+    };
+    let code = runtime.block_on(async_main());
+    drop(runtime);
+    std::process::exit(code);
+}
+
+async fn async_main() -> i32 {
     let args: Vec<_> = std::env::args_os().collect();
     let mut flags = args.iter().skip(1);
     let mut toolset = Toolset::default();
@@ -35,7 +51,7 @@ async fn main() {
     let (op, leaf) = command::selected(&matches);
     let mcp = op == "mcp.serve";
     let result = run(&op, leaf, toolset).await;
-    let code = match result {
+    match result {
         Ok(code) => code,
         Err(e) => {
             if mcp {
@@ -48,8 +64,7 @@ async fn main() {
                 code
             }
         }
-    };
-    std::process::exit(code);
+    }
 }
 async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
     let http_mcp = op == "mcp.serve"
@@ -71,8 +86,13 @@ async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
                 .get_many::<String>("allowed_host")
                 .map(|v| v.cloned().collect())
                 .unwrap_or_default();
-            nofy_agent_mcp::serve_http(engine.clone(), address, origins, hosts).await
+            let allow_non_loopback = m.get_flag("allow_non_loopback");
+            nofy_agent_mcp::serve_http(engine.clone(), address, allow_non_loopback, origins, hosts)
+                .await
         } else {
+            if let Err(error) = nofy_tty_utils::kill_current_process_on_parent_death() {
+                eprintln!("warning: could not bind MCP stdio process to parent lifetime: {error}");
+            }
             nofy_agent_mcp::serve_stdio(engine.clone()).await
         };
         result.map_err(|e| Error::new("unavailable", e.to_string()))?;
@@ -106,7 +126,10 @@ async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
                 "--follow is supported only for run events",
             ));
         }
-        return tokio::select! {result=output::follow(engine,prepared.value.clone(),&settings.format)=>result,_=tokio::signal::ctrl_c()=>Ok(130)};
+        return tokio::select! {
+            result = output::follow(engine, prepared.value.clone(), &settings.format) => result,
+            _ = tokio::signal::ctrl_c() => Ok(130),
+        };
     }
     let execute = async {
         if prepared.local_create && op == "agent.create" {
@@ -174,9 +197,20 @@ async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
         }
         Ok(engine.execute(op, prepared.value.clone()).await)
     };
-    let mut result = tokio::select! {output=execute=>output?,_=tokio::signal::ctrl_c()=>{
-        let mut e=Error::new("result_unconfirmed","CLI wait interrupted; inspect the original business IDs before retrying");e.unconfirmed=true;e.refs=refs_from_input(&prepared.value);let envelope=Envelope::failed(op,e);output::emit(&envelope,&settings.format)?;return Ok(130);
-    }};
+    let mut result = tokio::select! {
+        output = execute => output?,
+        _ = tokio::signal::ctrl_c() => {
+            let mut e = Error::new(
+                "result_unconfirmed",
+                "CLI wait interrupted; inspect the original business IDs before retrying",
+            );
+            e.unconfirmed = true;
+            e.refs = refs_from_input(&prepared.value);
+            let envelope = Envelope::failed(op, e);
+            output::emit(&envelope, &settings.format)?;
+            return Ok(130);
+        }
+    };
     let finish = async {
         output::persist_local(&prepared, &mut result)?;
         // Only some commands have a --directory; asking another for it would panic.
@@ -215,7 +249,10 @@ async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
                     "--wait requires an operation that returns run_id",
                 )
             })?;
-        let waited = tokio::select! {result=output::wait(engine,id,settings.timeout)=>result?,_=tokio::signal::ctrl_c()=>return Ok(130)};
+        let waited = tokio::select! {
+            result = output::wait(engine, id, settings.timeout) => result?,
+            _ = tokio::signal::ctrl_c() => return Ok(130),
+        };
         result.data["wait_result"] = serde_json::to_value(waited.0)?;
         code = waited.1;
     }

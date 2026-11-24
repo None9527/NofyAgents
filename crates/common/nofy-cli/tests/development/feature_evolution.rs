@@ -325,12 +325,15 @@ async fn omni_designs_a_specialist_with_skill_and_mcp_then_evolves_toward_a_goal
                 input: TARGET.into(),
                 expected: GOAL.into(),
                 baseline_expected: Some(BASELINE.into()),
+                ..Default::default()
             }],
             observation: vec![Probe {
                 input: CONTROL.into(),
                 expected: "4".into(),
                 baseline_expected: None,
+                ..Default::default()
             }],
+            cost_limits: None,
         })
         .unwrap();
     let stop = tokio_util::sync::CancellationToken::new();

@@ -937,3 +937,86 @@ async fn failed_process_keeps_bounded_stderr_exit_status_and_redacts_environment
     assert!(stderr.len() < 9000);
     assert_eq!(details["stderr_truncated"], true);
 }
+
+#[test]
+fn http_connection_and_resource_block_plaintext_remote_credentials_and_ssrf_ips() {
+    use nofy_agent_executors::declarative::HttpResourceFactory;
+
+    let secret = Arc::new(Secret(AtomicUsize::new(0)));
+    assert!(
+        HttpConnection::install(
+            "http://example.invalid/api/",
+            "v1",
+            BTreeSet::from([Method::Post]),
+            BTreeSet::from(["token".into()]),
+            secret.clone(),
+        )
+        .is_err()
+    );
+    assert!(
+        HttpConnection::install(
+            "http://169.254.169.254/latest/",
+            "v1",
+            BTreeSet::from([Method::Get]),
+            BTreeSet::new(),
+            secret.clone(),
+        )
+        .is_err()
+    );
+    assert!(
+        HttpConnection::install(
+            "https://10.0.0.1/api/",
+            "v1",
+            BTreeSet::from([Method::Get]),
+            BTreeSet::new(),
+            secret.clone(),
+        )
+        .is_err()
+    );
+    assert!(
+        HttpConnection::install_with_policy(
+            "http://example.invalid/api/",
+            "v1",
+            BTreeSet::from([Method::Post]),
+            BTreeSet::from(["token".into()]),
+            secret.clone(),
+            true,
+            false,
+        )
+        .is_ok()
+    );
+
+    let resource_factory = HttpResourceFactory::new("policy-test", secret).unwrap();
+    assert!(
+        resource_factory
+            .build(
+                &json!({"base_url": "http://example.invalid/api/", "methods": ["POST"], "credential_refs": ["TOKEN"]}),
+                &BTreeMap::new()
+            )
+            .is_err()
+    );
+    assert!(
+        resource_factory
+            .build(
+                &json!({"base_url": "http://169.254.169.254/latest/", "methods": ["GET"]}),
+                &BTreeMap::new()
+            )
+            .is_err()
+    );
+    assert!(
+        resource_factory
+            .build(
+                &json!({"base_url": "http://example.invalid/api/", "methods": ["POST"], "credential_refs": ["TOKEN"], "allow_insecure_http": true}),
+                &BTreeMap::new()
+            )
+            .is_ok()
+    );
+    assert!(
+        resource_factory
+            .build(
+                &json!({"base_url": "https://10.0.0.1/api/", "methods": ["GET"], "allow_private_networks": true}),
+                &BTreeMap::new()
+            )
+            .is_ok()
+    );
+}

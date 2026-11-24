@@ -451,6 +451,14 @@ pub fn cli(toolset: Toolset) -> Command {
                             .help("Address for --transport http"),
                     )
                     .arg(
+                        Arg::new("allow_non_loopback")
+                            .long("allow-non-loopback")
+                            .action(ArgAction::SetTrue)
+                            .help(
+                                "Allow --listen on a non-loopback address (plain HTTP carries Bearer tokens; use only behind TLS termination or a tunnel)",
+                            ),
+                    )
+                    .arg(
                         Arg::new("allowed_origin")
                             .long("allowed-origin")
                             .action(ArgAction::Append)

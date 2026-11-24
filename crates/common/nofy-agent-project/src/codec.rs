@@ -84,17 +84,22 @@ impl File {
             .map_err(|_| Error::new("local_input", "source text must be UTF-8"))
     }
 }
+const WINDOWS_FORBIDDEN_CHARS: &[char] = &['<', '>', ':', '"', '|', '?', '*'];
+pub(crate) const MAX_SOURCE_FILES: usize = 4096;
+pub(crate) const MAX_SOURCE_TOTAL_BYTES: usize = 64 * 1024 * 1024;
+
 pub fn safe_path(path: &str) -> Result<()> {
     if path.is_empty()
         || path.contains('\\')
+        || path.contains(WINDOWS_FORBIDDEN_CHARS)
         || path.chars().any(char::is_control)
-        || matches!(
-            path.split('/').next(),
-            Some(".nofy-source.lock" | ".nofy-source-transaction")
-        )
-        || path
-            .split('/')
-            .any(|p| p.is_empty() || p == "." || p == ".." || p.contains(':'))
+        || path.split('/').next().is_some_and(|first| {
+            first.eq_ignore_ascii_case(".nofy-source.lock")
+                || first.eq_ignore_ascii_case(".nofy-source-transaction")
+        })
+        || path.split('/').any(|p| {
+            p.is_empty() || p == "." || p == ".." || nofy_host_path::windows_cannot_hold(p)
+        })
     {
         return Err(Error::new(
             "local_input",
@@ -149,20 +154,62 @@ pub struct Source {
 impl Source {
     pub fn validate(&self) -> Result<()> {
         safe_path(&self.declaration)?;
+        if self.files.len() > MAX_SOURCE_FILES {
+            return Err(Error::new(
+                "local_input",
+                format!("source exceeds maximum file count ({MAX_SOURCE_FILES})"),
+            ));
+        }
+        let mut total_bytes = self.settings_json.as_ref().map_or(0, String::len);
+        if total_bytes > MAX_SOURCE_TOTAL_BYTES {
+            return Err(Error::new(
+                "local_input",
+                format!("source exceeds maximum total size ({MAX_SOURCE_TOTAL_BYTES} bytes)"),
+            ));
+        }
+        let mut folded_paths = std::collections::BTreeSet::new();
         for (path, file) in &self.files {
             safe_path(path)?;
-            file.decode()?;
-            let mut parent = std::path::Path::new(path).parent();
-            while let Some(p) = parent {
-                if let Some(p) = p.to_str().filter(|p| !p.is_empty())
-                    && self.files.contains_key(p)
-                {
+            let folded = nofy_host_path::fold(path);
+            if !folded_paths.insert(folded) {
+                return Err(Error::new(
+                    "local_input",
+                    format!("source file paths collide ignoring case: {path}"),
+                ));
+            }
+            let file_bytes = match file.encoding {
+                Encoding::Utf8 => file.content.len(),
+                Encoding::Base64 => {
+                    let max_encoded = (MAX_SOURCE_TOTAL_BYTES / 3 + 1) * 4;
+                    if file.content.len() > max_encoded {
+                        return Err(Error::new(
+                            "local_input",
+                            format!(
+                                "source exceeds maximum total size ({MAX_SOURCE_TOTAL_BYTES} bytes)"
+                            ),
+                        ));
+                    }
+                    file.decode()?.len()
+                }
+            };
+            total_bytes = total_bytes.saturating_add(file_bytes);
+            if total_bytes > MAX_SOURCE_TOTAL_BYTES {
+                return Err(Error::new(
+                    "local_input",
+                    format!("source exceeds maximum total size ({MAX_SOURCE_TOTAL_BYTES} bytes)"),
+                ));
+            }
+        }
+        for folded in &folded_paths {
+            let mut prefix = folded.as_str();
+            while let Some((parent, _)) = prefix.rsplit_once('/') {
+                if folded_paths.contains(parent) {
                     return Err(Error::new(
                         "local_input",
                         "source file path is also a directory prefix",
                     ));
                 }
-                parent = p.parent();
+                prefix = parent;
             }
         }
         if !self.files.contains_key(&self.declaration) {
@@ -246,7 +293,16 @@ impl Source {
         Ok(s)
     }
 }
+const MAX_POINTER_DEPTH: usize = 64;
+const MAX_POINTER_BYTES: usize = 4096;
+
 pub fn pointer_set(value: &mut Value, pointer: &str, replacement: Value) -> Result<()> {
+    if pointer.len() > MAX_POINTER_BYTES {
+        return Err(Error::new(
+            "local_input",
+            "JSON Pointer exceeds maximum length",
+        ));
+    }
     if pointer.is_empty() {
         *value = replacement;
         return Ok(());
@@ -254,8 +310,14 @@ pub fn pointer_set(value: &mut Value, pointer: &str, replacement: Value) -> Resu
     if !pointer.starts_with('/') {
         return Err(Error::new("local_input", "setting requires a JSON Pointer"));
     }
-    let mut tokens = vec![];
+    let mut tokens = Vec::new();
     for part in pointer[1..].split('/') {
+        if tokens.len() >= MAX_POINTER_DEPTH {
+            return Err(Error::new(
+                "local_input",
+                "JSON Pointer exceeds maximum depth",
+            ));
+        }
         let mut token = String::new();
         let mut chars = part.chars();
         while let Some(c) = chars.next() {
@@ -271,28 +333,22 @@ pub fn pointer_set(value: &mut Value, pointer: &str, replacement: Value) -> Resu
         }
         tokens.push(token);
     }
-    fn set(v: &mut Value, tokens: &[String], replacement: Value) -> Result<()> {
-        if tokens.is_empty() {
-            *v = replacement;
-            return Ok(());
-        }
-        if v.is_null() {
-            *v = if tokens[0].parse::<usize>().is_ok() {
+    let mut current = value;
+    for token in &tokens {
+        if current.is_null() {
+            *current = if token.parse::<usize>().is_ok() {
                 json!([])
             } else {
                 json!({})
             };
         }
-        match v {
-            Value::Object(map) => {
-                let child = map.entry(tokens[0].clone()).or_insert(Value::Null);
-                set(child, &tokens[1..], replacement)
-            }
+        current = match current {
+            Value::Object(map) => map.entry(token.clone()).or_insert(Value::Null),
             Value::Array(items) => {
-                let index = if tokens[0] == "-" {
+                let index = if token == "-" {
                     items.len()
                 } else {
-                    tokens[0]
+                    token
                         .parse::<usize>()
                         .map_err(|_| Error::new("local_input", "invalid array pointer index"))?
                 };
@@ -302,12 +358,15 @@ pub fn pointer_set(value: &mut Value, pointer: &str, replacement: Value) -> Resu
                 if index == items.len() {
                     items.push(Value::Null);
                 }
-                set(&mut items[index], &tokens[1..], replacement)
+                items
+                    .get_mut(index)
+                    .ok_or_else(|| Error::new("local_input", "invalid array pointer index"))?
             }
-            _ => Err(Error::new("local_input", "JSON Pointer crosses a scalar")),
-        }
+            _ => return Err(Error::new("local_input", "JSON Pointer crosses a scalar")),
+        };
     }
-    set(value, &tokens, replacement)
+    *current = replacement;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -332,5 +391,182 @@ mod id_tests {
         ] {
             assert!(safe_id(id).is_ok(), "{id}");
         }
+    }
+
+    #[test]
+    fn deeply_nested_and_oversized_pointers_return_invalid_without_stack_overflow() {
+        let mut target = json!({});
+        let huge = "/a".repeat(100_000);
+        let err = pointer_set(&mut target, &huge, json!(1)).unwrap_err();
+        assert_eq!(err.code, "local_input");
+        assert_eq!(target, json!({}));
+
+        let too_deep = "/a".repeat(MAX_POINTER_DEPTH + 1);
+        assert!(too_deep.len() <= MAX_POINTER_BYTES);
+        let err = pointer_set(&mut target, &too_deep, json!(1)).unwrap_err();
+        assert_eq!(err.code, "local_input");
+
+        let too_long = format!("/{}", "a".repeat(MAX_POINTER_BYTES));
+        let err = pointer_set(&mut target, &too_long, json!(1)).unwrap_err();
+        assert_eq!(err.code, "local_input");
+
+        let at_limit = "/a".repeat(MAX_POINTER_DEPTH);
+        pointer_set(&mut target, &at_limit, json!(42)).unwrap();
+        assert_eq!(target.pointer(&at_limit), Some(&json!(42)));
+    }
+
+    #[test]
+    fn pointer_set_handles_arrays_escapes_and_scalars() {
+        let mut target = json!({});
+        pointer_set(&mut target, "/a~1b/c~0d/0", json!("x")).unwrap();
+        assert_eq!(target, json!({"a/b": {"c~d": ["x"]}}));
+
+        pointer_set(&mut target, "/a~1b/c~0d/-", json!("y")).unwrap();
+        assert_eq!(target, json!({"a/b": {"c~d": ["x", "y"]}}));
+
+        assert_eq!(
+            pointer_set(&mut target, "/a~1b/c~0d/5", json!("z"))
+                .unwrap_err()
+                .code,
+            "local_input"
+        );
+        assert_eq!(
+            pointer_set(&mut target, "/a~1b/c~0d/0/sub", json!("z"))
+                .unwrap_err()
+                .code,
+            "local_input"
+        );
+    }
+
+    #[test]
+    fn safe_path_refuses_windows_reserved_names_forbidden_chars_and_trailing_dots_or_spaces() {
+        for bad in [
+            "CON",
+            "con",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "com9",
+            "LPT1",
+            "lpt9",
+            "con.json",
+            "dir/NUL.txt",
+            "dir/COM3/script.py",
+            "a<b.txt",
+            "a>b.txt",
+            "a:b.txt",
+            "a\"b.txt",
+            "a|b.txt",
+            "a?b.txt",
+            "a*b.txt",
+            "a\0b.txt",
+            "a\nb.txt",
+            "a\tb.txt",
+            "trailing.",
+            "trailing ",
+            "dir./file.py",
+            "dir /file.py",
+            ".NOFY-SOURCE.LOCK",
+            ".Nofy-Source-Transaction/before.json",
+        ] {
+            let err = safe_path(bad).unwrap_err();
+            assert_eq!(err.code, "local_input", "expected rejection for {bad:?}");
+        }
+        for good in [
+            "preset.json",
+            "modules/policy.rhai",
+            ".hidden",
+            "a.b",
+            "com0",
+            "com10",
+            "console.py",
+            "dir with space/file.txt",
+            "文件说明.md",
+        ] {
+            assert!(safe_path(good).is_ok(), "expected acceptance for {good:?}");
+        }
+    }
+
+    #[test]
+    fn source_validate_rejects_case_collisions_and_resource_limits() {
+        let mut collided = Source::empty("coder", "coder").unwrap();
+        collided.files.insert("Foo.py".into(), File::text("a"));
+        collided.files.insert("foo.py".into(), File::text("b"));
+        let err = collided.validate().unwrap_err();
+        assert_eq!(err.code, "local_input");
+
+        let mut nested_collided = Source::empty("coder", "coder").unwrap();
+        nested_collided
+            .files
+            .insert("Modules/Helper.py".into(), File::text("a"));
+        nested_collided
+            .files
+            .insert("modules/helper.py".into(), File::text("b"));
+        assert_eq!(nested_collided.validate().unwrap_err().code, "local_input");
+
+        let mut dir_prefix_collided = Source::empty("coder", "coder").unwrap();
+        dir_prefix_collided
+            .files
+            .insert("Parent".into(), File::text("file"));
+        dir_prefix_collided
+            .files
+            .insert("parent/child.py".into(), File::text("child"));
+        assert_eq!(
+            dir_prefix_collided.validate().unwrap_err().code,
+            "local_input"
+        );
+
+        let mut at_file_limit = Source {
+            files: BTreeMap::new(),
+            declaration: "preset.json".into(),
+            settings_json: None,
+        };
+        at_file_limit
+            .files
+            .insert("preset.json".into(), File::text("{}"));
+        for index in 1..MAX_SOURCE_FILES {
+            at_file_limit
+                .files
+                .insert(format!("f/{index}.txt"), File::text("x"));
+        }
+        assert!(at_file_limit.validate().is_ok());
+
+        at_file_limit
+            .files
+            .insert("f/overflow.txt".into(), File::text("x"));
+        assert_eq!(at_file_limit.validate().unwrap_err().code, "local_input");
+
+        let mut oversized_utf8 = Source {
+            files: BTreeMap::new(),
+            declaration: "preset.json".into(),
+            settings_json: None,
+        };
+        oversized_utf8
+            .files
+            .insert("preset.json".into(), File::text("{}"));
+        oversized_utf8.files.insert(
+            "huge.txt".into(),
+            File::text("a".repeat(MAX_SOURCE_TOTAL_BYTES)),
+        );
+        assert_eq!(oversized_utf8.validate().unwrap_err().code, "local_input");
+
+        let mut oversized_base64 = Source {
+            files: BTreeMap::new(),
+            declaration: "preset.json".into(),
+            settings_json: None,
+        };
+        oversized_base64
+            .files
+            .insert("preset.json".into(), File::text("{}"));
+        oversized_base64.files.insert(
+            "huge.bin".into(),
+            File {
+                encoding: Encoding::Base64,
+                content: "A".repeat((MAX_SOURCE_TOTAL_BYTES / 3 + 2) * 4),
+                executable: false,
+            },
+        );
+        assert_eq!(oversized_base64.validate().unwrap_err().code, "local_input");
     }
 }

@@ -155,12 +155,14 @@ async fn live_acceptance(extended: bool, http: bool) {
         input: CONTROL_INPUT.into(),
         expected: "4".into(),
         baseline_expected: None,
+        ..Default::default()
     }];
     if extended {
         observation.push(Probe {
             input: LEGACY_INPUT.into(),
             expected: "NOT_CONFIGURED".into(),
             baseline_expected: None,
+            ..Default::default()
         });
     }
     let feature_input = if http {
@@ -214,8 +216,10 @@ async fn live_acceptance(extended: bool, http: bool) {
                 input: GOAL_INPUT.into(),
                 baseline_expected: Some("NOT_CONFIGURED".into()),
                 expected: "IDENTITY".into(),
+                ..Default::default()
             }],
             observation,
+            cost_limits: None,
         })
         .unwrap();
     let stop = tokio_util::sync::CancellationToken::new();

@@ -55,6 +55,10 @@ struct Args {
     /// Explicit development origin required for a non-loopback Web listener.
     #[arg(long, requires = "dev_web_dist")]
     dev_web_origin: Option<String>,
+    /// Comma-separated scopes granted to authenticated dev-web sessions
+    /// (default: read,execute; allowed: read, execute, edit, publish).
+    #[arg(long, requires = "dev_web_dist", value_delimiter = ',')]
+    dev_web_scopes: Option<Vec<String>>,
 }
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "linux")]
@@ -65,6 +69,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         std::process::exit(code);
     }
     tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(nofy_tty_utils::runtime::capped_worker_threads().get())
         .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
         .enable_all()
         .build()?
@@ -134,6 +139,11 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
     check_listen(args.listen, args.allow_non_loopback)?;
     let listener = tokio::net::TcpListener::bind(args.listen).await?;
+    let dev_web_scopes = args
+        .dev_web_scopes
+        .as_deref()
+        .map(Authorizer::parse_development_scopes)
+        .transpose()?;
     let dev_web = match args.dev_web_dist {
         Some(dist) => Some(
             dev_web::bind(
@@ -141,6 +151,7 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 &dist,
                 args.dev_web_listen,
                 args.dev_web_origin.as_deref(),
+                dev_web_scopes,
             )
             .await?,
         ),
@@ -170,9 +181,26 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     };
     tokio::pin!(server);
     tokio::select! {
-        result=&mut server=>{host.shutdown();shutdown.cancel();result?;worker.await?;}
-        result=&mut worker=>{host.shutdown();shutdown.cancel();result?;server.await?;}
-        result=tokio::signal::ctrl_c()=>{result?;host.shutdown();shutdown.cancel();let (s,w)=tokio::join!(server,worker);s?;w?;}
+        result = &mut server => {
+            host.shutdown();
+            shutdown.cancel();
+            result?;
+            worker.await?;
+        }
+        result = &mut worker => {
+            host.shutdown();
+            shutdown.cancel();
+            result?;
+            server.await?;
+        }
+        result = nofy_tty_utils::shutdown_signal() => {
+            result?;
+            host.shutdown();
+            shutdown.cancel();
+            let (server_result, worker_result) = tokio::join!(server, worker);
+            server_result?;
+            worker_result?;
+        }
     }
     Ok(())
 }

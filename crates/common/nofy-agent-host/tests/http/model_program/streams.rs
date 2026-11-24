@@ -323,3 +323,127 @@ async fn three_external_protocols_stream_and_replay_signed_unsigned_history_thro
         .unwrap();
     }
 }
+
+#[tokio::test]
+async fn isolated_helper_reduces_long_sse_stream_incrementally_with_exact_output() {
+    const FRAMES: usize = 2500;
+    let provider = serve(Router::new().route(
+        "/v1/chat/completions",
+        route_post(|Json(_body): Json<Value>| async move {
+            let mut events = Vec::with_capacity(FRAMES + 3);
+            for i in 0..FRAMES {
+                let piece = format!("w{i:04}|");
+                let payload = json!({
+                    "id": "iso-long",
+                    "choices": [{"index": 0, "delta": {"content": piece}, "finish_reason": null}]
+                });
+                events.push(Ok::<_, Infallible>(
+                    axum::response::sse::Event::default()
+                        .event("message")
+                        .data(payload.to_string()),
+                ));
+            }
+            events.push(Ok::<_, Infallible>(
+                axum::response::sse::Event::default()
+                    .event("message")
+                    .data(
+                        json!({"id":"iso-long","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]})
+                            .to_string(),
+                    ),
+            ));
+            events.push(Ok::<_, Infallible>(
+                axum::response::sse::Event::default()
+                    .event("message")
+                    .data(
+                        json!({"id":"iso-long","choices":[],"usage":{"prompt_tokens":42,"completion_tokens":FRAMES}})
+                            .to_string(),
+                    ),
+            ));
+            events.push(Ok::<_, Infallible>(
+                axum::response::sse::Event::default()
+                    .event("message")
+                    .data("[DONE]"),
+            ));
+            Sse::new(futures::stream::iter(events)).into_response()
+        }),
+    ))
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let kernel = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let artifact = protocol_artifact();
+    let manifest: Value =
+        serde_json::from_str(artifact["files"]["manifest.json"].as_str().unwrap()).unwrap();
+    let mut protocol_cfg = manifest["profiles"]["chat_completions"]["protocol"].clone();
+    protocol_cfg["limits"]["max_operations"] = json!(50_000_000);
+    let r = |id: &str| json!({"id":id,"version":"1"});
+    let source = json!({
+        "schema_version": 1,
+        "name": "isolated-long-stream",
+        "modules": [
+            {"reference": r("code"), "factory": "resource.artifact", "config": {"bundle": artifact}},
+            {"reference": r("protocol"), "factory": "resource.model_protocol", "config": protocol_cfg, "dependencies": {"artifact": r("code")}},
+            {"reference": r("connection"), "factory": "resource.model_connection", "config": {"base_url": format!("{}/v1/", provider.url), "allow_insecure_http": true, "models": ["test-model"]}},
+            {"reference": r("model"), "factory": "model.programmed", "config": {"model": "test-model"}, "dependencies": {"protocol": r("protocol"), "connection": r("connection")}},
+            {"reference": r("prompt"), "factory": "prompt.static", "config": {"text": "test"}}
+        ],
+        "programs": {"chat": {"kind": "agent", "definition": {"name": "chat", "model": r("model"), "prompt": r("prompt")}}}
+    });
+    let prepared = kernel
+        .control()
+        .prepare(serde_json::from_value(source).unwrap())
+        .unwrap();
+    let resolved = prepared
+        .registry()
+        .resolve(&[ModuleRef::new("model", "1")])
+        .unwrap();
+    let ModuleInstance::Model(model) = &resolved.instances[&ModuleRef::new("model", "1")] else {
+        panic!("model");
+    };
+    let req = ModelRequest {
+        messages: vec![Message::User {
+            content: "history ".repeat(4096),
+        }],
+        tools: vec![],
+        settings: json!({"stream": true}),
+    };
+    let started = std::time::Instant::now();
+    let mut stream = model.stream(req, &RunContext::default()).await.unwrap();
+    let mut delta_text = String::new();
+    let mut delta_count = 0usize;
+    let mut completed = None;
+    while let Some(chunk) = stream.next().await {
+        match chunk.unwrap() {
+            ModelChunk::Delta(ModelDelta::Text { text }) => {
+                delta_text.push_str(&text);
+                delta_count += 1;
+            }
+            ModelChunk::Delta(_) => {}
+            ModelChunk::Completed(response) => completed = Some(response),
+        }
+    }
+    let elapsed = started.elapsed();
+    let expected: String = (0..FRAMES).map(|i| format!("w{i:04}|")).collect();
+    let response = completed.expect("completed response");
+    assert_eq!(delta_count, FRAMES);
+    assert_eq!(delta_text, expected);
+    assert_eq!(response.output, expected);
+    assert_eq!(
+        (response.input_tokens, response.output_tokens),
+        (42, FRAMES as u64)
+    );
+    assert!(
+        elapsed < Duration::from_secs(20),
+        "2,500-frame isolated SSE stream took too long: {elapsed:?}"
+    );
+    let loader = kernel.loader().clone();
+    assert_eq!(loader.model_status().started, 1);
+    assert_eq!(loader.model_status().in_flight, 0);
+    kernel.shutdown();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !loader.model_status().worker_pids.is_empty() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
+}

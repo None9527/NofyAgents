@@ -19,7 +19,8 @@ async fn plan(server: &Serving) -> Value {
 #[tokio::test]
 async fn live_original_process_blocks_eviction_but_not_queries_or_cancellation() {
     let dir = tempfile::tempdir().unwrap();
-    let (kernel, server, installed) = setup(dir.path()).await;
+    let state = dir.path().join("state");
+    let (kernel, server, installed) = setup(&state).await;
     let view = plan(&server).await;
     let source = process::sleeping(&installed, 60000);
     let imported = post(&server, "/api/v1/import", source).await;
@@ -33,7 +34,7 @@ async fn live_original_process_blocks_eviction_but_not_queries_or_cancellation()
         run(imported["bundle"]["digest"].as_str().unwrap(), "protected"),
     )
     .await;
-    let pid = process::process_pid(dir.path()).await;
+    let pid = process::process_pid(&state).await;
     assert!(std::fs::metadata(format!("/proc/{pid}")).is_ok());
     assert_eq!(request(&server,reqwest::Method::POST,"/api/v1/loader/unload/plan",VIEW,json!({"objects":[{"kind":"runtime","id":installed["id"],"revision":installed["revision"]}]})).await.0,503);
     assert_eq!(
@@ -126,7 +127,8 @@ async fn cache_eviction_preserves_persistent_dependencies_releases_and_successfu
     let image = tokio::task::spawn_blocking(sources::image).await.unwrap();
     let digest = image.manifest.digest().unwrap();
     let dir = tempfile::tempdir().unwrap();
-    let kernel = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let state = dir.path().join("state");
+    let kernel = host(&state, Arc::new(AtomicUsize::new(0))).await;
     let server = serve(kernel.router()).await;
     let bundle = json!({"schema_version":1,"files":{"main.sh":"IFS= read -r line || :\nn=${line#'{\"n\":'}\nn=${n%'}'}\nprintf '{\"result\":%s,\"pid\":%s}' \"$((n*2))\" \"$$\"\n"}});
     let artifact = post(&server, "/api/v1/artifacts", bundle.clone()).await;
@@ -296,9 +298,10 @@ async fn cache_eviction_preserves_persistent_dependencies_releases_and_successfu
 #[tokio::test]
 async fn real_helper_cannot_release_its_own_lease_and_preserves_it_across_second_exec() {
     let dir = tempfile::tempdir().unwrap();
-    let kernel = host(dir.path(), Arc::new(AtomicUsize::new(0))).await;
+    let state = dir.path().join("state");
+    let kernel = host(&state, Arc::new(AtomicUsize::new(0))).await;
     let server = serve(kernel.router()).await;
-    let scratch = tempfile::tempdir_in(dir.path().join("loader/scratch")).unwrap();
+    let scratch = tempfile::tempdir_in(state.join("loader/scratch")).unwrap();
     let mut roots = [
         "/usr/lib",
         "/usr/local/lib",
@@ -311,8 +314,8 @@ async fn real_helper_cannot_release_its_own_lease_and_preserves_it_across_second
     .collect::<Vec<_>>();
     let python = std::fs::canonicalize("/usr/bin/python3").unwrap();
     roots.push(python.clone());
-    let profile = json!({"scratch":scratch.path(),"scratch_files":[],"read_only":roots,"private_root":dir.path(),"parent_pid":std::process::id(),"cpu_seconds":10,
-        "cache_lease":dir.path().join("loader/lifecycle/lease.lock")});
+    let profile = json!({"scratch":scratch.path(),"scratch_files":[],"read_only":roots,"private_root":&state,"parent_pid":std::process::id(),"cpu_seconds":10,
+        "cache_lease":state.join("loader/lifecycle/lease.lock")});
     let script = r#"import os,sys,ctypes,errno,json
 libc=ctypes.CDLL(None,use_errno=True)
 descriptors=[]
@@ -346,25 +349,32 @@ os.execv('/usr/bin/python3',['python3','-I','-c',f'import os,sys,json;os.fstat({
     let before = plan(&server).await;
     // No parent-side shared lease exists here. Only the actual confined helper
     // holds it, so an early unlock would make maintenance incorrectly succeed.
-    let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_nofy-agent-host"))
+    let mut std_command = std::process::Command::new(env!("CARGO_BIN_EXE_nofy-agent-host"));
+    let profile_arg = nofy_agent_host::loader::isolation::attach_profile_fd(
+        &mut std_command,
+        profile.to_string().as_bytes(),
+    )
+    .unwrap();
+    std_command
         .arg(nofy_agent_host::loader::isolation::WORKER_ARG)
-        .arg(profile.to_string())
+        .arg(profile_arg)
         .arg(&python)
         .args(["-I", "-S", "-c", script])
         .arg({
             use std::os::unix::fs::MetadataExt;
-            std::fs::metadata(dir.path().join("loader/lifecycle/lease.lock"))
+            std::fs::metadata(state.join("loader/lifecycle/lease.lock"))
                 .unwrap()
                 .dev()
                 .to_string()
         })
         .arg({
             use std::os::unix::fs::MetadataExt;
-            std::fs::metadata(dir.path().join("loader/lifecycle/lease.lock"))
+            std::fs::metadata(state.join("loader/lifecycle/lease.lock"))
                 .unwrap()
                 .ino()
                 .to_string()
-        })
+        });
+    let mut child = tokio::process::Command::from(std_command)
         .env_clear()
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

@@ -371,10 +371,15 @@ fn operation(token: &str) -> MemoryServiceResult<OperationId> {
 
 impl Store {
     fn open(path: &Path, create: bool) -> MemoryServiceResult<Option<Self>> {
-        if !create && !path.try_exists().map_err(internal_error)? {
+        if create && let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(internal_error)?;
+        }
+        let mode = JournalMode::for_db_path(path);
+        let effective = mode.effective_db_path(path);
+        if !create && !effective.try_exists().map_err(internal_error)? {
             return Ok(None);
         }
-        let db = JournalMode::Wal.open(path).map_err(internal_error)?;
+        let db = mode.open(path).map_err(internal_error)?;
         if !create {
             let exists: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='nofy_service_undo_v1')", [], |row| row.get(0)).map_err(internal_error)?;
             if !exists {
@@ -589,6 +594,7 @@ impl NofyMemoryService {
         Ok(Self {
             config: self.config.clone(),
             undo: self.undo.clone(),
+            topic_paths: self.topic_paths.clone(),
             query_context: self.query_context.clone(),
             durable_undo: Some(options),
         })
@@ -782,6 +788,9 @@ impl NofyMemoryService {
         self.access(&area)?
             .undo_durable(id, path, before, after, data.deactivate, data.reactivate)
             .map_err(internal_error)?;
+        if after.is_none() {
+            self.evict_topic_path(&area, path)?;
+        }
         self.refresh_index()?;
         let receipt = store.complete(&owner, &token.operation_id)?;
         #[cfg(test)]

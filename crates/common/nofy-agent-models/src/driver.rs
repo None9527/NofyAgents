@@ -1,6 +1,6 @@
 use crate::{
     connection::Connection,
-    encoded,
+    count_encoded, encoded,
     execution::{Binding, Session},
     failure,
     program::Protocol,
@@ -40,6 +40,12 @@ enum Mode {
 #[serde(deny_unknown_fields)]
 struct Reduction {
     state: Value,
+    deltas: Vec<ModelDelta>,
+    finished: bool,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StreamReduction {
     deltas: Vec<ModelDelta>,
     finished: bool,
 }
@@ -209,14 +215,32 @@ async fn reduce(
         .await?;
     let reduction: Reduction =
         serde_json::from_value(value).map_err(|_| failure("event_contract"))?;
-    encoded(&reduction.state, program.limits.max_state_bytes)?;
-    encoded(&reduction.deltas, program.limits.max_frame_bytes)?;
+    count_encoded(&reduction.state, program.limits.max_state_bytes)?;
+    count_encoded(&reduction.deltas, program.limits.max_frame_bytes)?;
     for delta in &reduction.deltas {
         tx.send(Ok(ModelChunk::Delta(delta.clone())))
             .await
             .map_err(|_| Error::Cancelled)?;
     }
     Ok(reduction)
+}
+async fn reduce_stream_frame(
+    session: &Session,
+    program: &Protocol,
+    frame: Frame,
+    tx: &mpsc::Sender<Result<ModelChunk, Error>>,
+) -> Result<bool, Error> {
+    let frame_value = serde_json::to_value(&frame).map_err(|_| failure("event_contract"))?;
+    let value = session.push_event(frame_value).await?;
+    let reduction: StreamReduction =
+        serde_json::from_value(value).map_err(|_| failure("event_contract"))?;
+    count_encoded(&reduction.deltas, program.limits.max_frame_bytes)?;
+    for delta in reduction.deltas {
+        tx.send(Ok(ModelChunk::Delta(delta)))
+            .await
+            .map_err(|_| Error::Cancelled)?;
+    }
+    Ok(reduction.finished)
 }
 fn tokens(total: &mut u64, value: u64) -> Result<(), Error> {
     *total = total
@@ -241,7 +265,7 @@ async fn execute(
     .map_err(|_| failure("request_contract"))?;
     let (mut input_tokens, mut output_tokens, mut frames, mut total_bytes) = (0, 0, 0u64, 0usize);
     for calls in 1..=admission.max_requests {
-        encoded(&exchange.state, program.limits.max_state_bytes)?;
+        count_encoded(&exchange.state, program.limits.max_state_bytes)?;
         let endpoint = connection.endpoint(&exchange.path)?;
         let body = encoded(&exchange.body, program.limits.max_input_bytes)?;
         let (client, headers) = connection.client().await?;
@@ -279,6 +303,7 @@ async fn execute(
         let mut decoder = Decoder::new(program.limits.max_frame_bytes);
         let mut json_body = Vec::new();
         let mut finished = false;
+        let mut streaming_state_in_worker: Option<bool> = None;
         while let Some(chunk) = tokio::time::timeout(
             Duration::from_millis(connection.config.idle_timeout_ms),
             bytes.next(),
@@ -310,12 +335,27 @@ async fn execute(
                         if let Some(frame) = decoder.byte(byte)? {
                             frames += 1;
                             if frames > program.limits.max_frames {
+                                if streaming_state_in_worker == Some(true) {
+                                    session.abort_stream().await;
+                                }
                                 return Err(failure("frame_count"));
                             }
-                            let reduction =
-                                reduce(session, program, exchange.state, frame, tx).await?;
-                            exchange.state = reduction.state;
-                            finished = reduction.finished;
+                            if streaming_state_in_worker.is_none() {
+                                let initial_state = std::mem::take(&mut exchange.state);
+                                let supported = session.begin_stream(initial_state.clone()).await?;
+                                if !supported {
+                                    exchange.state = initial_state;
+                                }
+                                streaming_state_in_worker = Some(supported);
+                            }
+                            if streaming_state_in_worker == Some(true) {
+                                finished = reduce_stream_frame(session, program, frame, tx).await?;
+                            } else {
+                                let reduction =
+                                    reduce(session, program, exchange.state, frame, tx).await?;
+                                exchange.state = reduction.state;
+                                finished = reduction.finished;
+                            }
                             if finished {
                                 break;
                             }
@@ -341,12 +381,19 @@ async fn execute(
             finished = reduction.finished;
         }
         if !finished {
+            if streaming_state_in_worker == Some(true) {
+                session.abort_stream().await;
+            }
             return Err(failure("truncated_stream"));
         }
         drop(bytes);
-        let value = session
-            .step(json!({"phase":"finish","state":exchange.state}))
-            .await?;
+        let value = if streaming_state_in_worker == Some(true) {
+            session.finish_stream().await?
+        } else {
+            session
+                .step(json!({"phase":"finish","state":exchange.state}))
+                .await?
+        };
         let result: Finished =
             serde_json::from_value(value).map_err(|_| failure("finish_contract"))?;
         match (result.response, result.next) {

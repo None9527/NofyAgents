@@ -19,6 +19,11 @@ fn r(id: &str) -> Value {
     json!({"id":id,"version":"1"})
 }
 async fn host(path: &Path) -> KernelHost {
+    #[cfg(unix)]
+    if path.exists() {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     let credentials =
         Arc::new(FileCredentials::open(path.join("credentials.json"), "sessions", None).unwrap());
     KernelHost::open(
