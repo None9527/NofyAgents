@@ -1,7 +1,7 @@
 //! Whole-store SQLite snapshots. The caller excludes source writers and owns
 //! the explicit destination; this module does not move admission or ownership.
 use super::{Error, db_error};
-use rusqlite::{Connection, OpenFlags, types::ValueRef};
+use rusqlite::{Connection, types::ValueRef};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{fs::OpenOptions, path::Path, time::Duration};
@@ -33,13 +33,7 @@ pub(super) fn readonly(path: &Path) -> Result<Connection, Error> {
             "runtime snapshot requires a real absolute database file",
         ));
     }
-    let db = Connection::open_with_flags(
-        path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )
-    .map_err(db_error)?;
-    db.busy_timeout(Duration::from_secs(5)).map_err(db_error)?;
-    Ok(db)
+    super::open_readonly_exact(path)
 }
 pub fn inspect_snapshot(path: &Path) -> Result<RuntimeSnapshot, Error> {
     let mut db = readonly(path)?;
@@ -168,9 +162,7 @@ pub fn retire_snapshot(
     now: u64,
 ) -> Result<(), Error> {
     readonly(path)?;
-    let mut db =
-        Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE).map_err(db_error)?;
-    db.busy_timeout(Duration::from_secs(5)).map_err(db_error)?;
+    let mut db = super::connect(path, true, false)?;
     db.pragma_update(None, "synchronous", "FULL")
         .map_err(db_error)?;
     let tx = db
@@ -194,9 +186,7 @@ pub fn retire_snapshot(
 }
 pub fn release_retirement(path: &Path, authority: &str, command: &str) -> Result<(), Error> {
     readonly(path)?;
-    let mut db =
-        Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE).map_err(db_error)?;
-    db.busy_timeout(Duration::from_secs(5)).map_err(db_error)?;
+    let mut db = super::connect(path, true, false)?;
     db.pragma_update(None, "synchronous", "FULL")
         .map_err(db_error)?;
     let tx = db
@@ -236,7 +226,7 @@ pub fn copy_snapshot(
         .map_err(db_error)?
         .sync_all()
         .map_err(db_error)?;
-    let mut target_db = Connection::open(target).map_err(db_error)?;
+    let mut target_db = super::connect(target, true, false)?;
     {
         let backup = rusqlite::backup::Backup::new(&source_db, &mut target_db).map_err(db_error)?;
         backup

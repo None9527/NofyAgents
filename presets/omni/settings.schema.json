@@ -31,11 +31,26 @@
         ]
       },
       "then": {
+        "else": {
+          "required": [
+            "process_tree"
+          ]
+        },
+        "if": {
+          "properties": {
+            "command_isolation": {
+              "const": "namespace"
+            }
+          },
+          "required": [
+            "command_isolation"
+          ]
+        },
         "required": [
           "workspace",
-          "command_environment",
-          "process_tree"
-        ]
+          "command_environment"
+        ],
+        "then": {}
       }
     }
   ],
@@ -106,7 +121,7 @@
           ]
         },
         "max_child_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -130,7 +145,7 @@
           ]
         },
         "max_duration_ms": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -138,7 +153,7 @@
           ]
         },
         "max_input_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -146,7 +161,7 @@
           ]
         },
         "max_model_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -154,7 +169,7 @@
           ]
         },
         "max_output_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -162,7 +177,7 @@
           ]
         },
         "max_steps": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -170,7 +185,7 @@
           ]
         },
         "max_tool_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -178,7 +193,7 @@
           ]
         },
         "max_total_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -214,7 +229,69 @@
       "type": "boolean"
     },
     "command_environment": {
+      "additionalProperties": false,
+      "description": "User-provisioned local process runtime for confined command execution matching resource.process_local.",
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Explicit environment variables passed to the tool process.",
+          "maxProperties": 32,
+          "type": "object"
+        },
+        "executable": {
+          "description": "Normalized absolute path to the interpreter executable (e.g. /usr/bin/python3).",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "paths": {
+          "description": "Non-overlapping read-only host dependency paths; executable must reside under an execute:true path.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "execute": {
+                "type": "boolean"
+              },
+              "path": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "type": "array"
+        },
+        "prefix_args": {
+          "description": "Optional interpreter flags prepended before the tool entrypoint.",
+          "items": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        }
+      },
+      "required": [
+        "executable",
+        "paths"
+      ],
       "type": "object"
+    },
+    "command_isolation": {
+      "default": "process_tree",
+      "description": "Command isolation backend when command_enabled is true: 'process_tree' (cgroup v2) or 'namespace' (user/PID/mount/net namespaces).",
+      "enum": [
+        "process_tree",
+        "namespace"
+      ]
     },
     "compaction_keep_turns": {
       "default": 2,
@@ -229,7 +306,167 @@
       "type": "integer"
     },
     "connection": {
+      "additionalProperties": false,
       "description": "Explicit provider endpoint, model allow-list and credential references. Never put credential values here.",
+      "properties": {
+        "allow_insecure_http": {
+          "description": "Explicit opt-in for non-HTTPS endpoints (e.g. loopback local models).",
+          "type": "boolean"
+        },
+        "base_url": {
+          "description": "Canonical provider API base URL ending in '/', e.g. https://api.example.invalid/v1/.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "endpoint_limits": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "max_input_tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_output_tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "max_input_tokens",
+              "max_output_tokens"
+            ],
+            "type": "object"
+          },
+          "description": "Optional per-model input/output token limits.",
+          "maxProperties": 1024,
+          "type": "object"
+        },
+        "header_credentials": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "prefix": {
+                "description": "Optional header value prefix such as 'Bearer '.",
+                "maxLength": 64,
+                "type": "string"
+              },
+              "reference": {
+                "description": "Logical credential reference resolved by the Host credential provider.",
+                "pattern": "^[A-Za-z0-9_]{1,128}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "reference"
+            ],
+            "type": "object"
+          },
+          "description": "Map of header name to logical credential reference (never raw secrets).",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "headers": {
+          "additionalProperties": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "description": "Non-secret static HTTP headers sent with each request.",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "idle_timeout_ms": {
+          "description": "Stream idle timeout in milliseconds.",
+          "maximum": 600000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_concurrency": {
+          "description": "Maximum concurrent requests on this connection.",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "models": {
+          "description": "Explicit model IDs admitted on this connection.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1024,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "proxy_url": {
+          "description": "Optional HTTP/HTTPS proxy URL.",
+          "maxLength": 4096,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "query": {
+          "additionalProperties": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "description": "Non-secret static query parameters.",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "timeout_ms": {
+          "description": "Total HTTP request timeout in milliseconds.",
+          "maximum": 600000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tls": {
+          "additionalProperties": false,
+          "description": "Optional TLS trust roots and client identity reference.",
+          "properties": {
+            "identity_ref": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z0-9_]{1,128}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "roots_pem": {
+              "items": {
+                "maxLength": 1048576,
+                "type": "string"
+              },
+              "maxItems": 32,
+              "type": "array"
+            },
+            "system_roots": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "base_url",
+        "models"
+      ],
       "type": "object"
     },
     "context_window": {
@@ -259,11 +496,160 @@
       "minLength": 1,
       "type": "string"
     },
+    "model_protocol": {
+      "default": "chat_completions",
+      "description": "Model wire protocol package selected for the provider.",
+      "enum": [
+        "chat_completions",
+        "responses",
+        "messages"
+      ]
+    },
     "model_settings": {
       "default": {},
       "type": "object"
     },
+    "process_namespace": {
+      "additionalProperties": false,
+      "default": {},
+      "description": "Per-process namespace isolation limits matching resource.process_namespace_limits (used when command_isolation is 'namespace').",
+      "properties": {
+        "address_space_bytes": {
+          "maximum": 17179869184,
+          "minimum": 67108864,
+          "type": "integer"
+        },
+        "cpu_seconds": {
+          "maximum": 600,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "filesystem_mode": {
+          "default": "full_access",
+          "description": "Guest filesystem write visibility.",
+          "enum": [
+            "read_only",
+            "workspace_write",
+            "full_access"
+          ]
+        },
+        "network_proxy": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "allowed": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "allow_private": {
+                        "type": "boolean"
+                      },
+                      "host": {
+                        "maxLength": 253,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "ports": {
+                        "items": {
+                          "maximum": 65535,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "maxItems": 64,
+                        "minItems": 1,
+                        "type": "array",
+                        "uniqueItems": true
+                      }
+                    },
+                    "required": [
+                      "host",
+                      "ports"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "idle_timeout_ms": {
+                  "maximum": 120000,
+                  "minimum": 100,
+                  "type": "integer"
+                },
+                "max_bytes_per_connection": {
+                  "maximum": 1073741824,
+                  "minimum": 1024,
+                  "type": "integer"
+                },
+                "max_connections": {
+                  "maximum": 32,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "allowed"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional allowlisted outbound HTTP/CONNECT proxy broker configuration; null denies network."
+        },
+        "writable_directories": {
+          "description": "Directory aliases permitted for writing.",
+          "items": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
     "process_tree": {
+      "additionalProperties": false,
+      "description": "Delegated Linux cgroup v2 process-tree limits matching resource.process_tree_limits.",
+      "properties": {
+        "cgroup_root": {
+          "description": "Explicit canonical cgroup v2 delegation root path under /sys/fs/cgroup/.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "limits": {
+          "additionalProperties": false,
+          "description": "Aggregate cgroup quotas for the command process tree.",
+          "properties": {
+            "cpu_percent": {
+              "maximum": 800,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_memory_bytes": {
+              "maximum": 8589934592,
+              "minimum": 67108864,
+              "type": "integer"
+            },
+            "max_processes": {
+              "maximum": 512,
+              "minimum": 4,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "cgroup_root"
+      ],
       "type": "object"
     },
     "system_name": {
@@ -272,6 +658,7 @@
       "type": "string"
     },
     "workspace": {
+      "description": "Absolute workspace root directory when workspace_enabled or command_enabled is true.",
       "maxLength": 4096,
       "minLength": 1,
       "type": "string"
@@ -281,6 +668,60 @@
       "type": "boolean"
     },
     "workspace_environment": {
+      "additionalProperties": false,
+      "description": "User-provisioned local process runtime for workspace file tools matching resource.process_local.",
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Explicit environment variables passed to the tool process.",
+          "maxProperties": 32,
+          "type": "object"
+        },
+        "executable": {
+          "description": "Normalized absolute path to the interpreter executable (e.g. /usr/bin/python3).",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "paths": {
+          "description": "Non-overlapping read-only host dependency paths; executable must reside under an execute:true path.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "execute": {
+                "type": "boolean"
+              },
+              "path": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "type": "array"
+        },
+        "prefix_args": {
+          "description": "Optional interpreter flags prepended before the tool entrypoint.",
+          "items": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        }
+      },
+      "required": [
+        "executable",
+        "paths"
+      ],
       "type": "object"
     }
   },

@@ -266,25 +266,14 @@ impl crate::events::EventSink for DurableEventSink {
             .transaction(move |tx| {
                 check_lease(tx, &identity.lease, clock.now_ms())?;
                 scope.root_run_id = identity.run_id.clone();
-                let mut envelope = crate::events::EventEnvelope {
+                let envelope = crate::events::EventEnvelope {
                     version: 1,
                     cursor: 0,
                     timestamp_ms: clock.now_ms(),
                     scope,
                     event,
                 };
-                tx.execute(
-                    "INSERT INTO agent_runtime_events(root_id,payload) VALUES(?1,'')",
-                    [&identity.run_id],
-                )
-                .map_err(db_error)?;
-                envelope.cursor = u64::try_from(tx.last_insert_rowid()).map_err(db_error)?;
-                let payload = serde_json::to_string(&envelope).map_err(db_error)?;
-                tx.execute(
-                    "UPDATE agent_runtime_events SET payload=?1 WHERE id=?2",
-                    params![payload, envelope.cursor],
-                )
-                .map_err(db_error)?;
+                storage::append_event(tx, &identity.run_id, envelope)?;
                 Ok(())
             })
             .await

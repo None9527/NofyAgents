@@ -278,12 +278,15 @@ fn remember(scan: &mut Scan, digest: &str) -> Result<(), Error> {
     if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err(failure("invalid retained composition digest"));
     }
-    scan.known_compositions.insert(digest.to_ascii_lowercase());
+    let normalized = digest.to_ascii_lowercase();
+    scan.known_compositions.insert(normalized.clone());
+    scan.produced_compositions.insert(normalized);
     Ok(())
 }
 fn remember_text(scan: &mut Scan, text: &str) {
-    scan.known_compositions
-        .insert(format!("{:x}", Sha256::digest(text)));
+    let digest = format!("{:x}", Sha256::digest(text));
+    scan.known_compositions.insert(digest.clone());
+    scan.produced_compositions.insert(digest);
 }
 
 fn composition(

@@ -18,6 +18,8 @@ fn pids_for(parent: u32, directory: &std::path::Path) -> Vec<u32> {
     let Ok(tasks) = std::fs::read_dir(format!("/proc/{parent}/task")) else {
         return vec![];
     };
+    let canonical_dir =
+        std::fs::canonicalize(directory).unwrap_or_else(|_| directory.to_path_buf());
     for task in tasks.flatten() {
         let Ok(children) = std::fs::read_to_string(task.path().join("children")) else {
             continue;
@@ -29,8 +31,21 @@ fn pids_for(parent: u32, directory: &std::path::Path) -> Vec<u32> {
             let Ok(command) = std::fs::read(format!("/proc/{child}/cmdline")) else {
                 continue;
             };
-            let command = String::from_utf8_lossy(&command);
-            if command.contains("--render-prompt") && command.contains(directory.to_str().unwrap())
+            let args: Vec<_> = command.split(|byte| *byte == 0).collect();
+            if args.get(1) != Some(&b"__nofy_module_worker_v1".as_slice())
+                || !args.get(2).is_some_and(|arg| arg.starts_with(b"fd:"))
+                || args.get(3) != Some(&b"--render-prompt".as_slice())
+            {
+                continue;
+            }
+            let cmdline = String::from_utf8_lossy(&command);
+            assert!(
+                !cmdline.contains("parent_pid") && !cmdline.contains("private_root"),
+                "isolation profile leaked into /proc/{child}/cmdline: {cmdline}"
+            );
+            if std::fs::read_link(format!("/proc/{child}/cwd"))
+                .ok()
+                .is_some_and(|cwd| cwd.starts_with(&canonical_dir))
             {
                 pids.insert(child);
             }

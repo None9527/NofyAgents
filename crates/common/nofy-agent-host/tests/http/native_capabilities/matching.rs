@@ -26,6 +26,8 @@ fn pids_for(parent: u32, directory: &std::path::Path) -> Vec<u32> {
     let Ok(tasks) = std::fs::read_dir(format!("/proc/{parent}/task")) else {
         return vec![];
     };
+    let canonical_dir =
+        std::fs::canonicalize(directory).unwrap_or_else(|_| directory.to_path_buf());
     for task in tasks.flatten() {
         let Ok(children) = std::fs::read_to_string(task.path().join("children")) else {
             continue;
@@ -34,13 +36,26 @@ fn pids_for(parent: u32, directory: &std::path::Path) -> Vec<u32> {
             .split_whitespace()
             .filter_map(|id| id.parse::<u32>().ok())
         {
-            if let Ok(command) = std::fs::read(format!("/proc/{pid}/cmdline")) {
-                let command = String::from_utf8_lossy(&command);
-                if command.contains("--evaluate-scope")
-                    && command.contains(directory.to_str().unwrap())
-                {
-                    found.insert(pid);
-                }
+            let Ok(command) = std::fs::read(format!("/proc/{pid}/cmdline")) else {
+                continue;
+            };
+            let args: Vec<_> = command.split(|byte| *byte == 0).collect();
+            if args.get(1) != Some(&b"__nofy_module_worker_v1".as_slice())
+                || !args.get(2).is_some_and(|arg| arg.starts_with(b"fd:"))
+                || args.get(3) != Some(&b"--evaluate-scope".as_slice())
+            {
+                continue;
+            }
+            let cmdline = String::from_utf8_lossy(&command);
+            assert!(
+                !cmdline.contains("parent_pid") && !cmdline.contains("private_root"),
+                "isolation profile leaked into /proc/{pid}/cmdline: {cmdline}"
+            );
+            if std::fs::read_link(format!("/proc/{pid}/cwd"))
+                .ok()
+                .is_some_and(|cwd| cwd.starts_with(&canonical_dir))
+            {
+                found.insert(pid);
             }
         }
     }

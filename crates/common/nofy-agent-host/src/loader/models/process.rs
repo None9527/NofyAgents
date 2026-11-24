@@ -213,19 +213,16 @@ impl Worker {
         self.cache = cache;
         Ok(reply)
     }
-    pub(super) async fn evaluate(
+    async fn ensure_prepared(
         &mut self,
-        program: Arc<Protocol>,
-        input: Value,
-        spent: u64,
-        cap: usize,
-    ) -> std::result::Result<std::result::Result<Evaluation, abi::Failure>, Error> {
-        let id = nofy_agent_runtime::system::content_digest(&*program)?;
+        program: &Arc<Protocol>,
+    ) -> std::result::Result<std::result::Result<String, abi::Failure>, Error> {
+        let id = nofy_agent_runtime::system::content_digest(&**program)?;
         if !self.cache.contains(&id) {
             let reply = self
                 .exchange(Operation::Prepare {
                     id: id.clone(),
-                    definition: (*program).clone(),
+                    definition: (**program).clone(),
                 })
                 .await?;
             match reply.result {
@@ -234,6 +231,19 @@ impl Worker {
                 _ => return Err(self.ipc_failed("validate_prepare", None)),
             }
         }
+        Ok(Ok(id))
+    }
+    pub(super) async fn evaluate(
+        &mut self,
+        program: Arc<Protocol>,
+        input: Value,
+        spent: u64,
+        cap: usize,
+    ) -> std::result::Result<std::result::Result<Evaluation, abi::Failure>, Error> {
+        let id = match self.ensure_prepared(&program).await? {
+            Ok(id) => id,
+            Err(error) => return Ok(Err(error)),
+        };
         let reply = self
             .exchange(Operation::Evaluate {
                 id: id.clone(),
@@ -255,18 +265,128 @@ impl Worker {
             _ => Err(self.ipc_failed("validate_evaluation", None)),
         }
     }
+    pub(super) async fn begin_stream(
+        &mut self,
+        program: Arc<Protocol>,
+        stream_id: u64,
+        state: Value,
+        cap: usize,
+    ) -> std::result::Result<std::result::Result<(), abi::Failure>, Error> {
+        let id = match self.ensure_prepared(&program).await? {
+            Ok(id) => id,
+            Err(error) => return Ok(Err(error)),
+        };
+        let reply = self
+            .exchange(Operation::BeginStream {
+                id: id.clone(),
+                stream_id,
+                state,
+                cap,
+            })
+            .await?;
+        if !self.cache.contains(&id) {
+            return Err(self.ipc_failed("validate_cache", None));
+        }
+        match reply.result {
+            Ok(None) => Ok(Ok(())),
+            Err(error) => Ok(Err(error)),
+            _ => Err(self.ipc_failed("validate_begin_stream", None)),
+        }
+    }
+    pub(super) async fn push_event(
+        &mut self,
+        program: Arc<Protocol>,
+        stream_id: u64,
+        frame: Value,
+        spent: u64,
+        cap: usize,
+    ) -> std::result::Result<std::result::Result<Evaluation, abi::Failure>, Error> {
+        let id = match self.ensure_prepared(&program).await? {
+            Ok(id) => id,
+            Err(error) => return Ok(Err(error)),
+        };
+        let reply = self
+            .exchange(Operation::PushEvent {
+                id: id.clone(),
+                stream_id,
+                frame,
+                spent,
+                cap,
+            })
+            .await?;
+        if !self.cache.contains(&id) {
+            return Err(self.ipc_failed("validate_cache", None));
+        }
+        match reply.result {
+            Ok(Some(reply))
+                if reply.spent >= spent && reply.spent <= program.limits.max_operations =>
+            {
+                Ok(Ok(reply))
+            }
+            Err(error) => Ok(Err(error)),
+            _ => Err(self.ipc_failed("validate_push_event", None)),
+        }
+    }
+    pub(super) async fn finish_stream(
+        &mut self,
+        program: Arc<Protocol>,
+        stream_id: u64,
+        spent: u64,
+        cap: usize,
+    ) -> std::result::Result<std::result::Result<Evaluation, abi::Failure>, Error> {
+        let id = match self.ensure_prepared(&program).await? {
+            Ok(id) => id,
+            Err(error) => return Ok(Err(error)),
+        };
+        let reply = self
+            .exchange(Operation::FinishStream {
+                id: id.clone(),
+                stream_id,
+                spent,
+                cap,
+            })
+            .await?;
+        if !self.cache.contains(&id) {
+            return Err(self.ipc_failed("validate_cache", None));
+        }
+        match reply.result {
+            Ok(Some(reply))
+                if reply.spent >= spent && reply.spent <= program.limits.max_operations =>
+            {
+                Ok(Ok(reply))
+            }
+            Err(error) => Ok(Err(error)),
+            _ => Err(self.ipc_failed("validate_finish_stream", None)),
+        }
+    }
+    pub(super) async fn abort_stream(&mut self, stream_id: u64) -> std::result::Result<(), Error> {
+        let reply = self.exchange(Operation::AbortStream { stream_id }).await?;
+        match reply.result {
+            Ok(None) => Ok(()),
+            _ => Err(self.ipc_failed("validate_abort_stream", None)),
+        }
+    }
 }
 #[cfg(target_os = "linux")]
 fn cpu_seconds(pid: u32) -> std::io::Result<u64> {
+    let pid = libc::pid_t::try_from(pid)
+        .ok()
+        .filter(|&pid| pid > 0)
+        .ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid worker pid")
+        })?;
     let mut clock = 0;
     let mut time = libc::timespec {
         tv_sec: 0,
         tv_nsec: 0,
     };
-    // SAFETY: both outputs are valid initialized C ABI structures. The owned
-    // Child is not reaped/reused while this read runs under the slot mutex.
+    // SAFETY: `pid` is a validated positive `pid_t` belonging to the owned
+    // un-reaped `Child` under the slot mutex, and `&mut clock` / `&mut time`
+    // are valid aligned writable out-pointers for the duration of both calls.
+    // `clock_getcpuclockid` returns an errno directly; `clock_gettime` sets
+    // `errno` on `-1`.
     unsafe {
-        let result = libc::clock_getcpuclockid(pid as libc::pid_t, &mut clock);
+        let result = libc::clock_getcpuclockid(pid, &mut clock);
         if result != 0 {
             return Err(std::io::Error::from_raw_os_error(result));
         }

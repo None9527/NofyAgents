@@ -17,10 +17,16 @@ impl CredentialProvider for Initial {
         Ok(Some("private-bootstrap-value".into()))
     }
 }
+fn private_dir() -> (tempfile::TempDir, std::path::PathBuf) {
+    let root = tempfile::tempdir().unwrap();
+    let state = root.path().join("state");
+    let _guard = nofy_private_fs::ensure_private_dir(&state).unwrap();
+    (root, state)
+}
 #[tokio::test]
 async fn versioned_tombstones_override_bootstrap_and_metadata_never_contains_values() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let (_root, dir) = private_dir();
+    let path = dir.join("credentials.json");
     let reads = Arc::new(AtomicUsize::new(0));
     let store =
         FileCredentials::open(&path, "project", Some(Arc::new(Initial(reads.clone())))).unwrap();
@@ -64,8 +70,8 @@ async fn versioned_tombstones_override_bootstrap_and_metadata_never_contains_val
 }
 #[tokio::test]
 async fn malformed_insecure_or_wrong_authority_files_fail_closed_without_secret_diagnostics() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let (_root, dir) = private_dir();
+    let path = dir.join("credentials.json");
     let reads = Arc::new(AtomicUsize::new(0));
     let store =
         FileCredentials::open(&path, "project", Some(Arc::new(Initial(reads.clone())))).unwrap();
@@ -118,8 +124,8 @@ async fn malformed_insecure_or_wrong_authority_files_fail_closed_without_secret_
 }
 #[tokio::test]
 async fn independent_store_instances_cannot_lose_concurrent_rotations() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let (_root, dir) = private_dir();
+    let path = dir.join("credentials.json");
     let a = FileCredentials::open(&path, "project", None).unwrap();
     let b = FileCredentials::open(&path, "project", None).unwrap();
     a.set("TOKEN", None, Some("initial-value".into()))
@@ -148,8 +154,8 @@ async fn credential_cas_child() {
 }
 #[tokio::test]
 async fn real_process_cas_accepts_exactly_one_rotation() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("credentials.json");
+    let (_root, dir) = private_dir();
+    let path = dir.join("credentials.json");
     let store = FileCredentials::open(&path, "project", None).unwrap();
     store
         .set("TOKEN", None, Some("initial-value".into()))

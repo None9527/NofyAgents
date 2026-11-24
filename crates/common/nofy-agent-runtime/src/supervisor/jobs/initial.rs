@@ -8,7 +8,7 @@ fn input_event(
     reason: Option<String>,
     now: u64,
 ) -> Result<(), Error> {
-    let mut event = crate::events::EventEnvelope {
+    let event = crate::events::EventEnvelope {
         version: 1,
         cursor: 0,
         timestamp_ms: now,
@@ -28,20 +28,7 @@ fn input_event(
             reason,
         },
     };
-    tx.execute(
-        "INSERT INTO agent_runtime_events(root_id,payload) VALUES(?1,'')",
-        [&source.address.root_run_id],
-    )
-    .map_err(db_error)?;
-    event.cursor = u64::try_from(tx.last_insert_rowid()).map_err(db_error)?;
-    tx.execute(
-        "UPDATE agent_runtime_events SET payload=?1 WHERE id=?2",
-        params![
-            serde_json::to_string(&event).map_err(db_error)?,
-            event.cursor
-        ],
-    )
-    .map_err(db_error)?;
+    storage::append_event(tx, &source.address.root_run_id, event)?;
     Ok(())
 }
 pub(super) fn settle_source(

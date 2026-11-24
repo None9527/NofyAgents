@@ -16,8 +16,11 @@ use tokio_util::sync::CancellationToken;
 #[derive(Clone, Default)]
 pub struct Service {
     pub requests: Arc<Mutex<Vec<(Value, HeaderMap)>>>,
+    pub close_headers: Arc<Mutex<Vec<HeaderMap>>>,
     pub effects: Arc<Mutex<Vec<Value>>>,
     pub calls: Arc<AtomicUsize>,
+    pub in_flight_calls: Arc<AtomicUsize>,
+    pub max_concurrent_calls: Arc<AtomicUsize>,
     pub sessions: Arc<AtomicUsize>,
     pub closed: Arc<AtomicUsize>,
     pub cancellations: Arc<AtomicUsize>,
@@ -129,12 +132,24 @@ async fn handler(
         "tools/call" => {
             assert_eq!(message["params"]["name"], "files.read");
             state.calls.fetch_add(1, Ordering::SeqCst);
+            let active = state.in_flight_calls.fetch_add(1, Ordering::SeqCst) + 1;
+            state
+                .max_concurrent_calls
+                .fetch_max(active, Ordering::SeqCst);
             let effect = json!({"content":[{"type":"text","text":"本地协议结果"}],"structuredContent":{"value":message["params"]["arguments"]["value"].as_i64().unwrap()+1},"isError":false,"_meta":{"local":true}});
             state.effects.lock().unwrap().push(effect.clone());
             state.entered.cancel();
             if mode == "wait" {
                 state.release.cancelled().await;
             }
+            if mode == "concurrent" {
+                if active >= 2 {
+                    state.release.cancel();
+                } else {
+                    state.release.cancelled().await;
+                }
+            }
+            state.in_flight_calls.fetch_sub(1, Ordering::SeqCst);
             if mode == "expired" {
                 return StatusCode::NOT_FOUND.into_response();
             }
@@ -211,6 +226,7 @@ async fn handler(
 async fn close(State(state): State<Service>, headers: HeaderMap) -> StatusCode {
     assert!(headers.contains_key("mcp-session-id"));
     assert_eq!(headers["mcp-protocol-version"], "2025-11-25");
+    state.close_headers.lock().unwrap().push(headers);
     state.closed.fetch_add(1, Ordering::SeqCst);
     StatusCode::NO_CONTENT
 }

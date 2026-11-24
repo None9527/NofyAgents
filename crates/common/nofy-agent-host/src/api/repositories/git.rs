@@ -19,7 +19,14 @@ pub(super) fn admit_url(value: &str, library: &ModuleStore) -> Result<()> {
             ));
         }
         match url.scheme() {
-            "https" | "http" | "ssh" if url.host_str().is_some() => None,
+            "https" | "http" | "ssh" if url.host_str().is_some() => {
+                if url.username().starts_with('-')
+                    || url.host_str().is_some_and(|h| h.starts_with('-'))
+                {
+                    return Err(invalid("invalid SSH Git source"));
+                }
+                None
+            }
             "file" => Some(
                 url.to_file_path()
                     .map_err(|_| invalid("invalid local Git URL"))?,
@@ -38,6 +45,8 @@ pub(super) fn admit_url(value: &str, library: &ModuleStore) -> Result<()> {
         if user.is_empty()
             || host.is_empty()
             || path.is_empty()
+            || user.starts_with('-')
+            || host.starts_with('-')
             || !user
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
@@ -59,7 +68,9 @@ pub(super) fn admit_url(value: &str, library: &ModuleStore) -> Result<()> {
             .ok_or_else(|| invalid("module store parent missing"))?
             .canonicalize()
             .map_err(|_| invalid("host state is unavailable"))?;
-        if path.starts_with(&private) || private.starts_with(&path) {
+        if nofy_host_path::starts_with(&path, &private)
+            || nofy_host_path::starts_with(&private, &path)
+        {
             return Err(invalid("private host state cannot be a module source"));
         }
     }
@@ -115,20 +126,28 @@ async fn run(args: &[String], deadline: tokio::time::Instant) -> Result<Vec<u8>>
     .await
 }
 
-async fn run_bounded(
-    args: &[String],
-    deadline: tokio::time::Instant,
-    stdout_resource: &str,
-    stdout_limit: usize,
-) -> Result<Vec<u8>> {
-    if tokio::time::Instant::now() >= deadline {
-        return Err(HostError::Unavailable(
-            "Git module acquisition timed out".into(),
-        ));
+const GIT_SSH_BATCH_COMMAND: &str = "ssh -o BatchMode=yes";
+
+fn preserved_env_keys(is_windows: bool) -> &'static [&'static str] {
+    if is_windows {
+        &[
+            "PATH",
+            "HOME",
+            "SSH_AUTH_SOCK",
+            "SYSTEMROOT",
+            "USERPROFILE",
+            "TEMP",
+            "TMP",
+        ]
+    } else {
+        &["PATH", "HOME", "SSH_AUTH_SOCK", "SYSTEMROOT"]
     }
+}
+
+fn build_git_command(args: &[String]) -> tokio::process::Command {
     let mut command = tokio::process::Command::new("git");
     command.env_clear();
-    for key in ["PATH", "HOME", "SSH_AUTH_SOCK", "SYSTEMROOT"] {
+    for key in preserved_env_keys(cfg!(windows)) {
         if let Some(value) = std::env::var_os(key) {
             command.env(key, value);
         }
@@ -137,6 +156,7 @@ async fn run_bounded(
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_SSH_COMMAND", GIT_SSH_BATCH_COMMAND)
         .env(
             "GIT_ASKPASS",
             if cfg!(windows) { "echo" } else { "/bin/false" },
@@ -156,6 +176,21 @@ async fn run_bounded(
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     nofy_tty_utils::detach_command(&mut command);
+    command
+}
+
+async fn run_bounded(
+    args: &[String],
+    deadline: tokio::time::Instant,
+    stdout_resource: &str,
+    stdout_limit: usize,
+) -> Result<Vec<u8>> {
+    if tokio::time::Instant::now() >= deadline {
+        return Err(HostError::Unavailable(
+            "Git module acquisition timed out".into(),
+        ));
+    }
+    let mut command = build_git_command(args);
     let mut owned = nofy_tty_utils::OwnedChild::spawn(&mut command).map_err(|e| {
         use nofy_tty_utils::OwnedChildError as E;
         HostError::Unavailable(
@@ -438,5 +473,59 @@ mod tests {
         assert_eq!(error.code, "repository_size_limit");
         assert_eq!(error.details["resource"], "test bytes");
         assert_eq!(error.details["limit"], 3);
+    }
+
+    #[test]
+    fn ssh_urls_reject_leading_dash_option_injection_in_user_or_host() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ModuleStore::open(&dir.path().join("module-library")).unwrap();
+        assert!(admit_url("git@example.com:org/repo.git", &store).is_ok());
+        assert!(admit_url("ssh://git@example.com/org/repo.git", &store).is_ok());
+        for malicious in [
+            "-oProxyCommand=id@example.com:org/repo.git",
+            "git@-oProxyCommand=id:org/repo.git",
+            "-u@-h:org/repo.git",
+            "ssh://-oProxyCommand=id@example.com/org/repo.git",
+            "ssh://git@-example.com/org/repo.git",
+        ] {
+            assert!(
+                admit_url(malicious, &store).is_err(),
+                "expected rejection for {malicious}"
+            );
+        }
+    }
+
+    #[test]
+    fn git_command_preserves_windows_essentials_and_sets_batch_ssh() {
+        let win_keys = preserved_env_keys(true);
+        for required in ["USERPROFILE", "TEMP", "TMP", "SYSTEMROOT", "PATH"] {
+            assert!(
+                win_keys.contains(&required),
+                "missing Windows preserved key {required}"
+            );
+        }
+        let command = build_git_command(&["status".into()]);
+        let envs: BTreeMap<String, Option<String>> = command
+            .as_std()
+            .get_envs()
+            .map(|(k, v)| {
+                (
+                    k.to_string_lossy().into_owned(),
+                    v.map(|val| val.to_string_lossy().into_owned()),
+                )
+            })
+            .collect();
+        assert_eq!(
+            envs.get("GIT_SSH_COMMAND").and_then(|v| v.as_deref()),
+            Some(GIT_SSH_BATCH_COMMAND)
+        );
+        assert_eq!(
+            envs.get("GIT_TERMINAL_PROMPT").and_then(|v| v.as_deref()),
+            Some("0")
+        );
+        assert_eq!(
+            envs.get("GIT_CONFIG_NOSYSTEM").and_then(|v| v.as_deref()),
+            Some("1")
+        );
     }
 }

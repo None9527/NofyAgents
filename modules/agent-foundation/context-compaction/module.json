@@ -1,8 +1,8 @@
 {
   "format": "nofy.module-package/v1",
   "name": "context-compaction",
-  "version": "0.2.1",
-  "description": "Automatic checkpointed compaction through the shared programmed context protocol; preserves the current turn and uses durable model receipts.",
+  "version": "0.2.2",
+  "description": "Automatic checkpointed compaction through the shared programmed context protocol; uses UTF-8/CJK-aware token estimation, supports /compact on user and user_parts turns, preserves the current turn and uses durable model receipts.",
   "parameters_schema": {
     "type": "object",
     "additionalProperties": false,

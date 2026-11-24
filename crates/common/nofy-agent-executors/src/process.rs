@@ -134,11 +134,16 @@ async fn read_bounded(
     }
 }
 
-/// Drain diagnostics even after the retained window fills so an erroring
-/// worker cannot deadlock on stderr while its original exit is being observed.
+const DIAGNOSTIC_KEEP_BYTES: usize = 8192;
+const DIAGNOSTIC_DRAIN_LIMIT_BYTES: usize = 1024 * 1024;
+
+/// Drain diagnostics up to a hard total byte cap so an erroring worker does not
+/// deadlock on stderr, while a log flood or lingering grandchild cannot stall
+/// the call until `timeout_ms`.
 async fn read_diagnostic(mut reader: impl AsyncRead + Unpin) -> Result<(Vec<u8>, bool), ToolError> {
     let mut kept = Vec::new();
     let mut truncated = false;
+    let mut drained = 0usize;
     let mut buffer = [0u8; 4096];
     loop {
         let count = reader
@@ -148,9 +153,14 @@ async fn read_diagnostic(mut reader: impl AsyncRead + Unpin) -> Result<(Vec<u8>,
         if count == 0 {
             return Ok((kept, truncated));
         }
-        let remaining = 8192usize.saturating_sub(kept.len());
+        let remaining = DIAGNOSTIC_KEEP_BYTES.saturating_sub(kept.len());
         kept.extend_from_slice(&buffer[..count.min(remaining)]);
         truncated |= count > remaining;
+        drained = drained.saturating_add(count);
+        if drained >= DIAGNOSTIC_DRAIN_LIMIT_BYTES {
+            truncated = true;
+            return Ok((kept, truncated));
+        }
     }
 }
 fn exit_error(
@@ -166,12 +176,16 @@ fn exit_error(
             !value.is_empty() && {
                 let key = key.to_ascii_uppercase();
                 [
-                    "KEY",
-                    "TOKEN",
-                    "SECRET",
-                    "PASSWORD",
-                    "AUTHORIZATION",
+                    "API",
+                    "AUTH",
+                    "BEARER",
+                    "COOKIE",
                     "CREDENTIAL",
+                    "KEY",
+                    "PASSWORD",
+                    "PRIVATE",
+                    "SECRET",
+                    "TOKEN",
                 ]
                 .iter()
                 .any(|word| key.contains(word))
@@ -304,5 +318,71 @@ impl ToolDispatch for ProcessDispatch {
             result=tokio::time::timeout(Duration::from_millis(self.config.contract.timeout_ms),operation)=>result.unwrap_or_else(|_|Err(crate::tool_error("timeout","process tool timed out"))),
         };
         nofy_tool_runtime::terminal_only(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn read_diagnostic_stops_at_hard_drain_cap_on_unbounded_stream() {
+        let mut reader = tokio::io::repeat(b'x');
+        let (kept, truncated) =
+            tokio::time::timeout(Duration::from_secs(2), read_diagnostic(&mut reader))
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(kept.len(), DIAGNOSTIC_KEEP_BYTES);
+        assert!(truncated);
+    }
+
+    #[test]
+    fn exit_error_redacts_all_sensitive_environment_keyword_classes() {
+        let env = BTreeMap::from([
+            ("MY_API_CRED".into(), "secret-api-1".into()),
+            ("SERVICE_AUTH".into(), "secret-auth-2".into()),
+            ("HTTP_BEARER".into(), "secret-bearer-3".into()),
+            ("SESSION_COOKIE".into(), "secret-cookie-4".into()),
+            ("SSH_PRIVATE_DATA".into(), "secret-private-5".into()),
+            ("APP_SECRET".into(), "secret-sec-6".into()),
+            ("ACCESS_TOKEN".into(), "secret-tok-7".into()),
+            ("SIGNING_KEY".into(), "secret-key-8".into()),
+            ("DB_PASSWORD".into(), "secret-pwd-9".into()),
+            ("VISIBLE_NAME".into(), "keep-visible-0".into()),
+        ]);
+        let stderr = b"leak secret-api-1 secret-auth-2 secret-bearer-3 secret-cookie-4 \
+            secret-private-5 secret-sec-6 secret-tok-7 secret-key-8 secret-pwd-9 keep-visible-0"
+            .to_vec();
+        #[cfg(unix)]
+        let status = {
+            use std::os::unix::process::ExitStatusExt;
+            std::process::ExitStatus::from_raw(1 << 8)
+        };
+        #[cfg(not(unix))]
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "exit 1"])
+            .status()
+            .unwrap();
+        let error = exit_error(status, (stderr, false), &env);
+        let text = error.details.unwrap()["stderr"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        for secret in [
+            "secret-api-1",
+            "secret-auth-2",
+            "secret-bearer-3",
+            "secret-cookie-4",
+            "secret-private-5",
+            "secret-sec-6",
+            "secret-tok-7",
+            "secret-key-8",
+            "secret-pwd-9",
+        ] {
+            assert!(!text.contains(secret), "leaked {secret}: {text}");
+        }
+        assert!(text.contains("keep-visible-0"), "{text}");
+        assert!(text.contains("[redacted]"), "{text}");
     }
 }

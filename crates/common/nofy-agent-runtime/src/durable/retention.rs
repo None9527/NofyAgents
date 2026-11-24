@@ -52,6 +52,7 @@ struct Scan {
     limits: RetentionLimits,
     unbounded: bool,
     known_compositions: std::collections::BTreeSet<String>,
+    produced_compositions: std::collections::BTreeSet<String>,
 }
 impl Scan {
     fn new(limits: RetentionLimits) -> Self {
@@ -70,6 +71,7 @@ impl Scan {
             limits,
             unbounded: false,
             known_compositions: Default::default(),
+            produced_compositions: Default::default(),
         }
     }
     fn check(&self) -> Result<(), Error> {
@@ -149,12 +151,8 @@ impl SqliteStore {
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
             let location = store.location()?;
-            let mut connection = Connection::open_with_flags(
-                &location.path,
-                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
-                    | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
-            )
-            .map_err(|_| failure("retention database unavailable"))?;
+            let mut connection = super::open_readonly_exact(&location.path)
+                .map_err(|_| failure("retention database unavailable"))?;
             connection
                 .busy_timeout(Duration::from_millis(100))
                 .map_err(|_| failure("retention read timeout unavailable"))?;
@@ -233,7 +231,11 @@ const SOURCES: &[Source] = &[
         "agent_runtime_session_ops",
         "command_id",
         "command_id",
-        &["$.prepared.policy", "$.prepared.submission.snapshot"],
+        &[
+            "$.prepared.policy",
+            "$.prepared.submission.snapshot",
+            "$.prepared.submission.composition_digest",
+        ],
     ),
     (
         "job",
@@ -458,6 +460,8 @@ fn schema(tx: &Transaction<'_>) -> Result<(), Error> {
         "session_ops",
         "session_branches",
         "retained_owners",
+        // Persistent O(1) index of admitted composition SHA-256 digests.
+        "composition_digests",
         // Orchestration metadata. Frozen program snapshots are retained by jobs.
         "work_owners",
         "work_commands",

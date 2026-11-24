@@ -22,9 +22,9 @@ Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 104 o
 
 Recursive self-improvement in this framework does not rewrite the kernel at runtime. It is a controlled, declarative loop:
 
-1. **Goal-driven.** Once an agent is given a goal, the host tracks it across turns through the Goal state module: state encoding, lifecycle, snapshots and recovery, budgets, and stall detection (`nofy-goal`). Planning models and orchestration are provided by the host; the goal state itself is persistent, pausable, and recoverable.
-2. **Declarative improvement.** Agents turn improvements into data through the 79 CLI/MCP operations — creating source projects, composing modules and dependencies, building and validating, publishing and activating, running and verifying, and exporting source. What gets improved are declarations, modules, and preset artifacts; ordinary capability changes do not modify the kernel Rust, and every call is re-authorized by the kernel.
-3. **Recursive structure.** Agents under development and the agents developing them run on the same Loader and execution path. The [coding preset](presets/coding/文件说明.md) is itself an editable declaration on this framework. Agents can use the same operations to build other agents — or to improve the very presets and modules they themselves run on — forming a loop of agents building agents and agents improving agents.
+1. **Goal-driven.** Once an agent is given a goal, the kernel tracks execution across turns through durable runs, sessions, budgets, checkpoints, and unified `work.*` orchestration. Planning models and workflow orchestration are declared as editable modules on top of the persistent, pausable, and recoverable runtime state.
+2. **Declarative improvement.** Agents turn improvements into data through the CLI/MCP operation contract (104 operations) — creating source projects, composing modules and dependencies, building and validating, publishing and activating, running and verifying, and exporting source. What gets improved are declarations, modules, and preset artifacts; ordinary capability changes do not modify the kernel Rust, and every call is re-authorized by the kernel.
+3. **Recursive structure.** Agents under development and the agents developing them run on the same Loader and execution path. The [omni preset](presets/omni/README.md) (default) and [coding preset](presets/coding/文件说明.md) are themselves editable declarations on this framework. Agents can use the same operations to build other agents — or to improve the very presets and modules they themselves run on — forming a loop of agents building agents and agents improving agents.
 
 Boundaries: kernel authorization, approvals, budgets, and cancellation are enforced boundaries of this loop. Each step has its own verification records ([real-model repair](docs/verification/coding-real-model-build.md), [MCP sub-agent end-to-end](docs/verification/mcp-sub-agent.md)); the complete autonomous improvement loop has not yet been accepted end-to-end.
 
@@ -70,13 +70,14 @@ nofy --endpoint http://127.0.0.1:7331 \
 
 | Common global options | Meaning |
 |---|---|
+| `--toolset run\|development\|operations\|full` | Select the visible CLI/MCP operation catalog; defaults to `run` (21 session, run, and `work.*` operations). Use `development` for authoring/building, `operations` for activation/credentials/ops, or `full` for all |
 | `--token-env` / `--token-file` | Access token source; pick one. Supplying both mutually exclusive sources is rejected as a parameter error |
 | `--config PATH` / `--profile NAME` | Select a client connection profile; token values are never stored in it |
 | `--format json\|text` | JSON by default; `text` is for reading |
 | `--input PATH` / `--output PATH` | Read the complete input object from a file or stdin; outputs refuse to overwrite existing files by default |
 | `--help` | Command tree, parameters, scope hints, and schema entry points |
 
-Create an agent and compose capabilities — three ways to add modules:
+Create an agent and compose capabilities (pass `--toolset development` for authoring/build commands, `--toolset operations` for activation/rollback/credential commands, or `--toolset full` for all) — three ways to add modules:
 
 ```sh
 nofy agent create coder                    # Creates a source project; returns incomplete until model/prompt are set
@@ -123,7 +124,7 @@ You can also edit a project in the same format in a local directory: `nofy proje
 
 ## MCP integration
 
-Full protocol details are in the [MCP handbook](docs/manual/mcp.md) (Chinese). The inbound MCP server shares the operation contract with the CLI, and `tools/list` exposes a fixed catalog of 77 implemented operations. Secret value injection does not go through MCP; it remains a separate local private entry point.
+Full protocol details are in the [MCP handbook](docs/manual/mcp.md) (Chinese). The inbound MCP server shares the operation contract with the CLI, and `tools/list` exposes the active toolset (`run` by default, 21 operations including `work.*`; the `full` toolset exposes 102 MCP operations). Secret value injection does not go through MCP; it remains a separate local private entry point.
 
 stdio (local clients such as Codex):
 
@@ -152,13 +153,13 @@ nofy mcp serve --transport http --listen 127.0.0.1:7332 \
 
 MCP agent creation mirrors the CLI: `nofy_agent_create` → `nofy_agent_module_add` (tool shortcut `nofy_agent_tool_add`) → `nofy_agent_build` → `nofy_system_publish` / `nofy_system_plan` / `nofy_system_apply` → `nofy_run_start` / `nofy_run_events` → the session tool group; approvals and recovery use `nofy_run_approvals` / `nofy_run_decide` / `nofy_run_recovery`. MCP takes structured parameters directly, so JSON files are usually unnecessary. The presence of a configuration does not mean connectivity or business acceptance has been validated; the validated scope is in the [implementation record](docs/verification/agent-development-cli-mcp.md).
 
-## Coding preset and real acceptance runs
+## Presets and real acceptance runs
 
-The [coding preset](presets/coding/文件说明.md) is a source template on the same framework. It provides file operations, optional command execution, and read-only code review. A [real-model project repair](docs/verification/coding-real-model-build.md) read code, ran tests, fixed the problem, and changed all six tests from failing to passing.
+`presets/index.json` currently defaults to the [omni preset](presets/omni/README.md) (`omni@0.1.0`), while retaining the [coding preset](presets/coding/文件说明.md) (`coding@0.1.0`) and `main-agent@0.1.0`/`0.2.0` for explicit selection. The `coding` preset provides file operations, optional command execution, and read-only code review. A [real-model project repair](docs/verification/coding-real-model-build.md) read code, ran tests, fixed the problem, and changed all six tests from failing to passing.
 
 A separate [real sub-agent run](docs/verification/mcp-sub-agent.md) used standard MCP to create an agent from an empty declaration, compose nine modules, and run a real model. The model invoked a calculation tool, obtained `42`, and completed. The source archive passed byte-for-byte verification.
 
-These records establish their stated scope. Full module cross-testing and pi reproduction remain incomplete, including pi session trees and its distinct steering/follow-up queues.
+These records establish their stated scope. Kernel-level session branches (`fork`/`rewind`/`tree`) and dual `steering`/`follow_up` queues are implemented ([kernel gaps record](docs/verification/kernel-gaps-2026-11-05.md)); full module cross-testing and complete `pi` behavior reproduction remain incomplete.
 
 ## Development checks
 
@@ -171,7 +172,7 @@ This runs formatting, workspace compilation, CLI/MCP development tests, coding s
 - [Module integration](docs/manual/modules.md): factories, slots, dependencies, and external implementations.
 - [Sessions](docs/manual/sessions.md): policies and lifecycle.
 - [MCP](docs/manual/mcp.md): stdio, Streamable HTTP, and Codex configuration.
-- [File guide](文件说明.md): workspace packages and directory responsibilities.
+- [File guide](文件说明.md): 25 workspace packages and directory responsibilities.
 
 Detailed technical documentation is currently primarily in Chinese.
 

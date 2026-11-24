@@ -93,12 +93,16 @@ impl Connection {
             }
         }
     }
-    pub(super) fn close(self: &Arc<Self>, session: Option<String>) {
+    pub(super) fn close(
+        self: &Arc<Self>,
+        session: Option<String>,
+        context: Option<ToolCallContext>,
+    ) {
         if let Some(channel) = &self.channel {
             channel.close();
         }
         if let (Some(http), Some(session)) = (&self.http, session) {
-            http.close(session);
+            http.close(session, context.unwrap_or_default());
         }
     }
 }

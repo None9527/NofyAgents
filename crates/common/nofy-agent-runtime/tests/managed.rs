@@ -429,3 +429,800 @@ async fn invalid_release_and_unmanaged_id_never_create_management_metadata() {
     assert!(store.managed_runs(0, 0).await.is_err());
     assert!(store.pending_managed_actions(257).await.is_err());
 }
+
+struct TwoStepModel(Arc<std::sync::atomic::AtomicUsize>);
+#[async_trait::async_trait]
+impl Model for TwoStepModel {
+    async fn complete(
+        &self,
+        request: ModelRequest,
+        _: &RunContext,
+    ) -> Result<ModelResponse, Error> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let tools_done = request
+            .messages
+            .iter()
+            .filter(|m| matches!(m, Message::Tool { .. }))
+            .count();
+        match tools_done {
+            0 => Ok(ModelResponse {
+                tool_calls: vec![ToolCall {
+                    id: "call-step-1".into(),
+                    name: "append".into(),
+                    arguments: json!({"step": 1}),
+                }],
+                ..Default::default()
+            }),
+            1 => Ok(ModelResponse {
+                tool_calls: vec![ToolCall {
+                    id: "call-step-2".into(),
+                    name: "append".into(),
+                    arguments: json!({"step": 2}),
+                }],
+                ..Default::default()
+            }),
+            _ => Ok(ModelResponse {
+                output: "all-steps-done".into(),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+#[tokio::test]
+async fn managed_resume_non_closed_crash_before_action_result_is_atomic_and_replays_idempotently() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let dir = tempfile::tempdir().unwrap();
+    let db_path = dir.path().join("runtime.sqlite");
+    let effect_path = dir.path().join("effects");
+    let model_calls = Arc::new(AtomicUsize::new(0));
+
+    let build_env = |calls: Arc<AtomicUsize>| {
+        let store = SqliteStore::open(&db_path).unwrap();
+        let mut catalog = ToolCatalog::new();
+        catalog
+            .insert(ToolEntry::typed(Append(effect_path.clone())))
+            .unwrap();
+        let mut registry = ModuleRegistry::default();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "tool.append",
+                "1",
+                ModuleInstance::ToolPack(catalog),
+            )))
+            .unwrap();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "policy.approval",
+                "1",
+                ModuleInstance::Policy(Arc::new(DurableApprovalPolicy::new(store.clone()))),
+            )))
+            .unwrap();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "model.two_step",
+                "1",
+                ModuleInstance::Model(Arc::new(TwoStepModel(calls))),
+            )))
+            .unwrap();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "prompt.sys",
+                "1",
+                ModuleInstance::Prompt(Arc::new(StaticPrompt("system".into()))),
+            )))
+            .unwrap();
+        let document = serde_json::from_value(json!({
+            "schema_version": 1,
+            "name": "two-step-managed",
+            "modules": [
+                {"reference": {"id": "tools", "version": "1"}, "factory": "tool.append", "config": {}},
+                {"reference": {"id": "approval", "version": "1"}, "factory": "policy.approval", "config": {}},
+                {"reference": {"id": "model", "version": "1"}, "factory": "model.two_step", "config": {}},
+                {"reference": {"id": "prompt", "version": "1"}, "factory": "prompt.sys", "config": {}}
+            ],
+            "programs": {
+                "agent": {
+                    "kind": "agent",
+                    "definition": {
+                        "name": "two-step-agent",
+                        "model": {"id": "model", "version": "1"},
+                        "prompt": {"id": "prompt", "version": "1"},
+                        "tool_packs": [{"id": "tools", "version": "1"}],
+                        "policies": [{"id": "approval", "version": "1"}]
+                    }
+                }
+            }
+        }))
+        .unwrap();
+        let system = compile_system(document, &registry).unwrap();
+        (store, registry, system)
+    };
+
+    let (store, registry, system) = build_env(model_calls.clone());
+    let supervisor = RunSupervisor::new(store.clone());
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "non-closed-run".into(),
+                thread_id: "thread".into(),
+                system: "two-step-managed".into(),
+                release: system.bundle.digest.clone(),
+                program: "agent".into(),
+                input: Some(nofy_interjection_core::PendingInterjection {
+                    text: "start".into(),
+                    attachments: vec![],
+                }),
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+
+    // First execution pauses at approval 1.
+    assert!(matches!(
+        supervisor
+            .execute_submitted(&registry, "non-closed-run")
+            .await
+            .unwrap(),
+        Some(RunOutcome::Paused { .. })
+    ));
+    assert_eq!(model_calls.load(Ordering::SeqCst), 1);
+    assert!(!effect_path.exists());
+
+    let approval_1 = store
+        .pending_approvals("non-closed-run")
+        .await
+        .unwrap()
+        .remove(0);
+    assert_eq!(approval_1.call.id, "call-step-1");
+    store.decide(&approval_1, true).await.unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "resume-step-1".into(),
+            run_id: "non-closed-run".into(),
+            command: ManagedCommand::Resume,
+        })
+        .await
+        .unwrap();
+
+    // Inject a fault at the managed_actions result write. Because finish_run and
+    // managed_actions.result now commit in a single transaction, both roll back atomically.
+    let raw = rusqlite::Connection::open(store.path().unwrap()).unwrap();
+    raw.execute_batch(
+        "CREATE TRIGGER fail_action_result
+         BEFORE UPDATE OF result ON agent_runtime_managed_actions
+         WHEN NEW.command_id = 'resume-step-1' AND NEW.result IS NOT NULL
+         BEGIN
+             SELECT RAISE(ABORT, 'simulated crash before action result');
+         END;",
+    )
+    .unwrap();
+    let failed = supervisor
+        .execute_managed_action(&registry, "resume-step-1")
+        .await;
+    assert!(
+        matches!(failed, Err(Error::Checkpoint(_))),
+        "expected atomic transaction rollback on action result failure: {failed:?}"
+    );
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+    assert_eq!(model_calls.load(Ordering::SeqCst), 2);
+    assert!(
+        !store
+            .managed_action("resume-step-1")
+            .await
+            .unwrap()
+            .unwrap()
+            .finished
+    );
+    // finish_run must NOT have committed ahead of managed_actions.result.
+    assert_eq!(
+        store
+            .execution_record("non-closed-run")
+            .await
+            .unwrap()
+            .unwrap()
+            .status,
+        "running"
+    );
+
+    // Clear fault, reopen store, and replay: settles non-Closed Paused receipt with zero re-execution.
+    raw.execute_batch("DROP TRIGGER fail_action_result;")
+        .unwrap();
+    drop(raw);
+    drop(supervisor);
+    drop(store);
+
+    let (store, registry, _) = build_env(model_calls.clone());
+    let supervisor = RunSupervisor::new(store.clone());
+    let replayed = supervisor
+        .execute_managed_action(&registry, "resume-step-1")
+        .await
+        .unwrap();
+    assert!(
+        replayed.finished && replayed.error.is_none(),
+        "{replayed:?}"
+    );
+    assert!(matches!(replayed.outcome, Some(RunOutcome::Paused { .. })));
+    assert!(matches!(
+        store
+            .execution_job("non-closed-run")
+            .await
+            .unwrap()
+            .unwrap()
+            .status,
+        JobStatus::Waiting
+    ));
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+    assert_eq!(model_calls.load(Ordering::SeqCst), 2);
+
+    // Also verify replay when result is manually cleared on a non-Closed (Waiting) run.
+    let raw = rusqlite::Connection::open(store.path().unwrap()).unwrap();
+    raw.execute(
+        "UPDATE agent_runtime_managed_actions SET result = NULL WHERE command_id = 'resume-step-1'",
+        [],
+    )
+    .unwrap();
+    drop(raw);
+    let backfilled = supervisor
+        .execute_managed_action(&registry, "resume-step-1")
+        .await
+        .unwrap();
+    assert!(
+        backfilled.finished && backfilled.error.is_none(),
+        "{backfilled:?}"
+    );
+    assert!(matches!(
+        backfilled.outcome,
+        Some(RunOutcome::Paused { .. })
+    ));
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+    assert_eq!(model_calls.load(Ordering::SeqCst), 2);
+
+    // Approving step 2 finishes cleanly with exactly 2 effects total.
+    let approval_2 = store
+        .pending_approvals("non-closed-run")
+        .await
+        .unwrap()
+        .remove(0);
+    assert_eq!(approval_2.call.id, "call-step-2");
+    store.decide(&approval_2, true).await.unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "resume-step-2".into(),
+            run_id: "non-closed-run".into(),
+            command: ManagedCommand::Resume,
+        })
+        .await
+        .unwrap();
+    let final_receipt = supervisor
+        .execute_managed_action(&registry, "resume-step-2")
+        .await
+        .unwrap();
+    assert!(
+        final_receipt.finished && final_receipt.error.is_none(),
+        "{final_receipt:?}"
+    );
+    assert!(matches!(
+        final_receipt.outcome,
+        Some(RunOutcome::Completed { ref output, .. }) if output == "all-steps-done"
+    ));
+    assert_eq!(
+        std::fs::read_to_string(&effect_path).unwrap(),
+        "effect\neffect\n"
+    );
+    assert_eq!(model_calls.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test]
+#[cfg(feature = "workflow")]
+async fn managed_human_non_closed_crash_before_action_result_replays_without_duplicate_effect() {
+    let dir = tempfile::tempdir().unwrap();
+    let db_path = dir.path().join("runtime.sqlite");
+    let effect_path = dir.path().join("effects");
+
+    let build_env = || {
+        let store = SqliteStore::open(&db_path).unwrap();
+        let mut catalog = ToolCatalog::new();
+        catalog
+            .insert(ToolEntry::typed(Append(effect_path.clone())))
+            .unwrap();
+        let mut registry = ModuleRegistry::default();
+        registry
+            .register_factory(Arc::new(InstanceFactory::new(
+                "tool.append",
+                "1",
+                ModuleInstance::ToolPack(catalog),
+            )))
+            .unwrap();
+        let reference = ModuleRef::new("main", "1");
+        let document = serde_json::from_value(json!({
+            "schema_version": 1,
+            "name": "two-human-managed",
+            "modules": [{"reference": reference, "factory": "tool.append", "config": {}}],
+            "programs": {
+                "review": {
+                    "kind": "workflow",
+                    "input": {},
+                    "document": {
+                        "host": {"name": "review-host"},
+                        "entry": reference,
+                        "tool_runtimes": [{
+                            "reference": reference,
+                            "definition": {"name": "effects", "tool_packs": [reference]}
+                        }],
+                        "workflows": [{
+                            "reference": reference,
+                            "input_schema": true,
+                            "output_schema": true,
+                            "nodes": [
+                                {
+                                    "id": "human_one",
+                                    "input": {"from": "literal", "value": {"question": "step-1"}},
+                                    "action": {"kind": "human", "response_schema": {"type": "boolean"}}
+                                },
+                                {
+                                    "id": "effect_one",
+                                    "needs": ["human_one"],
+                                    "input": {"from": "literal", "value": {}},
+                                    "action": {"kind": "tool", "runtime": reference, "tool": "append"}
+                                },
+                                {
+                                    "id": "human_two",
+                                    "needs": ["effect_one"],
+                                    "input": {"from": "literal", "value": {"question": "step-2"}},
+                                    "action": {"kind": "human", "response_schema": {"type": "boolean"}}
+                                }
+                            ],
+                            "output": {"from": "node", "node": "human_two", "pointer": ""}
+                        }]
+                    }
+                }
+            }
+        }))
+        .unwrap();
+        let system = compile_system(document, &registry).unwrap();
+        (store, registry, system)
+    };
+
+    let (store, registry, system) = build_env();
+    let supervisor = RunSupervisor::new(store.clone());
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "human-non-closed".into(),
+                thread_id: "thread".into(),
+                system: "two-human-managed".into(),
+                release: system.bundle.digest.clone(),
+                program: "review".into(),
+                input: None,
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        supervisor
+            .execute_submitted(&registry, "human-non-closed")
+            .await
+            .unwrap(),
+        Some(RunOutcome::Paused { .. })
+    ));
+
+    let human_one = store
+        .children("human-non-closed")
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|c| c.node_id.as_deref() == Some("human_one"))
+        .unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "answer-one".into(),
+            run_id: "human-non-closed".into(),
+            command: ManagedCommand::Human {
+                target_run_id: human_one.run_id,
+                workflow_path: vec![],
+                expected_request: json!({"question": "step-1"}),
+                value: json!(true),
+            },
+        })
+        .await
+        .unwrap();
+
+    let raw = rusqlite::Connection::open(store.path().unwrap()).unwrap();
+    raw.execute_batch(
+        "CREATE TRIGGER fail_human_action_result
+         BEFORE UPDATE OF result ON agent_runtime_managed_actions
+         WHEN NEW.command_id = 'answer-one' AND NEW.result IS NOT NULL
+         BEGIN
+             SELECT RAISE(ABORT, 'simulated crash before human action result');
+         END;",
+    )
+    .unwrap();
+    assert!(matches!(
+        supervisor
+            .execute_managed_action(&registry, "answer-one")
+            .await,
+        Err(Error::Checkpoint(_))
+    ));
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+    assert!(
+        !store
+            .managed_action("answer-one")
+            .await
+            .unwrap()
+            .unwrap()
+            .finished
+    );
+
+    raw.execute_batch("DROP TRIGGER fail_human_action_result;")
+        .unwrap();
+    drop(raw);
+    drop(supervisor);
+    drop(store);
+
+    let (store, registry, _) = build_env();
+    let supervisor = RunSupervisor::new(store.clone());
+    let replayed = supervisor
+        .execute_managed_action(&registry, "answer-one")
+        .await
+        .unwrap();
+    assert!(
+        replayed.finished && replayed.error.is_none(),
+        "{replayed:?}"
+    );
+    assert!(matches!(replayed.outcome, Some(RunOutcome::Paused { .. })));
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+
+    let human_two = store
+        .children("human-non-closed")
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|c| c.node_id.as_deref() == Some("human_two"))
+        .unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "answer-two".into(),
+            run_id: "human-non-closed".into(),
+            command: ManagedCommand::Human {
+                target_run_id: human_two.run_id,
+                workflow_path: vec![],
+                expected_request: json!({"question": "step-2"}),
+                value: json!(true),
+            },
+        })
+        .await
+        .unwrap();
+    let done = supervisor
+        .execute_managed_action(&registry, "answer-two")
+        .await
+        .unwrap();
+    assert!(done.finished && done.error.is_none(), "{done:?}");
+    assert!(matches!(done.outcome, Some(RunOutcome::Completed { .. })));
+    assert_eq!(std::fs::read_to_string(&effect_path).unwrap(), "effect\n");
+}
+
+#[tokio::test]
+async fn managed_run_capacity_prunes_oldest_settled_terminal_runs_and_protects_active() {
+    let dir = tempfile::tempdir().unwrap();
+    let (store, registry, system) = setup(dir.path(), false);
+    let physical = store.path().unwrap();
+    let supervisor = RunSupervisor::new(store.clone());
+
+    // Subcase A: 10,000 active (queued) managed runs must still reject at capacity.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut job_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status)
+                     VALUES(?1, ?2, 'd', '{}', 'queued')",
+                )
+                .unwrap();
+            let mut run_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_managed_runs(run_id, digest, payload)
+                     VALUES(?1, 'd', '{}')",
+                )
+                .unwrap();
+            for i in 0..10_000u64 {
+                let run_id = format!("active-cap-{i}");
+                let thread_key = format!("thread-cap-{i}");
+                job_stmt
+                    .execute(rusqlite::params![&run_id, &thread_key])
+                    .unwrap();
+                run_stmt.execute([&run_id]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    let full_err = supervisor
+        .submit_managed(request(&system, "blocked-by-active"), &system)
+        .await
+        .unwrap_err();
+    assert!(
+        full_err
+            .to_string()
+            .contains("managed run capacity exceeded"),
+        "expected capacity error when all runs are active, got: {full_err}"
+    );
+
+    // Subcase B: fresh store with 4 protected runs at the oldest sequences + 9,996 settled terminal runs.
+    let dir2 = tempfile::tempdir().unwrap();
+    let (store2, registry2, system2) = setup(dir2.path(), false);
+    let physical2 = store2.path().unwrap();
+    let supervisor2 = RunSupervisor::new(store2.clone());
+    let future_lease_ms = store2.now_ms() + 600_000;
+
+    {
+        let raw = rusqlite::Connection::open(&physical2).unwrap();
+        raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut job_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_jobs(run_id, thread_key, digest, payload, status)
+                     VALUES(?1, ?2, 'd', '{}', ?3)",
+                )
+                .unwrap();
+            let mut run_stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_managed_runs(run_id, digest, payload)
+                     VALUES(?1, 'd', '{}')",
+                )
+                .unwrap();
+            // 1: active running
+            job_stmt
+                .execute(rusqlite::params!["keep-running", "tk-running", "running"])
+                .unwrap();
+            run_stmt.execute(["keep-running"]).unwrap();
+            // 2: closed run that still has an unsettled managed action
+            job_stmt
+                .execute(rusqlite::params![
+                    "keep-pending-action",
+                    "tk-pending-action",
+                    "closed"
+                ])
+                .unwrap();
+            run_stmt.execute(["keep-pending-action"]).unwrap();
+            tx.execute(
+                "INSERT INTO agent_runtime_managed_actions(command_id, run_id, digest, payload, result)
+                 VALUES('unsettled-act', 'keep-pending-action', 'd', '{}', NULL)",
+                [],
+            )
+            .unwrap();
+            // 3: failed run with pending work in its active checkpoint (needs reconciliation)
+            job_stmt
+                .execute(rusqlite::params![
+                    "keep-failed-pending",
+                    "tk-failed-pending",
+                    "failed"
+                ])
+                .unwrap();
+            run_stmt.execute(["keep-failed-pending"]).unwrap();
+            tx.execute(
+                "INSERT INTO agent_runtime_threads(key, active_run) VALUES('tk-failed-pending', 'keep-failed-pending')",
+                [],
+            )
+            .unwrap();
+            let mut pending_state = RunState::default();
+            pending_state.pending_tools.push_back(ToolCall {
+                id: "tc-1".into(),
+                name: "append".into(),
+                arguments: json!({}),
+            });
+            let pending_cp = Checkpoint {
+                version: 1,
+                revision: 1,
+                composition: "c".into(),
+                state: pending_state,
+            };
+            tx.execute(
+                "INSERT INTO agent_runtime_checkpoints(key, revision, payload) VALUES('tk-failed-pending', 1, ?1)",
+                [serde_json::to_string(&pending_cp).unwrap()],
+            )
+            .unwrap();
+            // 4: closed run with active lease on its thread
+            job_stmt
+                .execute(rusqlite::params!["keep-leased", "tk-leased", "closed"])
+                .unwrap();
+            run_stmt.execute(["keep-leased"]).unwrap();
+            tx.execute(
+                "INSERT INTO agent_runtime_leases(key, owner, fence, expires_ms) VALUES('tk-leased', 'w', 1, ?1)",
+                [future_lease_ms as i64],
+            )
+            .unwrap();
+
+            // 5..=10,000: settled terminal runs across closed/cancelled/abandoned/clean failed
+            let statuses = ["closed", "cancelled", "abandoned", "failed"];
+            for i in 0..9_996usize {
+                let run_id = format!("terminal-{i:05}");
+                let thread_key = format!("tk-term-{i:05}");
+                let status = statuses[i % statuses.len()];
+                job_stmt
+                    .execute(rusqlite::params![&run_id, &thread_key, status])
+                    .unwrap();
+                run_stmt.execute([&run_id]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    // Submitting past 10,000 must succeed by pruning the oldest settled batch while preserving all 4 protected runs.
+    let mut fresh = request(&system2, "fresh-after-gc");
+    fresh.thread_id = "fresh-thread".into();
+    supervisor2.submit_managed(fresh, &system2).await.unwrap();
+    let outcome = supervisor2
+        .execute_submitted(&registry2, "fresh-after-gc")
+        .await
+        .unwrap();
+    assert!(matches!(outcome, Some(RunOutcome::Completed { .. })));
+
+    let raw = rusqlite::Connection::open(&physical2).unwrap();
+    raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+    for protected in [
+        "keep-running",
+        "keep-pending-action",
+        "keep-failed-pending",
+        "keep-leased",
+        "fresh-after-gc",
+        "terminal-09995",
+    ] {
+        let exists: bool = raw
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_runs WHERE run_id=?1)",
+                [protected],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(exists, "expected run `{protected}` to survive GC");
+    }
+    let oldest_pruned: bool = raw
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_runs WHERE run_id='terminal-00000')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(!oldest_pruned, "oldest settled terminal run must be pruned");
+    let total: u64 = raw
+        .query_row("SELECT COUNT(*) FROM agent_runtime_managed_runs", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert!(
+        total < 10_000,
+        "rolling GC should reclaim a batch, total={total}"
+    );
+    drop(raw);
+
+    // Rolling submission of 300 more runs past the pruned window must continue seamlessly.
+    for i in 0..300u64 {
+        let mut req = request(&system2, &format!("rolling-{i}"));
+        req.thread_id = format!("rolling-thread-{i}");
+        supervisor2.submit_managed(req, &system2).await.unwrap();
+    }
+    let _ = registry;
+}
+
+#[tokio::test]
+async fn managed_action_capacity_prunes_settled_and_rejects_when_all_pending() {
+    let dir = tempfile::tempdir().unwrap();
+    let (store, registry, system) = setup(dir.path(), true);
+    let physical = store.path().unwrap();
+    let supervisor = RunSupervisor::new(store.clone());
+
+    supervisor
+        .submit_managed(request(&system, "action-cap-run"), &system)
+        .await
+        .unwrap();
+    assert!(matches!(
+        supervisor
+            .execute_submitted(&registry, "action-cap-run")
+            .await
+            .unwrap(),
+        Some(RunOutcome::Paused { .. })
+    ));
+
+    // Seed 32,768 unsettled actions -> enqueue must fail closed.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+        let tx = raw.unchecked_transaction().unwrap();
+        {
+            let mut stmt = tx
+                .prepare(
+                    "INSERT INTO agent_runtime_managed_actions(command_id, run_id, digest, payload, result)
+                     VALUES(?1, 'action-cap-run', 'd', '{}', NULL)",
+                )
+                .unwrap();
+            for i in 0..32_768u64 {
+                stmt.execute([format!("act-{i:05}")]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
+    }
+
+    let err = store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "blocked-action".into(),
+            run_id: "action-cap-run".into(),
+            command: ManagedCommand::Resume,
+        })
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("management command capacity exceeded"),
+        "expected capacity error when all actions are pending, got: {err}"
+    );
+
+    // Settle actions 10..1010 while leaving 0..10 and 1010..32768 unsettled.
+    {
+        let raw = rusqlite::Connection::open(&physical).unwrap();
+        raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+        raw.execute(
+            "UPDATE agent_runtime_managed_actions
+             SET result = '{\"outcome\":null,\"error\":null}'
+             WHERE sequence > 10 AND sequence <= 1010",
+            [],
+        )
+        .unwrap();
+    }
+
+    let admitted = store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "admitted-after-gc".into(),
+            run_id: "action-cap-run".into(),
+            command: ManagedCommand::Resume,
+        })
+        .await
+        .unwrap();
+    assert_eq!(admitted.action.command_id, "admitted-after-gc");
+
+    let raw = rusqlite::Connection::open(&physical).unwrap();
+    raw.busy_timeout(std::time::Duration::from_secs(5)).unwrap();
+    let pending_remaining: u64 = raw
+        .query_row(
+            "SELECT COUNT(*) FROM agent_runtime_managed_actions WHERE result IS NULL",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        pending_remaining,
+        32_768 - 1_000 + 1,
+        "all unsettled actions must remain intact"
+    );
+    let oldest_pending_kept: bool = raw
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE command_id='act-00000')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        oldest_pending_kept,
+        "oldest pending action must never be pruned"
+    );
+    let oldest_settled_pruned: bool = raw
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE command_id='act-00010')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        !oldest_settled_pruned,
+        "oldest settled action must be pruned"
+    );
+}

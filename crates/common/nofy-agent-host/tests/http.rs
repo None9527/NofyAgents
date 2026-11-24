@@ -268,7 +268,16 @@ fn workers_confined() -> bool {
 fn workers_confined_and_observable() -> bool {
     workers_confined() && nofy_test_support::capability::require_program("/proc/self/status")
 }
+fn make_test_state_dir_private(path: &std::path::Path) {
+    let _ = path;
+    #[cfg(unix)]
+    if path.exists() {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+}
 async fn unbound_host(path: &std::path::Path, reads: Arc<AtomicUsize>) -> KernelHost {
+    make_test_state_dir_private(path);
     KernelHost::open(
         path,
         native::registry(Arc::new(Credentials(reads))).unwrap(),

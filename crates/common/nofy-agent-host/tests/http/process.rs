@@ -17,6 +17,7 @@ pub(super) async fn binary_with_executable(
     source: &std::path::Path,
     executable: &std::path::Path,
 ) -> (Serving, tokio::process::Child) {
+    crate::make_test_state_dir_private(directory);
     let access = directory.join("access.json");
     tokio::fs::write(&access,serde_json::to_vec(&json!([{"token_env":"NOFY_KERNEL_TEST_ACCESS","scopes":["read","edit","publish","resources","execute"]}])).unwrap()).await.unwrap();
     let mut child = tokio::process::Command::new(executable)

@@ -6,6 +6,10 @@
 
 | 入口 | 内容 |
 |---|---|
+| [Omni Agent](omni-agent.md) | 默认 `omni@0.1.0` 预设配置、进程内 SDK、`work.*` 编排、上下文压缩与预授权提示词演进 |
+| [Omni 预设说明与提示词](omni-agent-files.md) | `presets/omni/` 目录清单与 `omni_preset` 同源提示词（[omni-agent-prompt.md](omni-agent-prompt.md)） |
+| [Main Agent 可组合仓库](main-agent-repository.md) | `main-agent@0.2.0` 模块组合、`assemble` 声明式装配边界与复现 |
+| [Omni 源码分发](main-agent-distribution.md) | `scripts/package-main-agent.py` 离线白名单打包、清单与完整性校验 |
 | [MCP 装配指南](assembly.md) | 无须框架源码的创建、公开参数、接线、运行与排错 |
 | [交互进程与网络](process-sessions.md) | PTY、终端回执、stdio MCP 和受控代理 |
 | [权限](permissions.md) | 规则、命令分析、审批记忆与撤销 |
@@ -54,7 +58,7 @@ cargo build --locked -p nofy-cli -p nofy-agent-host
   --listen 127.0.0.1:7331
 ```
 
-状态路径和访问配置须使用实际绝对路径；内核访问令牌至少 32 个非空白字节。连接已有实例时不重复占用其地址或状态目录。源码模板由显式 `--preset-dir` 登记；当前登记 `coding@0.1.0` 基线源码模板。pi 的参考提交和复现验收仍独立进行，不能把 coding 改名后宣称 pi 已完成。
+状态路径和访问配置须使用实际绝对路径；内核访问令牌至少 32 个非空白字节。连接已有实例时不重复占用其地址或状态目录。源码模板由显式 `--preset-dir` 登记；`presets/index.json` 当前默认登记 `omni@0.1.0`，同时保留 `coding@0.1.0`、`main-agent@0.1.0` 和 `main-agent@0.2.0`（`presets/main-agent-composable`）供显式选择与版本复现。如需接入统一 12 包模块仓库，也可通过 `--module-dir "nofy=$PWD/modules"` 登记。pi 的参考提交和复现验收仍独立进行，不能把现有预设改名后宣称 pi 已完成。
 
 ## 开发路径
 

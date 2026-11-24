@@ -7,6 +7,7 @@ pub(super) async fn binary(
     directory: &Path,
     source: Option<&Path>,
 ) -> (Serving, tokio::process::Child) {
+    crate::make_test_state_dir_private(directory);
     let access = directory.join("access.json");
     tokio::fs::write(&access, serde_json::to_vec(&json!([{"token_env":"NOFY_LOADER_TEST_ACCESS","scopes":["read","edit","publish","resources","execute"]}])).unwrap()).await.unwrap();
     let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_nofy-agent-host"));

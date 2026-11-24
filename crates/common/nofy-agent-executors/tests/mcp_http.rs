@@ -265,7 +265,7 @@ async fn catalog_drift_and_schema_errors_do_not_grant_or_repeat_remote_effects()
 }
 
 #[tokio::test]
-async fn expired_or_disconnected_calls_never_reinitialize_and_resubmit_the_effect() {
+async fn expired_or_disconnected_calls_never_resubmit_failed_effect_and_recover_on_next_call() {
     for mode in ["expired", "disconnect"] {
         let server = service::server().await;
         let snap = snapshot(&server, config()).await.unwrap();
@@ -275,22 +275,23 @@ async fn expired_or_disconnected_calls_never_reinitialize_and_resubmit_the_effec
                 .await
                 .is_err()
         );
-        assert!(
-            invoke(&snap, json!({"value":1}), ToolCallContext::default())
-                .await
-                .is_err()
-        );
+        // The failed call itself must never be automatically retried or reinitialized.
         assert_eq!(server.state.calls.load(Ordering::SeqCst), 1);
         assert_eq!(server.state.sessions.load(Ordering::SeqCst), 1);
+        // Once the server recovers, a subsequent independent call cleanly reconnects
+        // without leaving the session permanently poisoned.
         server.state.mode("");
-        assert!(snapshot(&server, config()).await.is_ok());
+        let recovered = invoke(&snap, json!({"value":2}), ToolCallContext::default())
+            .await
+            .unwrap();
+        assert_eq!(recovered.value["structuredContent"]["value"], 3);
         assert_eq!(server.state.sessions.load(Ordering::SeqCst), 2);
-        assert_eq!(server.state.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(server.state.calls.load(Ordering::SeqCst), 2);
     }
 }
 
 #[tokio::test]
-async fn cancellation_timeout_and_waiting_call_do_not_repeat_or_leave_an_usable_session() {
+async fn cancellation_and_timeout_never_repeat_failed_call_or_poison_future_calls() {
     for timeout in [false, true] {
         let server = service::server().await;
         let mut configured = config();
@@ -314,7 +315,7 @@ async fn cancellation_timeout_and_waiting_call_do_not_repeat_or_leave_an_usable_
         tokio::time::timeout(Duration::from_secs(2), server.state.entered.cancelled())
             .await
             .unwrap();
-        // A canceled waiter must not obtain the held session or send another call.
+        // A pre-cancelled caller must not send another call.
         let cancelled = CancellationToken::new();
         cancelled.cancel();
         let mut waiting = ToolCallContext::default();
@@ -332,13 +333,125 @@ async fn cancellation_timeout_and_waiting_call_do_not_repeat_or_leave_an_usable_
         );
         wait_count(&server.state.cancellations, 1).await;
         assert_eq!(server.state.calls.load(Ordering::SeqCst), 1);
-        assert!(
-            invoke(&snap, json!({"value":3}), ToolCallContext::default())
-                .await
-                .is_err()
-        );
-        assert_eq!(server.state.calls.load(Ordering::SeqCst), 1);
+        // Subsequent independent calls on the same HTTP session remain usable.
+        server.state.mode("");
+        let next = invoke(&snap, json!({"value":3}), ToolCallContext::default())
+            .await
+            .unwrap();
+        assert_eq!(next.value["structuredContent"]["value"], 4);
+        assert_eq!(server.state.calls.load(Ordering::SeqCst), 2);
     }
+}
+
+#[tokio::test]
+async fn http_session_runs_concurrent_calls_outside_mutex_and_forwards_context_on_close() {
+    #[derive(Clone)]
+    struct RuntimeMarker(String);
+
+    struct ContextCredentials;
+    #[async_trait::async_trait]
+    impl CredentialProvider for ContextCredentials {
+        async fn resolve(&self, _: &str, context: &ToolCallContext) -> Result<String, ToolError> {
+            let marker = context.get::<RuntimeMarker>().ok_or_else(|| {
+                ToolError::custom("credential_unavailable", "missing runtime marker")
+            })?;
+            Ok(marker.0.clone())
+        }
+    }
+
+    let server = service::server().await;
+    *server.state.token.lock().unwrap() = "runtime-scoped-token".into();
+    let factory =
+        HttpResourceFactory::new("runtime-context-authority", Arc::new(ContextCredentials))
+            .unwrap();
+    let connection = factory
+        .build(
+            &json!({"endpoint": &server.url, "credential_ref": "MCP_TOKEN"}),
+            &BTreeMap::new(),
+        )
+        .unwrap();
+    let ModuleInstance::ToolSource(source) = ToolSourceFactory
+        .build(
+            &config(),
+            &BTreeMap::from([("connection".into(), connection)]),
+        )
+        .unwrap()
+    else {
+        panic!("source");
+    };
+    let mut run_ctx = RunContext::new("thread", "concurrent");
+    run_ctx
+        .capabilities
+        .insert(RuntimeMarker("runtime-scoped-token".into()));
+    let snap = source.snapshot(&run_ctx).await.unwrap();
+
+    server.state.mode("concurrent");
+    let mut ctx_a = ToolCallContext::default();
+    ctx_a.insert(RuntimeMarker("runtime-scoped-token".into()));
+    let mut ctx_b = ToolCallContext::default();
+    ctx_b.insert(RuntimeMarker("runtime-scoped-token".into()));
+
+    let (first, second) = tokio::time::timeout(
+        Duration::from_secs(3),
+        futures::future::join(
+            invoke(&snap, json!({"value": 10}), ctx_a),
+            invoke(&snap, json!({"value": 20}), ctx_b),
+        ),
+    )
+    .await
+    .unwrap();
+    assert_eq!(first.unwrap().value["structuredContent"]["value"], 11);
+    assert_eq!(second.unwrap().value["structuredContent"]["value"], 21);
+    assert!(
+        server.state.max_concurrent_calls.load(Ordering::SeqCst) >= 2,
+        "HTTP MCP calls must overlap without holding Mutex<State> across network IO"
+    );
+
+    drop(snap);
+    wait_count(&server.state.closed, 1).await;
+    let close_headers = server.state.close_headers.lock().unwrap();
+    assert_eq!(
+        close_headers[0]
+            .get("authorization")
+            .and_then(|value| value.to_str().ok()),
+        Some("Bearer runtime-scoped-token")
+    );
+}
+
+#[tokio::test]
+async fn mcp_http_blocks_plaintext_remote_credentials_and_private_metadata_ips_by_default() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let factory = HttpResourceFactory::new(
+        "policy-authority",
+        Arc::new(Credentials {
+            calls: counter.clone(),
+            token: Arc::new(Mutex::new("synthetic".into())),
+        }),
+    )
+    .unwrap();
+    for rejected in [
+        json!({"endpoint": "http://example.invalid/mcp", "credential_ref": "MCP_TOKEN"}),
+        json!({"endpoint": "http://169.254.169.254/latest/meta-data"}),
+        json!({"endpoint": "https://10.0.0.1/mcp", "credential_ref": "MCP_TOKEN"}),
+        json!({"endpoint": "https://[fe80::1]/mcp"}),
+    ] {
+        assert!(
+            factory.build(&rejected, &BTreeMap::new()).is_err(),
+            "must reject {rejected}"
+        );
+    }
+    for allowed in [
+        json!({"endpoint": "http://127.0.0.1:8765/mcp", "credential_ref": "MCP_TOKEN"}),
+        json!({"endpoint": "https://example.invalid/mcp", "credential_ref": "MCP_TOKEN"}),
+        json!({"endpoint": "http://example.invalid/mcp", "credential_ref": "MCP_TOKEN", "allow_insecure_http": true}),
+        json!({"endpoint": "https://10.0.0.1/mcp", "credential_ref": "MCP_TOKEN", "allow_private_networks": true}),
+    ] {
+        assert!(
+            factory.build(&allowed, &BTreeMap::new()).is_ok(),
+            "must allow {allowed}"
+        );
+    }
+    assert_eq!(counter.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]

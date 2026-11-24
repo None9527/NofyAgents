@@ -7,6 +7,8 @@ cd "$repository_root"
 cargo fmt --all --check
 python3 scripts/verify-format-blindspots.py
 python3 scripts/verify-doc-claims.py
+python3 scripts/verify-sqlite-journal.py
+python3 scripts/verify-module-sync.py
 cargo check --workspace --all-features --all-targets --locked
 # The nofy-cli integration tests start the real kernel helper, a binary of another
 # package that `cargo test -p nofy-cli` does not build. A clean checkout has none.
@@ -17,6 +19,10 @@ cargo test --locked \
   -p nofy-agent-mcp \
   -p nofy-isolation \
   -p nofy-host-path \
+  -p nofy-durable-fs \
+  -p nofy-private-fs \
+  -p nofy-tty-utils \
+  -p nofy-sqlite-journal \
   -p nofy-cli
 # A real kernel starts and serves the control plane through the command line.
 bash scripts/smoke-kernel.sh
@@ -26,6 +32,7 @@ cargo test --locked -p nofy-agent-host --test http accepted_http_request_survive
 cargo test --locked -p nofy-agent-host --test http session_policy::
 cargo test --locked -p nofy-agent-host --test http credentials::
 python3 -m unittest discover -s presets/coding/tests -p 'test_*.py'
+python3 -m unittest discover -s scripts/tests
 
 # Sandbox acceptance: real namespaces, cgroups and seccomp under a delegated
 # cgroup. It needs a systemd user manager that grants Delegate=yes. Probe that

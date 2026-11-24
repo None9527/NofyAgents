@@ -747,3 +747,508 @@ async fn invalid_commands_and_unknown_journals_cannot_report_a_successful_drain(
     );
     assert_eq!(manager.pending().unwrap(), 1);
 }
+
+#[test]
+fn single_process_isolation_blocks_signal_escapes_and_hides_profile_from_cmdline() {
+    let dir = tempfile::tempdir().unwrap();
+    let private_root = fs::canonicalize(dir.path()).unwrap();
+    let scratch = private_root.join("scratch");
+    fs::create_dir(&scratch).unwrap();
+    let mut read_only = Vec::new();
+    for path in ["/usr", "/lib", "/lib64", "/etc/ld.so.cache"] {
+        let p = Path::new(path);
+        if p.exists() {
+            read_only.push(fs::canonicalize(p).unwrap());
+        }
+    }
+    let profile = json!({
+        "scratch": scratch,
+        "scratch_files": [],
+        "read_only": read_only,
+        "private_root": private_root,
+        "parent_pid": std::process::id(),
+        "cpu_seconds": 5,
+        "environment": {
+            "NOFY_TEST_VAR": "test",
+            "NOFY_REDTEAM_SECRET": "top-secret-value-xyz"
+        }
+    });
+    let wire = profile.to_string();
+
+    // 1. Passing raw Profile JSON on argv[2] must be refused fail-closed.
+    let raw_argv = Command::new(HELPER)
+        .arg(nofy_agent_host::loader::isolation::WORKER_ARG)
+        .arg(&wire)
+        .arg("--probe")
+        .env_clear()
+        .output()
+        .unwrap();
+    assert_eq!(
+        raw_argv.status.code(),
+        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+    );
+    assert!(
+        String::from_utf8_lossy(&raw_argv.stderr).contains(nofy_isolation::RUNNER_FAILURE_MARKER),
+        "{}",
+        String::from_utf8_lossy(&raw_argv.stderr)
+    );
+
+    // 2. Passing Profile via read-only sealed FD delivers environment without leaking
+    // into argv/cmdline, closes the FD before exec, and blocks signal/metadata syscalls.
+    #[cfg(target_arch = "x86_64")]
+    let extra_x86_64: &[i64] = &[libc::SYS_utime, libc::SYS_utimes, libc::SYS_futimesat];
+    #[cfg(not(target_arch = "x86_64"))]
+    let extra_x86_64: &[i64] = &[];
+    let script = format!(
+        r#"import ctypes, errno, hashlib, json, os, signal, sys
+libc = ctypes.CDLL(None, use_errno=True)
+secret = os.environ.get('NOFY_TEST_VAR', '')
+assert hashlib.sha256(secret.encode()).hexdigest() == {expected_hash:?}, secret
+profile_fd = int(sys.argv[1])
+try:
+    os.fstat(profile_fd)
+    raise AssertionError('profile fd leaked into guest')
+except OSError as exc:
+    assert exc.errno == errno.EBADF, exc
+
+def assert_eperm(nr, *args):
+    ctypes.set_errno(0)
+    res = libc.syscall(ctypes.c_long(nr), *(ctypes.c_long(a) for a in args))
+    assert res == -1 and ctypes.get_errno() == errno.EPERM, (nr, res, ctypes.get_errno())
+
+# Construct a siginfo_t buffer with si_code = SI_QUEUE (-1) targeting parent PID.
+siginfo = ctypes.create_string_buffer(128)
+ctypes.memmove(ctypes.addressof(siginfo), ctypes.c_int(signal.SIGKILL).value.to_bytes(4, 'little', signed=True), 4)
+ctypes.memmove(ctypes.addressof(siginfo) + 8, (-1).to_bytes(4, 'little', signed=True), 4)
+ppid = os.getppid()
+assert_eperm({rt_sigqueueinfo}, ppid, signal.SIGKILL, ctypes.addressof(siginfo))
+assert_eperm({rt_tgsigqueueinfo}, ppid, ppid, signal.SIGKILL, ctypes.addressof(siginfo))
+assert_eperm(424, 0, signal.SIGKILL, 0, 0)
+assert_eperm({setpriority}, 0, 0, 10)
+assert_eperm({userfaultfd}, 0)
+for nr in {extra_x86_64:?}:
+    assert_eperm(nr, 0, 0, 0)
+print(json.dumps({{"ok": True}}))
+"#,
+        expected_hash = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        rt_sigqueueinfo = libc::SYS_rt_sigqueueinfo,
+        rt_tgsigqueueinfo = libc::SYS_rt_tgsigqueueinfo,
+        setpriority = libc::SYS_setpriority,
+        userfaultfd = libc::SYS_userfaultfd,
+        extra_x86_64 = extra_x86_64,
+    );
+
+    let mut command = Command::new(HELPER);
+    let profile_arg =
+        nofy_agent_host::loader::isolation::attach_profile_fd(&mut command, wire.as_bytes())
+            .unwrap();
+    let profile_fd: i32 = profile_arg
+        .to_str()
+        .unwrap()
+        .strip_prefix("fd:")
+        .unwrap()
+        .parse()
+        .unwrap();
+    command
+        .arg(nofy_agent_host::loader::isolation::WORKER_ARG)
+        .arg(&profile_arg)
+        .arg("/usr/bin/python3")
+        .args(["-I", "-S", "-c", &script])
+        .arg(profile_fd.to_string())
+        .env_clear();
+    let joined_args: String = command
+        .get_args()
+        .map(|a| a.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(!joined_args.contains("NOFY_REDTEAM_SECRET"));
+    assert!(!joined_args.contains("top-secret-value-xyz"));
+    assert!(!joined_args.contains("parent_pid"));
+    assert!(!joined_args.contains(private_root.to_str().unwrap()));
+
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["ok"], true);
+}
+
+#[test]
+fn pivot_root_failure_is_fail_closed_and_never_falls_back_to_chroot() {
+    use std::os::unix::process::CommandExt;
+    let dir = tempfile::tempdir().unwrap();
+    let private_root = fs::canonicalize(dir.path()).unwrap();
+    let root = private_root.join("loader/scratch/job");
+    let artifact = private_root.join("loader/artifacts/trees/art");
+    let lifecycle = private_root.join("loader/lifecycle");
+    fs::create_dir_all(&root).unwrap();
+    fs::create_dir_all(&artifact).unwrap();
+    fs::create_dir_all(&lifecycle).unwrap();
+    fs::write(lifecycle.join("lease.lock"), b"").unwrap();
+    let marker = private_root.join("must-not-run");
+    let mut local_paths = Vec::new();
+    for (path, execute) in [
+        ("/usr", true),
+        ("/lib", true),
+        ("/lib64", true),
+        ("/etc/ld.so.cache", false),
+    ] {
+        if Path::new(path).exists() {
+            local_paths.push(json!({"path": path, "execute": execute}));
+        }
+    }
+    let wire = json!({
+        "parent_pid": std::process::id(),
+        "program": "/usr/bin/python3",
+        "arguments": ["-I", "-c", format!("open({:?}, 'w').write('escaped')", marker.to_str().unwrap())],
+        "environment": {},
+        "cwd": "/tmp",
+        "sandbox": {
+            "root": root,
+            "runtime": {"kind": "local", "paths": local_paths},
+            "artifact": artifact,
+            "private_root": private_root,
+            "directories": []
+        }
+    })
+    .to_string();
+    let mut command = Command::new(HELPER);
+    command.args(["__nofy_process_tree_v1", &wire]);
+    unsafe {
+        command.pre_exec(|| {
+            let mut filter = [
+                libc::sock_filter {
+                    code: (libc::BPF_LD | libc::BPF_W | libc::BPF_ABS) as u16,
+                    jt: 0,
+                    jf: 0,
+                    k: 0,
+                },
+                libc::sock_filter {
+                    code: (libc::BPF_JMP | libc::BPF_JEQ | libc::BPF_K) as u16,
+                    jt: 0,
+                    jf: 1,
+                    k: libc::SYS_pivot_root as u32,
+                },
+                libc::sock_filter {
+                    code: (libc::BPF_RET | libc::BPF_K) as u16,
+                    jt: 0,
+                    jf: 0,
+                    k: 0x00050000 | libc::EPERM as u32,
+                },
+                libc::sock_filter {
+                    code: (libc::BPF_RET | libc::BPF_K) as u16,
+                    jt: 0,
+                    jf: 0,
+                    k: 0x7fff0000,
+                },
+            ];
+            let program = libc::sock_fprog {
+                len: filter.len() as u16,
+                filter: filter.as_mut_ptr(),
+            };
+            if libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0
+                || libc::prctl(libc::PR_SET_SECCOMP, 2, &program as *const libc::sock_fprog) != 0
+            {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    let output = command.output().unwrap();
+    assert_eq!(output.status.code(), Some(125));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("required tree confinement failed"),
+        "{stderr}"
+    );
+    assert!(!marker.exists());
+}
+
+#[test]
+fn delegated_hardening() {
+    let Ok(work) = std::env::var("NOFY_TREE_HARDENING_WORK") else {
+        return;
+    };
+    let work = PathBuf::from(work);
+    let own = fs::read_to_string("/proc/self/cgroup").unwrap();
+    let unit = Path::new("/sys/fs/cgroup").join(
+        own.lines()
+            .find_map(|l| l.strip_prefix("0::"))
+            .unwrap()
+            .trim_start_matches('/'),
+    );
+    fs::create_dir(unit.join("kernel")).unwrap();
+    fs::write(unit.join("kernel/cgroup.procs"), "0").unwrap();
+    fs::write(unit.join("cgroup.subtree_control"), "+cpu +memory +pids").unwrap();
+    let root = unit.join("jobs");
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join("cgroup.subtree_control"), "+cpu +memory +pids").unwrap();
+    let config = Config {
+        cgroup_root: root,
+        limits: Limits::default(),
+    };
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .thread_stack_size(nofy_agent_host::WORKER_STACK_BYTES)
+        .enable_all()
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        const TOKEN: &str = "hardening-test-access-not-a-real-secret";
+        let auth = Authorizer::new(vec![(
+            TOKEN.into(),
+            [
+                Scope::Read,
+                Scope::Edit,
+                Scope::Publish,
+                Scope::Resources,
+                Scope::Execute,
+            ]
+            .into(),
+        )])
+        .unwrap();
+        let host = KernelHost::open(&work.join("state"), Default::default(), auth)
+            .await
+            .unwrap()
+            .with_loader_helper(Path::new(HELPER))
+            .unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(axum::serve(listener, host.router()).into_future());
+        let stop = CancellationToken::new();
+        let worker_host = host.clone();
+        let worker_stop = stop.clone();
+        let worker = tokio::spawn(async move { worker_host.run_worker(worker_stop, 2).await });
+
+        let project = workspace(&work, "project");
+        fs::create_dir_all(project.join(".git/hooks")).unwrap();
+        fs::create_dir_all(project.join(".vscode")).unwrap();
+        fs::create_dir_all(project.join(".claude/commands")).unwrap();
+        fs::write(project.join(".git/hooks/pre-commit"), b"#!/bin/sh\necho orig\n").unwrap();
+        fs::write(project.join(".git/config"), b"[core]\n\tbare = false\n").unwrap();
+        fs::write(project.join(".bashrc"), b"# orig bashrc\n").unwrap();
+        fs::write(project.join(".vscode/settings.json"), b"{\"safe\":true}\n").unwrap();
+        fs::write(project.join(".mcp.json"), b"{\"mcpServers\":{}}\n").unwrap();
+        fs::write(project.join(".claude/commands/check.md"), b"orig\n").unwrap();
+
+        let local_paths: Vec<Value> = [
+            ("/usr", true),
+            ("/lib", true),
+            ("/lib64", true),
+            ("/etc/ld.so.cache", false),
+        ]
+        .into_iter()
+        .filter(|(p, _)| Path::new(p).exists())
+        .map(|(p, execute)| json!({"path": p, "execute": execute}))
+        .collect();
+
+        let build_doc = |dir: &Path, code: &str| {
+            let r = |id: &str| json!({"id": id, "version": "1"});
+            json!({
+                "schema_version": 1,
+                "name": "hardening-system",
+                "modules": [
+                    {"reference": r("code"), "factory": "resource.artifact", "config": {"bundle": {"schema_version": 1, "files": {"main.py": code}}}},
+                    {"reference": r("env"), "factory": "resource.process_local", "config": {"executable": "/usr/bin/python3", "prefix_args": ["-S", "-s", "-B"], "env": {"PATH": "/usr/bin:/bin"}, "paths": local_paths}},
+                    {"reference": r("limits"), "factory": "resource.process_tree_limits", "config": {"cgroup_root": config.cgroup_root}},
+                    {"reference": r("project"), "factory": "resource.directory", "config": {"path": dir, "access": "read_write"}},
+                    {"reference": r("tool"), "factory": "tool.process_tree_artifact", "config": {"contract": {"name": "probe", "timeout_ms": 30000}, "entrypoint": "main.py", "directories": {"PROJECT": "project"}}, "dependencies": {"environment": r("env"), "artifact": r("code"), "tree": r("limits"), "project": r("project")}}
+                ],
+                "programs": {
+                    "probe": {
+                        "kind": "tool",
+                        "definition": {"name": "probe", "tool_packs": [r("tool")]},
+                        "call": {"id": "probe", "name": "probe", "arguments": {}}
+                    }
+                }
+            })
+        };
+
+        let run_doc = |base: String, doc: Value, id: String| async move {
+            let client = reqwest::Client::new();
+            let imported: Value = client
+                .post(format!("{base}/api/v1/import"))
+                .bearer_auth(TOKEN)
+                .json(&doc)
+                .send()
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            let release = imported["bundle"]["digest"].clone();
+            let submit = client
+                .post(format!("{base}/api/v1/runs"))
+                .bearer_auth(TOKEN)
+                .json(&json!({"run_id": id, "thread_id": id, "system": "hardening-system", "release": release, "program": "probe"}))
+                .send()
+                .await
+                .unwrap();
+            assert!(submit.status().is_success());
+            tokio::time::timeout(Duration::from_secs(30), async {
+                loop {
+                    let record: Value = client
+                        .get(format!("{base}/api/v1/runs/{id}"))
+                        .bearer_auth(TOKEN)
+                        .send()
+                        .await
+                        .unwrap()
+                        .json()
+                        .await
+                        .unwrap();
+                    if record["execution"]["status"].as_str().is_some_and(|s| {
+                        matches!(s, "completed" | "failed" | "cancelled" | "uncertain" | "paused")
+                    }) && matches!(
+                        record["run"]["status"].as_str(),
+                        Some("waiting" | "closed" | "cancelled" | "abandoned")
+                    ) {
+                        return record;
+                    }
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            })
+            .await
+            .unwrap()
+        };
+
+        let probe_code = format!(
+            r#"import ctypes, errno, json, os
+from pathlib import Path
+root = Path(os.environ['NOFY_DIRECTORY_PROJECT'])
+def refused(fn):
+    try:
+        fn()
+        return False
+    except OSError:
+        return True
+
+# Normal file in writable project succeeds.
+(root / 'allowed.txt').write_text('ok')
+
+# Existing MANDATORY_PROTECTED files and dirs are read-only and cannot be overwritten/removed/renamed.
+for rel in ['.git/config', '.bashrc', '.mcp.json']:
+    p = root / rel
+    assert p.read_text(), rel
+    assert refused(lambda p=p: p.write_text('pwned')), f'write {{rel}}'
+    assert refused(lambda p=p: p.unlink()), f'unlink {{rel}}'
+    assert refused(lambda p=p: p.rename(root / (p.name + '.moved'))), f'rename {{rel}}'
+for rel, child in [('.git/hooks', 'post-checkout'), ('.vscode', 'tasks.json'), ('.claude/commands', 'evil.md')]:
+    d = root / rel
+    assert refused(lambda d=d, c=child: (d / c).write_text('pwned')), f'create {{rel}}/{{child}}'
+    assert refused(lambda d=d: d.rmdir()), f'rmdir {{rel}}'
+assert refused(lambda: (root / '.git/hooks/pre-commit').write_text('pwned'))
+
+# Seccomp denies metadata/fallocate/userfaultfd syscalls even on writable files.
+libc = ctypes.CDLL(None, use_errno=True)
+def assert_eperm(nr, *args):
+    ctypes.set_errno(0)
+    res = libc.syscall(ctypes.c_long(nr), *(ctypes.c_long(a) for a in args))
+    assert res == -1 and ctypes.get_errno() == errno.EPERM, (nr, res, ctypes.get_errno())
+
+fd = os.open('/tmp/meta-test', os.O_CREAT | os.O_RDWR, 0o600)
+path_b = ctypes.create_string_buffer(b'/tmp/meta-test')
+attr_b = ctypes.create_string_buffer(b'user.nofy')
+val_b = ctypes.create_string_buffer(b'1')
+assert_eperm({fchmod}, fd, 0o777)
+assert_eperm({fchmodat}, -100, ctypes.addressof(path_b), 0o777, 0)
+assert_eperm(452, -100, ctypes.addressof(path_b), 0o777, 0)
+assert_eperm({setxattr}, ctypes.addressof(path_b), ctypes.addressof(attr_b), ctypes.addressof(val_b), 1, 0)
+assert_eperm({lsetxattr}, ctypes.addressof(path_b), ctypes.addressof(attr_b), ctypes.addressof(val_b), 1, 0)
+assert_eperm({fsetxattr}, fd, ctypes.addressof(attr_b), ctypes.addressof(val_b), 1, 0)
+assert_eperm({removexattr}, ctypes.addressof(path_b), ctypes.addressof(attr_b))
+assert_eperm({lremovexattr}, ctypes.addressof(path_b), ctypes.addressof(attr_b))
+assert_eperm({fremovexattr}, fd, ctypes.addressof(attr_b))
+assert_eperm(463, -100, ctypes.addressof(path_b), 0, ctypes.addressof(attr_b), 0, 0)
+assert_eperm(466, -100, ctypes.addressof(path_b), 0, ctypes.addressof(attr_b), 0)
+assert_eperm({fallocate}, fd, 0, 0, 4096)
+assert_eperm({userfaultfd}, 0)
+os.close(fd)
+print(json.dumps({{"hardened": True}}))
+"#,
+            fchmod = libc::SYS_fchmod,
+            fchmodat = libc::SYS_fchmodat,
+            setxattr = libc::SYS_setxattr,
+            lsetxattr = libc::SYS_lsetxattr,
+            fsetxattr = libc::SYS_fsetxattr,
+            removexattr = libc::SYS_removexattr,
+            lremovexattr = libc::SYS_lremovexattr,
+            fremovexattr = libc::SYS_fremovexattr,
+            fallocate = libc::SYS_fallocate,
+            userfaultfd = libc::SYS_userfaultfd,
+        );
+
+        let record = run_doc(base.clone(), build_doc(&project, &probe_code), "hardening-main".into()).await;
+        assert_eq!(record["execution"]["status"], "completed", "{record}");
+        let raw_out: Value = serde_json::from_str(
+            record["execution"]["outcome"]["Completed"]["output"]
+                .as_str()
+                .unwrap(),
+        )
+        .unwrap();
+        let out = raw_out.get("value").cloned().unwrap_or(raw_out);
+        assert_eq!(out["hardened"], true, "{out}");
+        assert_eq!(fs::read(project.join("allowed.txt")).unwrap(), b"ok");
+        assert_eq!(fs::read(project.join(".bashrc")).unwrap(), b"# orig bashrc\n");
+        assert_eq!(fs::read(project.join(".git/config")).unwrap(), b"[core]\n\tbare = false\n");
+        assert!(!project.join(".git/hooks/post-checkout").exists());
+        idle(&host.loader().process_trees).await;
+
+        // A symlink at a MANDATORY_PROTECTED path must fail closed without executing the guest.
+        let symlink_project = workspace(&work, "symlink-project");
+        let outside = work.join("outside-target");
+        fs::write(&outside, b"host-secret").unwrap();
+        std::os::unix::fs::symlink(&outside, symlink_project.join(".bashrc")).unwrap();
+        let bad_code = "import os\nfrom pathlib import Path\nPath(os.environ['NOFY_DIRECTORY_PROJECT'], 'ran').write_text('bad')\nprint('{}')\n";
+        let failed = run_doc(base.clone(), build_doc(&symlink_project, bad_code), "hardening-symlink".into()).await;
+        assert!(
+            failed["execution"].to_string().contains("required tree confinement failed"),
+            "{failed}"
+        );
+        assert!(!symlink_project.join("ran").exists());
+        idle(&host.loader().process_trees).await;
+
+        host.shutdown();
+        stop.cancel();
+        worker.await.unwrap().unwrap();
+        server.abort();
+        fs::write(work.join("hardening-passed.json"), b"{\"passed\":true}").unwrap();
+    });
+}
+
+#[test]
+fn real_process_tree_hardening_runs_in_separate_delegation() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = Command::new("systemd-run")
+        .args([
+            "--user",
+            "--wait",
+            "--pipe",
+            "--collect",
+            "--quiet",
+            "--property",
+            "Delegate=yes",
+            "--setenv",
+        ])
+        .arg(format!(
+            "NOFY_TREE_HARDENING_WORK={}",
+            directory.path().display()
+        ))
+        .arg(std::env::current_exe().unwrap())
+        .args(["--exact", "delegated_hardening", "--nocapture"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read(directory.path().join("hardening-passed.json")).unwrap(),
+        b"{\"passed\":true}"
+    );
+}

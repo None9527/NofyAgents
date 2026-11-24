@@ -278,10 +278,15 @@ mod windows {
         if path.contains('/') {
             return Err(PathError::ForeignSeparator);
         }
-        if parsed.kind == Prefix::Unc {
+        let unc_share = match parsed.kind {
+            Prefix::Unc => Some(&parsed.prefix[2..]),
+            Prefix::VerbatimUnc => Some(&parsed.prefix[8..]),
+            _ => None,
+        };
+        if let Some(share) = unc_share {
             // The share's server and name are held to the character rules only:
             // host names legitimately end in a dot or contain spaces.
-            for part in parsed.prefix[2..].split('\\') {
+            for part in share.split('\\') {
                 name_check(part)?;
             }
         }
@@ -567,10 +572,22 @@ mod tests {
             ),
             (r"\\server", PathError::NotAbsolute),
             (r"\\server\share\a\..\b", PathError::NotNormalized),
+            (r"\\?\UNC\ser:ver\share\dir", PathError::ForbiddenCharacter),
+            (r"\\?\UNC\server\sh*are\dir", PathError::ForbiddenCharacter),
+            (r"\\?\UNC\ser<ver\share\dir", PathError::ForbiddenCharacter),
+            (r"\\?\UNC\server\sh?are\dir", PathError::ForbiddenCharacter),
+            (r"\\?\unc\server\sh|are\dir", PathError::ForbiddenCharacter),
+            (
+                "\\\\?\\UNC\\ser\"ver\\share\\dir",
+                PathError::ForbiddenCharacter,
+            ),
+            (r"\\?\UNC\server\share\a\..\b", PathError::NotNormalized),
         ];
         for (path, reason) in cases {
             assert_eq!(windows(path), Err(reason), "{path}");
         }
+        // Verbatim UNC shares still permit FQDN trailing dots and spaces, matching plain UNC.
+        assert_eq!(windows(r"\\?\UNC\server.example.\my share\dir"), Ok(()));
         assert_eq!(
             Syntax::Windows.check_normalized_absolute(r"C:\abcd", 5),
             Err(PathError::TooLong)

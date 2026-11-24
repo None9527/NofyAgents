@@ -33,9 +33,9 @@ pub struct PrivateDirGuard {
 /// one already is. Missing parents are created with default permissions; the
 /// directory itself is the boundary.
 ///
-/// On Unix an existing directory is left as it is, so state created before this
-/// check existed keeps working. On Windows an existing directory must pass the
-/// check.
+/// An existing path is checked, never repaired: symbolic links, non-owner
+/// directories, and directories accessible to group/others are refused on both
+/// Unix and Windows.
 pub fn ensure_private_dir(path: &Path) -> io::Result<PrivateDirGuard> {
     #[cfg(unix)]
     {
@@ -46,12 +46,20 @@ pub fn ensure_private_dir(path: &Path) -> io::Result<PrivateDirGuard> {
         match std::fs::DirBuilder::new().mode(0o700).create(path) {
             Ok(()) => {}
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if !std::fs::metadata(path)?.is_dir() {
+                let metadata = std::fs::symlink_metadata(path)?;
+                if metadata.file_type().is_symlink() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "state path is a symbolic link",
+                    ));
+                }
+                if !metadata.is_dir() {
                     return Err(io::Error::new(
                         io::ErrorKind::AlreadyExists,
                         "state path exists and is not a directory",
                     ));
                 }
+                verify_private_dir_metadata(&metadata)?;
             }
             Err(error) => return Err(error),
         }
@@ -63,28 +71,91 @@ pub fn ensure_private_dir(path: &Path) -> io::Result<PrivateDirGuard> {
     }
 }
 
+#[cfg(unix)]
+fn current_euid() -> u32 {
+    // SAFETY: POSIX `geteuid` takes no arguments, cannot fail, and returns
+    // the effective user ID of the calling process as `u32`.
+    unsafe extern "C" {
+        fn geteuid() -> u32;
+    }
+    // SAFETY: `geteuid` has no preconditions and cannot fail.
+    unsafe { geteuid() }
+}
+
+#[cfg(unix)]
+fn verify_private_file_metadata(metadata: &std::fs::Metadata) -> io::Result<()> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "not a regular file",
+        ));
+    }
+    if metadata.uid() != current_euid() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "file is not owned by the current user",
+        ));
+    }
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "file is accessible to group or others",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn verify_private_dir_metadata(metadata: &std::fs::Metadata) -> io::Result<()> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "not a directory",
+        ));
+    }
+    if metadata.uid() != current_euid() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "directory is not owned by the current user",
+        ));
+    }
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "directory is accessible to group or others",
+        ));
+    }
+    Ok(())
+}
+
 /// Fail unless `path`, a file, is closed to everyone but its owner.
 pub fn verify_private_file(path: &Path) -> io::Result<()> {
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         let metadata = std::fs::symlink_metadata(path)?;
-        if !metadata.is_file() {
-            return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "not a regular file",
-            ));
-        }
-        if metadata.permissions().mode() & 0o077 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "file is accessible to group or others",
-            ));
-        }
-        Ok(())
+        verify_private_file_metadata(&metadata)
     }
     #[cfg(windows)]
     {
+        windows::verify_private(path, false).map(|_handle| ())
+    }
+}
+
+/// Fail unless an already-opened regular file handle is closed to everyone but
+/// its owner. On Unix this checks the open descriptor directly via `fstat`,
+/// avoiding a path TOCTOU window after `open_no_follow`.
+pub fn verify_private_open_file(file: &std::fs::File, path: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        let _ = path;
+        let metadata = file.metadata()?;
+        verify_private_file_metadata(&metadata)
+    }
+    #[cfg(windows)]
+    {
+        let _ = file;
         windows::verify_private(path, false).map(|_handle| ())
     }
 }
@@ -93,20 +164,8 @@ pub fn verify_private_file(path: &Path) -> io::Result<()> {
 pub fn verify_private_dir(path: &Path) -> io::Result<PrivateDirGuard> {
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         let metadata = std::fs::symlink_metadata(path)?;
-        if !metadata.is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "not a directory",
-            ));
-        }
-        if metadata.permissions().mode() & 0o077 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "directory is accessible to group or others",
-            ));
-        }
+        verify_private_dir_metadata(&metadata)?;
         Ok(PrivateDirGuard {})
     }
     #[cfg(windows)]
@@ -179,12 +238,84 @@ mod tests {
             verify_private_dir(&path).unwrap_err().kind(),
             io::ErrorKind::PermissionDenied
         );
-        // An existing one is left alone by ensure, as before this check existed.
-        ensure_private_dir(&path).unwrap();
+        // Existing overly permissive directories are refused, never silently repaired.
+        assert_eq!(
+            ensure_private_dir(&path).unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
         assert_eq!(
             std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
             0o755
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_is_refused_by_ensure_and_verify() {
+        let parent = tempfile::tempdir().unwrap();
+        let real_dir = parent.path().join("real");
+        ensure_private_dir(&real_dir).unwrap();
+        let dir_link = parent.path().join("dir-link");
+        std::os::unix::fs::symlink(&real_dir, &dir_link).unwrap();
+        assert_eq!(
+            ensure_private_dir(&dir_link).unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
+        assert_eq!(
+            verify_private_dir(&dir_link).unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
+
+        let real_file = real_dir.join("secret");
+        std::fs::write(&real_file, b"ok").unwrap();
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&real_file, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        let file_link = parent.path().join("file-link");
+        std::os::unix::fs::symlink(&real_file, &file_link).unwrap();
+        assert_eq!(
+            verify_private_file(&file_link).unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn verify_private_open_file_checks_the_open_descriptor() {
+        use std::os::unix::fs::PermissionsExt;
+        let parent = tempfile::tempdir().unwrap();
+        let file_path = parent.path().join("secret");
+        std::fs::write(&file_path, b"x").unwrap();
+        std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let open = std::fs::File::open(&file_path).unwrap();
+        assert_eq!(
+            verify_private_open_file(&open, &file_path)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::PermissionDenied
+        );
+        std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        verify_private_open_file(&open, &file_path).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn foreign_owner_directory_is_refused() {
+        use std::os::unix::fs::MetadataExt;
+        let root = Path::new("/");
+        if let Ok(meta) = std::fs::symlink_metadata(root)
+            && meta.uid() != current_euid()
+        {
+            assert_eq!(
+                verify_private_dir(root).unwrap_err().kind(),
+                io::ErrorKind::PermissionDenied
+            );
+            assert_eq!(
+                ensure_private_dir(root).unwrap_err().kind(),
+                io::ErrorKind::PermissionDenied
+            );
+        }
     }
 
     #[cfg(unix)]

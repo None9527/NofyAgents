@@ -1390,3 +1390,679 @@ async fn control_tree_records_human_branch_join_subworkflow_and_iteration_withou
         snapshot
     );
 }
+
+#[tokio::test]
+async fn corrupted_checkpoint_with_unknown_node_fails_closed_without_abort() {
+    let registry = ModuleRegistry::default();
+    let store: Arc<dyn Checkpointer> = Arc::new(InMemoryCheckpointer::default());
+    let flow = compiled(
+        document(vec![spec(
+            "main",
+            vec![node(
+                "step",
+                &[],
+                value(json!("ok")),
+                json!({"kind":"transform"}),
+            )],
+            output("step", ""),
+        )]),
+        &registry,
+    )
+    .with_checkpointer(store.clone());
+
+    let reference = r("main");
+    let ctx = context();
+    let key =
+        serde_json::to_string(&("workflow-graph-v1", &ctx.thread_id, &ctx.run_id, &reference))
+            .unwrap();
+    let corrupt = WorkflowProgress {
+        version: 1,
+        run_id: ctx.run_id.clone(),
+        reference: reference.clone(),
+        input: json!({}),
+        nodes: BTreeMap::from([(
+            "ghost-node".into(),
+            NodeProgress::Running {
+                attempt: 0,
+                input: json!({}),
+            },
+        )]),
+        output: None,
+        facts: Default::default(),
+        started: true,
+        human: BTreeMap::new(),
+        halted: None,
+        control_epoch: 0,
+        recovering: None,
+    };
+    store
+        .save(
+            &key,
+            None,
+            Checkpoint {
+                version: 1,
+                revision: 1,
+                composition: flow.identity().into(),
+                state: RunState {
+                    data: serde_json::to_value(&corrupt).unwrap(),
+                    ..Default::default()
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        flow.inspect(store.as_ref(), &ctx.thread_id, &ctx.run_id, &reference)
+            .await,
+        Err(Error::Checkpoint(_))
+    ));
+    assert!(matches!(
+        flow.invoke(json!({}), RunInput::resume(), ctx).await,
+        Err(Error::Checkpoint(_))
+    ));
+}
+
+#[cfg(feature = "sqlite")]
+struct CoordinatedSibling {
+    calls: Arc<AtomicUsize>,
+    started: Arc<tokio::sync::Notify>,
+    release: Arc<tokio::sync::Notify>,
+    aborted: Arc<std::sync::atomic::AtomicBool>,
+}
+
+#[cfg(feature = "sqlite")]
+impl Tool for CoordinatedSibling {
+    type Args = Value;
+    type Output = Value;
+    fn id(&self) -> nofy_tool_protocol::ToolId {
+        nofy_tool_protocol::ToolId::new("sibling").unwrap()
+    }
+    fn description(&self, _: &nofy_tool_runtime::ListToolsContext) -> ToolDescription {
+        ToolDescription::new(
+            "sibling",
+            "Wait until released without being cancelled by peer pause",
+        )
+    }
+    async fn run(
+        &self,
+        _: ToolCallContext,
+        args: Value,
+    ) -> Result<Value, nofy_tool_runtime::ToolError> {
+        struct DropGuard {
+            aborted: Arc<std::sync::atomic::AtomicBool>,
+            completed: bool,
+        }
+        impl Drop for DropGuard {
+            fn drop(&mut self) {
+                if !self.completed {
+                    self.aborted.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let mut guard = DropGuard {
+            aborted: self.aborted.clone(),
+            completed: false,
+        };
+        self.started.notify_one();
+        self.release.notified().await;
+        guard.completed = true;
+        Ok(args)
+    }
+}
+
+#[tokio::test]
+#[cfg(feature = "sqlite")]
+async fn parallel_peer_pause_preserves_running_sibling_and_completes_without_duplicate_effect() {
+    use nofy_agent_runtime::{
+        durable::SqliteStore,
+        supervisor::{DurableApprovalPolicy, RunSupervisor, jobs::*},
+        system::*,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let store = SqliteStore::open(&dir.path().join("runtime.sqlite")).unwrap();
+    let gated_calls = Arc::new(AtomicUsize::new(0));
+    let sibling_calls = Arc::new(AtomicUsize::new(0));
+    let sibling_started = Arc::new(tokio::sync::Notify::new());
+    let sibling_release = Arc::new(tokio::sync::Notify::new());
+    let sibling_aborted = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+    let mut gated_catalog = ToolCatalog::new();
+    gated_catalog
+        .insert(ToolEntry::typed(Effect {
+            count: gated_calls.clone(),
+            fail: 0,
+        }))
+        .unwrap();
+    let mut sibling_catalog = ToolCatalog::new();
+    sibling_catalog
+        .insert(ToolEntry::typed(CoordinatedSibling {
+            calls: sibling_calls.clone(),
+            started: sibling_started.clone(),
+            release: sibling_release.clone(),
+            aborted: sibling_aborted.clone(),
+        }))
+        .unwrap();
+
+    let mut registry = ModuleRegistry::default();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "tool.gated",
+            "1",
+            ModuleInstance::ToolPack(gated_catalog),
+        )))
+        .unwrap();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "tool.sibling",
+            "1",
+            ModuleInstance::ToolPack(sibling_catalog),
+        )))
+        .unwrap();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "policy.approval",
+            "1",
+            ModuleInstance::Policy(Arc::new(DurableApprovalPolicy::new(store.clone()))),
+        )))
+        .unwrap();
+
+    let doc: SystemDocument = serde_json::from_value(json!({
+        "schema_version": 1,
+        "name": "parallel-pause-system",
+        "modules": [
+            {"reference": r("gated-pack"), "factory": "tool.gated", "config": {}},
+            {"reference": r("sibling-pack"), "factory": "tool.sibling", "config": {}},
+            {"reference": r("approval"), "factory": "policy.approval", "config": {}}
+        ],
+        "programs": {
+            "parallel": {
+                "kind": "workflow",
+                "input": {},
+                "document": {
+                    "host": {"name": "parallel-host"},
+                    "entry": r("main"),
+                    "tool_runtimes": [
+                        {
+                            "reference": r("gated-rt"),
+                            "definition": {
+                                "name": "gated-rt",
+                                "tool_packs": [r("gated-pack")],
+                                "policies": [r("approval")]
+                            }
+                        },
+                        {
+                            "reference": r("sibling-rt"),
+                            "definition": {
+                                "name": "sibling-rt",
+                                "tool_packs": [r("sibling-pack")]
+                            }
+                        }
+                    ],
+                    "workflows": [{
+                        "reference": r("main"),
+                        "input_schema": true,
+                        "output_schema": true,
+                        "parallelism": 2,
+                        "nodes": [
+                            {
+                                "id": "gated",
+                                "needs": [],
+                                "input": {"from": "literal", "value": {"branch": "a"}},
+                                "action": {"kind": "tool", "runtime": r("gated-rt"), "tool": "effect"}
+                            },
+                            {
+                                "id": "sibling",
+                                "needs": [],
+                                "input": {"from": "literal", "value": {"branch": "b"}},
+                                "action": {"kind": "tool", "runtime": r("sibling-rt"), "tool": "sibling"}
+                            },
+                            {
+                                "id": "join",
+                                "needs": ["gated", "sibling"],
+                                "input": {
+                                    "from": "object",
+                                    "fields": {
+                                        "a": {"from": "node", "node": "gated", "pointer": ""},
+                                        "b": {"from": "node", "node": "sibling", "pointer": ""}
+                                    }
+                                },
+                                "action": {"kind": "join"}
+                            }
+                        ],
+                        "output": {"from": "node", "node": "join", "pointer": ""}
+                    }]
+                }
+            }
+        }
+    }))
+    .unwrap();
+    let system = compile_system(doc, &registry).unwrap();
+    let supervisor = RunSupervisor::new(store.clone());
+    supervisor
+        .submit_managed(
+            ManagedRunRequest {
+                approval_mode: None,
+                run_id: "parallel-pause".into(),
+                thread_id: "thread".into(),
+                system: "parallel-pause-system".into(),
+                release: system.bundle.digest.clone(),
+                program: "parallel".into(),
+                input: None,
+                parameters: None,
+            },
+            &system,
+        )
+        .await
+        .unwrap();
+
+    let worker = {
+        let store = store.clone();
+        let registry = registry.clone();
+        tokio::spawn(async move {
+            RunSupervisor::new(store)
+                .execute_submitted(&registry, "parallel-pause")
+                .await
+        })
+    };
+
+    tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        sibling_started.notified(),
+    )
+    .await
+    .unwrap();
+    let approval = tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        loop {
+            let pending = store.pending_approvals("parallel-pause").await.unwrap();
+            if let Some(request) = pending.into_iter().next() {
+                break request;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+
+    // Give the graph loop time to observe node `gated` pausing while `sibling` is still running.
+    tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        loop {
+            let children = store.children("parallel-pause").await.unwrap();
+            if children.iter().any(|c| {
+                c.node_id.as_deref() == Some("gated")
+                    && c.kind.as_deref() == Some("workflow_tool")
+                    && c.status == "waiting"
+            }) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+
+    // Node `gated` pausing must NOT kill or cancel the still-running sibling.
+    assert!(!sibling_aborted.load(Ordering::SeqCst));
+    let mid_page = store
+        .work_list("parallel-pause", None, 64)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        mid_page
+            .items
+            .iter()
+            .all(|item| item.status != "cancelled" && item.native_status != "cancelled"),
+        "running sibling must never be marked cancelled while peer pauses: {:?}",
+        mid_page
+            .items
+            .iter()
+            .map(|i| (&i.node_id, &i.kind, &i.status, &i.native_status))
+            .collect::<Vec<_>>()
+    );
+
+    // Let sibling finish naturally; workflow should settle in Paused with zero cancelled items.
+    sibling_release.notify_one();
+    let paused = tokio::time::timeout(std::time::Duration::from_secs(3), worker)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(matches!(paused, Some(RunOutcome::Paused { .. })));
+    assert!(!sibling_aborted.load(Ordering::SeqCst));
+    assert_eq!(sibling_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(gated_calls.load(Ordering::SeqCst), 0);
+
+    let paused_children = store.children("parallel-pause").await.unwrap();
+    assert!(
+        paused_children.iter().all(|c| c.status != "cancelled"),
+        "paused workflow must not record cancelled children: {paused_children:?}"
+    );
+    let paused_page = store
+        .work_list("parallel-pause", None, 64)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(paused_page.root.status, "waiting");
+    assert!(
+        paused_page
+            .items
+            .iter()
+            .all(|item| item.status != "cancelled" && item.native_status != "cancelled"),
+        "work.list must not report cancelled items during peer pause"
+    );
+    assert!(
+        paused_page
+            .items
+            .iter()
+            .any(|item| item.node_id.as_deref() == Some("gated") && item.status == "waiting")
+    );
+    assert!(
+        paused_page
+            .items
+            .iter()
+            .any(|item| item.node_id.as_deref() == Some("sibling") && item.status == "completed")
+    );
+
+    // Approve `gated` and resume: DAG converges to Completed without repeating `sibling`.
+    store.decide(&approval, true).await.unwrap();
+    store
+        .enqueue_managed_action(ManagedAction {
+            command_id: "resume-parallel".into(),
+            run_id: "parallel-pause".into(),
+            command: ManagedCommand::Resume,
+        })
+        .await
+        .unwrap();
+    let resumed = supervisor
+        .execute_managed_action(&registry, "resume-parallel")
+        .await
+        .unwrap();
+    assert!(resumed.finished && resumed.error.is_none(), "{resumed:?}");
+    let Some(outcome) = resumed.outcome else {
+        panic!("expected completed outcome after approval");
+    };
+    assert_eq!(
+        result(outcome),
+        json!({"a": {"branch": "a"}, "b": {"branch": "b"}})
+    );
+    assert_eq!(gated_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(sibling_calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+#[cfg(feature = "sqlite")]
+async fn external_cancel_immediately_cancels_parallel_batch_and_marks_children_cancelled() {
+    use nofy_agent_runtime::{durable::SqliteStore, supervisor::RunSupervisor, system::*};
+    let dir = tempfile::tempdir().unwrap();
+    let store = SqliteStore::open(&dir.path().join("runtime.sqlite")).unwrap();
+    let started_a = Arc::new(tokio::sync::Notify::new());
+    let started_b = Arc::new(tokio::sync::Notify::new());
+    let release_a = Arc::new(tokio::sync::Notify::new());
+    let release_b = Arc::new(tokio::sync::Notify::new());
+    let aborted_a = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let aborted_b = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+    let mut catalog_a = ToolCatalog::new();
+    catalog_a
+        .insert(ToolEntry::typed(CoordinatedSibling {
+            calls: Arc::new(AtomicUsize::new(0)),
+            started: started_a.clone(),
+            release: release_a,
+            aborted: aborted_a.clone(),
+        }))
+        .unwrap();
+    let mut catalog_b = ToolCatalog::new();
+    catalog_b
+        .insert(ToolEntry::typed(CoordinatedSibling {
+            calls: Arc::new(AtomicUsize::new(0)),
+            started: started_b.clone(),
+            release: release_b,
+            aborted: aborted_b.clone(),
+        }))
+        .unwrap();
+
+    let mut registry = ModuleRegistry::default();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "tool.a",
+            "1",
+            ModuleInstance::ToolPack(catalog_a),
+        )))
+        .unwrap();
+    registry
+        .register_factory(Arc::new(InstanceFactory::new(
+            "tool.b",
+            "1",
+            ModuleInstance::ToolPack(catalog_b),
+        )))
+        .unwrap();
+
+    let doc: SystemDocument = serde_json::from_value(json!({
+        "schema_version": 1,
+        "name": "parallel-cancel-system",
+        "modules": [
+            {"reference": r("pack-a"), "factory": "tool.a", "config": {}},
+            {"reference": r("pack-b"), "factory": "tool.b", "config": {}}
+        ],
+        "programs": {
+            "parallel": {
+                "kind": "workflow",
+                "input": {},
+                "document": {
+                    "host": {"name": "cancel-host"},
+                    "entry": r("main"),
+                    "tool_runtimes": [
+                        {"reference": r("rt-a"), "definition": {"name": "rt-a", "tool_packs": [r("pack-a")]}},
+                        {"reference": r("rt-b"), "definition": {"name": "rt-b", "tool_packs": [r("pack-b")]}}
+                    ],
+                    "workflows": [{
+                        "reference": r("main"),
+                        "input_schema": true,
+                        "output_schema": true,
+                        "parallelism": 2,
+                        "nodes": [
+                            {
+                                "id": "node_a",
+                                "needs": [],
+                                "input": {"from": "literal", "value": {"n": "a"}},
+                                "action": {"kind": "tool", "runtime": r("rt-a"), "tool": "sibling"}
+                            },
+                            {
+                                "id": "node_b",
+                                "needs": [],
+                                "input": {"from": "literal", "value": {"n": "b"}},
+                                "action": {"kind": "tool", "runtime": r("rt-b"), "tool": "sibling"}
+                            },
+                            {
+                                "id": "join",
+                                "needs": ["node_a", "node_b"],
+                                "input": {"from": "literal", "value": true},
+                                "action": {"kind": "join"}
+                            }
+                        ],
+                        "output": {"from": "node", "node": "join", "pointer": ""}
+                    }]
+                }
+            }
+        }
+    }))
+    .unwrap();
+    let system = compile_system(doc, &registry).unwrap();
+    let run_ctx = RunContext::new("cancel-thread", "cancel-root");
+    let external_cancel = run_ctx.cancel.clone();
+
+    let worker = {
+        let store = store.clone();
+        tokio::spawn(async move {
+            let program = system.program("parallel").unwrap();
+            RunSupervisor::new(store)
+                .execute_program(program, RunInput::default(), run_ctx)
+                .await
+        })
+    };
+
+    tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        tokio::join!(started_a.notified(), started_b.notified());
+    })
+    .await
+    .unwrap();
+
+    // True external cancellation immediately stops both siblings and returns Cancelled.
+    external_cancel.cancel();
+    let outcome = tokio::time::timeout(std::time::Duration::from_secs(3), worker)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(
+        matches!(outcome, RunOutcome::Cancelled { .. }),
+        "{outcome:?}"
+    );
+    assert!(aborted_a.load(Ordering::SeqCst));
+    assert!(aborted_b.load(Ordering::SeqCst));
+}
+
+#[tokio::test]
+#[cfg(feature = "sqlite")]
+async fn targeted_child_cancel_marks_only_target_cancelled_and_peer_waiting() {
+    use nofy_agent_runtime::{
+        durable::SqliteStore,
+        mailbox::{InputAddress, MailboxSender},
+        supervisor::RunSupervisor,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let store = SqliteStore::open(&dir.path().join("runtime.sqlite")).unwrap();
+    let mut registry = ModuleRegistry::default();
+    let started_a = Arc::new(tokio::sync::Notify::new());
+    let started_b = Arc::new(tokio::sync::Notify::new());
+    let model_a = install(
+        &mut registry,
+        "wait-a",
+        ModuleInstance::Model(Arc::new(WaitingModel(started_a.clone()))),
+    );
+    let model_b = install(
+        &mut registry,
+        "wait-b",
+        ModuleInstance::Model(Arc::new(WaitingModel(started_b.clone()))),
+    );
+    let root_model = install(
+        &mut registry,
+        "root-model",
+        ModuleInstance::Model(Arc::new(ScriptModel {
+            root: true,
+            calls: Arc::new(AtomicUsize::new(0)),
+        })),
+    );
+    let prompt = install(
+        &mut registry,
+        "prompt",
+        ModuleInstance::Prompt(Arc::new(StaticPrompt("system".into()))),
+    );
+    let mut doc = document(vec![spec(
+        "main",
+        vec![
+            node(
+                "branch_a",
+                &[],
+                input(""),
+                json!({"kind": "agent", "agent": r("worker_a")}),
+            ),
+            node(
+                "branch_b",
+                &[],
+                input(""),
+                json!({"kind": "agent", "agent": r("worker_b")}),
+            ),
+            node(
+                "join",
+                &["branch_a", "branch_b"],
+                value(json!(true)),
+                json!({"kind": "join"}),
+            ),
+        ],
+        output("join", ""),
+    )]);
+    doc["agents"] = json!([
+        {"reference": r("worker_a"), "definition": {"name": "agent-a", "model": model_a, "prompt": prompt}},
+        {"reference": r("worker_b"), "definition": {"name": "agent-b", "model": model_b, "prompt": prompt}}
+    ]);
+    let flow = compiled(doc, &registry);
+    let mut pack = ToolCatalog::new();
+    pack.insert(flow.as_tool("flow", "Parallel agents"))
+        .unwrap();
+    let pack = install(&mut registry, "flow-tools", ModuleInstance::ToolPack(pack));
+    let root = nofy_agent_runtime::compile::compile_agent(
+        serde_json::from_value(json!({
+            "name": "root-agent",
+            "model": root_model,
+            "prompt": prompt,
+            "tool_packs": [pack]
+        }))
+        .unwrap(),
+        &registry,
+    )
+    .unwrap();
+
+    let worker = {
+        let store = store.clone();
+        tokio::spawn(async move {
+            RunSupervisor::new(store)
+                .execute(&root, RunInput::new("start"), context())
+                .await
+        })
+    };
+    tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        tokio::join!(started_a.notified(), started_b.notified());
+    })
+    .await
+    .unwrap();
+
+    let target_a = store
+        .children("root")
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|c| c.agent_name == "agent-a")
+        .unwrap();
+    store
+        .cancel(
+            &InputAddress {
+                root_run_id: "root".into(),
+                run_id: target_a.run_id,
+                thread_id: target_a.thread_id,
+                agent: target_a.agent_name,
+            },
+            "cancel-branch-a",
+        )
+        .await
+        .unwrap();
+    let outcome = tokio::time::timeout(std::time::Duration::from_secs(3), worker)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(
+        matches!(outcome, RunOutcome::Cancelled { .. }),
+        "{outcome:?}"
+    );
+
+    let children = store.children("root").await.unwrap();
+    assert!(
+        children.iter().any(|c| {
+            c.node_id.as_deref() == Some("branch_a")
+                && c.kind.as_deref() == Some("workflow_agent")
+                && c.status == "cancelled"
+        }),
+        "explicitly cancelled branch_a control node must be cancelled: {children:?}"
+    );
+    assert!(
+        children.iter().any(|c| {
+            c.node_id.as_deref() == Some("branch_b")
+                && c.kind.as_deref() == Some("workflow_agent")
+                && c.status == "waiting"
+        }),
+        "peer-interrupted branch_b control node must be waiting, not cancelled: {children:?}"
+    );
+}

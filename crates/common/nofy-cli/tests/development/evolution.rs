@@ -121,12 +121,15 @@ async fn omni_native_proposal_evaluates_activates_and_rolls_back_a_regression() 
             input: "quality-check".into(),
             expected: "quality-ok".into(),
             baseline_expected: None,
+            ..Default::default()
         }],
         observation: vec![Probe {
             input: "compatibility-check".into(),
             expected: "compatible".into(),
             baseline_expected: None,
+            ..Default::default()
         }],
+        cost_limits: None,
     };
     let kernel = kernel.with_evolution(grant.clone()).unwrap();
     let stop = tokio_util::sync::CancellationToken::new();

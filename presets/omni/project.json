@@ -1,6 +1,7 @@
 {
-  "format": "nofy.project/v1",
   "declaration": "preset.json",
+  "format": "nofy.project/v1",
+  "prepare": "prepare.json",
   "settings": "settings.json",
   "settings_schema": "settings.schema.json"
 }

@@ -6,7 +6,7 @@ impl SqliteStore {
     pub async fn execution_status(&self, run: &str) -> Result<Value, Error> {
         crate::system::bounded_name(run)?;
         let id = run.to_owned();
-        self.transaction(move |tx| {
+        self.read_transaction(move |tx| {
             let result = tx.query_row(
                 "SELECT json_extract(payload,'$.run_id'), json_extract(payload,'$.status'),
                 substr(json_extract(payload,'$.error'),1,4096), length(CAST(json_extract(payload,'$.error') AS BLOB)),

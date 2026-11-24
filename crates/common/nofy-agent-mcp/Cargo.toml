@@ -7,6 +7,7 @@ description = "Inbound stdio and Streamable HTTP MCP adapter for the Nofy kernel
 
 [dependencies]
 nofy-agent-client = { path = "../nofy-agent-client" }
+nofy-tty-utils = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }

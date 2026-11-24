@@ -19,7 +19,9 @@ async fn uncertain_child_process() {
     };
     let url = std::env::var("NOFY_UNCERTAIN_SERVICE").unwrap();
     let registry = native::registry(Arc::new(Credentials(Arc::new(AtomicUsize::new(0))))).unwrap();
-    let host = KernelHost::open(std::path::Path::new(&directory), registry.clone(), auth())
+    let dir_path = std::path::Path::new(&directory);
+    make_test_state_dir_private(dir_path);
+    let host = KernelHost::open(dir_path, registry.clone(), auth())
         .await
         .unwrap();
     let server = serve(host.router()).await;

@@ -175,6 +175,22 @@ struct ActionResult {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     abandonment: Option<Abandonment>,
 }
+impl ActionResult {
+    pub(super) fn from_execution(result: Result<RunOutcome, String>) -> Self {
+        match result {
+            Ok(outcome) => Self {
+                outcome: Some(outcome),
+                error: None,
+                abandonment: None,
+            },
+            Err(error) => Self {
+                outcome: None,
+                error: Some(error.chars().take(8192).collect()),
+                abandonment: None,
+            },
+        }
+    }
+}
 fn request_digest(request: &ManagedRunRequest) -> Result<String, Error> {
     for value in [
         &request.run_id,
@@ -197,6 +213,156 @@ fn request_digest(request: &ManagedRunRequest) -> Result<String, Error> {
     }
     content_digest(request)
 }
+const MANAGED_RUN_CAPACITY: u64 = 10_000;
+const MANAGED_RUN_PRUNE_BATCH: usize = 256;
+const MANAGED_RUN_PRUNE_SCAN_PAGE: i64 = 512;
+
+const PRUNABLE_MANAGED_RUNS_SQL: &str = "SELECT j.sequence, m.run_id, j.status,
+    (
+        SELECT p.payload
+        FROM agent_runtime_threads t
+        JOIN agent_runtime_checkpoints p ON p.key = t.key
+        WHERE t.key = j.thread_key AND t.active_run = m.run_id
+    )
+FROM agent_runtime_managed_runs m
+JOIN agent_runtime_jobs j ON j.run_id = m.run_id
+WHERE j.sequence > ?1
+  AND (?2 IS NULL OR m.run_id != ?2)
+  AND j.status IN ('closed', 'cancelled', 'abandoned', 'failed')
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_runs r
+      WHERE r.id = m.run_id
+        AND json_valid(r.payload)
+        AND json_extract(r.payload, '$.status') IN ('running', 'paused')
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_managed_actions a
+      WHERE a.run_id = m.run_id AND a.result IS NULL
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_parks p
+      WHERE p.run_id = m.run_id AND p.status IN ('requested', 'parked')
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_approvals ap
+      WHERE ap.decision IS NULL
+        AND (
+            ap.run_id = m.run_id
+            OR EXISTS (
+                SELECT 1 FROM agent_runtime_children c
+                WHERE c.root_id = m.run_id
+                  AND json_valid(c.payload)
+                  AND json_extract(c.payload, '$.run_id') = ap.run_id
+            )
+        )
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_cancel k
+      WHERE k.acknowledged = 0
+        AND json_valid(k.address)
+        AND json_extract(k.address, '$.root_run_id') = m.run_id
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_children c
+      WHERE c.root_id = m.run_id
+        AND json_valid(c.payload)
+        AND json_extract(c.payload, '$.status') IN ('running', 'paused')
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_leases l
+      WHERE l.key = j.thread_key AND l.expires_ms > ?3
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM agent_runtime_work_owners w
+      JOIN agent_runtime_jobs wj ON wj.run_id = w.run_id
+      WHERE (w.run_id = m.run_id OR w.origin_run_id = m.run_id)
+        AND wj.status NOT IN ('closed', 'cancelled', 'abandoned', 'failed')
+  )
+ORDER BY j.sequence ASC
+LIMIT ?4";
+
+pub(in crate::supervisor::jobs::managed) fn ensure_managed_run_capacity(
+    tx: &rusqlite::Transaction<'_>,
+    now: u64,
+    protected_run: Option<&str>,
+) -> Result<(), Error> {
+    let count: u64 = tx
+        .query_row("SELECT COUNT(*) FROM agent_runtime_managed_runs", [], |r| {
+            r.get(0)
+        })
+        .map_err(db_error)?;
+    if count < MANAGED_RUN_CAPACITY {
+        return Ok(());
+    }
+    let needed = usize::try_from(count.saturating_sub(MANAGED_RUN_CAPACITY).saturating_add(1))
+        .unwrap_or(usize::MAX);
+    let target = needed.max(MANAGED_RUN_PRUNE_BATCH);
+    let now_i64 = i64::try_from(now).map_err(db_error)?;
+    let mut prunable = Vec::with_capacity(target.min(MANAGED_RUN_PRUNE_BATCH));
+    let mut last_sequence = 0i64;
+    let mut stmt = tx
+        .prepare_cached(PRUNABLE_MANAGED_RUNS_SQL)
+        .map_err(db_error)?;
+    while prunable.len() < target {
+        let batch = stmt
+            .query_map(
+                params![
+                    last_sequence,
+                    protected_run,
+                    now_i64,
+                    MANAGED_RUN_PRUNE_SCAN_PAGE
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )
+            .map_err(db_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(db_error)?;
+        let exhausted = (batch.len() as i64) < MANAGED_RUN_PRUNE_SCAN_PAGE;
+        for (sequence, run_id, status, active_checkpoint) in batch {
+            last_sequence = sequence;
+            if status == "failed"
+                && let Some(payload) = active_checkpoint
+            {
+                let settled = serde_json::from_str::<crate::Checkpoint>(&payload)
+                    .is_ok_and(|cp| !cp.state.has_pending_work());
+                if !settled {
+                    continue;
+                }
+            }
+            prunable.push(run_id);
+            if prunable.len() >= target {
+                break;
+            }
+        }
+        if exhausted {
+            break;
+        }
+    }
+    drop(stmt);
+    let mut delete_run = tx
+        .prepare_cached("DELETE FROM agent_runtime_managed_runs WHERE run_id=?1")
+        .map_err(db_error)?;
+    let mut delete_owner = tx
+        .prepare_cached("DELETE FROM agent_runtime_work_owners WHERE run_id=?1")
+        .map_err(db_error)?;
+    let mut pruned = 0u64;
+    for run_id in &prunable {
+        pruned = pruned.saturating_add(delete_run.execute([run_id]).map_err(db_error)? as u64);
+        delete_owner.execute([run_id]).map_err(db_error)?;
+    }
+    if count.saturating_sub(pruned) >= MANAGED_RUN_CAPACITY {
+        return Err(Error::Checkpoint("managed run capacity exceeded".into()));
+    }
+    Ok(())
+}
+
 pub(in crate::supervisor) fn read_request(
     tx: &rusqlite::Transaction<'_>,
     run: &str,
@@ -268,8 +434,11 @@ impl RunSupervisor {
                     return Err(Error::Checkpoint("managed run ID reused with different request".into()));
                 }
             } else {
-                let count: u64 = tx.query_row("SELECT COUNT(*) FROM agent_runtime_managed_runs",[],|r|r.get(0)).map_err(db_error)?;
-                if count >= 10000 {return Err(Error::Checkpoint("managed run capacity exceeded".into()));}
+                ensure_managed_run_capacity(
+                    tx,
+                    now,
+                    ownership.as_ref().map(|item| item.origin.as_str()),
+                )?;
                 // A pre-existing unmanaged job is never adopted by an API call.
                 if load(tx, &request.run_id)?.is_some() {
                     return Err(Error::Checkpoint("run ID belongs to an unmanaged job".into()));

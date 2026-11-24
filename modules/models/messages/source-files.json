@@ -1,0 +1,7 @@
+[
+  "common.rhai",
+  "messages.rhai",
+  "module.json",
+  "parameters.schema.json",
+  "source-files.json"
+]

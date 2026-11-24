@@ -110,7 +110,8 @@ impl ContextPolicy for CompactionPolicy {
             return Ok(None);
         }
         let Some(human_start) = state.hook_progress.input_start_index else {
-            return Err(invalid("compaction needs the current input boundary"));
+            tracing::debug!("skipping compaction: current input boundary is unavailable");
+            return Ok(None);
         };
         if human_start <= 1
             || human_start >= state.messages.len()
@@ -181,19 +182,10 @@ impl ContextPolicy for CompactionPolicy {
             sequence: AtomicU64::new(0),
             control: Mutex::new(None),
         };
-        let output = apply_full_replace_compaction(
+        let output = sample_full_replace_summary(
             &sampler,
             &state.messages[..plan.keep_from],
             None,
-            FullReplaceContext {
-                system_message: state.messages[0].clone(),
-                user_message_prefix: String::new(),
-                agents_md_reminder: None,
-                last_user_query: None,
-                recent_messages: state.messages[plan.keep_from..].to_vec(),
-                system_reminder: None,
-                transcript_hint: None,
-            },
             &FullReplaceConfig {
                 max_attempts: self.config.max_attempts,
                 retry_delay_secs: self.config.retry_delay_secs,
@@ -210,28 +202,58 @@ impl ContextPolicy for CompactionPolicy {
         {
             return Err(error);
         }
-        let output = output.map_err(|e| Error::Model(e.to_string()))?;
-        let after_tokens = output
-            .history
+        let sampled = output.map_err(|e| Error::Model(e.to_string()))?;
+        let summary_message = Message::User {
+            content: format_compact_summary_content(&sampled.summary),
+        };
+        let mut history = Vec::with_capacity(2 + (state.messages.len() - plan.keep_from));
+        history.push(state.messages[0].clone());
+        history.push(summary_message);
+        history.extend_from_slice(&state.messages[plan.keep_from..]);
+        let after_tokens = history
             .iter()
             .map(|item| u64::from(self.counter.count(item)))
-            .sum::<u64>();
-        if after_tokens >= plan.before_tokens {
-            return Err(invalid(
-                "compaction did not reduce context; history remains unchanged",
-            ));
-        }
+            .fold(0u64, u64::saturating_add);
         let (input_tokens, output_tokens) = *sampler
             .usage
             .lock()
             .map_err(|_| invalid("compaction usage lock poisoned"))?;
+        if after_tokens >= plan.before_tokens {
+            tracing::info!(
+                before_tokens = plan.before_tokens,
+                after_tokens,
+                attempts = sampled.attempts,
+                "skipping compaction commit: summary did not reduce context tokens"
+            );
+            return Ok(ContextUpdate {
+                messages: state.messages.clone(),
+                retained_from: 0,
+                retained_at: 0,
+                input_tokens,
+                output_tokens,
+                metadata: json!({
+                    "mode": self.config.mode,
+                    "skipped": true,
+                    "reason": "no_token_reduction",
+                    "before_tokens": plan.before_tokens,
+                    "after_tokens": after_tokens,
+                    "attempts": sampled.attempts,
+                }),
+            });
+        }
         Ok(ContextUpdate {
-            messages: output.history,
+            messages: history,
             retained_from: plan.keep_from,
             retained_at: 2,
             input_tokens,
             output_tokens,
-            metadata: json!({"mode":self.config.mode,"before_tokens":plan.before_tokens,"after_tokens":after_tokens,"attempts":output.attempts}),
+            metadata: json!({
+                "mode": self.config.mode,
+                "skipped": false,
+                "before_tokens": plan.before_tokens,
+                "after_tokens": after_tokens,
+                "attempts": sampled.attempts,
+            }),
         })
     }
 }
@@ -252,18 +274,7 @@ impl CompactionSampler for RuntimeSampler {
         prompt: &CompactionPrompt,
         timeout: Duration,
     ) -> Result<LlmCompactionOutput, CompactionSampleError> {
-        let mut messages = turns.to_vec();
-        if !prompt.system.is_empty() {
-            messages.insert(
-                0,
-                Message::System {
-                    content: prompt.system.clone(),
-                },
-            );
-        }
-        messages.push(Message::User {
-            content: prompt.user.clone(),
-        });
+        let messages = build_sampler_messages(turns, prompt);
         let request = ModelRequest {
             messages,
             tools: vec![],
@@ -367,6 +378,44 @@ impl CompactionItemFactory for Message {
         Message::User { content: text }
     }
 }
+fn build_sampler_messages(turns: &[Message], prompt: &CompactionPrompt) -> Vec<Message> {
+    let mut messages: Vec<Message> = Vec::with_capacity(turns.len() + 2);
+    for turn in turns {
+        match (messages.last_mut(), turn) {
+            (Some(Message::System { content: existing }), Message::System { content: next }) => {
+                if !next.is_empty() {
+                    if !existing.is_empty() {
+                        existing.push_str("\n\n");
+                    }
+                    existing.push_str(next);
+                }
+            }
+            _ => messages.push(turn.clone()),
+        }
+    }
+    if !prompt.system.is_empty() {
+        match messages.first_mut() {
+            Some(Message::System { content: existing }) => {
+                if existing.is_empty() {
+                    *existing = prompt.system.clone();
+                } else {
+                    *existing = format!("{}\n\n{existing}", prompt.system);
+                }
+            }
+            _ => messages.insert(
+                0,
+                Message::System {
+                    content: prompt.system.clone(),
+                },
+            ),
+        }
+    }
+    messages.push(Message::User {
+        content: prompt.user.clone(),
+    });
+    messages
+}
+
 fn history_hash(messages: &[Message]) -> Result<String, Error> {
     Ok(
         blake3::hash(&serde_json::to_vec(messages).map_err(|e| invalid(e.to_string()))?)
@@ -425,5 +474,81 @@ impl ModuleFactory for CompactionFactory {
         Ok(ModuleInstance::ContextPolicy(Arc::new(
             CompactionPolicy::new(config, model.clone(), self.counter.clone())?,
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sampler_messages_never_emit_consecutive_system_messages() {
+        let turns = vec![
+            Message::System {
+                content: "primary system".into(),
+            },
+            Message::System {
+                content: "extra system".into(),
+            },
+            Message::User {
+                content: "hello".into(),
+            },
+        ];
+        let prompt = CompactionPrompt {
+            system: "summarizer instructions".into(),
+            user: "summarize".into(),
+        };
+        let messages = build_sampler_messages(&turns, &prompt);
+        assert_eq!(messages.len(), 3);
+        assert!(
+            !messages
+                .windows(2)
+                .any(|pair| matches!(pair, [Message::System { .. }, Message::System { .. }])),
+            "consecutive System messages must be merged: {messages:?}"
+        );
+        assert_eq!(
+            messages[0],
+            Message::System {
+                content: "summarizer instructions\n\nprimary system\n\nextra system".into()
+            }
+        );
+        assert_eq!(
+            messages[1],
+            Message::User {
+                content: "hello".into()
+            }
+        );
+        assert_eq!(
+            messages[2],
+            Message::User {
+                content: "summarize".into()
+            }
+        );
+    }
+
+    #[test]
+    fn sampler_messages_prepend_system_when_turns_lack_leading_system() {
+        let turns = vec![Message::User {
+            content: "turn".into(),
+        }];
+        let prompt = CompactionPrompt {
+            system: "summarizer system".into(),
+            user: "summarize".into(),
+        };
+        let messages = build_sampler_messages(&turns, &prompt);
+        assert_eq!(
+            messages,
+            vec![
+                Message::System {
+                    content: "summarizer system".into()
+                },
+                Message::User {
+                    content: "turn".into()
+                },
+                Message::User {
+                    content: "summarize".into()
+                },
+            ]
+        );
     }
 }

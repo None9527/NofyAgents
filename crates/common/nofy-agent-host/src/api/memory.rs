@@ -122,13 +122,7 @@ async fn apply(
 ) -> Result<Json<MemoryReceipt>> {
     host.auth.require(&headers, Scope::Resources)?;
     let backend = backend(&host, request.resource).await?;
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("memory management is shutting down".into()))?;
+    let permit = super::loader::acquire_management_work(&host, "memory management").await?;
     let provider = host.loader.memory_provider.clone();
     Ok(Json(
         tokio::task::spawn_blocking(move || {

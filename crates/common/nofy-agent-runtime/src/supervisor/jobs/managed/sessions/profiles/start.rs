@@ -273,9 +273,13 @@ impl RunSupervisor {
             if op.receipt.phase!="prepared"{return Ok(op.receipt);}
             let p=op.prepared.clone().ok_or_else(||Error::Checkpoint("start preparation missing".into()))?;
             let now=clock.now_ms();check_lease(tx,&check,now)?;
-            if read(tx,&op.receipt.session_id)?.is_some()||load(tx,&p.request.run_id)?.is_some(){return Err(Error::Checkpoint("session or first root already exists; use explicit enrollment".into()));}
-            let count:u64=tx.query_row("SELECT COUNT(*) FROM agent_runtime_managed_runs",[],|r|r.get(0)).map_err(db_error)?;
-            if count>=10000{return Err(Error::Checkpoint("managed run capacity exceeded".into()));}
+            if read(tx, &op.receipt.session_id)?.is_some() || load(tx, &p.request.run_id)?.is_some()
+            {
+                return Err(Error::Checkpoint(
+                    "session or first root already exists; use explicit enrollment".into(),
+                ));
+            }
+            super::super::super::ensure_managed_run_capacity(tx, now, None)?;
             if let Some(branch)=&p.branch {super::super::branches::install(tx,branch,&op.receipt.session_id,&id,&p.request,now)?;}
             insert(tx,Saved{submission:p.submission,source:None},now)?;
             tx.execute("INSERT INTO agent_runtime_managed_runs(run_id,digest,payload) VALUES(?1,?2,?3)",params![p.request.run_id,request_digest(&p.request)?,serde_json::to_string(&p.request).map_err(db_error)?]).map_err(db_error)?;

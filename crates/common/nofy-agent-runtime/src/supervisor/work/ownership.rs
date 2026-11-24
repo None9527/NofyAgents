@@ -27,6 +27,70 @@ pub(in crate::supervisor) struct WorkOwnership {
     live_revision: u64,
 }
 
+const WORK_OWNER_CAPACITY: u64 = 64;
+const WORK_OWNER_PRUNE_BATCH: i64 = 16;
+
+const PRUNE_TERMINAL_WORK_OWNERS_SQL: &str = "DELETE FROM agent_runtime_work_owners
+WHERE work_id IN (
+    SELECT w.work_id
+    FROM agent_runtime_work_owners w
+    JOIN agent_runtime_jobs j ON j.run_id = w.run_id
+    WHERE w.session_id = ?1
+      AND w.run_id != ?2
+      AND j.status IN ('closed', 'cancelled', 'abandoned')
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_runs r
+          WHERE r.id = w.run_id
+            AND json_valid(r.payload)
+            AND json_extract(r.payload, '$.status') IN ('running', 'paused')
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_managed_actions a
+          WHERE a.run_id = w.run_id AND a.result IS NULL
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_parks p
+          WHERE p.run_id = w.run_id AND p.status IN ('requested', 'parked')
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_approvals ap
+          WHERE ap.decision IS NULL
+            AND (
+                ap.run_id = w.run_id
+                OR EXISTS (
+                    SELECT 1 FROM agent_runtime_children c
+                    WHERE c.root_id = w.run_id
+                      AND json_valid(c.payload)
+                      AND json_extract(c.payload, '$.run_id') = ap.run_id
+                )
+            )
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_cancel k
+          WHERE k.acknowledged = 0
+            AND json_valid(k.address)
+            AND json_extract(k.address, '$.root_run_id') = w.run_id
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_children c
+          WHERE c.root_id = w.run_id
+            AND json_valid(c.payload)
+            AND json_extract(c.payload, '$.status') IN ('running', 'paused')
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_leases l
+          WHERE l.key = j.thread_key AND l.expires_ms > ?3
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_work_owners child
+          JOIN agent_runtime_jobs cj ON cj.run_id = child.run_id
+          WHERE child.origin_run_id = w.run_id
+            AND cj.status NOT IN ('closed', 'cancelled', 'abandoned')
+      )
+    ORDER BY j.sequence ASC
+    LIMIT ?4
+)";
+
 impl WorkOwnership {
     pub(in crate::supervisor) fn admit(
         &self,
@@ -90,6 +154,11 @@ impl WorkOwnership {
                 "work target is outside the origin release".into(),
             ));
         }
+        if jobs::read_managed_request(tx, &request.run_id)?.is_some() {
+            return Err(Error::Checkpoint(
+                "background work capacity or run identity conflict".into(),
+            ));
+        }
         let count: u64 = tx
             .query_row(
                 "SELECT COUNT(*) FROM agent_runtime_work_owners WHERE session_id=?1",
@@ -97,10 +166,22 @@ impl WorkOwnership {
                 |row| row.get(0),
             )
             .map_err(db_error)?;
-        if count >= 64 || jobs::read_managed_request(tx, &request.run_id)?.is_some() {
-            return Err(Error::Checkpoint(
-                "background work capacity or run identity conflict".into(),
-            ));
+        if count >= WORK_OWNER_CAPACITY {
+            let needed = i64::try_from(count.saturating_sub(WORK_OWNER_CAPACITY).saturating_add(1))
+                .unwrap_or(i64::MAX);
+            let limit = needed.max(WORK_OWNER_PRUNE_BATCH);
+            let now_i64 = i64::try_from(now).map_err(db_error)?;
+            let pruned = tx
+                .execute(
+                    PRUNE_TERMINAL_WORK_OWNERS_SQL,
+                    params![&self.session_id, &self.origin, now_i64, limit],
+                )
+                .map_err(db_error)?;
+            if count.saturating_sub(pruned as u64) >= WORK_OWNER_CAPACITY {
+                return Err(Error::Checkpoint(
+                    "background work capacity or run identity conflict".into(),
+                ));
+            }
         }
         let active: u64 = tx.query_row(
             "SELECT COUNT(*) FROM agent_runtime_work_owners w JOIN agent_runtime_jobs j ON j.run_id=w.run_id

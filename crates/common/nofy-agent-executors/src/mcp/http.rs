@@ -25,11 +25,17 @@ struct Config {
     endpoint: String,
     #[serde(default)]
     credential_ref: Option<String>,
+    #[serde(default)]
+    allow_insecure_http: bool,
+    #[serde(default)]
+    allow_private_networks: bool,
 }
 pub(super) struct Connection {
     endpoint: reqwest::Url,
     credential_ref: Option<String>,
     credentials: Arc<dyn CredentialProvider>,
+    allow_insecure_http: bool,
+    allow_private_networks: bool,
     client: tokio::sync::OnceCell<reqwest::Client>,
 }
 impl ModuleFactory for HttpResourceFactory {
@@ -39,7 +45,9 @@ impl ModuleFactory for HttpResourceFactory {
             ModuleKind::Resource,
             json!({"type":"object","additionalProperties":false,"required":["endpoint"],"properties":{
                 "endpoint":{"type":"string","minLength":1,"maxLength":16384},
-                "credential_ref":{"type":["string","null"],"minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_]+$"}
+                "credential_ref":{"type":["string","null"],"minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_]+$"},
+                "allow_insecure_http":{"type":"boolean"},
+                "allow_private_networks":{"type":"boolean"}
             }}),
             Default::default(),
         )
@@ -65,6 +73,12 @@ impl ModuleFactory for HttpResourceFactory {
                 "MCP endpoint requires http(s) without URL credentials, query or fragment",
             ));
         }
+        crate::http::connection::validate_network_policy(
+            &endpoint,
+            config.credential_ref.is_some(),
+            config.allow_insecure_http,
+            config.allow_private_networks,
+        )?;
         let identity =
             nofy_agent_runtime::system::content_digest(&(REVISION, &self.authority, value))?;
         Ok(ModuleInstance::Resource(Arc::new(ResourceHandle::new(
@@ -73,6 +87,8 @@ impl ModuleFactory for HttpResourceFactory {
                 endpoint,
                 credential_ref: config.credential_ref,
                 credentials: self.credentials.clone(),
+                allow_insecure_http: config.allow_insecure_http,
+                allow_private_networks: config.allow_private_networks,
                 client: Default::default(),
             }))),
         )?)))
@@ -85,16 +101,20 @@ impl Connection {
         session: Option<&str>,
         context: &ToolCallContext,
     ) -> Result<reqwest::RequestBuilder, ToolError> {
+        crate::http::connection::validate_runtime_request(
+            &self.endpoint,
+            self.credential_ref.is_some(),
+            self.allow_insecure_http,
+            self.allow_private_networks,
+        )?;
         let client = self
             .client
             .get_or_try_init(|| async {
+                let endpoint = self.endpoint.clone();
+                let allow_private_networks = self.allow_private_networks;
                 // Construction stays out of factory compilation and blocking IO.
-                tokio::task::spawn_blocking(|| {
-                    reqwest::Client::builder()
-                        .redirect(reqwest::redirect::Policy::none())
-                        .no_proxy()
-                        .retry(reqwest::retry::never())
-                        .build()
+                tokio::task::spawn_blocking(move || {
+                    crate::http::connection::build_client(&endpoint, allow_private_networks, true)
                 })
                 .await
                 .map_err(|_| protocol("MCP client initialization failed"))?
@@ -165,22 +185,26 @@ impl Connection {
         let connection = self.clone();
         if let Ok(runtime) = tokio::runtime::Handle::try_current() {
             runtime.spawn(async move {
-                let message = json!({"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":id,"reason":"caller stopped waiting"}});
-                let _ = tokio::time::timeout(Duration::from_millis(500), connection.notify(&message, session.as_deref(), &context)).await;
+                let message = json!({
+                    "jsonrpc": "2.0",
+                    "method": "notifications/cancelled",
+                    "params": {"requestId": id, "reason": "caller stopped waiting"}
+                });
+                let _ = tokio::time::timeout(
+                    Duration::from_millis(500),
+                    connection.notify(&message, session.as_deref(), &context),
+                )
+                .await;
             });
         }
     }
-    pub(super) fn close(self: &Arc<Self>, session: String) {
+    pub(super) fn close(self: &Arc<Self>, session: String, context: ToolCallContext) {
         let connection = self.clone();
         if let Ok(runtime) = tokio::runtime::Handle::try_current() {
             runtime.spawn(async move {
                 let operation = async {
                     let request = connection
-                        .request(
-                            reqwest::Method::DELETE,
-                            Some(&session),
-                            &ToolCallContext::default(),
-                        )
+                        .request(reqwest::Method::DELETE, Some(&session), &context)
                         .await?;
                     request
                         .send()

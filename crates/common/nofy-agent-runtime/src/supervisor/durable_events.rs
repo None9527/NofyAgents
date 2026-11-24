@@ -22,11 +22,20 @@ impl DurableEventSink {
             if let Some(previous)=previous {
                 return if previous==digest {Ok(())}else{Err(Error::Checkpoint("stable event key reused with changed scope/payload".into()))};
             }
-            tx.execute("INSERT INTO agent_runtime_events(root_id,payload) VALUES(?1,'')",[&identity.run_id]).map_err(db_error)?;
-            let cursor=u64::try_from(tx.last_insert_rowid()).map_err(db_error)?;
-            let envelope=crate::events::EventEnvelope{version:1,cursor,timestamp_ms:clock.now_ms(),scope,event};
-            tx.execute("UPDATE agent_runtime_events SET payload=?1 WHERE id=?2",params![serde_json::to_string(&envelope).map_err(db_error)?,cursor]).map_err(db_error)?;
-            tx.execute("INSERT INTO agent_runtime_event_receipts(root_id,event_key,digest,cursor) VALUES(?1,?2,?3,?4)",params![identity.run_id,key,digest,cursor]).map_err(db_error)?;Ok(())
+            let envelope = crate::events::EventEnvelope {
+                version: 1,
+                cursor: 0,
+                timestamp_ms: clock.now_ms(),
+                scope,
+                event,
+            };
+            let cursor = storage::append_event(tx, &identity.run_id, envelope)?;
+            tx.execute(
+                "INSERT INTO agent_runtime_event_receipts(root_id,event_key,digest,cursor) VALUES(?1,?2,?3,?4)",
+                params![identity.run_id, key, digest, cursor],
+            )
+            .map_err(db_error)?;
+            Ok(())
         }).await
     }
 }

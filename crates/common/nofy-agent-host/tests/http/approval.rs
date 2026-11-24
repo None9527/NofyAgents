@@ -35,7 +35,7 @@ async fn exact_approval_and_durable_resume_execute_one_http_effect_through_the_o
             HttpToolFactory::new("1", [("service".into(), Arc::new(connection))].into()).unwrap(),
         ))
         .unwrap();
-    let host = KernelHost::open(directory.path(), registry, auth())
+    let host = KernelHost::open(&directory.path().join("state"), registry, auth())
         .await
         .unwrap();
     let server = serve(host.router()).await;

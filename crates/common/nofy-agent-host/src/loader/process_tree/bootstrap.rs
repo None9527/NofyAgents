@@ -100,11 +100,19 @@ pub fn worker_entry() -> Option<i32> {
 }
 
 fn parent_death(parent: u32) -> std::io::Result<()> {
-    // The helper is a fresh single-threaded exec. Do not move this into the
-    // resident process or rely on getppid alone before installing PDEATHSIG.
+    // SAFETY: This runs in a fresh single-threaded post-exec helper; `getppid`
+    // cannot fail, and `prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0)` passes all
+    // five ABI arguments. Checking `getppid` before and after closes the
+    // parent-exit race without touching resident process state.
     unsafe {
         if libc::getppid() as u32 != parent
-            || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0
+            || libc::prctl(
+                libc::PR_SET_PDEATHSIG,
+                libc::SIGKILL as libc::c_ulong,
+                0 as libc::c_ulong,
+                0 as libc::c_ulong,
+                0 as libc::c_ulong,
+            ) != 0
             || libc::getppid() as u32 != parent
         {
             return Err(std::io::Error::other(
@@ -126,6 +134,8 @@ fn code(status: i32) -> i32 {
 fn wait(pid: libc::pid_t) -> std::io::Result<i32> {
     loop {
         let mut status = 0;
+        // SAFETY: `pid` is a child owned by this helper and `&mut status` is a
+        // valid aligned writable `c_int` out-pointer for the duration of `waitpid`.
         let result = unsafe { libc::waitpid(pid, &mut status, 0) };
         if result == pid {
             return Ok(code(status));
@@ -146,28 +156,40 @@ fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Err
         .as_ref()
         .map(super::sandbox::Sandbox::lease)
         .transpose()?;
-    // SIGCHLD may have been ignored by an embedding launcher. We own only
-    // this disposable helper and must have waitable children of our own.
-    unsafe {
-        libc::signal(libc::SIGCHLD, libc::SIG_DFL);
+    // SAFETY: Single-threaded disposable helper; restoring `SIG_DFL` (not a
+    // custom handler pointer) ensures children are waitable via `waitpid` even
+    // if an embedding launcher had `SIGCHLD` ignored.
+    if unsafe { libc::signal(libc::SIGCHLD, libc::SIG_DFL) } == libc::SIG_ERR {
+        return Err(std::io::Error::last_os_error().into());
     }
+    // SAFETY: `getuid` and `getgid` take no pointer arguments and are always
+    // successful per POSIX.
     let (uid, gid) = unsafe { (libc::getuid(), libc::getgid()) };
     // Each helper has its own user/PID namespaces. No shared mount, cgroup,
     // network namespace or resident-process credentials are reconfigured.
-    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
-        || unsafe { libc::unshare(libc::CLONE_NEWUSER) } != 0
-    {
+    // SAFETY: Single-threaded disposable helper; passes all five ABI arguments
+    // to disable privilege escalation before creating namespaces.
+    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    // SAFETY: Single-threaded helper (`CLONE_NEWUSER` requires no sibling
+    // threads); takes only flag bits and its non-zero failure is checked.
+    if unsafe { libc::unshare(libc::CLONE_NEWUSER) } != 0 {
         return Err(std::io::Error::last_os_error().into());
     }
     std::fs::write("/proc/self/setgroups", "deny")?;
     std::fs::write("/proc/self/uid_map", format!("0 {uid} 1"))?;
     std::fs::write("/proc/self/gid_map", format!("0 {gid} 1"))?;
     parent_death(profile.parent_pid)?;
-    if profile.sandbox.is_some()
-        && unsafe { libc::unshare(libc::CLONE_NEWNS | libc::CLONE_NEWNET | libc::CLONE_NEWIPC) }
+    if profile.sandbox.is_some() {
+        // SAFETY: Single-threaded helper inside its private user namespace with
+        // uid/gid mapped; unsharing mount, net, and IPC namespaces takes only
+        // flag bits and checks non-zero errors.
+        if unsafe { libc::unshare(libc::CLONE_NEWNS | libc::CLONE_NEWNET | libc::CLONE_NEWIPC) }
             != 0
-    {
-        return Err(std::io::Error::last_os_error().into());
+        {
+            return Err(std::io::Error::last_os_error().into());
+        }
     }
     if profile
         .session
@@ -176,26 +198,39 @@ fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Err
     {
         super::super::process_sessions::network::loopback()?;
     }
-    if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0
-        || unsafe { libc::unshare(libc::CLONE_NEWPID) } != 0
-    {
+    // SAFETY: Single-threaded disposable helper; passes all five ABI arguments
+    // to mark the future PID 1 helper non-dumpable against guest ptrace/procfs.
+    if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    // SAFETY: Single-threaded helper; `CLONE_NEWPID` places the next `fork()`
+    // child into a fresh PID namespace as PID 1 without affecting host tasks.
+    if unsafe { libc::unshare(libc::CLONE_NEWPID) } != 0 {
         return Err(std::io::Error::last_os_error().into());
     }
     let mut life = [-1; 2];
+    // SAFETY: `life` is a valid writable `[c_int; 2]` buffer as required by
+    // `pipe2(2)`; `O_CLOEXEC` prevents either pipe end from leaking across exec.
     if unsafe { libc::pipe2(life.as_mut_ptr(), libc::O_CLOEXEC) } != 0 {
         return Err(std::io::Error::last_os_error().into());
     }
-    // No runtime or threads exist here. The only post-fork Rust execution is
-    // in this disposable, single-threaded helper, never in the resident host.
+    // SAFETY: No Tokio runtime or background threads have been started in this
+    // disposable helper (`worker_entry` runs before runtime init), so `fork()`
+    // cannot inherit foreign locked mutexes or inconsistent thread state.
     let init = unsafe { libc::fork() };
     if init < 0 {
+        let error = std::io::Error::last_os_error();
+        // SAFETY: Both pipe descriptors were created by `pipe2` above, have no
+        // other owner because `fork` failed, and are closed once here.
         unsafe {
             libc::close(life[0]);
             libc::close(life[1]);
         }
-        return Err(std::io::Error::last_os_error().into());
+        return Err(error.into());
     }
     if init == 0 {
+        // SAFETY: `life[1]` is the write end inherited by this forked child;
+        // closing it once ensures only the outer helper retains the write end.
         unsafe {
             libc::close(life[1]);
         }
@@ -207,22 +242,42 @@ fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Err
                 125
             }
         };
+        // SAFETY: Immediately terminates the forked PID 1 child without running
+        // outer-helper destructors or flushing shared stdio buffers twice.
         unsafe {
             libc::_exit(code);
         }
     }
+    // SAFETY: `life[0]` is the unused read end in the outer helper; closed once
+    // and never accessed again.
     unsafe {
         libc::close(life[0]);
     }
     let result = wait(init);
+    // SAFETY: `life[1]` is uniquely owned by the outer helper and closed once
+    // after `init` has been reaped.
     unsafe {
         libc::close(life[1]);
     }
     result.map_err(Into::into)
 }
 fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
-    if unsafe { libc::getpid() } != 1
-        || unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) } != 0
+    // SAFETY: `getpid` takes no pointers and cannot fail; verifies this process
+    // really entered the private PID namespace as PID 1.
+    if unsafe { libc::getpid() } != 1 {
+        return Err(std::io::Error::other("PID namespace init is not owned"));
+    }
+    // SAFETY: Single-threaded PID 1 helper; passes all five ABI arguments so
+    // outer-helper death terminates this PID 1 (and all namespace descendants).
+    if unsafe {
+        libc::prctl(
+            libc::PR_SET_PDEATHSIG,
+            libc::SIGKILL as libc::c_ulong,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+        )
+    } != 0
     {
         return Err(std::io::Error::other("PID namespace init is not owned"));
     }
@@ -234,6 +289,9 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
         revents: 0,
     };
     loop {
+        // SAFETY: `&mut event` is a valid initialized 1-element `pollfd` array
+        // for the live `lifeline` read FD; non-blocking poll (`timeout = 0`)
+        // detects whether the parent closed the write end before `PR_SET_PDEATHSIG`.
         let result = unsafe { libc::poll(&mut event, 1, 0) };
         if result >= 0 {
             if result != 0 {
@@ -253,12 +311,16 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
     {
         super::super::process_sessions::network::spawn_proxy(config, lifeline)?;
     }
+    // SAFETY: PID 1 remains strictly single-threaded (`spawn_proxy` forked a
+    // separate process, not a thread), so `fork()` cannot inherit locked mutexes.
     let child = unsafe { libc::fork() };
     if child < 0 {
         return Err(std::io::Error::last_os_error());
     }
     if child == 0 {
         use std::os::unix::process::CommandExt;
+        // SAFETY: `lifeline` is the open pipe read end inherited from PID 1;
+        // closing it once prevents the workload from holding or probing it.
         unsafe {
             libc::close(lifeline);
         }
@@ -266,6 +328,8 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
             && let Err(error) = session.apply()
         {
             eprintln!("process session setup failed: {error}");
+            // SAFETY: Aborts the forked child immediately on session setup
+            // failure without unwinding into PID 1's reap/kill path.
             unsafe {
                 libc::_exit(125);
             }
@@ -283,6 +347,8 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
             };
             if let Err(error) = confinement {
                 eprintln!("required tree confinement failed: {error}");
+                // SAFETY: Aborts the forked child immediately on confinement
+                // failure so unconfined business code can never execute.
                 unsafe {
                     libc::_exit(125);
                 }
@@ -295,6 +361,8 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
             .current_dir(&profile.cwd)
             .exec();
         eprintln!("supervised command exec failed: {error}");
+        // SAFETY: `exec()` only returns on error; `_exit(127)` terminates the
+        // child immediately without returning into PID 1's control flow.
         unsafe {
             libc::_exit(127);
         }
@@ -302,6 +370,9 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
     // This PID 1 is trusted and non-dumpable; no business code ever runs in it.
     let result = loop {
         let mut status = 0;
+        // SAFETY: `&mut status` is a valid aligned writable `c_int`; PID 1
+        // reaps children and reparented orphans in its PID namespace until the
+        // primary `child` exits.
         let reaped = unsafe { libc::waitpid(-1, &mut status, 0) };
         if reaped == child {
             break code(status);
@@ -314,6 +385,9 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
             return Err(error);
         }
     };
+    // SAFETY: Entry verified `getpid() == 1` inside a private `CLONE_NEWPID`
+    // namespace, so `kill(-1, SIGKILL)` targets only remaining descendants in
+    // this disposable namespace (never PID 1 itself or host processes).
     if unsafe { libc::kill(-1, libc::SIGKILL) } != 0 {
         let error = std::io::Error::last_os_error();
         if error.raw_os_error() != Some(libc::ESRCH) {
@@ -321,6 +395,9 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
         }
     }
     loop {
+        // SAFETY: Passing `NULL` for `wstatus` is explicitly permitted by POSIX
+        // `waitpid(2)` when exit statuses are discarded; drains all remaining
+        // zombies in the namespace until `ECHILD`.
         let result = unsafe { libc::waitpid(-1, std::ptr::null_mut(), 0) };
         if result >= 0 {
             continue;

@@ -124,5 +124,63 @@ class DistributionTests(unittest.TestCase):
         pkg.verify(self.out)
 
 
+SYNC_SCRIPT = Path(__file__).resolve().parents[1] / "verify-module-sync.py"
+sync_spec = importlib.util.spec_from_file_location("verify_module_sync", SYNC_SCRIPT)
+sync_mod = importlib.util.module_from_spec(sync_spec)
+sync_spec.loader.exec_module(sync_mod)
+
+
+class ModuleSyncGateTests(unittest.TestCase):
+    def setUp(self):
+        self.repo = Path(__file__).resolve().parents[2]
+
+    def _copy_minimal_repo(self, dest: Path):
+        import shutil
+        for rel in ("modules", "presets/omni", "presets/main-agent-composable", "docs/manual"):
+            src = self.repo / rel
+            if src.exists():
+                shutil.copytree(src, dest / rel, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+    def test_shipped_repository_passes_module_sync_gate(self):
+        problems, summary = sync_mod.verify_all(self.repo)
+        self.assertEqual(problems, [], problems)
+        self.assertEqual(summary["repository_packages"], 16)
+        self.assertEqual(summary["omni_frozen_packages"], 11)
+
+    def test_gate_detects_drift_stray_file_bare_schema_and_unsafe_int(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 1. Source drift between modules/ and frozen package in presets/omni.
+            target = root / "modules/workspace/files/rules.md"
+            target.write_text(target.read_text(encoding="utf-8") + "\ndrift\n", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            self.assertTrue(any("drifted" in p for p in problems), problems)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 2. Stray unlisted file in presets/omni.
+            (root / "presets/omni/stray.txt").write_text("unlisted", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            self.assertTrue(any("unlisted in source-files.json" in p for p in problems), problems)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 3. Bare object schema and > JS_MAX_SAFE_INT budget cap.
+            schema_path = root / "presets/omni/settings.schema.json"
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            schema["properties"]["process_tree"] = {"type": "object"}
+            schema["properties"]["budget"]["properties"]["max_steps"]["maximum"] = 18446744073709551615
+            schema_path.write_text(json.dumps(schema, indent=2) + "\n", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            self.assertTrue(any("process_tree" in p and "nested 'properties'" in p for p in problems), problems)
+            self.assertTrue(any("JS safe integer" in p for p in problems), problems)
+
+
 if __name__ == "__main__":
     unittest.main()

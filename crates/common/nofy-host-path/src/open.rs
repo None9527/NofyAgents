@@ -2,7 +2,7 @@
 use std::{
     fs::{File, OpenOptions},
     io,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 /// Open `path` with `options`, refusing a link in the final component.
@@ -35,6 +35,31 @@ pub fn open_no_follow(options: &OpenOptions, path: &Path) -> io::Result<File> {
 /// reading, as callers of this function do.
 pub fn open_no_follow_nonblocking(options: &OpenOptions, path: &Path) -> io::Result<File> {
     imp::open(options, path, true)
+}
+
+/// Return a descriptor-addressed execution path for an already-open read-only
+/// file when the platform supports executing an open inode directly.
+///
+/// On Linux, `/proc/self/fd/<fd>` resolves to the exact open inode even after
+/// an in-place upgrade replaces or unlinks its directory entry on disk. Because
+/// [`open_no_follow`] sets `O_CLOEXEC`, the child does not inherit the
+/// descriptor after `execve` completes.
+///
+/// Returns `None` on platforms without descriptor-addressed execution (or when
+/// `/proc/self/fd/<fd>` is unavailable), letting callers fall back to path
+/// verification.
+pub fn pinned_executable_path(file: &File) -> Option<PathBuf> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::fd::AsRawFd;
+        let path = PathBuf::from(format!("/proc/self/fd/{}", file.as_raw_fd()));
+        path.exists().then_some(path)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = file;
+        None
+    }
 }
 
 #[cfg(unix)]
@@ -144,6 +169,27 @@ mod tests {
         // this test owns.
         let flags = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFD) };
         assert!(flags >= 0 && flags & libc::FD_CLOEXEC != 0);
+    }
+
+    #[test]
+    fn pinned_executable_path_points_to_open_inode_when_supported() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("bin");
+        std::fs::write(&path, b"v1-bytes").unwrap();
+        let file = open_no_follow(&read_options(), &path).unwrap();
+        let pinned = pinned_executable_path(&file);
+        #[cfg(target_os = "linux")]
+        {
+            let pinned = pinned.expect("Linux /proc/self/fd should be available");
+            let v2 = dir.path().join("bin-v2");
+            std::fs::write(&v2, b"v2-bytes").unwrap();
+            std::fs::rename(&v2, &path).unwrap();
+            assert_eq!(std::fs::read(&pinned).unwrap(), b"v1-bytes");
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            assert!(pinned.is_none());
+        }
     }
 
     #[cfg(unix)]

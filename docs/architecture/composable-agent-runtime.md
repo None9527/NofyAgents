@@ -303,11 +303,9 @@ cargo test --locked --offline -p nofy-mcp --features agent-runtime --lib runtime
 `runtime::tool_catalog_durable` 在原工具返回后等待原资源文件的 checked SaveAndFlush/fsync，再给 runtime terminal。失败会报告工具已执行但资源未确认持久，不能作为成功回执缓存。旧 tool_catalog 和原宿主的后台写入方式保留。该边界仅确认本地工具资源文件，不保证外部服务事务原子性。
 
 
-### Goal 状态共享与结束 gate（C7c2d）
+### Goal 状态共享与结束 gate（C7c2d，已退役）
 
-`nofy-goal` 持有原 GoalTracker/GoalOrchestration/GoalRoleModel，以及原历史、状态迁移、快照和安全 scratch 处理。shell 的原模块路径和 config-types 的模型配置类型保留重导出；不是第二套 Goal store。此库含原同步文件操作，宿主须在适当的受控操作中调用它，不能把状态生命周期操作称作纯 Stage。
-
-`nofy-agent/goal` 可选适配提供 source.nofy_goal，读取宿主安装且绑定 thread 的同一个 tracker。`stage.goal` 放在 before_stop，按只读投影处理 active/paused/budget/complete，active 的自称完成会继续或暂停；max_continuations 默认 3、最多 16，计数绑定 goal_id。原 paused 状态和未知快照仍 fail-closed，锁竞争可以取消。gate 只消费 canonical 完成事实，不执行验收模型，也不自行修改 Goal 状态；配置化规划/执行/验收以及持久 Goal command 仍待 C8 接线，不能把这个 gate 当成完整 Goal 编排器。
+原 C7c2d 阶段曾下沉独立 Goal 状态模块用于旧宿主只读观察 gate；随着旧产品宿主退役且该包未被常驻框架宿主或任何活跃预设装载，该孤儿 crate 已正式从 25 包工作区摘除。当前跨轮任务与目标推进由持久化运行状态、检查点、预算边界、Todo 观察及 Omni `work.*` 统一编排承载。
 
 
 ### 显式认证恢复资源（C7d1）

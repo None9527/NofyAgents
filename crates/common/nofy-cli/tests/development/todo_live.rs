@@ -70,7 +70,7 @@ async fn omni_finishes_a_real_todo_after_the_runtime_nudge() {
         .parent()
         .unwrap()
         .join(format!("nofy-agent-host{}", std::env::consts::EXE_SUFFIX));
-    let kernel = KernelHost::open(directory.path(), registry, auth)
+    let kernel = KernelHost::open(&directory.path().join("state"), registry, auth)
         .await
         .unwrap()
         .with_templates(&presets())

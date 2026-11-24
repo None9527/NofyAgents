@@ -1,5 +1,22 @@
 use super::*;
 
+const MANAGED_ACTION_CAPACITY: u64 = 32_768;
+const MANAGED_ACTION_PRUNE_BATCH: i64 = 512;
+
+const PRUNE_SETTLED_MANAGED_ACTIONS_SQL: &str = "DELETE FROM agent_runtime_managed_actions
+WHERE sequence IN (
+    SELECT a.sequence
+    FROM agent_runtime_managed_actions a
+    WHERE a.result IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM agent_runtime_parks p
+          WHERE p.command_id = a.command_id
+            AND p.status IN ('requested', 'parked')
+      )
+    ORDER BY a.sequence ASC
+    LIMIT ?1
+)";
+
 // A pending park is observed by the live driver. On recovery it must yield to
 // evidence and other ordinary controls; it cannot strand their original FIFO.
 const READY_ACTION: &str = "a.result IS NULL
@@ -237,10 +254,22 @@ pub(in crate::supervisor) fn enqueue(
             |r| r.get(0),
         )
         .map_err(db_error)?;
-    if count >= 32768 {
-        return Err(Error::Checkpoint(
-            "management command capacity exceeded".into(),
-        ));
+    if count >= MANAGED_ACTION_CAPACITY {
+        let needed = i64::try_from(
+            count
+                .saturating_sub(MANAGED_ACTION_CAPACITY)
+                .saturating_add(1),
+        )
+        .unwrap_or(i64::MAX);
+        let limit = needed.max(MANAGED_ACTION_PRUNE_BATCH);
+        let pruned = tx
+            .execute(PRUNE_SETTLED_MANAGED_ACTIONS_SQL, [limit])
+            .map_err(db_error)?;
+        if count.saturating_sub(pruned as u64) >= MANAGED_ACTION_CAPACITY {
+            return Err(Error::Checkpoint(
+                "management command capacity exceeded".into(),
+            ));
+        }
     }
     parking::admit(tx, action)?;
     tx.execute("INSERT INTO agent_runtime_managed_actions(command_id,run_id,digest,payload) VALUES(?1,?2,?3,?4)",
@@ -248,6 +277,37 @@ pub(in crate::supervisor) fn enqueue(
     read(tx, &action.command_id)?
         .ok_or_else(|| Error::Checkpoint("management command disappeared".into()))
 }
+const EARLIER_PENDING_ACTION_SQL: &str = "SELECT EXISTS(
+    SELECT 1 FROM agent_runtime_managed_actions
+    WHERE run_id=?1
+      AND (sequence<?2 OR json_extract(payload,'$.command.kind')='abandon')
+      AND result IS NULL
+      AND json_extract(payload,'$.command.kind')!='park'
+)";
+
+const SETTLE_ACTION_SQL: &str = "UPDATE agent_runtime_managed_actions SET result=?1 WHERE command_id=?2 AND digest=?3 AND result IS NULL";
+
+fn settle_in_tx(
+    tx: &rusqlite::Transaction<'_>,
+    id: &str,
+    hash: &str,
+    outcome: Result<RunOutcome, String>,
+) -> Result<ManagedActionRecord, Error> {
+    let result = ActionResult::from_execution(outcome);
+    let changed = tx
+        .execute(
+            SETTLE_ACTION_SQL,
+            params![serde_json::to_string(&result).map_err(db_error)?, id, hash],
+        )
+        .map_err(db_error)?;
+    if changed != 1 {
+        return Err(Error::Checkpoint(
+            "management command receipt changed".into(),
+        ));
+    }
+    read(tx, id)?.ok_or_else(|| Error::Checkpoint("management command disappeared".into()))
+}
+
 impl RunSupervisor {
     /// Claim the original root lease before dispatch and persist the command
     /// receipt under that same fence. A crash leaves an unacknowledged command
@@ -311,8 +371,17 @@ impl RunSupervisor {
                 self.ttl,
             )
             .await?;
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let lease_lost = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let result = self
-            .managed_action_leased(&compiled, &job, &record, &lease, prepared)
+            .run_leased(
+                &lease,
+                cancel.clone(),
+                lease_lost.clone(),
+                self.managed_action_leased(
+                    &compiled, &job, &record, &lease, prepared, cancel, lease_lost,
+                ),
+            )
             .await;
         let released = self.store.release(&lease).await;
         match result {
@@ -323,6 +392,7 @@ impl RunSupervisor {
             Err(error) => Err(error),
         }
     }
+    #[allow(clippy::too_many_arguments)]
     async fn managed_action_leased(
         &self,
         compiled: &ExecutionPlan,
@@ -330,25 +400,55 @@ impl RunSupervisor {
         record: &ManagedActionRecord,
         lease: &Lease,
         _prepared: PreparedAction,
+        cancel: tokio_util::sync::CancellationToken,
+        lease_lost: Arc<std::sync::atomic::AtomicBool>,
     ) -> Result<ManagedActionRecord, Error> {
         let id = record.action.command_id.clone();
         let check = lease.clone();
         let clock = self.store.clock.clone();
         let expected = compiled.live_identity();
-        let current=self.store.transaction(move|tx|{
-            check_lease(tx,&check,clock.now_ms())?;
-            let current=read(tx,&id)?.ok_or_else(||Error::Checkpoint("management command disappeared".into()))?;
-            if current.finished { return Ok(current); }
-            verify_plan(tx,&current.action.run_id,expected.as_ref())?;
-            let earlier:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM agent_runtime_managed_actions WHERE run_id=?1 AND (sequence<?2 OR json_extract(payload,'$.command.kind')='abandon') AND result IS NULL AND json_extract(payload,'$.command.kind')!='park')",params![current.action.run_id,current.sequence],|r|r.get(0)).map_err(db_error)?;
-            if earlier {return Err(Error::Checkpoint("earlier management command is pending".into()));}
-            Ok(current)
-        }).await?;
+        let (current, job_closed) = self
+            .store
+            .transaction(move |tx| {
+                check_lease(tx, &check, clock.now_ms())?;
+                let current = read(tx, &id)?
+                    .ok_or_else(|| Error::Checkpoint("management command disappeared".into()))?;
+                if current.finished {
+                    return Ok((current, false));
+                }
+                verify_plan(tx, &current.action.run_id, expected.as_ref())?;
+                let earlier: bool = tx
+                    .query_row(
+                        EARLIER_PENDING_ACTION_SQL,
+                        params![current.action.run_id, current.sequence],
+                        |r| r.get(0),
+                    )
+                    .map_err(db_error)?;
+                if earlier {
+                    return Err(Error::Checkpoint(
+                        "earlier management command is pending".into(),
+                    ));
+                }
+                let job_state: String = tx
+                    .query_row(
+                        "SELECT status FROM agent_runtime_jobs WHERE run_id=?1",
+                        [&current.action.run_id],
+                        |r| r.get(0),
+                    )
+                    .map_err(db_error)?;
+                Ok((current, job_state == "closed"))
+            })
+            .await?;
         if current.finished {
             return Ok(current);
         }
-        let result = async {
-            if matches!(job.status, JobStatus::Closed)
+        let hash = action_digest(&current.action)?;
+        let settle_id = current.action.command_id.clone();
+        let settle_hash = hash.clone();
+        let mut context = RunContext::new(&job.submission.thread_id, &job.submission.run_id);
+        context.cancel = cancel.child_token();
+        let prepared_execution = async {
+            if job_closed
                 && (self.model_command_accepted(&current.action).await?
                     || self.hook_command_accepted(&current.action).await?)
             {
@@ -357,7 +457,9 @@ impl RunSupervisor {
                     .execution_record(&current.action.run_id)
                     .await?
                     .ok_or_else(|| Error::Checkpoint("closed management run missing".into()))?;
-                return super::super::replay::cached_outcome(root, &job.submission, &job.digest);
+                let outcome =
+                    super::super::replay::cached_outcome(root, &job.submission, &job.digest)?;
+                return Ok(Err(outcome));
             }
             let check = lease.clone();
             let clock = self.store.clock.clone();
@@ -368,7 +470,6 @@ impl RunSupervisor {
                         .and_then(|()| ensure_not_parked(tx, &check.key))
                 })
                 .await?;
-            let mut context = RunContext::new(&job.submission.thread_id, &job.submission.run_id);
             let input = match &current.action.command {
                 ManagedCommand::Park
                 | ManagedCommand::Unpark { .. }
@@ -449,31 +550,53 @@ impl RunSupervisor {
                     RunInput::resume()
                 }
             };
-            self.invoke_plan_leased(compiled, input, context, lease)
-                .await
+            Ok(Ok(input))
         }
         .await;
-        let result = match result {
-            Ok(outcome) => ActionResult {
-                outcome: Some(outcome),
-                error: None,
-                abandonment: None,
-            },
-            Err(error) => ActionResult {
-                outcome: None,
-                error: Some(error.to_string().chars().take(8192).collect()),
-                abandonment: None,
-            },
+        let execution = match prepared_execution {
+            Ok(Ok(input)) => {
+                let settler: crate::supervisor::execution::ActionSettler =
+                    Box::new(move |tx, outcome| {
+                        settle_in_tx(tx, &settle_id, &settle_hash, outcome)
+                    });
+                self.execute_leased_for_action(
+                    compiled,
+                    input,
+                    context,
+                    lease,
+                    settler,
+                    lease_lost.clone(),
+                )
+                .await?
+            }
+            Ok(Err(cached_outcome)) => {
+                crate::supervisor::execution::ManagedActionExecution::Unsettled(Box::new(Ok(
+                    cached_outcome,
+                )))
+            }
+            Err(error) => crate::supervisor::execution::ManagedActionExecution::Unsettled(
+                Box::new(Err(error)),
+            ),
         };
+        let unsettled = match execution {
+            crate::supervisor::execution::ManagedActionExecution::Settled(settled) => {
+                return Ok(*settled);
+            }
+            crate::supervisor::execution::ManagedActionExecution::Unsettled(result) => {
+                (*result).map_err(|error| error.to_string())
+            }
+        };
+        if lease_lost.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err(Error::Checkpoint("lease fence lost or expired".into()));
+        }
         let id = current.action.command_id.clone();
-        let hash = action_digest(&current.action)?;
         let check = lease.clone();
         let clock = self.store.clock.clone();
-        self.store.transaction(move|tx|{
-            check_lease(tx,&check,clock.now_ms())?;
-            let changed=tx.execute("UPDATE agent_runtime_managed_actions SET result=?1 WHERE command_id=?2 AND digest=?3 AND result IS NULL",params![serde_json::to_string(&result).map_err(db_error)?,id,hash]).map_err(db_error)?;
-            if changed!=1 {return Err(Error::Checkpoint("management command receipt changed".into()));}
-            read(tx,&id)?.ok_or_else(||Error::Checkpoint("management command disappeared".into()))
-        }).await
+        self.store
+            .transaction(move |tx| {
+                check_lease(tx, &check, clock.now_ms())?;
+                settle_in_tx(tx, &id, &hash, unsettled)
+            })
+            .await
     }
 }

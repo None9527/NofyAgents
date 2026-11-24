@@ -9,6 +9,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub(crate) const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
+
 fn check_components(dir: &Dir, path: &str) -> Result<()> {
     safe_path(path)?;
     let mut prefix = PathBuf::new();
@@ -24,7 +26,7 @@ fn check_components(dir: &Dir, path: &str) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
+fn read_file_with_limit(dir: &Dir, path: &str, max_bytes: u64) -> Result<File> {
     check_components(dir, path)?;
     let file = dir.open(path)?.into_std();
     let metadata = file.metadata()?;
@@ -34,9 +36,23 @@ pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
             format!("source is not a regular file: {path}"),
         ));
     }
+    if metadata.len() > max_bytes {
+        return Err(Error::new(
+            "local_input",
+            format!("source file exceeds maximum size ({max_bytes} bytes): {path}"),
+        ));
+    }
     let mut bytes = vec![];
     let mut file = file;
-    file.read_to_end(&mut bytes)?;
+    Read::by_ref(&mut file)
+        .take(max_bytes.saturating_add(1))
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > max_bytes {
+        return Err(Error::new(
+            "local_input",
+            format!("source file exceeds maximum size ({max_bytes} bytes): {path}"),
+        ));
+    }
     let after = file.metadata()?;
     check_components(dir, path)?;
     if metadata.len() != after.len()
@@ -52,18 +68,40 @@ pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
     // collector replaces it with the declaration when the source has one.
     Ok(File::bytes(&bytes, observed_executable(&metadata)))
 }
+pub(crate) fn read_file(dir: &Dir, path: &str) -> Result<File> {
+    read_file_with_limit(dir, path, MAX_FILE_BYTES)
+}
 fn load_unlocked(path: &Path) -> Result<Source> {
     let dir = Dir::open_ambient_dir(path, ambient_authority())?;
     let manifest = read_file(&dir, "source-files.json")?;
     let names: Vec<String> = serde_json::from_str(&manifest.utf8()?)?;
+    if names.len() > MAX_SOURCE_FILES {
+        return Err(Error::new(
+            "local_input",
+            format!("source exceeds maximum file count ({MAX_SOURCE_FILES})"),
+        ));
+    }
     let mut unique = BTreeSet::new();
     let mut files = std::collections::BTreeMap::new();
+    let mut total_bytes: usize = 0;
     for name in names {
         safe_path(&name)?;
         if !unique.insert(name.clone()) {
             return Err(Error::new("local_input", "duplicate source manifest entry"));
         }
-        files.insert(name.clone(), read_file(&dir, &name)?);
+        let file = read_file(&dir, &name)?;
+        let file_bytes = match file.encoding {
+            Encoding::Utf8 => file.content.len(),
+            Encoding::Base64 => file.decode()?.len(),
+        };
+        total_bytes = total_bytes.saturating_add(file_bytes);
+        if total_bytes > MAX_SOURCE_TOTAL_BYTES {
+            return Err(Error::new(
+                "local_input",
+                format!("source exceeds maximum total size ({MAX_SOURCE_TOTAL_BYTES} bytes)"),
+            ));
+        }
+        files.insert(name, file);
     }
     if !files.contains_key("source-files.json") {
         return Err(Error::new(
@@ -118,7 +156,26 @@ fn private_write(path: &Path, bytes: &[u8], executable: bool) -> Result<()> {
     file.write_all(bytes)?;
     crate::executables::record_executable(file.as_file(), executable)?;
     file.as_file().sync_all()?;
-    file.persist(path).map_err(|e| e.error)?;
+    let temp_path = file.into_temp_path();
+    nofy_durable_fs::replace_file(&temp_path, path)?;
+    sync_directory(parent)?;
+    Ok(())
+}
+
+#[allow(dead_code)]
+fn move_tree(src: &Path, dst: &Path) -> Result<()> {
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            std::fs::create_dir(&to)?;
+            move_tree(&from, &to)?;
+            sync_directory(&to)?;
+        } else {
+            nofy_durable_fs::replace_file(&from, &to)?;
+        }
+    }
     Ok(())
 }
 fn reject_symlink_ancestors(root: &Path, relative: &str) -> Result<()> {
@@ -285,10 +342,9 @@ pub fn write_directory(path: &Path, source: &Source, expected_digest: Option<&st
             // create_dir claims the destination exclusively, then only our files are
             // moved into it. A racing pre-existing directory is never replaced.
             std::fs::create_dir(path)?;
-            for entry in std::fs::read_dir(temp.path())? {
-                let entry = entry?;
-                std::fs::rename(entry.path(), path.join(entry.file_name()))?;
-            }
+            move_tree(temp.path(), path)?;
+            sync_directory(path)?;
+            sync_directory(parent)?;
         }
         Ok(())
     }
@@ -421,4 +477,57 @@ pub fn archive_info(source: &Source, bytes: &[u8]) -> Result<Value> {
     Ok(
         json!({"format":"nofy.source-archive/v1","sha256":digest(bytes),"bytes":bytes.len().to_string(),"source_digest":source.digest()?,"files":source.files.len()}),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_file_enforces_explicit_byte_limit_without_unbounded_read() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::write(temp.path().join("ok.txt"), b"0123456789abcdef").unwrap();
+        std::fs::write(temp.path().join("too_big.txt"), b"0123456789abcdefX").unwrap();
+
+        // Sparse file exceeding MAX_FILE_BYTES exercises the production default limit cheaply.
+        let sparse = std::fs::File::create(temp.path().join("sparse.bin")).unwrap();
+        sparse.set_len(MAX_FILE_BYTES + 1).unwrap();
+        drop(sparse);
+
+        let dir = Dir::open_ambient_dir(temp.path(), ambient_authority()).unwrap();
+        let ok = read_file_with_limit(&dir, "ok.txt", 16).unwrap();
+        assert_eq!(ok.utf8().unwrap(), "0123456789abcdef");
+
+        let err = read_file_with_limit(&dir, "too_big.txt", 16).unwrap_err();
+        assert_eq!(err.code, "local_input");
+
+        let sparse_err = read_file(&dir, "sparse.bin").unwrap_err();
+        assert_eq!(sparse_err.code, "local_input");
+    }
+
+    #[test]
+    fn private_write_and_move_tree_persist_cleanly_without_leftover_temps() {
+        let temp = tempfile::tempdir().unwrap();
+        let target = temp.path().join("nested/data.txt");
+        private_write(&target, b"first", false).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"first");
+        private_write(&target, b"second", false).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"second");
+        assert_eq!(
+            std::fs::read_dir(temp.path().join("nested"))
+                .unwrap()
+                .count(),
+            1
+        );
+
+        let src = temp.path().join("src_tree");
+        let dst = temp.path().join("dst_tree");
+        private_write(&src.join("root.txt"), b"root", false).unwrap();
+        private_write(&src.join("sub/deep.txt"), b"deep", false).unwrap();
+        std::fs::create_dir(&dst).unwrap();
+        move_tree(&src, &dst).unwrap();
+        sync_directory(&dst).unwrap();
+        assert_eq!(std::fs::read(dst.join("root.txt")).unwrap(), b"root");
+        assert_eq!(std::fs::read(dst.join("sub/deep.txt")).unwrap(), b"deep");
+    }
 }

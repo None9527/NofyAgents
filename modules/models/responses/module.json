@@ -1,0 +1,318 @@
+{
+  "format": "nofy.module-package/v1",
+  "name": "model-responses",
+  "version": "0.1.0",
+  "description": "Frozen OpenAI Responses protocol and model adapter; connection and secret references supplied explicitly.",
+  "parameters_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "When false, emits no modules so presets can toggle protocols conditionally."
+      },
+      "connection": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "base_url",
+              "models"
+            ],
+            "properties": {
+              "base_url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "models": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1024,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "headers": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {
+                  "maxLength": 256
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 8192
+                }
+              },
+              "query": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {
+                  "maxLength": 256
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 8192
+                }
+              },
+              "header_credentials": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {
+                  "maxLength": 256
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_]{1,128}$"
+                    },
+                    "prefix": {
+                      "type": "string",
+                      "maxLength": 64
+                    }
+                  }
+                }
+              },
+              "tls": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "system_roots": {
+                    "type": "boolean"
+                  },
+                  "roots_pem": {
+                    "type": "array",
+                    "maxItems": 32,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 1048576
+                    }
+                  },
+                  "identity_ref": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_]{1,128}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "proxy_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 4096
+              },
+              "allow_insecure_http": {
+                "type": "boolean"
+              },
+              "timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600000
+              },
+              "idle_timeout_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 600000
+              },
+              "max_concurrency": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              },
+              "endpoint_limits": {
+                "type": "object",
+                "maxProperties": 1024,
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "max_input_tokens",
+                    "max_output_tokens"
+                  ],
+                  "properties": {
+                    "max_input_tokens": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "max_output_tokens": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "model": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "enabled": {
+              "const": true
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "connection",
+            "model"
+          ],
+          "properties": {
+            "connection": {
+              "type": "object"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    ]
+  },
+  "inputs": {},
+  "modules": [
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "connection"
+          },
+          "factory": "resource.model_connection",
+          "config": {
+            "$parameter": "/connection"
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "artifact"
+          },
+          "factory": "resource.artifact",
+          "config": {
+            "bundle": {
+              "schema_version": 1,
+              "files": {
+                "common.rhai": {
+                  "$file": "common.rhai"
+                },
+                "responses.rhai": {
+                  "$file": "responses.rhai"
+                },
+                "parameters.schema.json": {
+                  "$file": "parameters.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "protocol"
+          },
+          "factory": "resource.model_protocol",
+          "config": {
+            "source": {
+              "kind": "artifact",
+              "entries": [
+                "common.rhai",
+                "responses.rhai"
+              ],
+              "settings_schema": "parameters.schema.json"
+            },
+            "capabilities": {
+              "streaming": true,
+              "image_input": true,
+              "structured_output": true
+            },
+            "limits": {
+              "max_requests": 6
+            }
+          },
+          "dependencies": {
+            "artifact": {
+              "$module": "artifact"
+            }
+          }
+        }
+      }
+    },
+    {
+      "$when": {
+        "parameter": "/enabled",
+        "value": {
+          "reference": {
+            "$module": "model"
+          },
+          "factory": "model.programmed",
+          "config": {
+            "model": {
+              "$parameter": "/model"
+            }
+          },
+          "dependencies": {
+            "connection": {
+              "$module": "connection"
+            },
+            "protocol": {
+              "$module": "protocol"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "exports": {
+    "model": "model"
+  }
+}

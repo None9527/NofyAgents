@@ -1,6 +1,6 @@
 //! Unified memory service: the only public read/write capability boundary.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -94,6 +94,8 @@ impl UndoEntry {
     }
 }
 
+const MAX_EPHEMERAL_UNDO_ENTRIES: usize = 256;
+
 #[derive(Clone)]
 struct UndoRecord {
     entry: Arc<UndoEntry>,
@@ -102,9 +104,107 @@ struct UndoRecord {
     applied: bool,
 }
 
+#[derive(Default)]
+struct UndoCache {
+    entries: HashMap<String, UndoRecord>,
+    order: VecDeque<String>,
+}
+
+impl UndoCache {
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    fn get(&self, id: &str) -> Option<&UndoRecord> {
+        self.entries.get(id)
+    }
+
+    fn get_mut(&mut self, id: &str) -> Option<&mut UndoRecord> {
+        self.entries.get_mut(id)
+    }
+
+    fn insert(&mut self, id: String, record: UndoRecord) {
+        if self.entries.contains_key(&id) {
+            self.order.retain(|existing| existing != &id);
+        }
+        self.entries.insert(id.clone(), record);
+        self.order.push_back(id);
+        while self.entries.len() > MAX_EPHEMERAL_UNDO_ENTRIES {
+            let Some(oldest) = self.order.pop_front() else {
+                break;
+            };
+            self.entries.remove(&oldest);
+        }
+    }
+
+    fn remove(&mut self, id: &str) -> Option<UndoRecord> {
+        let removed = self.entries.remove(id);
+        if removed.is_some() {
+            self.order.retain(|existing| existing != id);
+        }
+        removed
+    }
+
+    fn retain(&mut self, mut predicate: impl FnMut(&String, &mut UndoRecord) -> bool) {
+        self.entries.retain(|key, value| predicate(key, value));
+        self.order.retain(|id| self.entries.contains_key(id));
+    }
+}
+
+const MAX_TOPIC_PATH_CACHE_ENTRIES: usize = 4096;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct CachedTopicLocation {
+    area: MemoryArea,
+    path: PathBuf,
+}
+
+#[derive(Default)]
+struct TopicPathCache {
+    entries: HashMap<String, CachedTopicLocation>,
+    order: VecDeque<String>,
+    #[cfg(test)]
+    hits: usize,
+    #[cfg(test)]
+    misses: usize,
+}
+
+impl TopicPathCache {
+    fn get(&self, id: &str) -> Option<CachedTopicLocation> {
+        self.entries.get(id).cloned()
+    }
+
+    fn insert(&mut self, id: String, location: CachedTopicLocation) {
+        if self.entries.contains_key(&id) {
+            self.order.retain(|existing| existing != &id);
+        }
+        self.entries.insert(id.clone(), location);
+        self.order.push_back(id);
+        while self.entries.len() > MAX_TOPIC_PATH_CACHE_ENTRIES {
+            let Some(oldest) = self.order.pop_front() else {
+                break;
+            };
+            self.entries.remove(&oldest);
+        }
+    }
+
+    fn remove(&mut self, id: &str) {
+        if self.entries.remove(id).is_some() {
+            self.order.retain(|existing| existing != id);
+        }
+    }
+
+    fn remove_by_path(&mut self, area: &MemoryArea, path: &Path) {
+        self.entries
+            .retain(|_, location| !(&location.area == area && location.path == path));
+        self.order.retain(|id| self.entries.contains_key(id));
+    }
+}
+
 pub struct NofyMemoryService {
     config: NofyMemoryServiceConfig,
-    undo: Arc<Mutex<HashMap<String, UndoRecord>>>,
+    undo: Arc<Mutex<UndoCache>>,
+    topic_paths: Arc<Mutex<TopicPathCache>>,
     query_context: Option<UnifiedSearchContext>,
     durable_undo: Option<DurableUndoOptions>,
 }
@@ -117,7 +217,8 @@ impl NofyMemoryService {
             .map_err(|error| MemoryServiceError::Internal(error.to_string()))?;
         Ok(Self {
             config,
-            undo: Arc::new(Mutex::new(HashMap::new())),
+            undo: Arc::new(Mutex::new(UndoCache::default())),
+            topic_paths: Arc::new(Mutex::new(TopicPathCache::default())),
             query_context: None,
             durable_undo: None,
         })
@@ -136,6 +237,7 @@ impl NofyMemoryService {
         Self {
             config,
             undo: self.undo.clone(),
+            topic_paths: self.topic_paths.clone(),
             query_context: context,
             durable_undo: self.durable_undo,
         }
@@ -240,7 +342,80 @@ impl NofyMemoryService {
         })
     }
 
+    fn cache_topic_path(
+        &self,
+        id: &str,
+        area: &MemoryArea,
+        path: PathBuf,
+    ) -> MemoryServiceResult<()> {
+        self.topic_paths
+            .lock()
+            .map_err(|_| internal_error("memory topic cache lock poisoned"))?
+            .insert(
+                id.to_owned(),
+                CachedTopicLocation {
+                    area: area.clone(),
+                    path,
+                },
+            );
+        Ok(())
+    }
+
+    fn evict_topic_id(&self, id: &str) -> MemoryServiceResult<()> {
+        self.topic_paths
+            .lock()
+            .map_err(|_| internal_error("memory topic cache lock poisoned"))?
+            .remove(id);
+        Ok(())
+    }
+
+    pub(super) fn evict_topic_path(
+        &self,
+        area: &MemoryArea,
+        relative_path: &Path,
+    ) -> MemoryServiceResult<()> {
+        let full_path = self
+            .scope_layout(area)
+            .topics_directory()
+            .join(relative_path);
+        self.topic_paths
+            .lock()
+            .map_err(|_| internal_error("memory topic cache lock poisoned"))?
+            .remove_by_path(area, &full_path);
+        Ok(())
+    }
+
     fn locate_topic(&self, id: &str) -> MemoryServiceResult<LocatedTopic> {
+        let cached = self
+            .topic_paths
+            .lock()
+            .map_err(|_| internal_error("memory topic cache lock poisoned"))?
+            .get(id);
+        if let Some(cached) = cached {
+            if let Ok(content) = std::fs::read_to_string(&cached.path) {
+                let metadata = parse_topic(&content);
+                let scope = self.scope_layout(&cached.area);
+                if metadata.id.as_deref() == Some(id)
+                    && let Ok(relative_path) = cached.path.strip_prefix(scope.topics_directory())
+                {
+                    #[cfg(test)]
+                    if let Ok(mut cache) = self.topic_paths.lock() {
+                        cache.hits += 1;
+                    }
+                    return Ok(LocatedTopic {
+                        area: cached.area,
+                        relative_path: relative_path.to_path_buf(),
+                        content_hash: content_hash(&content),
+                        content,
+                        metadata,
+                    });
+                }
+            }
+            self.evict_topic_id(id)?;
+        }
+
+        let mut discovered = Vec::new();
+        let mut found = None;
         for area in [MemoryArea::Personal, MemoryArea::Project] {
             let scope = self.scope_layout(&area);
             let mut files = Vec::new();
@@ -248,22 +423,51 @@ impl NofyMemoryService {
             for path in files {
                 let content = std::fs::read_to_string(&path).map_err(internal_error)?;
                 let metadata = parse_topic(&content);
+                if let Some(found_id) = metadata.id.as_deref() {
+                    discovered.push((
+                        found_id.to_owned(),
+                        CachedTopicLocation {
+                            area: area.clone(),
+                            path: path.clone(),
+                        },
+                    ));
+                }
                 if metadata.id.as_deref() == Some(id) {
                     let relative_path = path
                         .strip_prefix(scope.topics_directory())
                         .map_err(internal_error)?
                         .to_path_buf();
-                    return Ok(LocatedTopic {
+                    found = Some(LocatedTopic {
                         area,
                         relative_path,
                         content_hash: content_hash(&content),
                         content,
                         metadata,
                     });
+                    break;
                 }
             }
+            if found.is_some() {
+                break;
+            }
         }
-        Err(MemoryServiceError::NotFound)
+        {
+            let mut cache = self
+                .topic_paths
+                .lock()
+                .map_err(|_| internal_error("memory topic cache lock poisoned"))?;
+            #[cfg(test)]
+            {
+                cache.misses += 1;
+            }
+            for (topic_id, location) in discovered {
+                cache.insert(topic_id, location);
+            }
+            if found.is_none() {
+                cache.remove(id);
+            }
+        }
+        found.ok_or(MemoryServiceError::NotFound)
     }
 
     fn remember_undo(
@@ -279,13 +483,16 @@ impl NofyMemoryService {
                 generation: 1,
             });
         }
-        self.undo.lock().unwrap().insert(
-            id.clone(),
-            UndoRecord {
-                entry: Arc::new(entry),
-                applied: false,
-            },
-        );
+        self.undo
+            .lock()
+            .map_err(|_| internal_error("memory undo lock poisoned"))?
+            .insert(
+                id.clone(),
+                UndoRecord {
+                    entry: Arc::new(entry),
+                    applied: false,
+                },
+            );
         Ok(UndoToken {
             operation_id: id,
             generation: 1,
@@ -342,6 +549,13 @@ impl NofyMemoryService {
         self.access(&request.area)?
             .create_topic(operation_id, &relative_path, &content)
             .map_err(internal_error)?;
+        self.cache_topic_path(
+            &topic_id.to_string(),
+            &request.area,
+            self.scope_layout(&request.area)
+                .topics_directory()
+                .join(&relative_path),
+        )?;
         self.refresh_index()?;
         Ok((
             MemoryTarget {
@@ -367,12 +581,13 @@ impl MemoryService for NofyMemoryService {
             None => vec![MemoryArea::Personal, MemoryArea::Project],
         };
         let mut items = Vec::new();
+        let mut discovered = Vec::new();
         for area in areas {
             let scope = self.scope_layout(&area);
             let mut files = Vec::new();
             collect_markdown(&scope.topics_directory(), &mut files).map_err(internal_error)?;
             for path in files {
-                let mut file = std::fs::File::open(path).map_err(internal_error)?;
+                let mut file = std::fs::File::open(&path).map_err(internal_error)?;
                 let updated_at = timestamp_seconds(
                     file.metadata()
                         .and_then(|meta| meta.modified())
@@ -382,6 +597,13 @@ impl MemoryService for NofyMemoryService {
                 file.read_to_string(&mut content).map_err(internal_error)?;
                 let metadata = parse_topic(&content);
                 if let Some(id) = metadata.id {
+                    discovered.push((
+                        id.clone(),
+                        CachedTopicLocation {
+                            area: area.clone(),
+                            path,
+                        },
+                    ));
                     items.push(MemoryListItem {
                         target: MemoryTarget {
                             id,
@@ -392,6 +614,15 @@ impl MemoryService for NofyMemoryService {
                         updated_at,
                     });
                 }
+            }
+        }
+        if !discovered.is_empty() {
+            let mut cache = self
+                .topic_paths
+                .lock()
+                .map_err(|_| internal_error("memory topic cache lock poisoned"))?;
+            for (id, location) in discovered {
+                cache.insert(id, location);
             }
         }
         Ok(MemoryList { items })
@@ -593,6 +824,7 @@ impl MemoryService for NofyMemoryService {
                 None,
             )
             .map_err(incomplete_forget_error)?;
+        let _ = self.evict_topic_id(&request.target.id);
         store
             .delete_forgotten_observation(&scope, evidence)
             .map_err(incomplete_forget_error)?;
@@ -626,10 +858,12 @@ impl MemoryService for NofyMemoryService {
                     area,
                     relative_path,
                     current_hash,
-                } => self
-                    .access(area)?
-                    .delete_topic(OperationId::new(), relative_path, current_hash, None)
-                    .map_err(internal_error)?,
+                } => {
+                    self.access(area)?
+                        .delete_topic(OperationId::new(), relative_path, current_hash, None)
+                        .map_err(internal_error)?;
+                    self.evict_topic_path(area, relative_path)?;
+                }
                 UndoEntry::Revised {
                     area,
                     relative_path,
@@ -1216,4 +1450,215 @@ fn internal_error(error: impl std::fmt::Display) -> MemoryServiceError {
 
 fn incomplete_forget_error(error: impl std::fmt::Display) -> MemoryServiceError {
     MemoryServiceError::Internal(format!("尚未完全忘记：{error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_record(name: &str) -> UndoRecord {
+        UndoRecord {
+            entry: Arc::new(UndoEntry::Created {
+                area: MemoryArea::Personal,
+                relative_path: PathBuf::from(format!("{name}.md")),
+                current_hash: content_hash(name),
+            }),
+            applied: false,
+        }
+    }
+
+    #[test]
+    fn undo_cache_evicts_oldest_entries_beyond_capacity_and_refreshes_on_update() {
+        let mut cache = UndoCache::default();
+        for i in 0..(MAX_EPHEMERAL_UNDO_ENTRIES + 44) {
+            cache.insert(format!("op-{i}"), sample_record(&format!("op-{i}")));
+        }
+        assert_eq!(cache.entries.len(), MAX_EPHEMERAL_UNDO_ENTRIES);
+        assert_eq!(cache.order.len(), MAX_EPHEMERAL_UNDO_ENTRIES);
+        assert!(cache.get("op-0").is_none());
+        assert!(cache.get("op-43").is_none());
+        assert!(cache.get("op-44").is_some());
+        assert!(
+            cache
+                .get(&format!("op-{}", MAX_EPHEMERAL_UNDO_ENTRIES + 43))
+                .is_some()
+        );
+
+        // Updating the oldest surviving key moves it to the back of eviction order.
+        cache.insert("op-44".into(), sample_record("op-44-updated"));
+        cache.insert("op-fresh".into(), sample_record("op-fresh"));
+        assert_eq!(cache.entries.len(), MAX_EPHEMERAL_UNDO_ENTRIES);
+        assert!(cache.get("op-44").is_some());
+        assert!(cache.get("op-45").is_none());
+        assert!(cache.get("op-fresh").is_some());
+
+        // Remove and retain keep index and queue synchronized.
+        assert!(cache.remove("op-44").is_some());
+        assert_eq!(cache.entries.len(), cache.order.len());
+        cache.retain(|id, _| id == "op-fresh");
+        assert_eq!(cache.entries.len(), 1);
+        assert_eq!(cache.order.len(), 1);
+    }
+
+    #[test]
+    fn remember_undo_returns_error_when_lock_is_poisoned() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut config = NofyMemoryServiceConfig::default_for_tests();
+        config.root = tmp.path().join("memory");
+        config.workspace = tmp.path().join("workspace");
+        let service = NofyMemoryService::new(config).unwrap();
+
+        let undo_lock = service.undo.clone();
+        let _ = std::thread::spawn(move || {
+            let _guard = undo_lock.lock().unwrap();
+            panic!("poison undo lock");
+        })
+        .join();
+
+        let err = service
+            .remember_undo(
+                OperationId::new(),
+                UndoEntry::Created {
+                    area: MemoryArea::Personal,
+                    relative_path: PathBuf::from("a.md"),
+                    current_hash: content_hash("a"),
+                },
+            )
+            .unwrap_err();
+        assert!(matches!(err, MemoryServiceError::Internal(_)));
+    }
+
+    #[tokio::test]
+    async fn topic_path_cache_hits_and_recovers_on_rename_mismatch_and_delete() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut config = NofyMemoryServiceConfig::default_for_tests();
+        config.root = tmp.path().join("memory");
+        config.workspace = tmp.path().join("workspace");
+        let service = NofyMemoryService::new(config).unwrap();
+
+        let first = service
+            .remember(RememberRequest {
+                area: MemoryArea::Personal,
+                statement: "Prefer concise diffs".into(),
+                title: Some("Diff style".into()),
+                confirm_sensitive: false,
+            })
+            .await
+            .unwrap();
+        let second = service
+            .remember(RememberRequest {
+                area: MemoryArea::Project,
+                statement: "Use cargo fmt before commit".into(),
+                title: Some("Formatting".into()),
+                confirm_sensitive: false,
+            })
+            .await
+            .unwrap();
+
+        // Remember populates the cache, so get() hits directly without scanning.
+        let doc1 = service.get(first.target.clone()).await.unwrap();
+        assert_eq!(doc1.body, "Prefer concise diffs");
+        {
+            let cache = service.topic_paths.lock().unwrap();
+            assert_eq!(cache.hits, 1);
+            assert_eq!(cache.misses, 0);
+        }
+
+        // Derived query view shares the same topic path cache.
+        let view = service.with_query_options(MemorySearchConfig::default(), None);
+        let doc2 = view.get(second.target.clone()).await.unwrap();
+        assert_eq!(doc2.body, "Use cargo fmt before commit");
+        {
+            let cache = service.topic_paths.lock().unwrap();
+            assert_eq!(cache.hits, 2);
+            assert_eq!(cache.misses, 0);
+        }
+
+        // Externally rename topic 1 on disk: cached path misses, falls back to scan, refreshes cache.
+        let topics_dir = service
+            .scope_layout(&MemoryArea::Personal)
+            .topics_directory();
+        let old_path = topics_dir.join(format!("remembered-{}.md", first.target.id));
+        let renamed_path = topics_dir.join("renamed-topic-one.md");
+        std::fs::rename(&old_path, &renamed_path).unwrap();
+
+        let after_rename = service.get(first.target.clone()).await.unwrap();
+        assert_eq!(after_rename.body, "Prefer concise diffs");
+        {
+            let cache = service.topic_paths.lock().unwrap();
+            assert_eq!(cache.hits, 2);
+            assert_eq!(cache.misses, 1);
+            assert_eq!(
+                cache.get(&first.target.id).map(|loc| loc.path),
+                Some(renamed_path.clone())
+            );
+        }
+
+        // Subsequent read hits the refreshed cache path directly.
+        let cached_again = service.get(first.target.clone()).await.unwrap();
+        assert_eq!(cached_again.body, "Prefer concise diffs");
+        {
+            let cache = service.topic_paths.lock().unwrap();
+            assert_eq!(cache.hits, 3);
+            assert_eq!(cache.misses, 1);
+        }
+
+        // Replace cached file contents with a different topic ID while moving topic 1 to another path.
+        let relocated_path = topics_dir.join("relocated-topic-one.md");
+        let original_content = std::fs::read_to_string(&renamed_path).unwrap();
+        std::fs::write(&relocated_path, &original_content).unwrap();
+        let foreign_id = Uuid::new_v4();
+        std::fs::write(
+            &renamed_path,
+            format!(
+                "<!-- nofy-memory: id={foreign_id}; revision=1 -->\n# Other\n\nDifferent topic.\n"
+            ),
+        )
+        .unwrap();
+
+        let after_mismatch = service.get(first.target.clone()).await.unwrap();
+        assert_eq!(after_mismatch.body, "Prefer concise diffs");
+        {
+            let cache = service.topic_paths.lock().unwrap();
+            assert_eq!(cache.misses, 2);
+            assert_eq!(
+                cache.get(&first.target.id).map(|loc| loc.path),
+                Some(relocated_path.clone())
+            );
+        }
+
+        // Delete topic 1 externally: cache evicts stale entry and returns NotFound.
+        std::fs::remove_file(&relocated_path).unwrap();
+        let deleted = service.get(first.target.clone()).await;
+        assert!(matches!(deleted, Err(MemoryServiceError::NotFound)));
+        assert!(
+            service
+                .topic_paths
+                .lock()
+                .unwrap()
+                .get(&first.target.id)
+                .is_none()
+        );
+
+        // Forget evicts topic 2 from cache cleanly.
+        service
+            .forget(ForgetRequest {
+                target: second.target.clone(),
+                confirmed: true,
+            })
+            .await
+            .unwrap();
+        assert!(
+            service
+                .topic_paths
+                .lock()
+                .unwrap()
+                .get(&second.target.id)
+                .is_none()
+        );
+        assert!(matches!(
+            service.get(second.target).await,
+            Err(MemoryServiceError::NotFound)
+        ));
+    }
 }

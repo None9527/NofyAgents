@@ -4,6 +4,10 @@ use super::*;
 use serde::{Deserialize, Serialize};
 pub const PROTOCOL: &str = "linux-single-process-v1";
 pub const WORKER_ARG: &str = "__nofy_module_worker_v1";
+#[cfg(target_os = "linux")]
+const PROFILE_FD_PREFIX: &str = "fd:";
+#[cfg(target_os = "linux")]
+const MAX_PROFILE_BYTES: usize = 65536;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Profile {
@@ -22,6 +26,156 @@ pub(super) struct Profile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_lease: Option<PathBuf>,
 }
+/// Creates a read-only, sealed in-memory descriptor carrying the serialized
+/// isolation profile, guaranteed to use a descriptor number >= 3 with
+/// `O_CLOEXEC` set in the parent.
+#[cfg(target_os = "linux")]
+pub fn seal_profile_fd(wire: &[u8]) -> std::io::Result<std::os::fd::OwnedFd> {
+    use std::io::Write;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    if wire.len() > MAX_PROFILE_BYTES {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "oversized isolation profile",
+        ));
+    }
+    let name = std::ffi::CString::new("nofy-isolation-profile")
+        .map_err(|_| std::io::Error::other("invalid memfd name"))?;
+    // SAFETY: `name` is a valid NUL-terminated C string; memfd_create allocates
+    // a fresh anonymous in-memory file descriptor owned exclusively by us.
+    let raw = unsafe {
+        libc::syscall(
+            libc::SYS_memfd_create,
+            name.as_ptr(),
+            libc::MFD_CLOEXEC | libc::MFD_ALLOW_SEALING,
+        )
+    };
+    if raw < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let raw_fd =
+        i32::try_from(raw).map_err(|_| std::io::Error::other("memfd descriptor out of range"))?;
+    // SAFETY: `raw_fd` is a newly created descriptor >= 0 from `memfd_create`
+    // and fits in `i32`; ownership transfers exclusively to `File`.
+    let mut memfd = unsafe { std::fs::File::from_raw_fd(raw_fd) };
+    memfd.write_all(wire)?;
+    // SAFETY: `memfd` is a valid seekable regular descriptor owned by this scope.
+    if unsafe { libc::lseek(memfd.as_raw_fd(), 0, libc::SEEK_SET) } < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let seals = libc::F_SEAL_WRITE | libc::F_SEAL_SHRINK | libc::F_SEAL_GROW | libc::F_SEAL_SEAL;
+    // SAFETY: `memfd` was created with `MFD_ALLOW_SEALING` and has no mappings.
+    if unsafe { libc::fcntl(memfd.as_raw_fd(), libc::F_ADD_SEALS, seals) } != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let proc_path = format!("/proc/self/fd/{}", memfd.as_raw_fd());
+    let c_path = std::ffi::CString::new(proc_path)
+        .map_err(|_| std::io::Error::other("invalid proc fd path"))?;
+    // SAFETY: `c_path` is a valid NUL-terminated path referencing our sealed
+    // memfd; opening with O_RDONLY | O_CLOEXEC yields an independent read-only handle.
+    let ro_raw = unsafe { libc::open(c_path.as_ptr(), libc::O_RDONLY | libc::O_CLOEXEC) };
+    if ro_raw < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `ro_raw` is a valid newly opened file descriptor >= 0.
+    let ro = unsafe { OwnedFd::from_raw_fd(ro_raw) };
+    drop(memfd);
+    if ro.as_raw_fd() >= 3 {
+        return Ok(ro);
+    }
+    // SAFETY: `ro` is a valid open descriptor; duplicating to >= 3 prevents
+    // colliding with stdio (0, 1, 2) while keeping CLOEXEC set in the parent.
+    let high = unsafe { libc::fcntl(ro.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 3) };
+    if high < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `high` is a newly duplicated valid file descriptor >= 3.
+    Ok(unsafe { OwnedFd::from_raw_fd(high) })
+}
+/// Attaches a serialized isolation profile to `command` via an inherited
+/// read-only descriptor instead of exposing it on `argv`, returning the
+/// `fd:<N>` argument token for `argv[2]`.
+#[cfg(target_os = "linux")]
+pub fn attach_profile_fd(
+    command: &mut std::process::Command,
+    wire: &[u8],
+) -> std::io::Result<std::ffi::OsString> {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::process::CommandExt;
+    let fd = seal_profile_fd(wire)?;
+    let raw = fd.as_raw_fd();
+    // SAFETY: Runs between fork and exec in the child process; invokes only
+    // async-signal-safe `fcntl` and `lseek` on the inherited descriptor.
+    // `fd` stays owned by the closure until `command` is dropped in the parent.
+    unsafe {
+        command.pre_exec(move || {
+            if libc::fcntl(fd.as_raw_fd(), libc::F_SETFD, 0) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            if libc::lseek(fd.as_raw_fd(), 0, libc::SEEK_SET) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    Ok(std::ffi::OsString::from(format!(
+        "{PROFILE_FD_PREFIX}{raw}"
+    )))
+}
+#[cfg(target_os = "linux")]
+fn read_profile_arg(
+    arg: &std::ffi::OsStr,
+) -> std::result::Result<Profile, Box<dyn std::error::Error>> {
+    use std::io::Read;
+    use std::os::fd::FromRawFd;
+    use std::os::unix::fs::FileTypeExt;
+    let spec = arg.to_str().ok_or("invalid profile encoding")?;
+    let raw = spec
+        .strip_prefix(PROFILE_FD_PREFIX)
+        .ok_or("isolation profile must be passed via read-only descriptor")?;
+    let fd: i32 = raw
+        .parse()
+        .map_err(|_| "invalid profile descriptor number")?;
+    if fd < 3 {
+        return Err("invalid profile descriptor number".into());
+    }
+    // SAFETY: Querying file status flags on a validated descriptor number >= 3
+    // before taking ownership verifies it is open and read-only.
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+    if flags < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    if (flags & libc::O_ACCMODE) != libc::O_RDONLY {
+        // SAFETY: `fd` was just verified open above; close before rejecting.
+        unsafe {
+            libc::close(fd);
+        }
+        return Err("isolation profile descriptor must be read-only".into());
+    }
+    // SAFETY: `fd` is an open inherited read-only descriptor >= 3; wrapping in
+    // `File` transfers exclusive ownership so it closes on drop before `apply()`.
+    let file = unsafe { std::fs::File::from_raw_fd(fd) };
+    let file_type = file.metadata()?.file_type();
+    if !file_type.is_file() && !file_type.is_fifo() {
+        return Err("invalid isolation profile descriptor type".into());
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_PROFILE_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > MAX_PROFILE_BYTES {
+        bytes.fill(0);
+        return Err("oversized isolation profile".into());
+    }
+    let profile = serde_json::from_slice::<Profile>(&bytes);
+    bytes.fill(0);
+    Ok(profile?)
+}
+#[cfg(not(target_os = "linux"))]
+fn read_profile_arg(
+    _arg: &std::ffi::OsStr,
+) -> std::result::Result<Profile, Box<dyn std::error::Error>> {
+    Err("Linux confinement required".into())
+}
 /// Returns None for an ordinary host launch. Helper failures never fall back
 /// to executing business code outside confinement.
 pub fn worker_entry() -> Option<i32> {
@@ -32,12 +186,8 @@ pub fn worker_entry() -> Option<i32> {
     }
     let mut failure_code = nofy_isolation::RUNNER_FAILURE_EXIT_CODE;
     let result = (|| -> std::result::Result<(), Box<dyn std::error::Error>> {
-        let wire = args.next().ok_or("missing isolation profile")?;
-        if wire.len() > 65536 {
-            return Err("oversized isolation profile".into());
-        }
-        let profile: Profile =
-            serde_json::from_str(wire.to_str().ok_or("invalid profile encoding")?)?;
+        let profile_arg = args.next().ok_or("missing isolation profile")?;
+        let profile = read_profile_arg(&profile_arg)?;
         let program = args.next().ok_or("missing program")?;
         let arguments = args.collect::<Vec<_>>();
         if program == "--evaluate-model" {
@@ -50,7 +200,17 @@ pub fn worker_entry() -> Option<i32> {
         } else {
             None
         };
-        let _lease = apply(&profile, stack_bytes)?;
+        let pin_scratch_cwd = matches!(
+            program.to_str(),
+            Some(
+                "--probe"
+                    | "--render-prompt"
+                    | "--evaluate-scope"
+                    | "--evaluate-model"
+                    | "--evaluate-code"
+            )
+        );
+        let _lease = apply(&profile, stack_bytes, pin_scratch_cwd)?;
         if program == "--probe" {
             println!(
                 "{{\"protocol\":\"nofy.isolation/v1\",\"filesystem\":\"landlock-abi3\",\"network\":\"denied\",\"processes\":\"denied\",\"enforced\":true}}"
@@ -130,6 +290,7 @@ pub(crate) fn landlock_abi() -> Option<u64> {
 fn apply(
     _profile: &Profile,
     _stack_bytes: Option<u64>,
+    _pin_scratch_cwd: bool,
 ) -> std::result::Result<Option<std::fs::File>, Box<dyn std::error::Error>> {
     Err("Linux confinement required".into())
 }
@@ -138,6 +299,7 @@ fn apply(
 fn apply(
     profile: &Profile,
     stack_bytes: Option<u64>,
+    pin_scratch_cwd: bool,
 ) -> std::result::Result<Option<std::fs::File>, Box<dyn std::error::Error>> {
     use landlock::{
         ABI, Access, AccessFs, CompatLevel, Compatible, PathBeneath, PathFd, Ruleset, RulesetAttr,
@@ -164,11 +326,22 @@ fn apply(
     if !scratch.starts_with(&profile.private_root) || scratch == profile.private_root {
         return Err("invalid scratch boundary".into());
     }
-    // SAFETY: this is a single-threaded post-exec helper. Parent identity is
-    // checked on both sides of PDEATHSIG to close the parent-death race.
+    if pin_scratch_cwd {
+        std::env::set_current_dir(&scratch)?;
+    }
+    // SAFETY: This is a single-threaded post-exec helper; `getppid` cannot
+    // fail, and `prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0)` passes all five
+    // ABI arguments. Parent identity is checked on both sides to close the
+    // parent-exit race.
     unsafe {
         if libc::getppid() as u32 != profile.parent_pid
-            || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) != 0
+            || libc::prctl(
+                libc::PR_SET_PDEATHSIG,
+                libc::SIGKILL as libc::c_ulong,
+                0 as libc::c_ulong,
+                0 as libc::c_ulong,
+                0 as libc::c_ulong,
+            ) != 0
             || libc::getppid() as u32 != profile.parent_pid
         {
             return Err("module parent no longer owns helper".into());
@@ -439,6 +612,11 @@ fn seccomp(lease_fd: Option<i32>) -> std::io::Result<()> {
         libc::SYS_kill,
         libc::SYS_tkill,
         libc::SYS_tgkill,
+        libc::SYS_rt_sigqueueinfo,
+        libc::SYS_rt_tgsigqueueinfo,
+        424, // pidfd_send_signal
+        libc::SYS_setpriority,
+        libc::SYS_userfaultfd,
         libc::SYS_ptrace,
         libc::SYS_process_vm_readv,
         libc::SYS_process_vm_writev,
@@ -505,22 +683,143 @@ fn seccomp(lease_fd: Option<i32>) -> std::io::Result<()> {
         libc::SYS_chown,
         libc::SYS_lchown,
         libc::SYS_mknod,
+        libc::SYS_utime,
+        libc::SYS_utimes,
+        libc::SYS_futimesat,
     ]);
     for syscall in denied {
         filter.push(jump(syscall as u32, 0, 1));
         filter.push(stmt(libc::BPF_RET | libc::BPF_K, DENY));
     }
     filter.push(stmt(libc::BPF_RET | libc::BPF_K, 0x7fff0000));
+    let filter_len = u16::try_from(filter.len())
+        .map_err(|_| std::io::Error::other("seccomp filter exceeds BPF instruction limit"))?;
     let program = sock_fprog {
-        len: filter.len() as u16,
+        len: filter_len,
         filter: filter.as_mut_ptr(),
     };
-    // SAFETY: no threads, pointers are live through prctl, no external memory
-    // is referenced by this classic BPF program. Restrictions survive exec.
-    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
-        || unsafe { libc::prctl(libc::PR_SET_SECCOMP, 2, &program as *const sock_fprog) } != 0
+    // SAFETY: Single-threaded disposable helper; setting `PR_SET_NO_NEW_PRIVS`
+    // passes all five ABI arguments and enables unprivileged seccomp filter
+    // installation below without mutating any pointer arguments.
+    if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `filter` stays live and unmodified for the duration of `prctl`,
+    // `program.len` matches its exact instruction count, `PR_SET_NO_NEW_PRIVS`
+    // is already active, and all five ABI arguments are supplied.
+    if unsafe {
+        libc::prctl(
+            libc::PR_SET_SECCOMP,
+            libc::SECCOMP_MODE_FILTER as libc::c_ulong,
+            &program as *const sock_fprog,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+        )
+    } != 0
     {
         return Err(std::io::Error::last_os_error());
     }
     Ok(())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+    use std::ffi::OsStr;
+    use std::os::fd::{AsRawFd, IntoRawFd};
+
+    fn sample_profile() -> Profile {
+        Profile {
+            scratch: PathBuf::from("/tmp/nofy-test/scratch"),
+            scratch_files: vec![],
+            read_only: vec![],
+            local_paths: vec![],
+            directories: vec![],
+            private_root: PathBuf::from("/tmp/nofy-test"),
+            parent_pid: std::process::id(),
+            cpu_seconds: 5,
+            environment: [("SECRET_KEY".into(), "secret-value".into())].into(),
+            cache_lease: None,
+        }
+    }
+
+    #[test]
+    fn seal_profile_fd_returns_readonly_sealed_cloexec_descriptor() {
+        let wire = serde_json::to_vec(&sample_profile()).unwrap();
+        let fd = seal_profile_fd(&wire).unwrap();
+        let raw = fd.as_raw_fd();
+        assert!(raw >= 3);
+        let fd_flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+        assert!(fd_flags >= 0 && (fd_flags & libc::FD_CLOEXEC) != 0);
+        let status_flags = unsafe { libc::fcntl(raw, libc::F_GETFL) };
+        assert_eq!(status_flags & libc::O_ACCMODE, libc::O_RDONLY);
+        // Writing to the read-only sealed descriptor must fail.
+        let written = unsafe { libc::write(raw, b"x".as_ptr().cast(), 1) };
+        assert_eq!(written, -1);
+        let seals = unsafe { libc::fcntl(raw, libc::F_GET_SEALS) };
+        assert!(seals >= 0);
+        assert_ne!(seals & libc::F_SEAL_WRITE, 0);
+        assert_ne!(seals & libc::F_SEAL_SEAL, 0);
+        // Oversized profiles are rejected before creating a descriptor.
+        let oversized = vec![b'a'; MAX_PROFILE_BYTES + 1];
+        assert!(seal_profile_fd(&oversized).is_err());
+    }
+
+    fn fd_identity(raw: i32) -> (u64, u64) {
+        let mut st = std::mem::MaybeUninit::<libc::stat>::zeroed();
+        assert_eq!(unsafe { libc::fstat(raw, st.as_mut_ptr()) }, 0);
+        let st = unsafe { st.assume_init() };
+        (st.st_dev, st.st_ino)
+    }
+
+    fn assert_fd_closed(raw: i32, orig: (u64, u64)) {
+        let mut st = std::mem::MaybeUninit::<libc::stat>::zeroed();
+        let rc = unsafe { libc::fstat(raw, st.as_mut_ptr()) };
+        if rc == 0 {
+            let st = unsafe { st.assume_init() };
+            assert_ne!(
+                (st.st_dev, st.st_ino),
+                orig,
+                "original profile descriptor {raw} remained open"
+            );
+        }
+    }
+
+    #[test]
+    fn read_profile_arg_rejects_inline_json_and_unsafe_descriptors_and_closes_on_read() {
+        let profile = sample_profile();
+        let wire = serde_json::to_string(&profile).unwrap();
+        // Raw JSON in argv[2] is strictly refused.
+        assert!(read_profile_arg(OsStr::new(&wire)).is_err());
+        // Stdio and invalid descriptor tokens are refused.
+        for bad in ["", "fd:", "fd:-1", "fd:0", "fd:1", "fd:2", "fd:abc"] {
+            assert!(read_profile_arg(OsStr::new(bad)).is_err(), "{bad}");
+        }
+        // A writable descriptor must be rejected and closed.
+        let tmp = tempfile::tempfile().unwrap();
+        let rw_fd = tmp.into_raw_fd();
+        let rw_id = fd_identity(rw_fd);
+        assert!(read_profile_arg(OsStr::new(&format!("fd:{rw_fd}"))).is_err());
+        assert_fd_closed(rw_fd, rw_id);
+
+        // Valid sealed read-only memfd is read and immediately closed.
+        let ro = seal_profile_fd(wire.as_bytes()).unwrap();
+        let raw = ro.into_raw_fd();
+        let ro_id = fd_identity(raw);
+        let parsed = read_profile_arg(OsStr::new(&format!("fd:{raw}"))).unwrap();
+        assert_eq!(parsed.parent_pid, profile.parent_pid);
+        assert_eq!(parsed.environment, profile.environment);
+        assert_fd_closed(raw, ro_id);
+
+        // A read-only pipe end is also accepted and immediately closed.
+        let mut fds = [-1; 2];
+        assert_eq!(unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) }, 0);
+        let n = unsafe { libc::write(fds[1], wire.as_ptr().cast(), wire.len()) };
+        assert_eq!(n as usize, wire.len());
+        unsafe { libc::close(fds[1]) };
+        let pipe_id = fd_identity(fds[0]);
+        let parsed_pipe = read_profile_arg(OsStr::new(&format!("fd:{}", fds[0]))).unwrap();
+        assert_eq!(parsed_pipe.environment, profile.environment);
+        assert_fd_closed(fds[0], pipe_id);
+    }
 }

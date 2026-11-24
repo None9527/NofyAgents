@@ -57,3 +57,26 @@ fn encoded(value: &impl serde::Serialize, limit: usize) -> Result<Vec<u8>, Error
     serde_json::to_writer(&mut writer, value).map_err(|_| failure("json_byte_limit"))?;
     Ok(writer.bytes)
 }
+
+/// Validate the serialized JSON byte size without allocating an output buffer.
+fn count_encoded(value: &impl serde::Serialize, limit: usize) -> Result<(), Error> {
+    struct Counter {
+        bytes: usize,
+        limit: usize,
+    }
+    impl std::io::Write for Counter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if bytes.len() > self.limit.saturating_sub(self.bytes) {
+                return Err(std::io::Error::other("model JSON byte limit"));
+            }
+            self.bytes += bytes.len();
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = Counter { bytes: 0, limit };
+    serde_json::to_writer(&mut writer, value).map_err(|_| failure("json_byte_limit"))?;
+    Ok(())
+}

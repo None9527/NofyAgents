@@ -2,27 +2,50 @@ use super::{Program, invalid};
 use nofy_agent_runtime::{Error, RunContext};
 use rhai::packages::{
     ArithmeticPackage, BasicArrayPackage, BasicFnPackage, BasicIteratorPackage, BasicMapPackage,
-    BasicStringPackage, LogicPackage, MoreStringPackage, Package,
+    BasicMathPackage, BasicStringPackage, LogicPackage, MoreStringPackage, Package,
 };
 use rhai::{Dynamic, Engine, OptimizationLevel};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::{
+    cell::RefCell,
+    collections::VecDeque,
     path::{Component, Path, PathBuf},
+    rc::Rc,
     time::{Duration, Instant},
 };
+
+const AST_CACHE_CAPACITY: usize = 128;
+
+rhai::def_package! {
+    PureCorePackage(lib) :
+        ArithmeticPackage,
+        BasicMathPackage,
+        LogicPackage,
+        BasicStringPackage,
+        MoreStringPackage,
+        BasicIteratorPackage,
+        BasicArrayPackage,
+        BasicMapPackage,
+        BasicFnPackage
+    {}
+}
+
+type AstCacheEntry = (([u8; 32], u64), Rc<rhai::AST>);
+
+thread_local! {
+    static PURE_CORE_PACKAGE: PureCorePackage = PureCorePackage::new();
+    static AST_CACHE: RefCell<VecDeque<AstCacheEntry>> =
+        const { RefCell::new(VecDeque::new()) };
+}
 
 fn engine(program: &Program, context: &RunContext) -> Engine {
     // Standard/LanguageCore packages include blocking sleep; the time package
     // exposes an ambient clock. Install only the explicit pure capability set.
     let mut engine = Engine::new_raw();
-    ArithmeticPackage::new().register_into_engine(&mut engine);
-    LogicPackage::new().register_into_engine(&mut engine);
-    BasicStringPackage::new().register_into_engine(&mut engine);
-    MoreStringPackage::new().register_into_engine(&mut engine);
-    BasicIteratorPackage::new().register_into_engine(&mut engine);
-    BasicArrayPackage::new().register_into_engine(&mut engine);
-    BasicMapPackage::new().register_into_engine(&mut engine);
-    BasicFnPackage::new().register_into_engine(&mut engine);
+    PURE_CORE_PACKAGE.with(|package| {
+        package.register_into_engine(&mut engine);
+    });
     engine
         .set_optimization_level(OptimizationLevel::None)
         .set_max_operations(program.limits.max_operations)
@@ -34,10 +57,11 @@ fn engine(program: &Program, context: &RunContext) -> Engine {
                 .max_input_bytes
                 .max(program.limits.max_output_bytes),
         )
-        .set_max_array_size(16384)
+        .set_max_array_size(4096)
         .set_max_map_size(4096)
         .set_max_variables(256)
-        .set_max_functions(128);
+        .set_max_functions(128)
+        .set_max_modules(0);
     engine.set_module_resolver(rhai::module_resolvers::DummyModuleResolver::new());
     engine.disable_symbol("eval");
     engine.on_print(|_| {});
@@ -48,11 +72,15 @@ fn engine(program: &Program, context: &RunContext) -> Engine {
         (cancel.is_cancelled() || Instant::now() >= deadline)
             .then(|| Dynamic::from("scope_program_stopped"))
     });
+    let parse_limit = program.limits.max_input_bytes;
     engine.register_fn(
         "json_parse",
-        |text: &str| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+        move |text: &str| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+            if text.len() > parse_limit {
+                return Err("scope JSON byte limit".into());
+            }
             let value: Value = serde_json::from_str(text).map_err(|_| "invalid JSON")?;
-            super::json::dynamic(&value)
+            super::json::dynamic(&value, parse_limit)
         },
     );
     let json_limit = program.limits.max_input_bytes;
@@ -82,6 +110,37 @@ fn engine(program: &Program, context: &RunContext) -> Engine {
     });
     engine
 }
+
+fn compile_cached(program: &Program, engine: &Engine) -> Result<Rc<rhai::AST>, Error> {
+    let digest: [u8; 32] = Sha256::digest(program.source.as_bytes()).into();
+    let key = (digest, program.limits.max_operations);
+    if let Some(cached) = AST_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        let index = cache
+            .iter()
+            .position(|(cached_key, _)| cached_key == &key)?;
+        let entry = cache.remove(index)?;
+        let ast = entry.1.clone();
+        cache.push_back(entry);
+        Some(ast)
+    }) {
+        return Ok(cached);
+    }
+    let ast = Rc::new(
+        engine
+            .compile(&program.source)
+            .map_err(|_| invalid("invalid scope source"))?,
+    );
+    AST_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if cache.len() >= AST_CACHE_CAPACITY {
+            cache.pop_front();
+        }
+        cache.push_back((key, ast.clone()));
+    });
+    Ok(ast)
+}
+
 fn normalize(path: &Path) -> Option<PathBuf> {
     let mut result = PathBuf::new();
     for part in path.components() {
@@ -119,9 +178,7 @@ fn relative_path(base: &str, value: &str) -> Option<String> {
 }
 pub(super) fn validate(program: &Program) -> Result<(), Error> {
     let engine = engine(program, &RunContext::default());
-    let ast = engine
-        .compile(&program.source)
-        .map_err(|_| invalid("invalid scope source"))?;
+    let ast = compile_cached(program, &engine)?;
     if !ast
         .iter_functions()
         .any(|function| function.name == "scope" && function.params.len() == 1)
@@ -139,10 +196,8 @@ pub(super) fn evaluate(
         return Err(Error::Cancelled);
     }
     let engine = engine(program, context);
-    let ast = engine
-        .compile(&program.source)
-        .map_err(|_| invalid("invalid scope source"))?;
-    let input = super::json::dynamic(&input)
+    let ast = compile_cached(program, &engine)?;
+    let input = super::json::dynamic(&input, program.limits.max_input_bytes)
         .map_err(|_| invalid("scope input is not representable JSON"))?;
     let result = engine.call_fn::<Dynamic>(&mut rhai::Scope::new(), &ast, "scope", (input,));
     if context.cancel.is_cancelled() {
@@ -151,4 +206,48 @@ pub(super) fn evaluate(
     let result = result.map_err(|_| invalid("scope program failed or exceeded its limits"))?;
     super::json::value(&result, program.limits.max_output_bytes)
         .map_err(|_| invalid("scope result is not bounded JSON"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scope_program::Limits;
+
+    fn sample_program(source: &str) -> Program {
+        Program {
+            source: source.into(),
+            artifact_digest: "digest".into(),
+            cwd: std::env::temp_dir(),
+            parameters: Value::Null,
+            limits: Limits::default(),
+        }
+    }
+
+    #[test]
+    fn ast_cache_reuses_compiled_program_and_stays_bounded() {
+        let program = sample_program("fn scope(input) { #{kind: \"admit\", allowed: true} }");
+        let eng = engine(&program, &RunContext::default());
+        let first = compile_cached(&program, &eng).unwrap();
+        let second = compile_cached(&program, &eng).unwrap();
+        assert!(Rc::ptr_eq(&first, &second));
+
+        for index in 0..(AST_CACHE_CAPACITY + 16) {
+            let distinct = sample_program(&format!(
+                "fn scope(input) {{ let n = {index}; #{{kind: \"admit\", allowed: n >= 0}} }}"
+            ));
+            let _ = compile_cached(&distinct, &eng).unwrap();
+        }
+        AST_CACHE.with(|cache| {
+            assert!(cache.borrow().len() <= AST_CACHE_CAPACITY);
+        });
+    }
+
+    #[test]
+    fn nested_container_amplification_is_rejected_before_oom() {
+        let bomb = sample_program(
+            "fn scope(input) { let a = [1, 2, 3, 4]; for i in 0..20 { a = [a, a]; } #{kind: \"admit\", allowed: true, extra: a} }",
+        );
+        let result = evaluate(&bomb, serde_json::json!({}), &RunContext::default());
+        assert!(result.is_err());
+    }
 }

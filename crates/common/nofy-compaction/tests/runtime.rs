@@ -488,3 +488,195 @@ async fn compaction_shares_the_root_model_budget_and_transport_retry_owner() {
         assert_eq!(summary.active_operations, 0);
     }
 }
+
+#[tokio::test]
+async fn compacted_history_places_summary_before_recent_turns_without_empty_user_or_double_system()
+{
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let policy = CompactionPolicy::new(
+        ContextConfig {
+            mode: CompactionMode::FullReplace,
+            context_window: 1000,
+            keep_tokens: 32,
+            min_compactable: 1,
+            ..Default::default()
+        },
+        Arc::new(Summary(requests.clone())),
+        Arc::new(BytesTokenCounter),
+    )
+    .unwrap();
+    let mut state = state();
+    // Inject a second consecutive System message in the compactable prefix to
+    // ensure the summarizer never receives adjacent System messages.
+    state.messages.insert(
+        1,
+        Message::System {
+            content: "secondary system".into(),
+        },
+    );
+    state.hook_progress.input_start_index = Some(6);
+
+    let ctx = RunContext::new("thread", "run");
+    let plan = policy.plan(&state, &ctx).await.unwrap().unwrap();
+    let update = policy.apply(&state, &plan, &ctx).await.unwrap();
+
+    // (a) No consecutive System messages sent to the summarizer.
+    let sent = &requests.lock().unwrap()[0].messages;
+    assert!(
+        !sent
+            .windows(2)
+            .any(|pair| matches!(pair, [Message::System { .. }, Message::System { .. }])),
+        "summarizer received consecutive System messages: {sent:?}"
+    );
+    assert!(matches!(
+        &sent[0],
+        Message::System { content }
+            if content.contains("stable system") && content.contains("secondary system")
+    ));
+
+    // (b) No empty User("") message; summary sits right after System and before retained turns.
+    assert!(
+        !update
+            .messages
+            .iter()
+            .any(|msg| matches!(msg, Message::User { content } if content.is_empty())),
+        "compacted history must not contain an empty User message: {:?}",
+        update.messages
+    );
+    assert_eq!(update.messages[0], state.messages[0]);
+    assert!(matches!(
+        &update.messages[1],
+        Message::User { content }
+            if content.starts_with("This session is being continued")
+                && content.contains("summary fact")
+    ));
+    assert_eq!(update.retained_at, 2);
+    assert_eq!(update.retained_from, 6);
+    assert_eq!(
+        &update.messages[2..],
+        &state.messages[6..],
+        "retained current turn must immediately follow the summary"
+    );
+    assert_eq!(update.metadata["skipped"], json!(false));
+}
+
+#[tokio::test]
+async fn missing_input_boundary_skips_compaction_cleanly_without_error() {
+    let policy = CompactionPolicy::new(
+        ContextConfig {
+            context_window: 1000,
+            min_compactable: 1,
+            ..Default::default()
+        },
+        Arc::new(Summary(Arc::default())),
+        Arc::new(BytesTokenCounter),
+    )
+    .unwrap();
+    let mut state = state();
+    state.hook_progress.input_start_index = None;
+    let ctx = RunContext::new("thread", "run");
+    let plan = policy.plan(&state, &ctx).await.unwrap();
+    assert!(plan.is_none());
+}
+
+#[tokio::test]
+async fn non_reducing_summary_falls_back_losslessly_and_clears_pending_context_progress() {
+    struct BloatedSummary;
+    #[async_trait::async_trait]
+    impl Model for BloatedSummary {
+        async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+            Ok(ModelResponse {
+                output: "bloated summary ".repeat(5000),
+                input_tokens: 13,
+                output_tokens: 17,
+                ..Default::default()
+            })
+        }
+    }
+    struct Conversation;
+    #[async_trait::async_trait]
+    impl Model for Conversation {
+        async fn complete(
+            &self,
+            request: ModelRequest,
+            _: &RunContext,
+        ) -> Result<ModelResponse, Error> {
+            let second = request
+                .messages
+                .iter()
+                .any(|message| matches!(message, Message::User { content } if content == "second"));
+            Ok(ModelResponse {
+                output: if second {
+                    "continued-after-skip".into()
+                } else {
+                    "old answer ".repeat(400)
+                },
+                ..Default::default()
+            })
+        }
+    }
+
+    // Direct policy check: returns original messages losslessly instead of Error::Composition.
+    let policy = CompactionPolicy::new(
+        ContextConfig {
+            context_window: 1000,
+            min_compactable: 1,
+            ..Default::default()
+        },
+        Arc::new(BloatedSummary),
+        Arc::new(BytesTokenCounter),
+    )
+    .unwrap();
+    let state = state();
+    let ctx = RunContext::new("thread", "run");
+    let plan = policy.plan(&state, &ctx).await.unwrap().unwrap();
+    let update = policy.apply(&state, &plan, &ctx).await.unwrap();
+    assert_eq!(update.messages, state.messages);
+    assert_eq!(update.retained_from, 0);
+    assert_eq!(update.retained_at, 0);
+    assert_eq!((update.input_tokens, update.output_tokens), (13, 17));
+    assert_eq!(update.metadata["skipped"], json!(true));
+    assert_eq!(update.metadata["reason"], json!("no_token_reduction"));
+
+    // End-to-end Agent check: run completes without aborting or stranding context_progress.pending.
+    let mut components = Components::default();
+    components
+        .models
+        .insert("model".into(), Arc::new(Conversation));
+    components
+        .prompts
+        .insert("prompt".into(), Arc::new(StaticPrompt("system".into())));
+    let agent = AgentBuilder::new("skip-non-reducing")
+        .model("model")
+        .prompt("prompt")
+        .compile(&components)
+        .unwrap()
+        .with_checkpointer(Arc::new(InMemoryCheckpointer::default()))
+        .with_context_policy("compaction@1", Arc::new(policy))
+        .unwrap();
+    agent
+        .invoke(
+            RunInput::new("old prompt ".repeat(400)),
+            RunContext::new("thread", "turn-1"),
+        )
+        .await
+        .unwrap();
+    let RunOutcome::Completed { output, state } = agent
+        .invoke(RunInput::new("second"), RunContext::new("thread", "turn-2"))
+        .await
+        .unwrap()
+    else {
+        panic!("agent must complete smoothly when compaction is skipped");
+    };
+    assert_eq!(output, "continued-after-skip");
+    assert!(
+        state.context_progress.pending.is_none(),
+        "context_progress.pending must be cleared on lossless fallback"
+    );
+    assert!(state.messages.iter().any(|msg| matches!(
+        msg,
+        Message::User { content } if content.starts_with("old prompt ")
+    )));
+    assert_eq!(state.input_tokens, 13);
+    assert_eq!(state.output_tokens, 17);
+}

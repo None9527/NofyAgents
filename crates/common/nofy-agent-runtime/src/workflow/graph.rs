@@ -320,7 +320,7 @@ fn run_graph(
             }
             let state: WorkflowProgress = serde_json::from_value(cp.state.data)
                 .map_err(|e| Error::Checkpoint(e.to_string()))?;
-            validate_state(&state, &context.run_id, &reference)?;
+            validate_state(&state, &context.run_id, &reference, plan.spec())?;
             if state.input != input {
                 return Err(Error::Checkpoint(
                     "workflow input changed on recovery".into(),
@@ -370,7 +370,11 @@ fn run_graph(
         if let Some(halted) = &frame.state.halted {
             return Ok(match halted {
                 GraphHalt::Failed { error, .. } => GraphOutcome::Failed(error.clone()),
-                GraphHalt::Paused { reason, .. } => GraphOutcome::Paused(reason.clone()),
+                GraphHalt::Paused { reason, .. } => {
+                    let reason = reason.clone();
+                    frame.observe_running_as_waiting().await?;
+                    GraphOutcome::Paused(reason)
+                }
             });
         }
         if let Some(output) = &frame.state.output {
@@ -384,7 +388,11 @@ fn run_graph(
             if let Some(halted) = &frame.state.halted {
                 return Ok(match halted {
                     GraphHalt::Failed { error, .. } => GraphOutcome::Failed(error.clone()),
-                    GraphHalt::Paused { reason, .. } => GraphOutcome::Paused(reason.clone()),
+                    GraphHalt::Paused { reason, .. } => {
+                        let reason = reason.clone();
+                        frame.observe_running_as_waiting().await?;
+                        GraphOutcome::Paused(reason)
+                    }
                 });
             }
             let values = frame
@@ -574,6 +582,7 @@ fn run_graph(
             }
             let mut control = None;
             let mut first_control = None;
+            let mut peer_cancelled = false;
             while let Some((node, attempt, input, result)) = futures.next().await {
                 let result = match result {
                     Ok(GraphOutcome::Completed(output)) => {
@@ -584,8 +593,22 @@ fn run_graph(
                     }
                     r => r,
                 };
+                let external_cancelled = frame.context.cancel.is_cancelled();
                 let observed_status = match &result {
-                    Ok(GraphOutcome::Cancelled) | Err(Error::Cancelled) => Some("cancelled"),
+                    Ok(GraphOutcome::Cancelled) | Err(Error::Cancelled) => {
+                        if external_cancelled {
+                            match crate::governance::cancellation_error(&frame.context) {
+                                Error::BudgetExceeded => Some("budget_exceeded"),
+                                _ => Some("cancelled"),
+                            }
+                        } else if peer_cancelled {
+                            // Interrupted solely by a peer halt; keep the node non-terminal
+                            // so work views report waiting rather than terminal cancelled.
+                            Some("waiting")
+                        } else {
+                            Some("cancelled")
+                        }
+                    }
                     Ok(GraphOutcome::BudgetExceeded) | Err(Error::BudgetExceeded) => {
                         Some("budget_exceeded")
                     }
@@ -619,7 +642,9 @@ fn run_graph(
                         control = Some(GraphOutcome::Paused(reason));
                     }
                     Ok(GraphOutcome::Cancelled) => {
-                        control = Some(GraphOutcome::Cancelled);
+                        if external_cancelled || !peer_cancelled {
+                            control = Some(GraphOutcome::Cancelled);
+                        }
                     }
                     Ok(GraphOutcome::BudgetExceeded) => {
                         control = Some(GraphOutcome::BudgetExceeded);
@@ -679,7 +704,9 @@ fn run_graph(
                         control = Some(GraphOutcome::Paused(reason));
                     }
                     Err(Error::Cancelled) => {
-                        control = Some(GraphOutcome::Cancelled);
+                        if external_cancelled || !peer_cancelled {
+                            control = Some(GraphOutcome::Cancelled);
+                        }
                     }
                     Err(Error::BudgetExceeded) => {
                         control = Some(GraphOutcome::BudgetExceeded);
@@ -696,11 +723,36 @@ fn run_graph(
                 {
                     frame.state.recovering = None;
                 }
+                let observed_status = if observed_status.is_none()
+                    && matches!(first_control, Some(GraphOutcome::Paused(_)))
+                    && matches!(
+                        frame.state.nodes.get(&node.id),
+                        Some(NodeProgress::Running { .. })
+                    ) {
+                    Some("waiting")
+                } else {
+                    observed_status
+                };
                 frame.observe_node(&node.id, observed_status).await?;
                 frame.commit().await?;
-                if control.is_some() && first_control.is_none() {
-                    first_control = control.take();
-                    batch_cancel.cancel();
+                if let Some(next_control) = control.take() {
+                    // A peer pause lets already-running siblings finish cleanly or reach
+                    // their own pause points rather than killing in-flight work. External
+                    // cancellation still propagates immediately through `frame.context.cancel`.
+                    let should_cancel_batch = !matches!(next_control, GraphOutcome::Paused(_));
+                    match &first_control {
+                        None => {
+                            first_control = Some(next_control);
+                        }
+                        Some(GraphOutcome::Paused(_)) if should_cancel_batch => {
+                            first_control = Some(next_control);
+                        }
+                        Some(_) => {}
+                    }
+                    if should_cancel_batch && !peer_cancelled {
+                        peer_cancelled = true;
+                        batch_cancel.cancel();
+                    }
                 }
             }
             frame.flush().await?;
@@ -708,8 +760,150 @@ fn run_graph(
                 return Err(crate::governance::cancellation_error(&frame.context));
             }
             if let Some(control) = first_control.or(control) {
+                if matches!(control, GraphOutcome::Paused(_)) {
+                    frame.observe_running_as_waiting().await?;
+                }
                 return Ok(control);
             }
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::workflow::compile::WorkflowDocument;
+    use std::sync::Mutex;
+
+    struct RecordingObserver(Arc<Mutex<Vec<(String, String)>>>);
+    #[async_trait::async_trait]
+    impl crate::composition::ChildObserver for RecordingObserver {
+        async fn started(&self, _: &RunContext, _: &RunContext, _: &Agent) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn finished(
+            &self,
+            _: &RunContext,
+            _: &Result<RunOutcome, Error>,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn control(
+            &self,
+            _: &RunContext,
+            record: crate::composition::ControlNodeRecord,
+        ) -> Result<(), Error> {
+            self.0.lock().unwrap().push((record.node_id, record.status));
+            Ok(())
+        }
+    }
+
+    struct BlockingPrompt {
+        started: Arc<tokio::sync::Notify>,
+    }
+    #[async_trait::async_trait]
+    impl Prompt for BlockingPrompt {
+        async fn render(&self, _: &RunContext, _: &[String]) -> Result<String, Error> {
+            self.started.notify_one();
+            std::future::pending().await
+        }
+    }
+
+    #[tokio::test]
+    async fn run_graph_external_cancel_cancels_all_parallel_nodes_and_records_cancelled() {
+        let mut registry = crate::registry::ModuleRegistry::default();
+        let started_a = Arc::new(tokio::sync::Notify::new());
+        let started_b = Arc::new(tokio::sync::Notify::new());
+        for (id, notify) in [
+            ("prompt-a", started_a.clone()),
+            ("prompt-b", started_b.clone()),
+        ] {
+            registry
+                .register_factory(Arc::new(crate::registry::InstanceFactory::new(
+                    id,
+                    "1",
+                    crate::registry::ModuleInstance::Prompt(Arc::new(BlockingPrompt {
+                        started: notify,
+                    })),
+                )))
+                .unwrap();
+            registry
+                .define(crate::registry::ModuleDefinition {
+                    reference: crate::registry::ModuleRef::new(id, "1"),
+                    factory: id.into(),
+                    config: json!({}),
+                    dependencies: BTreeMap::new(),
+                })
+                .unwrap();
+        }
+        let doc: WorkflowDocument = serde_json::from_value(json!({
+            "entry": {"id": "main", "version": "1"},
+            "host": {"name": "cancel-unit-host"},
+            "workflows": [{
+                "reference": {"id": "main", "version": "1"},
+                "input_schema": true,
+                "output_schema": true,
+                "parallelism": 2,
+                "nodes": [
+                    {
+                        "id": "node_a",
+                        "needs": [],
+                        "input": {"from": "literal", "value": {}},
+                        "action": {"kind": "prompt", "prompt": {"id": "prompt-a", "version": "1"}}
+                    },
+                    {
+                        "id": "node_b",
+                        "needs": [],
+                        "input": {"from": "literal", "value": {}},
+                        "action": {"kind": "prompt", "prompt": {"id": "prompt-b", "version": "1"}}
+                    },
+                    {
+                        "id": "join",
+                        "needs": ["node_a", "node_b"],
+                        "input": {"from": "literal", "value": true},
+                        "action": {"kind": "join"}
+                    }
+                ],
+                "output": {"from": "node", "node": "join", "pointer": ""}
+            }]
+        }))
+        .unwrap();
+        let flow = super::super::compile::compile_workflow(doc, &registry).unwrap();
+        let store: Arc<dyn Checkpointer> = Arc::new(InMemoryCheckpointer::default());
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let mut ctx = RunContext::new("thread", "root");
+        ctx.capabilities
+            .insert(ChildObserverBinding(Arc::new(RecordingObserver(
+                events.clone(),
+            ))));
+        let cancel = ctx.cancel.clone();
+        let handle = tokio::spawn(run_graph(
+            flow.environment.clone(),
+            crate::registry::ModuleRef::new("main", "1"),
+            json!({}),
+            store,
+            ctx,
+        ));
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            tokio::join!(started_a.notified(), started_b.notified());
+        })
+        .await
+        .unwrap();
+
+        cancel.cancel();
+        let result = tokio::time::timeout(std::time::Duration::from_secs(3), handle)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(result, Err(Error::Cancelled)));
+        let recorded = events.lock().unwrap().clone();
+        assert!(
+            recorded.contains(&("node_a".into(), "cancelled".into())),
+            "{recorded:?}"
+        );
+        assert!(
+            recorded.contains(&("node_b".into(), "cancelled".into())),
+            "{recorded:?}"
+        );
+    }
 }

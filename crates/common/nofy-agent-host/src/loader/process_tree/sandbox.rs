@@ -150,7 +150,7 @@ impl Sandbox {
         {
             return Err("guest root is not canonical and empty".into());
         }
-        // Pin directory grants before chroot. open validates the same FD that
+        // Pin directory grants before pivot_root. open validates the same FD that
         // is bound; no second pathname resolution may substitute an alias.
         let mut directories = Vec::new();
         for (alias, grant) in &self.directories {
@@ -246,12 +246,11 @@ impl Sandbox {
                 grant.access,
                 super::super::directories::Access::ReadWriteExecute
             );
-            bind(
-                &source,
-                &self.root.join(guest.strip_prefix("/")?),
-                read_only,
-                noexec,
-            )?;
+            let target = self.root.join(guest.strip_prefix("/")?);
+            bind(&source, &target, read_only, noexec)?;
+            if !read_only {
+                protect_mandatory_paths(&source, &target)?;
+            }
             if !noexec {
                 executable.push(guest);
             }
@@ -301,12 +300,8 @@ impl Sandbox {
             libc::MS_REMOUNT | libc::MS_RDONLY | libc::MS_NOSUID | libc::MS_NODEV,
             None,
         )?;
-        let root = cpath(&self.root)?;
-        if unsafe { libc::chroot(root.as_ptr()) } != 0 {
-            return Err(std::io::Error::last_os_error().into());
-        }
-        std::env::set_current_dir("/")?;
         drop((directories, image, local, artifact, temp, null));
+        pivot_root(&self.root)?;
         super::super::isolation::drop_capabilities()?;
         let abi = ABI::V3;
         let mut rules = Ruleset::default()
@@ -373,6 +368,10 @@ fn mount(
     let target = cpath(target)?;
     let kind = kind.map(CString::new).transpose()?;
     let data = data.map(CString::new).transpose()?;
+    // SAFETY: `source`, `target`, `kind`, and `data` remain alive for the
+    // entire `mount(2)` call; every non-null pointer is a valid NUL-terminated
+    // C string (NULL is valid for optional mount parameters). Invoked only
+    // inside this helper's private `CLONE_NEWNS` mount namespace.
     if unsafe {
         libc::mount(
             source.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
@@ -404,7 +403,16 @@ fn pinned(path: &Path) -> std::io::Result<File> {
 }
 fn relative_file(root: &File, name: &str) -> std::io::Result<File> {
     use std::os::fd::FromRawFd;
+    if name.is_empty() || name.contains('/') || matches!(name, "." | "..") {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "invalid image root entry name",
+        ));
+    }
     let name = CString::new(name)?;
+    // SAFETY: `root` is a live owned directory descriptor and `name` is a
+    // validated single-component NUL-terminated C string; `O_PATH | O_NOFOLLOW`
+    // opens the entry without following symlinks and `O_CLOEXEC` prevents leaks.
     let fd = unsafe {
         libc::openat(
             root.as_raw_fd(),
@@ -415,6 +423,8 @@ fn relative_file(root: &File, name: &str) -> std::io::Result<File> {
     if fd < 0 {
         return Err(std::io::Error::last_os_error());
     }
+    // SAFETY: `fd` was just returned >= 0 by `openat` and has no other owner;
+    // wrapping in `File` transfers exclusive ownership so it closes on drop.
     let file = unsafe { File::from_raw_fd(fd) };
     let meta = file.metadata()?;
     if !meta.is_dir() && !meta.is_file() {
@@ -470,18 +480,119 @@ fn attributes(path: &Path, read_only: bool, noexec: bool, nodev: bool) -> std::i
         userns: 0,
     };
     let path = cpath(path)?;
+    // SAFETY: `Attr` is `#[repr(C)]` matching Linux UAPI `struct mount_attr`
+    // (`MOUNT_ATTR_SIZE_VER0 == 32`), `path` is a NUL-terminated C string, and
+    // `&attr` remains valid for `size_of::<Attr>()` bytes during the syscall.
     if unsafe {
         libc::syscall(
             libc::SYS_mount_setattr,
             libc::AT_FDCWD,
             path.as_ptr(),
             0x8000u32,
-            &attr,
+            &attr as *const Attr,
             std::mem::size_of::<Attr>(),
         )
     } != 0
     {
         return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+fn pivot_root(new_root: &Path) -> std::io::Result<()> {
+    std::env::set_current_dir(new_root)?;
+    let dot = CString::new(".")?;
+    // SAFETY: `dot` is a valid NUL-terminated path. Inside this helper's private
+    // mount namespace, `pivot_root(".", ".")` stacks the old root on top of the
+    // read-only tmpfs new root without creating directory entries, and `umount2`
+    // immediately detaches the old host mount tree. Failure is fail-closed.
+    if unsafe { libc::syscall(libc::SYS_pivot_root, dot.as_ptr(), dot.as_ptr()) } != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `dot` is a valid NUL-terminated path; detaching the stacked mount
+    // unmounts the old host root tree (already private via MS_REC | MS_PRIVATE).
+    if unsafe { libc::umount2(dot.as_ptr(), libc::MNT_DETACH) } != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    std::env::set_current_dir("/")?;
+    Ok(())
+}
+fn open_nofollow_optional(dir: &File, name: &str) -> std::io::Result<Option<File>> {
+    use std::os::fd::FromRawFd;
+    let name = CString::new(name)?;
+    // SAFETY: `dir` is a valid open directory FD and `name` is a single
+    // NUL-terminated component; O_PATH | O_NOFOLLOW never follows symlinks.
+    let fd = unsafe {
+        libc::openat(
+            dir.as_raw_fd(),
+            name.as_ptr(),
+            libc::O_PATH | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if fd < 0 {
+        let error = std::io::Error::last_os_error();
+        if matches!(error.raw_os_error(), Some(libc::ENOENT | libc::ENOTDIR)) {
+            return Ok(None);
+        }
+        return Err(error);
+    }
+    // SAFETY: `fd` was just returned >= 0 by `openat` and is owned solely here.
+    Ok(Some(unsafe { File::from_raw_fd(fd) }))
+}
+fn protect_mandatory_paths(source: &File, target: &Path) -> std::io::Result<()> {
+    for relative in nofy_isolation::MANDATORY_PROTECTED {
+        let components: Vec<&str> = relative.split('/').collect();
+        let mut current: Option<File> = None;
+        let mut missing = false;
+        for (index, component) in components.iter().enumerate() {
+            let parent = current.as_ref().unwrap_or(source);
+            let Some(next) = open_nofollow_optional(parent, component)? else {
+                missing = true;
+                break;
+            };
+            let meta = next.metadata()?;
+            if meta.file_type().is_symlink() {
+                return Err(std::io::Error::other(format!(
+                    "mandatory protected path {relative} cannot be a symlink"
+                )));
+            }
+            let is_last = index + 1 == components.len();
+            if !is_last && !meta.is_dir() {
+                missing = true;
+                break;
+            }
+            current = Some(next);
+        }
+        if missing {
+            continue;
+        }
+        let Some(entry) = current else {
+            continue;
+        };
+        let meta = entry.metadata()?;
+        let is_dir = meta.is_dir();
+        if !is_dir && !meta.is_file() {
+            return Err(std::io::Error::other(format!(
+                "unsupported mandatory protected path type: {relative}"
+            )));
+        }
+        let mut check = target.to_path_buf();
+        for component in &components {
+            check.push(component);
+            if std::fs::symlink_metadata(&check)?.file_type().is_symlink() {
+                return Err(std::io::Error::other(format!(
+                    "mandatory protected path {relative} changed to symlink"
+                )));
+            }
+        }
+        let target_meta = std::fs::symlink_metadata(&check)?;
+        if target_meta.dev() != meta.dev() || target_meta.ino() != meta.ino() {
+            return Err(std::io::Error::other(format!(
+                "mandatory protected path {relative} changed before mount"
+            )));
+        }
+        let flags = libc::MS_BIND | if is_dir { libc::MS_REC } else { 0 };
+        mount(Some(&fd_path(&entry)), &check, None, flags, None)?;
+        attributes(&check, true, true, true)?;
     }
     Ok(())
 }

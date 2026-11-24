@@ -8,6 +8,7 @@
         "agent_messages",
         "ask_user",
         "workflow_execute",
+        "workflow_agent",
         "assemble"
       ],
       "description": "Root allow-list inherited by descendants. Adding a tool does not automatically authorize it.",
@@ -47,7 +48,7 @@
           ]
         },
         "max_child_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -71,7 +72,7 @@
           ]
         },
         "max_duration_ms": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -79,7 +80,7 @@
           ]
         },
         "max_input_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -87,7 +88,7 @@
           ]
         },
         "max_model_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -95,7 +96,7 @@
           ]
         },
         "max_output_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -103,7 +104,7 @@
           ]
         },
         "max_steps": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -111,7 +112,7 @@
           ]
         },
         "max_tool_calls": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -119,7 +120,7 @@
           ]
         },
         "max_total_tokens": {
-          "maximum": 18446744073709551615,
+          "maximum": 9007199254740991,
           "minimum": 0,
           "type": [
             "integer",
@@ -151,7 +152,167 @@
       "type": "integer"
     },
     "connection": {
+      "additionalProperties": false,
       "description": "Explicit provider endpoint, model allow-list and credential references. Never put credential values here.",
+      "properties": {
+        "allow_insecure_http": {
+          "description": "Explicit opt-in for non-HTTPS endpoints (e.g. loopback local models).",
+          "type": "boolean"
+        },
+        "base_url": {
+          "description": "Canonical provider API base URL ending in '/', e.g. https://api.example.invalid/v1/.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "endpoint_limits": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "max_input_tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_output_tokens": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "max_input_tokens",
+              "max_output_tokens"
+            ],
+            "type": "object"
+          },
+          "description": "Optional per-model input/output token limits.",
+          "maxProperties": 1024,
+          "type": "object"
+        },
+        "header_credentials": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "prefix": {
+                "description": "Optional header value prefix such as 'Bearer '.",
+                "maxLength": 64,
+                "type": "string"
+              },
+              "reference": {
+                "description": "Logical credential reference resolved by the Host credential provider.",
+                "pattern": "^[A-Za-z0-9_]{1,128}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "reference"
+            ],
+            "type": "object"
+          },
+          "description": "Map of header name to logical credential reference (never raw secrets).",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "headers": {
+          "additionalProperties": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "description": "Non-secret static HTTP headers sent with each request.",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "idle_timeout_ms": {
+          "description": "Stream idle timeout in milliseconds.",
+          "maximum": 600000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_concurrency": {
+          "description": "Maximum concurrent requests on this connection.",
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "models": {
+          "description": "Explicit model IDs admitted on this connection.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1024,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "proxy_url": {
+          "description": "Optional HTTP/HTTPS proxy URL.",
+          "maxLength": 4096,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "query": {
+          "additionalProperties": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "description": "Non-secret static query parameters.",
+          "maxProperties": 64,
+          "propertyNames": {
+            "maxLength": 256
+          },
+          "type": "object"
+        },
+        "timeout_ms": {
+          "description": "Total HTTP request timeout in milliseconds.",
+          "maximum": 600000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tls": {
+          "additionalProperties": false,
+          "description": "Optional TLS trust roots and client identity reference.",
+          "properties": {
+            "identity_ref": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z0-9_]{1,128}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "roots_pem": {
+              "items": {
+                "maxLength": 1048576,
+                "type": "string"
+              },
+              "maxItems": 32,
+              "type": "array"
+            },
+            "system_roots": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "base_url",
+        "models"
+      ],
       "type": "object"
     },
     "max_nodes": {

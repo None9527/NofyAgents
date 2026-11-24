@@ -44,7 +44,15 @@ impl Request {
     /// explicitly trusted SDK callers use the Trusted executor instead.
     pub fn run(self, cancel: CancellationToken) -> Result<Value, ToolError> {
         self.validate()?;
-        let value = super::rhai::run(&self.source, self.input, self.max_operations, cancel)?;
+        let value = super::rhai::run(
+            &self.source,
+            self.input,
+            self.max_operations,
+            self.timeout_ms,
+            self.max_input_bytes,
+            self.max_output_bytes,
+            cancel,
+        )?;
         if serde_json::to_vec(&value)
             .map_err(|_| crate::tool_error("invalid_output", "script result is not JSON"))?
             .len()
@@ -78,22 +86,30 @@ impl Executor for Trusted {
         cancel: CancellationToken,
     ) -> Result<Value, ToolError> {
         request.validate()?;
+        if cancel.is_cancelled() {
+            return Err(crate::tool_error("cancelled", "script method cancelled"));
+        }
         let cancel = cancel.child_token();
         let _on_drop = cancel.clone().drop_guard();
         let timeout = std::time::Duration::from_millis(request.timeout_ms);
         let worker_cancel = cancel.clone();
         let mut task = tokio::task::spawn_blocking(move || request.run(worker_cancel));
-        tokio::select! { biased;
+        tokio::select! {
+            biased;
             _ = cancel.cancelled() => {
-                let _ = task.await;
+                // Detach instead of awaiting a potentially stuck blocking thread.
+                // `worker_cancel` is already cancelled so Rhai aborts at its next check.
+                drop(task);
                 Err(crate::tool_error("cancelled", "script method cancelled"))
-            },
+            }
             _ = tokio::time::sleep(timeout) => {
                 cancel.cancel();
-                let _ = task.await;
+                drop(task);
                 Err(crate::tool_error("timeout", "script method timed out"))
-            },
-            result = &mut task => result.map_err(|_|crate::tool_error("script_task", "script task failed"))?,
+            }
+            result = &mut task => {
+                result.map_err(|_| crate::tool_error("script_task", "script task failed"))?
+            }
         }
     }
 }

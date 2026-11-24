@@ -86,11 +86,18 @@ async fn quiesce(host: &KernelHost) -> Result<(HistoryLease, HistoryLease)> {
             HostError::Unavailable("runtime history execution boundary failed".into())
         })??;
     #[cfg(target_os = "linux")]
-    let trees = host.loader.process_trees.drain();
+    let (trees, sessions) = (
+        host.loader.process_trees.drain(),
+        host.loader.process_sessions.drain(),
+    );
     #[cfg(not(target_os = "linux"))]
-    let trees = std::future::ready(Ok::<(), HostError>(()));
-    let (trees, prompts, scopes, models, code, memory) = tokio::join!(
+    let (trees, sessions) = (
+        std::future::ready(Ok::<(), HostError>(())),
+        std::future::ready(Ok::<(), HostError>(())),
+    );
+    let (trees, sessions, prompts, scopes, models, code, memory) = tokio::join!(
         trees,
+        sessions,
         host.loader.drain_prompt_workers(),
         host.loader.drain_scope_workers(),
         host.loader.drain_model_workers(),
@@ -98,6 +105,7 @@ async fn quiesce(host: &KernelHost) -> Result<(HistoryLease, HistoryLease)> {
         host.loader.memory.drain()
     );
     trees?;
+    sessions?;
     prompts?;
     scopes?;
     models?;
@@ -132,13 +140,8 @@ async fn plan(
     host.auth.require(&headers, Scope::Resources)?;
     scope(&selection.scope)?;
     let target = target(&host, selection.target).await?;
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("runtime history management stopped".into()))?;
+    let permit =
+        super::loader::acquire_management_work(&host, "runtime history management").await?;
     let lease = quiesce(&host).await?;
     preflight(&host, target.clone()).await?;
     let controller = host.runtime_history.clone();
@@ -171,13 +174,8 @@ async fn prepare(
         }
         return Ok(Json(old));
     }
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("runtime history management stopped".into()))?;
+    let permit =
+        super::loader::acquire_management_work(&host, "runtime history management").await?;
     let lease = quiesce(&host).await?;
     preflight(&host, target.clone()).await?;
     let controller = host.runtime_history.clone();
@@ -209,13 +207,8 @@ async fn apply(
     if matches!(old.phase.as_str(), "completed" | "aborted") {
         return Ok(Json(old));
     }
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("runtime history management stopped".into()))?;
+    let permit =
+        super::loader::acquire_management_work(&host, "runtime history management").await?;
     let lease = quiesce(&host).await?;
     let controller = host.runtime_history.clone();
     let store = host.store.clone();
@@ -251,13 +244,8 @@ async fn abort(
             "published runtime history requires a reverse transfer".into(),
         ));
     }
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("runtime history management stopped".into()))?;
+    let permit =
+        super::loader::acquire_management_work(&host, "runtime history management").await?;
     let lease = quiesce(&host).await?;
     let controller = host.runtime_history.clone();
     let receipt = tokio::task::spawn_blocking(move || {

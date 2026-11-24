@@ -14,19 +14,418 @@ use nofy_agent_runtime::{
     system::{ProgramDefinition, SystemBundle, SystemFile, content_digest},
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     path::PathBuf,
     sync::{Arc, OnceLock},
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+const MAX_ASSERTION_ITEMS: usize = 16;
+const MAX_ASSERTION_TEXT_BYTES: usize = 1024;
+const MAX_JSON_FIELDS: usize = 32;
+const MAX_JSON_KEY_BYTES: usize = 256;
+const MAX_PROBE_TEXT_BYTES: usize = 4096;
+const MAX_PROBE_TURNS: usize = 8;
+
+/// Structured output assertion for an evolution probe turn.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ProbeAssertion {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exact: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contains: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub not_contains: Vec<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub json_fields: BTreeMap<String, Value>,
+}
+
+impl ProbeAssertion {
+    pub fn is_empty(&self) -> bool {
+        self.exact.is_none()
+            && self.contains.is_empty()
+            && self.not_contains.is_empty()
+            && self.json_fields.is_empty()
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if self.is_empty() {
+            return Err(HostError::Invalid(
+                "Omni probe assertion must declare at least one check".into(),
+            ));
+        }
+        if self
+            .exact
+            .as_ref()
+            .is_some_and(|text| text.is_empty() || text.len() > MAX_PROBE_TEXT_BYTES)
+        {
+            return Err(HostError::Invalid(
+                "Omni probe exact assertion must contain 1..=4096 bytes".into(),
+            ));
+        }
+        if self.contains.len() > MAX_ASSERTION_ITEMS
+            || self
+                .contains
+                .iter()
+                .any(|item| item.is_empty() || item.len() > MAX_ASSERTION_TEXT_BYTES)
+        {
+            return Err(HostError::Invalid(
+                "Omni probe contains assertion allows up to 16 non-empty substrings (<=1024 bytes)"
+                    .into(),
+            ));
+        }
+        if self.not_contains.len() > MAX_ASSERTION_ITEMS
+            || self
+                .not_contains
+                .iter()
+                .any(|item| item.is_empty() || item.len() > MAX_ASSERTION_TEXT_BYTES)
+        {
+            return Err(HostError::Invalid(
+                "Omni probe not_contains assertion allows up to 16 non-empty substrings (<=1024 bytes)"
+                    .into(),
+            ));
+        }
+        if self.json_fields.len() > MAX_JSON_FIELDS {
+            return Err(HostError::Invalid(
+                "Omni probe json_fields assertion allows up to 32 entries".into(),
+            ));
+        }
+        for (key, value) in &self.json_fields {
+            let encoded_len = serde_json::to_vec(value)
+                .map_err(|error| HostError::Invalid(error.to_string()))?
+                .len();
+            if key.is_empty()
+                || key.len() > MAX_JSON_KEY_BYTES
+                || encoded_len > MAX_PROBE_TEXT_BYTES
+            {
+                return Err(HostError::Invalid(
+                    "Omni probe json_fields keys/values must be non-empty and bounded".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn check(&self, output: &str) -> std::result::Result<(), String> {
+        if let Some(expected) = &self.exact
+            && output != expected
+        {
+            return Err("exact output mismatch".into());
+        }
+        for needle in &self.contains {
+            if !output.contains(needle.as_str()) {
+                return Err(format!("output missing required substring {needle:?}"));
+            }
+        }
+        for forbidden in &self.not_contains {
+            if output.contains(forbidden.as_str()) {
+                return Err(format!(
+                    "output contained forbidden substring {forbidden:?}"
+                ));
+            }
+        }
+        if !self.json_fields.is_empty() {
+            let parsed: Value = serde_json::from_str(output.trim())
+                .map_err(|error| format!("output is not valid JSON: {error}"))?;
+            for (field, expected) in &self.json_fields {
+                let actual = if field.strip_prefix('/').is_some() {
+                    parsed.pointer(field)
+                } else {
+                    parsed.as_object().and_then(|object| object.get(field))
+                };
+                if actual != Some(expected) {
+                    return Err(format!("JSON field {field:?} did not match expected value"));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Budget red lines enforced on candidate and observation probe runs.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CostLimits {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_total_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_output_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tool_calls: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_steps: Option<usize>,
+}
+
+impl CostLimits {
+    pub fn is_empty(&self) -> bool {
+        self.max_total_tokens.is_none()
+            && self.max_output_tokens.is_none()
+            && self.max_tool_calls.is_none()
+            && self.max_steps.is_none()
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if self.is_empty()
+            || self.max_total_tokens == Some(0)
+            || self.max_output_tokens == Some(0)
+            || self.max_steps == Some(0)
+        {
+            return Err(HostError::Invalid(
+                "Omni evolution cost_limits must set at least one valid budget ceiling".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn merge(global: Option<Self>, probe: Option<Self>) -> Option<Self> {
+        match (global, probe) {
+            (None, None) => None,
+            (Some(limits), None) | (None, Some(limits)) => Some(limits),
+            (Some(a), Some(b)) => Some(Self {
+                max_total_tokens: min_opt_u64(a.max_total_tokens, b.max_total_tokens),
+                max_output_tokens: min_opt_u64(a.max_output_tokens, b.max_output_tokens),
+                max_tool_calls: min_opt_u64(a.max_tool_calls, b.max_tool_calls),
+                max_steps: match (a.max_steps, b.max_steps) {
+                    (Some(x), Some(y)) => Some(x.min(y)),
+                    (x, y) => x.or(y),
+                },
+            }),
+        }
+    }
+
+    pub fn check(&self, metrics: &ProbeMetrics) -> std::result::Result<(), String> {
+        if let Some(limit) = self.max_total_tokens
+            && metrics.total_tokens > limit
+        {
+            return Err(format!(
+                "total_tokens {} exceeded max_total_tokens {limit}",
+                metrics.total_tokens
+            ));
+        }
+        if let Some(limit) = self.max_output_tokens
+            && metrics.output_tokens > limit
+        {
+            return Err(format!(
+                "output_tokens {} exceeded max_output_tokens {limit}",
+                metrics.output_tokens
+            ));
+        }
+        if let Some(limit) = self.max_tool_calls
+            && metrics.tool_calls > limit
+        {
+            return Err(format!(
+                "tool_calls {} exceeded max_tool_calls {limit}",
+                metrics.tool_calls
+            ));
+        }
+        if let Some(limit) = self.max_steps
+            && metrics.steps > limit
+        {
+            return Err(format!(
+                "steps {} exceeded max_steps {limit}",
+                metrics.steps
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn min_opt_u64(a: Option<u64>, b: Option<u64>) -> Option<u64> {
+    match (a, b) {
+        (Some(x), Some(y)) => Some(x.min(y)),
+        (x, y) => x.or(y),
+    }
+}
+
+/// Measured cost metrics collected from a probe execution.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ProbeMetrics {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub total_tokens: u64,
+    pub tool_calls: u64,
+    pub steps: usize,
+    pub turns: usize,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Probe {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub input: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub expected: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline_expected: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub turns: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assertion: Option<ProbeAssertion>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline_assertion: Option<ProbeAssertion>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub turn_assertions: Vec<Option<ProbeAssertion>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub baseline_turn_assertions: Vec<Option<ProbeAssertion>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_limits: Option<CostLimits>,
+}
+
+impl Probe {
+    pub(crate) fn effective_turns(&self) -> Vec<&str> {
+        if !self.turns.is_empty() {
+            self.turns.iter().map(String::as_str).collect()
+        } else {
+            vec![self.input.as_str()]
+        }
+    }
+
+    pub(crate) fn assertions_for_turn(
+        &self,
+        phase: Phase,
+        turn_index: usize,
+    ) -> Vec<ProbeAssertion> {
+        let turn_count = self.effective_turns().len();
+        let is_last = turn_index + 1 == turn_count;
+        let mut checks = Vec::new();
+        if phase == Phase::Baseline {
+            let per_turn = if !self.baseline_turn_assertions.is_empty() {
+                self.baseline_turn_assertions
+                    .get(turn_index)
+                    .and_then(Option::as_ref)
+            } else if self.baseline_expected.is_none() && self.baseline_assertion.is_none() {
+                self.turn_assertions
+                    .get(turn_index)
+                    .and_then(Option::as_ref)
+            } else {
+                None
+            };
+            if let Some(check) = per_turn {
+                checks.push(check.clone());
+            }
+            if is_last {
+                if let Some(check) = &self.baseline_assertion {
+                    checks.push(check.clone());
+                } else if let Some(expected) = &self.baseline_expected {
+                    checks.push(ProbeAssertion {
+                        exact: Some(expected.clone()),
+                        ..Default::default()
+                    });
+                } else if let Some(check) = &self.assertion {
+                    checks.push(check.clone());
+                } else if !self.expected.is_empty() {
+                    checks.push(ProbeAssertion {
+                        exact: Some(self.expected.clone()),
+                        ..Default::default()
+                    });
+                }
+            }
+        } else {
+            if let Some(check) = self
+                .turn_assertions
+                .get(turn_index)
+                .and_then(Option::as_ref)
+            {
+                checks.push(check.clone());
+            }
+            if is_last {
+                if let Some(check) = &self.assertion {
+                    checks.push(check.clone());
+                } else if !self.expected.is_empty() {
+                    checks.push(ProbeAssertion {
+                        exact: Some(self.expected.clone()),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+        checks
+    }
+
+    fn validate(&self) -> Result<()> {
+        let turn_count = if !self.turns.is_empty() {
+            if !self.input.is_empty()
+                || self.turns.len() > MAX_PROBE_TURNS
+                || self
+                    .turns
+                    .iter()
+                    .any(|turn| turn.trim().is_empty() || turn.len() > MAX_PROBE_TEXT_BYTES)
+            {
+                return Err(HostError::Invalid(
+                    "Omni probe turns must contain 1..=8 bounded turns without a duplicate input"
+                        .into(),
+                ));
+            }
+            self.turns.len()
+        } else {
+            if self.input.trim().is_empty() || self.input.len() > MAX_PROBE_TEXT_BYTES {
+                return Err(HostError::Invalid(
+                    "Omni probe input must contain 1..=4096 non-whitespace bytes".into(),
+                ));
+            }
+            1
+        };
+
+        if !self.expected.is_empty() && self.assertion.is_some() {
+            return Err(HostError::Invalid(
+                "Omni probe cannot specify both expected and assertion".into(),
+            ));
+        }
+        if self.baseline_expected.is_some() && self.baseline_assertion.is_some() {
+            return Err(HostError::Invalid(
+                "Omni probe cannot specify both baseline_expected and baseline_assertion".into(),
+            ));
+        }
+        if self.expected.len() > MAX_PROBE_TEXT_BYTES
+            || self.baseline_expected.as_ref().is_some_and(|expected| {
+                expected.is_empty() || expected.len() > MAX_PROBE_TEXT_BYTES
+            })
+        {
+            return Err(HostError::Invalid(
+                "Omni probe expected text must contain 1..=4096 bytes".into(),
+            ));
+        }
+        if let Some(assertion) = &self.assertion {
+            assertion.validate()?;
+        }
+        if let Some(assertion) = &self.baseline_assertion {
+            assertion.validate()?;
+        }
+        if self.turn_assertions.len() > turn_count
+            || self.baseline_turn_assertions.len() > turn_count
+        {
+            return Err(HostError::Invalid(
+                "Omni probe turn_assertions cannot exceed turn count".into(),
+            ));
+        }
+        for assertion in self
+            .turn_assertions
+            .iter()
+            .chain(&self.baseline_turn_assertions)
+            .flatten()
+        {
+            assertion.validate()?;
+        }
+        let has_final_target = !self.expected.is_empty()
+            || self.assertion.is_some()
+            || self
+                .turn_assertions
+                .get(turn_count - 1)
+                .and_then(Option::as_ref)
+                .is_some();
+        if !has_final_target {
+            return Err(HostError::Invalid(
+                "Omni probe must specify an expected output or structured assertion for its final turn"
+                    .into(),
+            ));
+        }
+        if let Some(limits) = &self.cost_limits {
+            limits.validate()?;
+        }
+        Ok(())
+    }
 }
 
 /// Local operator grant for a single prompt evolution at an exact activation.
@@ -37,6 +436,8 @@ pub struct Preauthorization {
     pub baseline: Activation,
     pub evaluation: Vec<Probe>,
     pub observation: Vec<Probe>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_limits: Option<CostLimits>,
 }
 
 impl Preauthorization {
@@ -54,24 +455,16 @@ impl Preauthorization {
             || self.evaluation.len() > 8
             || self.observation.is_empty()
             || self.observation.len() > 8
-            || self
-                .evaluation
-                .iter()
-                .chain(&self.observation)
-                .any(|probe| {
-                    probe.input.trim().is_empty()
-                        || probe.input.len() > 4096
-                        || probe.expected.is_empty()
-                        || probe.expected.len() > 4096
-                        || probe
-                            .baseline_expected
-                            .as_ref()
-                            .is_some_and(|expected| expected.is_empty() || expected.len() > 4096)
-                })
         {
             return Err(HostError::Invalid(
                 "Omni evolution needs an exact baseline and 1..=8 bounded probes per phase".into(),
             ));
+        }
+        if let Some(limits) = &self.cost_limits {
+            limits.validate()?;
+        }
+        for probe in self.evaluation.iter().chain(&self.observation) {
+            probe.validate()?;
         }
         Ok(())
     }
@@ -100,6 +493,10 @@ pub struct Evidence {
     pub outcome: String,
     pub output_digest: Option<String>,
     pub matched: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<ProbeMetrics>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

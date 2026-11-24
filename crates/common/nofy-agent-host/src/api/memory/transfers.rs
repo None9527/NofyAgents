@@ -62,13 +62,7 @@ async fn plan(
     ];
     let provider = host.loader.memory_provider.clone();
     provider.ensure_quiescent(&host.store, &names).await?;
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("memory management stopped".into()))?;
+    let permit = super::super::loader::acquire_management_work(&host, "memory management").await?;
     Ok(Json(
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
@@ -114,13 +108,7 @@ async fn prepare(
             )
             .await?;
     }
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("memory management stopped".into()))?;
+    let permit = super::super::loader::acquire_management_work(&host, "memory management").await?;
     let prepared = tokio::task::spawn_blocking(move || {
         let _permit = permit;
         provider.prepare_transfer(&id, &source, &target, &command.fingerprint)
@@ -159,13 +147,7 @@ async fn apply(
     if !terminal {
         provider.ensure_quiescent(&host.store, &names).await?;
     }
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("memory management stopped".into()))?;
+    let permit = super::super::loader::acquire_management_work(&host, "memory management").await?;
     let resume = provider.clone();
     let prepared = tokio::task::spawn_blocking(move || {
         let _permit = permit;
@@ -188,13 +170,7 @@ async fn abort(
     Json(command): Json<Command>,
 ) -> Result<Json<TransferReceipt>> {
     host.auth.require(&headers, Scope::Resources)?;
-    let permit = host
-        .loader
-        .management_work
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|_| HostError::Unavailable("memory management stopped".into()))?;
+    let permit = super::super::loader::acquire_management_work(&host, "memory management").await?;
     let provider = host.loader.memory_provider.clone();
     Ok(Json(
         tokio::task::spawn_blocking(move || {

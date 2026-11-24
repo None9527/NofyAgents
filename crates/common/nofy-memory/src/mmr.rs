@@ -17,6 +17,16 @@ use std::collections::HashSet;
 use super::search::SearchResult;
 use crate::config::MmrConfig;
 
+/// Validation error returned when MMR inputs are inconsistent.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum MmrError {
+    #[error("MMR relevance length ({relevance_len}) does not match results length ({results_len})")]
+    LengthMismatch {
+        results_len: usize,
+        relevance_len: usize,
+    },
+}
+
 /// Tokenize text into a set of alphanumeric words for Jaccard comparison.
 ///
 /// Expects **pre-lowered** input — callers should lowercase snippets before
@@ -56,18 +66,23 @@ fn jaccard_similarity(a: &HashSet<&str>, b: &HashSet<&str>) -> f64 {
 /// index-for-index with `results` on entry. It is passed separately rather than
 /// read from the clamped `SearchResult.score`, which would saturate top chunks
 /// to 1.0 and lose the access-frequency boost tiebreak.
-pub fn mmr_rerank(results: &mut Vec<SearchResult>, relevance: &[f64], config: &MmrConfig) {
+pub fn mmr_rerank(
+    results: &mut Vec<SearchResult>,
+    relevance: &[f64],
+    config: &MmrConfig,
+) -> Result<(), MmrError> {
     if !config.enabled || results.len() <= 1 {
-        return;
+        return Ok(());
     }
     if config.lambda == 1.0 {
-        return;
+        return Ok(());
     }
-    assert_eq!(
-        relevance.len(),
-        results.len(),
-        "relevance must be aligned with results"
-    );
+    if relevance.len() != results.len() {
+        return Err(MmrError::LengthMismatch {
+            results_len: results.len(),
+            relevance_len: relevance.len(),
+        });
+    }
 
     // Lowercase snippets once, then tokenize. This ensures "Rust" and "rust"
     // are treated as the same token — casing varies across markdown sources.
@@ -114,6 +129,7 @@ pub fn mmr_rerank(results: &mut Vec<SearchResult>, relevance: &[f64], config: &M
     *results = reordered;
     // `results` is now reordered, so the caller's `relevance` slice is stale
     // and must not be read again.
+    Ok(())
 }
 
 /// Placeholder to enable moving results out of the vec without Clone.
@@ -158,7 +174,7 @@ mod tests {
     /// (mirrors the pre-split behavior the existing assertions were written for).
     fn rerank(results: &mut Vec<SearchResult>, config: &MmrConfig) {
         let relevance: Vec<f64> = results.iter().map(|r| r.score).collect();
-        mmr_rerank(results, &relevance, config);
+        mmr_rerank(results, &relevance, config).unwrap();
     }
 
     #[test]
@@ -203,13 +219,31 @@ mod tests {
             make_result("high", "beta subject two", 1.0),
         ];
         let relevance = [1.0, 1.25];
-        mmr_rerank(&mut results, &relevance, &enabled_config(0.7));
+        mmr_rerank(&mut results, &relevance, &enabled_config(0.7)).unwrap();
 
         assert_eq!(
             results[0].chunk_id, "high",
             "MMR must order by unclamped relevance, not the clamped .score",
         );
         assert_eq!(results[1].chunk_id, "low");
+    }
+
+    #[test]
+    fn test_length_mismatch_returns_error_without_modifying_results() {
+        let mut results = vec![
+            make_result("a", "rust async", 1.0),
+            make_result("b", "python sync", 0.5),
+        ];
+        let err = mmr_rerank(&mut results, &[1.0], &enabled_config(0.7)).unwrap_err();
+        assert_eq!(
+            err,
+            MmrError::LengthMismatch {
+                results_len: 2,
+                relevance_len: 1,
+            }
+        );
+        assert_eq!(results[0].chunk_id, "a");
+        assert_eq!(results[1].chunk_id, "b");
     }
 
     #[test]
