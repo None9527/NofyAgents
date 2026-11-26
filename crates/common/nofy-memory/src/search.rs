@@ -584,16 +584,16 @@ mod tests {
     use crate::config::{MemoryIndexConfig, MemorySearchConfig};
     use crate::embedding::MockEmbeddingProvider;
     use crate::index::{MemoryIndex, init_sqlite_vec};
-    use crate::storage::MemoryStorage;
+    use crate::layout::UnifiedMemoryLayout;
     use tempfile::TempDir;
 
     fn test_index(tmp: &TempDir) -> MemoryIndex {
         init_sqlite_vec();
-        let global = tmp.path().join("memory");
-        let workspace = global.join("test_ws");
-        let storage = MemoryStorage::with_paths(global, workspace);
-        let db_path = tmp.path().join("test.sqlite");
-        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 4).unwrap()
+        let db_path = UnifiedMemoryLayout::new(tmp.path())
+            .personal_scope()
+            .root()
+            .join("index.sqlite");
+        MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 4).unwrap()
     }
 
     #[tokio::test]
@@ -1261,9 +1261,8 @@ mod tests {
     // Empty-template filter + score clamp tests
     // -----------------------------------------------------------------------
 
-    /// The auto-generated global MEMORY.md stub, written verbatim by
-    /// `MemoryStorage::ensure_initialized` (storage.rs), including the trailing
-    /// newline. Kept in sync with that source.
+    /// Legacy auto-generated global MEMORY.md stub fixture, including trailing
+    /// newline.
     const GLOBAL_STUB: &str = "# Global Memory\n\
          \n\
          > This file is automatically managed by Nofy's memory system.\n\

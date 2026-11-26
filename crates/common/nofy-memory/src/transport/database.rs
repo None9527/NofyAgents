@@ -1,5 +1,5 @@
 use super::*;
-use rusqlite::{Connection, OpenFlags, types::ValueRef};
+use rusqlite::{Connection, types::ValueRef};
 use std::time::Duration;
 
 pub(super) struct Summary {
@@ -12,10 +12,7 @@ fn open(path: &Path) -> TransportResult<Connection> {
     // The owning host pins the private namespace and excludes writers. Validate
     // the actual path before opening SQLite, including any durable WAL.
     drop(regular(path)?);
-    Ok(Connection::open_with_flags(
-        path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?)
+    Ok(nofy_sqlite_journal::JournalMode::for_db_path(path).open_readonly_exact(path)?)
 }
 fn table_exists(db: &Connection, name: &str) -> rusqlite::Result<bool> {
     db.query_row(
@@ -205,7 +202,7 @@ pub(super) fn copy(
 ) -> TransportResult<()> {
     let output = target.to_path_buf();
     let source = open(source)?;
-    let mut target = Connection::open(target)?;
+    let mut target = nofy_sqlite_journal::open_snapshot_target(target)?;
     {
         let backup = rusqlite::backup::Backup::new(&source, &mut target)?;
         backup.run_to_completion(256, Duration::from_millis(2), None)?;

@@ -27,8 +27,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CRATES_COMMON = ROOT / "crates" / "common"
 
-# Per-file ratchet ceilings for legacy/wrapper sites. Counts may only decrease;
-# adding a new file or exceeding a ceiling fails the gate.
+# Per-file ratchet ceilings for central exact-path wrappers. Counts may only
+# decrease; adding a new file or exceeding a ceiling fails the gate.
 ALLOWLIST: dict[str, dict[str, tuple[int, str]]] = {
     "raw_open": {
         "crates/common/nofy-agent-runtime/src/durable.rs": (
@@ -37,30 +37,8 @@ ALLOWLIST: dict[str, dict[str, tuple[int, str]]] = {
             "JournalMode::for_db_path + apply_with_retry/busy_timeout without "
             "passing SQLITE_OPEN_CREATE or rewriting pinned snapshot paths",
         ),
-        "crates/common/nofy-memory/src/transport/database.rs": (
-            2,
-            "legacy snapshot transport inspect/copy (ratchet ceiling; do not increase)",
-        ),
-        "crates/common/nofy-agent-host/src/evolution/journal.rs": (
-            1,
-            "legacy host evolution journal open (ratchet ceiling; do not increase)",
-        ),
-        "crates/common/nofy-agent-host/src/loader/memory/transfer/store.rs": (
-            1,
-            "legacy host memory transfer catalog open (ratchet ceiling; do not increase)",
-        ),
-        "crates/common/nofy-agent-host/src/loader/runtime_history/transfer.rs": (
-            1,
-            "legacy host runtime history transfer open (ratchet ceiling; do not increase)",
-        ),
     },
-    "hardcoded_wal": {
-        "crates/common/nofy-agent-host/src/loader/memory/transfer/store.rs": (
-            1,
-            "legacy host memory transfer JournalMode::Wal.open "
-            "(ratchet ceiling; zero tolerance in nofy-agent-runtime and nofy-memory)",
-        ),
-    },
+    "hardcoded_wal": {},
 }
 
 # Exact-path wrapper files permitted to call `Connection::open_with_flags` MUST

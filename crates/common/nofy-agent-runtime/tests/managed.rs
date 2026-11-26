@@ -550,7 +550,7 @@ async fn managed_resume_non_closed_crash_before_action_result_is_atomic_and_repl
                 system: "two-step-managed".into(),
                 release: system.bundle.digest.clone(),
                 program: "agent".into(),
-                input: Some(nofy_interjection_core::PendingInterjection {
+                input: Some(nofy_agent_runtime::PendingInterjection {
                     text: "start".into(),
                     attachments: vec![],
                 }),

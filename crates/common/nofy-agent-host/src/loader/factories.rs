@@ -19,21 +19,9 @@ pub(super) use sessions::{SessionFactory, StdioFactory, TerminalFactory};
 #[cfg(target_os = "linux")]
 pub(super) use tree::TreeArtifactFactory;
 
-pub(super) struct EnvironmentFactory(pub Loader);
 pub(super) struct LockedEnvironmentFactory(pub Loader);
 pub(super) struct LocalEnvironmentFactory(pub Loader);
 pub(super) struct ProcessArtifactFactory;
-#[derive(Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RuntimeRef {
-    id: String,
-    revision: String,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct EnvironmentConfig {
-    runtime: RuntimeRef,
-}
 #[derive(Clone)]
 struct Environment {
     runtime: launch::RuntimeSource,
@@ -100,43 +88,6 @@ fn descriptor(
         output_schema: None,
         required_capabilities: Default::default(),
         dependencies: deps,
-    }
-}
-impl ModuleFactory for EnvironmentFactory {
-    fn descriptor(&self) -> ModuleDescriptor {
-        descriptor(
-            "resource.process",
-            ModuleKind::Resource,
-            json!({"type":"object","additionalProperties":false,"required":["runtime"],"properties":{"runtime":{"type":"object","additionalProperties":false,"required":["id","revision"],"properties":{"id":{"type":"string","minLength":1,"maxLength":128},"revision":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}}}),
-            Default::default(),
-        )
-    }
-    fn build(
-        &self,
-        value: &Value,
-        _: &BTreeMap<String, ModuleInstance>,
-    ) -> std::result::Result<ModuleInstance, Error> {
-        let config: EnvironmentConfig = serde_json::from_value(value.clone()).map_err(error)?;
-        if !self.0.helper_ready() {
-            return Err(error("isolated process helper is not installed"));
-        }
-        let runtime = self
-            .0
-            .runtimes
-            .find(&config.runtime.id, &config.runtime.revision)
-            .map_err(error)?;
-        let identity = format!(
-            "process-environment-v1:{}",
-            content_digest(&runtime.manifest)?
-        );
-        Ok(ModuleInstance::Resource(Arc::new(ResourceHandle::new(
-            identity.clone(),
-            Arc::new(Environment {
-                runtime: launch::RuntimeSource::Legacy(Box::new(runtime)),
-                loader: self.0.clone(),
-                identity,
-            }),
-        )?)))
     }
 }
 impl ModuleFactory for LockedEnvironmentFactory {

@@ -246,7 +246,8 @@ async fn confirmed_forget_revokes_all_matching_receipts_but_not_other_topics() {
     memory.undo(other.undo_token).await.unwrap();
 }
 
-async fn failed_backup_forget(directory: bool) {
+#[tokio::test]
+async fn forget_intent_revokes_receipts_even_when_index_refresh_fails() {
     let (temp, memory) = service();
     let first = memory
         .remember(remember("Use blue headings."))
@@ -259,12 +260,10 @@ async fn failed_backup_forget(directory: bool) {
         })
         .await
         .unwrap();
-    let receipt = temp.path().join("memory/migration-backup.json");
-    if directory {
-        std::fs::create_dir(&receipt).unwrap();
-    } else {
-        std::fs::write(&receipt, b"{").unwrap();
-    }
+    let index = temp.path().join("memory/personal/index.sqlite");
+    let saved = index.with_extension("sqlite.saved");
+    std::fs::rename(&index, &saved).unwrap();
+    std::fs::create_dir(&index).unwrap();
     assert!(
         memory
             .forget(ForgetRequest {
@@ -274,55 +273,14 @@ async fn failed_backup_forget(directory: bool) {
             .await
             .is_err()
     );
-    assert!(memory.get(revised.target).await.is_ok());
     for token in [first.undo_token, revised.undo_token] {
         assert!(matches!(
             memory.undo(token).await,
             Err(MemoryServiceError::NotFound)
         ));
     }
-}
-
-#[tokio::test]
-async fn forget_intent_revokes_receipts_even_when_backup_cleanup_fails() {
-    failed_backup_forget(false).await;
-    failed_backup_forget(true).await;
-}
-
-#[test]
-fn a_directory_at_the_backup_receipt_path_is_not_absence() {
-    let temp = tempfile::tempdir().unwrap();
-    assert!(
-        nofy_memory::retention::load_migration_backup_receipt(temp.path())
-            .unwrap()
-            .is_none()
-    );
-    std::fs::create_dir(temp.path().join("migration-backup.json")).unwrap();
-    assert!(nofy_memory::retention::load_migration_backup_receipt(temp.path()).is_err());
-}
-
-#[cfg(unix)]
-#[test]
-fn valid_backup_receipt_links_remain_readable_but_dangling_links_are_errors() {
-    use nofy_memory::migration_backup::BackupReceipt;
-    use nofy_memory::retention::{load_migration_backup_receipt, persist_migration_backup_receipt};
-    let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join("memory");
-    let receipt = BackupReceipt {
-        path: temp.path().join("memory.legacy.20260921T000000Z.tar.age"),
-        key_id: "unused-local-metadata".into(),
-        delete_after: chrono::Utc::now(),
-    };
-    persist_migration_backup_receipt(&root, &receipt).unwrap();
-    let record = root.join("migration-backup.json");
-    let linked = root.join("backup-receipt.json");
-    std::fs::rename(&record, &linked).unwrap();
-    std::os::unix::fs::symlink(&linked, &record).unwrap();
-    let loaded = load_migration_backup_receipt(&root).unwrap().unwrap();
-    assert_eq!(loaded.path, receipt.path);
-    assert_eq!(loaded.key_id, receipt.key_id);
-    std::fs::remove_file(&linked).unwrap();
-    assert!(load_migration_backup_receipt(&root).is_err());
+    std::fs::remove_dir(&index).unwrap();
+    std::fs::rename(&saved, &index).unwrap();
 }
 
 #[tokio::test]

@@ -1,5 +1,5 @@
 use crate::{HostError, Result};
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -13,12 +13,21 @@ fn storage(error: impl std::fmt::Display) -> HostError {
     HostError::Unavailable(format!("Omni evolution journal: {error}"))
 }
 
-fn open(path: &Path, create: bool) -> Result<Connection> {
-    let mut flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NOFOLLOW;
-    if create {
-        flags |= OpenFlags::SQLITE_OPEN_CREATE;
+fn check_regular_file(path: &Path, must_exist: bool) -> Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(meta) if meta.is_file() && !meta.file_type().is_symlink() => Ok(()),
+        Ok(_) => Err(storage("journal path is not a regular file")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound && !must_exist => Ok(()),
+        Err(error) => Err(storage(error)),
     }
-    let conn = Connection::open_with_flags(path, flags).map_err(storage)?;
+}
+
+fn open(path: &Path, create: bool) -> Result<Connection> {
+    let mode = nofy_sqlite_journal::JournalMode::for_db_path(path);
+    let effective = mode.effective_db_path(path);
+    check_regular_file(&effective, !create)?;
+    let conn = mode.open(&effective).map_err(storage)?;
+    check_regular_file(&effective, true)?;
     conn.busy_timeout(Duration::from_secs(2)).map_err(storage)?;
     conn.pragma_update(None, "synchronous", "FULL")
         .map_err(storage)?;

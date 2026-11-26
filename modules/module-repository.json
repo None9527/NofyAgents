@@ -10,7 +10,6 @@
     "agent-foundation/resilience",
     "main-agent/guardrails",
     "main-agent/delegate",
-    "main-agent/instructions",
     "main-agent/dynamic-assembly",
     "models/chat-completions",
     "models/responses",

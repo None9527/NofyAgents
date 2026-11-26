@@ -22,7 +22,6 @@ fn every_error_kind_round_trips_with_unchanged_details() {
         ToolErrorKind::ServiceUnavailable,
         ToolErrorKind::NetworkError,
         ToolErrorKind::Execution,
-        ToolErrorKind::BehaviorVersionUnsupported,
         ToolErrorKind::TerminalError,
         ToolErrorKind::Custom,
     ];
@@ -37,7 +36,6 @@ fn every_error_kind_round_trips_with_unchanged_details() {
             json!(null),
         ] {
             let err = ToolError::new(kind, "declared error").with_details(details.clone());
-            assert_eq!(err.variant_name(), kind.as_str());
             let value = serde_json::to_value(&err).unwrap();
             assert_eq!(value.as_object().unwrap().len(), 3);
             assert_eq!(value["details"], details);
@@ -55,13 +53,13 @@ fn every_error_kind_round_trips_with_unchanged_details() {
             );
         }
     }
-    assert_eq!(names.len(), 14);
+    assert_eq!(names.len(), 13);
 }
 
 #[test]
 fn canonical_error_keeps_structured_data_without_injecting_subcodes() {
-    let err =
-        ToolError::service_unavailable("not ready").with_details(json!({"retry_after_ms":1500}));
+    let err = ToolError::new(ToolErrorKind::ServiceUnavailable, "not ready")
+        .with_details(json!({"retry_after_ms":1500}));
     let value = serde_json::to_value(err).unwrap();
     assert_eq!(value["details"], json!({"retry_after_ms":1500}));
     assert!(value.get("subcode").is_none());
@@ -92,7 +90,6 @@ fn id_aware_constructors_preserve_tool_identity() {
         ToolError::timeout(tid(), "slow"),
         ToolError::cancelled(tid(), "stopped"),
         ToolError::execution(tid(), "failed"),
-        ToolError::terminal_error(tid(), "process failed"),
     ] {
         assert_eq!(err.details.unwrap()["tool_id"], "files:read");
     }
@@ -116,11 +113,6 @@ fn common_constructors_preserve_categories() {
         (
             ToolError::unauthorized("expired"),
             ToolErrorKind::Unauthorized,
-        ),
-        (ToolError::rate_limited("slow"), ToolErrorKind::RateLimited),
-        (
-            ToolError::network_error("offline"),
-            ToolErrorKind::NetworkError,
         ),
     ] {
         assert_eq!(err.kind, expected);

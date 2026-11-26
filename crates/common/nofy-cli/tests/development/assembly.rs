@@ -7,7 +7,7 @@ async fn guides_supply_public_preset_configuration_and_managed_edits_without_fra
     let e = engine(&server.url, ADMIN);
     let described = e.execute("describe", json!({})).await;
     assert!(!described.is_error(), "{described:?}");
-    assert_eq!(described.data["contract_revision"], "0.6");
+    assert_eq!(described.data["contract_revision"], "0.7");
     assert_eq!(
         described.data["kernel_capabilities"]["input"]["interject"],
         true

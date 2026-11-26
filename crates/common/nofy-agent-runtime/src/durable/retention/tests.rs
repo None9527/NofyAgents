@@ -320,7 +320,7 @@ async fn original_v1_agent_and_real_next_turn_pin_their_snapshot_not_message_loo
             &compiled,
             "thread",
             "legacy",
-            nofy_interjection_core::PendingInterjection {
+            crate::interjection::PendingInterjection {
                 text: "first".into(),
                 attachments: Vec::new(),
             },
@@ -332,7 +332,7 @@ async fn original_v1_agent_and_real_next_turn_pin_their_snapshot_not_message_loo
         .await
         .unwrap();
     let before = serde_json::to_value(store.execution_record("legacy").await.unwrap()).unwrap();
-    MailboxSender::submit(&store,MailEnvelope{address:InputAddress{root_run_id:"legacy".into(),run_id:"legacy".into(),thread_id:"thread".into(),agent:"legacy-agent".into()},input_id:"next".into(),input:MailInput::NextTurn{run_id:"next-run".into(),snapshot:compiled.snapshot.clone(),message:nofy_interjection_core::PendingInterjection{text:json!({"snapshot":{"version":99,"modules":[{"factory":"payload-only-pack"}]}}).to_string(),attachments:Vec::new()}}}).await.unwrap();
+    MailboxSender::submit(&store,MailEnvelope{address:InputAddress{root_run_id:"legacy".into(),run_id:"legacy".into(),thread_id:"thread".into(),agent:"legacy-agent".into()},input_id:"next".into(),input:MailInput::NextTurn{run_id:"next-run".into(),snapshot:compiled.snapshot.clone(),message:crate::interjection::PendingInterjection{text:json!({"snapshot":{"version":99,"modules":[{"factory":"payload-only-pack"}]}}).to_string(),attachments:Vec::new()}}}).await.unwrap();
     let found = inventory(&store).await.unwrap();
     assert!(found.value.iter().any(|kind| kind == "input"));
     assert!(

@@ -2,7 +2,7 @@
 //!
 //! WAL keeps its wal-index in an mmap'd `-shm` file and relies on coherent
 //! shared memory plus reliable POSIX locks — guarantees network filesystems
-//! do not provide. When `$HOME` (and thus `~/.nofy`) is NFS-mounted on
+//! do not provide. When a data directory is NFS-mounted on
 //! several machines at once, a peer host truncating/rebuilding the `-shm`
 //! during WAL recovery or close rips the backing out from under our mapping
 //! and the next wal-index read dies with SIGBUS. On such mounts we use a
@@ -92,7 +92,7 @@ impl JournalMode {
     /// The path actually opened for `db_path` under this mode.
     ///
     /// `Wal` (local): unchanged. `Truncate` (network): a per-host sibling
-    /// (`worktrees.db` → `worktrees.h-<host>.db`). Journal mode is a
+    /// (`state.sqlite` → `state.h-<host>.sqlite`). Journal mode is a
     /// database-wide property, so a live pre-fix binary on a peer host (or
     /// this host) can flip a *shared* DB back to WAL at any time and our
     /// long-lived connections would silently adopt it, re-creating the
@@ -123,7 +123,7 @@ impl JournalMode {
         if name.ends_with(&tag) || name.contains(&format!("{tag}.")) {
             return db_path.to_path_buf();
         }
-        // Insert before the final extension ("worktrees.db" -> "worktrees.h-x.db"),
+        // Insert before the final extension ("state.sqlite" -> "state.h-x.sqlite"),
         // else append; rsplit keeps dotfile names like ".hidden" on the append arm.
         let new_name = match name.rsplit_once('.') {
             Some((stem, ext)) if !stem.is_empty() => format!("{stem}{tag}.{ext}"),
@@ -166,13 +166,33 @@ impl JournalMode {
         db_path: &Path,
         deadline: std::time::Instant,
     ) -> rusqlite::Result<rusqlite::Connection> {
+        let path = self.effective_db_path(db_path);
+        self.open_readonly_path(&path, deadline)
+    }
+
+    /// Open an exact database path for read-only inspection without applying
+    /// per-host path rewriting.
+    ///
+    /// `Wal` (local): plain read-only open with `busy_timeout`.
+    /// `Truncate` (network): opens read-write (no `CREATE`), converts to
+    /// `TRUNCATE` under retry so a WAL-stamped file is never mmap'd on a
+    /// network mount, and enables `query_only`.
+    pub fn open_readonly_exact(self, db_path: &Path) -> rusqlite::Result<rusqlite::Connection> {
+        self.open_readonly_path(db_path, std::time::Instant::now() + BUSY_RETRY_BUDGET)
+    }
+
+    fn open_readonly_path(
+        self,
+        path: &Path,
+        deadline: std::time::Instant,
+    ) -> rusqlite::Result<rusqlite::Connection> {
         use rusqlite::OpenFlags;
         let flags = match self {
             Self::Wal => OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
             // Read-write (no CREATE): the conversion needs a writable fd.
             Self::Truncate => OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         };
-        let conn = rusqlite::Connection::open_with_flags(self.effective_db_path(db_path), flags)?;
+        let conn = rusqlite::Connection::open_with_flags(path, flags)?;
         // Readers can hit SQLITE_BUSY too (peer recovery, a rollback writer's
         // exclusive window), and the conversion below requires a busy handler.
         conn.busy_timeout(BUSY_TIMEOUT)?;
@@ -264,6 +284,17 @@ impl JournalMode {
             }
         }
     }
+}
+
+/// Open (or create) a standalone snapshot database at the exact `db_path`
+/// using `DELETE` rollback journaling so no `-wal`/`-shm` sidecars are created
+/// and the resulting file is self-contained on both local and network
+/// filesystems.
+pub fn open_snapshot_target(db_path: &Path) -> rusqlite::Result<rusqlite::Connection> {
+    let conn = rusqlite::Connection::open(db_path)?;
+    conn.busy_timeout(BUSY_TIMEOUT)?;
+    conn.pragma_update(None, "journal_mode", "DELETE")?;
+    Ok(conn)
 }
 
 /// Parse result of the `NOFY_SQLITE_JOURNAL_MODE` kill-switch.
@@ -872,5 +903,39 @@ mod tests {
         // The legacy file stays WAL-stamped and unconverted.
         let conn = rusqlite::Connection::open(&legacy).unwrap();
         assert_eq!(journal_mode(&conn), "wal");
+    }
+
+    #[test]
+    fn open_readonly_exact_opens_exact_path_and_rejects_writes() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("snapshot.sqlite");
+        {
+            let conn = open_snapshot_target(&path).unwrap();
+            assert_eq!(journal_mode(&conn), "delete");
+            conn.execute_batch("CREATE TABLE t (v TEXT); INSERT INTO t VALUES ('snap');")
+                .unwrap();
+        }
+
+        for mode in [JournalMode::Wal, JournalMode::Truncate] {
+            let conn = mode.open_readonly_exact(&path).unwrap();
+            let v: String = conn.query_row("SELECT v FROM t", [], |r| r.get(0)).unwrap();
+            assert_eq!(v, "snap");
+            assert!(conn.execute("INSERT INTO t VALUES ('nope')", []).is_err());
+        }
+    }
+
+    #[test]
+    fn open_snapshot_target_uses_delete_mode_without_wal_sidecars() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("target.sqlite");
+        let conn = open_snapshot_target(&path).unwrap();
+        assert_eq!(journal_mode(&conn), "delete");
+        conn.execute_batch("CREATE TABLE t (v TEXT); INSERT INTO t VALUES ('ok');")
+            .unwrap();
+        drop(conn);
+
+        let base = path.display().to_string();
+        assert!(!std::fs::exists(format!("{base}-wal")).unwrap());
+        assert!(!std::fs::exists(format!("{base}-shm")).unwrap());
     }
 }

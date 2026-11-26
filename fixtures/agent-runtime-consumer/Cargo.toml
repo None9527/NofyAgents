@@ -8,7 +8,7 @@ edition = "2024"
 [workspace]
 
 [dependencies]
-nofy-agent-runtime = { path = "../../crates/common/nofy-agent-runtime", features = ["pack", "workflow", "control-file"] }
+nofy-agent-runtime = { path = "../../crates/common/nofy-agent-runtime", features = ["workflow", "control-file"] }
 nofy-tool-runtime = { path = "../../crates/common/nofy-tool-runtime" }
 nofy-tool-types = { path = "../../crates/common/nofy-tool-types" }
 nofy-tool-protocol = { path = "../../crates/common/nofy-tool-protocol" }

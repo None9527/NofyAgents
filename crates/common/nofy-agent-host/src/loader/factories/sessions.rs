@@ -200,11 +200,6 @@ impl ProcessSession {
                     )?;
                 }
                 launch::RuntimeSource::Local(local) => local.preflight(&loader.private_root)?,
-                _ => {
-                    return Err(HostError::Invalid(
-                        "session requires a local or locked runtime".into(),
-                    ));
-                }
             }
             let actual = loader.artifacts.materialize(&artifact)?;
             let launch = GuestLaunch::from_entry(

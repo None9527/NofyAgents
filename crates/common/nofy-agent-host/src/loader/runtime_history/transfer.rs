@@ -176,11 +176,17 @@ impl Control {
         Ok(())
     }
     fn ensure_idle(&self, pointer: &Pointer, now: u64) -> Result<()> {
-        let db = rusqlite::Connection::open_with_flags(
-            &pointer.active.path,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-        )
-        .map_err(storage::unavailable)?;
+        let meta = pointer
+            .active
+            .path
+            .symlink_metadata()
+            .map_err(storage::unavailable)?;
+        if !meta.is_file() || meta.file_type().is_symlink() {
+            return Err(unavailable());
+        }
+        let db = nofy_sqlite_journal::JournalMode::for_db_path(&pointer.active.path)
+            .open_readonly(&pointer.active.path)
+            .map_err(storage::unavailable)?;
         let live: bool = db
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM agent_runtime_leases WHERE expires_ms>?1)",

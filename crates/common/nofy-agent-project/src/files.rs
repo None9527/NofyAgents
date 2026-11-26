@@ -162,20 +162,44 @@ fn private_write(path: &Path, bytes: &[u8], executable: bool) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
-fn move_tree(src: &Path, dst: &Path) -> Result<()> {
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let from = entry.path();
-        let to = dst.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            std::fs::create_dir(&to)?;
-            move_tree(&from, &to)?;
-            sync_directory(&to)?;
-        } else {
-            nofy_durable_fs::replace_file(&from, &to)?;
+#[cfg(target_os = "linux")]
+fn publish_new_directory(temp: &Path, path: &Path, parent: &Path) -> Result<()> {
+    rustix::fs::renameat_with(
+        rustix::fs::CWD,
+        temp,
+        rustix::fs::CWD,
+        path,
+        rustix::fs::RenameFlags::NOREPLACE,
+    )
+    .map_err(|e| Error::from(std::io::Error::from(e)))?;
+    sync_directory(parent)?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn publish_new_directory(temp: &Path, path: &Path, parent: &Path) -> Result<()> {
+    fn move_tree(src: &Path, dst: &Path) -> Result<()> {
+        for entry in std::fs::read_dir(src)? {
+            let entry = entry?;
+            let from = entry.path();
+            let to = dst.join(entry.file_name());
+            if entry.file_type()?.is_dir() {
+                std::fs::create_dir(&to)?;
+                move_tree(&from, &to)?;
+                sync_directory(&to)?;
+            } else {
+                nofy_durable_fs::replace_file(&from, &to)?;
+            }
         }
+        Ok(())
     }
+
+    // create_dir claims the destination exclusively, then only our files are
+    // moved into it. A racing pre-existing directory is never replaced.
+    std::fs::create_dir(path)?;
+    move_tree(temp, path)?;
+    sync_directory(path)?;
+    sync_directory(parent)?;
     Ok(())
 }
 fn reject_symlink_ancestors(root: &Path, relative: &str) -> Result<()> {
@@ -325,27 +349,7 @@ pub fn write_directory(path: &Path, source: &Source, expected_digest: Option<&st
         std::fs::create_dir_all(parent)?;
         let temp = tempfile::tempdir_in(parent)?;
         install(temp.path(), &source)?;
-        #[cfg(target_os = "linux")]
-        {
-            rustix::fs::renameat_with(
-                rustix::fs::CWD,
-                temp.path(),
-                rustix::fs::CWD,
-                path,
-                rustix::fs::RenameFlags::NOREPLACE,
-            )
-            .map_err(|e| Error::from(std::io::Error::from(e)))?;
-            sync_directory(parent)?;
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            // create_dir claims the destination exclusively, then only our files are
-            // moved into it. A racing pre-existing directory is never replaced.
-            std::fs::create_dir(path)?;
-            move_tree(temp.path(), path)?;
-            sync_directory(path)?;
-            sync_directory(parent)?;
-        }
+        publish_new_directory(temp.path(), path, parent)?;
         Ok(())
     }
 }
@@ -506,7 +510,7 @@ mod tests {
     }
 
     #[test]
-    fn private_write_and_move_tree_persist_cleanly_without_leftover_temps() {
+    fn private_write_and_write_directory_persist_cleanly_without_leftover_temps() {
         let temp = tempfile::tempdir().unwrap();
         let target = temp.path().join("nested/data.txt");
         private_write(&target, b"first", false).unwrap();
@@ -520,14 +524,15 @@ mod tests {
             1
         );
 
-        let src = temp.path().join("src_tree");
-        let dst = temp.path().join("dst_tree");
-        private_write(&src.join("root.txt"), b"root", false).unwrap();
-        private_write(&src.join("sub/deep.txt"), b"deep", false).unwrap();
-        std::fs::create_dir(&dst).unwrap();
-        move_tree(&src, &dst).unwrap();
-        sync_directory(&dst).unwrap();
-        assert_eq!(std::fs::read(dst.join("root.txt")).unwrap(), b"root");
+        let dst_parent = temp.path().join("out");
+        let dst = dst_parent.join("project");
+        let mut source = Source::empty("coder", "demo").unwrap();
+        source
+            .files
+            .insert("sub/deep.txt".into(), File::text("deep"));
+        source.refresh_manifest().unwrap();
+        write_directory(&dst, &source, None).unwrap();
         assert_eq!(std::fs::read(dst.join("sub/deep.txt")).unwrap(), b"deep");
+        assert_eq!(std::fs::read_dir(&dst_parent).unwrap().count(), 1);
     }
 }

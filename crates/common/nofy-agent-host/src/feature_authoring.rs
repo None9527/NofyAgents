@@ -8,14 +8,13 @@ pub(crate) use tool::Factory;
 
 use crate::{HostError, KernelHost, Result};
 use nofy_agent_runtime::{
-    RunOutcome,
+    PendingInterjection, RunOutcome,
     control::{Activation, ApplyCommand, ControlPlane},
     events::RunEvent,
     registry::ModuleRef,
     supervisor::{RunSupervisor, jobs::ManagedRunRequest},
     system::{CompiledSystem, ProgramDefinition, SystemDocument, content_digest},
 };
-use nofy_interjection_core::PendingInterjection;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{

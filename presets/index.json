@@ -15,20 +15,6 @@
       "path": "coding",
       "status": "source-template",
       "description": "历史编程模板。新项目使用 Omni，现有工程可继续显式选择此版本。"
-    },
-    {
-      "id": "main-agent",
-      "version": "0.1.0",
-      "path": "main-agent",
-      "status": "source-template",
-      "description": "历史协作主 Agent 模板，保留供显式选择与版本复现。"
-    },
-    {
-      "id": "main-agent",
-      "version": "0.2.0",
-      "path": "main-agent-composable",
-      "status": "source-template",
-      "description": "Omni 的可组合主 Agent 基线，保留供显式选择与版本复现。"
     }
   ]
 }

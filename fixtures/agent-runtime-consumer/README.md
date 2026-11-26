@@ -1,16 +1,16 @@
-# Independent Agent consumer
+# Opt-in Managed Agent Consumer
 
-Run from the repository root:
+Run from the repository root (see also `.github/workflows/managed-consumer.yml` for the three-platform Linux/macOS/Windows matrix and cross-platform parity check):
 
 ```sh
-python3 scripts/verify-agent-independent-consumer.py --output /tmp/nofy-independent-check
+python3 scripts/verify-agent-managed-consumer.py collect \
+  --runner ubuntu-24.04 \
+  --output /tmp/nofy-opt-in-managed-evidence
 ```
 
-The script copies this separate workspace outside the repository, carries the pinned
-Rust toolchain, rewrites path dependencies, and builds offline. It verifies business,
-research-pack and standalone-coding agents, delegation, parallel composition, memory,
-settings and isolated services. Its normal dependency closure excludes product hosts
-and concrete coding tools. Only public library APIs are used.
+Use `--runner macos-latest` or `--runner windows-latest` on macOS/Windows (pass `--fetch` on a cold cache), and `python3 scripts/verify-agent-managed-consumer.py compare <dir>` to verify cross-platform parity across all three native artifacts.
+
+The script copies this separate workspace outside the repository, wraps its entrypoint with `nofy_agent_runtime::managed::run` (16 MiB dedicated current-thread Tokio runtime), carries the pinned Rust toolchain, rewrites path dependencies, and builds/runs offline. It verifies business and standalone-coding agents, delegation, parallel composition, memory, settings, policy admission and declarative workflows. Its normal dependency closure excludes product hosts and concrete coding tools. Only public library APIs are used.
 
 The configured consumer also registers a pure stage through `stage.literal`, binds it with `runtime.recipe`, and checks the applied stage data through the public API. The document controls the placement and order; model/tool validation and policy admission remain mandatory.
 

@@ -633,7 +633,7 @@ impl Executor for Loader {
         state: Value,
         cap: usize,
         cancel: CancellationToken,
-    ) -> std::result::Result<Option<Box<dyn StreamExecutor>>, Error> {
+    ) -> std::result::Result<Box<dyn StreamExecutor>, Error> {
         let cancel = cancel.child_token();
         let _on_drop = cancel.clone().drop_guard();
         let permit = tokio::select! { biased;
@@ -653,13 +653,13 @@ impl Executor for Loader {
         })
         .await
         .map_err(|_| failed())??;
-        Ok(Some(Box::new(HostStream {
+        Ok(Box::new(HostStream {
             loader: self.clone(),
             slot_index,
             worker_pid,
             stream_id,
             program: stream_program,
             active: AtomicBool::new(true),
-        })))
+        }))
     }
 }

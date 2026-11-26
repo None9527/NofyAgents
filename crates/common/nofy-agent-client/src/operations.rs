@@ -448,14 +448,6 @@ impl Engine {
             ),
             "resource.list" => {
                 let path = resource_collection(text(input, "kind")?)?;
-                if path == "runtimes"
-                    && (input.get("after").is_some() || input.get("limit").is_some())
-                {
-                    return Err(Error::new(
-                        "local_input",
-                        "runtimes is a complete native inventory; it does not accept pagination options",
-                    ));
-                }
                 let r = self
                     .client
                     .request("GET", &["api", "v1", path], &page(input), None)
@@ -464,13 +456,11 @@ impl Engine {
                 let mut out = native(op, r)?;
                 out.next_cursor = if path == "runtime-sources" {
                     value.get("next").and_then(identity)
-                } else if path != "runtimes" {
+                } else {
                     value
                         .as_array()
                         .and_then(|items| items.last())
                         .and_then(|v| identity(&v["digest"]))
-                } else {
-                    None
                 };
                 Ok(out)
             }
@@ -744,7 +734,7 @@ impl Engine {
                 ],
                 Some(raw_text(input, "request_json")?),
             ),
-            ("artifact" | "runtime" | "runtime_image", true) => (
+            ("artifact" | "runtime_image", true) => (
                 "POST",
                 vec!["api", "v1", resource_collection(kind)?],
                 Some(raw_text(input, "request_json")?),
@@ -780,7 +770,6 @@ pub(crate) fn page(input: &Value) -> Vec<(String, String)> {
 fn resource_collection(kind: &str) -> Result<&'static str> {
     Ok(match kind {
         "artifact" | "artifacts" => "artifacts",
-        "runtime" | "runtimes" => "runtimes",
         "runtime_image" | "runtime_images" => "runtime-images",
         "runtime_source" | "runtime_sources" => "runtime-sources",
         _ => return Err(Error::new("local_input", "unknown resource collection")),

@@ -359,9 +359,12 @@ async fn run_command(
         _ = std::future::ready(()) => {}
     }
     let mut command = tokio::process::Command::new(helper);
+    let bootstrap_arg =
+        super::super::isolation::attach_profile_fd(command.as_std_mut(), wire.as_bytes())
+            .map_err(unavailable)?;
     command
         .arg(bootstrap::ARG)
-        .arg(wire)
+        .arg(bootstrap_arg)
         .env_clear()
         .current_dir("/")
         .stdin(Stdio::piped())

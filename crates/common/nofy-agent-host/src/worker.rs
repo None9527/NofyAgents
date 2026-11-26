@@ -6,7 +6,6 @@ use std::{
 use tokio::task::JoinSet;
 
 const FALLBACK_POLL_INTERVAL: Duration = Duration::from_secs(2);
-const RUNTIME_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub(crate) async fn run(
@@ -26,7 +25,6 @@ pub(crate) async fn run(
     let mut seen_runs = changes.borrow_and_update().runs;
     let mut tick = tokio::time::interval(FALLBACK_POLL_INTERVAL);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    let mut last_refresh: Option<Instant> = None;
     loop {
         let wait_runs = async {
             if changes
@@ -63,13 +61,6 @@ pub(crate) async fn run(
         };
         if let Err(error) = host.evolution.advance(&host).await {
             eprintln!("Omni evolution: {error}");
-        }
-        // Refresh trusted metadata outside all module factories on a bounded
-        // cadence instead of every wakeup/250ms. A broken optional runtime
-        // catalog must not terminate unrelated HTTP/SDK work.
-        if last_refresh.is_none_or(|at| at.elapsed() >= RUNTIME_REFRESH_INTERVAL) {
-            let _ = host.loader.refresh_async().await;
-            last_refresh = Some(Instant::now());
         }
         let mut cursor = 0;
         while tasks.len() < concurrency {

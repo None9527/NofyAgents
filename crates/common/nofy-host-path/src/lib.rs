@@ -9,9 +9,8 @@
 //!   `/` roots on Unix; drives, UNC shares and `\\?\` prefixes on Windows. The
 //!   rules are functions of the text and a syntax, so the Windows rules are
 //!   tested on every platform.
-//! - **Names** ([`is_reserved_device_name`], [`windows_cannot_hold`], [`fold`],
-//!   [`eq_fold`]): a name Windows cannot hold is refused everywhere, because state
-//!   and packages move between machines.
+//! - **Names** ([`windows_cannot_hold`], [`fold`]): a name Windows cannot hold
+//!   is refused everywhere, because state and packages move between machines.
 //! - **File identity** ([`FileIdentity`]): device, inode and the two times on
 //!   Unix; volume serial number, file index and the two times on Windows.
 //! - **Opening without following** ([`open_no_follow`]): `O_NOFOLLOW | O_CLOEXEC`
@@ -32,6 +31,5 @@ mod windows;
 pub use identity::{FileIdentity, FileKind, Timestamp};
 pub use open::{open_no_follow, open_no_follow_nonblocking, pinned_executable_path};
 pub use syntax::{
-    PathError, Syntax, check_normalized_absolute, eq_fold, fold, is_reserved_device_name,
-    starts_with, windows_cannot_hold,
+    PathError, Syntax, check_normalized_absolute, fold, starts_with, windows_cannot_hold,
 };

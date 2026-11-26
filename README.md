@@ -16,7 +16,7 @@ Give a coding agent a goal, let it create and test an agent through CLI or MCP, 
 - **Keep session state.** Twenty session operations cover admission, subsequent turns, metadata, archives, and policy changes between turns.
 - **Share portable source.** Archives contain declarations, module source, and ordinary dependency lists. Credentials are injected separately; users install interpreters, compilers, and external libraries.
 
-Development protocol: `nofy.kernel/v1`, contract revision `0.6`. There are 104 operations, including 102 inbound MCP tools in the `full` toolset. Secret values use a separate private local entry point.
+Development protocol: `nofy.kernel/v1`, contract revision `0.7`. There are 104 operations, including 102 inbound MCP tools in the `full` toolset. Secret values use a separate private local entry point.
 
 ## Core concept: goals and recursive self-improvement (RSI)
 
@@ -155,7 +155,7 @@ MCP agent creation mirrors the CLI: `nofy_agent_create` → `nofy_agent_module_a
 
 ## Presets and real acceptance runs
 
-`presets/index.json` currently defaults to the [omni preset](presets/omni/README.md) (`omni@0.1.0`), while retaining the [coding preset](presets/coding/文件说明.md) (`coding@0.1.0`) and `main-agent@0.1.0`/`0.2.0` for explicit selection. The `coding` preset provides file operations, optional command execution, and read-only code review. A [real-model project repair](docs/verification/coding-real-model-build.md) read code, ran tests, fixed the problem, and changed all six tests from failing to passing.
+`presets/index.json` currently defaults to the [omni preset](presets/omni/README.md) (`omni@0.1.0`), while retaining the [coding preset](presets/coding/文件说明.md) (`coding@0.1.0`) for explicit selection. The `coding` preset provides file operations, optional command execution, and read-only code review. A [real-model project repair](docs/verification/coding-real-model-build.md) read code, ran tests, fixed the problem, and changed all six tests from failing to passing.
 
 A separate [real sub-agent run](docs/verification/mcp-sub-agent.md) used standard MCP to create an agent from an empty declaration, compose nine modules, and run a real model. The model invoked a calculation tool, obtained `42`, and completed. The source archive passed byte-for-byte verification.
 
@@ -172,7 +172,7 @@ This runs formatting, workspace compilation, CLI/MCP development tests, coding s
 - [Module integration](docs/manual/modules.md): factories, slots, dependencies, and external implementations.
 - [Sessions](docs/manual/sessions.md): policies and lifecycle.
 - [MCP](docs/manual/mcp.md): stdio, Streamable HTTP, and Codex configuration.
-- [File guide](文件说明.md): 25 workspace packages and directory responsibilities.
+- [File guide](文件说明.md): 21 workspace packages and directory responsibilities.
 
 Detailed technical documentation is currently primarily in Chinese.
 

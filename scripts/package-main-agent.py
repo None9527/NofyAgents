@@ -136,12 +136,8 @@ def verify(output):
     if not mandatory.issubset(records):
         raise ValueError("missing required binaries or registries")
     registry = read_json(output / "presets/index.json")
-    if registry == {"format": "nofy.preset-registry/v1", "presets": [{
-            "id": "main-agent", "version": "0.2.0", "path": "main-agent-composable",
-            "status": "source-template"}]}:
-        selected, packages = collect_sources(output, "presets/main-agent-composable")
-    elif registry == {"format": "nofy.preset-registry/v1", "default": OMNI,
-                      "presets": [{**OMNI, "path": "omni", "status": "source-template"}]}:
+    if registry == {"format": "nofy.preset-registry/v1", "default": OMNI,
+                    "presets": [{**OMNI, "path": "omni", "status": "source-template"}]}:
         selected, packages = collect_sources(output)
     else:
         raise ValueError("invalid preset registry")

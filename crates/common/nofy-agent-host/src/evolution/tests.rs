@@ -472,8 +472,8 @@ async fn submit_proposal_and_run(
     baseline: &Activation,
     candidate_prompt: &str,
 ) -> EvolutionReceipt {
+    use nofy_agent_runtime::PendingInterjection;
     use nofy_agent_runtime::supervisor::jobs::ManagedRunRequest;
-    use nofy_interjection_core::PendingInterjection;
 
     let bundle = host.control.export(&baseline.release).await.unwrap();
     let compiled =

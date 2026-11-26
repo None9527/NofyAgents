@@ -1,13 +1,12 @@
 use super::*;
 use nofy_agent_runtime::{
-    Message, RunOutcome, RunState,
+    Message, PendingInterjection, RunOutcome, RunState,
     durable::{Clock, SystemClock},
     mailbox::{InputAddress, MailboxSender},
     registry::{ModuleDefinition, ModuleRegistry},
     supervisor::jobs::ManagedRunRequest,
     system::{CompiledSystem, SystemDocument, compile_system},
 };
-use nofy_interjection_core::PendingInterjection;
 use std::collections::{BTreeMap, BTreeSet};
 
 fn is_zero_usize(value: &usize) -> bool {

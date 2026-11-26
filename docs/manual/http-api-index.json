@@ -9,28 +9,28 @@
       "path": "/api/v1/access",
       "handler": "access",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 112
+      "line": 125
     },
     {
       "method": "POST",
       "path": "/api/v1/actions",
       "handler": "action",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 27
+      "line": 120
     },
     {
       "method": "GET",
       "path": "/api/v1/actions/{id}",
       "handler": "action_status",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 28
+      "line": 121
     },
     {
       "method": "POST",
       "path": "/api/v1/apply",
       "handler": "apply",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 126
+      "line": 140
     },
     {
       "method": "GET",
@@ -51,21 +51,21 @@
       "path": "/api/v1/artifacts",
       "handler": "artifacts",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 52
+      "line": 80
     },
     {
       "method": "POST",
       "path": "/api/v1/artifacts",
       "handler": "put_artifact",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 52
+      "line": 80
     },
     {
       "method": "GET",
       "path": "/api/v1/artifacts/{digest}",
       "handler": "artifact",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 53
+      "line": 81
     },
     {
       "method": "GET",
@@ -79,7 +79,7 @@
       "path": "/api/v1/catalog",
       "handler": "catalog",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 113
+      "line": 127
     },
     {
       "method": "GET",
@@ -94,6 +94,20 @@
       "handler": "analyze",
       "source": "crates/common/nofy-agent-host/src/api/permissions.rs",
       "line": 6
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/composer/model",
+      "handler": "select",
+      "source": "crates/common/nofy-agent-host/src/api/composer.rs",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/composer/models",
+      "handler": "models",
+      "source": "crates/common/nofy-agent-host/src/api/composer.rs",
+      "line": 7
     },
     {
       "method": "GET",
@@ -121,21 +135,21 @@
       "path": "/api/v1/drafts/{name}",
       "handler": "delete_draft",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 118
+      "line": 132
     },
     {
       "method": "PUT",
       "path": "/api/v1/drafts/{name}",
       "handler": "save_draft",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 118
+      "line": 132
     },
     {
       "method": "POST",
       "path": "/api/v1/import",
       "handler": "import",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 117
+      "line": 131
     },
     {
       "method": "GET",
@@ -261,175 +275,175 @@
       "path": "/api/v1/module-packages",
       "handler": "packages",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 25
+      "line": 26
     },
     {
       "method": "POST",
       "path": "/api/v1/module-packages/gc",
       "handler": "gc",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 27
+      "line": 28
     },
     {
       "method": "GET",
       "path": "/api/v1/module-packages/{digest}",
       "handler": "source",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 26
+      "line": 27
     },
     {
       "method": "GET",
       "path": "/api/v1/module-repositories",
       "handler": "list",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 8
+      "line": 9
     },
     {
       "method": "DELETE",
       "path": "/api/v1/module-repositories/{repository}",
       "handler": "remove",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 9
+      "line": 10
     },
     {
       "method": "GET",
       "path": "/api/v1/module-repositories/{repository}",
       "handler": "inspect",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 9
+      "line": 10
     },
     {
       "method": "PUT",
       "path": "/api/v1/module-repositories/{repository}",
       "handler": "register",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 9
+      "line": 10
     },
     {
       "method": "POST",
       "path": "/api/v1/module-repositories/{repository}/packages",
       "handler": "publish",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 17
+      "line": 18
     },
     {
       "method": "GET",
       "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}",
       "handler": "package",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 21
+      "line": 22
     },
     {
       "method": "POST",
       "path": "/api/v1/module-repositories/{repository}/packages/{name}/{version}/yank",
       "handler": "yank",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 28
+      "line": 29
     },
     {
       "method": "POST",
       "path": "/api/v1/module-repositories/{repository}/sync",
       "handler": "synchronize",
       "source": "crates/common/nofy-agent-host/src/api/repositories.rs",
-      "line": 13
+      "line": 14
     },
     {
       "method": "GET",
       "path": "/api/v1/modules",
       "handler": "modules",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 114
+      "line": 128
     },
     {
       "method": "POST",
       "path": "/api/v1/modules/dependencies",
       "handler": "dependencies",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 115
+      "line": 129
     },
     {
       "method": "POST",
       "path": "/api/v1/plan",
       "handler": "plan",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 125
+      "line": 139
     },
     {
       "method": "GET",
       "path": "/api/v1/presets",
       "handler": "presets",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 7
+      "line": 166
     },
     {
       "method": "GET",
       "path": "/api/v1/presets/{id}",
       "handler": "template",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 8
+      "line": 167
     },
     {
       "method": "GET",
       "path": "/api/v1/projects",
       "handler": "list",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 9
+      "line": 168
     },
     {
       "method": "POST",
       "path": "/api/v1/projects",
       "handler": "create",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 9
+      "line": 168
     },
     {
       "method": "DELETE",
       "path": "/api/v1/projects/{id}",
       "handler": "delete_project",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 10
+      "line": 169
     },
     {
       "method": "GET",
       "path": "/api/v1/projects/{id}",
       "handler": "inspect",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 10
+      "line": 169
     },
     {
       "method": "POST",
       "path": "/api/v1/projects/{id}/archive",
       "handler": "archive",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 15
+      "line": 174
     },
     {
       "method": "POST",
       "path": "/api/v1/projects/{id}/build",
       "handler": "build",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 12
+      "line": 171
     },
     {
       "method": "POST",
       "path": "/api/v1/projects/{id}/edits",
       "handler": "edit",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 11
+      "line": 170
     },
     {
       "method": "POST",
       "path": "/api/v1/projects/{id}/preview",
       "handler": "preview",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 13
+      "line": 172
     },
     {
       "method": "GET",
       "path": "/api/v1/projects/{id}/source",
       "handler": "source",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 14
+      "line": 173
     },
     {
       "method": "POST",
@@ -446,144 +460,158 @@
       "line": 9
     },
     {
+      "method": "GET",
+      "path": "/api/v1/protocol",
+      "handler": "client_protocol::describe",
+      "source": "crates/common/nofy-agent-host/src/api.rs",
+      "line": 126
+    },
+    {
       "method": "POST",
       "path": "/api/v1/publish",
       "handler": "publish",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 122
+      "line": 136
     },
     {
       "method": "GET",
       "path": "/api/v1/releases/{release}",
       "handler": "export",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 123
+      "line": 137
     },
     {
       "method": "GET",
       "path": "/api/v1/releases/{release}/deployment",
       "handler": "deployment",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 58
+      "line": 85
     },
     {
       "method": "GET",
       "path": "/api/v1/releases/{release}/programs",
       "handler": "programs",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 124
+      "line": 138
     },
     {
       "method": "GET",
       "path": "/api/v1/runs",
       "handler": "list",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 10
+      "line": 96
     },
     {
       "method": "POST",
       "path": "/api/v1/runs",
       "handler": "submit",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 10
+      "line": 96
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}",
       "handler": "inspect",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 11
+      "line": 97
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/approvals",
       "handler": "approvals",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 15
+      "line": 104
     },
     {
       "method": "POST",
       "path": "/api/v1/runs/{id}/approvals",
       "handler": "decide",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 15
+      "line": 104
     },
     {
       "method": "POST",
       "path": "/api/v1/runs/{id}/cancel",
       "handler": "cancel",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 16
+      "line": 105
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/events",
       "handler": "events",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 13
+      "line": 99
     },
     {
       "method": "POST",
       "path": "/api/v1/runs/{id}/inputs",
       "handler": "input",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 17
+      "line": 106
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/{id}/inputs/{input_id}",
+      "handler": "input_receipts::inspect",
+      "source": "crates/common/nofy-agent-host/src/api/runs.rs",
+      "line": 107
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery",
       "handler": "recovery",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 18
+      "line": 111
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery/hooks",
       "handler": "hook_recovery",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 21
+      "line": 114
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery/humans",
       "handler": "human_recovery",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 22
+      "line": 115
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery/model-retry",
       "handler": "model_retry_ticket",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 23
+      "line": 116
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery/models",
       "handler": "model_recovery",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 20
+      "line": 113
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/recovery/root",
       "handler": "root_recovery",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 19
+      "line": 112
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/stream",
       "handler": "stream",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 14
+      "line": 100
     },
     {
       "method": "GET",
       "path": "/api/v1/runs/{id}/versions",
       "handler": "versions",
       "source": "crates/common/nofy-agent-host/src/api/runs.rs",
-      "line": 12
+      "line": 98
     },
     {
       "method": "GET",
@@ -611,21 +639,21 @@
       "path": "/api/v1/runtime-images",
       "handler": "images",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 56
+      "line": 83
     },
     {
       "method": "POST",
       "path": "/api/v1/runtime-images",
       "handler": "put_image",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 56
+      "line": 83
     },
     {
       "method": "GET",
       "path": "/api/v1/runtime-images/{digest}",
       "handler": "image",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 57
+      "line": 84
     },
     {
       "method": "GET",
@@ -698,25 +726,11 @@
       "line": 11
     },
     {
-      "method": "GET",
-      "path": "/api/v1/runtimes",
-      "handler": "runtimes",
-      "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 54
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/runtimes",
-      "handler": "install_runtime",
-      "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 54
-    },
-    {
       "method": "POST",
       "path": "/api/v1/runtimes/probe",
       "handler": "probe",
       "source": "crates/common/nofy-agent-host/src/api/loader.rs",
-      "line": 55
+      "line": 82
     },
     {
       "method": "GET",
@@ -730,175 +744,182 @@
       "path": "/api/v1/sessions",
       "handler": "list",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 8
+      "line": 74
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions",
       "handler": "create",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 8
+      "line": 74
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/capabilities",
       "handler": "capabilities",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 9
+      "line": 75
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/fork",
       "handler": "fork",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 11
+      "line": 77
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/route",
       "handler": "route",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 12
+      "line": 78
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/start",
       "handler": "start",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 10
+      "line": 76
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}",
       "handler": "inspect",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 13
+      "line": 79
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/archive",
       "handler": "archive",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 25
+      "line": 91
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/close",
       "handler": "close",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 23
+      "line": 89
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}/commands/{command_id}",
       "handler": "command",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 28
+      "line": 94
     },
     {
       "method": "PATCH",
       "path": "/api/v1/sessions/{id}/metadata",
       "handler": "metadata",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 19
+      "line": 85
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/plan",
       "handler": "lifecycle::plan",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 18
+      "line": 84
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}/policy",
       "handler": "policy",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 17
+      "line": 83
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/reconfigure",
       "handler": "reconfigure",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 27
+      "line": 93
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/reopen",
       "handler": "reopen",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 24
+      "line": 90
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}/tree",
       "handler": "tree",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 14
+      "line": 80
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}/turns",
       "handler": "turns",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 15
+      "line": 81
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/turns",
       "handler": "submit_turn",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 15
+      "line": 81
     },
     {
       "method": "GET",
       "path": "/api/v1/sessions/{id}/turns/{run}",
       "handler": "turn_binding",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 16
+      "line": 82
     },
     {
       "method": "POST",
       "path": "/api/v1/sessions/{id}/unarchive",
       "handler": "unarchive",
       "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
-      "line": 26
+      "line": 92
     },
     {
       "method": "POST",
       "path": "/api/v1/source-archives",
       "handler": "pack_source",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 16
+      "line": 175
     },
     {
       "method": "GET",
       "path": "/api/v1/source-archives/{digest}",
       "handler": "download",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 17
+      "line": 176
     },
     {
       "method": "GET",
       "path": "/api/v1/source-archives/{digest}/chunks",
       "handler": "chunk",
       "source": "crates/common/nofy-agent-host/src/api/projects.rs",
-      "line": 18
+      "line": 177
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/systems",
+      "handler": "systems",
+      "source": "crates/common/nofy-agent-host/src/api.rs",
+      "line": 141
     },
     {
       "method": "GET",
       "path": "/api/v1/systems/{name}/active",
       "handler": "active",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 128
+      "line": 143
     },
     {
       "method": "GET",
       "path": "/api/v1/systems/{name}/history",
       "handler": "history",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 127
+      "line": 142
     },
     {
       "method": "POST",
@@ -912,7 +933,21 @@
       "path": "/api/v1/validate",
       "handler": "validate",
       "source": "crates/common/nofy-agent-host/src/api.rs",
-      "line": 116
+      "line": 130
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work/{operation}",
+      "handler": "external",
+      "source": "crates/common/nofy-agent-host/src/work.rs",
+      "line": 160
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/workspace/changes",
+      "handler": "changes",
+      "source": "crates/common/nofy-agent-host/src/api/sessions.rs",
+      "line": 70
     }
   ]
 }

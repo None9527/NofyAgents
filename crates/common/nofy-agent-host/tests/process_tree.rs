@@ -641,8 +641,27 @@ fn bootstrap_failure_never_executes_the_program() {
     let directory = tempfile::tempdir().unwrap();
     let marker = directory.path().join("must-not-exist");
     let wire = json!({"parent_pid":std::process::id(),"program":"/usr/bin/python3","arguments":["-I","-c",format!("open({:?},'w').write('unconfined')",marker.to_str().unwrap())],"environment":{},"cwd":directory.path()}).to_string();
+    // Raw inline JSON on argv[2] is strictly refused fail-closed.
+    let raw_argv = Command::new(HELPER)
+        .args(["__nofy_process_tree_v1", &wire])
+        .output()
+        .unwrap();
+    assert_eq!(
+        raw_argv.status.code(),
+        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+    );
+    let raw_stderr = String::from_utf8_lossy(&raw_argv.stderr);
+    assert!(
+        raw_stderr.contains(nofy_isolation::RUNNER_FAILURE_MARKER),
+        "{raw_stderr}"
+    );
+    assert!(!marker.exists());
+
     let mut command = Command::new(HELPER);
-    command.args(["__nofy_process_tree_v1", &wire]);
+    let bootstrap_arg =
+        nofy_agent_host::loader::isolation::attach_profile_fd(&mut command, wire.as_bytes())
+            .unwrap();
+    command.arg("__nofy_process_tree_v1").arg(&bootstrap_arg);
     unsafe {
         command.pre_exec(|| {
             let mut filter = [
@@ -684,21 +703,32 @@ fn bootstrap_failure_never_executes_the_program() {
         });
     }
     let output = command.output().unwrap();
-    assert_eq!(output.status.code(), Some(125));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("bootstrap failed"));
+    assert_eq!(
+        output.status.code(),
+        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains(nofy_isolation::RUNNER_FAILURE_MARKER),
+        "{stderr}"
+    );
+    assert!(stderr.contains("bootstrap failed"), "{stderr}");
     assert!(!marker.exists());
     for wire in [
         "{}".to_owned(),
         json!({"parent_pid":0,"program":"/usr/bin/true","arguments":[],"environment":{},"cwd":"/"})
             .to_string(),
     ] {
+        let mut bad = Command::new(HELPER);
+        let arg = nofy_agent_host::loader::isolation::attach_profile_fd(&mut bad, wire.as_bytes())
+            .unwrap();
+        let output = bad.arg("__nofy_process_tree_v1").arg(arg).output().unwrap();
         assert_eq!(
-            Command::new(HELPER)
-                .args(["__nofy_process_tree_v1", &wire])
-                .status()
-                .unwrap()
-                .code(),
-            Some(125)
+            output.status.code(),
+            Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(nofy_isolation::RUNNER_FAILURE_MARKER)
         );
     }
 }
@@ -917,7 +947,10 @@ fn pivot_root_failure_is_fail_closed_and_never_falls_back_to_chroot() {
     })
     .to_string();
     let mut command = Command::new(HELPER);
-    command.args(["__nofy_process_tree_v1", &wire]);
+    let bootstrap_arg =
+        nofy_agent_host::loader::isolation::attach_profile_fd(&mut command, wire.as_bytes())
+            .unwrap();
+    command.arg("__nofy_process_tree_v1").arg(&bootstrap_arg);
     unsafe {
         command.pre_exec(|| {
             let mut filter = [
@@ -959,8 +992,15 @@ fn pivot_root_failure_is_fail_closed_and_never_falls_back_to_chroot() {
         });
     }
     let output = command.output().unwrap();
-    assert_eq!(output.status.code(), Some(125));
+    assert_eq!(
+        output.status.code(),
+        Some(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+    );
     let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains(nofy_isolation::RUNNER_FAILURE_MARKER),
+        "{stderr}"
+    );
     assert!(
         stderr.contains("required tree confinement failed"),
         "{stderr}"
@@ -1115,6 +1155,16 @@ fn delegated_hardening() {
             .unwrap()
         };
 
+        #[cfg(target_arch = "x86_64")]
+        let extra_x86_64: &[i64] = &[
+            libc::SYS_chown,
+            libc::SYS_lchown,
+            libc::SYS_utime,
+            libc::SYS_utimes,
+            libc::SYS_futimesat,
+        ];
+        #[cfg(not(target_arch = "x86_64"))]
+        let extra_x86_64: &[i64] = &[];
         let probe_code = format!(
             r#"import ctypes, errno, json, os
 from pathlib import Path
@@ -1166,6 +1216,8 @@ assert_eperm(463, -100, ctypes.addressof(path_b), 0, ctypes.addressof(attr_b), 0
 assert_eperm(466, -100, ctypes.addressof(path_b), 0, ctypes.addressof(attr_b), 0)
 assert_eperm({fallocate}, fd, 0, 0, 4096)
 assert_eperm({userfaultfd}, 0)
+for nr in {extra_x86_64:?}:
+    assert_eperm(nr, ctypes.addressof(path_b), 0, 0)
 os.close(fd)
 print(json.dumps({{"hardened": True}}))
 "#,
@@ -1179,6 +1231,7 @@ print(json.dumps({{"hardened": True}}))
             fremovexattr = libc::SYS_fremovexattr,
             fallocate = libc::SYS_fallocate,
             userfaultfd = libc::SYS_userfaultfd,
+            extra_x86_64 = extra_x86_64,
         );
 
         let record = run_doc(base.clone(), build_doc(&project, &probe_code), "hardening-main".into()).await;

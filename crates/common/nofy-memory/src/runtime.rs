@@ -8,10 +8,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 mod capture;
 pub mod declarative;
-mod factory;
 mod operations;
 pub use capture::CaptureEnqueueReceipt;
-pub use factory::MemoryFactory;
 pub use operations::MemoryOperation;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -36,7 +34,6 @@ impl MemoryGrants {
 pub struct InstalledMemory {
     service: Arc<NofyMemoryService>,
     grants: MemoryGrants,
-    identity: String,
     excluded_categories: std::collections::BTreeSet<crate::config::MemorySensitiveCategory>,
 }
 impl InstalledMemory {
@@ -67,7 +64,7 @@ impl InstalledMemory {
     }
     fn install_with_identity(
         service: Arc<NofyMemoryService>,
-        connection: &str,
+        _connection: &str,
         revision: &str,
         grants: MemoryGrants,
         excluded_categories: std::collections::BTreeSet<crate::config::MemorySensitiveCategory>,
@@ -75,16 +72,9 @@ impl InstalledMemory {
         if revision.trim().is_empty() {
             return Err(composition("memory resource revision required"));
         }
-        let identity = blake3::hash(
-            &serde_json::to_vec(&(revision, connection, &grants, &excluded_categories))
-                .map_err(|e| composition(e.to_string()))?,
-        )
-        .to_hex()
-        .to_string();
         Ok(Self {
             service,
             grants,
-            identity,
             excluded_categories,
         })
     }
@@ -291,5 +281,3 @@ async fn blocking<T: Send + 'static>(
 fn composition(message: impl Into<String>) -> Error {
     Error::Composition(message.into())
 }
-
-pub type MemoryResources = BTreeMap<String, Arc<InstalledMemory>>;

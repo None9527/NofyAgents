@@ -224,27 +224,39 @@ pub(super) fn apply_network(network: bool, terminal: bool) -> io::Result<()> {
         // Only TCP-family descriptors in this fresh, loopback-only network
         // namespace. UNIX/raw/datagram sockets remain forbidden.
         filter.extend([
-            eq(libc::SYS_socket as u32, 0, 10),
+            eq(libc::SYS_socket as u32, 0, 8),
             stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 16),
             eq(libc::AF_INET as u32, 1, 0),
-            eq(libc::AF_INET6 as u32, 0, 6),
+            eq(libc::AF_INET6 as u32, 0, 4),
             stmt(libc::BPF_LD | libc::BPF_W | libc::BPF_ABS, 24),
             stmt(
                 libc::BPF_ALU | libc::BPF_AND | libc::BPF_K,
                 !(libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK) as u32,
             ),
-            eq(libc::SOCK_STREAM as u32, 0, 3),
+            eq(libc::SOCK_STREAM as u32, 0, 1),
             stmt(libc::BPF_RET | libc::BPF_K, ALLOW),
-            stmt(libc::BPF_RET | libc::BPF_K, DENY),
-            stmt(libc::BPF_RET | libc::BPF_K, DENY),
             stmt(libc::BPF_RET | libc::BPF_K, DENY),
         ]);
     }
+    // On x86_64, deny legacy metadata/device syscalls matching isolation.rs.
+    // `SYS_chmod` stays permitted in process trees so guest toolchains (e.g.
+    // `gcc`/`ld`) can mark freshly linked binaries executable inside declared
+    // `read_write_execute` directories; `MS_RDONLY`/`MS_NOEXEC` bind mounts
+    // and Landlock continue to enforce read-only and execute boundaries.
     #[cfg(target_arch = "x86_64")]
-    filter.extend([
-        eq(libc::SYS_mknod as u32, 0, 1),
-        stmt(libc::BPF_RET | libc::BPF_K, DENY),
-    ]);
+    for syscall in [
+        libc::SYS_chown,
+        libc::SYS_lchown,
+        libc::SYS_mknod,
+        libc::SYS_utime,
+        libc::SYS_utimes,
+        libc::SYS_futimesat,
+    ] {
+        filter.extend([
+            eq(syscall as u32, 0, 1),
+            stmt(libc::BPF_RET | libc::BPF_K, DENY),
+        ]);
+    }
     filter.push(stmt(libc::BPF_RET | libc::BPF_K, ALLOW));
     let filter_len = u16::try_from(filter.len())
         .map_err(|_| io::Error::other("tree seccomp filter exceeds BPF instruction limit"))?;

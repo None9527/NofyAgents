@@ -1,16 +1,16 @@
 # 当前发布范围
 
-2026-11-06，开发者预览。CLI 包版本 `0.1.0`，开发协议 `nofy.kernel/v1`，契约修订 `0.6`。源码提交不表示已经发布二进制安装包或包管理器版本。
+2026-11-06，开发者预览。CLI 包版本 `0.1.0`，开发协议 `nofy.kernel/v1`，契约修订 `0.7`。源码提交不表示已经发布二进制安装包或包管理器版本。
 
 ## 已可使用
 
-- 干净的 25 包 Rust 框架工作区，统一 Loader 与执行路径。
+- 干净的 21 包 Rust 框架工作区，统一 Loader 与执行路径。
 - CLI、入站 stdio／Streamable HTTP MCP，以及同源的托管／本地源码工程编辑。
-- 104 项操作、102 个 MCP 工具（`full` 工具集）、20 项 Session 操作（另含 6 项 `work.*` 统一编排操作；CLI／MCP／SDK 默认使用 `run` 工具集，共 21 项）。默认 Linux Host 发现 70 个工厂。
+- 104 项操作、102 个 MCP 工具（`full` 工具集）、20 项 Session 操作（另含 6 项 `work.*` 统一编排操作；CLI／MCP／SDK 默认使用 `run` 工具集，共 21 项）。默认 Linux Host 发现 68 个内置工厂（启用 `feature-authoring` 时额外暴露 `tool.sdk_feature`）。
 - 声明构建、校验、发布、generation 激活、事件观察、审批、取消、恢复与版本转换。
 - SessionPolicy 规则／源码模块、接纳与续轮、元数据与归档、静止轮次间策略切换。
 - 源码归档及普通依赖清单交付，凭据独立注入，业务依赖由使用者安装。
-- 声明式源码预设注册表（`presets/index.json` 默认 `omni@0.1.0`，同时保留 `coding@0.1.0`、`main-agent@0.1.0` 与 `main-agent@0.2.0`）、12 包模块仓库（`modules/module-repository.json`）及可选独立托管 SDK 入口（`nofy_agent_runtime::managed::run`）。
+- 声明式源码预设注册表（`presets/index.json` 默认 `omni@0.1.0`，同时暂留 `coding@0.1.0`）、15 包模块仓库（`modules/module-repository.json`）及可选独立托管 SDK 入口（`nofy_agent_runtime::managed::run`）。
 
 已完成的真实验收及其边界：
 

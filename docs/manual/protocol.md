@@ -1,6 +1,6 @@
 # 开发协议与数据字典
 
-版本：`nofy.kernel/v1`，契约 `0.6`。CLI、MCP、源码工程与 Session 控制接同一内核。构建和实例能力见[总入口](README.md)，实际检查见[实现记录](../verification/agent-development-cli-mcp.md)。
+版本：`nofy.kernel/v1`，契约 `0.7`。CLI、MCP、源码工程与 Session 控制接同一内核。构建和实例能力见[总入口](README.md)，实际检查见[实现记录](../verification/agent-development-cli-mcp.md)。
 
 ## 数据对象与生命周期
 

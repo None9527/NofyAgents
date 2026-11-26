@@ -25,7 +25,6 @@ pub mod process_tree;
 pub mod prompts;
 pub mod references;
 pub(crate) mod runtime_history;
-pub mod runtimes;
 pub mod scopes;
 pub mod sources;
 mod storage;
@@ -45,7 +44,6 @@ use std::{
 #[derive(Clone)]
 pub struct Loader {
     pub artifacts: artifacts::ArtifactStore,
-    pub runtimes: runtimes::RuntimeStore,
     pub images: images::ImageStore,
     pub sources: sources::SourceStore,
     pub cache: lifecycle::CacheLifecycle,
@@ -93,7 +91,6 @@ impl Loader {
         let acquisition_stop = tokio_util::sync::CancellationToken::new();
         let loader = Self {
             artifacts: artifacts::ArtifactStore::open(&root.join("artifacts"))?,
-            runtimes: runtimes::RuntimeStore::open(&root.join("runtimes"), &private_root)?,
             images: images::ImageStore::open(&root.join("images"))?,
             sources: sources::SourceStore::open(&root.join("sources"))?,
             cache,
@@ -149,20 +146,7 @@ impl Loader {
     pub(super) fn helper_ready(&self) -> bool {
         self.helper.bound()
     }
-    pub fn refresh(&self) -> Result<()> {
-        self.runtimes.refresh()
-    }
     pub fn resolve(&self, mut file: SystemFile) -> Result<SystemFile> {
-        let document = match &file {
-            SystemFile::Source(d) => d,
-            SystemFile::Locked(b) => &b.document,
-        };
-        let needs_process = module_walk::collect(document)?
-            .iter()
-            .any(|m| m.factory == "resource.process");
-        if needs_process {
-            self.refresh()?;
-        }
         match &mut file {
             SystemFile::Source(document) => self.resolve_document(document)?,
             SystemFile::Locked(bundle) => {
@@ -238,7 +222,6 @@ impl Loader {
             self.private_root.clone(),
         )))?;
         registry.register_factory(Arc::new(process_tree::Factory))?;
-        registry.register_factory(Arc::new(factories::EnvironmentFactory(self.clone())))?;
         registry.register_factory(Arc::new(factories::LockedEnvironmentFactory(self.clone())))?;
         registry.register_factory(Arc::new(factories::LocalEnvironmentFactory(self.clone())))?;
         registry.register_factory(Arc::new(factories::ProcessArtifactFactory))?;
@@ -256,12 +239,6 @@ impl Loader {
     pub async fn resolve_file(&self, file: SystemFile) -> Result<SystemFile> {
         self.prepare_deployment(deployment::DeploymentFile::Legacy(file), false)
             .await
-    }
-    pub async fn refresh_async(&self) -> Result<()> {
-        let loader = self.clone();
-        tokio::task::spawn_blocking(move || loader.refresh())
-            .await
-            .map_err(storage::unavailable)?
     }
     pub fn probe(&self) -> Result<serde_json::Value> {
         let _lease = self.cache.shared()?;

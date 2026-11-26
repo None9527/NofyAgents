@@ -35,9 +35,145 @@ def is_test_path(path):
     return "target" in parts or "tests" in parts or path.name == "tests.rs"
 
 
+def mask_structure(source):
+    """Blank comments and string/char literals while preserving offsets and newlines."""
+    n = len(source)
+    out = list(source)
+
+    def blank(start, end):
+        for k in range(start, end):
+            if out[k] != "\n":
+                out[k] = " "
+
+    i = 0
+    while i < n:
+        c = source[i]
+        nxt = source[i + 1] if i + 1 < n else ""
+        if c == "/" and nxt == "/":
+            j = source.find("\n", i)
+            j = n if j < 0 else j
+            blank(i, j)
+            i = j
+        elif c == "/" and nxt == "*":
+            depth, j = 1, i + 2
+            while j < n and depth:
+                if source.startswith("/*", j):
+                    depth, j = depth + 1, j + 2
+                elif source.startswith("*/", j):
+                    depth, j = depth - 1, j + 2
+                else:
+                    j += 1
+            blank(i, j)
+            i = j
+        elif (
+            c == "r"
+            and re.match(r'r#*"', source[i : i + 12])
+            and (i == 0 or not (source[i - 1].isalnum() or source[i - 1] == "_"))
+        ):
+            hashes = len(re.match(r"r(#*)", source[i : i + 12]).group(1))
+            close = '"' + "#" * hashes
+            j = source.find(close, i + 2 + hashes)
+            j = n if j < 0 else j + len(close)
+            blank(i, j)
+            i = j
+        elif c == '"':
+            j = i + 1
+            while j < n and source[j] != '"':
+                j += 2 if source[j] == "\\" else 1
+            j = min(j + 1, n)
+            blank(i, j)
+            i = j
+        elif c == "'":
+            m = re.match(r"'(?:\\u\{[0-9a-fA-F_]+\}|\\.|[^'\\\n])'", source[i : i + 14])
+            if m:
+                blank(i, i + m.end())
+                i += m.end()
+            else:
+                i += 1
+        else:
+            i += 1
+    return "".join(out)
+
+
+def is_test_cfg(expr):
+    s = expr.strip()
+    if s == "test":
+        return True
+    m = re.fullmatch(r"all\s*\((.*)\)", s, re.S)
+    if not m:
+        return False
+    body = m.group(1)
+    depth, parts, cur = 0, [], []
+    for ch in body:
+        if ch == "(":
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+            cur.append(ch)
+        elif ch == "," and depth == 0:
+            parts.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(ch)
+    if depth != 0:
+        return False
+    if cur:
+        parts.append("".join(cur).strip())
+    return any(is_test_cfg(part) for part in parts)
+
+
+def strip_test_modules(source):
+    """Blank inline `#[cfg(test)]` / `#[cfg(all(test, ...))]` `mod name { ... }` blocks."""
+    structure = mask_structure(source)
+    out = list(source)
+    pos = 0
+    for m in re.finditer(r"#\[\s*cfg\s*\(", structure):
+        if m.start() < pos:
+            continue
+        depth, k = 1, m.end()
+        while k < len(structure) and depth:
+            if structure[k] == "(":
+                depth += 1
+            elif structure[k] == ")":
+                depth -= 1
+            k += 1
+        if depth != 0:
+            continue
+        close_bracket = re.match(r"\s*\]", structure[k:])
+        if not close_bracket:
+            continue
+        attr_end = k + close_bracket.end()
+        if not is_test_cfg(structure[m.end() : k - 1]):
+            continue
+        rest = re.compile(r"\s*(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*([{;])").match(
+            structure, attr_end
+        )
+        if not rest or rest.group(1) != "{":
+            continue
+        brace_depth, end = 0, -1
+        for j in range(rest.end() - 1, len(structure)):
+            if structure[j] == "{":
+                brace_depth += 1
+            elif structure[j] == "}":
+                brace_depth -= 1
+                if brace_depth == 0:
+                    end = j
+                    break
+        if end < 0:
+            continue
+        for j in range(m.start(), end + 1):
+            if out[j] != "\n":
+                out[j] = " "
+        pos = end + 1
+    return "".join(out)
+
+
 def count(path):
     total = 0
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in strip_test_modules(path.read_text(encoding="utf-8")).splitlines():
         code = CHAR.sub("''", STRING.sub('""', line)).split("//", 1)[0]
         if any(marker.search(code) for marker in MARKERS):
             total += 1

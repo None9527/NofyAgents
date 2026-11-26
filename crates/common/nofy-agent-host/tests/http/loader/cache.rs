@@ -23,6 +23,12 @@ async fn live_original_process_blocks_eviction_but_not_queries_or_cancellation()
     let (kernel, server, installed) = setup(&state).await;
     let view = plan(&server).await;
     let source = process::sleeping(&installed, 60000);
+    let artifact_digest = serde_json::from_value::<nofy_agent_runtime::artifact::ArtifactBundle>(
+        source["modules"][0]["config"]["bundle"].clone(),
+    )
+    .unwrap()
+    .digest()
+    .unwrap();
     let imported = post(&server, "/api/v1/import", source).await;
     let worker_host = kernel.clone();
     let stop = CancellationToken::new();
@@ -36,7 +42,18 @@ async fn live_original_process_blocks_eviction_but_not_queries_or_cancellation()
     .await;
     let pid = process::process_pid(&state).await;
     assert!(std::fs::metadata(format!("/proc/{pid}")).is_ok());
-    assert_eq!(request(&server,reqwest::Method::POST,"/api/v1/loader/unload/plan",VIEW,json!({"objects":[{"kind":"runtime","id":installed["id"],"revision":installed["revision"]}]})).await.0,503);
+    assert_eq!(
+        request(
+            &server,
+            reqwest::Method::POST,
+            "/api/v1/loader/unload/plan",
+            VIEW,
+            json!({"objects":[{"kind":"artifact","digest":artifact_digest}]})
+        )
+        .await
+        .0,
+        503
+    );
     assert_eq!(
         request(
             &server,

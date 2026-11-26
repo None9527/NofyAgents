@@ -12,7 +12,6 @@ use nofy_agent_runtime::{
     system::*,
     *,
 };
-use nofy_interjection_core::PendingInterjection;
 use serde_json::{Value, json};
 use std::{
     path::Path,

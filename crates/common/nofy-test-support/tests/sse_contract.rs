@@ -85,7 +85,7 @@ async fn axum_frames_match_scripted_data_without_dropping_bytes_or_terminal_mark
         .map(|event| format!("data: {}\n\n", event.data))
         .collect();
     let events = sse::chat_completion_events_exact(text, "contract-model");
-    let response = Sse::new(futures_util::stream::iter(
+    let response = Sse::new(futures::stream::iter(
         events.into_iter().map(Ok::<_, Infallible>),
     ))
     .into_response();

@@ -88,7 +88,6 @@ impl ProjectStore {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
         }
-        std::fs::create_dir_all(path.join("archives"))?;
         Ok(Self {
             root: Arc::new(path.to_path_buf()),
         })
@@ -257,41 +256,6 @@ impl ProjectStore {
             }
         }
         Ok(views)
-    }
-    pub fn archive(&self, source: &Source) -> Result<Value> {
-        let bytes = pack(source)?;
-        let digest = digest(&bytes);
-        let p = self.root.join("archives").join(format!("{digest}.tar.gz"));
-        plain(&p)?;
-        if p.exists() {
-            if crate::digest(&std::fs::read(&p)?) != digest {
-                return Err(Error::new(
-                    "local_io",
-                    "stored source archive digest mismatch",
-                ));
-            }
-        } else {
-            atomic(&p, &bytes)?;
-        }
-        let mut info = archive_info(source, &bytes)?;
-        info["uri"] = json!(format!("nofy://source-archives/{digest}"));
-        info["download_path"] = json!(format!("/api/v1/source-archives/{digest}"));
-        Ok(info)
-    }
-    pub fn archive_path(&self, id: &str) -> Result<PathBuf> {
-        if id.len() != 64
-            || !id
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        {
-            return Err(Error::new("local_input", "invalid archive digest"));
-        }
-        let p = self.root.join("archives").join(format!("{id}.tar.gz"));
-        plain(&p)?;
-        if !p.exists() {
-            return Err(Error::new("not_found", "source archive not found"));
-        }
-        Ok(p)
     }
 }
 

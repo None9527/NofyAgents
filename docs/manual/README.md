@@ -2,13 +2,12 @@
 
 本轮全部缺口的实现与真实模型证据见[缺口验收记录](../verification/kernel-gaps-2026-11-05.md)。通过 MCP 创建 Agent 从[装配指南](assembly.md)开始。
 
-版本：`nofy.kernel/v1`，契约 `0.6`。本阶段实现 Rust CLI、入站 MCP、共用客户端、允许缺项的源码工程、Session 模块化和模块仓库。集中验收结果以[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)和[Session 实现记录](../verification/session-modularization.md)为准；当前发布不包含前端。
+版本：`nofy.kernel/v1`，契约 `0.7`。本阶段实现 Rust CLI、入站 MCP、共用客户端、允许缺项的源码工程、Session 模块化和模块仓库。集中验收结果以[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)和[Session 实现记录](../verification/session-modularization.md)为准；当前发布不包含前端。
 
 | 入口 | 内容 |
 |---|---|
 | [Omni Agent](omni-agent.md) | 默认 `omni@0.1.0` 预设配置、进程内 SDK、`work.*` 编排、上下文压缩与预授权提示词演进 |
 | [Omni 预设说明与提示词](omni-agent-files.md) | `presets/omni/` 目录清单与 `omni_preset` 同源提示词（[omni-agent-prompt.md](omni-agent-prompt.md)） |
-| [Main Agent 可组合仓库](main-agent-repository.md) | `main-agent@0.2.0` 模块组合、`assemble` 声明式装配边界与复现 |
 | [Omni 源码分发](main-agent-distribution.md) | `scripts/package-main-agent.py` 离线白名单打包、清单与完整性校验 |
 | [MCP 装配指南](assembly.md) | 无须框架源码的创建、公开参数、接线、运行与排错 |
 | [交互进程与网络](process-sessions.md) | PTY、终端回执、stdio MCP 和受控代理 |
@@ -58,7 +57,7 @@ cargo build --locked -p nofy-cli -p nofy-agent-host
   --listen 127.0.0.1:7331
 ```
 
-状态路径和访问配置须使用实际绝对路径；内核访问令牌至少 32 个非空白字节。连接已有实例时不重复占用其地址或状态目录。源码模板由显式 `--preset-dir` 登记；`presets/index.json` 当前默认登记 `omni@0.1.0`，同时保留 `coding@0.1.0`、`main-agent@0.1.0` 和 `main-agent@0.2.0`（`presets/main-agent-composable`）供显式选择与版本复现。如需接入统一 12 包模块仓库，也可通过 `--module-dir "nofy=$PWD/modules"` 登记。pi 的参考提交和复现验收仍独立进行，不能把现有预设改名后宣称 pi 已完成。
+状态路径和访问配置须使用实际绝对路径；内核访问令牌至少 32 个非空白字节。连接已有实例时不重复占用其地址或状态目录。源码模板由显式 `--preset-dir` 登记；`presets/index.json` 当前默认登记 `omni@0.1.0`，同时暂留 `coding@0.1.0` 供显式选择与复现。如需接入统一 15 包模块仓库，也可通过 `--module-dir "nofy=$PWD/modules"` 登记。pi 的参考提交和复现验收仍独立进行，不能把现有预设改名后宣称 pi 已完成。
 
 ## 开发路径
 

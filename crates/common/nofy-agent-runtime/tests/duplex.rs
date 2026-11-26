@@ -4,7 +4,6 @@ use nofy_agent_runtime::{
     compile::*, durable::*, mailbox::*, registry::*, supervisor::RunSupervisor,
     tasks::declarative::*, *,
 };
-use nofy_interjection_core::PendingInterjection;
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,

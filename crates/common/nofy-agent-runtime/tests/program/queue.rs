@@ -1,6 +1,5 @@
 use super::*;
-use nofy_agent_runtime::supervisor::jobs::*;
-use nofy_interjection_core::PendingInterjection;
+use nofy_agent_runtime::{PendingInterjection, supervisor::jobs::*};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::Path;

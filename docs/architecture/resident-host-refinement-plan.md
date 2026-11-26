@@ -71,7 +71,6 @@ flowchart LR
 cargo test -p nofy-agent-host
 cargo test -p nofy-agent-runtime --features sqlite,workflow,control-file
 cargo test -p nofy-cli --test development cli_and_official_stdio_client_share_source_publish_run_and_session_state
-python3 scripts/check-agent-runtime-boundaries.py
 python3 scripts/verify-framework-boundaries.py
 ```
 

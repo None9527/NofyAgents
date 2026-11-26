@@ -16,7 +16,7 @@
 - **保留会话状态。** 通过 20 项会话操作管理接纳、续轮、元数据、归档和轮次间策略切换。
 - **交付可移植源码。** 源码包包含声明、模块源码与普通依赖清单；凭据单独注入，解释器、编译器及外部库由使用者安装。
 
-开发协议为 `nofy.kernel/v1`，当前契约修订 `0.6`：104 项操作，其中 102 项通过 MCP 的 `full` 工具集开放。密钥正文注入使用独立的本地私有入口。
+开发协议为 `nofy.kernel/v1`，当前契约修订 `0.7`：104 项操作，其中 102 项通过 MCP 的 `full` 工具集开放。密钥正文注入使用独立的本地私有入口。
 
 ## 核心概念：目标（Goal）与递归自我改进（RSI）
 
@@ -155,7 +155,7 @@ MCP 创建 Agent 与 CLI 一一对应：`nofy_agent_create` → `nofy_agent_modu
 
 ## 预设模板与真实验收
 
-`presets/index.json` 当前默认登记 [omni 预设](presets/omni/文件说明.md)（`omni@0.1.0`，见 [Omni 手册](docs/manual/omni-agent.md)），并保留 [coding 预设](presets/coding/文件说明.md)（`coding@0.1.0`）与 `main-agent@0.1.0`/`0.2.0` 供显式选择。`coding` 预设提供文件读写、可选命令执行和只读代码审查，已有[真实模型修复项目记录](docs/verification/coding-real-model-build.md)：模型读取代码、执行测试、修复问题，6 项测试从失败变为通过。
+`presets/index.json` 当前默认登记 [omni 预设](presets/omni/文件说明.md)（`omni@0.1.0`，见 [Omni 手册](docs/manual/omni-agent.md)），并保留 [coding 预设](presets/coding/文件说明.md)（`coding@0.1.0`）供显式选择。`coding` 预设提供文件读写、可选命令执行和只读代码审查，已有[真实模型修复项目记录](docs/verification/coding-real-model-build.md)：模型读取代码、执行测试、修复问题，6 项测试从失败变为通过。
 
 另一次[真实 sub 验收](docs/verification/mcp-sub-agent.md)通过标准 MCP 从空声明创建 Agent、组合 9 个模块并运行真实模型。模型实际调用计算工具得到 `42`，运行完成，源码包逐文件往返核验通过。
 
@@ -172,7 +172,7 @@ bash scripts/check-release.sh
 - [模块接入](docs/manual/modules.md)：工厂、插槽、依赖和外部实现。
 - [Session](docs/manual/sessions.md)：策略及生命周期。
 - [MCP](docs/manual/mcp.md)：stdio、Streamable HTTP 和 Codex 接入。
-- [源码文件说明](文件说明.md)：25 个框架包及目录职责。
+- [源码文件说明](文件说明.md)：21 个框架包及目录职责。
 
 ## 许可证
 

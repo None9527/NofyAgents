@@ -1,6 +1,6 @@
 {
   "linux_gate": {
-    "nofy-agent-host": 46,
+    "nofy-agent-host": 44,
     "nofy-agent-project": 2,
     "nofy-sqlite-journal": 3
   },
@@ -12,7 +12,7 @@
   },
   "unix_fork": {
     "nofy-agent-executors": 2,
-    "nofy-agent-host": 9,
+    "nofy-agent-host": 7,
     "nofy-agent-project": 6,
     "nofy-agent-runtime": 5,
     "nofy-memory": 5,
@@ -22,17 +22,10 @@
     "nofy-agent-host": 7
   },
   "unix_path_literal": {
-    "nofy-agent-client": 9,
-    "nofy-agent-executors": 1,
-    "nofy-agent-host": 10,
-    "nofy-cli": 1,
-    "nofy-memory": 5
+    "nofy-agent-client": 6,
+    "nofy-agent-host": 2
   },
-  "slash_absolute": {
-    "nofy-agent-executors": 1,
-    "nofy-agent-models": 1,
-    "nofy-agent-project": 2
-  },
+  "slash_absolute": {},
   "inode_identity": {},
   "unix_ipc": {},
   "process_signal": {},

@@ -5,7 +5,6 @@ use nofy_agent_runtime::*;
 use nofy_agent_runtime::{
     coding::CodingHost,
     memory::{InMemoryStore, MemoryContext, MemoryStore},
-    pack::{PackBindings, PackServices, ServiceBinding},
     pipeline::Flow,
 };
 use nofy_tool_runtime::{Tool, ToolCallContext};
@@ -72,8 +71,7 @@ impl Model for EchoModel {
         assert!(
             matches!(&request.messages[0],Message::System{content} if content.contains("Research persona")&&content.contains("Bound research skill"))
         );
-        let services = context.capabilities.get::<PackServices>().unwrap();
-        assert_eq!(*services.get::<String>("index").unwrap(), "approved-index");
+        assert_eq!(*context.capabilities.get::<String>().unwrap(), "tenant-42");
         let text = request
             .messages
             .iter()
@@ -350,6 +348,10 @@ async fn main() -> Result<(), Error> {
         "business".into(),
         Arc::new(StaticPrompt("Answer business queries.".into())),
     );
+    c.prompts.insert(
+        "research".into(),
+        Arc::new(StaticPrompt("Research persona\nBound research skill".into())),
+    );
     c.tool_sources
         .insert("records".into(), Arc::new(Source(tools.clone())));
     c.policies.insert(
@@ -377,21 +379,12 @@ async fn main() -> Result<(), Error> {
         .tool_source("records")
         .settings(settings)
         .compile(&c)?;
-    let manifest=nofy_agent_runtime::pack::parse_pack(&json!({"id":"research","persona":"Research persona","skills":["evidence"],"model_route":"research","tool_policy":"approved","services":[{"name":"index"}]})).unwrap();
-    let mut bindings = PackBindings::default();
-    bindings.skills.insert(
-        "evidence".into(),
-        Arc::new(StaticPrompt("Bound research skill".into())),
-    );
-    bindings.services.insert(
-        ("research".into(), "index".into()),
-        ServiceBinding {
-            revision: "index-v1".into(),
-            value: Arc::new("approved-index".to_string()),
-        },
-    );
-    bindings.context_sources.push("memory".into());
-    let research = nofy_agent_runtime::pack::compile(&manifest, &c, &bindings)?;
+    let research = AgentBuilder::new("research")
+        .model("research")
+        .prompt("research")
+        .context_source("memory")
+        .policy("approved")
+        .compile(&c)?;
     let mut delegation = ToolCatalog::new();
     delegation.insert(research.as_tool("research", "Research a record"))?;
     c.tool_packs.insert("delegation".into(), delegation);
@@ -440,7 +433,7 @@ async fn main() -> Result<(), Error> {
     assert!(b.contains("research evidence") && delegated.contains("research evidence"));
     println!(
         "{}",
-        json!({"status":"passed","agents":["business","research-pack","standalone-coding"],"delegation":true,"parallel":true,"configuration":true,"recipe":true,"workflow":true,"workflow_module":true,"workflow_hook":true,"program":true,"event_program":true,"declarative_system":true,"file_catalog":true})
+        json!({"status":"passed","agents":["business","standalone-coding"],"delegation":true,"parallel":true,"configuration":true,"recipe":true,"workflow":true,"workflow_module":true,"workflow_hook":true,"program":true,"event_program":true,"declarative_system":true,"file_catalog":true})
     );
     Ok(())
 }

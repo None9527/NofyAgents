@@ -1,4 +1,16 @@
-/// Truncation threshold, matching the shell's large-prompt limit.
+//! Shared mid-turn interjection buffer and formatting for agent loops.
+
+use serde::{Deserialize, Serialize};
+
+/// A buffered mid-turn interjection awaiting the next safe drain point.
+/// `Attachment` is host-defined (inline images, asset IDs); core never reads it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PendingInterjection<Attachment> {
+    pub text: String,
+    pub attachments: Vec<Attachment>,
+}
+
+/// Byte-length truncation threshold for interjection prompts.
 pub const LARGE_PROMPT_THRESHOLD: usize = 25_000;
 
 /// Keep a mid-turn message responsive without abandoning the interrupted work.

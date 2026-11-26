@@ -328,9 +328,73 @@ impl HookHandler for ReceiptSpy {
         Ok(HookDecision::Continue)
     }
 }
+struct StubCompactionPolicy {
+    max_bytes: usize,
+    model: Arc<dyn Model>,
+}
+#[async_trait::async_trait]
+impl context_policy::ContextPolicy for StubCompactionPolicy {
+    async fn plan(
+        &self,
+        state: &RunState,
+        _: &RunContext,
+    ) -> Result<Option<serde_json::Value>, Error> {
+        let Some(keep_from) = state.hook_progress.input_start_index else {
+            return Ok(None);
+        };
+        let bytes = serde_json::to_vec(&state.messages)
+            .map_err(|e| Error::Composition(e.to_string()))?
+            .len();
+        if !state.pending_tools.is_empty()
+            || state.in_flight.is_some()
+            || bytes <= self.max_bytes
+            || keep_from <= 1
+            || keep_from >= state.messages.len()
+            || !matches!(state.messages.first(), Some(Message::System { .. }))
+        {
+            return Ok(None);
+        }
+        Ok(Some(json!({ "keep_from": keep_from })))
+    }
+    async fn apply(
+        &self,
+        state: &RunState,
+        plan: &serde_json::Value,
+        ctx: &RunContext,
+    ) -> Result<context_policy::ContextUpdate, Error> {
+        let keep_from = plan["keep_from"]
+            .as_u64()
+            .ok_or_else(|| Error::Composition("missing keep_from".into()))?
+            as usize;
+        let response = self
+            .model
+            .complete(
+                ModelRequest {
+                    messages: state.messages[..keep_from].to_vec(),
+                    tools: vec![],
+                    settings: json!({}),
+                },
+                ctx,
+            )
+            .await?;
+        let mut messages = Vec::with_capacity(2 + (state.messages.len() - keep_from));
+        messages.push(state.messages[0].clone());
+        messages.push(Message::User {
+            content: response.output,
+        });
+        messages.extend_from_slice(&state.messages[keep_from..]);
+        Ok(context_policy::ContextUpdate {
+            messages,
+            retained_from: keep_from,
+            retained_at: 2,
+            input_tokens: response.input_tokens,
+            output_tokens: response.output_tokens,
+            metadata: json!({}),
+        })
+    }
+}
 #[tokio::test]
 async fn real_compaction_refreshes_forgotten_memory_and_capture_excludes_summary() {
-    use nofy_compaction::runtime::{BytesTokenCounter, CompactionPolicy, ContextConfig};
     let (dir, _, service) = service();
     let fact = service
         .remember(remember(
@@ -351,16 +415,10 @@ async fn real_compaction_refreshes_forgotten_memory_and_capture_excludes_summary
         Arc::new(StaticPrompt("stable system".into())),
     );
     components.context_sources.insert("memory".into(), memory);
-    let policy = CompactionPolicy::new(
-        ContextConfig {
-            context_window: 1000,
-            min_compactable: 1,
-            ..Default::default()
-        },
-        Arc::new(SummaryModel(summaries.clone())),
-        Arc::new(BytesTokenCounter),
-    )
-    .unwrap();
+    let policy = StubCompactionPolicy {
+        max_bytes: 4_000,
+        model: Arc::new(SummaryModel(summaries.clone())),
+    };
     let agent = AgentBuilder::new("memory-compact")
         .model("model")
         .prompt("prompt")
@@ -501,32 +559,21 @@ async fn child_scope_is_checked_per_call_and_before_search_limit() {
 
 #[test]
 fn factories_are_pure_strict_and_cannot_expand_installed_grants() {
-    let (_dir, _, service) = service();
-    let resource = Arc::new(
-        InstalledMemory::install(
-            service,
-            "r1",
-            MemoryGrants::project_read_only(),
-            Default::default(),
-        )
-        .unwrap(),
-    );
-    let resources = BTreeMap::from([("project".into(), resource)]);
     let mut registry = ModuleRegistry::default();
     for factory in [
-        MemoryFactory::tools(resources.clone()),
-        MemoryFactory::context(resources.clone()),
-        MemoryFactory::capture(resources),
+        declarative::ConnectedMemoryFactory::tools(),
+        declarative::ConnectedMemoryFactory::context(),
     ] {
         registry.register_factory(Arc::new(factory)).unwrap();
     }
-    assert_eq!(registry.descriptors().len(), 3);
-    let factory = MemoryFactory::tools(BTreeMap::new());
+    assert_eq!(registry.descriptors().len(), 2);
+    let factory = declarative::ConnectedMemoryFactory::tools();
     assert!(
         factory
             .build(&json!({"resource":"uploaded_path"}), &BTreeMap::new())
             .is_err()
     );
+    assert!(factory.build(&json!({}), &BTreeMap::new()).is_err());
     let mut config = MemoryModuleConfig::default();
     config.read.push(MemoryArea::Personal);
     let (_dir2, _, service2) = self::service();

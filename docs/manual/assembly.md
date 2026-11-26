@@ -1,6 +1,6 @@
 # 只通过 MCP 装配 Agent
 
-契约 0.6。外部 Agent 无须读取框架 Rust 源码。先调用 nofy_describe，核对服务端实际能力和版本，再按 nofy_schema 返回的 guide 施工。Schema 是精确机器契约；guide 给出用途、插槽、依赖端口、参数、前提、示例、下一步和恢复办法。工厂存在与环境可用分别判断。
+契约 0.7。外部 Agent 无须读取框架 Rust 源码。先调用 nofy_describe，核对服务端实际能力和版本，再按 nofy_schema 返回的 guide 施工。Schema 是精确机器契约；guide 给出用途、插槽、依赖端口、参数、前提、示例、下一步和恢复办法。工厂存在与环境可用分别判断。
 
 ## 四种查询
 
@@ -70,10 +70,6 @@ run.inspect 默认 view=status，返回 nofy.run-status/v1：原任务身份、�
 
 新增工具不会自动修改 required_policies。coding 预设的 policy.tool_scope 明确列出可调用名称；加入 ask_user、agent_tasks 等工具时，同步配置其允许名单，子 Agent 继续继承根策略。遇到审批暂停，按 run.approvals → run.decide → run.control resume 处理原请求；这不增加目录或网络资源。Human 问题使用 run.recovery(kind=human) 返回的 command 模板和 response_schema，详见[问询与升级](human-and-escalation.md)。
 
-## 主 Agent 源码预设
+## Omni 源码预设与动态装配
 
-`main-agent@0.1.0` 提供已经接线的主 Agent、异步子任务、运行树消息与持久 Human 工作流。初始模型槽刻意为空，按 [预设使用说明](../../presets/main-agent/README.md) 显式配置模型及业务工具；子任务继续继承根策略与共享预算。此项为 P5a 装配切片，不代表原生隔离、完整 RSI 或长期记忆装配已经完成。
-
-## 可复用主 Agent 仓库与动态装配
-
-`main-agent@0.2.0` 位于 `presets/main-agent-composable`，使用 `modules/module-repository.json` 中的版本化组件和嵌入的源码摘要锁。它增加受限的 `assemble`：模型提交真实 Agent/Workflow 声明，由原内核编译执行，只能引用预先绑定的模型与工具。源码注册、原生工厂注册、执行权限三者分离。详见[仓库与能力契约](main-agent-repository.md)和[独立交付包](main-agent-distribution.md)。长期跨调用后台任务、动态 Human 恢复、自动组件发布和 RSI 不在此项验收范围内。
+`omni@0.1.0` 位于 `presets/omni`，为默认声明式主 Agent 预设，基于 `modules/module-repository.json` 中的版本化组件和 `.nofy-module-packages/` 嵌入的源码摘要锁装配。它内置受限的 `assemble`（模型提交真实 Agent/Workflow 声明，由原内核编译执行，只能引用预先绑定的模型与工具）、`tool.sdk_authoring`、`tool.sdk_work`、上下文压缩、持久 Human 工作流及可选工作区/命令隔离能力；子任务继续继承根策略与共享预算。源码注册、原生工厂注册、执行权限三者分离。详见 [Omni Agent 手册](omni-agent.md) 和 [独立交付包](main-agent-distribution.md)。

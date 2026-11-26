@@ -21,7 +21,7 @@ impl ModuleStore {
             catalog
                 .repositories
                 .get_mut(repository)
-                .expect("checked repository")
+                .ok_or_else(|| Error::new("not_found", "module repository not found"))?
                 .revision = increment(revision)?;
             self.write(&catalog)?;
         }

@@ -82,19 +82,22 @@ pub fn worker_entry() -> Option<i32> {
         return None;
     }
     let result = (|| -> std::result::Result<i32, Box<dyn std::error::Error>> {
-        let wire = args.next().ok_or("missing process-tree bootstrap")?;
-        if wire.len() > WIRE_BYTES || args.next().is_some() {
-            return Err("invalid process-tree bootstrap length".into());
+        let wire_arg = args.next().ok_or("missing process-tree bootstrap")?;
+        if args.next().is_some() {
+            return Err("invalid process-tree bootstrap arguments".into());
         }
-        let profile: Bootstrap = serde_json::from_str(wire.to_str().ok_or("non-UTF8 bootstrap")?)?;
+        let profile: Bootstrap = super::super::isolation::read_profile_fd(&wire_arg)?;
         profile.validate()?;
         enter(profile)
     })();
     Some(match result {
         Ok(code) => code,
         Err(error) => {
-            eprintln!("required process-tree bootstrap failed: {error}");
-            125
+            eprintln!(
+                "{}: process-tree bootstrap failed: {error}",
+                nofy_isolation::RUNNER_FAILURE_MARKER
+            );
+            nofy_isolation::RUNNER_FAILURE_EXIT_CODE
         }
     })
 }
@@ -128,7 +131,7 @@ fn code(status: i32) -> i32 {
     } else if libc::WIFSIGNALED(status) {
         128 + libc::WTERMSIG(status)
     } else {
-        125
+        nofy_isolation::RUNNER_FAILURE_EXIT_CODE
     }
 }
 fn wait(pid: libc::pid_t) -> std::io::Result<i32> {
@@ -238,8 +241,11 @@ fn enter(profile: Bootstrap) -> std::result::Result<i32, Box<dyn std::error::Err
         let code = match result {
             Ok(code) => code,
             Err(error) => {
-                eprintln!("process-tree init failed: {error}");
-                125
+                eprintln!(
+                    "{}: process-tree init failed: {error}",
+                    nofy_isolation::RUNNER_FAILURE_MARKER
+                );
+                nofy_isolation::RUNNER_FAILURE_EXIT_CODE
             }
         };
         // SAFETY: Immediately terminates the forked PID 1 child without running
@@ -327,11 +333,14 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
         if let Some(session) = &profile.session
             && let Err(error) = session.apply()
         {
-            eprintln!("process session setup failed: {error}");
+            eprintln!(
+                "{}: process session setup failed: {error}",
+                nofy_isolation::RUNNER_FAILURE_MARKER
+            );
             // SAFETY: Aborts the forked child immediately on session setup
             // failure without unwinding into PID 1's reap/kill path.
             unsafe {
-                libc::_exit(125);
+                libc::_exit(nofy_isolation::RUNNER_FAILURE_EXIT_CODE);
             }
         }
         if let Some(sandbox) = &profile.sandbox {
@@ -346,11 +355,14 @@ fn init_main(profile: &Bootstrap, lifeline: i32) -> std::io::Result<i32> {
                 sandbox.apply()
             };
             if let Err(error) = confinement {
-                eprintln!("required tree confinement failed: {error}");
+                eprintln!(
+                    "{}: required tree confinement failed: {error}",
+                    nofy_isolation::RUNNER_FAILURE_MARKER
+                );
                 // SAFETY: Aborts the forked child immediately on confinement
                 // failure so unconfined business code can never execute.
                 unsafe {
-                    libc::_exit(125);
+                    libc::_exit(nofy_isolation::RUNNER_FAILURE_EXIT_CODE);
                 }
             }
         }

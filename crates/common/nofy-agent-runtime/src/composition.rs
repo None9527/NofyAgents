@@ -116,7 +116,7 @@ async fn child_hook(
         format!("child:{}:control:{epoch}:{name}", child.run_id)
     };
     #[cfg(feature = "workflow")]
-    let parent = {
+    let parent_with_replay = {
         let mut source = parent.clone();
         source
             .capabilities
@@ -125,6 +125,8 @@ async fn child_hook(
             ));
         source
     };
+    #[cfg(feature = "workflow")]
+    let parent = &parent_with_replay;
     let result = bus
         .0
         .emit(
@@ -132,7 +134,7 @@ async fn child_hook(
             name,
             &operation,
             payload,
-            &parent,
+            parent,
         )
         .await
         .map_err(|e| nofy_tool_runtime::ToolError::custom("child_hook", e.to_string()))?;

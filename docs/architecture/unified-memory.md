@@ -24,7 +24,7 @@ Repository identity resolves to a stable `ProjectId`, so worktrees of the same r
 
 Canonical writes use staged atomic replacement and a persisted generation fence. A topic revision requires the caller's expected hash. A mismatch returns `Conflict`; it never performs last-writer-wins replacement. Index mutation follows the canonical commit and is repairable from the manifest and source objects.
 
-Only migration staging and the atomic writer may modify canonical files. `scripts/check-unified-memory.sh` rejects legacy runtime backends/writers and direct filesystem writes to memory roots in production Shell, tools, agent, and Pager code.
+Only migration staging and the atomic writer may modify canonical files. The legacy product-era shell gate (`check-unified-memory.sh`) was retired along with the old product host; current crate and SQLite boundaries are enforced by `nofy-memory`, `scripts/verify-framework-boundaries.py`, and `scripts/verify-sqlite-journal.py`.
 
 ## Capture and consolidation
 

@@ -1,8 +1,8 @@
 use super::*;
+use crate::interjection::PendingInterjection;
 use crate::{
     Model, ModelRequest, ModelResponse, governance::*, mailbox::*, registry::*, system::*,
 };
-use nofy_interjection_core::PendingInterjection;
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
 #[path = "support.rs"]

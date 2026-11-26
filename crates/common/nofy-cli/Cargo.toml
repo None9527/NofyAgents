@@ -33,7 +33,7 @@ libc = { workspace = true }
 async-trait = { workspace = true }
 futures = { workspace = true }
 tokio-util = { workspace = true }
-nofy-agent-host = { path = "../nofy-agent-host" }
+nofy-agent-host = { path = "../nofy-agent-host", features = ["feature-authoring"] }
 nofy-agent-runtime = { path = "../nofy-agent-runtime", features = ["sqlite","workflow","control-file"] }
 nofy-test-support = { workspace = true }
 axum = { workspace = true }

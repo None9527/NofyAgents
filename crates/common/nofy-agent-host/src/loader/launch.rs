@@ -3,7 +3,6 @@ use nofy_agent_executors::resources::InstalledProgram;
 use std::collections::BTreeMap;
 #[derive(Clone)]
 pub(super) enum RuntimeSource {
-    Legacy(Box<runtimes::InstalledRuntime>),
     Locked(Arc<images::ImageManifest>),
     Local(Arc<local::Config>),
 }
@@ -22,17 +21,6 @@ fn utf8(path: &Path) -> Result<String> {
 impl RuntimeSource {
     pub fn prepare(&self, loader: &Loader) -> Result<Launch> {
         match self {
-            Self::Legacy(runtime) => {
-                let mut read_only = runtime.read_roots.clone();
-                read_only.push(loader.runtimes.executable(runtime));
-                Ok(Launch {
-                    program: runtime.program.clone(),
-                    args: runtime.manifest.prefix_args.clone(),
-                    env: Default::default(),
-                    read_only,
-                    local_paths: vec![],
-                })
-            }
             Self::Locked(manifest) => {
                 let root = loader.images.materialize(
                     manifest,

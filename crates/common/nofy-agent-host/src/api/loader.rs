@@ -1,8 +1,5 @@
 use super::*;
-use crate::loader::{
-    artifacts::ArtifactInfo,
-    runtimes::{RuntimeInstall, RuntimeManifest},
-};
+use crate::loader::artifacts::ArtifactInfo;
 use nofy_agent_runtime::artifact::ArtifactBundle;
 #[derive(Clone)]
 pub(super) struct ManagementAdmission(pub std::sync::Arc<tokio::sync::OwnedSemaphorePermit>);
@@ -57,7 +54,6 @@ pub(super) async fn resource_backpressure(
             | "/api/v1/runtime-images"
             | "/api/v1/runtime-images/{digest}"
             | "/api/v1/releases/{release}/deployment"
-            | "/api/v1/runtimes"
             | "/api/v1/runtimes/probe"
             | "/api/v1/loader/cache"
             | "/api/v1/loader/references"
@@ -83,7 +79,6 @@ pub(super) fn router() -> Router<KernelHost> {
     Router::new()
         .route("/api/v1/artifacts", post(put_artifact).get(artifacts))
         .route("/api/v1/artifacts/{digest}", get(artifact))
-        .route("/api/v1/runtimes", post(install_runtime).get(runtimes))
         .route("/api/v1/runtimes/probe", post(probe))
         .route("/api/v1/runtime-images", post(put_image).get(images))
         .route("/api/v1/runtime-images/{digest}", get(image))
@@ -143,25 +138,35 @@ async fn deployment(
     State(host): State<KernelHost>,
     headers: HeaderMap,
     Path(release): Path<String>,
-    Query(options): Query<ExportOptions>,
+    Query(_options): Query<ExportOptions>,
 ) -> Result<Json<crate::loader::deployment::SourcedDeployment>> {
     host.auth.require(&headers, Scope::Read)?;
     let bundle = host.control.export(&release).await?;
-    match options.mode {
-        ExportMode::Sources => Ok(Json(host.loader.export_sourced_deployment(bundle).await?)),
-    }
+    Ok(Json(host.loader.export_sourced_deployment(bundle).await?))
 }
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-enum ExportMode {
-    #[default]
-    Sources,
+fn deserialize_sources_mode<'de, D>(deserializer: D) -> std::result::Result<(), D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = String::deserialize(deserializer)?;
+    if value == "sources" {
+        Ok(())
+    } else {
+        Err(serde::de::Error::invalid_value(
+            serde::de::Unexpected::Str(&value),
+            &"sources",
+        ))
+    }
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ExportOptions {
-    #[serde(default)]
-    mode: ExportMode,
+    #[serde(
+        default,
+        rename = "mode",
+        deserialize_with = "deserialize_sources_mode"
+    )]
+    _mode: (),
 }
 async fn put_artifact(
     State(host): State<KernelHost>,
@@ -211,34 +216,6 @@ async fn artifact(
         tokio::task::spawn_blocking(move || store.get(&digest))
             .await
             .map_err(|e| HostError::Unavailable(e.to_string()))??,
-    ))
-}
-async fn runtimes(
-    State(host): State<KernelHost>,
-    headers: HeaderMap,
-) -> Result<Json<Vec<RuntimeManifest>>> {
-    host.auth.require(&headers, Scope::Read)?;
-    let store = host.loader.runtimes.clone();
-    Ok(Json(
-        tokio::task::spawn_blocking(move || store.list())
-            .await
-            .map_err(|e| HostError::Unavailable(e.to_string()))??,
-    ))
-}
-async fn install_runtime(
-    State(host): State<KernelHost>,
-    headers: HeaderMap,
-    Json(request): Json<RuntimeInstall>,
-) -> Result<Json<RuntimeManifest>> {
-    host.auth.require(&headers, Scope::Resources)?;
-    let loader = host.loader.clone();
-    Ok(Json(
-        tokio::task::spawn_blocking(move || {
-            loader.probe()?;
-            loader.runtimes.install(request)
-        })
-        .await
-        .map_err(|e| HostError::Unavailable(e.to_string()))??,
     ))
 }
 async fn probe(State(host): State<KernelHost>, headers: HeaderMap) -> Result<Json<Value>> {

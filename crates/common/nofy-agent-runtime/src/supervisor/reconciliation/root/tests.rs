@@ -134,7 +134,7 @@ async fn root_evidence_survives_acceptance_and_final_ack_loss_for_agent_and_tool
                     system: "root-system".into(),
                     release: system.bundle.digest.clone(),
                     program: "main".into(),
-                    input: agent.then(|| nofy_interjection_core::PendingInterjection {
+                    input: agent.then(|| crate::interjection::PendingInterjection {
                         text: "act".into(),
                         attachments: vec![],
                     }),
@@ -226,7 +226,7 @@ async fn root_evidence_survives_acceptance_and_final_ack_loss_for_agent_and_tool
                         system: "root-system".into(),
                         release: system.bundle.digest.clone(),
                         program: "main".into(),
-                        input: Some(nofy_interjection_core::PendingInterjection {
+                        input: Some(crate::interjection::PendingInterjection {
                             text: "next turn".into(),
                             attachments: vec![],
                         }),

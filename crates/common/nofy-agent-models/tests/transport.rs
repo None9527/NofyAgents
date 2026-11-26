@@ -606,28 +606,7 @@ async fn operation_limits_stop_programs_before_network_and_do_not_poison_followi
 }
 
 #[tokio::test]
-async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker_and_stateless_fallback() {
-    use nofy_agent_models::{
-        declarative::Protocol,
-        execution::{Evaluation, Executor, Trusted},
-    };
-    use tokio_util::sync::CancellationToken;
-
-    struct StatelessFallback(Trusted);
-    #[async_trait::async_trait]
-    impl Executor for StatelessFallback {
-        async fn evaluate(
-            &self,
-            program: Arc<Protocol>,
-            input: Value,
-            spent: u64,
-            cap: usize,
-            cancel: CancellationToken,
-        ) -> Result<Evaluation, Error> {
-            self.0.evaluate(program, input, spent, cap, cancel).await
-        }
-    }
-
+async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker() {
     const FRAME_COUNT: usize = 3000;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}/v1/", listener.local_addr().unwrap());
@@ -688,7 +667,7 @@ async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker_and_stateless
     let expected_output: String = (0..FRAME_COUNT).map(|i| format!("t{i:04}-")).collect();
     let prompt = "context ".repeat(4096);
 
-    // 1. Stateful O(N) streaming path with 3,000 SSE frames + ~32 KiB initial prompt.
+    // Stateful O(N) streaming path with 3,000 SSE frames + ~32 KiB initial prompt.
     let stateful_proto = ProtocolFactory::trusted()
         .build(&proto_cfg, &BTreeMap::new())
         .unwrap();
@@ -715,7 +694,7 @@ async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker_and_stateless
     };
     let started = std::time::Instant::now();
     let mut stream = stateful_model
-        .stream(req.clone(), &RunContext::default())
+        .stream(req, &RunContext::default())
         .await
         .unwrap();
     let mut streamed_text = String::new();
@@ -746,46 +725,6 @@ async fn long_sse_stream_keeps_exact_fidelity_with_stateful_worker_and_stateless
     assert!(
         elapsed < Duration::from_secs(15),
         "3,000-frame stateful SSE stream took too long: {elapsed:?}"
-    );
-
-    // 2. Verify custom Executor without begin_stream transparently falls back
-    // and produces identical output on a representative stream.
-    let fallback_proto = ProtocolFactory::new(Arc::new(StatelessFallback(Trusted)))
-        .build(&proto_cfg, &BTreeMap::new())
-        .unwrap();
-    let fallback_conn = ConnectionFactory::new(authority())
-        .unwrap()
-        .build(&conn_cfg, &BTreeMap::new())
-        .unwrap();
-    let ModuleInstance::Model(fallback_model) = ProgrammedModelFactory::default()
-        .build(
-            &json!({"model": "long-model"}),
-            &BTreeMap::from([
-                ("protocol".into(), fallback_proto),
-                ("connection".into(), fallback_conn),
-            ]),
-        )
-        .unwrap()
-    else {
-        panic!("model");
-    };
-    let fallback_response = fallback_model
-        .complete(
-            ModelRequest {
-                messages: vec![Message::User {
-                    content: "short".into(),
-                }],
-                tools: vec![],
-                settings: json!({"stream": true}),
-            },
-            &RunContext::default(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(fallback_response.output, stateful_response.output);
-    assert_eq!(
-        fallback_response.output_tokens,
-        stateful_response.output_tokens
     );
     task.abort();
 }

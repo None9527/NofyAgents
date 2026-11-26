@@ -147,12 +147,6 @@ async fn run(op: &str, m: &clap::ArgMatches, toolset: Toolset) -> Result<i32> {
             return Ok(output);
         }
         if op == "project.pack" && prepared.value.get("source").is_some() {
-            if m.get_one::<String>("output").is_none() {
-                return Err(Error::new(
-                    "local_input",
-                    "local project pack requires --output",
-                ));
-            }
             return output::offline_archive(op, &prepared);
         }
         if op == "credential.put" {

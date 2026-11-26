@@ -130,19 +130,6 @@ fn verify_private_dir_metadata(metadata: &std::fs::Metadata) -> io::Result<()> {
     Ok(())
 }
 
-/// Fail unless `path`, a file, is closed to everyone but its owner.
-pub fn verify_private_file(path: &Path) -> io::Result<()> {
-    #[cfg(unix)]
-    {
-        let metadata = std::fs::symlink_metadata(path)?;
-        verify_private_file_metadata(&metadata)
-    }
-    #[cfg(windows)]
-    {
-        windows::verify_private(path, false).map(|_handle| ())
-    }
-}
-
 /// Fail unless an already-opened regular file handle is closed to everyone but
 /// its owner. On Unix this checks the open descriptor directly via `fstat`,
 /// avoiding a path TOCTOU window after `open_no_follow`.
@@ -214,15 +201,16 @@ mod tests {
         let _guard = ensure_private_dir(&path).unwrap();
         let file = path.join("credentials.json");
         std::fs::write(&file, b"{}").unwrap();
+        let open = std::fs::File::open(&file).unwrap();
         // Unix makes a new file 0644 by default, so only Windows inherits privacy.
         #[cfg(windows)]
-        verify_private_file(&file).unwrap();
+        verify_private_open_file(&open, &file).unwrap();
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            assert!(verify_private_file(&file).is_err());
+            assert!(verify_private_open_file(&open, &file).is_err());
             std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
-            verify_private_file(&file).unwrap();
+            verify_private_open_file(&open, &file).unwrap();
         }
     }
 
@@ -265,19 +253,6 @@ mod tests {
             verify_private_dir(&dir_link).unwrap_err().kind(),
             io::ErrorKind::PermissionDenied
         );
-
-        let real_file = real_dir.join("secret");
-        std::fs::write(&real_file, b"ok").unwrap();
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&real_file, std::fs::Permissions::from_mode(0o600)).unwrap();
-        }
-        let file_link = parent.path().join("file-link");
-        std::os::unix::fs::symlink(&real_file, &file_link).unwrap();
-        assert_eq!(
-            verify_private_file(&file_link).unwrap_err().kind(),
-            io::ErrorKind::PermissionDenied
-        );
     }
 
     #[cfg(unix)]
@@ -297,6 +272,16 @@ mod tests {
         );
         std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o600)).unwrap();
         verify_private_open_file(&open, &file_path).unwrap();
+        // Opening a private directory as a file descriptor must be refused.
+        let dir_path = parent.path().join("private-dir");
+        ensure_private_dir(&dir_path).unwrap();
+        let open_dir = std::fs::File::open(&dir_path).unwrap();
+        assert_eq!(
+            verify_private_open_file(&open_dir, &dir_path)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::PermissionDenied
+        );
     }
 
     #[cfg(unix)]

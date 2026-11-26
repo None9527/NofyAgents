@@ -303,7 +303,7 @@ async fn execute(
         let mut decoder = Decoder::new(program.limits.max_frame_bytes);
         let mut json_body = Vec::new();
         let mut finished = false;
-        let mut streaming_state_in_worker: Option<bool> = None;
+        let mut stream_started = false;
         while let Some(chunk) = tokio::time::timeout(
             Duration::from_millis(connection.config.idle_timeout_ms),
             bytes.next(),
@@ -335,27 +335,17 @@ async fn execute(
                         if let Some(frame) = decoder.byte(byte)? {
                             frames += 1;
                             if frames > program.limits.max_frames {
-                                if streaming_state_in_worker == Some(true) {
+                                if stream_started {
                                     session.abort_stream().await;
                                 }
                                 return Err(failure("frame_count"));
                             }
-                            if streaming_state_in_worker.is_none() {
+                            if !stream_started {
                                 let initial_state = std::mem::take(&mut exchange.state);
-                                let supported = session.begin_stream(initial_state.clone()).await?;
-                                if !supported {
-                                    exchange.state = initial_state;
-                                }
-                                streaming_state_in_worker = Some(supported);
+                                session.begin_stream(initial_state).await?;
+                                stream_started = true;
                             }
-                            if streaming_state_in_worker == Some(true) {
-                                finished = reduce_stream_frame(session, program, frame, tx).await?;
-                            } else {
-                                let reduction =
-                                    reduce(session, program, exchange.state, frame, tx).await?;
-                                exchange.state = reduction.state;
-                                finished = reduction.finished;
-                            }
+                            finished = reduce_stream_frame(session, program, frame, tx).await?;
                             if finished {
                                 break;
                             }
@@ -381,18 +371,19 @@ async fn execute(
             finished = reduction.finished;
         }
         if !finished {
-            if streaming_state_in_worker == Some(true) {
+            if stream_started {
                 session.abort_stream().await;
             }
             return Err(failure("truncated_stream"));
         }
         drop(bytes);
-        let value = if streaming_state_in_worker == Some(true) {
-            session.finish_stream().await?
-        } else {
-            session
-                .step(json!({"phase":"finish","state":exchange.state}))
-                .await?
+        let value = match exchange.mode {
+            Mode::Sse => session.finish_stream().await?,
+            Mode::Json => {
+                session
+                    .step(json!({"phase":"finish","state":exchange.state}))
+                    .await?
+            }
         };
         let result: Finished =
             serde_json::from_value(value).map_err(|_| failure("finish_contract"))?;

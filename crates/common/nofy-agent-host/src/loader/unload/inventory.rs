@@ -9,7 +9,6 @@ impl ObjectStore {
             PartKind::ArtifactTree => ("artifacts/trees", part.digest.clone()),
             PartKind::ImageObject => ("images/objects", format!("{}.json", part.digest)),
             PartKind::ImageTree => ("images/trees", part.digest.clone()),
-            PartKind::RuntimeBinary => ("runtimes/bin", part.digest.clone()),
         };
         let base = self.loader_root.join(directory);
         let metadata = std::fs::symlink_metadata(&base).map_err(storage::unavailable)?;
@@ -57,10 +56,9 @@ impl ObjectStore {
     }
     pub(super) fn inventory(
         &self,
-        loader: &Loader,
         objects: &[ObjectKey],
-        lease: &MaintenanceLease,
-    ) -> Result<(Vec<ObjectPart>, Vec<RuntimeRemoval>)> {
+        _: &MaintenanceLease,
+    ) -> Result<Vec<ObjectPart>> {
         let mut selected = BTreeSet::new();
         for object in objects {
             let (required, optional, digest) = match object {
@@ -68,7 +66,6 @@ impl ObjectStore {
                     (PartKind::ArtifactObject, PartKind::ArtifactTree, digest)
                 }
                 ObjectKey::Image { digest } => (PartKind::ImageObject, PartKind::ImageTree, digest),
-                ObjectKey::Runtime { .. } => continue,
             };
             let empty = ObjectPart {
                 kind: required,
@@ -91,10 +88,6 @@ impl ObjectStore {
                 selected.insert((optional, digest.clone()));
             }
         }
-        let (bindings, binaries) = loader.runtimes.removal_plan(objects, lease)?;
-        for digest in binaries {
-            selected.insert((PartKind::RuntimeBinary, digest));
-        }
         let mut parts = Vec::new();
         let mut bytes = 0u64;
         for (kind, digest) in selected {
@@ -105,6 +98,6 @@ impl ObjectStore {
             }
             parts.push(part);
         }
-        Ok((parts, bindings))
+        Ok(parts)
     }
 }

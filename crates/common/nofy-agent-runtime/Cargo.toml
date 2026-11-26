@@ -11,7 +11,6 @@ control-file = ["dep:fs2"]
 # Selects the declarative DAG modules; no separate script engine dependency.
 workflow = []
 sqlite = ["dep:rusqlite", "dep:nofy-sqlite-journal", "dep:regex"]
-pack = ["dep:nofy-packcore"]
 
 [dependencies]
 sha2 = { workspace = true }
@@ -20,7 +19,6 @@ fs2 = { workspace = true, optional = true }
 rusqlite = { version = "0.37", features = ["bundled", "backup", "hooks"], optional = true }
 regex = { workspace = true, optional = true }
 nofy-sqlite-journal = { path = "../nofy-sqlite-journal", optional = true }
-nofy-packcore = { workspace = true, optional = true }
 jsonschema = { workspace = true }
 async-trait = { workspace = true }
 futures = { workspace = true }
@@ -32,7 +30,6 @@ tokio-util = { workspace = true }
 nofy-tool-runtime = { path = "../nofy-tool-runtime" }
 nofy-tool-types = { path = "../nofy-tool-types" }
 nofy-tool-protocol = { path = "../nofy-tool-protocol" }
-nofy-interjection-core = { path = "../nofy-interjection-core" }
 
 [lints]
 workspace = true

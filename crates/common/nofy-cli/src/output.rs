@@ -90,7 +90,7 @@ fn persist_temp_file(
     if let Err(io_err) = persisted {
         let detail = if !replace && io_err.kind() == std::io::ErrorKind::AlreadyExists {
             format!(
-                "output file `{}` already exists (pass --replace to overwrite)",
+                "output file `{}` already exists (pass --replace-output to overwrite)",
                 path.display()
             )
         } else {
@@ -502,7 +502,7 @@ mod tests {
         })
         .unwrap_err();
         assert_eq!(err.code, "local_io");
-        assert!(err.message.contains("--replace"), "{}", err.message);
+        assert!(err.message.contains("--replace-output"), "{}", err.message);
         assert_eq!(std::fs::read(&target).unwrap(), b"first");
         assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
 
@@ -531,15 +531,6 @@ mod tests {
         let missing_parent = dir.path().join("no-such-dir").join("out.json");
         let parent_err = save(&missing_parent, false, |_| Ok(())).unwrap_err();
         assert_eq!(parent_err.code, "local_io");
-    }
-}
-
-#[cfg(test)]
-mod exit_tests {
-    use super::*;
-
-    fn failed(code: &str) -> Envelope {
-        Envelope::failed("x", Error::new(code, "m"))
     }
 
     #[test]

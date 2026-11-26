@@ -12,6 +12,6 @@ Responses 的 web_search_call、引用和其他输出项随 opaque history、pro
 
 `resilience` 源码包将已有 stage.length 和 stage.repeat 接到 runtime.recipe；导出 recipe 挂到 Agent 的 recipe 插槽。使用 stage.length 处理长度结束时，模型协议 length_policy 应配置为 complete_partial，使原运行收到 length 结束原因并由续写阶段处理。压缩另用 context-compaction 包及其 journal/policy 两个导出。
 
-`context-compaction@0.2.0` 增加显式手动指令。以 Session 新轮输入 `/compact` 或 `/compact 说明`，会在当前轮次前汇总全部旧历史；保留当前输入、原始出处和工具配对，汇总完成后不在该轮重复手动压缩。manual_prefix 可配置，空字符串关闭。自动模式仍按压力阈值工作；占位标记与 metadata 区分自动策略和 manual_full_replace。
+`context-compaction@0.2.2` 增加显式手动指令。以 Session 新轮输入 `/compact` 或 `/compact 说明`，会在当前轮次前汇总全部旧历史；保留当前输入、原始出处和工具配对，汇总完成后不在该轮重复手动压缩。manual_prefix 可配置，空字符串关闭。自动模式仍按压力阈值工作；占位标记与 metadata 区分自动策略和 manual_full_replace。
 
 `model.context_fallback` 是可选溢出恢复包装：依赖原 model，配置 keep_turns 与明确的 provider codes。遇到配置的上下文超限代码或 HTTP 413、且尚未收到任何 chunk 时，保留全部 system 消息及最近完整用户轮次，加入“旧视图已省略”的标记，重试一次。完整检查点历史保留，元数据记录 removed_messages；它是尾部保留策略，不伪造摘要。单个当前轮次本身过大时仍可能失败。请求 bound 预留两次模型上界，hosted 请求禁自动重试。优先使用压力压缩，溢出包装用于已确认超限后的最后一道恢复。

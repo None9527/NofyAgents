@@ -3,7 +3,6 @@ use nofy_agent_runtime::{
     compile::*, durable::*, events::RunEvent, hooks::*, mailbox::*, registry::*,
     supervisor::RunSupervisor, *,
 };
-use nofy_interjection_core::PendingInterjection;
 use nofy_tool_runtime::{Tool, ToolCallContext};
 use nofy_tool_types::ToolDescription;
 use serde_json::{Value, json};

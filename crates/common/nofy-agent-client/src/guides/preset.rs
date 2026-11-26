@@ -97,7 +97,7 @@ pub(crate) fn preset_guide(id: &str, source: &Source) -> Result<Value> {
             "connection, model and workspace are required. An environment must be provided for process tools.",
             "Adding a ToolPack does not change required_policies. Inspect the preset policy.tool_scope allowed names and explicitly configure new names; a child inherits the root policy floor.",
             "When paused for approval, read run.approvals, preserve its exact request in run.decide, then resume the original root using run.control. This does not grant additional filesystem or network resources.",
-            "Source preset names identify behavior packages; a baseline coding preset is not proof of full pi/Codex/dsh/grok replication."
+            "Source preset names identify behavior packages; a baseline coding preset is not proof of complete parity with external coding agents."
         ]);
     }
     Ok(

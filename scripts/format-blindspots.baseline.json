@@ -3,7 +3,6 @@
   "crates/common/nofy-agent-client/src/operations.rs": 3,
   "crates/common/nofy-agent-executors/src/mcp/transport.rs": 1,
   "crates/common/nofy-agent-host/src/loader/evaluation.rs": 1,
-  "crates/common/nofy-agent-host/src/loader/factories.rs": 1,
   "crates/common/nofy-agent-host/src/loader/process_sessions/network.rs": 5,
   "crates/common/nofy-agent-host/src/loader/sources/fetch.rs": 1,
   "crates/common/nofy-agent-models/src/driver.rs": 2,

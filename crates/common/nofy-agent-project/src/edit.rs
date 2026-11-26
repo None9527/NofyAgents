@@ -474,7 +474,7 @@ pub fn edit(
                     } else {
                         system
                             .as_object_mut()
-                            .expect("system object")
+                            .ok_or_else(|| Error::new("local_input", "system must be an object"))?
                             .remove("entry");
                     }
                 }

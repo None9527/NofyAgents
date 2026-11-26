@@ -303,7 +303,11 @@ impl Manager {
                 } else {
                     use std::os::unix::process::ExitStatusExt;
                     Ok(process_tree::Output {
-                        status: std::process::ExitStatus::from_raw(r.exit_code.unwrap_or(125) << 8),
+                        status: std::process::ExitStatus::from_raw(
+                            r.exit_code
+                                .unwrap_or(nofy_isolation::RUNNER_FAILURE_EXIT_CODE)
+                                << 8,
+                        ),
                         stdout: r.stdout.data.clone(),
                         stderr: r.stderr.data.clone(),
                     })
@@ -423,9 +427,12 @@ async fn run(
     let result = async {
         manager.persist_async(&live).await?;
         let mut command = tokio::process::Command::new(&launch.helper);
+        let bootstrap_arg =
+            super::super::isolation::attach_profile_fd(command.as_std_mut(), wire.as_bytes())
+                .map_err(unavailable)?;
         command
             .arg(super::super::process_tree::bootstrap::ARG)
-            .arg(wire)
+            .arg(bootstrap_arg)
             .env_clear()
             .current_dir("/")
             .kill_on_drop(true);

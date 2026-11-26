@@ -16,13 +16,11 @@ use crate::consolidation::{
 };
 use crate::index::{UnifiedMemoryIndex, UnifiedSearchContext};
 use crate::layout::{ScopeLayout, UnifiedMemoryLayout};
-use crate::migration_backup::{KeyringMigrationKeyStore, MigrationKeyStore};
 use crate::model::{
     ContentHash, MemoryScope, Observation, ObservationId, ObservationKind, ObservationStatus,
     OperationId, ProjectId, ProjectValidity, Provenance,
 };
 use crate::observation_store::ObservationStore;
-use crate::retention::destroy_migration_backup;
 use crate::state::UnifiedState;
 
 mod durable;
@@ -39,7 +37,6 @@ pub struct NofyMemoryServiceConfig {
     pub search: MemorySearchConfig,
     pub index: MemoryIndexConfig,
     pub embedding_dimensions: usize,
-    pub migration_key_store: Arc<dyn MigrationKeyStore>,
 }
 
 impl NofyMemoryServiceConfig {
@@ -56,7 +53,6 @@ impl NofyMemoryServiceConfig {
             },
             index: MemoryIndexConfig::default(),
             embedding_dimensions: 4,
-            migration_key_store: Arc::new(KeyringMigrationKeyStore),
         }
     }
 }
@@ -805,7 +801,7 @@ impl MemoryService for NofyMemoryService {
         crate::atomic_file::undo_test_exit("forget_intent");
         // A confirmed forget is irreversible once its durable intent exists.
         // Drop this service's preimages, including those shared by query views,
-        // even if subsequent backup or canonical cleanup needs recovery.
+        // even if subsequent canonical cleanup needs recovery.
         self.undo
             .lock()
             .map_err(|_| incomplete_forget_error("memory undo lock poisoned"))?
@@ -813,8 +809,6 @@ impl MemoryService for NofyMemoryService {
                 record.entry.location() != (&topic.area, topic.relative_path.as_path())
             });
         self.revoke_undos(&request.target.id, &topic.area)
-            .map_err(incomplete_forget_error)?;
-        destroy_migration_backup(&self.config.root, self.config.migration_key_store.as_ref())
             .map_err(incomplete_forget_error)?;
         self.access(&topic.area)?
             .delete_topic(

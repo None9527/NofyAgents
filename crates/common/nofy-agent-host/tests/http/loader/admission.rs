@@ -80,24 +80,30 @@ async fn maintenance_excludes_resource_catalog_and_runtime_commits_without_hidin
 }
 
 #[tokio::test]
-async fn cached_compilation_cannot_admit_a_missing_runtime_and_exact_readmission_restores_execution()
- {
+async fn cached_compilation_cannot_admit_a_missing_image_and_exact_readmission_restores_execution()
+{
+    let image = tokio::task::spawn_blocking(sources::image).await.unwrap();
+    let digest = image.manifest.digest().unwrap();
     let dir = tempfile::tempdir().unwrap();
-    let (kernel, server, installed) = setup(dir.path()).await;
+    let (kernel, server, _) = setup(dir.path()).await;
+    post(&server, "/api/v1/runtime-images", json!(&image)).await;
+    let bundle = json!({"schema_version":1,"files":{"main.sh":"IFS= read -r line || :\nn=${line#'{\"n\":'}\nn=${n%'}'}\nprintf '{\"result\":%s,\"pid\":%s}' \"$((n*2))\" \"$$\"\n"}});
+    let mut source = document(&Value::Null, json!({"bundle":bundle}));
+    source["modules"][1]["factory"] = json!("resource.process_locked");
+    source["modules"][1]["config"] = json!({"manifest":image.manifest});
+    source["modules"][2]["config"]["entrypoint"] = json!("main.sh");
     let compiled = kernel
         .control()
-        .prepare(
-            serde_json::from_value(document(&installed, json!({"bundle":package(2)}))).unwrap(),
-        )
+        .prepare(serde_json::from_value(source).unwrap())
         .unwrap();
     let program = compiled.program("compute").unwrap();
     let submission = ProgramSubmission::for_program(program, "stale", "stale", None).unwrap();
-    let binary = dir
+    let object = dir
         .path()
-        .join("loader/runtimes/bin")
-        .join(installed["executable_digest"].as_str().unwrap());
-    let backup = dir.path().join("runtime-backup");
-    std::fs::rename(&binary, &backup).unwrap();
+        .join("loader/images/objects")
+        .join(format!("{digest}.json"));
+    let backup = dir.path().join("image-backup");
+    std::fs::rename(&object, &backup).unwrap();
     let supervisor = RunSupervisor::new(kernel.store().clone());
     assert!(supervisor.submit_program(submission.clone()).await.is_err());
     assert!(
@@ -116,7 +122,7 @@ async fn cached_compilation_cannot_admit_a_missing_runtime_and_exact_readmission
             .is_err()
     );
     assert!(kernel.control().inspect().await.unwrap().is_none());
-    std::fs::rename(backup, binary).unwrap();
+    std::fs::rename(backup, object).unwrap();
     kernel
         .control()
         .install_file(SystemFile::Locked(compiled.bundle.clone()))

@@ -52,13 +52,6 @@ impl TypedExtensions {
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
-
-    /// Copy entries from `defaults` that are not already present in `self`.
-    pub fn merge_defaults(&mut self, defaults: &TypedExtensions) {
-        for (key, value) in &defaults.map {
-            self.map.entry(*key).or_insert_with(|| value.clone());
-        }
-    }
 }
 
 /// Per-call context.
@@ -116,18 +109,6 @@ impl ListToolsContext {
 /// Working directory for relative path resolution.
 #[derive(Clone, Debug)]
 pub struct Cwd(pub PathBuf);
-
-/// Opaque behaviour version. Tools that branch on this MUST treat
-/// unknown values as a hard error.
-#[derive(Clone, Debug)]
-pub struct BehaviorVersion(pub String);
-
-/// Distributed-trace correlation context (e.g. W3C `traceparent`).
-///
-/// Receive-side carrier only: stamped from the inbound wire value for
-/// tool impls to read, never serialized back out.
-#[derive(Clone, Debug)]
-pub struct TraceContext(pub String);
 
 /// Session ID context — identifies which session this call belongs to.
 /// Used by multi-session tool servers to dispatch to the correct

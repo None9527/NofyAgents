@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use nofy_tool_protocol::ToolCallId;
-use nofy_tool_runtime::{BehaviorVersion, Cwd, ToolCallContext, TraceContext};
+use nofy_tool_runtime::{Cwd, SessionContext, ToolCallContext};
 
 #[derive(Debug, PartialEq)]
 struct Config {
@@ -185,7 +185,7 @@ fn clone_extension_map_is_independent_after_remove() {
 //   1. Each extension round-trips through the typed-extension store
 //      independently of the others.
 //   2. A dispatcher with only some of the concepts can install them
-//      individually — installing `Cwd` MUST NOT make `BehaviorVersion`
+//      individually — installing `Cwd` MUST NOT make `SessionContext`
 //      look "present" with a default value, and vice versa.
 //   3. Absence of every well-known extension is the legitimate "backend
 //      dispatcher" shape; tools that require one MUST treat absence as
@@ -196,28 +196,22 @@ fn clone_extension_map_is_independent_after_remove() {
 fn each_well_known_extension_round_trips_independently() {
     let mut ctx = ToolCallContext::default();
     ctx.extensions.insert(Cwd(std::path::PathBuf::from("/tmp")));
-    ctx.extensions.insert(BehaviorVersion("v1.0".into()));
-    ctx.extensions
-        .insert(TraceContext("traceparent: 00-...-00".into()));
+    ctx.extensions.insert(SessionContext("session-1".into()));
 
     assert_eq!(
         ctx.extensions.get::<Cwd>().unwrap().0,
         std::path::PathBuf::from("/tmp")
     );
-    assert_eq!(ctx.extensions.get::<BehaviorVersion>().unwrap().0, "v1.0");
-    assert!(
-        ctx.extensions
-            .get::<TraceContext>()
-            .unwrap()
-            .0
-            .contains("traceparent")
+    assert_eq!(
+        ctx.extensions.get::<SessionContext>().unwrap().0,
+        "session-1"
     );
-    assert_eq!(ctx.extensions.len(), 3);
+    assert_eq!(ctx.extensions.len(), 2);
 }
 
 #[test]
 fn dispatcher_can_install_only_what_it_has() {
-    // A dispatcher that knows the cwd but not the trace context installs
+    // A dispatcher that knows the cwd but not the session installs
     // only `Cwd`. The other extensions stay absent (not "default"),
     // which is the discriminator a tool can rely on.
     let mut ctx = ToolCallContext::default();
@@ -225,15 +219,12 @@ fn dispatcher_can_install_only_what_it_has() {
         .insert(Cwd(std::path::PathBuf::from("/work")));
 
     assert!(ctx.extensions.contains::<Cwd>());
-    assert!(!ctx.extensions.contains::<BehaviorVersion>());
-    assert!(!ctx.extensions.contains::<TraceContext>());
+    assert!(!ctx.extensions.contains::<SessionContext>());
     assert_eq!(ctx.extensions.len(), 1);
 
-    // Adding `TraceContext` later does not implicitly conjure a
-    // `BehaviorVersion` — extensions are independent.
-    ctx.extensions.insert(TraceContext("tp".into()));
-    assert!(ctx.extensions.contains::<TraceContext>());
-    assert!(!ctx.extensions.contains::<BehaviorVersion>());
+    // Adding `SessionContext` later keeps extensions independent.
+    ctx.extensions.insert(SessionContext("s1".into()));
+    assert!(ctx.extensions.contains::<SessionContext>());
     assert_eq!(ctx.extensions.len(), 2);
 }
 
@@ -244,20 +235,16 @@ fn absence_signals_backend_or_other_mode() {
     // — this test pins the contract.
     let ctx = ToolCallContext::default();
     assert!(ctx.extensions.get::<Cwd>().is_none());
-    assert!(ctx.extensions.get::<BehaviorVersion>().is_none());
-    assert!(ctx.extensions.get::<TraceContext>().is_none());
+    assert!(ctx.extensions.get::<SessionContext>().is_none());
     assert!(!ctx.extensions.contains::<Cwd>());
-    assert!(!ctx.extensions.contains::<BehaviorVersion>());
-    assert!(!ctx.extensions.contains::<TraceContext>());
+    assert!(!ctx.extensions.contains::<SessionContext>());
 }
 
 #[test]
 fn well_known_extensions_clone_preserves_inner_value() {
     let cwd = Cwd(std::path::PathBuf::from("/etc"));
-    let behavior = BehaviorVersion("v0".into());
-    let trace = TraceContext("tp".into());
+    let session = SessionContext("s0".into());
 
     assert_eq!(cwd.clone().0, cwd.0);
-    assert_eq!(behavior.clone().0, behavior.0);
-    assert_eq!(trace.clone().0, trace.0);
+    assert_eq!(session.clone().0, session.0);
 }

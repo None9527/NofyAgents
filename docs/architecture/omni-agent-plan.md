@@ -8,9 +8,9 @@ Nofy 默认提供一个 Omni Agent，以 `programs.main` 作为稳定入口。�
 
 | 决策 | 实施契约 |
 |---|---|
-| 统一产品入口 | 以 `main-agent@0.2.0` 的可组合声明为基础，发布单一默认预设。现有 Coding 的工具、Schema、审批和目录绑定进入能力包。既有版本供已发布运行复现和迁移。 [可组合预设](../../presets/main-agent-composable/README.md#L19) · [Coding 模块](../../presets/coding/preset.json#L35) |
+| 统一产品入口 | 以可组合声明为基础，发布单一默认预设 `omni@0.1.0`。现有 Coding 的工具、Schema、审批和目录绑定进入能力包。既有版本供已发布运行复现和迁移。 [Omni 预设](../manual/omni-agent.md) · [Coding 模块](../../presets/coding/preset.json#L35) |
 | 按任务发现能力 | 主 Agent 先读任务目标与可用资源，通过 SDK 的能力描述、Schema 和模块目录选择依赖。对模型只暴露当前授权范围内需要的工具；挂载依赖与具体工作区、数据源、网络等资源的授权分别校验。 [SDK 自描述契约](self-describing-agent-development.md) |
-| 运行内自扩展 | 主 Agent 可以调用已有 `assemble`，用本次已绑定的模型、工具包和 Prompt 组合临时子 Agent 或 Workflow。子调用共享取消和预算，权限受父任务制约，结果回到主 Agent。现有默认 `child-tools` 只有消息，实施时须显式装配验证任务所需的窄权限。 [装配输入和边界](../../presets/main-agent-composable/README.md#L19) |
+| 运行内自扩展 | 主 Agent 可以调用已有 `assemble`，用本次已绑定的模型、工具包和 Prompt 组合临时子 Agent 或 Workflow。子调用共享取消和预算，权限受父任务制约，结果回到主 Agent。现有默认 `child-tools` 只有消息，实施时须显式装配验证任务所需的窄权限。 [Omni 声明](../../presets/omni/preset.json) |
 | 跨任务自扩展 | 当既有能力只缺组合或参数时，主 Agent 可以生成声明、Skill 或 Workflow 候选，由 SDK 构建成可复用的版本化包。缺底层能力时，SDK 应返回明确的缺失依赖，供 Agent 提议引入获准的新组件。 [模块仓库与版本](module-repositories.md#决策) |
 | 自演进 | 主 Agent 用版本和执行证据提出对自身配置的改动。独立评估器以固定门槛验证候选，由持有授权的发布入口应用精确版本。已有发布和运行记录提供回退依据。 [候选评估与回退](../manual/omni-agent.md#preauthorized-prompt-evolution) |
 

@@ -14,6 +14,7 @@ pub(super) use managed::read_request as read_managed_request;
 pub use managed::{HumanRecoveryPage, HumanRecoveryTarget};
 mod replay;
 mod submission;
+use crate::interjection::PendingInterjection;
 use crate::mailbox::{
     InitialInputBinding, InitialInputProof, InitialInputReceipt, InputAddress, MailEnvelope,
     MailInput,
@@ -37,7 +38,6 @@ pub use managed::transition::{LiveExecution, LiveModuleState, LiveVersionInfo, M
 pub use managed::{
     Abandonment, ManagedAction, ManagedActionRecord, ManagedCommand, ManagedRun, ManagedRunRequest,
 };
-use nofy_interjection_core::PendingInterjection;
 use sha2::{Digest, Sha256};
 pub use submission::{
     ExecutionJobRecord, ExecutionSubmission, JobRecord, JobStatus, JobSubmission, ProgramJobRecord,

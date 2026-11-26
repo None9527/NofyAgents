@@ -266,7 +266,7 @@ fn group_about(path: &str) -> Option<&'static str> {
         "permission" => "Durable approval grants",
         "project" => "Source projects: create, inspect, build and pack",
         "repository" => "Module repositories: managed, host directory or Git",
-        "resource" => "Kernel-published resources (artifacts and runtimes)",
+        "resource" => "Kernel-published resources (artifacts, runtime images, sources and memory)",
         "run" => "Durable runs: start, observe, decide, cancel and recover",
         "session" => "Durable sessions and their turns",
         "system" => "Published deployments: validate, publish, activate and roll back",

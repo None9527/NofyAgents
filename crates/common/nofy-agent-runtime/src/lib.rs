@@ -23,13 +23,12 @@ pub mod events;
 pub mod governance;
 pub mod hooks;
 mod identity;
+pub mod interjection;
 pub mod mailbox;
 pub mod managed;
 pub mod memory;
 pub mod model;
 pub mod model_journal;
-#[cfg(feature = "pack")]
-pub mod pack;
 pub mod pipeline;
 pub mod policy;
 pub mod program;
@@ -53,6 +52,7 @@ pub mod workflow;
 
 pub use agent::{Agent, AgentBuilder, AgentSpec, Components, RunInput, RunOutcome};
 pub use context::RunContext;
+pub use interjection::{PendingInterjection, format_interjection};
 pub use model::{
     CompletionInfo, InputPart, Message, Model, ModelCapabilities, ModelChunk, ModelDelta,
     ModelRequest, ModelResponse, ModelStream, ToolCall,
