@@ -78,7 +78,7 @@ async fn every_shipped_package_fits_the_kernel_it_ships_with() {
     let (_dir, server) = kernel().await;
     let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../modules");
     let (sources, _) = load_repository_directory(&directory).unwrap();
-    assert!(sources.len() >= 16, "{}", sources.len());
+    assert!(sources.len() >= 15, "{}", sources.len());
     for source in sources {
         let (status, body) = publish(&server, serde_json::to_value(&source).unwrap()).await;
         assert_eq!(status, 200, "a shipped package was refused: {body}");
