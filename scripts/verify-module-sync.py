@@ -24,9 +24,6 @@ OMNI_MANUAL_COPIES = {
     "presets/omni/README.md": "docs/manual/omni-agent.md",
     "presets/omni/文件说明.md": "docs/manual/omni-agent-files.md",
 }
-MAIN_AGENT_MANUAL_COPIES = {
-    "presets/main-agent-composable/README.md": "docs/manual/main-agent-repository.md",
-}
 CODING_MODULE_COPIES = (
     ("presets/coding/modules/models/common.rhai", "modules/models/chat-completions/common.rhai"),
     ("presets/coding/modules/models/common.rhai", "modules/models/messages/common.rhai"),
@@ -453,18 +450,6 @@ def verify_schemas_and_wiring(root: Path, problems: list[str]) -> None:
         if dst.read_bytes() != src.read_bytes():
             problems.append(f"{dst_rel} differs from {src_rel}; regenerate presets/omni via omni_preset")
 
-    for dst_rel, src_rel in MAIN_AGENT_MANUAL_COPIES.items():
-        try:
-            dst = ensure_regular_no_symlink(root / dst_rel, root)
-            src = ensure_regular_no_symlink(root / src_rel, root)
-        except (OSError, ValueError) as exc:
-            problems.append(f"manual sync file error ({dst_rel} <-> {src_rel}): {exc}")
-            continue
-        if dst.read_bytes() != src.read_bytes():
-            problems.append(
-                f"{dst_rel} differs from {src_rel}; keep main-agent repository manual in sync"
-            )
-
     # Check presets/coding shared sources remain byte-identical with modules/{models,workspace}.
     for coding_rel, module_rel in CODING_MODULE_COPIES:
         try:
@@ -478,39 +463,19 @@ def verify_schemas_and_wiring(root: Path, problems: list[str]) -> None:
                 f"{coding_rel} drifted from {module_rel}; keep presets/coding and modules/ sources byte-identical"
             )
 
-    # Check presets/main-agent-composable/settings.schema.json.
-    comp_schema_path = root / "presets/main-agent-composable/settings.schema.json"
-    if comp_schema_path.exists():
-        try:
-            comp_schema = json.loads(comp_schema_path.read_text(encoding="utf-8"))
-            allowed_default = comp_schema.get("properties", {}).get("allowed_tools", {}).get("default", [])
-            if "workflow_agent" not in allowed_default:
-                problems.append(
-                    "presets/main-agent-composable/settings.schema.json: allowed_tools.default missing 'workflow_agent'"
-                )
-            check_max_safe_integers(comp_schema, "presets/main-agent-composable/settings.schema.json", problems)
-        except (OSError, ValueError) as exc:
-            problems.append(f"presets/main-agent-composable/settings.schema.json: {exc}")
-
 
 def verify_all(root: Path = ROOT) -> tuple[list[str], dict]:
     problems: list[str] = []
     catalog, by_name = load_module_repository(root, problems)
     omni_frozen = verify_preset_frozen_packages(root, "presets/omni", catalog, by_name, problems)
-    comp_frozen = 0
-    if (root / "presets/main-agent-composable/preset.json").exists():
-        comp_frozen = verify_preset_frozen_packages(
-            root, "presets/main-agent-composable", catalog, by_name, problems
-        )
     omni_files = verify_source_files_sync(root, "presets/omni", problems)
     verify_schemas_and_wiring(root, problems)
     summary = {
         "repository_packages": len(catalog),
         "omni_frozen_packages": omni_frozen,
-        "main_agent_frozen_packages": comp_frozen,
         "omni_source_files": omni_files,
         "coding_module_pairs": len(CODING_MODULE_COPIES),
-        "manual_doc_pairs": len(OMNI_MANUAL_COPIES) + len(MAIN_AGENT_MANUAL_COPIES),
+        "manual_doc_pairs": len(OMNI_MANUAL_COPIES),
     }
     return problems, summary
 
@@ -524,7 +489,6 @@ def main() -> int:
     print(
         f"module sync: {summary['repository_packages']} repository packages, "
         f"{summary['omni_frozen_packages']} omni frozen packages, "
-        f"{summary['main_agent_frozen_packages']} main-agent frozen packages, "
         f"{summary['omni_source_files']} omni source files, "
         f"{summary['coding_module_pairs']} coding/module source pairs, "
         f"{summary['manual_doc_pairs']} manual doc pairs verified"

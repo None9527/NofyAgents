@@ -140,7 +140,6 @@ class ModuleSyncGateTests(unittest.TestCase):
             "modules",
             "presets/coding",
             "presets/omni",
-            "presets/main-agent-composable",
             "docs/manual",
         ):
             src = self.repo / rel
@@ -150,12 +149,12 @@ class ModuleSyncGateTests(unittest.TestCase):
     def test_shipped_repository_passes_module_sync_gate(self):
         problems, summary = sync_mod.verify_all(self.repo)
         self.assertEqual(problems, [], problems)
-        self.assertEqual(summary["repository_packages"], 16)
+        self.assertEqual(summary["repository_packages"], 15)
         self.assertEqual(summary["omni_frozen_packages"], 11)
         self.assertEqual(summary["coding_module_pairs"], 15)
-        self.assertEqual(summary["manual_doc_pairs"], 4)
+        self.assertEqual(summary["manual_doc_pairs"], 3)
 
-    def test_gate_detects_coding_module_and_main_agent_manual_drift(self):
+    def test_gate_detects_coding_module_and_omni_manual_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "repo"
             self._copy_minimal_repo(root)
@@ -188,13 +187,13 @@ class ModuleSyncGateTests(unittest.TestCase):
             root = Path(tmp) / "repo"
             self._copy_minimal_repo(root)
 
-            # 3. Drift between presets/main-agent-composable/README.md and docs/manual/main-agent-repository.md.
-            target = root / "presets/main-agent-composable/README.md"
+            # 3. Drift between presets/omni/README.md and docs/manual/omni-agent.md.
+            target = root / "presets/omni/README.md"
             target.write_text(target.read_text(encoding="utf-8") + "\ndrift\n", encoding="utf-8")
             problems, _ = sync_mod.verify_all(root)
             self.assertTrue(
                 any(
-                    "presets/main-agent-composable/README.md differs from docs/manual/main-agent-repository.md"
+                    "presets/omni/README.md differs from docs/manual/omni-agent.md"
                     in p
                     for p in problems
                 ),
