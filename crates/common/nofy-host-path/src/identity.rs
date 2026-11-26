@@ -100,7 +100,8 @@ impl FileIdentity {
 
     /// Whether both readings are of one file: same volume and same index. Says
     /// nothing about whether it changed.
-    pub fn same_file(&self, other: &Self) -> bool {
+    #[cfg(any(windows, test))]
+    pub(crate) fn same_file(&self, other: &Self) -> bool {
         self.volume == other.volume && self.index == other.index
     }
 }

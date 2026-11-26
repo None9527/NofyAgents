@@ -131,22 +131,8 @@ async fn canonical_artifact_and_cache_unload_replay_preserves_exact_readmission(
     assert!(tree.exists());
 }
 
-fn install(host: &KernelHost, id: &str) -> runtimes::RuntimeManifest {
-    let path = std::fs::canonicalize("/usr/bin/true").unwrap();
-    let digest = storage::hash(&std::fs::read(&path).unwrap());
-    host.loader
-        .runtimes
-        .install(runtimes::RuntimeInstall {
-            id: id.into(),
-            path,
-            executable_digest: digest,
-            prefix_args: Vec::new(),
-            read_roots: Vec::new(),
-        })
-        .unwrap()
-}
 #[tokio::test]
-async fn real_images_and_runtime_bindings_reclaim_only_unshared_private_bytes() {
+async fn real_images_reclaim_object_and_tree_private_bytes() {
     let dir = tempfile::tempdir().unwrap();
     let host = ready(dir.path()).await;
     let image = images::RuntimeImage::capture(serde_json::from_value(json!({"id":"unload-loader","executable":"bin/loader","files":{"bin/loader":"/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"}})).unwrap()).unwrap();
@@ -166,51 +152,6 @@ async fn real_images_and_runtime_bindings_reclaim_only_unshared_private_bytes() 
         .unwrap();
     assert!(!tree.exists());
     assert!(host.loader.images.get(&digest).is_err());
-    let first = install(&host, "first");
-    let second = install(&host, "second");
-    assert_eq!(first.executable_digest, second.executable_digest);
-    let bin = dir
-        .path()
-        .join("loader/runtimes/bin")
-        .join(&first.executable_digest);
-    let first_plan = host
-        .plan_unload(UnloadRequest {
-            objects: vec![ObjectKey::Runtime {
-                id: first.id,
-                revision: first.revision,
-            }],
-        })
-        .await
-        .unwrap();
-    assert!(first_plan.parts.is_empty());
-    assert_eq!(first_plan.bindings.len(), 1);
-    host.unload_objects(command(&first_plan, "remove-first"))
-        .await
-        .unwrap();
-    assert!(bin.exists());
-    assert!(
-        host.loader
-            .runtimes
-            .find(&second.id, &second.revision)
-            .is_ok()
-    );
-    assert_eq!(host.loader.runtimes.list().unwrap().len(), 1);
-    let second_plan = host
-        .plan_unload(UnloadRequest {
-            objects: vec![ObjectKey::Runtime {
-                id: second.id,
-                revision: second.revision,
-            }],
-        })
-        .await
-        .unwrap();
-    assert_eq!(second_plan.parts.len(), 1);
-    host.unload_objects(command(&second_plan, "remove-last"))
-        .await
-        .unwrap();
-    assert!(!bin.exists());
-    assert!(host.loader.runtimes.list().unwrap().is_empty());
-    assert!(std::fs::canonicalize("/usr/bin/true").unwrap().is_file());
 }
 
 #[tokio::test]
@@ -309,7 +250,6 @@ fn unload_exit_fixture() {
         host.loader.unload.test_exit = Some(match mode.as_str() {
             "move" => "move",
             "purge" => "purge",
-            "bindings" => "bindings",
             _ => panic!("exit mode"),
         });
         let request: UnloadCommand = serde_json::from_slice(
@@ -399,36 +339,6 @@ async fn real_exit_pending_blocks_admission_and_boot_recovery_preserves_recreate
         assert_eq!(reopened.unload_objects(command).await.unwrap().revision, 1);
         assert!(source.exists());
     }
-}
-#[tokio::test]
-async fn runtime_metadata_exit_is_idempotently_recovered_before_worker_admission() {
-    let dir = tempfile::tempdir().unwrap();
-    let host = ready(dir.path()).await;
-    let manifest = install(&host, "recover");
-    let binary = dir
-        .path()
-        .join("loader/runtimes/bin")
-        .join(&manifest.executable_digest);
-    let plan = host
-        .plan_unload(UnloadRequest {
-            objects: vec![ObjectKey::Runtime {
-                id: manifest.id,
-                revision: manifest.revision,
-            }],
-        })
-        .await
-        .unwrap();
-    let command = command(&plan, "remove-runtime");
-    exit_child(dir.path(), "bindings", &command, 96);
-    assert!(binary.exists());
-    assert!(!host.loader.unload.receipt(1).unwrap().bindings_checked);
-    let reopened = ready(dir.path()).await;
-    assert!(!binary.exists());
-    assert!(reopened.loader.runtimes.list().unwrap().is_empty());
-    assert_eq!(
-        reopened.loader.unload.receipt(1).unwrap().state,
-        UnloadState::Complete
-    );
 }
 
 #[tokio::test]

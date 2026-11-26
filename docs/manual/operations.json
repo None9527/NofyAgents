@@ -1,6 +1,6 @@
 {
   "format": "nofy.operation-catalog/v1",
-  "contract_revision": "0.6",
+  "contract_revision": "0.7",
   "implementation_state": "implemented",
   "protocol": "nofy.kernel/v1",
   "mcp_protocol_baseline": "2025-11-25",
@@ -1408,10 +1408,6 @@
         },
         {
           "method": "GET",
-          "path": "/api/v1/runtimes"
-        },
-        {
-          "method": "GET",
           "path": "/api/v1/runtime-images"
         },
         {
@@ -1420,7 +1416,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "List the kernel's published resources of one kind (artifact or runtime), one cursor page at a time."
+      "summary": "List the kernel's published resources of one kind (artifact, runtime image or runtime source), one cursor page at a time."
     },
     {
       "operation": "resource.inspect",
@@ -1483,10 +1479,6 @@
         },
         {
           "method": "POST",
-          "path": "/api/v1/runtimes"
-        },
-        {
-          "method": "POST",
           "path": "/api/v1/runtime-images"
         },
         {
@@ -1499,7 +1491,7 @@
         }
       ],
       "mapping_note": "Native DTO and authorization remain authoritative; Session uses its typed control protocol.",
-      "summary": "Publish a resource of the given kind (artifact or runtime) to the kernel; needs the resources scope."
+      "summary": "Publish a resource of the given kind (artifact, runtime image, runtime source or memory) to the kernel; needs the resources scope."
     },
     {
       "operation": "budget.list",

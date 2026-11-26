@@ -1295,7 +1295,7 @@ async fn control_tree_records_human_branch_join_subworkflow_and_iteration_withou
                 address,
                 input_id: "wrong-input".into(),
                 input: MailInput::Interject {
-                    message: nofy_interjection_core::PendingInterjection {
+                    message: nofy_agent_runtime::PendingInterjection {
                         text: "no".into(),
                         attachments: vec![]
                     }

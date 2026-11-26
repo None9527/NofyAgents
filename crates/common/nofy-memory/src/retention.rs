@@ -1,135 +1,25 @@
-//! Retention and recoverable-copy destruction for unified memory.
+//! Retention garbage collection for archived files and tombstones.
 
 use std::io;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::atomic_file;
 use crate::layout::{ScopeLayout, UnifiedMemoryLayout};
-use crate::migration_backup::{
-    BackupError, BackupReceipt, MigrationKeyStore, forget_legacy_backup,
-};
 use crate::state::{StateError, UnifiedState};
-
-const MIGRATION_BACKUP_RECORD: &str = "migration-backup.json";
 
 #[derive(Debug, Error)]
 pub enum RetentionError {
     #[error("memory retention I/O failed: {0}")]
     Io(#[from] io::Error),
-    #[error("memory retention metadata is invalid: {0}")]
-    Json(#[from] serde_json::Error),
     #[error("memory retention state failed: {0}")]
     State(#[from] StateError),
-    #[error("memory retention backup failed: {0}")]
-    Backup(#[from] BackupError),
-    #[error("unsafe migration backup path: {0}")]
-    UnsafeBackupPath(String),
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RetentionReport {
     pub archives_deleted: usize,
     pub tombstones_deleted: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct PersistedBackupReceipt {
-    path: PathBuf,
-    key_id: String,
-    delete_after: DateTime<Utc>,
-}
-
-impl From<&BackupReceipt> for PersistedBackupReceipt {
-    fn from(receipt: &BackupReceipt) -> Self {
-        Self {
-            path: receipt.path.clone(),
-            key_id: receipt.key_id.clone(),
-            delete_after: receipt.delete_after,
-        }
-    }
-}
-
-impl From<PersistedBackupReceipt> for BackupReceipt {
-    fn from(receipt: PersistedBackupReceipt) -> Self {
-        Self {
-            path: receipt.path,
-            key_id: receipt.key_id,
-            delete_after: receipt.delete_after,
-        }
-    }
-}
-
-pub fn persist_migration_backup_receipt(
-    active_root: &Path,
-    receipt: &BackupReceipt,
-) -> Result<(), RetentionError> {
-    std::fs::create_dir_all(active_root)?;
-    validate_backup_path(active_root, &receipt.path)?;
-    atomic_file::replace(
-        &active_root.join(MIGRATION_BACKUP_RECORD),
-        &serde_json::to_vec_pretty(&PersistedBackupReceipt::from(receipt))?,
-    )?;
-    Ok(())
-}
-
-pub fn load_migration_backup_receipt(
-    active_root: &Path,
-) -> Result<Option<BackupReceipt>, RetentionError> {
-    let path = active_root.join(MIGRATION_BACKUP_RECORD);
-    // is_file() conflates missing receipts with permission/type errors and
-    // dangling links. Only actual absence permits reporting no backup.
-    match std::fs::symlink_metadata(&path) {
-        Ok(_) => {}
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error.into()),
-    }
-    // Preserve readable legacy symlinks, but reject non-regular targets before
-    // reading (in particular, never block on a FIFO).
-    if !std::fs::metadata(&path)?.is_file() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "migration backup receipt is not a regular file",
-        )
-        .into());
-    }
-    let receipt: PersistedBackupReceipt = serde_json::from_slice(&std::fs::read(path)?)?;
-    validate_backup_path(active_root, &receipt.path)?;
-    Ok(Some(receipt.into()))
-}
-
-/// Destroy the migration key before the encrypted archive. The receipt is
-/// removed only after both steps succeed, so a partial failure is visible and
-/// cannot be reported as a successful forget.
-pub fn destroy_migration_backup(
-    active_root: &Path,
-    key_store: &dyn MigrationKeyStore,
-) -> Result<bool, RetentionError> {
-    let Some(receipt) = load_migration_backup_receipt(active_root)? else {
-        return Ok(false);
-    };
-    forget_legacy_backup(&receipt.path, &receipt.key_id, key_store)?;
-    let record = active_root.join(MIGRATION_BACKUP_RECORD);
-    std::fs::remove_file(&record)?;
-    atomic_file::sync_parent_directory(active_root)?;
-    Ok(true)
-}
-
-pub fn gc_migration_backup(
-    active_root: &Path,
-    key_store: &dyn MigrationKeyStore,
-    now: DateTime<Utc>,
-) -> Result<bool, RetentionError> {
-    let Some(receipt) = load_migration_backup_receipt(active_root)? else {
-        return Ok(false);
-    };
-    if receipt.delete_after > now {
-        return Ok(false);
-    }
-    destroy_migration_backup(active_root, key_store)
 }
 
 /// Remove expired archive files and tombstones that are not referenced by an
@@ -171,22 +61,6 @@ pub fn gc_scope(
         archives_deleted,
         tombstones_deleted,
     })
-}
-
-fn validate_backup_path(active_root: &Path, backup: &Path) -> Result<(), RetentionError> {
-    let expected_parent = active_root
-        .parent()
-        .ok_or_else(|| RetentionError::UnsafeBackupPath(backup.display().to_string()))?;
-    let valid_name = backup
-        .file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with("memory.legacy.") && name.ends_with(".tar.age"));
-    if backup.parent() != Some(expected_parent) || !valid_name {
-        return Err(RetentionError::UnsafeBackupPath(
-            backup.display().to_string(),
-        ));
-    }
-    Ok(())
 }
 
 fn collect_regular_files(root: &Path, files: &mut Vec<PathBuf>) -> io::Result<()> {

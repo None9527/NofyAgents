@@ -8,7 +8,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
-pub mod goal;
 pub mod policies;
 pub mod tasks;
 

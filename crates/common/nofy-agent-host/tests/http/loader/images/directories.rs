@@ -463,7 +463,6 @@ async fn external_directory_writes_update_and_roll_back_without_restarting_or_re
 
     let target = tempfile::tempdir().unwrap();
     let (migrated, server) = hosted(target.path()).await;
-    assert!(migrated.loader().runtimes.list().unwrap().is_empty());
     let refused = request(
         &server,
         reqwest::Method::POST,

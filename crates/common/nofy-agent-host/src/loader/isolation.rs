@@ -78,19 +78,21 @@ pub fn seal_profile_fd(wire: &[u8]) -> std::io::Result<std::os::fd::OwnedFd> {
         return Err(std::io::Error::last_os_error());
     }
     // SAFETY: `ro_raw` is a valid newly opened file descriptor >= 0.
-    let ro = unsafe { OwnedFd::from_raw_fd(ro_raw) };
+    let mut current = unsafe { OwnedFd::from_raw_fd(ro_raw) };
     drop(memfd);
-    if ro.as_raw_fd() >= 3 {
-        return Ok(ro);
+    while matches!(current.as_raw_fd(), 0..=2 | 198 | 199) {
+        let min_fd = if current.as_raw_fd() < 3 { 3 } else { 200 };
+        // SAFETY: `current` is a valid open descriptor; duplicating avoids
+        // stdio (0, 1, 2) and reserved session handoff slots (198, 199)
+        // while keeping CLOEXEC set in the parent.
+        let high = unsafe { libc::fcntl(current.as_raw_fd(), libc::F_DUPFD_CLOEXEC, min_fd) };
+        if high < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        // SAFETY: `high` is a newly duplicated valid file descriptor >= `min_fd`.
+        current = unsafe { OwnedFd::from_raw_fd(high) };
     }
-    // SAFETY: `ro` is a valid open descriptor; duplicating to >= 3 prevents
-    // colliding with stdio (0, 1, 2) while keeping CLOEXEC set in the parent.
-    let high = unsafe { libc::fcntl(ro.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 3) };
-    if high < 0 {
-        return Err(std::io::Error::last_os_error());
-    }
-    // SAFETY: `high` is a newly duplicated valid file descriptor >= 3.
-    Ok(unsafe { OwnedFd::from_raw_fd(high) })
+    Ok(current)
 }
 /// Attaches a serialized isolation profile to `command` via an inherited
 /// read-only descriptor instead of exposing it on `argv`, returning the
@@ -123,9 +125,9 @@ pub fn attach_profile_fd(
     )))
 }
 #[cfg(target_os = "linux")]
-fn read_profile_arg(
+pub(in crate::loader) fn read_profile_fd<T: serde::de::DeserializeOwned>(
     arg: &std::ffi::OsStr,
-) -> std::result::Result<Profile, Box<dyn std::error::Error>> {
+) -> std::result::Result<T, Box<dyn std::error::Error>> {
     use std::io::Read;
     use std::os::fd::FromRawFd;
     use std::os::unix::fs::FileTypeExt;
@@ -166,9 +168,15 @@ fn read_profile_arg(
         bytes.fill(0);
         return Err("oversized isolation profile".into());
     }
-    let profile = serde_json::from_slice::<Profile>(&bytes);
+    let parsed = serde_json::from_slice::<T>(&bytes);
     bytes.fill(0);
-    Ok(profile?)
+    Ok(parsed?)
+}
+#[cfg(target_os = "linux")]
+fn read_profile_arg(
+    arg: &std::ffi::OsStr,
+) -> std::result::Result<Profile, Box<dyn std::error::Error>> {
+    read_profile_fd(arg)
 }
 #[cfg(not(target_os = "linux"))]
 fn read_profile_arg(

@@ -358,7 +358,8 @@ mod tests {
         let file = path.join("credentials.json");
         std::fs::write(&file, b"{}").unwrap();
         // Inherited from the directory, with nothing set on the file itself.
-        verify_private_file(&file).unwrap();
+        let open = std::fs::File::open(&file).unwrap();
+        verify_private_open_file(&open, &file).unwrap();
         std::fs::create_dir(path.join("inner")).unwrap();
         verify_private_dir(&path.join("inner")).unwrap();
         // While it is held, the directory cannot be renamed away and replaced.
@@ -452,6 +453,6 @@ Set-Acl -LiteralPath $env:NOFY_TEST_PATH -AclObject $acl
         let file = parent.path().join("f");
         std::fs::write(&file, b"x").unwrap();
         assert!(verify_private_dir(&file).is_err());
-        assert!(verify_private_file(parent.path()).is_err());
+        assert!(super::verify_private(parent.path(), false).is_err());
     }
 }

@@ -54,9 +54,6 @@ impl GuestLaunch {
                     environment,
                 })
             }
-            RuntimeSource::Legacy(_) => Err(HostError::Invalid(
-                "tree execution requires an image or explicit local environment".into(),
-            )),
         }
     }
     #[cfg(test)]
@@ -148,11 +145,6 @@ impl GuestLaunch {
                 RuntimeSource::Local(local) => GuestRuntime::Local {
                     paths: local.paths.clone(),
                 },
-                RuntimeSource::Legacy(_) => {
-                    return Err(HostError::Invalid(
-                        "local or image environment required".into(),
-                    ));
-                }
             },
             artifact: private_root
                 .join("loader/artifacts/trees")

@@ -15,7 +15,9 @@ pub(crate) fn pointer_remove(value: &mut Value, pointer: &str) -> Result<()> {
             return Err(Error::new("local_input", "invalid JSON Pointer escape"));
         }
     }
-    let (parent, key) = pointer.rsplit_once('/').expect("validated pointer");
+    let (parent, key) = pointer
+        .rsplit_once('/')
+        .ok_or_else(|| Error::new("local_input", "unset requires a non-root JSON Pointer"))?;
     let key = key.replace("~1", "/").replace("~0", "~");
     let target = value
         .pointer_mut(parent)

@@ -113,7 +113,7 @@ impl Syntax {
 
     /// Whether `path` lies at or below `base`, component by component.
     ///
-    /// On Windows names compare case-insensitively (see [`eq_fold`]), both
+    /// On Windows names compare case-insensitively (see [`fold`]), both
     /// separators count, and a verbatim prefix equals its plain spelling
     /// (`\\?\C:\a` is `C:\a`, which is what `canonicalize` hands back); on Unix
     /// this is exactly [`Path::starts_with`].
@@ -348,7 +348,7 @@ mod windows {
 /// The rule applies on every platform on purpose: a name that cannot exist on
 /// Windows must not be minted anywhere, because state and packages move between
 /// machines.
-pub fn is_reserved_device_name(name: &str) -> bool {
+pub(crate) fn is_reserved_device_name(name: &str) -> bool {
     let stem = name
         .split('.')
         .next()
@@ -369,7 +369,7 @@ pub fn is_reserved_device_name(name: &str) -> bool {
 }
 
 /// Whether Windows cannot hold a file called `name`: a device name (see
-/// [`is_reserved_device_name`]) or a name ending in a dot or a space, which
+/// `is_reserved_device_name`) or a name ending in a dot or a space, which
 /// Windows drops when it creates the file.
 pub fn windows_cannot_hold(name: &str) -> bool {
     is_reserved_device_name(name) || name.ends_with(['.', ' '])
@@ -388,7 +388,7 @@ pub fn fold(name: &str) -> String {
 }
 
 /// Whether `a` and `b` are the same name once case is folded.
-pub fn eq_fold(a: &str, b: &str) -> bool {
+pub(crate) fn eq_fold(a: &str, b: &str) -> bool {
     a.chars()
         .flat_map(fold_char)
         .eq(b.chars().flat_map(fold_char))

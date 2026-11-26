@@ -17,24 +17,35 @@ mod sources;
 #[path = "loader/unload.rs"]
 mod unload;
 
-fn runtime() -> Value {
-    let path = std::fs::canonicalize("/usr/bin/python3").unwrap();
-    let hash = format!("{:x}", Sha256::digest(std::fs::read(&path).unwrap()));
-    json!({"id":"python","path":path,"executable_digest":hash,"prefix_args":["-s","-E"]})
+fn local_runtime() -> Value {
+    let mut paths = vec![json!({"path":"/usr","execute":true})];
+    for (dir, execute) in [
+        ("/lib", true),
+        ("/lib64", true),
+        ("/etc/ld.so.cache", false),
+    ] {
+        if std::path::Path::new(dir).exists() {
+            paths.push(if execute {
+                json!({"path":dir,"execute":true})
+            } else {
+                json!({"path":dir})
+            });
+        }
+    }
+    json!({"executable":"/usr/bin/python3","prefix_args":["-s","-E"],"paths":paths})
 }
 async fn setup(path: &std::path::Path) -> (KernelHost, Serving, Value) {
     let kernel = host(path, Arc::new(AtomicUsize::new(0))).await;
     let server = serve(kernel.router()).await;
     let probe = post(&server, "/api/v1/runtimes/probe", json!({})).await;
     assert_eq!(probe["enforced"], true);
-    let installed = post(&server, "/api/v1/runtimes", runtime()).await;
-    (kernel, server, installed)
+    (kernel, server, local_runtime())
 }
 fn document(runtime: &Value, artifact: Value) -> Value {
     let r = |id: &str| json!({"id":id,"version":"1"});
     json!({"schema_version":1,"name":"artifact-system","modules":[
         {"reference":r("code"),"factory":"resource.artifact","config":artifact},
-        {"reference":r("environment"),"factory":"resource.process","config":{"runtime":{"id":runtime["id"],"revision":runtime["revision"]}}},
+        {"reference":r("environment"),"factory":"resource.process_local","config":runtime},
         {"reference":r("tool"),"factory":"tool.process_artifact","config":{"contract":{"name":"compute","input_schema":{"type":"object","required":["n"],"properties":{"n":{"type":"integer"}},"additionalProperties":false},"timeout_ms":20000},"entrypoint":"main.py"},"dependencies":{"environment":r("environment"),"artifact":r("code")}}
     ],"programs":{"compute":{"kind":"tool","definition":{"name":"compute","tool_packs":[r("tool")]},"call":{"id":"compute","name":"compute","arguments":{"n":1}}}}})
 }
@@ -114,60 +125,57 @@ async fn loader_rejects_invalid_packages_slots_bindings_and_tampered_metadata_wi
         .0,
         404
     );
-    let mut unknown = installed.clone();
-    unknown["revision"] = json!("0".repeat(64));
+    assert_eq!(
+        request(
+            &server,
+            reqwest::Method::GET,
+            "/api/v1/runtimes",
+            ADMIN,
+            Value::Null
+        )
+        .await
+        .0,
+        404
+    );
+    assert_eq!(
+        request(
+            &server,
+            reqwest::Method::POST,
+            "/api/v1/runtimes",
+            ADMIN,
+            json!({})
+        )
+        .await
+        .0,
+        404
+    );
+    let mut legacy = document(&installed, json!({"bundle":package(2)}));
+    legacy["modules"][1] = json!({"reference":{"id":"environment","version":"1"},"factory":"resource.process","config":{"runtime":{"id":"python","revision":"0".repeat(64)}}});
     assert!(
         request(
             &server,
             reqwest::Method::POST,
             "/api/v1/validate",
             ADMIN,
-            document(&unknown, json!({"bundle":package(2)}))
+            legacy
         )
         .await
         .0 >= 400
     );
-    let mut wrong = runtime();
-    wrong["executable_digest"] = json!("0".repeat(64));
-    assert!(
-        request(
-            &server,
-            reqwest::Method::POST,
-            "/api/v1/runtimes",
-            ADMIN,
-            wrong
-        )
-        .await
-        .0 >= 400
-    );
-    let mut broad = runtime();
-    broad["read_roots"] = json!(["/"]);
-    assert!(
-        request(
-            &server,
-            reqwest::Method::POST,
-            "/api/v1/runtimes",
-            ADMIN,
-            broad
-        )
-        .await
-        .0 >= 400
-    );
-    tokio::fs::write(dir.path().join("loader/runtimes/catalog.json"), b"{}")
-        .await
-        .unwrap();
+    let mut broad = installed.clone();
+    broad["paths"] = json!([{"path":"/","execute":true}]);
     assert!(
         request(
             &server,
             reqwest::Method::POST,
             "/api/v1/validate",
             ADMIN,
-            document(&installed, json!({"bundle":package(2)}))
+            document(&broad, json!({"bundle":package(2)}))
         )
         .await
         .0 >= 400
     );
-    // An optional Loader failure must not poison unrelated legacy systems.
+    // An optional Loader failure must not poison unrelated systems.
     post(
         &server,
         "/api/v1/validate",
@@ -213,7 +221,6 @@ async fn artifact_process_loader_runs_versions_without_restarting_and_exports_a_
  {
     let dir = tempfile::tempdir().unwrap();
     let (kernel, server, installed) = setup(dir.path()).await;
-    assert!(installed.get("path").is_none());
     let bundle = package(2);
     assert_eq!(
         request(
@@ -252,9 +259,6 @@ async fn artifact_process_loader_runs_versions_without_restarting_and_exports_a_
     );
     let publication = post(&server, "/api/v1/import", source.clone()).await;
     let release = publication["bundle"]["digest"].as_str().unwrap();
-    let mut extra = runtime();
-    extra["id"] = json!("unrelated-runtime");
-    post(&server, "/api/v1/runtimes", extra).await;
     assert_eq!(
         post(&server, "/api/v1/validate", source).await["digest"],
         release
@@ -288,8 +292,7 @@ async fn artifact_process_loader_runs_versions_without_restarting_and_exports_a_
     post(&server, "/api/v1/runs", run(release, "old")).await;
     assert_eq!(output(&outcome(&server, "old").await)["result"], 14);
     let target = tempfile::tempdir().unwrap();
-    let (other, remote, installed_again) = setup(target.path()).await;
-    assert_eq!(installed["revision"], installed_again["revision"]);
+    let (other, remote, _) = setup(target.path()).await;
     let imported = post(&remote, "/api/v1/import", publication["bundle"].clone()).await;
     assert_eq!(imported["bundle"]["digest"], release);
     let admitted = request(

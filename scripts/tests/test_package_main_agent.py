@@ -136,7 +136,13 @@ class ModuleSyncGateTests(unittest.TestCase):
 
     def _copy_minimal_repo(self, dest: Path):
         import shutil
-        for rel in ("modules", "presets/omni", "presets/main-agent-composable", "docs/manual"):
+        for rel in (
+            "modules",
+            "presets/coding",
+            "presets/omni",
+            "presets/main-agent-composable",
+            "docs/manual",
+        ):
             src = self.repo / rel
             if src.exists():
                 shutil.copytree(src, dest / rel, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -146,6 +152,54 @@ class ModuleSyncGateTests(unittest.TestCase):
         self.assertEqual(problems, [], problems)
         self.assertEqual(summary["repository_packages"], 16)
         self.assertEqual(summary["omni_frozen_packages"], 11)
+        self.assertEqual(summary["coding_module_pairs"], 15)
+        self.assertEqual(summary["manual_doc_pairs"], 4)
+
+    def test_gate_detects_coding_module_and_main_agent_manual_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 1. Drift between presets/coding shared source and modules/workspace.
+            target = root / "presets/coding/modules/files/files.py"
+            target.write_text(target.read_text(encoding="utf-8") + "\n# drift\n", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            self.assertTrue(
+                any(
+                    "presets/coding/modules/files/files.py drifted from modules/workspace/files/files.py"
+                    in p
+                    for p in problems
+                ),
+                problems,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 2. Drift between presets/coding/modules/models/common.rhai and modules/models/*.
+            target = root / "presets/coding/modules/models/common.rhai"
+            target.write_text(target.read_text(encoding="utf-8") + "\n// drift\n", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            model_drifts = [p for p in problems if "common.rhai drifted from modules/models/" in p]
+            self.assertEqual(len(model_drifts), 3, problems)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            self._copy_minimal_repo(root)
+
+            # 3. Drift between presets/main-agent-composable/README.md and docs/manual/main-agent-repository.md.
+            target = root / "presets/main-agent-composable/README.md"
+            target.write_text(target.read_text(encoding="utf-8") + "\ndrift\n", encoding="utf-8")
+            problems, _ = sync_mod.verify_all(root)
+            self.assertTrue(
+                any(
+                    "presets/main-agent-composable/README.md differs from docs/manual/main-agent-repository.md"
+                    in p
+                    for p in problems
+                ),
+                problems,
+            )
 
     def test_gate_detects_drift_stray_file_bare_schema_and_unsafe_int(self):
         with tempfile.TemporaryDirectory() as tmp:

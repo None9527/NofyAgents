@@ -1,7 +1,9 @@
 //! Typed, durable input boundaries. Sending an input is separate from claiming
 //! it at a safe point; a held next turn protects everything behind it in FIFO.
-use crate::{Error, InputPart, RunContext, ToolCall, compile::CompilationSnapshot};
-use nofy_interjection_core::PendingInterjection;
+use crate::{
+    Error, InputPart, RunContext, ToolCall, compile::CompilationSnapshot,
+    interjection::PendingInterjection,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, sync::Arc};

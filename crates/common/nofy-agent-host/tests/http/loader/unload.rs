@@ -26,9 +26,10 @@ async fn scoped_http_unload_is_explicit_cas_bound_and_completed_replay_preserves
         json!([]),
         json!([key.clone(), key.clone()]),
         json!([{"kind":"artifact","digest":"../outside"}]),
+        json!([{"kind":"runtime","id":"r0","revision":"0".repeat(64)}]),
         json!(
             (0..9)
-                .map(|i| json!({"kind":"runtime","id":format!("r{i}"),"revision":"0".repeat(64)}))
+                .map(|i| json!({"kind":"artifact","digest":format!("{i:064x}")}))
                 .collect::<Vec<_>>()
         ),
     ] {
@@ -148,8 +149,7 @@ async fn preview_before_publication_cannot_delete_unapplied_release_queued_job_o
         .0,
         409
     );
-    let objects =
-        json!([key,{"kind":"runtime","id":installed["id"],"revision":installed["revision"]}]);
+    let objects = json!([key]);
     let pinned = preview(&server, objects.clone()).await;
     assert_eq!(pinned["eligible"], false);
     assert_eq!(
@@ -278,33 +278,30 @@ async fn exclusive_commit_maintenance_keeps_run_views_and_cancel_acceptance_avai
 }
 
 #[tokio::test]
-async fn unloading_an_unused_binding_keeps_an_old_release_immediately_usable_without_refresh() {
+async fn unloading_an_unused_artifact_keeps_an_old_release_immediately_usable_without_refresh() {
     use nofy_agent_runtime::supervisor::RunSupervisor;
     let dir = tempfile::tempdir().unwrap();
     let (host, server, installed) = setup(dir.path()).await;
     let source = document(&installed, json!({"bundle":package(2)}));
     let publication = post(&server, "/api/v1/import", source.clone()).await;
     let release = publication["bundle"]["digest"].as_str().unwrap();
-    let mut unused = runtime();
-    unused["id"] = json!("unused-python");
-    let unused = post(&server, "/api/v1/runtimes", unused).await;
+    let unused = post(&server, "/api/v1/artifacts", package(5)).await;
     let plan = preview(
         &server,
-        json!([{"kind":"runtime","id":unused["id"],
-        "revision":unused["revision"]}]),
+        json!([{"kind":"artifact","digest":unused["digest"]}]),
     )
     .await;
     assert_eq!(plan["eligible"], true);
-    assert_eq!(plan["parts"], json!([]));
+    assert_eq!(plan["parts"].as_array().unwrap().len(), 1);
     let receipt = post(
         &server,
         "/api/v1/loader/unload",
-        command(&plan, "remove-unused-binding"),
+        command(&plan, "remove-unused-artifact"),
     )
     .await;
     assert_eq!(receipt["state"], "complete");
-    // No worker, list, import, or explicit refresh may repair the cache before
-    // these original entry points use the still-retained binding.
+    // No worker, list, or import may be needed before existing entry points
+    // use the still-retained release.
     let (status, programs) = request(
         &server,
         reqwest::Method::GET,

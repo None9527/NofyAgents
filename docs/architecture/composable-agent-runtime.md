@@ -7,7 +7,7 @@
 - Validation：当前框架使用下述独立SDK/依赖边界入口，不再运行旧产品对照。
 - 状态：2026-10-27起的历史记录；实际公共入口为 `nofy-agent-runtime`。
 
-> 2026-10-29 施工补充：本文描述已实现的 SDK，不代表所有原能力已完成可配置模块化。C1–C6 已通过阶段验收，包括真实自研记忆、Prompt/规则/Skill、上下文策略和原压缩引擎接入。运行配方/会话输入治理、workflow 配置、管理 API 与原始预设全量验收仍按 C7–C10 继续。当前入口为[全能力模块化闭环计划](../superpowers/plans/2026-10-28-agent-modularity-closure.md)的阶段账本；下文旧测试记录仅证明当时所覆盖场景。
+> 2026-10-29 施工补充：本文描述已实现的 SDK，不代表所有原能力已完成可配置模块化。C1–C6 已通过阶段验收，包括真实自研记忆、Prompt/规则/Skill、上下文策略和原压缩引擎接入。运行配方/会话输入治理、workflow 配置、管理 API 与原始预设全量验收仍按 C7–C10 继续（原历史阶段账本已归档清理，现行交付以[开发手册](../manual/README.md)与源码为准）；下文旧测试记录仅证明当时所覆盖场景。
 
 ## 模块与依赖
 
@@ -20,7 +20,7 @@
 | `compile` | AgentDocument、AgentDefinition、CompilationSnapshot、compile_document/compile_agent | 私有注册表快照，经原 Builder 构建；不另写执行循环 |
 | `driver` | RunHost / Step / drive；兼容本地 future 的 drive_with | 唯一推进驱动，宿主提供一步行为 |
 | `coding` | CodingHost、公共七阶段配方、重复动作/Todo/截断恢复策略 | 纯策略不依赖 SessionActor，宿主显式提供 I/O |
-| `pack`（feature） | 完整 PackManifest 编译 | 所有引用通过宿主绑定，缺失即失败 |
+| `interjection` | PendingInterjection、插话缓冲与格式化 | 已内联至 `nofy-agent-runtime`（原独立 `nofy-interjection-core` 与旧 `pack` feature / `nofy-packcore` 均已退役摘除） |
 | `recipe` | 可注册 RuntimeRecipe / AgentStage、稳定边界、纯决策与持久化进度 | 通过 runtime.recipe/stage.literal 配置；外部 I/O 仍走 Tool/Hook |
 | `pipeline` | 具名 Stage、Pipeline、Flow::Next / Restart / Finish | 可替换的有序阶段，支持本地 actor future |
 | `model` | Model.complete/stream、typed 多模态消息、能力、参数 schema、结构化输出与失败信息 | complete 旧实现自动适配；无隐式连接或凭据 |
@@ -42,7 +42,7 @@
 
 `nofy-tool-types` 拥有 canonical ToolDefinition / FunctionTool。`nofy-tools` 和 `nofy-sampling-types` 重新导出同一 Rust 类型，wire 形状不变。sampling-types 不再通过 schema 类型依赖具体工具实现。
 
-默认 runtime 的 normal 依赖闭包不包含 nofy-tools、nofy-shell、nofy-agent、workspace、ACP、daemon、pager、sandbox 或 workflow。启用 `workflow` 才选择 Rhai。执行 `python3 scripts/check-agent-runtime-boundaries.py` 可复查。
+默认 runtime 的 normal 依赖闭包不包含 nofy-tools、nofy-shell、nofy-agent、workspace、ACP、daemon、pager、sandbox 或 workflow。启用 `workflow` 才选择 Rhai。执行 `python3 scripts/verify-framework-boundaries.py` 可复查。
 
 ## 创建新用途 Agent
 
@@ -176,7 +176,7 @@ capture 使用现有 CaptureQueue。内核仅在成功回合经 durable checkpoi
 
 `AgentDefinition.context_policies` 选择 ContextPolicy 模块，直接装配可调用 `with_context_policy(versioned_identity, policy)`。计划、before_compact gate、变换提交和 after_compact 事实分开持久化；未知事实 handler 可以对账恢复，不重复生成已提交摘要。系统消息及当前回合的原消息范围必须逐项相同，工具配对和原生 Opaque 字节随保留范围一起保留。摘要用量累计到 RunState，并通过 ModelUsage 标记 context_compaction。
 
-`nofy-compaction/agent-runtime` 的 `runtime::CompactionFactory` 注册 `context.compaction`，依赖 model 模块。它复用已有 full-replace 采样/清洗/组装与安全 tail selection，支持阈值、保留预算、最小压缩量、超时和有限重试。默认沿用 bytes/4 与图片估算，可由宿主安装带版本身份的 tokenizer。FullReplace 支持模型已理解的 Opaque 历史；TailKeep 遇到没有类型视图的 Opaque 明确失败。压缩只处理真实历史，随后重新检索记忆和规则/Skill；临时记忆不会被揉入长期摘要。原编程宿主的两遍压缩与触发顺序保持原接入。
+早期历史阶段曾引入独立 `nofy-compaction` / `nofy-token-estimation` crate；现行常驻框架已统一由声明式外部模块 `context-compaction@0.2.2`（`context.programmed` + `binding.model_journal`）承载上下文压缩与 UTF-8/CJK token 估算，上述两份历史 crate 已从 21 包工作区摘除。
 
 ### 可注册配方与纯决策阶段（C7c1）
 
@@ -235,8 +235,7 @@ SDK 的 SamplingClient 流式路径不经过旧 actor 重试循环，传输重�
 
 ```bash
 cargo test --locked --offline -p nofy-agent-runtime --all-features
-python3 scripts/check-agent-runtime-boundaries.py
-python3 scripts/verify-agent-independent-consumer.py --output /tmp/nofy-independent-check
+python3 scripts/verify-agent-managed-consumer.py collect --runner ubuntu-24.04 --output /tmp/nofy-opt-in-managed-evidence
 python3 scripts/verify-framework-boundaries.py
 ```
 
@@ -278,7 +277,7 @@ PackBindings 可额外选择 host 批准的 tool_packs、context_sources、setti
 ## 仓库外独立消费验收
 
 ```bash
-python3 scripts/verify-agent-independent-consumer.py --output /tmp/nofy-independent-check
+python3 scripts/verify-agent-managed-consumer.py collect --runner ubuntu-24.04 --output /tmp/nofy-opt-in-managed-evidence
 cargo test --locked --offline -p nofy-mcp --features agent-runtime --lib runtime::tests
 ```
 
@@ -305,7 +304,7 @@ cargo test --locked --offline -p nofy-mcp --features agent-runtime --lib runtime
 
 ### Goal 状态共享与结束 gate（C7c2d，已退役）
 
-原 C7c2d 阶段曾下沉独立 Goal 状态模块用于旧宿主只读观察 gate；随着旧产品宿主退役且该包未被常驻框架宿主或任何活跃预设装载，该孤儿 crate 已正式从 25 包工作区摘除。当前跨轮任务与目标推进由持久化运行状态、检查点、预算边界、Todo 观察及 Omni `work.*` 统一编排承载。
+原 C7c2d 阶段曾下沉独立 Goal 状态模块用于旧宿主只读观察 gate；随着旧产品宿主退役且该包未被常驻框架宿主或任何活跃预设装载，该孤儿 crate 已正式从工作区摘除（当前工作区收敛至 21 包）。当前跨轮任务与目标推进由持久化运行状态、检查点、预算边界、Todo 观察及 Omni `work.*` 统一编排承载。
 
 
 ### 显式认证恢复资源（C7d1）

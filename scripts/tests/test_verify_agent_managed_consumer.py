@@ -287,7 +287,8 @@ class ProcessTests(unittest.TestCase):
 
     def test_empty_and_forbidden_dependency_trees(self):
         for tree in ("", "nofy-opt-in-managed-consumer v1\n",
-                     "nofy-opt-in-managed-consumer v1\nnofy-agent-runtime v1\nnofy-agent-host v1"):
+                     "nofy-opt-in-managed-consumer v1\nnofy-agent-runtime v1\nnofy-agent-host v1",
+                     "nofy-opt-in-managed-consumer v1\nnofy-agent-runtime v1\nnofy-packcore v1"):
             with self.subTest(tree=tree), self.assertRaises(ValueError):
                 M.dependency_boundary(tree)
 
@@ -320,7 +321,7 @@ class ArtifactTests(unittest.TestCase):
         metadata = {"packages": [{"id": "runtime", "name": "nofy-agent-runtime", "version": "0.1.0"},
                                   {"id": "tokio", "name": "tokio", "version": "1.53.1"}],
                     "resolve": {"root": "consumer", "nodes": [{"id": "runtime", "features":
-                        ["default", "pack", "workflow", "control-file"]}]}}
+                        ["default", "workflow", "control-file"]}]}}
         business = {"status": "passed", "agents": M.AGENTS, **{name: True for name in M.FLAGS}}
         rustc = "rustc 1.94.0\nrelease: 1.94.0\nhost: x86_64-unknown-linux-gnu\n"
         report = {"schema": 1, "status": "passed", "mode": M.MODE, "runner": "ubuntu-24.04",
@@ -330,8 +331,8 @@ class ArtifactTests(unittest.TestCase):
                       (ROOT / "fixtures/agent-runtime-consumer" / name).read_bytes()) for name in hashes},
                   "sdk_source_sha256": M.sdk_source_hashes(),
                   "cargo_home_configuration": "absent", "generated_sha256": M.digest(generated.encode()),
-                  "business_result": business, "declared_features": ["pack", "workflow", "control-file"],
-                  "resolved_runtime_features": ["control-file", "default", "pack", "workflow"],
+                  "business_result": business, "declared_features": ["workflow", "control-file"],
+                  "resolved_runtime_features": ["control-file", "default", "workflow"],
                   "rustc": rustc, "cargo": "cargo 1.94.0", "host": "x86_64-unknown-linux-gnu",
                   "toolchain_file_sha256": M.digest((ROOT / "rust-toolchain.toml").read_bytes().replace(b"\r\n", b"\n")),
                   "stages": {}}
@@ -380,7 +381,8 @@ class ArtifactTests(unittest.TestCase):
         for field, value in (("mode", "default"), ("status", "failed"),
                              ("inventory", []), ("stack_bytes", 1),
                              ("outside_workspace", False), ("system", "Windows"),
-                             ("declared_features", ["sqlite"])):
+                             ("declared_features", ["sqlite"]),
+                             ("declared_features", ["pack", "workflow", "control-file"])):
             original = self.report[field]
             with self.subTest(field=field):
                 self.report[field] = value

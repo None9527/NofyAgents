@@ -1,4 +1,4 @@
-//! The shipped main-agent source template, using trusted in-process SDK adapters.
+//! The shipped Omni source template, using trusted in-process SDK adapters.
 //! These deterministic adapters are not a real-provider or OS-isolation test.
 use nofy_agent_host::{
     KernelHost,
@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-const TOKEN: &str = "main-agent-fixture-administrator-token-00000001";
+const TOKEN: &str = "omni-fixture-administrator-token-00000001";
 #[derive(Default)]
 struct Evidence {
     effects: AtomicUsize,
@@ -29,7 +29,7 @@ struct Credentials;
 #[async_trait::async_trait]
 impl credentials::CredentialProvider for Credentials {
     fn identity(&self) -> &str {
-        "main-agent-no-credentials"
+        "omni-no-credentials"
     }
     async fn resolve(&self, _: &str) -> Result<Option<String>, Error> {
         Ok(None)
@@ -123,6 +123,27 @@ fn result<'a>(request: &'a ModelRequest, id: &str) -> Option<&'a Value> {
         _ => None,
     })
 }
+fn assembled_child_spec(
+    assembly: &nofy_tool_types::ToolDefinition,
+    prompt_text: &str,
+) -> (Value, Value) {
+    let description = assembly.function.description.as_ref().unwrap();
+    let available = description
+        .split("Available dependencies: ")
+        .nth(1)
+        .unwrap()
+        .split(". Local modules")
+        .next()
+        .unwrap();
+    let choices: Vec<Value> = serde_json::from_str(available).unwrap();
+    let reference =
+        |kind: &str| choices.iter().find(|v| v["kind"] == kind).unwrap()["reference"].clone();
+    let prompt = json!({"id":"dynamic-prompt","version":"1"});
+    let agent = json!({"name":"constructed-worker","model":reference("model"),"prompt":prompt,"tool_packs":[reference("tool_pack")],"settings":{"max_steps":4}});
+    let modules =
+        json!([{"reference":prompt,"factory":"prompt.static","config":{"text":prompt_text}}]);
+    (modules, agent)
+}
 #[async_trait::async_trait]
 impl Model for FixtureModel {
     async fn complete(
@@ -133,22 +154,16 @@ impl Model for FixtureModel {
         self.0.models.fetch_add(1, Ordering::SeqCst);
         self.0.requests.lock().unwrap().push(request.clone());
         // State is derived solely from durable model history, never a process counter.
-        let main = request
-            .tools
-            .iter()
-            .any(|t| t.function.name == "agent_tasks");
-        Ok(if main {
-            if result(&request, "spawn").is_none() {
+        if let Some(assembly) = request.tools.iter().find(|t| t.function.name == "assemble") {
+            let (modules, agent) = assembled_child_spec(
+                assembly,
+                "Perform the counted effect once, then broadcast its result via agent_messages.",
+            );
+            Ok(if result(&request, "worker").is_none() {
                 call(
-                    "spawn",
-                    "agent_tasks",
-                    json!({"action":"spawn","task_id":"worker","tool":"task","arguments":{"skill":"delegate","args":"Perform the counted effect, then broadcast its result."}}),
-                )
-            } else if result(&request, "joined").is_none() {
-                call(
-                    "joined",
-                    "agent_tasks",
-                    json!({"action":"wait","task_id":"worker","timeout_ms":5000}),
+                    "worker",
+                    "assemble",
+                    json!({"kind":"agent","document":{"modules":modules,"agent":agent},"prompt":"Perform the counted effect, then broadcast its result."}),
                 )
             } else if result(&request, "messages").is_none() {
                 call(
@@ -164,24 +179,26 @@ impl Model for FixtureModel {
                 )
             } else {
                 ModelResponse {
-                    output: "main completed after human answer".into(),
+                    output: "omni completed after human answer".into(),
                     ..Default::default()
                 }
-            }
-        } else if result(&request, "effect").is_none() {
-            call("effect", "count_effect", json!({}))
-        } else if result(&request, "report").is_none() {
-            call(
-                "report",
-                "agent_messages",
-                json!({"action":"send","message_id":"child-result","to":"*","body":{"result":result(&request,"effect")}}),
-            )
+            })
         } else {
-            ModelResponse {
-                output: "child completed".into(),
-                ..Default::default()
-            }
-        })
+            Ok(if result(&request, "effect").is_none() {
+                call("effect", "count_effect", json!({}))
+            } else if result(&request, "report").is_none() {
+                call(
+                    "report",
+                    "agent_messages",
+                    json!({"action":"send","message_id":"child-result","to":"*","body":{"result":result(&request,"effect")}}),
+                )
+            } else {
+                ModelResponse {
+                    output: "child completed".into(),
+                    ..Default::default()
+                }
+            })
+        }
     }
 }
 fn registry(evidence: Arc<Evidence>) -> ModuleRegistry {
@@ -222,90 +239,10 @@ fn templates() -> TemplateRegistry {
     )
     .unwrap()
 }
-fn source(registry: &ModuleRegistry, allowed: bool, budget: Option<u64>) -> Source {
-    let kinds = kinds(registry);
-    let mut source = templates().get("main-agent", Some("0.1.0"), None).unwrap();
-    edit(&mut source, "agent.module.add", &json!({"agent":"main","id":"model","factory":"host.main_fixture_model","config":{},"slot":"model"}), &kinds).unwrap();
-    edit(
-        &mut source,
-        "agent.module.add",
-        &json!({"agent":"main","id":"effect","factory":"host.main_fixture_effect","config":{}}),
-        &kinds,
-    )
-    .unwrap();
-    edit(
-        &mut source,
-        "agent.module.bind",
-        &json!({"agent":"main","module":"child-tools","dependencies":{"effect":"effect"}}),
-        &kinds,
-    )
-    .unwrap();
-    edit(
-        &mut source,
-        "agent.module.set",
-        &json!({"agent":"main","module":"child-tools","set":{"/packs":["messages","effect"]}}),
-        &kinds,
-    )
-    .unwrap();
-    let mut allowed_tools = vec![
-        "agent_tasks",
-        "task",
-        "agent_messages",
-        "ask_user",
-        "workflow_execute",
-    ];
-    if allowed {
-        allowed_tools.push("count_effect");
-    }
-    let mut settings = json!({"allowed_tools":allowed_tools,"child_allowed_tools":["agent_messages","count_effect"]});
-    if let Some(limit) = budget {
-        settings["budget"] = json!({"max_model_calls":limit});
-    }
-    edit(
-        &mut source,
-        "agent.configure",
-        &json!({"agent":"main","settings":settings}),
-        &kinds,
-    )
-    .unwrap();
-    assert_eq!(inspect(&source, &kinds).unwrap()["status"], "complete");
-    source
-}
 fn system(source: &Source, registry: &ModuleRegistry) -> Value {
     let built = build(source, &kinds(registry)).unwrap();
     serde_json::from_str::<Value>(built["deployment_json"].as_str().unwrap()).unwrap()["system"]
         .clone()
-}
-#[test]
-fn template_requires_explicit_model_and_supports_renaming_and_public_edits() {
-    let registry = registry(Arc::new(Evidence::default()));
-    let kinds = kinds(&registry);
-    let mut source = templates()
-        .get("main-agent", Some("0.1.0"), Some("coordinator"))
-        .unwrap();
-    let view = inspect(&source, &kinds).unwrap();
-    assert_eq!(view["status"], "incomplete");
-    assert!(
-        view["missing_slots"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("coordinator.model"))
-    );
-    assert!(build(&source, &kinds).is_err());
-    // Even while incomplete, explicit prerequisites can be added.
-    edit(&mut source, "agent.module.add", &json!({"agent":"coordinator","id":"unused","factory":"prompt.static","config":{"text":"unused"}}), &kinds).unwrap();
-    edit(&mut source, "agent.module.add", &json!({"agent":"coordinator","id":"model","factory":"host.main_fixture_model","config":{},"slot":"model"}), &kinds).unwrap();
-    assert_eq!(inspect(&source, &kinds).unwrap()["status"], "complete");
-    let document = system(&source, &registry);
-    assert!(document["programs"].get("coordinator").is_some());
-    assert!(document["programs"].get("main").is_none());
-    assert!(
-        document["modules"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|m| m["factory"] == "tool.skills")
-    );
 }
 fn auth() -> Authorizer {
     Authorizer::new(vec![(
@@ -329,6 +266,13 @@ impl Drop for Server {
     fn drop(&mut self) {
         self.task.abort();
     }
+}
+async fn open_host(state: &std::path::Path, registry: ModuleRegistry) -> KernelHost {
+    KernelHost::open(state, registry, auth())
+        .await
+        .unwrap()
+        .with_loader_helper(std::path::Path::new(env!("CARGO_BIN_EXE_nofy-agent-host")))
+        .unwrap()
 }
 async fn serve(host: &KernelHost) -> Server {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -372,117 +316,197 @@ fn runtime() -> tokio::runtime::Runtime {
         .build()
         .unwrap()
 }
-#[test]
-fn main_agent_delegates_messages_and_reopens_human_without_repeating_effect() {
-    runtime().block_on(async {
-        let evidence = Arc::new(Evidence::default());
-        let registry = registry(evidence.clone());
-        let dir = tempfile::tempdir().unwrap();
-        let state = dir.path().join("state");
-        let host = KernelHost::open(&state, registry.clone(), auth())
-            .await
-            .unwrap();
-        let server = serve(&host).await;
-        let document = system(&source(&registry, true, None), &registry);
-        submit(&server, document.clone(), "main-human").await;
-        let execution_registry = prepared_registry(&host, &document);
-        let supervisor = RunSupervisor::new(host.store().clone());
-        let first = tokio::time::timeout(
-            Duration::from_secs(20),
-            supervisor.execute_submitted(&execution_registry, "main-human"),
-        )
-        .await
+
+// Runtime resources are bound by the host loader. The bootstrap registry alone
+// intentionally does not contain the durable budget/checkpointer factories.
+fn prepared_registry(host: &KernelHost, document: &Value) -> ModuleRegistry {
+    host.control()
+        .prepare(serde_json::from_value(document.clone()).unwrap())
         .unwrap()
+        .registry()
+        .clone()
+}
+
+// The Omni preset path deliberately uses public source/package APIs.
+fn omni_source(
+    registry: &ModuleRegistry,
+    effect: bool,
+    allowed: bool,
+    budget: Option<u64>,
+) -> Source {
+    use nofy_agent_project::repository::*;
+    let kinds = kinds(registry);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let (packages, revision) = load_repository_directory(&root.join("modules")).unwrap();
+    assert_eq!(packages.len(), 15);
+    let temporary = tempfile::tempdir().unwrap();
+    let store = ModuleStore::open(temporary.path()).unwrap();
+    let repo = store
+        .put(
+            "nofy",
+            None,
+            RepositoryOrigin::Directory {
+                host_path: root.join("modules").canonicalize().unwrap(),
+            },
+        )
         .unwrap();
-        assert!(
-            matches!(first, Some(RunOutcome::Paused { .. })),
-            "{first:?}"
-        );
-        assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
-        let requests = evidence.requests.lock().unwrap().clone();
-        assert!(requests.iter().any(|r| {
-            result(r, "messages").is_some_and(|v| v.to_string().contains("child-result"))
-        }));
-        // Managed discovery may restore accepted constraints, but must never
-        // drop a policy or governance floor added by the current host.
-        for governance in [false, true] {
-            let mut stricter = registry.clone();
-            let required = ModuleRef::new("new-host-floor", "1");
-            if governance {
-                stricter.require_governance(required);
-            } else {
-                stricter.require_policy(required);
-            }
-            let error = supervisor
-                .human_recovery_targets(&stricter, "main-human")
-                .await
-                .unwrap_err();
-            assert!(
-                error.to_string().contains("missing a current host floor"),
-                "{error}"
-            );
+    store
+        .synchronize("nofy", &repo.revision, packages, revision)
+        .unwrap();
+    let mut source = templates().get("omni", Some("0.1.0"), None).unwrap();
+    assert_eq!(imports(&source).unwrap().len(), 11);
+    verify_package_sources(&source).unwrap();
+    assert!(
+        build(&source, &kinds).is_err(),
+        "provider must be configured explicitly"
+    );
+    edit(
+        &mut source,
+        "agent.module.add",
+        &json!({"agent":"main","id":"model","factory":"host.main_fixture_model","config":{},"slot":"model","replace_slot":true}),
+        &kinds,
+    )
+    .unwrap();
+    for (alias, package, version, bindings) in [
+        (
+            "delegate",
+            "main-agent-delegate",
+            "0.1.0",
+            json!({"model":"model","tools":"child-tools"}),
+        ),
+        (
+            "assembly",
+            "dynamic-assembly",
+            "0.1.0",
+            json!({"model":"model","tools":"child-tools"}),
+        ),
+        (
+            "compaction",
+            "context-compaction",
+            "0.2.2",
+            json!({"model":"model"}),
+        ),
+    ] {
+        let parameters = imports(&source).unwrap()[alias].parameters.clone();
+        use_package(
+            &mut source,
+            &store.package("nofy", package, version).unwrap(),
+            &json!({"agent":"main","alias":alias,"parameters":parameters,"bindings":bindings,"replace_import":true}),
+            &kinds,
+        )
+        .unwrap();
+    }
+    for alias in ["provider", "provider-responses", "provider-messages"] {
+        unuse_package(&mut source, alias).unwrap();
+    }
+    if effect {
+        edit(
+            &mut source,
+            "agent.module.add",
+            &json!({"agent":"main","id":"effect","factory":"host.main_fixture_effect","config":{}}),
+            &kinds,
+        )
+        .unwrap();
+        edit(
+            &mut source,
+            "agent.module.bind",
+            &json!({"agent":"main","module":"child-tools","dependencies":{"effect":"effect"}}),
+            &kinds,
+        )
+        .unwrap();
+        edit(
+            &mut source,
+            "agent.module.set",
+            &json!({"agent":"main","module":"child-tools","set":{"/packs":["messages","effect"]}}),
+            &kinds,
+        )
+        .unwrap();
+        let mut allowed_tools = vec![
+            "task",
+            "agent_messages",
+            "ask_user",
+            "workflow_execute",
+            "workflow_agent",
+            "assemble",
+        ];
+        if allowed {
+            allowed_tools.push("count_effect");
         }
-        let page = get(&server, "/api/v1/runs/main-human/recovery/humans").await;
-        assert_eq!(page["targets"].as_array().unwrap().len(), 1, "{page}");
-        let mut command = page["targets"][0]["command"].clone();
-        assert_eq!(command["kind"], "human");
-        assert_eq!(
-            command["expected_request"]["question"],
-            "Accept the child result?"
-        );
-        command["value"] = json!({"answer":"yes"});
-        let action = json!({"run_id":"main-human","command_id":"answer-main","command":command});
-        drop(supervisor);
-        drop(execution_registry);
-        drop(server);
-        drop(host);
-        // Reopen the durable host before admitting and executing the exact returned command.
-        let reopened = KernelHost::open(&state, registry.clone(), auth())
-            .await
-            .unwrap();
-        let server = serve(&reopened).await;
-        assert_eq!(
-            get(&server, "/api/v1/runs/main-human/recovery/humans").await,
-            page
-        );
-        let execution_registry = prepared_registry(&reopened, &document);
-        post(&server, "/api/v1/actions", action.clone()).await;
-        let supervisor = RunSupervisor::new(reopened.store().clone());
-        let receipt = tokio::time::timeout(
-            Duration::from_secs(20),
-            supervisor.execute_managed_action(&execution_registry, "answer-main"),
+        let mut settings = json!({
+            "allowed_tools": allowed_tools,
+            "child_allowed_tools": ["agent_messages", "count_effect"]
+        });
+        if let Some(limit) = budget {
+            settings["budget"] = json!({"max_model_calls": limit});
+        }
+        edit(
+            &mut source,
+            "agent.configure",
+            &json!({"agent":"main","settings":settings}),
+            &kinds,
         )
-        .await
-        .unwrap()
         .unwrap();
-        let receipt = serde_json::to_value(receipt).unwrap();
-        assert!(receipt["error"].is_null(), "{receipt}");
-        let state = get(&server, "/api/v1/runs/main-human").await;
-        assert_eq!(state["execution"]["status"], "completed", "{state}");
-        assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
-        let before = evidence.models.load(Ordering::SeqCst);
-        let repeated = post(&server, "/api/v1/actions", action).await;
-        assert_eq!(repeated, receipt);
-        supervisor
-            .execute_submitted(&execution_registry, "main-human")
-            .await
+    }
+    let source = store.hydrate(&source).unwrap();
+    assert_eq!(inspect(&source, &kinds).unwrap()["status"], "complete");
+    source
+}
+
+#[test]
+fn omni_repository_is_pinned_exportable_and_provider_source_is_complete() {
+    use nofy_agent_project::repository::*;
+    let registry = registry(Arc::new(Evidence::default()));
+    let kinds = kinds(&registry);
+    let source = omni_source(&registry, false, false, None);
+    let before = build(&source, &kinds).unwrap()["deployment_json"].clone();
+    let dir = tempfile::tempdir().unwrap();
+    nofy_agent_project::write_directory(&dir.path().join("export"), &source, None).unwrap();
+    let restored = nofy_agent_project::load_directory(&dir.path().join("export")).unwrap();
+    assert_eq!(build(&restored, &kinds).unwrap()["deployment_json"], before);
+    assert_eq!(
+        nofy_agent_project::pack(&source).unwrap(),
+        nofy_agent_project::pack(&restored).unwrap()
+    );
+    let mut tampered = restored.clone();
+    let pin = imports(&tampered).unwrap()["assembly"].digest.clone();
+    tampered.files.insert(
+        package_file(&pin).unwrap(),
+        nofy_agent_project::File::text("{}"),
+    );
+    assert!(build(&tampered, &kinds).is_err());
+    let mut provider = templates()
+        .get("omni", Some("0.1.0"), Some("assistant"))
+        .unwrap();
+    edit(&mut provider,"agent.configure",&json!({"agent":"assistant","settings":{"model":"fixture","connection":{"base_url":"https://example.invalid/v1/","models":["fixture"],"header_credentials":{"authorization":{"reference":"MODEL_KEY","prefix":"Bearer "}}}}}),&kinds).unwrap();
+    let document = system(&provider, &registry);
+    assert!(document["programs"].get("assistant").is_some());
+    assert!(document["programs"].get("main").is_none());
+    let encoded = serde_json::to_string(&document).unwrap();
+    assert!(encoded.contains("chat_completions.rhai"));
+    assert!(!encoded.contains("$file"));
+    assert!(!encoded.contains("$parameter"));
+    assert!(encoded.contains("assemble"));
+    // Prepare uses the actual host factory set, but never invokes the model.
+    runtime().block_on(async {
+        let temporary = tempfile::tempdir().unwrap();
+        let state = temporary.path().join("state");
+        let host = open_host(&state, registry.clone()).await;
+        host.control()
+            .prepare(serde_json::from_value(document).unwrap())
             .unwrap();
-        assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
-        assert_eq!(evidence.models.load(Ordering::SeqCst), before);
     });
 }
+
 #[test]
-fn main_agent_root_floor_blocks_child_effect_and_budget_is_shared() {
+fn omni_root_floor_blocks_child_effect_and_budget_is_shared() {
     runtime().block_on(async {
         for (id, allowed, budget) in [("floor", false, None), ("budget", true, Some(2))] {
             let evidence = Arc::new(Evidence::default());
             let registry = registry(evidence.clone());
             let dir = tempfile::tempdir().unwrap();
-            let host = KernelHost::open(&dir.path().join("state"), registry.clone(), auth())
-                .await
-                .unwrap();
+            let host = open_host(&dir.path().join("state"), registry.clone()).await;
             let server = serve(&host).await;
-            let document = system(&source(&registry, allowed, budget), &registry);
+            let document = system(&omni_source(&registry, true, allowed, budget), &registry);
             submit(&server, document.clone(), id).await;
             let execution_registry = prepared_registry(&host, &document);
             let supervisor = RunSupervisor::new(host.store().clone());
@@ -514,128 +538,6 @@ fn main_agent_root_floor_blocks_child_effect_and_budget_is_shared() {
                 );
             }
         }
-    });
-}
-
-// Runtime resources are bound by the host loader. The bootstrap registry alone
-// intentionally does not contain the durable budget/checkpointer factories.
-fn prepared_registry(host: &KernelHost, document: &Value) -> ModuleRegistry {
-    host.control()
-        .prepare(serde_json::from_value(document.clone()).unwrap())
-        .unwrap()
-        .registry()
-        .clone()
-}
-
-// The v0.2.0 repository path deliberately uses public source/package APIs.
-fn composable_source(registry: &ModuleRegistry, effect: bool) -> Source {
-    use nofy_agent_project::repository::*;
-    let kinds = kinds(registry);
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-    let (packages, revision) = load_repository_directory(&root.join("modules")).unwrap();
-    assert_eq!(packages.len(), 16);
-    let temporary = tempfile::tempdir().unwrap();
-    let store = ModuleStore::open(temporary.path()).unwrap();
-    let repo = store
-        .put(
-            "nofy",
-            None,
-            RepositoryOrigin::Directory {
-                host_path: root.join("modules").canonicalize().unwrap(),
-            },
-        )
-        .unwrap();
-    store
-        .synchronize("nofy", &repo.revision, packages, revision)
-        .unwrap();
-    let mut source = templates().get("main-agent", Some("0.2.0"), None).unwrap();
-    assert_eq!(imports(&source).unwrap().len(), 7);
-    verify_package_sources(&source).unwrap();
-    assert!(
-        build(&source, &kinds).is_err(),
-        "provider must be configured explicitly"
-    );
-    edit(&mut source,"agent.module.add",&json!({"agent":"main","id":"model","factory":"host.main_fixture_model","config":{},"slot":"model","replace_slot":true}),&kinds).unwrap();
-    for (alias, package) in [
-        ("delegate", "main-agent-delegate"),
-        ("assembly", "dynamic-assembly"),
-    ] {
-        let parameters = imports(&source).unwrap()[alias].parameters.clone();
-        use_package(&mut source, &store.package("nofy", package, "0.1.0").unwrap(), &json!({"agent":"main","alias":alias,"parameters":parameters,"bindings":{"model":"model","tools":"child-tools"},"replace_import":true}), &kinds).unwrap();
-    }
-    unuse_package(&mut source, "provider").unwrap();
-    if effect {
-        edit(
-            &mut source,
-            "agent.module.add",
-            &json!({"agent":"main","id":"effect","factory":"host.main_fixture_effect","config":{}}),
-            &kinds,
-        )
-        .unwrap();
-        edit(
-            &mut source,
-            "agent.module.bind",
-            &json!({"agent":"main","module":"child-tools","dependencies":{"effect":"effect"}}),
-            &kinds,
-        )
-        .unwrap();
-        edit(
-            &mut source,
-            "agent.module.set",
-            &json!({"agent":"main","module":"child-tools","set":{"/packs":["messages","effect"]}}),
-            &kinds,
-        )
-        .unwrap();
-        edit(&mut source,"agent.configure",&json!({"agent":"main","settings":{"allowed_tools":["agent_tasks","task","agent_messages","ask_user","workflow_execute","workflow_agent","assemble","count_effect"],"child_allowed_tools":["agent_messages","count_effect"]}}),&kinds).unwrap();
-    }
-    let source = store.hydrate(&source).unwrap();
-    assert_eq!(inspect(&source, &kinds).unwrap()["status"], "complete");
-    source
-}
-
-#[test]
-fn composable_repository_is_pinned_exportable_and_provider_source_is_complete() {
-    use nofy_agent_project::repository::*;
-    let registry = registry(Arc::new(Evidence::default()));
-    let kinds = kinds(&registry);
-    let source = composable_source(&registry, false);
-    let before = build(&source, &kinds).unwrap()["deployment_json"].clone();
-    let dir = tempfile::tempdir().unwrap();
-    nofy_agent_project::write_directory(&dir.path().join("export"), &source, None).unwrap();
-    let restored = nofy_agent_project::load_directory(&dir.path().join("export")).unwrap();
-    assert_eq!(build(&restored, &kinds).unwrap()["deployment_json"], before);
-    assert_eq!(
-        nofy_agent_project::pack(&source).unwrap(),
-        nofy_agent_project::pack(&restored).unwrap()
-    );
-    let mut tampered = restored.clone();
-    let pin = imports(&tampered).unwrap()["assembly"].digest.clone();
-    tampered.files.insert(
-        package_file(&pin).unwrap(),
-        nofy_agent_project::File::text("{}"),
-    );
-    assert!(build(&tampered, &kinds).is_err());
-    let mut provider = templates()
-        .get("main-agent", Some("0.2.0"), Some("assistant"))
-        .unwrap();
-    edit(&mut provider,"agent.configure",&json!({"agent":"assistant","settings":{"model":"fixture","connection":{"base_url":"https://example.invalid/v1/","models":["fixture"],"header_credentials":{"authorization":{"reference":"MODEL_KEY","prefix":"Bearer "}}}}}),&kinds).unwrap();
-    let document = system(&provider, &registry);
-    assert!(document["programs"].get("assistant").is_some());
-    let encoded = serde_json::to_string(&document).unwrap();
-    assert!(encoded.contains("chat_completions.rhai"));
-    assert!(!encoded.contains("$file"));
-    assert!(!encoded.contains("$parameter"));
-    assert!(encoded.contains("assemble"));
-    // Prepare uses the actual host factory set, but never invokes the model.
-    runtime().block_on(async {
-        let temporary = tempfile::tempdir().unwrap();
-        let state = temporary.path().join("state");
-        let host = KernelHost::open(&state, registry.clone(), auth())
-            .await
-            .unwrap();
-        host.control()
-            .prepare(serde_json::from_value(document).unwrap())
-            .unwrap();
     });
 }
 
@@ -674,31 +576,15 @@ impl Model for AssemblyModel {
                 }
             });
         };
-        let description = assembly.function.description.as_ref().unwrap();
-        let available = description
-            .split("Available dependencies: ")
-            .nth(1)
-            .unwrap()
-            .split(". Local modules")
-            .next()
-            .unwrap();
-        let choices: Vec<Value> = serde_json::from_str(available).unwrap();
-        let reference =
-            |kind: &str| choices.iter().find(|v| v["kind"] == kind).unwrap()["reference"].clone();
-        let prompt = json!({"id":"dynamic-prompt","version":"1"});
-        let agent = json!({"name":"constructed-worker","model":reference("model"),"prompt":prompt,"tool_packs":[reference("tool_pack")],"settings":{"max_steps":4}});
-        let modules = json!([{"reference":prompt,"factory":"prompt.static","config":{"text":"Execute the bounded counted effect once and finish."}}]);
-        Ok(if result(&request, "spawn-dynamic").is_none() {
+        let (modules, agent) = assembled_child_spec(
+            assembly,
+            "Execute the bounded counted effect once and finish.",
+        );
+        Ok(if result(&request, "dynamic-agent").is_none() {
             call(
-                "spawn-dynamic",
-                "agent_tasks",
-                json!({"action":"spawn","task_id":"constructed","tool":"assemble","arguments":{"kind":"agent","document":{"modules":modules,"agent":agent},"prompt":"count once"}}),
-            )
-        } else if result(&request, "join-dynamic").is_none() {
-            call(
-                "join-dynamic",
-                "agent_tasks",
-                json!({"action":"wait","task_id":"constructed","timeout_ms":5000}),
+                "dynamic-agent",
+                "assemble",
+                json!({"kind":"agent","document":{"modules":modules,"agent":agent},"prompt":"count once"}),
             )
         } else if result(&request, "graph").is_none() {
             call(
@@ -708,14 +594,15 @@ impl Model for AssemblyModel {
             )
         } else {
             ModelResponse {
-                output: "main completed dynamically constructed agent and graph".into(),
+                output: "omni completed dynamically constructed agent and graph".into(),
                 ..Default::default()
             }
         })
     }
 }
+
 #[test]
-fn composable_main_executes_model_authored_child_and_workflow_with_existing_host() {
+fn omni_executes_model_authored_child_and_workflow_with_existing_host() {
     runtime().block_on(async {
         let evidence = Arc::new(Evidence::default());
         let mut registry = native::registry(Arc::new(Credentials)).unwrap();
@@ -728,20 +615,18 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
                 model: false,
             }))
             .unwrap();
-        let source = composable_source(&registry, true);
+        let source = omni_source(&registry, true, true, None);
         let document = system(&source, &registry);
         let dir = tempfile::tempdir().unwrap();
         let state = dir.path().join("state");
-        let host = KernelHost::open(&state, registry.clone(), auth())
-            .await
-            .unwrap();
+        let host = open_host(&state, registry.clone()).await;
         let server = serve(&host).await;
-        submit(&server, document.clone(), "constructed-main").await;
+        submit(&server, document.clone(), "constructed-omni").await;
         let registry = prepared_registry(&host, &document);
         let supervisor = RunSupervisor::new(host.store().clone());
         let outcome = tokio::time::timeout(
             Duration::from_secs(30),
-            supervisor.execute_submitted(&registry, "constructed-main"),
+            supervisor.execute_submitted(&registry, "constructed-omni"),
         )
         .await
         .unwrap()
@@ -750,11 +635,11 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
             matches!(outcome, Some(RunOutcome::Completed { .. })),
             "{outcome:?}"
         );
-        let state = get(&server, "/api/v1/runs/constructed-main").await;
+        let state = get(&server, "/api/v1/runs/constructed-omni").await;
         assert_eq!(state["execution"]["status"], "completed", "{state}");
         {
             let requests = evidence.requests.lock().unwrap();
-            for id in ["join-dynamic", "graph"] {
+            for id in ["dynamic-agent", "graph"] {
                 let (value, is_error) = requests
                     .iter()
                     .flat_map(|r| &r.messages)
@@ -782,7 +667,7 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
         }
         let before = evidence.models.load(Ordering::SeqCst);
         supervisor
-            .execute_submitted(&registry, "constructed-main")
+            .execute_submitted(&registry, "constructed-omni")
             .await
             .unwrap();
         assert_eq!(evidence.effects.load(Ordering::SeqCst), 2);
@@ -791,23 +676,21 @@ fn composable_main_executes_model_authored_child_and_workflow_with_existing_host
 }
 
 #[test]
-fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
+fn omni_reopens_static_human_workflow_without_repeating_effect() {
     runtime().block_on(async {
         let evidence = Arc::new(Evidence::default());
         let registry = registry(evidence.clone());
-        let document = system(&composable_source(&registry, true), &registry);
+        let document = system(&omni_source(&registry, true, true, None), &registry);
         let temporary = tempfile::tempdir().unwrap();
         let state = temporary.path().join("state");
-        let host = KernelHost::open(&state, registry.clone(), auth())
-            .await
-            .unwrap();
+        let host = open_host(&state, registry.clone()).await;
         let server = serve(&host).await;
-        submit(&server, document.clone(), "composable-human").await;
+        submit(&server, document.clone(), "omni-human").await;
         let execution_registry = prepared_registry(&host, &document);
         let supervisor = RunSupervisor::new(host.store().clone());
         let first = tokio::time::timeout(
             Duration::from_secs(30),
-            supervisor.execute_submitted(&execution_registry, "composable-human"),
+            supervisor.execute_submitted(&execution_registry, "omni-human"),
         )
         .await
         .unwrap()
@@ -817,20 +700,47 @@ fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
             "{first:?}"
         );
         assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
-        let recovery = get(&server, "/api/v1/runs/composable-human/recovery/humans").await;
+        let requests = evidence.requests.lock().unwrap().clone();
+        assert!(requests.iter().any(|r| {
+            result(r, "messages").is_some_and(|v| v.to_string().contains("child-result"))
+        }));
+        // Managed discovery may restore accepted constraints, but must never
+        // drop a policy or governance floor added by the current host.
+        for governance in [false, true] {
+            let mut stricter = registry.clone();
+            let required = ModuleRef::new("new-host-floor", "1");
+            if governance {
+                stricter.require_governance(required);
+            } else {
+                stricter.require_policy(required);
+            }
+            let error = supervisor
+                .human_recovery_targets(&stricter, "omni-human")
+                .await
+                .unwrap_err();
+            assert!(
+                error.to_string().contains("missing a current host floor"),
+                "{error}"
+            );
+        }
+        let recovery = get(&server, "/api/v1/runs/omni-human/recovery/humans").await;
         assert_eq!(recovery["targets"].as_array().unwrap().len(), 1);
         let mut command = recovery["targets"][0]["command"].clone();
+        assert_eq!(command["kind"], "human");
+        assert_eq!(
+            command["expected_request"]["question"],
+            "Accept the child result?"
+        );
         command["value"] = json!({"answer":"yes"});
-        let action =
-            json!({"run_id":"composable-human","command_id":"answer-composable","command":command});
+        let action = json!({"run_id":"omni-human","command_id":"answer-omni","command":command});
         drop(supervisor);
         drop(execution_registry);
         drop(server);
         drop(host);
-        let host = KernelHost::open(&state, registry, auth()).await.unwrap();
+        let host = open_host(&state, registry).await;
         let server = serve(&host).await;
         assert_eq!(
-            get(&server, "/api/v1/runs/composable-human/recovery/humans").await,
+            get(&server, "/api/v1/runs/omni-human/recovery/humans").await,
             recovery
         );
         post(&server, "/api/v1/actions", action.clone()).await;
@@ -838,7 +748,7 @@ fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
         let supervisor = RunSupervisor::new(host.store().clone());
         let receipt = tokio::time::timeout(
             Duration::from_secs(30),
-            supervisor.execute_managed_action(&registry, "answer-composable"),
+            supervisor.execute_managed_action(&registry, "answer-omni"),
         )
         .await
         .unwrap()
@@ -846,11 +756,17 @@ fn composable_main_reopens_static_human_workflow_without_repeating_effect() {
         let receipt = serde_json::to_value(receipt).unwrap();
         assert!(receipt["error"].is_null(), "{receipt}");
         assert_eq!(
-            get(&server, "/api/v1/runs/composable-human").await["execution"]["status"],
+            get(&server, "/api/v1/runs/omni-human").await["execution"]["status"],
             "completed"
         );
         assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
+        let before = evidence.models.load(Ordering::SeqCst);
         assert_eq!(post(&server, "/api/v1/actions", action).await, receipt);
+        supervisor
+            .execute_submitted(&registry, "omni-human")
+            .await
+            .unwrap();
         assert_eq!(evidence.effects.load(Ordering::SeqCst), 1);
+        assert_eq!(evidence.models.load(Ordering::SeqCst), before);
     });
 }

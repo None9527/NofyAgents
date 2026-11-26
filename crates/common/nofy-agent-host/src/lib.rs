@@ -6,6 +6,7 @@ mod authoring;
 pub mod credentials;
 pub mod dev_web;
 pub mod evolution;
+#[cfg(feature = "feature-authoring")]
 pub mod feature_authoring;
 pub mod loader;
 pub mod native;
@@ -68,6 +69,7 @@ pub struct KernelHost {
     pub(crate) module_library: nofy_agent_project::repository::ModuleStore,
     pub(crate) templates: Option<nofy_agent_project::TemplateRegistry>,
     pub(crate) evolution: evolution::Evolution,
+    #[cfg(feature = "feature-authoring")]
     feature_authoring: Arc<feature_authoring::Authoring>,
 }
 impl KernelHost {
@@ -141,10 +143,14 @@ impl KernelHost {
             loader.private_root.join("omni-evolution.sqlite"),
         );
         registry.register_factory(Arc::new(evolution::ProposalFactory(evolution.clone())))?;
-        let feature_authoring = Arc::new(feature_authoring::Authoring::default());
-        registry.register_factory(Arc::new(feature_authoring::Factory(Arc::downgrade(
-            &feature_authoring,
-        ))))?;
+        #[cfg(feature = "feature-authoring")]
+        let feature_authoring = {
+            let feature_authoring = Arc::new(feature_authoring::Authoring::default());
+            registry.register_factory(Arc::new(feature_authoring::Factory(Arc::downgrade(
+                &feature_authoring,
+            ))))?;
+            feature_authoring
+        };
         let control = ControlPlane::new(Arc::new(catalog), registry.clone());
         let supervisor =
             Arc::new(RunSupervisor::new(store.clone()).with_session_registry(registry.clone()));
@@ -165,6 +171,7 @@ impl KernelHost {
             module_library,
             templates: None,
             evolution,
+            #[cfg(feature = "feature-authoring")]
             feature_authoring,
             control,
             supervisor,

@@ -323,15 +323,8 @@ fn incomplete_unpublished_drafts_do_not_grant_authority_or_block_history_transfe
             ..Default::default()
         },
     };
-    let runtimes = super::super::runtimes::RuntimeStore::open(
-        &control.host_root.join("loader/runtimes"),
-        &control.host_root,
-    )
-    .unwrap();
     let target = backend(&dir.path().join("external"));
-    control
-        .preflight_grants(&target, Some(catalog), &runtimes)
-        .unwrap();
+    control.preflight_grants(&target, Some(catalog)).unwrap();
     let plan = control.plan(&target, store.now_ms()).unwrap();
     control
         .prepare("draft-safe-move", &target, &plan.fingerprint, &store)

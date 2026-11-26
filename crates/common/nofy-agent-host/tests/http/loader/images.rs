@@ -337,8 +337,8 @@ async fn locked_image_preflight_is_pure_and_portable_deployment_runs_without_loc
             Value::Null
         )
         .await
-        .1,
-        json!([])
+        .0,
+        404
     );
     let active = request(
         &other,

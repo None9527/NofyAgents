@@ -22,7 +22,6 @@ use super::chunker::{chunk_hash, chunk_markdown};
 use super::layout::{ScopeLayout, UnifiedMemoryLayout};
 use super::model::{MemoryScope, Observation, ObservationKind, ProjectId, ProjectValidity};
 use super::schema;
-use super::storage::MemoryStorage;
 use crate::config::MemoryIndexConfig;
 pub(crate) mod semantic;
 
@@ -139,8 +138,6 @@ pub struct UnifiedMemoryIndex {
 /// SQLite-backed memory index.
 pub struct MemoryIndex {
     db: rusqlite::Connection,
-    #[expect(dead_code, reason = "used by later PRs for reindex_all / file reads")]
-    storage: MemoryStorage,
     chunk_config: MemoryIndexConfig,
     /// Whether sqlite-vec loaded successfully (FTS always available).
     vec_available: bool,
@@ -162,13 +159,11 @@ impl UnifiedMemoryIndex {
         std::fs::create_dir_all(project_scope.root())?;
         let personal = MemoryIndex::open_or_create(
             &personal_scope.root().join("index.sqlite"),
-            MemoryStorage::new_flat(personal_scope.root(), personal_scope.root()),
             config.clone(),
             dimensions,
         )?;
         let project = MemoryIndex::open_or_create(
             &project_scope.root().join("index.sqlite"),
-            MemoryStorage::new_flat(project_scope.root(), project_scope.root()),
             config,
             dimensions,
         )?;
@@ -280,7 +275,6 @@ impl MemoryIndex {
     /// index gracefully degrades to FTS-only mode.
     pub fn open_or_create(
         db_path: &Path,
-        storage: MemoryStorage,
         config: MemoryIndexConfig,
         dimensions: usize,
     ) -> Result<Self, rusqlite::Error> {
@@ -292,7 +286,6 @@ impl MemoryIndex {
         // The mode decision statfs's the parent dir created above.
         Self::open_or_create_with_journal_mode(
             db_path,
-            storage,
             config,
             dimensions,
             JournalMode::for_db_path(db_path),
@@ -303,7 +296,6 @@ impl MemoryIndex {
     /// the network-filesystem decision on a local disk.
     fn open_or_create_with_journal_mode(
         db_path: &Path,
-        storage: MemoryStorage,
         config: MemoryIndexConfig,
         dimensions: usize,
         journal_mode: JournalMode,
@@ -406,7 +398,6 @@ impl MemoryIndex {
 
         Ok(Self {
             db,
-            storage,
             chunk_config: config,
             vec_available,
             embedding_dimensions: dimensions,
@@ -2026,16 +2017,18 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
-    fn test_storage(tmp: &TempDir) -> MemoryStorage {
-        let global = tmp.path().join("memory");
-        let workspace = global.join("test_ws");
-        MemoryStorage::with_paths(global, workspace)
+    fn test_db_path(tmp: &TempDir) -> PathBuf {
+        let dir = UnifiedMemoryLayout::new(tmp.path())
+            .personal_scope()
+            .root()
+            .to_path_buf();
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("index.sqlite")
     }
 
     fn test_index(tmp: &TempDir) -> MemoryIndex {
-        let db_path = tmp.path().join("test.sqlite");
-        let storage = test_storage(tmp);
-        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536).unwrap()
+        let db_path = test_db_path(tmp);
+        MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 1536).unwrap()
     }
 
     #[test]
@@ -2048,24 +2041,17 @@ mod tests {
     #[test]
     fn test_open_or_create_reopens_existing() {
         let tmp = TempDir::new().unwrap();
-        let db_path = tmp.path().join("test.sqlite");
-        let storage = test_storage(&tmp);
+        let db_path = test_db_path(&tmp);
 
         // Create
         {
-            let _idx = MemoryIndex::open_or_create(
-                &db_path,
-                storage.clone(),
-                MemoryIndexConfig::default(),
-                1536,
-            )
-            .unwrap();
+            let _idx =
+                MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 1536).unwrap();
         }
 
         // Reopen
         let idx =
-            MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536)
-                .unwrap();
+            MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 1536).unwrap();
         assert_eq!(idx.embedding_dimensions(), 1536);
     }
 
@@ -2091,12 +2077,10 @@ mod tests {
         // legacy shared file is left untouched — a live old binary can flip
         // it back to WAL at any time) in rollback-journal mode.
         let tmp = TempDir::new().unwrap();
-        let db_path = tmp.path().join("test.sqlite");
-        let storage = test_storage(&tmp);
+        let db_path = test_db_path(&tmp);
 
         let idx = MemoryIndex::open_or_create_with_journal_mode(
             &db_path,
-            storage,
             MemoryIndexConfig::default(),
             512,
             JournalMode::Truncate,
@@ -2279,19 +2263,14 @@ mod tests {
     // Append-then-reindex regression test
     // -----------------------------------------------------------------------
 
-    /// Simulates the `/memory append` → immediate-reindex flow.
-    ///
-    /// Previously the TUI's `AppendMemory` action wrote the file and returned
-    /// without reindexing.  Appended content was only searchable after a future
-    /// watcher-driven sync or the next session startup.  The fix reindexes
-    /// immediately after append; this test ensures that regression cannot silently
-    /// re-appear.
+    /// Ensures writing a memory file followed by immediate `reindex_file`
+    /// makes the appended content searchable right away without a restart.
     #[test]
     fn test_append_then_reindex_is_immediately_searchable() {
         let tmp = TempDir::new().unwrap();
         let mut idx = test_index(&tmp);
 
-        // Simulate MemoryStorage::append_to_memory writing the file.
+        // Write a topic Markdown file.
         let mem_file = tmp.path().join("workspace_memory.md");
         std::fs::write(
             &mem_file,
@@ -2306,10 +2285,10 @@ mod tests {
             "content must not be searchable before reindex_file is called"
         );
 
-        // Immediate reindex (what reindex_appended_memory in app.rs does).
+        // Immediate reindex makes the newly written content searchable.
         idx.reindex_file(&mem_file, "workspace", "agent").unwrap();
 
-        // Now the content must be searchable without watcher or restart.
+        // Now the content must be searchable immediately.
         let post = idx.search_fts("prefer references over clones", 10).unwrap();
         assert!(
             !post.is_empty(),
@@ -2664,10 +2643,8 @@ mod tests {
         }
 
         // Opening migrates idempotently.
-        let storage = test_storage(&tmp);
         let mut idx =
-            MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536)
-                .unwrap();
+            MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 1536).unwrap();
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Title\n\nMigrated content.").unwrap();
@@ -2686,8 +2663,7 @@ mod tests {
 
         // Re-opening is a no-op migration (idempotent).
         drop(idx);
-        let storage = test_storage(&tmp);
-        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536).unwrap();
+        MemoryIndex::open_or_create(&db_path, MemoryIndexConfig::default(), 1536).unwrap();
     }
 
     #[test]

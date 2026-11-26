@@ -9,16 +9,11 @@ use std::collections::{BTreeMap, BTreeSet};
 pub enum ObjectKey {
     Artifact { digest: String },
     Image { digest: String },
-    Runtime { id: String, revision: String },
 }
 impl ObjectKey {
     pub(super) fn validate(&self) -> Result<()> {
         match self {
             Self::Artifact { digest } | Self::Image { digest } => storage::digest(digest),
-            Self::Runtime { id, revision } => {
-                sources::name(id)?;
-                storage::digest(revision)
-            }
         }
     }
 }
@@ -105,7 +100,6 @@ impl Collector {
                     (&o.object, module.factory.as_str()),
                     (ObjectKey::Artifact { .. }, "resource.artifact")
                         | (ObjectKey::Image { .. }, "resource.process_locked")
-                        | (ObjectKey::Runtime { .. }, "resource.process")
                 )
             });
             if !interested {
@@ -141,17 +135,6 @@ pub(super) fn key(module: &ModuleDefinition) -> Result<Option<ObjectKey>> {
     struct Image {
         image: String,
     }
-    #[derive(Deserialize)]
-    #[serde(deny_unknown_fields)]
-    struct Runtime {
-        runtime: RuntimeRef,
-    }
-    #[derive(Deserialize)]
-    #[serde(deny_unknown_fields)]
-    struct RuntimeRef {
-        id: String,
-        revision: String,
-    }
     fn parsed<T: serde::de::DeserializeOwned>(value: &serde_json::Value) -> Result<T> {
         serde_json::from_value(value.clone())
             .map_err(|_| HostError::Invalid("incomplete retained resource declaration".into()))
@@ -174,13 +157,6 @@ pub(super) fn key(module: &ModuleDefinition) -> Result<Option<ObjectKey>> {
                 deployment::manifest(&module.config)?.digest()?
             },
         },
-        "resource.process" => {
-            let r = parsed::<Runtime>(&module.config)?.runtime;
-            ObjectKey::Runtime {
-                id: r.id,
-                revision: r.revision,
-            }
-        }
         _ => return Ok(None),
     };
     key.validate()?;

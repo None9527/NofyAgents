@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nofy.local/contracts/nofy.kernel.v1.schema.json",
   "title": "Nofy CLI/MCP contracts including SessionPolicy",
-  "description": "Contract revision 0.6. Self-describing Agent assembly, scoped collaboration, process sessions, branches, permissions and lifecycle operations.",
+  "description": "Contract revision 0.7. Self-describing Agent assembly, scoped collaboration, process sessions, branches, permissions and lifecycle operations.",
   "oneOf": [
     {
       "$ref": "#/$defs/Result"
@@ -1505,11 +1505,10 @@
         "kind": {
           "enum": [
             "artifacts",
-            "runtimes",
             "runtime_images",
             "runtime_sources"
           ],
-          "description": "One of: `artifacts`, `runtimes`, `runtime_images`, `runtime_sources`."
+          "description": "One of: `artifacts`, `runtime_images`, `runtime_sources`."
         },
         "after": {
           "type": "string",
@@ -1561,12 +1560,11 @@
         "kind": {
           "enum": [
             "artifact",
-            "runtime",
             "runtime_image",
             "runtime_source",
             "memory"
           ],
-          "description": "One of: `artifact`, `runtime`, `runtime_image`, `runtime_source`, `memory`."
+          "description": "One of: `artifact`, `runtime_image`, `runtime_source`, `memory`."
         },
         "id": {
           "type": "string",

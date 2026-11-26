@@ -120,8 +120,7 @@ async fn quiesce(host: &KernelHost) -> Result<(HistoryLease, HistoryLease)> {
 async fn preflight(host: &KernelHost, target: BackendDefinition) -> Result<()> {
     let catalog = host.control.inspect().await?;
     let controller = host.runtime_history.clone();
-    let runtimes = host.loader.runtimes.clone();
-    tokio::task::spawn_blocking(move || controller.preflight_grants(&target, catalog, &runtimes))
+    tokio::task::spawn_blocking(move || controller.preflight_grants(&target, catalog))
         .await
         .map_err(|_| HostError::Unavailable("runtime destination grant inspection failed".into()))?
 }

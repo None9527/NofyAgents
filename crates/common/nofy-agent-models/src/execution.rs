@@ -46,18 +46,15 @@ pub trait Executor: Send + Sync {
         cancel: CancellationToken,
     ) -> Result<Evaluation, Error>;
 
-    /// Optional stateful SSE stream reduction keeping `exchange.state` inside
-    /// the evaluator across frames. Returning `Ok(None)` falls back to
-    /// stateless single-step `evaluate` calls.
+    /// Stateful SSE stream reduction keeping `exchange.state` inside the
+    /// evaluator across frames.
     async fn begin_stream(
         &self,
-        _program: Arc<Protocol>,
-        _state: Value,
-        _cap: usize,
-        _cancel: CancellationToken,
-    ) -> Result<Option<Box<dyn StreamExecutor>>, Error> {
-        Ok(None)
-    }
+        program: Arc<Protocol>,
+        state: Value,
+        cap: usize,
+        cancel: CancellationToken,
+    ) -> Result<Box<dyn StreamExecutor>, Error>;
 }
 
 enum TrustedStreamCommand {
@@ -188,7 +185,7 @@ impl Executor for Trusted {
         state: Value,
         cap: usize,
         cancel: CancellationToken,
-    ) -> Result<Option<Box<dyn StreamExecutor>>, Error> {
+    ) -> Result<Box<dyn StreamExecutor>, Error> {
         if cancel.is_cancelled() {
             return Err(Error::Cancelled);
         }
@@ -245,10 +242,10 @@ impl Executor for Trusted {
             }
         });
         match ready_rx.await {
-            Ok(Ok(())) => Ok(Some(Box::new(TrustedStream {
+            Ok(Ok(())) => Ok(Box::new(TrustedStream {
                 tx: Mutex::new(Some(tx)),
                 worker: Mutex::new(Some(worker)),
-            }))),
+            })),
             Ok(Err(error)) => {
                 let _ = worker.await;
                 Err(error)
@@ -342,7 +339,7 @@ impl Binding {
 
 enum SessionCommand {
     Step(Value, oneshot::Sender<Result<Value, Error>>),
-    BeginStream(Value, oneshot::Sender<Result<bool, Error>>),
+    BeginStream(Value, oneshot::Sender<Result<(), Error>>),
     PushEvent(Value, oneshot::Sender<Result<Value, Error>>),
     FinishStream(oneshot::Sender<Result<Value, Error>>),
     AbortStream(oneshot::Sender<()>),
@@ -409,12 +406,9 @@ impl Session {
                             .begin_stream(program.clone(), state, cap, stop.clone())
                             .await
                         {
-                            Ok(Some(stream)) => {
+                            Ok(stream) => {
                                 active_stream = Some(stream);
-                                let _ = reply.send(Ok(true));
-                            }
-                            Ok(None) => {
-                                let _ = reply.send(Ok(false));
+                                let _ = reply.send(Ok(()));
                             }
                             Err(error) => {
                                 let _ = reply.send(Err(error));
@@ -511,7 +505,7 @@ impl Session {
         rx.await.map_err(|_| failure("worker_closed"))?
     }
 
-    pub(crate) async fn begin_stream(&self, state: Value) -> Result<bool, Error> {
+    pub(crate) async fn begin_stream(&self, state: Value) -> Result<(), Error> {
         let (tx, rx) = oneshot::channel();
         self.tx
             .send(SessionCommand::BeginStream(state, tx))

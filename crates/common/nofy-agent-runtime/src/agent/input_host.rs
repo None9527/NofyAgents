@@ -1,6 +1,9 @@
 use super::*;
-use crate::{hooks::HookDecision, mailbox::*};
-use nofy_interjection_core::{PendingInterjection, format_interjection};
+use crate::{
+    hooks::HookDecision,
+    interjection::{PendingInterjection, format_interjection},
+    mailbox::*,
+};
 
 fn message(input: &PendingInterjection<crate::InputPart>, framed: bool) -> Message {
     let text = if framed {

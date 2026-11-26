@@ -40,8 +40,6 @@ pub enum ToolErrorKind {
     NetworkError,
     /// Tool body returned an error.
     Execution,
-    /// Requested behavior version not supported.
-    BehaviorVersionUnsupported,
     /// Terminal subprocess failure.
     TerminalError,
     /// Forward-compat catch-all.
@@ -63,7 +61,6 @@ impl ToolErrorKind {
             Self::ServiceUnavailable => "service_unavailable",
             Self::NetworkError => "network_error",
             Self::Execution => "execution",
-            Self::BehaviorVersionUnsupported => "behavior_version_unsupported",
             Self::TerminalError => "terminal_error",
             Self::Custom => "custom",
         }
@@ -179,37 +176,14 @@ impl ToolError {
             .with_details(serde_json::json!({ "tool_id": tool_id.as_str() }))
     }
 
-    pub fn rate_limited(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::RateLimited, detail)
-    }
-
-    pub fn service_unavailable(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::ServiceUnavailable, detail)
-    }
-
-    pub fn network_error(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::NetworkError, detail)
-    }
-
     pub fn execution(tool_id: ToolId, detail: impl Into<String>) -> Self {
         Self::new(ToolErrorKind::Execution, detail)
-            .with_details(serde_json::json!({ "tool_id": tool_id.as_str() }))
-    }
-
-    pub fn terminal_error(tool_id: ToolId, detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::TerminalError, detail)
             .with_details(serde_json::json!({ "tool_id": tool_id.as_str() }))
     }
 
     pub fn custom(code: impl Into<String>, detail: impl Into<String>) -> Self {
         Self::new(ToolErrorKind::Custom, detail)
             .with_details(serde_json::json!({ "code": code.into() }))
-    }
-
-    /// Snake-case identifier for the kind. Delegates to
-    /// [`ToolErrorKind::as_str`].
-    pub fn variant_name(&self) -> &'static str {
-        self.kind.as_str()
     }
 }
 

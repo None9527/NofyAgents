@@ -6,9 +6,11 @@ license.workspace = true
 description = "Resident declarative agent management API over the shared Nofy runtime"
 default-run = "nofy-agent-host"
 
+[features]
+feature-authoring = []
+
 [dependencies]
 nofy-agent-client = { path = "../nofy-agent-client" }
-nofy-interjection-core = { path = "../nofy-interjection-core" }
 nofy-agent-project = { path = "../nofy-agent-project" }
 nofy-agent-modules = { path = "../nofy-agent-modules" }
 nofy-agent-models = { path = "../nofy-agent-models" }

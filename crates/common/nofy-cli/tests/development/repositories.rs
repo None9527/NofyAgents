@@ -84,7 +84,7 @@ async fn shared_module_cli_and_mcp_pin_edit_export_and_offline_rebuild() {
             .count()
     );
     let discovery = mcp_call(&client, "nofy_describe", json!({"group":"repository"})).await;
-    assert_eq!(discovery["data"]["contract_revision"], "0.6");
+    assert_eq!(discovery["data"]["contract_revision"], "0.7");
     mcp_call(
         &client,
         "nofy_schema",

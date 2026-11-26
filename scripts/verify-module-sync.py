@@ -24,6 +24,44 @@ OMNI_MANUAL_COPIES = {
     "presets/omni/README.md": "docs/manual/omni-agent.md",
     "presets/omni/文件说明.md": "docs/manual/omni-agent-files.md",
 }
+MAIN_AGENT_MANUAL_COPIES = {
+    "presets/main-agent-composable/README.md": "docs/manual/main-agent-repository.md",
+}
+CODING_MODULE_COPIES = (
+    ("presets/coding/modules/models/common.rhai", "modules/models/chat-completions/common.rhai"),
+    ("presets/coding/modules/models/common.rhai", "modules/models/messages/common.rhai"),
+    ("presets/coding/modules/models/common.rhai", "modules/models/responses/common.rhai"),
+    (
+        "presets/coding/modules/models/parameters.schema.json",
+        "modules/models/chat-completions/parameters.schema.json",
+    ),
+    (
+        "presets/coding/modules/models/parameters.schema.json",
+        "modules/models/messages/parameters.schema.json",
+    ),
+    (
+        "presets/coding/modules/models/parameters.schema.json",
+        "modules/models/responses/parameters.schema.json",
+    ),
+    (
+        "presets/coding/modules/models/chat_completions.rhai",
+        "modules/models/chat-completions/chat_completions.rhai",
+    ),
+    (
+        "presets/coding/modules/models/messages.rhai",
+        "modules/models/messages/messages.rhai",
+    ),
+    (
+        "presets/coding/modules/models/responses.rhai",
+        "modules/models/responses/responses.rhai",
+    ),
+    ("presets/coding/modules/command/command.py", "modules/workspace/command/command.py"),
+    ("presets/coding/modules/command/manifest.json", "modules/workspace/command/manifest.json"),
+    ("presets/coding/modules/files/files.py", "modules/workspace/files/files.py"),
+    ("presets/coding/modules/files/workspace.py", "modules/workspace/files/workspace.py"),
+    ("presets/coding/modules/files/manifest.json", "modules/workspace/files/manifest.json"),
+    ("presets/coding/rules.md", "modules/workspace/files/rules.md"),
+)
 
 
 def safe_rel(value: str) -> str:
@@ -404,13 +442,41 @@ def verify_schemas_and_wiring(root: Path, problems: list[str]) -> None:
     except (OSError, ValueError) as exc:
         problems.append(f"presets/omni/preset.json: {exc}")
 
-    # Check manual docs embedded into presets/omni remain byte-identical.
+    # Check manual docs embedded into presets remain byte-identical.
     for dst_rel, src_rel in OMNI_MANUAL_COPIES.items():
-        dst, src = root / dst_rel, root / src_rel
-        if not dst.exists() or not src.exists():
-            problems.append(f"missing manual sync file: {dst_rel} <-> {src_rel}")
-        elif dst.read_bytes() != src.read_bytes():
+        try:
+            dst = ensure_regular_no_symlink(root / dst_rel, root)
+            src = ensure_regular_no_symlink(root / src_rel, root)
+        except (OSError, ValueError) as exc:
+            problems.append(f"manual sync file error ({dst_rel} <-> {src_rel}): {exc}")
+            continue
+        if dst.read_bytes() != src.read_bytes():
             problems.append(f"{dst_rel} differs from {src_rel}; regenerate presets/omni via omni_preset")
+
+    for dst_rel, src_rel in MAIN_AGENT_MANUAL_COPIES.items():
+        try:
+            dst = ensure_regular_no_symlink(root / dst_rel, root)
+            src = ensure_regular_no_symlink(root / src_rel, root)
+        except (OSError, ValueError) as exc:
+            problems.append(f"manual sync file error ({dst_rel} <-> {src_rel}): {exc}")
+            continue
+        if dst.read_bytes() != src.read_bytes():
+            problems.append(
+                f"{dst_rel} differs from {src_rel}; keep main-agent repository manual in sync"
+            )
+
+    # Check presets/coding shared sources remain byte-identical with modules/{models,workspace}.
+    for coding_rel, module_rel in CODING_MODULE_COPIES:
+        try:
+            coding_path = ensure_regular_no_symlink(root / coding_rel, root)
+            module_path = ensure_regular_no_symlink(root / module_rel, root)
+        except (OSError, ValueError) as exc:
+            problems.append(f"coding module sync file error ({coding_rel} <-> {module_rel}): {exc}")
+            continue
+        if coding_path.read_bytes() != module_path.read_bytes():
+            problems.append(
+                f"{coding_rel} drifted from {module_rel}; keep presets/coding and modules/ sources byte-identical"
+            )
 
     # Check presets/main-agent-composable/settings.schema.json.
     comp_schema_path = root / "presets/main-agent-composable/settings.schema.json"
@@ -443,6 +509,8 @@ def verify_all(root: Path = ROOT) -> tuple[list[str], dict]:
         "omni_frozen_packages": omni_frozen,
         "main_agent_frozen_packages": comp_frozen,
         "omni_source_files": omni_files,
+        "coding_module_pairs": len(CODING_MODULE_COPIES),
+        "manual_doc_pairs": len(OMNI_MANUAL_COPIES) + len(MAIN_AGENT_MANUAL_COPIES),
     }
     return problems, summary
 
@@ -457,7 +525,9 @@ def main() -> int:
         f"module sync: {summary['repository_packages']} repository packages, "
         f"{summary['omni_frozen_packages']} omni frozen packages, "
         f"{summary['main_agent_frozen_packages']} main-agent frozen packages, "
-        f"{summary['omni_source_files']} omni source files verified"
+        f"{summary['omni_source_files']} omni source files, "
+        f"{summary['coding_module_pairs']} coding/module source pairs, "
+        f"{summary['manual_doc_pairs']} manual doc pairs verified"
     )
     return 0
 

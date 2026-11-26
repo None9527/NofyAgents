@@ -22,11 +22,11 @@ RUNNERS = {"ubuntu-24.04": "Linux", "macos-latest": "Darwin", "windows-latest": 
 FLAGS = ("delegation", "parallel", "configuration", "recipe", "workflow",
          "workflow_module", "workflow_hook", "program", "event_program",
          "declarative_system", "file_catalog")
-AGENTS = ["business", "research-pack", "standalone-coding"]
+AGENTS = ["business", "standalone-coding"]
 INVENTORY = sorted([*FLAGS, *["agent:" + name for name in AGENTS]])
 FORBIDDEN = {"nofy-agent-host", "nofy-shell", "nofy-tools", "nofy-agent",
              "nofy-daemon", "nofy-pager", "nofy-workspace", "nofy-acp",
-             "nofy-sandbox", "nofy-workflow", "nofy-orchestra"}
+             "nofy-sandbox", "nofy-workflow", "nofy-orchestra", "nofy-packcore"}
 ENTRY = '#[tokio::main(flavor = "current_thread")]\nasync fn main() -> Result<(), Error> {'
 RENAMED = 'async fn managed_consumer_body() -> Result<(), Error> {'
 WRAPPER = """
@@ -258,7 +258,7 @@ def collect(args, root=ROOT):
         generated = generate_harness(original)
         manifest = files["Cargo.toml"].decode("utf-8")
         declared = tomllib.loads(manifest)["dependencies"]["nofy-agent-runtime"]["features"]
-        require(declared == ["pack", "workflow", "control-file"], "feature contract drift")
+        require(declared == ["workflow", "control-file"], "feature contract drift")
         report.update({"fixture_sha256": {name: digest(data) for name, data in files.items()},
                        "fixture_hash_encoding": "UTF-8 with CRLF normalized to LF",
                        "declared_features": declared, "generated_sha256": digest(generated.encode()),
@@ -366,7 +366,7 @@ def validate_artifact(directory):
             "non-native runner result")
     require(report["stack_bytes"] == STACK_BYTES and report["runtime"] == "current_thread",
             "wrong runtime budget")
-    require(report["inventory"] == INVENTORY and len(report["inventory"]) == 14,
+    require(report["inventory"] == INVENTORY and len(report["inventory"]) == 13,
             "missing or different scenario inventory")
     require(report["outside_workspace"] is True and report["dependency_boundary"] == "passed",
             "consumer boundary not verified")
@@ -423,7 +423,7 @@ def validate_artifact(directory):
                              (directory / "execution.stderr.log").read_text(encoding="utf-8"))
     require(actual == report["business_result"], "execution result differs")
     metadata = strict_json((directory / "metadata.stdout.log").read_text(encoding="utf-8"))
-    require(report["declared_features"] == ["pack", "workflow", "control-file"], "feature drift")
+    require(report["declared_features"] == ["workflow", "control-file"], "feature drift")
     require(runtime_features(metadata, report["declared_features"])
             == report["resolved_runtime_features"], "resolved feature drift")
     dependency_boundary((directory / "dependencies.stdout.log").read_text(encoding="utf-8"))
@@ -472,7 +472,7 @@ def compare(directory):
     versions = [next(line for line in r["rustc"].splitlines() if line.startswith("release: "))
                 for r in reports]
     require(len(set(versions)) == 1, "native compiler releases differ")
-    print("All three native opt-in managed consumers passed the same 14 scenarios.")
+    print("All three native opt-in managed consumers passed the same 13 scenarios.")
 
 
 def main():

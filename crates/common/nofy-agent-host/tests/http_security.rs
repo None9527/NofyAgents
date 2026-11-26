@@ -302,15 +302,12 @@ async fn read_scope_archives_stay_in_memory_without_writing_to_disk_and_serve_ch
     let src_sha = src_archive["sha256"].as_str().unwrap().to_owned();
     assert_eq!(src_sha, proj_sha);
 
-    // Verify zero files persisted to state_dir/projects/archives/
+    // Verify no on-disk archive directory is created under state_dir/projects/archives/
     let archives_dir = state.join("projects").join("archives");
-    let disk_entries: Vec<_> = std::fs::read_dir(&archives_dir)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .collect();
     assert!(
-        disk_entries.is_empty(),
-        "read-only archive endpoints must not persist to disk: {disk_entries:?}"
+        !archives_dir.exists(),
+        "read-only archive endpoints must not create an on-disk archives directory: {}",
+        archives_dir.display()
     );
 
     // 3. Reassemble via GET /api/v1/source-archives/{digest}/chunks and verify SHA-256.
@@ -358,8 +355,29 @@ async fn read_scope_archives_stay_in_memory_without_writing_to_disk_and_serve_ch
     assert_eq!(format!("{:x}", Sha256::digest(&full)), src_sha);
     assert_eq!(full.as_ref(), assembled.as_slice());
 
-    // Still zero files persisted on disk.
-    assert!(std::fs::read_dir(&archives_dir).unwrap().next().is_none());
+    // Still no on-disk archive directory created, and uncached digests return 404.
+    assert!(!archives_dir.exists());
+    let missing_digest = "0".repeat(64);
+    let (status, body) = send_json(
+        &server,
+        reqwest::Method::GET,
+        &format!("/api/v1/source-archives/{missing_digest}/chunks"),
+        VIEW,
+        None,
+    )
+    .await;
+    assert_eq!(status, 404, "{body}");
+    assert_eq!(body["error"]["code"], "not_found");
+    let (status, body) = send_json(
+        &server,
+        reqwest::Method::GET,
+        &format!("/api/v1/source-archives/{missing_digest}"),
+        VIEW,
+        None,
+    )
+    .await;
+    assert_eq!(status, 404, "{body}");
+    assert_eq!(body["error"]["code"], "not_found");
 }
 
 #[tokio::test]

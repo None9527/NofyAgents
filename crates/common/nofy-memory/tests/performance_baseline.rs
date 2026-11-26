@@ -8,7 +8,6 @@ use nofy_memory::index::MemoryIndex;
 use nofy_memory::layout::UnifiedMemoryLayout;
 use nofy_memory::model::{MemoryScope, ObservationId, OperationId, ProjectId};
 use nofy_memory::state::UnifiedState;
-use nofy_memory::storage::MemoryStorage;
 use rusqlite::{Connection, params};
 
 const STARTUP_LIMIT: Duration = Duration::from_secs(2);
@@ -55,18 +54,14 @@ fn seed_observation_index(database: &std::path::Path, count: usize) {
 fn run_baseline(count: usize) {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("memory");
-    let personal = root.join("personal");
-    let database = personal.join("index.sqlite");
-    let storage = MemoryStorage::new_flat(&personal, &personal);
-    drop(
-        MemoryIndex::open_or_create(&database, storage.clone(), MemoryIndexConfig::default(), 4)
-            .unwrap(),
-    );
+    let layout = UnifiedMemoryLayout::new(&root);
+    let scope = layout.personal_scope();
+    let database = scope.root().join("index.sqlite");
+    drop(MemoryIndex::open_or_create(&database, MemoryIndexConfig::default(), 4).unwrap());
     seed_observation_index(&database, count);
 
     let started = Instant::now();
-    let index =
-        MemoryIndex::open_or_create(&database, storage, MemoryIndexConfig::default(), 4).unwrap();
+    let index = MemoryIndex::open_or_create(&database, MemoryIndexConfig::default(), 4).unwrap();
     let startup = started.elapsed();
 
     let started = Instant::now();
@@ -74,8 +69,6 @@ fn run_baseline(count: usize) {
     let top_k = started.elapsed();
     assert_eq!(results.len(), 10);
 
-    let layout = UnifiedMemoryLayout::new(&root);
-    let scope = layout.personal_scope();
     let state = UnifiedState::open(layout.meta_database(), scope.state_database()).unwrap();
     let started = Instant::now();
     state

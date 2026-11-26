@@ -11,7 +11,7 @@ use zeroize::Zeroizing;
 struct Args {
     #[arg(long)]
     image: PathBuf,
-    /// Base64-encoded 32-byte seed in a private Unix file, never an argv value.
+    /// Base64-encoded 32-byte seed in a private file, never an argv value.
     #[arg(long)]
     key_file: PathBuf,
     #[arg(long)]
@@ -39,20 +39,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if output.try_exists()? {
         return Err("signature output already exists".into());
     }
-    let key_file = std::fs::File::open(&args.key_file)?;
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    let key_file = nofy_host_path::open_no_follow(&options, &args.key_file)?;
+    nofy_private_fs::verify_private_open_file(&key_file, &args.key_file)?;
     let metadata = key_file.metadata()?;
     if !metadata.is_file() || metadata.len() > 1024 {
         return Err("invalid signing seed file".into());
     }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if metadata.permissions().mode() & 0o077 != 0 {
-            return Err("signing seed file permissions must exclude group/other".into());
-        }
-    }
-    #[cfg(not(unix))]
-    return Err("protected Unix seed file required".into());
     let mut seed_wire = Zeroizing::new(Vec::new());
     key_file.take(1025).read_to_end(&mut seed_wire)?;
     if seed_wire.len() > 1024 {

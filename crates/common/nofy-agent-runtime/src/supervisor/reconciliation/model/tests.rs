@@ -146,7 +146,7 @@ async fn model_evidence_and_management_ack_loss_replay_without_new_provider_effe
                         system: "proof-system".into(),
                         release: system.bundle.digest.clone(),
                         program: "chat".into(),
-                        input: Some(nofy_interjection_core::PendingInterjection {
+                        input: Some(crate::interjection::PendingInterjection {
                             text: "act".into(),
                             attachments: vec![],
                         }),
@@ -264,7 +264,7 @@ async fn model_evidence_and_management_ack_loss_replay_without_new_provider_effe
                             system: "proof-system".into(),
                             release: system.bundle.digest.clone(),
                             program: "chat".into(),
-                            input: Some(nofy_interjection_core::PendingInterjection {
+                            input: Some(crate::interjection::PendingInterjection {
                                 text: "next turn".into(),
                                 attachments: vec![],
                             }),

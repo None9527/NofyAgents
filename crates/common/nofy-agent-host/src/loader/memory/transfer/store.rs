@@ -6,7 +6,9 @@ const SCHEMA:&str="CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NUL
  CREATE TABLE transfers(command TEXT PRIMARY KEY,payload TEXT NOT NULL);
  INSERT INTO metadata VALUES('protocol','nofy.memory-transfer/v1'); PRAGMA user_version=1;";
 pub(super) fn open(path: &Path, create: bool) -> Result<Option<Connection>> {
-    let exists = match std::fs::symlink_metadata(path) {
+    let mode = nofy_sqlite_journal::JournalMode::for_db_path(path);
+    let effective = mode.effective_db_path(path);
+    let exists = match std::fs::symlink_metadata(&effective) {
         Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => true,
         Ok(_) => return Err(unavailable()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
@@ -15,20 +17,15 @@ pub(super) fn open(path: &Path, create: bool) -> Result<Option<Connection>> {
     if !exists && !create {
         return Ok(None);
     }
-    if exists {
-        let metadata = std::fs::symlink_metadata(path).map_err(storage::unavailable)?;
-        if !metadata.is_file() || metadata.file_type().is_symlink() {
-            return Err(unavailable());
-        }
-    }
     let mut db = if create {
-        nofy_sqlite_journal::JournalMode::Wal
-            .open(path)
-            .map_err(db_error)?
+        mode.open(&effective).map_err(db_error)?
     } else {
-        Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map_err(db_error)?
+        mode.open_readonly(&effective).map_err(db_error)?
     };
+    let metadata = std::fs::symlink_metadata(&effective).map_err(storage::unavailable)?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(unavailable());
+    }
     db.busy_timeout(std::time::Duration::from_secs(5))
         .map_err(db_error)?;
     if !exists {

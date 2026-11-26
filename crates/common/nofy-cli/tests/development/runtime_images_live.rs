@@ -11,7 +11,7 @@ use std::{io::Read, process::Command};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires local NInfer and Linux process confinement"]
-async fn omni_executes_tools_in_installed_and_signed_locked_runtimes() {
+async fn omni_executes_tools_in_local_and_signed_locked_runtimes() {
     let endpoint = std::env::var("NOFY_LIVE_MODEL_URL").unwrap();
     let model = std::env::var("NOFY_LIVE_MODEL").unwrap();
     let state = tempfile::tempdir().unwrap();
@@ -19,13 +19,22 @@ async fn omni_executes_tools_in_installed_and_signed_locked_runtimes() {
     let kernel = host(state.path()).await;
     let service = serve(kernel.router()).await;
     let sdk = engine(&service.url, ADMIN);
-    let python = PathBuf::from("/usr/bin/python3").canonicalize().unwrap();
-    let hash = Command::new("sha256sum").arg(&python).output().unwrap();
-    assert!(hash.status.success());
-    let hash = String::from_utf8(hash.stdout).unwrap();
-    let installed:Value=reqwest::Client::new().post(format!("{}/api/v1/runtimes",service.url)).bearer_auth(ADMIN)
-        .json(&json!({"id":"live-python","path":python,"executable_digest":hash.split_whitespace().next().unwrap(),"prefix_args":["-s","-E"]}))
-        .send().await.unwrap().error_for_status().unwrap().json().await.unwrap();
+    let mut local_paths = vec![json!({"path":"/usr","execute":true})];
+    for (dir, execute) in [
+        ("/lib", true),
+        ("/lib64", true),
+        ("/etc/ld.so.cache", false),
+    ] {
+        if std::path::Path::new(dir).exists() {
+            local_paths.push(if execute {
+                json!({"path":dir,"execute":true})
+            } else {
+                json!({"path":dir})
+            });
+        }
+    }
+    let local_config =
+        json!({"executable":"/usr/bin/python3","prefix_args":["-s","-E"],"paths":local_paths});
 
     let source_file = fixture.path().join("receipt.c");
     let binary = fixture.path().join("receipt");
@@ -115,10 +124,10 @@ async fn omni_executes_tools_in_installed_and_signed_locked_runtimes() {
     let mut cases = Vec::new();
     for (factory, run, expected, config) in [
         (
-            "resource.process",
-            "omni-installed-runtime",
-            "INSTALLED-1284",
-            json!({"runtime":{"id":installed["id"],"revision":installed["revision"]}}),
+            "resource.process_local",
+            "omni-local-runtime",
+            "LOCAL-1284",
+            local_config,
         ),
         (
             "resource.process_locked",
@@ -132,7 +141,7 @@ async fn omni_executes_tools_in_installed_and_signed_locked_runtimes() {
             deployment = json!({"format":"nofy.deployment/v2","system":base["system"],"runtime_sources":[original]});
         }
         let r = |id: &str| json!({"id":format!("live-runtime-{id}"),"version":"1"});
-        let code = "import json\nprint(json.dumps({'receipt':'INSTALLED-1284'}))\n";
+        let code = "import json\nprint(json.dumps({'receipt':'LOCAL-1284'}))\n";
         deployment["system"]["modules"].as_array_mut().unwrap().extend([
             json!({"reference":r("environment"),"factory":factory,"config":config}),
             json!({"reference":r("entry"),"factory":"resource.artifact","config":{"bundle":{"schema_version":1,"files":{"fixture.py":code}}}}),
@@ -176,7 +185,7 @@ async fn omni_executes_tools_in_installed_and_signed_locked_runtimes() {
     }
     assert!(fetches.load(Ordering::SeqCst) > 0);
     if let Ok(path) = std::env::var("NOFY_LIVE_REPORT") {
-        let report = json!({"model":model,"factories":["resource.process","resource.process_locked"],"cases":cases,"signed_source_fetches":fetches.load(Ordering::SeqCst),"image":image.manifest.digest().unwrap()});
+        let report = json!({"model":model,"factories":["resource.process_local","resource.process_locked"],"cases":cases,"signed_source_fetches":fetches.load(Ordering::SeqCst),"image":image.manifest.digest().unwrap()});
         std::fs::write(path, serde_json::to_vec_pretty(&report).unwrap()).unwrap();
     }
     stop.cancel();

@@ -1,6 +1,6 @@
 # 模块、工具与声明手册
 
-版本：`0.6`。模块类型、CLI/MCP 编辑与 SessionPolicy 使用统一 Runtime、Loader 与源码引擎。
+版本：`0.7`。模块类型、CLI/MCP 编辑与 SessionPolicy 使用统一 Runtime、Loader 与源码引擎。
 
 ## 一个模块包含什么
 

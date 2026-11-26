@@ -8,7 +8,6 @@ use nofy_agent_runtime::{
     supervisor::{RunSupervisor, jobs::*},
     *,
 };
-use nofy_interjection_core::PendingInterjection;
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,

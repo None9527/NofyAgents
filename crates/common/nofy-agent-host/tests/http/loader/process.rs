@@ -252,7 +252,7 @@ async fn shipped_resident_binary_updates_external_tool_and_hook_in_place_and_res
     let exe = std::fs::read_link(format!("/proc/{pid}/exe")).unwrap();
     let hash = Sha256::digest(std::fs::read(&exe).unwrap());
     post(&server, "/api/v1/runtimes/probe", json!({})).await;
-    let installed = post(&server, "/api/v1/runtimes", runtime()).await;
+    let installed = local_runtime();
     let mut releases = Vec::new();
     let mut final_source = Value::Null;
     for (version, factor) in [("one", 2), ("two", 3)] {

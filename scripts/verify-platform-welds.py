@@ -16,7 +16,8 @@ do not follow that rule, per crate, outside the platform layer:
   proc_sys           `/proc` and `/sys` paths.
   unix_path_literal  `/tmp`, `/dev/null`, `/bin/sh`, `/usr/...` and the like.
   slash_absolute     `starts_with('/')`: a Unix idea of an absolute path (JSON
-                     Pointer checks share the syntax and are skipped by name).
+                     Pointer and HTTP URL path checks share the syntax and are
+                     skipped).
   inode_identity     file identity from inode and device numbers.
   unix_ipc           descriptor passing, Unix sockets, pseudo-terminals.
   process_signal     process groups, sessions, parent-death signals, waitpid.
@@ -29,7 +30,8 @@ do not follow that rule, per crate, outside the platform layer:
 A crate may not gain a site; fixing one lets you lower the baseline. When a site
 really must be added, rerun with `--update` in the same change so the increase
 is visible in review. The counts are a heuristic over source text (comments and
-`#[cfg(test)]` modules are removed first); they measure direction, not truth.
+`#[cfg(test)]` / `#[cfg(all(test, ...))]` modules are removed first); they
+measure direction, not truth.
 
 The platform layer is where platform code belongs, so it is not counted here:
 the crates and files in PLATFORM_LAYER. The sandbox files listed there move out
@@ -165,22 +167,108 @@ def matching_brace(text, open_index):
     return -1
 
 
+def is_test_cfg(expr):
+    """True when a #[cfg(...)] predicate compiles only under cfg(test)."""
+    s = expr.strip()
+    if s == "test":
+        return True
+    m = re.fullmatch(r"all\s*\((.*)\)", s, re.S)
+    if not m:
+        return False
+    body = m.group(1)
+    depth, parts, cur = 0, [], []
+    for ch in body:
+        if ch == "(":
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+            cur.append(ch)
+        elif ch == "," and depth == 0:
+            parts.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(ch)
+    if depth != 0:
+        return False
+    if cur:
+        parts.append("".join(cur).strip())
+    return any(is_test_cfg(part) for part in parts)
+
+
 def strip_test_modules(code, structure):
-    """Blank every `#[cfg(test)] mod name { ... }` in both masks."""
+    """Blank every `#[cfg(test)]` and `#[cfg(all(test, ...))]` inline `mod name { ... }`."""
     code, structure = list(code), list(structure)
     text = "".join(structure)
-    for m in re.finditer(r"#\[cfg\(\s*test\s*\)\]", text):
-        rest = re.compile(r"\s*(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*([{;])").match(text, m.end())
+    pos = 0
+    for m in re.finditer(r"#\[\s*cfg\s*\(", text):
+        if m.start() < pos:
+            continue
+        depth, k = 1, m.end()
+        while k < len(text) and depth:
+            if text[k] == "(":
+                depth += 1
+            elif text[k] == ")":
+                depth -= 1
+            k += 1
+        if depth != 0:
+            continue
+        close_bracket = re.match(r"\s*\]", text[k:])
+        if not close_bracket:
+            continue
+        attr_end = k + close_bracket.end()
+        inner = text[m.end() : k - 1]
+        if not is_test_cfg(inner):
+            continue
+        rest = re.compile(r"\s*(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*([{;])").match(
+            text, attr_end
+        )
         if not rest or rest.group(1) != "{":
             continue
         end = matching_brace(text, rest.end() - 1)
         if end < 0:
             continue
-        for k in range(m.start(), end + 1):
-            if code[k] != "\n":
-                code[k] = " "
-                structure[k] = " "
+        for j in range(m.start(), end + 1):
+            if code[j] != "\n":
+                code[j] = " "
+                structure[j] = " "
+        pos = end + 1
     return "".join(code), "".join(structure)
+
+
+def is_non_os_slash_check(code, match):
+    """Skip JSON Pointer (RFC 6901) and HTTP URL relative-path checks."""
+    lines = code.splitlines()
+    line_idx = code.count("\n", 0, match.start())
+    line = lines[line_idx].lower()
+    if "pointer" in line or "url" in line:
+        return True
+    window = "\n".join(lines[max(0, line_idx - 4) : min(len(lines), line_idx + 6)])
+    lower = window.lower()
+    if "json pointer" in lower:
+        return True
+    if ("reqwest::url" in lower or "result<url" in lower or "http path" in lower) and (
+        "?" in window and "#" in window
+    ):
+        return True
+    return False
+
+
+def is_json_pointer_literal(code, match):
+    """Skip JSON Pointer string literals (e.g. `"/run/status"` or `"/run/request/run_id"`)."""
+    prefix = code[max(0, match.start() - 32) : match.start()]
+    if re.search(r"\.pointer\s*\(\s*$", prefix):
+        return True
+    if not match.group(0).startswith('"/run/'):
+        return False
+    lines = code.splitlines()
+    line_idx = code.count("\n", 0, match.start())
+    if not re.match(r'^\s*\("[^"]+",\s*"/run/[a-z_/]+"\)\s*,?\s*$', lines[line_idx]):
+        return False
+    tail = "\n".join(lines[line_idx + 1 : min(len(lines), line_idx + 25)])
+    return ".pointer(" in tail
 
 
 def gated_regions(code, structure, attribute):
@@ -283,11 +371,10 @@ def scan():
         for name, pattern in CLASSES.items():
             n = 0
             for m in re.finditer(pattern, code):
-                if name == "slash_absolute":
-                    line_start = code.rfind("\n", 0, m.start()) + 1
-                    line_end = code.find("\n", m.end())
-                    if "pointer" in code[line_start : line_end if line_end >= 0 else None].lower():
-                        continue
+                if name == "slash_absolute" and is_non_os_slash_check(code, m):
+                    continue
+                if name == "unix_path_literal" and is_json_pointer_literal(code, m):
+                    continue
                 n += 1
                 if counted:
                     line = code.count("\n", 0, m.start()) + 1

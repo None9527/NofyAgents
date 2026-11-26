@@ -93,11 +93,9 @@ pub(super) fn read_at(lifecycle: &Path) -> Result<Data> {
             || receipt.command.expected_revision.checked_add(1) != Some(*revision)
             || *revision > data.revision
             || receipt.parts.len() > 16
-            || receipt.bindings.len() > 8
             || receipt.state == UnloadState::Pending && *revision != data.revision
             || receipt.state == UnloadState::Complete
-                && (!receipt.bindings_checked
-                    || receipt.source_checked.len() != receipt.parts.len())
+                && receipt.source_checked.len() != receipt.parts.len()
         {
             return Err(invalid("invalid unload receipt"));
         }
@@ -125,28 +123,10 @@ pub(super) fn read_at(lifecycle: &Path) -> Result<Data> {
                             ObjectKey::Image { digest },
                             PartKind::ImageObject | PartKind::ImageTree,
                         ) => digest == &part.digest,
-                        (ObjectKey::Runtime { .. }, PartKind::RuntimeBinary) => receipt
-                            .bindings
-                            .iter()
-                            .any(|binding| binding.executable_digest == part.digest),
                         _ => false,
                     });
             if !belongs {
                 return Err(invalid("unload part is outside its command"));
-            }
-        }
-        let mut bindings = BTreeSet::new();
-        for binding in &receipt.bindings {
-            storage::digest(&binding.revision)?;
-            storage::digest(&binding.executable_digest)?;
-            storage::digest(&binding.fingerprint)?;
-            if !bindings.insert((&binding.id, &binding.revision))
-                || !receipt.command.objects.contains(&ObjectKey::Runtime {
-                    id: binding.id.clone(),
-                    revision: binding.revision.clone(),
-                })
-            {
-                return Err(invalid("invalid unload binding"));
             }
         }
         for index in receipt
@@ -223,8 +203,6 @@ impl ObjectStore {
                 command,
                 state: UnloadState::Pending,
                 parts: plan.parts,
-                bindings: plan.bindings,
-                bindings_checked: false,
                 source_checked: BTreeSet::new(),
                 retained_new: BTreeSet::new(),
                 cut: UnloadCut {
@@ -240,12 +218,7 @@ impl ObjectStore {
         self.set_barrier(revision, true)?;
         self.write(&data)
     }
-    pub(super) fn resume(
-        &self,
-        loader: &Loader,
-        mut data: Data,
-        lease: &MaintenanceLease,
-    ) -> Result<UnloadReceipt> {
+    pub(super) fn resume(&self, mut data: Data, _: &MaintenanceLease) -> Result<UnloadReceipt> {
         let mut receipt = data.pending().cloned().ok_or(HostError::NotFound)?;
         let revision = receipt.revision;
         self.set_barrier(revision, true)?;
@@ -256,16 +229,6 @@ impl ObjectStore {
             entered.notify_one();
             wait.recv_timeout(std::time::Duration::from_secs(5))
                 .map_err(storage::unavailable)?;
-        }
-        if !receipt.bindings_checked {
-            loader.runtimes.remove_bindings(&receipt.bindings, lease)?;
-            #[cfg(test)]
-            if self.test_exit == Some("bindings") {
-                std::process::exit(96);
-            }
-            receipt.bindings_checked = true;
-            data.receipts.insert(revision, receipt.clone());
-            self.write(&data)?;
         }
         let trash = storage::directory(&self.root.join("trash").join(revision.to_string()))?;
         for (index, part) in receipt.parts.clone().into_iter().enumerate() {

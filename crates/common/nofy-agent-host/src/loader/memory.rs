@@ -288,9 +288,6 @@ impl MemoryProvider for Provider {
                         search: config.search,
                         index: config.index,
                         embedding_dimensions: config.embedding_dimensions,
-                        migration_key_store: Arc::new(
-                            nofy_memory::migration_backup::KeyringMigrationKeyStore,
-                        ),
                     })
                     .map_err(|_| Error::Tool("canonical memory storage cannot open".into()))?;
                     let service = service

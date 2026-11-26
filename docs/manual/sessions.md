@@ -1,6 +1,6 @@
 # Session 会话与策略手册
 
-版本：`0.6`。SessionPolicy、Agent v2 声明、原生 HTTP、CLI 与 MCP 使用统一内核会话实现。验证范围见[Session 实现记录](../verification/session-modularization.md)与[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)。当前发布不包含前端。
+版本：`0.7`。SessionPolicy、Agent v2 声明、原生 HTTP、CLI 与 MCP 使用统一内核会话实现。验证范围见[Session 实现记录](../verification/session-modularization.md)与[CLI/MCP 实现记录](../verification/agent-development-cli-mcp.md)。当前发布不包含前端。
 
 ## 对象与职责
 

@@ -593,66 +593,33 @@ async fn chunk(
     if !(1..=1024 * 1024).contains(&q.limit) {
         return Err(HostError::Invalid("chunk limit must be 1..1048576".into()));
     }
-    if let Some(archive_bytes) = cache.get(&id)? {
-        use base64::Engine;
-        let total = archive_bytes.len() as u64;
-        if q.offset > total {
-            return Err(HostError::Invalid(
-                "archive offset exceeds total size".into(),
-            ));
-        }
-        let start = usize::try_from(q.offset)
-            .map_err(|_| HostError::Invalid("archive offset exceeds total size".into()))?;
-        let end = start.saturating_add(q.limit).min(archive_bytes.len());
-        let slice = &archive_bytes[start..end];
-        let next = q.offset + slice.len() as u64;
-        return Ok(Json(ChunkView {
-            offset: q.offset.to_string(),
-            next_offset: next.to_string(),
-            total: total.to_string(),
-            eof: next == total,
-            encoding: "base64",
-            content: base64::engine::general_purpose::STANDARD.encode(slice),
-            sha256: id,
-        }));
+    let Some(archive_bytes) = cache.get(&id)? else {
+        return Err(HostError::Source(nofy_agent_project::Error::new(
+            "not_found",
+            "source archive not found",
+        )));
+    };
+    use base64::Engine;
+    let total = archive_bytes.len() as u64;
+    if q.offset > total {
+        return Err(HostError::Invalid(
+            "archive offset exceeds total size".into(),
+        ));
     }
-    let store = host.projects.clone();
-    Ok(Json(
-        blocking(move || {
-            use base64::Engine;
-            use std::io::{Read, Seek, SeekFrom};
-            let mut options = std::fs::OpenOptions::new();
-            options.read(true);
-            let mut file = nofy_host_path::open_no_follow(&options, &store.archive_path(&id)?)
-                .map_err(|e| HostError::Unavailable(e.to_string()))?;
-            let total = file
-                .metadata()
-                .map_err(|e| HostError::Unavailable(e.to_string()))?
-                .len();
-            if q.offset > total {
-                return Err(HostError::Invalid(
-                    "archive offset exceeds total size".into(),
-                ));
-            }
-            file.seek(SeekFrom::Start(q.offset))
-                .map_err(|e| HostError::Unavailable(e.to_string()))?;
-            let mut bytes = vec![];
-            file.take(q.limit as u64)
-                .read_to_end(&mut bytes)
-                .map_err(|e| HostError::Unavailable(e.to_string()))?;
-            let next = q.offset + bytes.len() as u64;
-            Ok(ChunkView {
-                offset: q.offset.to_string(),
-                next_offset: next.to_string(),
-                total: total.to_string(),
-                eof: next == total,
-                encoding: "base64",
-                content: base64::engine::general_purpose::STANDARD.encode(bytes),
-                sha256: id,
-            })
-        })
-        .await?,
-    ))
+    let start = usize::try_from(q.offset)
+        .map_err(|_| HostError::Invalid("archive offset exceeds total size".into()))?;
+    let end = start.saturating_add(q.limit).min(archive_bytes.len());
+    let slice = &archive_bytes[start..end];
+    let next = q.offset + slice.len() as u64;
+    Ok(Json(ChunkView {
+        offset: q.offset.to_string(),
+        next_offset: next.to_string(),
+        total: total.to_string(),
+        eof: next == total,
+        encoding: "base64",
+        content: base64::engine::general_purpose::STANDARD.encode(slice),
+        sha256: id,
+    }))
 }
 async fn download(
     State(host): State<KernelHost>,
@@ -661,52 +628,21 @@ async fn download(
     Path(id): Path<String>,
 ) -> Result<Response> {
     host.auth.require(&headers, Scope::Read)?;
-    if let Some(archive_bytes) = cache.get(&id)? {
-        let total = archive_bytes.len();
-        let stream = async_stream::stream! {
-            let mut offset = 0usize;
-            while offset < archive_bytes.len() {
-                let end = offset.saturating_add(64 * 1024).min(archive_bytes.len());
-                yield Ok::<_, std::io::Error>(axum::body::Bytes::copy_from_slice(
-                    &archive_bytes[offset..end],
-                ));
-                offset = end;
-            }
-        };
-        return Ok((
-            [
-                ("content-type", "application/gzip"),
-                ("content-length", &total.to_string()),
-            ],
-            axum::body::Body::from_stream(stream),
-        )
-            .into_response());
-    }
-    let store = host.projects.clone();
-    let path = blocking(move || Ok(store.archive_path(&id)?)).await?;
-    let mut file = tokio::fs::File::open(path)
-        .await
-        .map_err(|e| HostError::Unavailable(e.to_string()))?;
-    let total = file
-        .metadata()
-        .await
-        .map_err(|e| HostError::Unavailable(e.to_string()))?
-        .len();
+    let Some(archive_bytes) = cache.get(&id)? else {
+        return Err(HostError::Source(nofy_agent_project::Error::new(
+            "not_found",
+            "source archive not found",
+        )));
+    };
+    let total = archive_bytes.len();
     let stream = async_stream::stream! {
-        use tokio::io::AsyncReadExt;
-        loop {
-            let mut chunk = vec![0u8; 64 * 1024];
-            match file.read(&mut chunk).await {
-                Ok(0) => break,
-                Ok(n) => {
-                    chunk.truncate(n);
-                    yield Ok::<_, std::io::Error>(axum::body::Bytes::from(chunk));
-                }
-                Err(error) => {
-                    yield Err(error);
-                    break;
-                }
-            }
+        let mut offset = 0usize;
+        while offset < archive_bytes.len() {
+            let end = offset.saturating_add(64 * 1024).min(archive_bytes.len());
+            yield Ok::<_, std::io::Error>(axum::body::Bytes::copy_from_slice(
+                &archive_bytes[offset..end],
+            ));
+            offset = end;
         }
     };
     Ok((

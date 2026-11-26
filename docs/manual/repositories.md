@@ -1,6 +1,6 @@
 # 模块仓库与声明组合
 
-契约 `0.6`。仓库保存可复用源码，Agent 工程保存 `repository/name/version/digest`、别名、参数和接线；构建仍生成原生模块并使用统一 Loader。版本不可变，更新必须发布新版本并显式替换导入。它与 Git 远端、系统 release、generation、Session 状态分别管理。
+契约 `0.7`。仓库保存可复用源码，Agent 工程保存 `repository/name/version/digest`、别名、参数和接线；构建仍生成原生模块并使用统一 Loader。版本不可变，更新必须发布新版本并显式替换导入。它与 Git 远端、系统 release、generation、Session 状态分别管理。
 
 ## 从空目录开始：`module.template`
 

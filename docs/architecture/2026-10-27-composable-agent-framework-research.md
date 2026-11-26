@@ -259,4 +259,4 @@ cargo test --locked --offline -p nofy-packcore -p nofy-agent-lifecycle -p nofy-w
 - 2026-10-27：目标从“Nofy 内部分包”明确为“可组合 Agent SDK”；UI 不在本轮范围。
 - 2026-10-27：选择小内核 + SDK + 可选预设方向；LangChain/LangGraph/Rig 仅作设计参考，未新增依赖。
 - 2026-10-27：确认双循环、类型层反向依赖、已有 pack/workflow/Hub 能力；先以无文件系统业务 Agent 作提炼验收。
-- 下一步按[实施蓝图](../superpowers/plans/2026-10-27-composable-agent-framework.md)进入 P0/P1，不开始大搬迁 shell。
+- 下一步按既定实施蓝图进入 P0/P1，不开始大搬迁 shell（原早期草稿计划文档已归档清理，现行契约见[开发手册](../manual/README.md)）。

@@ -1,11 +1,14 @@
 //! Render the self-contained Omni preset from immutable module packages.
 use nofy_agent_project::{
-    Error, File, Result, Source, load_directory,
+    Error, File, Result, Source,
     repository::{PackageManifest, load_package_directory, package_file},
     write_directory,
 };
 use serde_json::{Value, json};
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 const JS_MAX_SAFE_INT: u64 = 9_007_199_254_740_991;
 
@@ -441,79 +444,289 @@ fn process_namespace_schema() -> Value {
     })
 }
 
+fn base_settings_schema() -> Value {
+    let u32_or_null = json!({"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295u64});
+    let safe_int_or_null =
+        json!({"type": ["integer", "null"], "minimum": 0, "maximum": JS_MAX_SAFE_INT});
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "allowed_tools": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 128,
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1, "maxLength": 128},
+                "description": "Root allow-list inherited by descendants. Adding a tool does not automatically authorize it.",
+                "default": [
+                    "task",
+                    "agent_messages",
+                    "ask_user",
+                    "workflow_execute",
+                    "workflow_agent",
+                    "assemble",
+                    "read_file",
+                    "write_file",
+                    "edit_file",
+                    "make_directory",
+                    "list_files",
+                    "search_files",
+                    "run_command",
+                    "sdk_schema",
+                    "sdk_run_inspect",
+                    "sdk_work_list",
+                    "sdk_work_inspect",
+                    "sdk_work_targets",
+                    "sdk_work_attached_targets",
+                    "sdk_work_start",
+                    "sdk_work_wait",
+                    "sdk_work_control",
+                    "sdk_work_task",
+                    "sdk_module_template",
+                    "sdk_module_list",
+                    "sdk_propose_prompt"
+                ]
+            },
+            "assembly_max_steps": {"type": "integer", "minimum": 1, "maximum": 256, "default": 32},
+            "budget": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Shared root ledger limits. The child does not receive a fresh independent budget.",
+                "default": {
+                    "max_active_children": 4,
+                    "max_child_calls": 8,
+                    "max_depth": 4,
+                    "max_model_calls": 64,
+                    "max_tool_calls": 128
+                },
+                "properties": {
+                    "max_active_children": u32_or_null,
+                    "max_child_calls": safe_int_or_null,
+                    "max_concurrent_operations": u32_or_null,
+                    "max_depth": u32_or_null,
+                    "max_duration_ms": safe_int_or_null,
+                    "max_input_tokens": safe_int_or_null,
+                    "max_model_calls": safe_int_or_null,
+                    "max_output_tokens": safe_int_or_null,
+                    "max_steps": safe_int_or_null,
+                    "max_tool_calls": safe_int_or_null,
+                    "max_total_tokens": safe_int_or_null
+                }
+            },
+            "child_allowed_tools": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 128,
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1, "maxLength": 128},
+                "description": "Additional child restriction, intersected with the root floor. Nonempty by design; the underlying skill API treats an empty list as unrestricted.",
+                "default": ["agent_messages"]
+            },
+            "child_max_steps": {"type": "integer", "minimum": 1, "maximum": 4096, "default": 16},
+            "max_nodes": {"type": "integer", "minimum": 1, "maximum": 128, "default": 64},
+            "max_steps": {"type": "integer", "minimum": 1, "maximum": 4096, "default": 32},
+            "model": {"type": "string", "minLength": 1, "description": "A model admitted by connection.models."},
+            "model_settings": {"type": "object", "default": {}},
+            "system_name": {"type": "string", "minLength": 1, "default": "omni"}
+        }
+    })
+}
+
 fn main() -> Result<()> {
     let output = std::env::args_os()
         .nth(1)
         .map(PathBuf::from)
         .ok_or_else(|| Error::new("local_input", "an output directory is required"))?;
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../presets");
-    let modules_dir = directory.join("../modules");
-    let mut source = load_directory(&directory.join("main-agent-composable"))?;
-    let mut preset = source.json("preset.json")?;
-    let system = &mut preset["system"];
-
-    // Remove the dead `tasks` (`coordination.tools` / `tool.agent_tasks`) wire from `main-tools`;
-    // Omni dispatches attached tasks via `tool.sdk_work` (`sdk_work_task`) instead.
-    let modules = system["modules"].as_array_mut().unwrap();
-    for module in modules.iter_mut() {
-        if module["reference"]["$module"] == "main-tools" {
-            module["config"]["packs"] = json!(["messages", "human", "assembly"]);
-            if let Some(deps) = module["dependencies"].as_object_mut() {
-                deps.remove("tasks");
-            }
-        }
-    }
-    modules.extend([
-        json!({
-            "reference": reference("omni-prompt"),
-            "factory": "prompt.static",
-            "config": {"text": {"$file": "prompt.md"}}
+    let modules_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../modules");
+    let mut source = Source {
+        files: BTreeMap::new(),
+        declaration: "project.json".into(),
+        settings_json: None,
+    };
+    source.put_json(
+        "project.json",
+        &json!({
+            "format": "nofy.project/v1",
+            "declaration": "preset.json",
+            "prepare": "prepare.json",
+            "settings": "settings.json",
+            "settings_schema": "settings.schema.json"
         }),
-        json!({
-            "reference": reference("approval"),
-            "factory": "policy.approval",
-            "config": {}
-        }),
-        json!({
-            "reference": reference("effect-approval"),
-            "factory": "policy.on_tools",
-            "config": {"tools": ["write_file", "edit_file", "make_directory", "run_command"]},
-            "dependencies": {"policy": reference("approval")}
-        }),
-        json!({
-            "reference": reference("sdk-tools"),
-            "factory": "tool.sdk_authoring",
-            "config": {}
-        }),
-        json!({
-            "reference": reference("sdk-work"),
-            "factory": "tool.sdk_work",
-            "config": {}
-        }),
-        conditional(
-            "/evolution_enabled",
-            json!({
-                "reference": reference("sdk-evolution"),
-                "factory": "tool.sdk_evolution",
-                "config": {}
-            }),
-        ),
-    ]);
-
-    let instructions = system["module_imports"]
-        .as_object_mut()
-        .unwrap()
-        .remove("instructions")
-        .unwrap();
-    source.files.remove(&format!(
-        ".nofy-module-packages/{}.json",
-        instructions["digest"].as_str().unwrap()
-    ));
+    )?;
+    source.put_json("settings.json", &json!({}))?;
 
     let model_ref = selected_model();
-    system["module_imports"]["delegate"]["bindings"]["model"] = model_ref.clone();
-    system["module_imports"]["assembly"]["bindings"]["model"] = model_ref.clone();
+    let mut preset = json!({
+        "format": "nofy.preset/v1",
+        "system": {
+            "schema_version": 1,
+            "name": {"$parameter": "/system_name"},
+            "required_policies": [reference("guardrails.floor"), reference("effect-approval")],
+            "required_governance": [reference("guardrails.quota")],
+            "module_imports": {},
+            "modules": [
+                {
+                    "reference": reference("child-tools"),
+                    "factory": "tool.compose",
+                    "config": {"packs": ["messages"]},
+                    "dependencies": {"messages": reference("coordination.messages")}
+                },
+                {
+                    "reference": reference("children"),
+                    "factory": "tool.compose",
+                    "config": {"packs": ["delegate", "assembly"]},
+                    "dependencies": {
+                        "delegate": reference("delegate.delegate"),
+                        "assembly": reference("assembly.tools")
+                    }
+                },
+                {
+                    "reference": reference("main-tools"),
+                    "factory": "tool.compose",
+                    "config": {"packs": ["messages", "human", "assembly"]},
+                    "dependencies": {
+                        "messages": reference("coordination.messages"),
+                        "human": reference("human.tool"),
+                        "assembly": reference("assembly.tools")
+                    }
+                },
+                {
+                    "reference": reference("omni-prompt"),
+                    "factory": "prompt.static",
+                    "config": {"text": {"$file": "prompt.md"}}
+                },
+                {
+                    "reference": reference("approval"),
+                    "factory": "policy.approval",
+                    "config": {}
+                },
+                {
+                    "reference": reference("effect-approval"),
+                    "factory": "policy.on_tools",
+                    "config": {"tools": ["write_file", "edit_file", "make_directory", "run_command"]},
+                    "dependencies": {"policy": reference("approval")}
+                },
+                {
+                    "reference": reference("sdk-tools"),
+                    "factory": "tool.sdk_authoring",
+                    "config": {}
+                },
+                {
+                    "reference": reference("sdk-work"),
+                    "factory": "tool.sdk_work",
+                    "config": {}
+                },
+                conditional(
+                    "/evolution_enabled",
+                    json!({
+                        "reference": reference("sdk-evolution"),
+                        "factory": "tool.sdk_evolution",
+                        "config": {}
+                    }),
+                )
+            ],
+            "programs": {
+                "main": {
+                    "kind": "agent",
+                    "definition": {
+                        "schema_version": 1,
+                        "name": "omni",
+                        "prompt": reference("omni-prompt"),
+                        "model": model_ref,
+                        "tool_packs": [
+                            reference("main-tools"),
+                            reference("sdk-tools"),
+                            reference("sdk-work"),
+                            conditional("/evolution_enabled", reference("sdk-evolution")),
+                            conditional("/workspace_enabled", reference("files.file-read")),
+                            conditional("/workspace_enabled", reference("files.file-write")),
+                            conditional("/workspace_enabled", reference("files.file-edit")),
+                            conditional("/workspace_enabled", reference("files.directory-create")),
+                            conditional("/workspace_enabled", reference("files.file-list")),
+                            conditional("/workspace_enabled", reference("files.file-search")),
+                            conditional("/command_enabled", reference("command.command"))
+                        ],
+                        "bindings": [
+                            reference("coordination.binding"),
+                            conditional("/workspace_enabled", reference("files.cwd")),
+                            reference("compaction.journal")
+                        ],
+                        "context_policies": [reference("compaction.policy")],
+                        "context_sources": [
+                            conditional("/workspace_enabled", reference("files.rules"))
+                        ],
+                        "settings": {
+                            "input_delivery": {"duplex": true},
+                            "scope_identity": "hashed_v2",
+                            "max_steps": {"$parameter": "/max_steps"},
+                            "model": {"$parameter": "/model_settings"}
+                        }
+                    }
+                }
+            }
+        }
+    });
+    let system = &mut preset["system"];
 
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "main-agent/guardrails",
+        "guardrails",
+        json!({"allowed_tools": {"$parameter": "/allowed_tools"}, "budget": {"$parameter": "/budget"}}),
+        json!({}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "models/chat-completions",
+        "provider",
+        json!({"connection": {"$parameter": "/connection"}, "model": {"$parameter": "/model"}}),
+        json!({}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "main-agent/delegate",
+        "delegate",
+        json!({
+            "child_allowed_tools": {"$parameter": "/child_allowed_tools"},
+            "child_max_steps": {"$parameter": "/child_max_steps"},
+            "model_settings": {"$parameter": "/model_settings"}
+        }),
+        json!({"model": model_ref, "tools": reference("child-tools")}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "main-agent/dynamic-assembly",
+        "assembly",
+        json!({"max_steps": {"$parameter": "/assembly_max_steps"}, "max_nodes": {"$parameter": "/max_nodes"}}),
+        json!({"model": model_ref, "tools": reference("child-tools")}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "agent-foundation/agent-collaboration",
+        "coordination",
+        json!({}),
+        json!({"children": reference("children")}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "agent-foundation/ask-user",
+        "human",
+        json!({}),
+        json!({}),
+    )?;
     import_package(
         &mut source,
         &mut system["module_imports"],
@@ -591,94 +804,8 @@ fn main() -> Result<()> {
         json!({}),
     )?;
 
-    system["required_policies"]
-        .as_array_mut()
-        .unwrap()
-        .push(reference("effect-approval"));
-
-    let main = &mut system["programs"]["main"]["definition"];
-    main["name"] = json!("omni");
-    main["prompt"] = reference("omni-prompt");
-    main["model"] = selected_model();
-    main["bindings"]
-        .as_array_mut()
-        .unwrap()
-        .push(conditional("/workspace_enabled", reference("files.cwd")));
-    main["bindings"]
-        .as_array_mut()
-        .unwrap()
-        .push(reference("compaction.journal"));
-    main["context_policies"] = json!([reference("compaction.policy")]);
-    main["context_sources"] = json!([conditional("/workspace_enabled", reference("files.rules"))]);
-
-    let packs = main["tool_packs"].as_array_mut().unwrap();
-    packs.push(reference("sdk-tools"));
-    packs.push(reference("sdk-work"));
-    packs.push(conditional(
-        "/evolution_enabled",
-        reference("sdk-evolution"),
-    ));
-    packs.extend(
-        [
-            "files.file-read",
-            "files.file-write",
-            "files.file-edit",
-            "files.directory-create",
-            "files.file-list",
-            "files.file-search",
-        ]
-        .map(|id| conditional("/workspace_enabled", reference(id))),
-    );
-    packs.push(conditional(
-        "/command_enabled",
-        reference("command.command"),
-    ));
-
-    let mut schema = source.json("settings.schema.json")?;
-    if let Some(budget_props) = schema
-        .pointer_mut("/properties/budget/properties")
-        .and_then(Value::as_object_mut)
-    {
-        for field in budget_props.values_mut() {
-            if field
-                .get("maximum")
-                .and_then(Value::as_u64)
-                .is_some_and(|max| max > JS_MAX_SAFE_INT)
-            {
-                field["maximum"] = json!(JS_MAX_SAFE_INT);
-            }
-        }
-    }
+    let mut schema = base_settings_schema();
     let properties = schema["properties"].as_object_mut().unwrap();
-    properties.get_mut("system_name").unwrap()["default"] = json!("omni");
-    properties.get_mut("allowed_tools").unwrap()["default"] = json!([
-        "task",
-        "agent_messages",
-        "ask_user",
-        "workflow_execute",
-        "workflow_agent",
-        "assemble",
-        "read_file",
-        "write_file",
-        "edit_file",
-        "make_directory",
-        "list_files",
-        "search_files",
-        "run_command",
-        "sdk_schema",
-        "sdk_run_inspect",
-        "sdk_work_list",
-        "sdk_work_inspect",
-        "sdk_work_targets",
-        "sdk_work_attached_targets",
-        "sdk_work_start",
-        "sdk_work_wait",
-        "sdk_work_control",
-        "sdk_work_task",
-        "sdk_module_template",
-        "sdk_module_list",
-        "sdk_propose_prompt"
-    ]);
     properties.insert("connection".into(), connection_schema());
     properties.insert(
         "model_protocol".into(),
@@ -759,9 +886,6 @@ fn main() -> Result<()> {
         }
     ]);
 
-    let mut project = source.json("project.json")?;
-    project["prepare"] = json!("prepare.json");
-    source.put_json("project.json", &project)?;
     source.put_json("prepare.json", &prepare_document())?;
     source.put_json("preset.json", &preset)?;
     source.put_json("settings.schema.json", &schema)?;

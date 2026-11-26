@@ -95,15 +95,29 @@ impl ModuleRegistry {
             check.ports_complete = false;
         }
         // A module that needs nothing else can be built here and now, which is what
-        // finds a script that does not compile. Building is free of IO by contract.
-        if check.ports_complete
-            && check.ports.is_empty()
-            && let Err(error) = entry.factory.build(config, &BTreeMap::new())
-        {
-            check.issues.push(ConfigIssue {
-                path: String::new(),
-                message: format!("the module does not build: {error}"),
-            });
+        // finds a script that does not compile. Building is free of IO by contract;
+        // pass a synthetic build context so context-aware factories (such as
+        // `resource.budget` and `event.producer`) are validated like real builds.
+        if check.ports_complete && check.ports.is_empty() {
+            let definition = ModuleDefinition {
+                reference: ModuleRef {
+                    id: "__check__".into(),
+                    version: "0".into(),
+                },
+                factory: factory.into(),
+                config: config.clone(),
+                dependencies: BTreeMap::new(),
+            };
+            let context = ModuleBuildContext::new(self, &definition, &[]);
+            if let Err(error) = entry
+                .factory
+                .build_with_context(config, &BTreeMap::new(), &context)
+            {
+                check.issues.push(ConfigIssue {
+                    path: String::new(),
+                    message: format!("the module does not build: {error}"),
+                });
+            }
         }
         Ok(check)
     }
@@ -332,5 +346,49 @@ mod tests {
                 .issues
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn context_aware_zero_dependency_factory_is_checked_via_build_with_context() {
+        struct ContextOnly;
+        impl ModuleFactory for ContextOnly {
+            fn descriptor(&self) -> ModuleDescriptor {
+                ModuleDescriptor {
+                    factory: "resource.context_only".into(),
+                    revision: "1".into(),
+                    kind: ModuleKind::Resource,
+                    config_schema: json!({"type": "object", "additionalProperties": false}),
+                    input_schema: None,
+                    output_schema: None,
+                    required_capabilities: Default::default(),
+                    dependencies: BTreeMap::new(),
+                }
+            }
+            fn build(
+                &self,
+                _: &Value,
+                _: &BTreeMap<String, ModuleInstance>,
+            ) -> Result<ModuleInstance, Error> {
+                Err(Error::Composition("requires module build context".into()))
+            }
+            fn build_with_context(
+                &self,
+                _: &Value,
+                _: &BTreeMap<String, ModuleInstance>,
+                context: &ModuleBuildContext<'_>,
+            ) -> Result<ModuleInstance, Error> {
+                let id = format!("ctx:{}", context.definition().reference.id);
+                Ok(ModuleInstance::Resource(Arc::new(ResourceHandle::new(
+                    id,
+                    Arc::new(()),
+                )?)))
+            }
+        }
+        let mut registry = ModuleRegistry::default();
+        registry.register_factory(Arc::new(ContextOnly)).unwrap();
+        let check = registry
+            .check_module("resource.context_only", &json!({}), &expression)
+            .unwrap();
+        assert!(check.issues.is_empty(), "{:?}", check.issues);
     }
 }

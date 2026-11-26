@@ -52,7 +52,6 @@ pub enum PartKind {
     ArtifactTree,
     ImageObject,
     ImageTree,
-    RuntimeBinary,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -65,20 +64,11 @@ pub struct ObjectPart {
     pub device: u64,
     pub inode: u64,
 }
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RuntimeRemoval {
-    pub id: String,
-    pub revision: String,
-    pub executable_digest: String,
-    pub fingerprint: String,
-}
 #[derive(Serialize)]
 pub struct UnloadPlan {
     pub revision: u64,
     pub objects: Vec<ObjectKey>,
     pub parts: Vec<ObjectPart>,
-    pub bindings: Vec<RuntimeRemoval>,
     pub references: ReferenceReport,
     pub eligible: bool,
     pub fingerprint: String,
@@ -96,8 +86,6 @@ pub struct UnloadReceipt {
     pub command: UnloadCommand,
     pub state: UnloadState,
     pub parts: Vec<ObjectPart>,
-    pub bindings: Vec<RuntimeRemoval>,
-    pub bindings_checked: bool,
     pub source_checked: BTreeSet<usize>,
     pub retained_new: BTreeSet<usize>,
     pub cut: UnloadCut,
@@ -230,12 +218,11 @@ impl Loader {
             let lease = self.unload_lease()?;
             let state = self.unload.read()?;
             if state.pending().is_some() {
-                self.unload.resume(self, state, &lease)?;
+                self.unload.resume(state, &lease)?;
             } else {
                 self.unload.settle_barrier(&state)?;
             }
             drop(lease);
-            self.runtimes.refresh()?;
         } else if journal::barrier_pending(self.unload.root.parent().expect("unload lifecycle"))?
             != Some(false)
         {
@@ -304,11 +291,11 @@ impl KernelHost {
         let loader = self.loader.clone();
         let selected = objects.clone();
         let guard = lease.clone();
-        let ((parts, bindings), revision) = tokio::task::spawn_blocking(move || {
+        let (parts, revision) = tokio::task::spawn_blocking(move || {
             loader.unload.settle_barrier(&state)?;
             loader
                 .unload
-                .inventory(&loader, &selected, &guard)
+                .inventory(&selected, &guard)
                 .map(|v| (v, state.revision))
         })
         .await
@@ -322,14 +309,12 @@ impl KernelHost {
             revision,
             &objects,
             &parts,
-            &bindings,
             &references,
         ))?;
         Ok(UnloadPlan {
             revision,
             objects,
             parts,
-            bindings,
             references,
             eligible,
             fingerprint,
@@ -418,11 +403,9 @@ impl KernelHost {
                 .map_err(storage::unavailable)??;
             }
             let loader = host.loader.clone();
-            tokio::task::spawn_blocking(move || {
-                loader.unload.resume(&loader, loader.unload.read()?, &lease)
-            })
-            .await
-            .map_err(storage::unavailable)?
+            tokio::task::spawn_blocking(move || loader.unload.resume(loader.unload.read()?, &lease))
+                .await
+                .map_err(storage::unavailable)?
         })
         .await
         .map_err(storage::unavailable)?

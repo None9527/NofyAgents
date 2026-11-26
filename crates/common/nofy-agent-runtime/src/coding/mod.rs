@@ -1,5 +1,5 @@
 //! Reusable coding recipe and pure policies. Host effects are explicit ports;
-//! no SessionActor, filesystem, terminal or product settings enter this module.
+//! no host actor, filesystem, terminal or product settings enter this module.
 use crate::pipeline::{Flow, Pipeline, Stage};
 use std::future::Future;
 pub mod length;

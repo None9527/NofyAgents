@@ -330,28 +330,57 @@ impl ConnectedMemoryFactory {
 }
 impl ModuleFactory for ConnectedMemoryFactory {
     fn descriptor(&self) -> ModuleDescriptor {
-        let factory = if self.kind == ModuleKind::ToolPack {
-            MemoryFactory::tools(Default::default())
+        let properties = if self.kind == ModuleKind::ToolPack {
+            json!({
+                "read": {"$ref": "#/$defs/areas"},
+                "write": {"$ref": "#/$defs/areas"},
+                "child_read": {"$ref": "#/$defs/areas"},
+                "child_write": {"$ref": "#/$defs/areas"},
+                "capture": {"type": "boolean"},
+                "consolidate": {"type": "boolean"},
+                "tool_name": {"type": "string", "minLength": 1},
+                "operations": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"enum": operations::OPERATIONS}
+                },
+                "max_items": {"type": "integer", "minimum": 1, "maximum": 100}
+            })
         } else {
-            MemoryFactory::context(Default::default())
+            json!({
+                "read": {"$ref": "#/$defs/areas"},
+                "child_read": {"$ref": "#/$defs/areas"},
+                "max_items": {"type": "integer", "minimum": 1, "maximum": 100}
+            })
         };
-        let mut descriptor = factory.descriptor();
-        descriptor.factory = if self.kind == ModuleKind::ToolPack {
-            "tool.memory_connected"
-        } else {
-            "context.memory_connected"
+        ModuleDescriptor {
+            factory: if self.kind == ModuleKind::ToolPack {
+                "tool.memory_connected"
+            } else {
+                "context.memory_connected"
+            }
+            .into(),
+            revision: "1".into(),
+            kind: self.kind,
+            config_schema: json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": properties,
+                "$defs": {
+                    "areas": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "items": {"enum": ["personal", "project"]}
+                    }
+                }
+            }),
+            input_schema: None,
+            output_schema: None,
+            dependencies: BTreeMap::from([("connection".into(), ModuleKind::Resource)]),
+            required_capabilities: Default::default(),
         }
-        .into();
-        descriptor.revision = "1".into();
-        descriptor.config_schema["properties"]
-            .as_object_mut()
-            .expect("original memory schema")
-            .remove("resource");
-        descriptor.config_schema["required"] = json!([]);
-        descriptor
-            .dependencies
-            .insert("connection".into(), ModuleKind::Resource);
-        descriptor
     }
     fn build(
         &self,

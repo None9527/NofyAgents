@@ -18,14 +18,13 @@ nofy-host-path = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
 cap-std = "3.4"
-libc = { workspace = true }
 jsonschema = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "1", features = ["fs"] }
-
-[dev-dependencies]
-tempfile = { workspace = true }
 
 [lints]
 workspace = true

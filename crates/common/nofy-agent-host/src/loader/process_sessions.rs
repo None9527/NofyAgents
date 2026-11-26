@@ -413,7 +413,8 @@ impl Manager {
             terminal_ttl,
         })))
     }
-    pub fn record_count(&self) -> usize {
+    #[cfg(test)]
+    fn record_count(&self) -> usize {
         self.0.entries.lock().map(|e| e.len()).unwrap_or(0)
     }
     async fn persist_async(&self, live: &Arc<Live>) -> Result<()> {

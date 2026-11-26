@@ -1741,7 +1741,7 @@ mod workflows {
             let (compiled, effects, _, models, prior, requests, registry) =
                 setup_hook(&store, event, 2, false);
             let supervisor = RunSupervisor::new(store.clone());
-            let message = nofy_interjection_core::PendingInterjection {
+            let message = nofy_agent_runtime::PendingInterjection {
                 text: "start".into(),
                 attachments: vec![],
             };

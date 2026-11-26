@@ -6,7 +6,7 @@ pub(super) fn capabilities(host: &KernelHost) -> Value {
     let abi = crate::loader::isolation::landlock_abi();
     json!({
         "protocol":"nofy.development-capabilities/v1",
-        "contract_revision":"0.6",
+        "contract_revision":"0.7",
         "platform":{"os":std::env::consts::OS,"arch":std::env::consts::ARCH},
         "source_projects":true,"module_repositories":true,
         "worker_isolation":crate::loader::confine::worker_isolation_report(),

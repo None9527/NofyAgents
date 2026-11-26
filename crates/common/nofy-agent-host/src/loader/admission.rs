@@ -210,9 +210,6 @@ impl CommitPermit for Permit {
                     references::ObjectKey::Image { digest } => {
                         self.loader.images.verify(&digest)?;
                     }
-                    references::ObjectKey::Runtime { id, revision } => {
-                        self.loader.runtimes.verify(&id, &revision)?;
-                    }
                 }
             }
             Ok(())

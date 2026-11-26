@@ -107,7 +107,6 @@ impl Control {
         &self,
         target: &BackendDefinition,
         catalog: Option<CatalogView>,
-        runtimes: &super::super::runtimes::RuntimeStore,
     ) -> Result<()> {
         let bucket = self.bucket(target)?;
         let visit = |definitions: Vec<ModuleDefinition>| -> Result<()> {
@@ -158,13 +157,6 @@ impl Control {
             return Err(invalid(
                 "runtime history contains an undecodable retained authority; resolve it before relocating private state",
             ));
-        }
-        for path in runtimes.granted_roots()? {
-            if overlap(&bucket, &path) {
-                return Err(invalid(
-                    "runtime destination overlaps installed runtime library grants",
-                ));
-            }
         }
         Ok(())
     }

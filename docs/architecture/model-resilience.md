@@ -14,7 +14,7 @@ flowchart LR
 | 自动重试 | governance.budget_connected.retry | 已有持久 attempt、指数退避和 Retry-After；超过最大等待不提前请求 |
 | 图片回退 | model.image_fallback | 仅在配置的明确拒绝状态、未向调用方交付任何 chunk 时重试一次；不改原始历史 |
 | 溢出恢复 | model.context_fallback | 确认超限后保留 system 与最近完整轮次，显式标记省略，最多重试一次；不伪造摘要、不改原历史 |
-| 压力与手动压缩 | 外部 context-compaction@0.2.0 | context.programmed 的持久 plan/prepare/finish；自动阈值，或 Session 新输入 /compact |
+| 压力与手动压缩 | 外部 context-compaction@0.2.2 | context.programmed 的持久 plan/prepare/finish；自动阈值，或 Session 新输入 /compact |
 | hosted tools | provider 协议 settings.hosted_tools | 原生服务端工具定义直传，输出保留 opaque 消息及 provider 元数据，不进入本地工具 dispatch |
 | 截断挽救 | runtime.recipe + stage.length | 复用原续写和累计机制 |
 | 重复调用检测 | runtime.recipe + stage.repeat | 复用原 nudge/hard-stop 机制 |

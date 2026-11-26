@@ -14,7 +14,7 @@ async fn inspect(server: &Serving, objects: Value) -> Value {
     value
 }
 #[tokio::test]
-async fn reference_views_cover_drafts_unapplied_publications_jobs_execution_and_legacy_runtime_without_leaking_content()
+async fn reference_views_cover_drafts_unapplied_publications_jobs_and_execution_without_leaking_content()
  {
     let dir = tempfile::tempdir().unwrap();
     let (kernel, server, installed) = setup(dir.path()).await;
@@ -24,14 +24,13 @@ async fn reference_views_cover_drafts_unapplied_publications_jobs_execution_and_
         .digest()
         .unwrap();
     let source = document(&installed, json!({"bundle":bundle}));
-    let objects = json!([{"kind":"artifact","digest":digest},{"kind":"runtime","id":installed["id"],"revision":installed["revision"]}]);
+    let objects = json!([{"kind":"artifact","digest":digest}]);
     let absent = inspect(&server, objects.clone()).await;
     assert_eq!(absent["references"][0]["state"], "not_observed");
     let publication = post(&server, "/api/v1/import", source.clone()).await;
     let release = publication["bundle"]["digest"].as_str().unwrap();
     let first = inspect(&server, objects.clone()).await;
     assert_eq!(first["references"][0]["counts"]["publication"], 1);
-    assert_eq!(first["references"][1]["counts"]["publication"], 1);
     // No apply has occurred; every publication is retained, not only active.
     assert!(
         kernel
@@ -80,7 +79,6 @@ async fn reference_views_cover_drafts_unapplied_publications_jobs_execution_and_
         outcome(&server, "reference-run").await["execution"]["outcome"],
         outcome_before["execution"]["outcome"]
     );
-    assert!(dir.path().join("loader/runtimes/bin").is_dir());
     stop.cancel();
     worker.await.unwrap();
 }
@@ -114,9 +112,10 @@ async fn invalid_draft_and_opaque_checkpoint_are_unknown_not_absent_and_invalid_
         json!([]),
         json!([key.clone(), key.clone()]),
         json!([{"kind":"image","digest":"../outside"}]),
+        json!([{"kind":"runtime","id":"r0","revision":"0".repeat(64)}]),
         json!(
             (0..17)
-                .map(|i| json!({"kind":"runtime","id":format!("r{i}"),"revision":"0".repeat(64)}))
+                .map(|i| json!({"kind":"image","digest":format!("{i:064x}")}))
                 .collect::<Vec<_>>()
         ),
     ] {

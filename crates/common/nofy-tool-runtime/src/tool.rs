@@ -14,7 +14,6 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::stream::{self, Stream, StreamExt};
@@ -379,41 +378,3 @@ impl<T: Tool> ToolDyn for T {
         }))
     }
 }
-
-/// Convenience alias for the most common [`ToolDyn`] handle shape.
-pub type ArcTool = Arc<dyn ToolDyn>;
-
-/// Variant identifier for tools that ship multiple implementations under
-/// one stable [`ToolId`].
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum ToolVariant {
-    /// The implicit fallback variant.
-    Default,
-    /// A named variant. The string is treated opaquely by the registry.
-    Variant(String),
-}
-
-/// Group of related tools that share one [`ToolId`] but route to different
-/// implementations chosen by a [`ToolVariant`].
-pub trait ToolFamily: Send + Sync {
-    /// Identity shared by every variant in this family.
-    fn id(&self) -> ToolId;
-
-    /// Resolve a `variant` to its concrete tool. Returns `None` when the
-    /// family does not expose the requested variant.
-    fn get_tool(&self, variant: &ToolVariant) -> Option<ArcTool>;
-
-    /// Every variant the family exposes. Registries iterate this once at
-    /// startup and cache the results, so allocating here is fine.
-    fn variants(&self) -> Vec<ToolVariant>;
-
-    /// Variant name the default falls back to when the family's `Default`
-    /// arm is itself a named variant. Returns `None` when the default is
-    /// the [`ToolVariant::Default`] sentinel.
-    fn default_variant_name(&self) -> Option<&'static str> {
-        None
-    }
-}
-
-/// Convenience alias for the most common [`ToolFamily`] handle shape.
-pub type ArcToolFamily = Arc<dyn ToolFamily>;

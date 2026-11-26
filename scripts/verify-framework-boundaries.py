@@ -12,9 +12,10 @@ FORBIDDEN_MEMORY = {
     "nofy-tools", "nofy-version", "nofy-workspace",
     "nofy-tools-api", "nofy-proto-build", "nofy-acp-lib", "nofy-sandbox",
     "nofy-workflow", "nofy-orchestra",
+    "nofy-compaction", "nofy-token-estimation", "nofy-interjection-core", "nofy-packcore",
 }
 MODULE_INTERNALS = {
-    "nofy-agent-modules", "nofy-agent-runtime", "nofy-interjection-core",
+    "nofy-agent-modules", "nofy-agent-runtime",
     "nofy-tool-protocol", "nofy-tool-runtime", "nofy-tool-types",
     # A leaf the runtime itself needs to make a commit durable (tempfile, and the
     # Windows API on Windows). It knows nothing of products, hosts or modules.

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use nofy_tool_protocol::ToolId;
 use nofy_tool_runtime::{
-    ArcTool, Cwd, ListToolsContext, Tool, ToolCallContext, ToolDyn, ToolError, ToolOutput,
+    Cwd, ListToolsContext, Tool, ToolCallContext, ToolDyn, ToolError, ToolOutput,
 };
 use nofy_tool_types::ToolDescription;
 
@@ -113,13 +113,13 @@ fn reads_custom_extension() {
 
 #[test]
 fn dyn_forwards_default() {
-    let tool: ArcTool = Arc::new(AlwaysTool);
+    let tool: Arc<dyn ToolDyn> = Arc::new(AlwaysTool);
     assert!(tool.should_list(&ListToolsContext::default()));
 }
 
 #[test]
 fn dyn_forwards_custom() {
-    let tool: ArcTool = Arc::new(NeedsCwdTool);
+    let tool: Arc<dyn ToolDyn> = Arc::new(NeedsCwdTool);
     assert!(!tool.should_list(&ListToolsContext::default()));
 
     let mut ctx = ListToolsContext::default();

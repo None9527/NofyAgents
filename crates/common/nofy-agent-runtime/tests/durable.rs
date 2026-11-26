@@ -581,9 +581,9 @@ async fn child_reconciliation_settles_the_primitive_budget_before_the_child_cont
 
 #[tokio::test]
 async fn events_single_insert_eliminates_update_double_write_and_preserves_monotonic_cursors() {
+    use nofy_agent_runtime::PendingInterjection;
     use nofy_agent_runtime::mailbox::{InputAddress, MailEnvelope, MailInput, MailboxSender};
     use nofy_agent_runtime::supervisor::jobs::JobSubmission;
-    use nofy_interjection_core::PendingInterjection;
 
     struct StaticReply;
     #[async_trait::async_trait]

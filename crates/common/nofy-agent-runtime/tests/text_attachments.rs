@@ -1,8 +1,7 @@
 use nofy_agent_runtime::{
-    InputPart,
+    InputPart, PendingInterjection,
     mailbox::{InputAddress, MailEnvelope, MailInput},
 };
-use nofy_interjection_core::PendingInterjection;
 
 fn envelope(parts: Vec<InputPart>) -> MailEnvelope {
     MailEnvelope {

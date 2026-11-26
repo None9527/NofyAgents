@@ -8,8 +8,8 @@
 //! count.
 //!
 //! This is the single home for the cap policy; every multi-thread runtime in
-//! the workspace (the `nofy` binary, the `workspace_server` daemon) derives
-//! its worker count from here so the policy cannot drift across crates.
+//! the workspace (`nofy-cli`, `nofy-agent-host`) derives its worker count from
+//! here so the policy cannot drift across crates.
 
 use std::num::NonZeroUsize;
 
