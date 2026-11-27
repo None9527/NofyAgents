@@ -354,7 +354,7 @@ fn omni_source(
         .synchronize("nofy", &repo.revision, packages, revision)
         .unwrap();
     let mut source = templates().get("omni", Some("0.1.0"), None).unwrap();
-    assert_eq!(imports(&source).unwrap().len(), 11);
+    assert_eq!(imports(&source).unwrap().len(), 12);
     verify_package_sources(&source).unwrap();
     assert!(
         build(&source, &kinds).is_err(),

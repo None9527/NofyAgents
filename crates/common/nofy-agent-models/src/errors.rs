@@ -10,12 +10,18 @@ fn retry_after(value: &str, now: SystemTime) -> Option<u64> {
     let date = httpdate::parse_http_date(value).ok()?;
     u64::try_from(date.duration_since(now).unwrap_or_default().as_millis()).ok()
 }
+pub(crate) enum HttpFailureOutcome {
+    Fail(Error),
+    Next(Value),
+}
+
 pub(crate) async fn http_failure(
     mut response: reqwest::Response,
     session: &Session,
+    state: Value,
     cap: usize,
     idle_ms: u64,
-) -> Error {
+) -> HttpFailureOutcome {
     let status = response.status();
     let retry_after_ms = response
         .headers()
@@ -28,32 +34,42 @@ pub(crate) async fn http_failure(
             match tokio::time::timeout(Duration::from_millis(idle_ms), response.chunk()).await {
                 Ok(Ok(Some(chunk))) => chunk,
                 Ok(Ok(None)) => break,
-                _ => return failure("error_response_transport"),
+                _ => return HttpFailureOutcome::Fail(failure("error_response_transport")),
             };
         if chunk.len() > cap.saturating_sub(body.len()) {
-            return failure("error_response_limit");
+            return HttpFailureOutcome::Fail(failure("error_response_limit"));
         }
         body.extend_from_slice(&chunk);
     }
     let result = session
-        .step(json!({"phase":"http_error","status":status.as_u16(),
-        "retry_after_ms":retry_after_ms,"body":String::from_utf8_lossy(&body)}))
+        .step(json!({
+            "phase": "http_error",
+            "status": status.as_u16(),
+            "retry_after_ms": retry_after_ms,
+            "body": String::from_utf8_lossy(&body),
+            "state": state
+        }))
         .await;
-    if let Err(Error::ModelFailure(mut error)) = result {
-        error.status = Some(status.as_u16());
-        error.retry_after_ms = error.retry_after_ms.or(retry_after_ms);
-        return error.into();
+    match result {
+        Ok(value) if value.get("next").is_some() => HttpFailureOutcome::Next(value),
+        Err(Error::ModelFailure(mut error)) => {
+            error.status = Some(status.as_u16());
+            error.retry_after_ms = error.retry_after_ms.or(retry_after_ms);
+            HttpFailureOutcome::Fail(error.into())
+        }
+        _ => HttpFailureOutcome::Fail(
+            ModelFailure {
+                category: "http".into(),
+                message: "model endpoint rejected request".into(),
+                status: Some(status.as_u16()),
+                retryable: status.as_u16() == 429 || status.is_server_error(),
+                retry_after_ms,
+                code: None,
+                details: Value::Null,
+            }
+            .into(),
+        ),
     }
-    ModelFailure {
-        category: "http".into(),
-        message: "model endpoint rejected request".into(),
-        status: Some(status.as_u16()),
-        retryable: status.as_u16() == 429 || status.is_server_error(),
-        retry_after_ms,
-        code: None,
-        details: Value::Null,
-    }
-    .into()
 }
 #[cfg(test)]
 mod tests {

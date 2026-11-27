@@ -42,14 +42,16 @@ fn response_input(messages) {
     }
     result
 }
-fn make_exchange(model, request, trail, attempt, admission) {
+fn make_exchange(model, request, trail, attempt, admission, strict_disabled) {
     let s = settings(request);
     let streaming = s.stream ?? true;
     let body = #{model: model, input: response_input(request.messages), stream: streaming, store: false};
     let tools = [];
     for tool in request.tools {
-        let mapped = #{type: "function", name: tool.function.name, parameters: tool.function.parameters};
+        let wire = tool_schema_for_wire(tool, s, strict_disabled);
+        let mapped = #{type: "function", name: tool.function.name, parameters: wire.parameters};
         if tool.function.description != () { mapped.description = tool.function.description; }
+        if wire.strict { mapped.strict = true; }
         tools.push(mapped);
     }
     for tool in s.hosted_tools ?? [] { tools.push(tool); }
@@ -73,6 +75,7 @@ fn make_exchange(model, request, trail, attempt, admission) {
     }
     #{path: "responses", body: body, mode: if streaming { "sse" } else { "json" },
         state: #{model: model, request: request, trail: trail, attempt: attempt, admission: admission,
+            strict_tools_disabled: strict_disabled,
             response: #{}, items: [], completed: [], seen: false}}
 }
 fn response_error(error) {
@@ -124,21 +127,37 @@ fn event(state, frame) {
 fn final_response(state) {
     let response = state.response;
     if response.error != () || response.status == "failed" { response_error(response.error ?? #{}); }
+    let prelim_stop = if response.incomplete_details?.reason == "max_output_tokens" { "length" } else { "stop" };
     let output = "";
     let refusal = ();
     let messages = [];
     let calls = [];
+    let malformed = #{};
     let assistant = false;
     for item in response.output ?? [] {
-        messages.push(opaque("openai.responses/v1", item));
         if item.type == "message" {
+            messages.push(opaque("openai.responses/v1", item));
             if item.role != "assistant" { reject("message_role", "Responses output message is not an assistant turn"); }
             assistant = true;
             for part in item.content {
                 if part.type == "output_text" { output += part.text; }
                 else if part.type == "refusal" { refusal = (refusal ?? "") + part.refusal; }
             }
-        } else if item.type == "function_call" { calls.push(parsed_call(item.call_id, item.name, item.arguments)); }
+        } else if item.type == "function_call" {
+            let entry = parsed_call_entry(item.call_id, item.name, item.arguments, state.request, prelim_stop);
+            if entry == () { continue; }
+            calls.push(entry.invocation);
+            if entry.malformed != () {
+                malformed[entry.invocation.id] = entry.malformed;
+                let sanitized = item;
+                sanitized.arguments = "{}";
+                messages.push(opaque("openai.responses/v1", sanitized));
+            } else {
+                messages.push(opaque("openai.responses/v1", item));
+            }
+        } else {
+            messages.push(opaque("openai.responses/v1", item));
+        }
     }
     if !assistant && calls.len() == 0 { reject("empty_response", "Responses has neither an assistant message nor a local tool call"); }
     if output == "" && calls.len() == 0 && refusal == () { reject("empty_response", "Responses returned no text or tool call"); }
@@ -146,14 +165,14 @@ fn final_response(state) {
         else if refusal != () || response.incomplete_details?.reason == "content_filter" { "content_filter" }
         else if calls.len() > 0 { "tool_calls" } else { "stop" };
     let usage = response.usage ?? #{};
-    finish(state, answer(state, output, calls, messages, stop, refusal, response,
+    finish(state, answer(state, output, calls, malformed, messages, stop, refusal, response,
         token_count(usage, "input_tokens", true), token_count(usage, "output_tokens", true)))
 }
 switch args.phase {
     "admit" => admit(args.request, "responses", args.endpoint_limits),
     "history" => history(args.messages),
     "http_error" => http_error(args),
-    "request" => make_exchange(args.model, args.request, [], 0, args.admission),
+    "request" => make_exchange(args.model, args.request, [], 0, args.admission, false),
     "event" => event(args.state, args.frame),
     "finish" => final_response(args.state),
     _ => reject("phase", "unknown model protocol phase")

@@ -270,3 +270,327 @@ async fn text_accumulation_bound_fails_without_claiming_a_complete_answer() {
     );
     assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
+
+struct CountingPolicy(Arc<AtomicUsize>);
+#[async_trait::async_trait]
+impl Policy for CountingPolicy {
+    async fn admit(&self, _: &ToolCall, _: &RunState, _: &RunContext) -> Result<Admission, Error> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Ok(Admission::Allow)
+    }
+}
+
+struct StrictSchemaTool {
+    calls: Arc<AtomicUsize>,
+    seen: Arc<std::sync::Mutex<Vec<Value>>>,
+}
+impl Tool for StrictSchemaTool {
+    type Args = Value;
+    type Output = Value;
+    fn id(&self) -> nofy_tool_protocol::ToolId {
+        nofy_tool_protocol::ToolId::new("submit").unwrap()
+    }
+    fn description(&self, _: &nofy_tool_runtime::ListToolsContext) -> ToolDescription {
+        let mut d = ToolDescription::new("submit", "typed payload submit");
+        d.arguments_schema = Some(json!({
+            "type": "object",
+            "required": ["payload"],
+            "additionalProperties": false,
+            "properties": {
+                "payload": {
+                    "type": "object",
+                    "required": ["id"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "note": {"type": "string"}
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            }
+        }));
+        d
+    }
+    async fn run(
+        &self,
+        _: ToolCallContext,
+        args: Value,
+    ) -> Result<Value, nofy_tool_runtime::ToolError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        self.seen.lock().unwrap().push(args.clone());
+        Ok(json!({"accepted": args}))
+    }
+}
+
+struct SelfCorrectingMalformedModel(Arc<AtomicUsize>);
+#[async_trait::async_trait]
+impl Model for SelfCorrectingMalformedModel {
+    async fn complete(&self, req: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+        let turn = self.0.fetch_add(1, Ordering::SeqCst);
+        if turn == 0 {
+            let mut malformed = std::collections::BTreeMap::new();
+            malformed.insert(
+                "bad-1".into(),
+                ToolCallParseError {
+                    message: "EOF while parsing an object".into(),
+                    line: Some(1),
+                    column: Some(15),
+                    raw_excerpt: Some("{\"payload\":{\"id\"".into()),
+                },
+            );
+            return Ok(ModelResponse {
+                tool_calls: vec![ToolCall {
+                    id: "bad-1".into(),
+                    name: "submit".into(),
+                    arguments: json!({}),
+                }],
+                malformed_tool_calls: malformed,
+                ..Default::default()
+            });
+        }
+        if turn == 1 {
+            let tool_msg = req
+                .messages
+                .iter()
+                .rev()
+                .find_map(|m| match m {
+                    Message::Tool {
+                        content,
+                        is_error: true,
+                        ..
+                    } => Some(content.to_string()),
+                    _ => None,
+                })
+                .expect("malformed parse feedback");
+            assert!(tool_msg.contains("malformed tool arguments for submit"));
+            assert!(tool_msg.contains("(line 1, column 15)"));
+            assert!(tool_msg.contains("{\\\"payload\\\":{\\\"id\\\""));
+            return Ok(ModelResponse {
+                tool_calls: vec![ToolCall {
+                    id: "ok-2".into(),
+                    name: "submit".into(),
+                    arguments: json!({"payload": {"id": 42}}),
+                }],
+                ..Default::default()
+            });
+        }
+        Ok(ModelResponse {
+            output: "recovered".into(),
+            ..Default::default()
+        })
+    }
+}
+
+#[tokio::test]
+async fn malformed_tool_call_short_circuits_before_policy_and_exec_then_self_corrects() {
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let policy_hits = Arc::new(AtomicUsize::new(0));
+    let tool_hits = Arc::new(AtomicUsize::new(0));
+    let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut c = Components::default();
+    c.models.insert(
+        "m".into(),
+        Arc::new(SelfCorrectingMalformedModel(model_calls.clone())),
+    );
+    c.prompts
+        .insert("p".into(), Arc::new(StaticPrompt("test".into())));
+    let mut t = ToolCatalog::new();
+    t.insert(ToolEntry::typed(StrictSchemaTool {
+        calls: tool_hits.clone(),
+        seen: seen.clone(),
+    }))
+    .unwrap();
+    c.tool_packs.insert("t".into(), t);
+    c.policies
+        .insert("pol".into(), Arc::new(CountingPolicy(policy_hits.clone())));
+    let agent = AgentBuilder::new("malformed-test")
+        .model("m")
+        .prompt("p")
+        .tools("t")
+        .policy("pol")
+        .compile(&c)
+        .unwrap();
+
+    let RunOutcome::Completed { output, .. } =
+        agent.invoke(RunInput::new("go"), context()).await.unwrap()
+    else {
+        panic!("expected recovery completion")
+    };
+    assert_eq!(output, "recovered");
+    assert_eq!(model_calls.load(Ordering::SeqCst), 3);
+    // Policy and tool were skipped on bad-1 and invoked only on ok-2.
+    assert_eq!(policy_hits.load(Ordering::SeqCst), 1);
+    assert_eq!(tool_hits.load(Ordering::SeqCst), 1);
+    assert_eq!(seen.lock().unwrap()[0], json!({"payload": {"id": 42}}));
+}
+
+struct SequenceToolModel {
+    calls: Arc<AtomicUsize>,
+    payloads: Vec<Value>,
+}
+#[async_trait::async_trait]
+impl Model for SequenceToolModel {
+    async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+        let idx = self.calls.fetch_add(1, Ordering::SeqCst);
+        if let Some(args) = self.payloads.get(idx) {
+            return Ok(ModelResponse {
+                tool_calls: vec![ToolCall {
+                    id: format!("call-{idx}"),
+                    name: "submit".into(),
+                    arguments: args.clone(),
+                }],
+                ..Default::default()
+            });
+        }
+        Ok(ModelResponse {
+            output: "done".into(),
+            ..Default::default()
+        })
+    }
+}
+
+#[tokio::test]
+async fn safe_tool_argument_coercion_drops_optional_null_unwraps_containers_and_reports_unwrapped_errors()
+ {
+    for mode in [ToolArgumentCoercion::Strict, ToolArgumentCoercion::Safe] {
+        let model_calls = Arc::new(AtomicUsize::new(0));
+        let tool_hits = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let mut c = Components::default();
+        c.models.insert(
+            "m".into(),
+            Arc::new(SequenceToolModel {
+                calls: model_calls.clone(),
+                payloads: vec![
+                    // 1. Optional nulls + double-encoded object string.
+                    json!({"payload": "{\"id\":7,\"note\":null}", "tags": null}),
+                    // 2. Double-encoded object string with nested type error (/payload/id).
+                    json!({"payload": "{\"id\":\"bad-int\"}"}),
+                ],
+            }),
+        );
+        c.prompts
+            .insert("p".into(), Arc::new(StaticPrompt("test".into())));
+        let mut t = ToolCatalog::new();
+        t.insert(ToolEntry::typed(StrictSchemaTool {
+            calls: tool_hits.clone(),
+            seen: seen.clone(),
+        }))
+        .unwrap();
+        c.tool_packs.insert("t".into(), t);
+        let agent = AgentBuilder::new("coerce-test")
+            .model("m")
+            .prompt("p")
+            .tools("t")
+            .settings(Settings {
+                tool_argument_coercion: mode,
+                ..Default::default()
+            })
+            .compile(&c)
+            .unwrap();
+
+        let RunOutcome::Completed { state, .. } =
+            agent.invoke(RunInput::new("go"), context()).await.unwrap()
+        else {
+            panic!("expected completion")
+        };
+
+        let tool_msgs: Vec<(&Value, bool)> = state
+            .messages
+            .iter()
+            .filter_map(|m| match m {
+                Message::Tool {
+                    content, is_error, ..
+                } => Some((content, *is_error)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(tool_msgs.len(), 2);
+
+        if mode == ToolArgumentCoercion::Strict {
+            assert_eq!(tool_hits.load(Ordering::SeqCst), 0);
+            assert!(tool_msgs[0].1);
+            assert!(tool_msgs[1].1);
+        } else {
+            assert_eq!(tool_hits.load(Ordering::SeqCst), 1);
+            assert!(!tool_msgs[0].1);
+            assert_eq!(seen.lock().unwrap()[0], json!({"payload": {"id": 7}}));
+            assert!(tool_msgs[1].1);
+            let err2 = tool_msgs[1].0["error"].as_str().unwrap();
+            assert!(
+                err2.contains("/payload/id"),
+                "expected unwrapped nested path /payload/id, got: {err2}"
+            );
+        }
+    }
+}
+
+struct VaryingMalformedModel(Arc<AtomicUsize>);
+#[async_trait::async_trait]
+impl Model for VaryingMalformedModel {
+    async fn complete(&self, _: ModelRequest, _: &RunContext) -> Result<ModelResponse, Error> {
+        let n = self.0.fetch_add(1, Ordering::SeqCst);
+        let id = format!("mal-{n}");
+        let mut malformed = std::collections::BTreeMap::new();
+        malformed.insert(
+            id.clone(),
+            ToolCallParseError {
+                message: format!("syntax error variant {n}"),
+                line: Some(1),
+                column: Some((n + 2) as u64),
+                raw_excerpt: Some(format!("{{\"x\":{n}")),
+            },
+        );
+        Ok(ModelResponse {
+            tool_calls: vec![ToolCall {
+                id,
+                name: "effect".into(),
+                arguments: json!({"variant": n}),
+            }],
+            malformed_tool_calls: malformed,
+            ..Default::default()
+        })
+    }
+}
+
+#[tokio::test]
+async fn consecutive_malformed_tool_calls_trip_repeat_circuit_breaker() {
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let effects = Arc::new(AtomicUsize::new(0));
+    let policy = Arc::new(
+        RepeatStage::new(RepeatConfig {
+            max_consecutive_malformed: Some(3),
+            ..Default::default()
+        })
+        .unwrap(),
+    );
+    let agent = agent(
+        Arc::new(VaryingMalformedModel(model_calls.clone())),
+        vec![ToolEntry::typed(Effect(effects.clone()))],
+        policy,
+        Boundary::AfterTool,
+    )
+    .with_checkpointer(Arc::new(InMemoryCheckpointer::default()));
+
+    let RunOutcome::BudgetExceeded { state } =
+        agent.invoke(RunInput::new("go"), context()).await.unwrap()
+    else {
+        panic!("expected consecutive malformed circuit breaker stop")
+    };
+    assert_eq!(effects.load(Ordering::SeqCst), 0);
+    assert_eq!(model_calls.load(Ordering::SeqCst), 3);
+    assert_eq!(
+        state.recipe_progress.stage_data("repeat").unwrap()["consecutive_malformed"],
+        3
+    );
+    assert!(
+        state
+            .recipe_progress
+            .limit_reason()
+            .unwrap()
+            .contains("consecutive malformed tool calls")
+    );
+}

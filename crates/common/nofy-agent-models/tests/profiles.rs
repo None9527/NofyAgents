@@ -1210,3 +1210,375 @@ async fn messages_can_require_or_name_the_declared_finalizer_without_business_to
     assert_eq!(requests[0].1["tool_choice"]["type"], "any");
     assert_eq!(requests[1].1["tool_choice"]["name"], "StructuredOutput");
 }
+
+fn wire_tool_call(profile: &str, id: &str, name: &str, args: &str, truncated: bool) -> Wire {
+    match profile {
+        "chat_completions" => Wire::Json(json!({
+            "id": "cmpl_tc",
+            "choices": [{
+                "index": 0,
+                "finish_reason": if truncated { "length" } else { "tool_calls" },
+                "message": {
+                    "role": "assistant",
+                    "content": if truncated { "partial" } else { "" },
+                    "tool_calls": [{
+                        "id": id,
+                        "type": "function",
+                        "function": {"name": name, "arguments": args}
+                    }]
+                }
+            }],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5}
+        })),
+        "responses" => Wire::Json(json!({
+            "id": "resp_tc",
+            "status": if truncated { "incomplete" } else { "completed" },
+            "incomplete_details": if truncated { json!({"reason": "max_output_tokens"}) } else { Value::Null },
+            "output": if truncated {
+                json!([
+                    {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "partial"}]},
+                    {"type": "function_call", "call_id": id, "name": name, "arguments": args}
+                ])
+            } else {
+                json!([{"type": "function_call", "call_id": id, "name": name, "arguments": args}])
+            },
+            "usage": {"input_tokens": 10, "output_tokens": 5}
+        })),
+        "messages" => Wire::Sse(vec![
+            (
+                "message_start".into(),
+                json!({"type":"message_start","message":{"id":"msg_tc","role":"assistant","content":[],"usage":{"input_tokens":10,"output_tokens":0}}}).to_string(),
+            ),
+            (
+                "content_block_start".into(),
+                json!({"type":"content_block_start","index":0,"content_block":{"type":"text","text":if truncated { "partial" } else { "" }}}).to_string(),
+            ),
+            (
+                "content_block_stop".into(),
+                json!({"type":"content_block_stop","index":0}).to_string(),
+            ),
+            (
+                "content_block_start".into(),
+                json!({"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":id,"name":name,"input":{}}}).to_string(),
+            ),
+            (
+                "content_block_delta".into(),
+                json!({"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":args}}).to_string(),
+            ),
+            (
+                "content_block_stop".into(),
+                json!({"type":"content_block_stop","index":1}).to_string(),
+            ),
+            (
+                "message_delta".into(),
+                json!({"type":"message_delta","delta":{"stop_reason":if truncated { "max_tokens" } else { "tool_use" }},"usage":{"output_tokens":5}}).to_string(),
+            ),
+            (
+                "message_stop".into(),
+                json!({"type":"message_stop"}).to_string(),
+            ),
+        ]),
+        _ => unreachable!(),
+    }
+}
+
+#[tokio::test]
+async fn tool_arguments_lexical_repair_empty_norm_and_malformed_feedback_across_protocols() {
+    for profile in ["chat_completions", "responses", "messages"] {
+        let streaming = profile == "messages";
+        let server = server(vec![
+            wire_tool_call(profile, "c_empty", "ping", "   ", false),
+            wire_tool_call(
+                profile,
+                "c_lex",
+                "echo",
+                "\u{FEFF}{\"text\":\"line1\nline2\\d\"}",
+                false,
+            ),
+            wire_tool_call(profile, "c_bad", "edit", "{\"path\":\"a", false),
+            wire_tool_call(profile, "c_concat", "edit", "{\"a\":1}{\"b\":2}", false),
+            wire_tool_call(profile, "c_fail", "edit", "{\"path\":\"a", false),
+            wire_tool_call(profile, "c_trunc", "edit", "{\"path\":\"a", true),
+        ])
+        .await;
+        let model = model(&server.url, profile);
+
+        // 1. Whitespace-only arguments normalize to `{}`.
+        let r1 = model
+            .complete(
+                request(json!({"stream": streaming})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r1.tool_calls[0].arguments, json!({}), "{profile}");
+        assert!(r1.malformed_tool_calls.is_empty(), "{profile}");
+
+        // 2. BOM + bare newline + invalid backslash escape repaired lexically.
+        let r2 = model
+            .complete(
+                request(json!({"stream": streaming})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            r2.tool_calls[0].arguments,
+            json!({"text": "line1\nline2\\d"}),
+            "{profile}"
+        );
+        assert!(r2.malformed_tool_calls.is_empty(), "{profile}");
+
+        // 3. Broken JSON returns explicit malformed_tool_calls entry in default feedback mode.
+        let r3 = model
+            .complete(
+                request(json!({"stream": streaming})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r3.tool_calls.len(), 1, "{profile}");
+        assert_eq!(r3.tool_calls[0].arguments, json!({}), "{profile}");
+        let err3 = r3
+            .malformed_tool_calls
+            .get("c_bad")
+            .expect("malformed entry");
+        assert!(err3.line.is_some() && err3.column.is_some(), "{profile}");
+        assert_eq!(
+            err3.raw_excerpt.as_deref(),
+            Some("{\"path\":\"a"),
+            "{profile}"
+        );
+
+        // 4. Concatenated JSON objects produce targeted split guidance.
+        let r4 = model
+            .complete(
+                request(json!({"stream": streaming})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap();
+        let err4 = r4
+            .malformed_tool_calls
+            .get("c_concat")
+            .expect("concatenated entry");
+        assert!(
+            err4.message.contains("concatenated 2 JSON objects"),
+            "{profile}: {}",
+            err4.message
+        );
+
+        // 5. Explicit fail policy still rejects syntactically invalid arguments.
+        let e5 = model
+            .complete(
+                request(json!({"stream": streaming, "malformed_tool_call_policy": "fail"})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(failure_code(e5), "tool_arguments", "{profile}");
+
+        // 6. Length-truncated malformed tool calls are dropped under complete_partial.
+        let r6 = model
+            .complete(
+                request(json!({"stream": streaming, "length_policy": "complete_partial"})),
+                &RunContext::default(),
+            )
+            .await
+            .unwrap();
+        assert!(r6.tool_calls.is_empty(), "{profile}");
+        assert!(r6.malformed_tool_calls.is_empty(), "{profile}");
+        assert_eq!(r6.output, "partial", "{profile}");
+    }
+}
+
+#[tokio::test]
+async fn structured_output_strips_fences_unwraps_double_encoded_and_reports_exact_paths() {
+    let schema = json!({
+        "type": "object",
+        "required": ["ok", "count"],
+        "additionalProperties": false,
+        "properties": {
+            "ok": {"type": "boolean"},
+            "count": {"type": "integer", "minimum": 1}
+        }
+    });
+
+    // Chat Completions: fenced JSON + path-level repair + schema_complete_at_cap at length.
+    let mut at_cap = ordinary("chat_completions", "{\"ok\":true,\"count\":2}");
+    at_cap["choices"][0]["finish_reason"] = json!("length");
+    let server_chat = server(vec![
+        Wire::Json(ordinary(
+            "chat_completions",
+            "```json\n{\"ok\":true,\"count\":1}\n```",
+        )),
+        Wire::Json(ordinary(
+            "chat_completions",
+            "{\"ok\":\"nope\",\"count\":0}",
+        )),
+        Wire::Json(ordinary("chat_completions", "{\"ok\":true,\"count\":3}")),
+        Wire::Json(at_cap),
+    ])
+    .await;
+    let chat = model(&server_chat.url, "chat_completions");
+
+    let fenced = chat
+        .complete(
+            request(json!({"stream":false,"json_schema":schema,"structured_output_retries":0})),
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        fenced.info.structured_output,
+        Some(json!({"ok":true,"count":1}))
+    );
+
+    let repaired = chat
+        .complete(
+            request(json!({"stream":false,"json_schema":schema,"structured_output_retries":1})),
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        repaired.info.structured_output,
+        Some(json!({"ok":true,"count":3}))
+    );
+    {
+        let reqs = server_chat.capture.requests.lock().unwrap();
+        let repair_prompt = reqs[2].1["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+            .find(|m| m["role"] == "user")
+            .unwrap()["content"]
+            .as_str()
+            .unwrap();
+        assert!(
+            repair_prompt.contains("/ok:") || repair_prompt.contains("/count:"),
+            "expected path-level schema violation in repair prompt, got: {repair_prompt}"
+        );
+    }
+
+    let cap = chat
+        .complete(
+            request(json!({"stream":false,"json_schema":schema,"length_policy":"fail","structured_output_retries":0})),
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        cap.info.structured_output,
+        Some(json!({"ok":true,"count":2}))
+    );
+
+    // Messages StructuredOutput: double-encoded JSON string in value is unwrapped once.
+    let mut double_encoded = message("");
+    double_encoded["stop_reason"] = json!("tool_use");
+    double_encoded["content"] = json!([{
+        "type": "tool_use",
+        "id": "final_de",
+        "name": "StructuredOutput",
+        "input": {"value": "{\"ok\":true,\"count\":4}"}
+    }]);
+    let server_msg = server(vec![Wire::Json(double_encoded)]).await;
+    let msg = model(&server_msg.url, "messages");
+    let unwrapped = msg
+        .complete(
+            request(json!({"stream":false,"json_schema":schema,"structured_output_retries":0})),
+            &RunContext::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        unwrapped.info.structured_output,
+        Some(json!({"ok":true,"count":4}))
+    );
+}
+
+#[tokio::test]
+async fn strict_tools_emits_strict_schema_and_falls_back_on_400_limit_error() {
+    let strictable_tool = json!({
+        "type": "function",
+        "function": {
+            "name": "lookup",
+            "description": "Lookup record",
+            "parameters": {
+                "type": "object",
+                "required": ["key"],
+                "properties": {
+                    "key": {"type": "string", "minLength": 1},
+                    "limit": {"type": "integer", "minimum": 1}
+                }
+            }
+        }
+    });
+    let non_strictable_tool = json!({
+        "type": "function",
+        "function": {
+            "name": "open_bag",
+            "parameters": {"type": "object"}
+        }
+    });
+
+    for profile in ["chat_completions", "responses", "messages"] {
+        let server = server(vec![
+            Wire::Error(
+                400,
+                json!({"error":{"type":"invalid_request_error","message":"Exceeded maximum of 20 strict tools in grammar"}}),
+            ),
+            Wire::Json(ordinary(profile, "recovered")),
+        ])
+        .await;
+        let model = model(&server.url, profile);
+
+        // require mode fails fast at admit if any tool cannot be made strict.
+        let mut bad_req = request(json!({"stream":false,"strict_tools":"require"}));
+        bad_req.tools = serde_json::from_value(json!([non_strictable_tool])).unwrap();
+        assert_eq!(
+            failure_code(
+                model
+                    .request_bound(&bad_req, &RunContext::default())
+                    .await
+                    .unwrap_err()
+            ),
+            "strict_tool_schema",
+            "{profile}"
+        );
+
+        // prefer mode reserves +1 retry budget, sends strict:true first, then downgrades on 400.
+        let mut req = request(json!({"stream":false,"strict_tools":"prefer"}));
+        req.tools = serde_json::from_value(json!([strictable_tool, non_strictable_tool])).unwrap();
+        assert_eq!(
+            model
+                .request_bound(&req, &RunContext::default())
+                .await
+                .unwrap()
+                .max_calls,
+            2,
+            "{profile}"
+        );
+        let res = model.complete(req, &RunContext::default()).await.unwrap();
+        assert_eq!(res.output, "recovered", "{profile}");
+        assert_eq!(
+            res.info.provider["strict_tools_fallback"],
+            json!(true),
+            "{profile}"
+        );
+
+        let captured = server.capture.requests.lock().unwrap();
+        assert_eq!(captured.len(), 2, "{profile}");
+        let (first_tool_0, second_tool_0) = if profile == "chat_completions" {
+            (
+                &captured[0].1["tools"][0]["function"],
+                &captured[1].1["tools"][0]["function"],
+            )
+        } else {
+            (&captured[0].1["tools"][0], &captured[1].1["tools"][0])
+        };
+        assert_eq!(first_tool_0["strict"], json!(true), "{profile}");
+        assert!(second_tool_0.get("strict").is_none(), "{profile}");
+    }
+}

@@ -29,7 +29,7 @@ async fn accepted_old_model_command_reads_closed_outcome_after_a_later_run_seals
             command_id: "old-proof".into(),
             run_id: "old".into(),
             command: ManagedCommand::ReconcileModel {
-                receipt: ModelReconciliation {
+                receipt: Box::new(ModelReconciliation {
                     ticket: target.ticket,
                     result: ModelReconciliationResult::Completed {
                         response: ModelResponse {
@@ -39,7 +39,7 @@ async fn accepted_old_model_command_reads_closed_outcome_after_a_later_run_seals
                             ..Default::default()
                         },
                     },
-                },
+                }),
             },
         };
         store.enqueue_managed_action(proof.clone()).await.unwrap();

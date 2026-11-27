@@ -26,6 +26,11 @@ pub struct DefinitionSettings {
     pub model: serde_json::Map<String, Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope_identity: Option<crate::IdentityScheme>,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::settings::ToolArgumentCoercion::is_default"
+    )]
+    pub tool_argument_coercion: crate::settings::ToolArgumentCoercion,
 }
 impl Default for DefinitionSettings {
     fn default() -> Self {
@@ -34,6 +39,7 @@ impl Default for DefinitionSettings {
             max_steps: default_steps(),
             model: Default::default(),
             scope_identity: None,
+            tool_argument_coercion: Default::default(),
         }
     }
 }
@@ -258,6 +264,7 @@ pub fn compile_agent(
             max_steps: definition.settings.max_steps,
             model: Value::Object(definition.settings.model.clone()),
             scope_identity: definition.settings.scope_identity,
+            tool_argument_coercion: definition.settings.tool_argument_coercion,
         });
     for reference in &definition.tool_packs {
         if let ModuleInstance::ToolPack(tools) = get(reference, ModuleKind::ToolPack)? {

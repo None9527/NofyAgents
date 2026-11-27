@@ -80,6 +80,17 @@ impl ModelReconciliation {
                         return Err(invalid("duplicate tool call in model evidence"));
                     }
                 }
+                for (call_id, parse_error) in &response.malformed_tool_calls {
+                    if !ids.contains(call_id)
+                        || parse_error.message.len() > 4096
+                        || parse_error
+                            .raw_excerpt
+                            .as_ref()
+                            .is_some_and(|raw| raw.len() > 8192)
+                    {
+                        return Err(invalid("invalid malformed tool call in model evidence"));
+                    }
+                }
             }
             ModelReconciliationResult::Failed { failure }
                 if failure.category.trim().is_empty()

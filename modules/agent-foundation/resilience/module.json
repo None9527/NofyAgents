@@ -12,6 +12,13 @@
         "minimum": 0,
         "maximum": 16,
         "default": 2
+      },
+      "max_consecutive_malformed": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 64,
+        "default": 3,
+        "description": "Stop the run after N consecutive malformed or schema-invalid tool calls (0 disables)."
       }
     }
   },
@@ -33,7 +40,11 @@
         "$module": "repeat"
       },
       "factory": "stage.repeat",
-      "config": {}
+      "config": {
+        "max_consecutive_malformed": {
+          "$parameter": "/max_consecutive_malformed"
+        }
+      }
     },
     {
       "reference": {

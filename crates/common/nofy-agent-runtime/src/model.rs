@@ -3,9 +3,56 @@ pub mod image_fallback;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 use crate::{Error, RunContext};
 use nofy_tool_types::ToolDefinition;
+
+const MAX_RAW_EXCERPT_BYTES: usize = 2048;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ToolCallParseError {
+    pub message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub raw_excerpt: Option<String>,
+}
+
+impl ToolCallParseError {
+    pub fn format_for_model(&self, tool_name: &str) -> String {
+        let mut out = format!("malformed tool arguments for {tool_name}: {}", self.message);
+        if let (Some(line), Some(column)) = (self.line, self.column) {
+            out.push_str(&format!(" (line {line}, column {column})"));
+        }
+        if let Some(raw) = &self.raw_excerpt
+            && !raw.is_empty()
+        {
+            let excerpt = truncate_utf8(raw, MAX_RAW_EXCERPT_BYTES);
+            out.push_str("\nReceived arguments:\n");
+            out.push_str(excerpt);
+            if excerpt.len() < raw.len() {
+                out.push_str("\n...[truncated]");
+            }
+        }
+        out.push_str("\nFix the JSON syntax and retry.");
+        out
+    }
+}
+
+fn truncate_utf8(text: &str, max_bytes: usize) -> &str {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    let mut end = max_bytes;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ToolCall {
@@ -64,6 +111,8 @@ pub struct ModelResponse {
     pub messages: Vec<Message>,
     pub output: String,
     pub tool_calls: Vec<ToolCall>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub malformed_tool_calls: BTreeMap<String, ToolCallParseError>,
     pub input_tokens: u64,
     pub output_tokens: u64,
     pub info: CompletionInfo,

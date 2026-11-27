@@ -120,7 +120,7 @@ pub enum ManagedCommand {
         acknowledge_unresolved: bool,
     },
     ReconcileModel {
-        receipt: crate::governance::ModelReconciliation,
+        receipt: Box<crate::governance::ModelReconciliation>,
     },
     ReconcileHook {
         receipt: crate::hooks::primitive::HookReconciliation,

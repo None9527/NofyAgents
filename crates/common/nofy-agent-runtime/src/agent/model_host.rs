@@ -84,6 +84,23 @@ impl AgentHost<'_> {
         {
             return Err(Error::Model("empty or duplicate tool call id".into()));
         }
+        for (call_id, parse_error) in &response.malformed_tool_calls {
+            if !ids.contains(call_id) {
+                return Err(Error::Model(
+                    "malformed tool call error does not match any tool call id".into(),
+                ));
+            }
+            if parse_error.message.len() > 4096
+                || parse_error
+                    .raw_excerpt
+                    .as_ref()
+                    .is_some_and(|raw| raw.len() > 8192)
+            {
+                return Err(Error::Model(
+                    "malformed tool call error exceeds metadata bounds".into(),
+                ));
+            }
+        }
         self.state.input_tokens = self
             .state
             .input_tokens
@@ -101,6 +118,7 @@ impl AgentHost<'_> {
             self.state.messages.extend(response.messages);
         }
         self.state.pending_tools = response.tool_calls.into();
+        self.state.malformed_tool_calls = response.malformed_tool_calls;
         self.state.complete = self.state.pending_tools.is_empty();
         self.state.output = response.output.clone();
         self.state.completion_info = response.info.clone();

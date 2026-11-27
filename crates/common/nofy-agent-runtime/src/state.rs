@@ -42,6 +42,8 @@ pub struct RunState {
     pub input_tokens: u64,
     pub output_tokens: u64,
     pub pending_tools: VecDeque<ToolCall>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub malformed_tool_calls: BTreeMap<String, crate::model::ToolCallParseError>,
     /// A durable intent without a committed result must be reconciled by the
     /// application, never automatically replayed after a crash.
     pub in_flight: Option<ToolCall>,

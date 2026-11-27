@@ -55,11 +55,13 @@ pub use context::RunContext;
 pub use interjection::{PendingInterjection, format_interjection};
 pub use model::{
     CompletionInfo, InputPart, Message, Model, ModelCapabilities, ModelChunk, ModelDelta,
-    ModelRequest, ModelResponse, ModelStream, ToolCall,
+    ModelRequest, ModelResponse, ModelStream, ToolCall, ToolCallParseError,
 };
 pub use policy::{Admission, Policy};
 pub use prompt::{Prompt, PromptTemplate, StaticPrompt};
-pub use settings::{Settings, SettingsResolver, SettingsSource, StaticSettings};
+pub use settings::{
+    Settings, SettingsResolver, SettingsSource, StaticSettings, ToolArgumentCoercion,
+};
 pub use state::{Checkpoint, Checkpointer, InMemoryCheckpointer, RunState};
 pub use tools::{ToolCatalog, ToolEntry, ToolSnapshot, ToolSource};
 
