@@ -10,8 +10,8 @@ pub(super) struct Boundary {
 }
 
 pub(super) enum Preparation {
-    Replay(ManagedActionRecord),
-    Validate(Boundary),
+    Replay(Box<ManagedActionRecord>),
+    Validate(Box<Boundary>),
 }
 
 pub(super) fn replay(
@@ -29,8 +29,8 @@ pub(super) fn replay(
 
 pub(super) fn prepare(tx: &Transaction<'_>, p: &Proposal) -> Result<Preparation, Error> {
     match replay(tx, &p.action)? {
-        Some(old) => Ok(Preparation::Replay(old)),
-        None => Ok(Preparation::Validate(Boundary::read(tx, p)?)),
+        Some(old) => Ok(Preparation::Replay(Box::new(old))),
+        None => Ok(Preparation::Validate(Box::new(Boundary::read(tx, p)?))),
     }
 }
 

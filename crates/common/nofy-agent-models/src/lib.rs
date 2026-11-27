@@ -7,6 +7,7 @@ mod driver;
 mod errors;
 pub mod execution;
 mod json;
+mod json_resilience;
 mod program;
 mod sse;
 pub mod worker;

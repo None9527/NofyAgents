@@ -32,6 +32,11 @@ impl AgentHost<'_> {
         mut call: ToolCall,
         resume: bool,
     ) -> Result<Step<RunOutcome>, Error> {
+        if let Some(parse_error) = self.state.malformed_tool_calls.remove(&call.id) {
+            let reason = parse_error.format_for_model(&call.name);
+            self.reject_hook_tool(&call, reason, "parse").await?;
+            return Ok(Step::Continue);
+        }
         let original_id = call.id.clone();
         if let Some(control) = self.prepare_hook_tool(&mut call, resume).await? {
             return Ok(control);
@@ -52,9 +57,44 @@ impl AgentHost<'_> {
         let invalid = match entry {
             None => Some(format!("unregistered tool: {}", call.name)),
             Some(entry) => {
-                jsonschema::validate(&entry.definition.function.parameters, &call.arguments)
-                    .err()
-                    .map(|e| format!("invalid tool arguments: {e}"))
+                let schema = &entry.definition.function.parameters;
+                match crate::schema::validate_with_details(schema, &call.arguments)? {
+                    Ok(()) => None,
+                    Err(mut errors) => {
+                        let mut fixed = false;
+                        if self.agent.spec.settings.tool_argument_coercion
+                            == crate::ToolArgumentCoercion::Safe
+                            && let Some(coerced) =
+                                crate::schema::coerce_tool_arguments(schema, &call.arguments)
+                        {
+                            match crate::schema::validate_with_details(schema, &coerced)? {
+                                Ok(()) => {
+                                    call.arguments = coerced;
+                                    if let Some(front) = self.state.pending_tools.front_mut()
+                                        && front.id == call.id
+                                    {
+                                        front.arguments = call.arguments.clone();
+                                    }
+                                    fixed = true;
+                                }
+                                Err(coerced_errors) => {
+                                    errors = coerced_errors;
+                                }
+                            }
+                        }
+                        if fixed {
+                            None
+                        } else {
+                            let summary = errors
+                                .iter()
+                                .take(5)
+                                .map(|(path, msg)| format!("{path}: {msg}"))
+                                .collect::<Vec<_>>()
+                                .join("; ");
+                            Some(format!("invalid tool arguments: {summary}"))
+                        }
+                    }
+                }
             }
         };
         if let Some(reason) = invalid {

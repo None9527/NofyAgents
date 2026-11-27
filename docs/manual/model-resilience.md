@@ -10,7 +10,9 @@ Responses 的 web_search_call、引用和其他输出项随 opaque history、pro
 
 已结算的根模型失败可用 run.recovery(kind=retry) 读取原 ModelRetryTicket；null 表示当前没有可重试的已结算失败，不能伪造票据。schema(operation=run.control) 的 model_retry 给出完整原生正文：外层 command.kind=control，command.control.kind=retry_model，command.control.command 含原 ticket 与 command_id，且该 ID 必须与动作外层 command_id 相同。读取 action.inspect 确认回执，新 generation 使用独立预算准入；始终恢复原 run。未知已派发 attempt 应查询 kind=model，先以真实 provider 证据 reconciliation，不能套用已结算失败重试。
 
-`resilience` 源码包将已有 stage.length 和 stage.repeat 接到 runtime.recipe；导出 recipe 挂到 Agent 的 recipe 插槽。使用 stage.length 处理长度结束时，模型协议 length_policy 应配置为 complete_partial，使原运行收到 length 结束原因并由续写阶段处理。压缩另用 context-compaction 包及其 journal/policy 两个导出。
+`resilience` 源码包将已有 stage.length 和 stage.repeat 接到 runtime.recipe；导出 recipe 挂到 Agent 的 recipe 插槽（Omni 预设默认挂载）。使用 stage.length 处理长度结束时，模型协议 length_policy 应配置为 complete_partial，使原运行收到 length 结束原因并由续写阶段处理；stage.repeat 支持 `max_consecutive_malformed`（Omni 默认 3，0 关闭）在连续畸形/参数校验失败调用达到阈值时熔断。压缩另用 context-compaction 包及其 journal/policy 两个导出。
+
+模型 JSON 抗抖动严格分层：内核提供 `ToolCallParseError` 鉴权前短路回传、opt-in `tool_argument_coercion`（`strict`/`safe`，仅剔除可选 `null` 与单层双编码容器拆包）及有界纯函数原语（`json_parse_detailed`、`json_repair_lexical`、`json_split_concatenated`、`json_strip_fence`、`json_schema_validate`、`json_schema_make_strict`）；协议模块（`chat-completions`/`messages`/`responses`）通过 `model_settings` 暴露 `tool_json_repair`（`lexical`/`strict`）、`malformed_tool_call_policy`（`feedback`/`fail`）与 `strict_tools`（`off`/`prefer`/`require`，`prefer` 遇 400 语法/数量超限时自动降级非 strict 重试一次），并在 `json_schema` 终态校验中支持围栏剥离、`schema_complete_at_cap`、双编码拆包与字段路径级精准修复提示。
 
 `context-compaction@0.2.2` 增加显式手动指令。以 Session 新轮输入 `/compact` 或 `/compact 说明`，会在当前轮次前汇总全部旧历史；保留当前输入、原始出处和工具配对，汇总完成后不在该轮重复手动压缩。manual_prefix 可配置，空字符串关闭。自动模式仍按压力阈值工作；占位标记与 metadata 区分自动策略和 manual_full_replace。
 

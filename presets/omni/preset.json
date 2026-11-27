@@ -298,7 +298,7 @@
       },
       "provider": {
         "bindings": {},
-        "digest": "a67bc0d5764b33b8e347eefe6e6edd37a11a054fc4365ea7c6fcb41b1326cac4",
+        "digest": "8621bc2758b20e5941eb7e9a9893d9096d3c77a16b494202889a5ebadc01a7bd",
         "exports": {
           "model": "model"
         },
@@ -322,7 +322,7 @@
       },
       "provider-messages": {
         "bindings": {},
-        "digest": "b94e31c61451afec7d89e27c04c5a0d5634194799c371d4835a8608f7448ac94",
+        "digest": "f953156486300f50687443aa181d5e290e205946b5215369ac954d2c20b2f1b5",
         "exports": {
           "model": "model"
         },
@@ -349,7 +349,7 @@
       },
       "provider-responses": {
         "bindings": {},
-        "digest": "c94b26099e2c9f05e22107f657d04048d831af68900f25be231d0adc3e1044ba",
+        "digest": "68f0f9521f2689fcc3bc968cd322861ee2b37fb106e086b65fa5020b6d9b77b7",
         "exports": {
           "model": "model"
         },
@@ -369,6 +369,29 @@
           },
           "model": {
             "$parameter": "/responses_model"
+          }
+        },
+        "repository": "nofy",
+        "version": "0.1.0"
+      },
+      "resilience": {
+        "bindings": {},
+        "digest": "a43dd953be6625751fe3a09f697056ffe3b46ed40b145fb63845f958490aad31",
+        "exports": {
+          "recipe": "recipe"
+        },
+        "factories": {
+          "length": "stage.length",
+          "recipe": "runtime.recipe",
+          "repeat": "stage.repeat"
+        },
+        "name": "resilience",
+        "parameters": {
+          "max_consecutive_malformed": {
+            "$parameter": "/malformed_tool_call_limit"
+          },
+          "max_continues": {
+            "$parameter": "/length_max_continues"
           }
         },
         "repository": "nofy",
@@ -564,6 +587,9 @@
           "prompt": {
             "$module": "omni-prompt"
           },
+          "recipe": {
+            "$module": "resilience.recipe"
+          },
           "schema_version": 1,
           "settings": {
             "input_delivery": {
@@ -575,7 +601,10 @@
             "model": {
               "$parameter": "/model_settings"
             },
-            "scope_identity": "hashed_v2"
+            "scope_identity": "hashed_v2",
+            "tool_argument_coercion": {
+              "$parameter": "/tool_argument_coercion"
+            }
           },
           "tool_packs": [
             {

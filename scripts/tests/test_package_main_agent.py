@@ -150,7 +150,7 @@ class ModuleSyncGateTests(unittest.TestCase):
         problems, summary = sync_mod.verify_all(self.repo)
         self.assertEqual(problems, [], problems)
         self.assertEqual(summary["repository_packages"], 15)
-        self.assertEqual(summary["omni_frozen_packages"], 11)
+        self.assertEqual(summary["omni_frozen_packages"], 12)
         self.assertEqual(summary["coding_module_pairs"], 15)
         self.assertEqual(summary["manual_doc_pairs"], 3)
 

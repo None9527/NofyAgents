@@ -587,7 +587,7 @@ async fn unknown_effect_after_transition_reconciles_in_original_journal_without_
             .enqueue_managed_action(action(
                 "evidence",
                 ManagedCommand::ReconcileModel {
-                    receipt: ModelReconciliation {
+                    receipt: Box::new(ModelReconciliation {
                         ticket: target.ticket,
                         result: ModelReconciliationResult::Completed {
                             response: ModelResponse {
@@ -597,7 +597,7 @@ async fn unknown_effect_after_transition_reconciles_in_original_journal_without_
                                 ..Default::default()
                             },
                         },
-                    },
+                    }),
                 },
             ))
             .await

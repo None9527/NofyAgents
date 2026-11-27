@@ -197,7 +197,7 @@ async fn model_evidence_and_management_ack_loss_replay_without_new_provider_effe
                     command_id: "model-evidence".into(),
                     run_id: "root".into(),
                     command: ManagedCommand::ReconcileModel {
-                        receipt: receipt.clone(),
+                        receipt: Box::new(receipt.clone()),
                     },
                 })
                 .await

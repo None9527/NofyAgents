@@ -161,6 +161,31 @@
       "minimum": 0,
       "maximum": 4,
       "description": "Messages pause_turn continuation limit; reserve these requests before dispatch."
+    },
+    "tool_json_repair": {
+      "enum": [
+        null,
+        "lexical",
+        "strict"
+      ],
+      "description": "Tool argument JSON preprocessing: 'lexical' (default) normalizes empty args and repairs bare control characters/invalid escapes inside strings; 'strict' performs raw RFC 8259 parsing only."
+    },
+    "malformed_tool_call_policy": {
+      "enum": [
+        null,
+        "feedback",
+        "fail"
+      ],
+      "description": "How syntactically invalid tool call JSON is handled: 'feedback' (default) reports syntax diagnostics back to the model via runtime short-circuit; 'fail' rejects the completion."
+    },
+    "strict_tools": {
+      "enum": [
+        null,
+        "off",
+        "prefer",
+        "require"
+      ],
+      "description": "Provider strict constrained decoding for local tool schemas: 'off' (default), 'prefer' (apply where expressible and downgrade on 400 grammar/limit errors), or 'require' (fail if any tool schema is not strict-expressible)."
     }
   }
 }

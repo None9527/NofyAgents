@@ -1,0 +1,15 @@
+{
+  "declaration": "module.json",
+  "files": {
+    "module.json": {
+      "content": "{\n  \"format\": \"nofy.module-package/v1\",\n  \"name\": \"resilience\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Wire native length salvage and repeat-loop detection into the existing runtime recipe.\",\n  \"parameters_schema\": {\n    \"type\": \"object\",\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"max_continues\": {\n        \"type\": \"integer\",\n        \"minimum\": 0,\n        \"maximum\": 16,\n        \"default\": 2\n      },\n      \"max_consecutive_malformed\": {\n        \"type\": \"integer\",\n        \"minimum\": 0,\n        \"maximum\": 64,\n        \"default\": 3,\n        \"description\": \"Stop the run after N consecutive malformed or schema-invalid tool calls (0 disables).\"\n      }\n    }\n  },\n  \"inputs\": {},\n  \"modules\": [\n    {\n      \"reference\": {\n        \"$module\": \"length\"\n      },\n      \"factory\": \"stage.length\",\n      \"config\": {\n        \"max_continues\": {\n          \"$parameter\": \"/max_continues\"\n        }\n      }\n    },\n    {\n      \"reference\": {\n        \"$module\": \"repeat\"\n      },\n      \"factory\": \"stage.repeat\",\n      \"config\": {\n        \"max_consecutive_malformed\": {\n          \"$parameter\": \"/max_consecutive_malformed\"\n        }\n      }\n    },\n    {\n      \"reference\": {\n        \"$module\": \"recipe\"\n      },\n      \"factory\": \"runtime.recipe\",\n      \"config\": {\n        \"stages\": [\n          {\n            \"name\": \"length\",\n            \"at\": \"before_stop\",\n            \"stage\": \"length\"\n          },\n          {\n            \"name\": \"repeat\",\n            \"at\": \"after_tool\",\n            \"stage\": \"repeat\"\n          }\n        ]\n      },\n      \"dependencies\": {\n        \"length\": {\n          \"$module\": \"length\"\n        },\n        \"repeat\": {\n          \"$module\": \"repeat\"\n        }\n      }\n    }\n  ],\n  \"exports\": {\n    \"recipe\": \"recipe\"\n  }\n}\n",
+      "encoding": "utf8",
+      "executable": false
+    },
+    "source-files.json": {
+      "content": "[\n  \"module.json\",\n  \"source-files.json\"\n]\n",
+      "encoding": "utf8",
+      "executable": false
+    }
+  }
+}

@@ -488,7 +488,7 @@ impl RunSupervisor {
                     self.accept_model_reconciliation_leased(
                         compiled,
                         &context,
-                        receipt.clone(),
+                        receipt.as_ref().clone(),
                         &current.action.command_id,
                         lease,
                     )

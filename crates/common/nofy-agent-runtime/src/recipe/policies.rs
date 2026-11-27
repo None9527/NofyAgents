@@ -10,6 +10,8 @@ pub struct RepeatConfig {
     pub problematic_tools: BTreeSet<String>,
     pub true_noop_tools: BTreeSet<String>,
     pub command_argument: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_consecutive_malformed: Option<u32>,
 }
 impl Default for RepeatConfig {
     fn default() -> Self {
@@ -17,6 +19,7 @@ impl Default for RepeatConfig {
             problematic_tools: Default::default(),
             true_noop_tools: Default::default(),
             command_argument: "command".into(),
+            max_consecutive_malformed: None,
         }
     }
 }
@@ -29,6 +32,9 @@ impl RepeatStage {
             || config.command_argument.len() > 128
             || config.problematic_tools.len() > 1024
             || config.true_noop_tools.len() > 1024
+            || config
+                .max_consecutive_malformed
+                .is_some_and(|limit| limit > 64)
         {
             return Err(Error::Composition(
                 "repeat policy configuration exceeds limits".into(),
@@ -104,13 +110,32 @@ impl AgentStage for RepeatStage {
                 .get(&self.config.command_argument)
                 .and_then(Value::as_str)
                 .is_some_and(|command| command.trim() == "true");
+        let malformed = result.is_error
+            && result
+                .content
+                .get("error")
+                .and_then(Value::as_str)
+                .is_some_and(|text| {
+                    text.starts_with("malformed tool arguments")
+                        || text.starts_with("invalid tool arguments")
+                });
+        let malformed_count = run.observe_malformed(malformed);
         run.observe(
             &signature,
             name,
             result.is_error || self.config.problematic_tools.contains(name),
             noop,
         );
-        let action = if run.run_len >= run.hard_stop_threshold() {
+        let action = if let Some(limit) = self.config.max_consecutive_malformed
+            && limit > 0
+            && malformed_count >= limit
+        {
+            StageAction::Limit {
+                reason: format!(
+                    "consecutive malformed tool calls: {name} ({malformed_count} attempts)"
+                ),
+            }
+        } else if run.run_len >= run.hard_stop_threshold() {
             StageAction::Limit {
                 reason: format!(
                     "repeated identical tool call: {name} ({} executions)",
@@ -242,7 +267,8 @@ impl ModuleFactory for RepeatStageFactory {
             json!({"type":"object","additionalProperties":false,"properties":{
         "problematic_tools":{"type":"array","maxItems":1024,"uniqueItems":true,"items":{"type":"string","minLength":1}},
         "true_noop_tools":{"type":"array","maxItems":1024,"uniqueItems":true,"items":{"type":"string","minLength":1}},
-        "command_argument":{"type":"string","minLength":1,"maxLength":128}}}),
+        "command_argument":{"type":"string","minLength":1,"maxLength":128},
+        "max_consecutive_malformed":{"type":"integer","minimum":0,"maximum":64}}}),
         )
     }
     fn build(

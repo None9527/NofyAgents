@@ -6,7 +6,7 @@ use rhai::packages::{
 };
 use rhai::{Dynamic, Engine, OptimizationLevel};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     cell::RefCell,
     collections::VecDeque,
@@ -151,6 +151,41 @@ fn engine(limits: &Limits, spent: Arc<AtomicU64>, cancel: CancellationToken) -> 
         },
     );
     engine.register_fn(
+        "json_parse_detailed",
+        move |text: &str| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+            let outcome = match crate::json_resilience::parse_detailed(text, max_json_bytes) {
+                Ok(value) => json!({"ok": true, "value": value}),
+                Err(detail) => json!({
+                    "ok": false,
+                    "error": detail.message,
+                    "line": detail.line,
+                    "column": detail.column
+                }),
+            };
+            crate::json::dynamic(&outcome, max_json_bytes.saturating_add(4096))
+        },
+    );
+    engine.register_fn(
+        "json_repair_lexical",
+        move |text: &str| -> Result<String, Box<rhai::EvalAltResult>> {
+            crate::json_resilience::repair_lexical(text, max_json_bytes).map_err(Into::into)
+        },
+    );
+    engine.register_fn(
+        "json_split_concatenated",
+        move |text: &str| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+            let items = crate::json_resilience::split_concatenated(text, max_json_bytes, 16);
+            let ok = items.len() >= 2;
+            crate::json::dynamic(
+                &json!({"ok": ok, "items": items}),
+                max_json_bytes.saturating_add(4096),
+            )
+        },
+    );
+    engine.register_fn("json_strip_fence", |text: &str| -> String {
+        crate::json_resilience::strip_fence(text).to_string()
+    });
+    engine.register_fn(
         "json_stringify",
         move |value: Dynamic| -> Result<String, Box<rhai::EvalAltResult>> {
             let value = crate::json::value(&value, max_json_bytes)?;
@@ -177,6 +212,46 @@ fn engine(limits: &Limits, spent: Arc<AtomicU64>, cancel: CancellationToken) -> 
             nofy_agent_runtime::settings::validate_json_schema(&schema)
                 .map_err(|_| "invalid local JSON Schema")?;
             Ok(nofy_agent_runtime::settings::validate_json_value(&schema, &value).is_ok())
+        },
+    );
+    engine.register_fn(
+        "json_schema_validate",
+        |schema: Dynamic, value: Dynamic| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+            let schema = crate::json::value(&schema, 65536)?;
+            let value = crate::json::value(&value, 16 * 1024 * 1024)?;
+            count_encoded(&schema, 65536).map_err(|_| "JSON Schema byte limit")?;
+            count_encoded(&value, 16 * 1024 * 1024).map_err(|_| "JSON value byte limit")?;
+            let result =
+                nofy_agent_runtime::settings::validate_json_value_detailed(&schema, &value)
+                    .map_err(|_| "invalid local JSON Schema")?;
+            let payload = match result {
+                Ok(()) => json!({"ok": true, "errors": [], "summary": ""}),
+                Err(errors) => {
+                    let summary = errors
+                        .iter()
+                        .take(5)
+                        .map(|(path, msg)| format!("{path}: {msg}"))
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    let list: Vec<Value> = errors
+                        .into_iter()
+                        .map(|(path, message)| json!({"path": path, "message": message}))
+                        .collect();
+                    json!({"ok": false, "errors": list, "summary": summary})
+                }
+            };
+            crate::json::dynamic(&payload, 65536)
+        },
+    );
+    engine.register_fn(
+        "json_schema_make_strict",
+        |schema: Dynamic| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+            let schema = crate::json::value(&schema, 65536)?;
+            count_encoded(&schema, 65536).map_err(|_| "JSON Schema byte limit")?;
+            match crate::json_resilience::make_strict_schema(&schema, 65536) {
+                Some(strict) => crate::json::dynamic(&strict, 65536),
+                None => Ok(Dynamic::UNIT),
+            }
         },
     );
     engine

@@ -26,8 +26,21 @@ pub struct IdenticalToolCallRun {
     pub run_len: u32,
     pub is_true_noop_run: bool,
     nudged: bool,
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub consecutive_malformed: u32,
+}
+fn is_zero_u32(value: &u32) -> bool {
+    *value == 0
 }
 impl IdenticalToolCallRun {
+    pub fn observe_malformed(&mut self, is_malformed: bool) -> u32 {
+        if is_malformed {
+            self.consecutive_malformed = self.consecutive_malformed.saturating_add(1);
+        } else {
+            self.consecutive_malformed = 0;
+        }
+        self.consecutive_malformed
+    }
     pub fn observe(
         &mut self,
         signature: &str,

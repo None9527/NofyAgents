@@ -286,9 +286,10 @@ async fn execute(
             .map_err(|_| failure("transport"))?;
         let status = response.status();
         if !status.is_success() {
-            return Err(crate::errors::http_failure(
+            match crate::errors::http_failure(
                 response,
                 session,
+                exchange.state,
                 program.limits.max_frame_bytes.min(
                     program
                         .limits
@@ -297,7 +298,23 @@ async fn execute(
                 ),
                 connection.config.idle_timeout_ms,
             )
-            .await);
+            .await
+            {
+                crate::errors::HttpFailureOutcome::Fail(error) => return Err(error),
+                crate::errors::HttpFailureOutcome::Next(value) => {
+                    let result: Finished = serde_json::from_value(value)
+                        .map_err(|_| failure("http_error_contract"))?;
+                    match (result.response, result.next) {
+                        (None, Some(next)) => {
+                            tokens(&mut input_tokens, result.input_tokens)?;
+                            tokens(&mut output_tokens, result.output_tokens)?;
+                            exchange = next;
+                            continue;
+                        }
+                        _ => return Err(failure("http_error_contract")),
+                    }
+                }
+            }
         }
         let mut bytes = response.bytes_stream();
         let mut decoder = Decoder::new(program.limits.max_frame_bytes);

@@ -656,11 +656,13 @@ fn main() -> Result<()> {
                         "context_sources": [
                             conditional("/workspace_enabled", reference("files.rules"))
                         ],
+                        "recipe": reference("resilience.recipe"),
                         "settings": {
                             "input_delivery": {"duplex": true},
                             "scope_identity": "hashed_v2",
                             "max_steps": {"$parameter": "/max_steps"},
-                            "model": {"$parameter": "/model_settings"}
+                            "model": {"$parameter": "/model_settings"},
+                            "tool_argument_coercion": {"$parameter": "/tool_argument_coercion"}
                         }
                     }
                 }
@@ -739,6 +741,18 @@ fn main() -> Result<()> {
             "keep_turns": {"$parameter": "/compaction_keep_turns"}
         }),
         json!({"model": model_ref}),
+    )?;
+    import_package(
+        &mut source,
+        &mut system["module_imports"],
+        &modules_dir,
+        "agent-foundation/resilience",
+        "resilience",
+        json!({
+            "max_continues": {"$parameter": "/length_max_continues"},
+            "max_consecutive_malformed": {"$parameter": "/malformed_tool_call_limit"}
+        }),
+        json!({}),
     )?;
 
     for (alias, path, enabled_param, conn_param, model_param) in [
@@ -837,6 +851,34 @@ fn main() -> Result<()> {
     properties.insert(
         "compaction_keep_turns".into(),
         json!({"type": "integer", "minimum": 0, "maximum": 64, "default": 2}),
+    );
+    properties.insert(
+        "tool_argument_coercion".into(),
+        json!({
+            "enum": ["safe", "strict"],
+            "default": "safe",
+            "description": "Schema-guided tool argument normalization before rejecting validation errors: 'safe' (default) drops optional nulls and unwraps single-layer double-encoded JSON containers; 'strict' disables coercion."
+        }),
+    );
+    properties.insert(
+        "length_max_continues".into(),
+        json!({
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16,
+            "default": 2,
+            "description": "Maximum automatic continuation steps after length-truncated text completions via the resilience recipe."
+        }),
+    );
+    properties.insert(
+        "malformed_tool_call_limit".into(),
+        json!({
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 64,
+            "default": 3,
+            "description": "Circuit breaker stopping a run after N consecutive malformed or schema-invalid tool calls (0 disables)."
+        }),
     );
     properties.insert(
         "workspace".into(),

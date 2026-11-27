@@ -479,6 +479,20 @@
       "default": false,
       "type": "boolean"
     },
+    "length_max_continues": {
+      "default": 2,
+      "description": "Maximum automatic continuation steps after length-truncated text completions via the resilience recipe.",
+      "maximum": 16,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "malformed_tool_call_limit": {
+      "default": 3,
+      "description": "Circuit breaker stopping a run after N consecutive malformed or schema-invalid tool calls (0 disables).",
+      "maximum": 64,
+      "minimum": 0,
+      "type": "integer"
+    },
     "max_nodes": {
       "default": 64,
       "maximum": 128,
@@ -656,6 +670,14 @@
       "default": "omni",
       "minLength": 1,
       "type": "string"
+    },
+    "tool_argument_coercion": {
+      "default": "safe",
+      "description": "Schema-guided tool argument normalization before rejecting validation errors: 'safe' (default) drops optional nulls and unwraps single-layer double-encoded JSON containers; 'strict' disables coercion.",
+      "enum": [
+        "safe",
+        "strict"
+      ]
     },
     "workspace": {
       "description": "Absolute workspace root directory when workspace_enabled or command_enabled is true.",

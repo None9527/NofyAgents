@@ -472,6 +472,7 @@ impl AgentHost<'_> {
     ) -> Result<(), Error> {
         self.state.in_flight = None;
         self.state.hook_progress.prepared_tool = None;
+        let result_index = self.state.messages.len();
         self.state.messages.push(Message::Tool {
             call_id: call.id.clone(),
             content: json!({"error":reason}),
@@ -488,6 +489,13 @@ impl AgentHost<'_> {
             self.hook_operation(&format!("denied:{}", call.id)),
             json!({"call":call,"reason":reason,"source":source}),
         );
+        if matches!(source, "parse" | "validation") {
+            self.queue_recipe(
+                crate::recipe::Boundary::AfterTool,
+                Some(call.clone()),
+                Some(result_index),
+            )?;
+        }
         crate::mailbox::finish_user_command(&mut self.state, &call.id, true)?;
         self.commit().await
     }

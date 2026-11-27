@@ -34,7 +34,7 @@ fn cache_blocks(blocks) {
     }
     blocks
 }
-fn make_exchange(model, request, trail, attempt, admission) {
+fn make_exchange(model, request, trail, attempt, admission, strict_disabled) {
     if !history(request.messages) { reject("opaque_history", "Messages requires explicit conversion of foreign native history"); }
     let s = settings(request);
     let thinking = s.reasoning_effort != () && s.reasoning_effort != "none" && s.reasoning_effort != "minimal";
@@ -80,8 +80,10 @@ fn make_exchange(model, request, trail, attempt, admission) {
     let tools = [];
     if s.tool_choice != "none" {
         for tool in request.tools {
-            let mapped = #{name: tool.function.name, input_schema: tool.function.parameters};
+            let wire = tool_schema_for_wire(tool, s, strict_disabled);
+            let mapped = #{name: tool.function.name, input_schema: wire.parameters};
             if tool.function.description != () { mapped.description = tool.function.description; }
+            if wire.strict { mapped.strict = true; }
             tools.push(mapped);
         }
         for tool in s.hosted_tools ?? [] { tools.push(tool); }
@@ -124,6 +126,7 @@ fn make_exchange(model, request, trail, attempt, admission) {
     if s.top_p != () { body.top_p = s.top_p; }
     #{path: "messages", body: body, mode: if streaming { "sse" } else { "json" },
         state: #{model: model, request: request, trail: trail, attempt: attempt, admission: admission,
+            strict_tools_disabled: strict_disabled,
             message: #{role: "assistant", content: []}, blocks: [], arguments: [], stopped: [], usage: #{}}}
 }
 fn event(state, frame) {
@@ -161,9 +164,22 @@ fn event(state, frame) {
         let block = state.blocks[data.index];
         if kind == "content_block_stop" {
             if (block.type == "tool_use" || block.type == "server_tool_use") && state.arguments[data.index] != "" {
-                let parsed = try_json(state.arguments[data.index]);
-                if !parsed.ok { reject("tool_arguments", "Messages tool input is not complete JSON"); }
-                block.input = parsed.value;
+                let raw_arg = state.arguments[data.index];
+                let repair_mode = settings(state.request).tool_json_repair ?? "lexical";
+                let parsed = json_parse_detailed(raw_arg);
+                if !parsed.ok && repair_mode != "strict" {
+                    let repaired = json_repair_lexical(raw_arg);
+                    if repaired != raw_arg { parsed = json_parse_detailed(repaired); }
+                }
+                if parsed.ok && type_of(parsed.value) == "map" {
+                    block.input = parsed.value;
+                } else if block.type == "server_tool_use" {
+                    reject("tool_arguments", "Messages server tool input is not complete JSON");
+                } else {
+                    // Defer malformed local tool_use settlement to final_response where stop_reason is known.
+                    block.input = #{};
+                    block._raw_arguments = raw_arg;
+                }
             }
             state.stopped[data.index] = true;
         } else {
@@ -208,25 +224,42 @@ fn final_response(state) {
         if rounds >= (settings(state.request).hosted_tool_rounds ?? 2) { reject("hosted_round_limit", "Messages hosted tool continuation reached its declared round limit"); }
         let native = opaque("anthropic.messages/v1", #{role:"assistant",content:state.message.content});
         state.trail.push(native); state.request.messages.push(native);
-        let next = make_exchange(state.model, state.request, state.trail, state.attempt, state.admission);
+        let next = make_exchange(state.model, state.request, state.trail, state.attempt, state.admission, state.strict_tools_disabled ?? false);
         next.state.hosted_rounds = rounds + 1;
         return #{next:next,input_tokens:token_count(state.usage,"input_tokens",true) + token_count(state.usage,"cache_creation_input_tokens",false) + token_count(state.usage,"cache_read_input_tokens",false),output_tokens:token_count(state.usage,"output_tokens",true)};
     }
-    let output = "";
-    let calls = [];
-    for block in state.message.content {
-        if block.type == "text" { output += block.text; }
-        else if block.type == "tool_use" { calls.push(parsed_call(block.id, block.name, json_stringify(block.input))); }
-    }
     let reason = state.message.stop_reason;
-    let refusal = if reason == "refusal" { "provider refused the response" } else { () };
-    if output == "" && calls.len() == 0 && refusal == () { reject("empty_response", "Messages returned no text or tool call"); }
     let stop = if reason == "max_tokens" { "length" } else if reason == "tool_use" { "tool_calls" }
         else if reason == "refusal" { "content_filter" } else { reason };
+    let output = "";
+    let calls = [];
+    let malformed = #{};
+    let clean_content = [];
+    for block in state.message.content {
+        if block.type == "text" {
+            output += block.text;
+            clean_content.push(block);
+        } else if block.type == "tool_use" {
+            let raw_arg = if block.contains("_raw_arguments") { block._raw_arguments } else { json_stringify(block.input) };
+            let entry = parsed_call_entry(block.id, block.name, raw_arg, state.request, stop);
+            if entry == () { continue; }
+            let clean = block;
+            if clean.contains("_raw_arguments") { clean.remove("_raw_arguments"); }
+            clean.input = entry.invocation.arguments;
+            clean_content.push(clean);
+            calls.push(entry.invocation);
+            if entry.malformed != () { malformed[entry.invocation.id] = entry.malformed; }
+        } else {
+            clean_content.push(block);
+        }
+    }
+    let refusal = if reason == "refusal" { "provider refused the response" } else { () };
+    if output == "" && calls.len() == 0 && refusal == () { reject("empty_response", "Messages returned no text or tool call"); }
+    state.message.content = clean_content;
     state.message.usage = state.usage;
-    let native = #{role: "assistant", content: state.message.content};
+    let native = #{role: "assistant", content: clean_content};
     let usage = state.usage;
-    finish(state, answer(state, output, calls, [opaque("anthropic.messages/v1", native)], stop, refusal, state.message,
+    finish(state, answer(state, output, calls, malformed, [opaque("anthropic.messages/v1", native)], stop, refusal, state.message,
         token_count(usage, "input_tokens", true) + token_count(usage, "cache_creation_input_tokens", false)
             + token_count(usage, "cache_read_input_tokens", false), token_count(usage, "output_tokens", true)))
 }
@@ -234,7 +267,7 @@ switch args.phase {
     "admit" => admit(args.request, "messages", args.endpoint_limits),
     "history" => history(args.messages),
     "http_error" => http_error(args),
-    "request" => make_exchange(args.model, args.request, [], 0, args.admission),
+    "request" => make_exchange(args.model, args.request, [], 0, args.admission, false),
     "event" => event(args.state, args.frame),
     "finish" => final_response(args.state),
     _ => reject("phase", "unknown model protocol phase")

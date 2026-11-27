@@ -466,12 +466,12 @@ async fn uncertain_model_keeps_park_pending_and_evidence_can_settle_without_fifo
         .enqueue_managed_action(action(
             "evidence",
             ManagedCommand::ReconcileModel {
-                receipt: ModelReconciliation {
+                receipt: Box::new(ModelReconciliation {
                     ticket: target.ticket,
                     result: ModelReconciliationResult::Completed {
                         response: tool_response(),
                     },
-                },
+                }),
             },
         ))
         .await
@@ -572,12 +572,12 @@ async fn pending_request_can_be_released_without_resources_and_parked_checkpoint
         .enqueue_managed_action(action(
             "evidence",
             ManagedCommand::ReconcileModel {
-                receipt: ModelReconciliation {
+                receipt: Box::new(ModelReconciliation {
                     ticket: target.ticket,
                     result: ModelReconciliationResult::Completed {
                         response: tool_response(),
                     },
-                },
+                }),
             },
         ))
         .await

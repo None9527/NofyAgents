@@ -12,6 +12,30 @@ pub fn validate_json_value(schema: &Value, value: &Value) -> Result<(), crate::E
         .map_err(|e| crate::Error::Composition(format!("JSON value {}: {e}", e.instance_path)))
 }
 
+/// Validate a JSON value against a local schema, returning up to 8 structured
+/// `(instance_path, message)` violations so callers can feed exact field errors
+/// back to models.
+pub fn validate_json_value_detailed(
+    schema: &Value,
+    value: &Value,
+) -> Result<Result<(), Vec<(String, String)>>, crate::Error> {
+    crate::schema::validate_with_details(schema, value)
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolArgumentCoercion {
+    #[default]
+    Strict,
+    Safe,
+}
+
+impl ToolArgumentCoercion {
+    pub fn is_default(&self) -> bool {
+        *self == Self::Strict
+    }
+}
+
 /// Application-supplied settings. No environment reads or implicit home paths.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,6 +46,8 @@ pub struct Settings {
     pub input_delivery: InputDelivery,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope_identity: Option<crate::IdentityScheme>,
+    #[serde(default, skip_serializing_if = "ToolArgumentCoercion::is_default")]
+    pub tool_argument_coercion: ToolArgumentCoercion,
 }
 
 impl Default for Settings {
@@ -31,6 +57,7 @@ impl Default for Settings {
             model: Value::Object(Default::default()),
             input_delivery: InputDelivery::default(),
             scope_identity: None,
+            tool_argument_coercion: ToolArgumentCoercion::default(),
         }
     }
 }

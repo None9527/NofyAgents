@@ -517,8 +517,8 @@ impl RunSupervisor {
             .transaction(move |tx| history::prepare(tx, &inspect))
             .await?;
         let boundary = match prepared {
-            history::Preparation::Replay(old) => return Ok(old),
-            history::Preparation::Validate(boundary) => boundary,
+            history::Preparation::Replay(old) => return Ok(*old),
+            history::Preparation::Validate(boundary) => *boundary,
         };
         let storage_identity = self
             .store
